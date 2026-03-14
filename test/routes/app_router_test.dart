@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +9,7 @@ import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
@@ -257,6 +260,22 @@ void main() {
     expect(
       buildDesktopMoviePlayerRoutePath('ABC-001'),
       '/desktop/library/movies/ABC-001/player',
+    );
+  });
+
+  test('mobile search route helper encodes query parameters', () {
+    expect(buildMobileSearchRoutePath(''), mobileSearchPath);
+    expect(buildMobileSearchRoutePath('abp123'), '/mobile/search/abp123');
+    expect(
+      buildMobileSearchRoutePath('Rio %'),
+      '/mobile/search/${Uri.encodeComponent('Rio %')}',
+    );
+  });
+
+  test('mobile playlist detail route helper builds expected path', () {
+    expect(
+      buildMobilePlaylistDetailRoutePath(8),
+      '$mobileOverviewPath/playlists/8',
     );
   });
 
@@ -664,6 +683,368 @@ void main() {
     expect(find.text('热评'), findsNothing);
   });
 
+  testWidgets('mobile search routes use subpage shell and are reachable', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/search/parse-number',
+      body: <String, dynamic>{
+        'query': 'abp123',
+        'parsed': true,
+        'movie_number': 'ABP-123',
+        'reason': null,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/search/local',
+      body: <Map<String, dynamic>>[],
+    );
+
+    router.go('/mobile/search/abp123');
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('搜索'), findsOneWidget);
+    expect(find.byKey(const Key('catalog-search-page-field')), findsOneWidget);
+  });
+
+  testWidgets('mobile playlist detail route uses subpage shell', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/8',
+      body: <String, dynamic>{
+        'id': 8,
+        'name': '我的收藏',
+        'kind': 'custom',
+        'description': 'Favorite movies',
+        'is_system': false,
+        'is_mutable': true,
+        'is_deletable': true,
+        'movie_count': 1,
+        'created_at': '2026-03-12T10:10:00Z',
+        'updated_at': '2026-03-12T11:20:00Z',
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/8/movies',
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(buildMobilePlaylistDetailRoutePath(8));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('播放列表详情'), findsOneWidget);
+  });
+
+  testWidgets('mobile overview playlist supports system back to overview', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/latest',
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'javdb_id': 'MovieA1',
+            'movie_number': 'ABC-001',
+            'title': 'Movie 1',
+            'cover_image': null,
+            'release_date': '2024-01-02',
+            'duration_minutes': 120,
+            'is_subscribed': true,
+            'can_play': true,
+          },
+        ],
+        'page': 1,
+        'page_size': 12,
+        'total': 1,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'name': '收藏夹',
+          'kind': 'custom',
+          'description': 'Favorite movies',
+          'is_system': false,
+          'is_mutable': true,
+          'is_deletable': true,
+          'movie_count': 1,
+          'created_at': '2026-03-12T10:10:00Z',
+          'updated_at': '2026-03-12T11:20:00Z',
+        },
+      ],
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/1/movies',
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'javdb_id': 'MovieA1',
+            'movie_number': 'ABC-001',
+            'title': 'Movie 1',
+            'cover_image': null,
+            'release_date': '2024-01-02',
+            'duration_minutes': 120,
+            'is_subscribed': true,
+            'can_play': true,
+            'playlist_item_updated_at': '2026-03-12T10:20:00Z',
+          },
+        ],
+        'page': 1,
+        'page_size': 1,
+        'total': 1,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/1',
+      body: <String, dynamic>{
+        'id': 1,
+        'name': '收藏夹',
+        'kind': 'custom',
+        'description': 'Favorite movies',
+        'is_system': false,
+        'is_mutable': true,
+        'is_deletable': true,
+        'movie_count': 1,
+        'created_at': '2026-03-12T10:10:00Z',
+        'updated_at': '2026-03-12T11:20:00Z',
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/1/movies',
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-overview-playlist-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('播放列表详情'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(router.canPop(), isTrue);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-overview-tabs')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
+    expect(router.canPop(), isFalse);
+  });
+
+  testWidgets('mobile image search route uses subpage shell and is reachable', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileImageSearchPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('以图搜图'), findsOneWidget);
+    expect(
+      find.byKey(const Key('desktop-image-search-empty-select-button')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('mobile image search route uses injected mobile picker', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(() => debugMobileImageSearchFilePicker = null);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    debugMobileImageSearchFilePicker =
+        () async => ImageSearchPickedFile(
+          bytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+          fileName: 'picked.png',
+          mimeType: 'image/png',
+        );
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/image-search/sessions',
+      body: <String, dynamic>{
+        'session_id': 'mobile-image-session',
+        'status': 'ready',
+        'page_size': 20,
+        'next_cursor': null,
+        'expires_at': '2026-03-08T10:10:00Z',
+        'items': const <Map<String, dynamic>>[],
+      },
+    );
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileImageSearchPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    await tester.tap(
+      find.byKey(const Key('desktop-image-search-empty-select-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);
+  });
+
+  testWidgets(
+    'mobile subpage back uses DesktopSearchRouteState fallback path',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore(
+        platform: AppPlatform.mobile,
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      final router = buildMobileRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      router.go(
+        mobileSearchPath,
+        extra: const DesktopSearchRouteState(
+          fallbackPath: mobileMoviesPath,
+          useOnlineSearch: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, mobileMoviesPath);
+    },
+  );
+
+  testWidgets(
+    'mobile subpage back uses DesktopImageSearchRouteState fallback path',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore(
+        platform: AppPlatform.mobile,
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      final router = buildMobileRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      router.go(
+        mobileImageSearchPath,
+        extra: const DesktopImageSearchRouteState(
+          fallbackPath: mobileActorsPath,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, mobileActorsPath);
+    },
+  );
+
   testWidgets('desktop router redirects root to overview', (
     WidgetTester tester,
   ) async {
@@ -770,6 +1151,7 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),

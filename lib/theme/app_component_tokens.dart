@@ -99,7 +99,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       movieDetailPlotPreviewMaxHeight = 720,
       movieDetailPlotPreviewThumbnailWidth = 112,
       movieDetailPlotPreviewThumbnailHeight = 72,
-      playlistBannerHeight = 125,
+      playlistBannerHeight = 100,
       playlistDialogWidth = 520,
       moviePlayerThumbnailAspectRatio = 16 / 9;
 

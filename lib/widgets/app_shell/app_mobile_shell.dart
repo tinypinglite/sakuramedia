@@ -24,7 +24,7 @@ class AppMobileShell extends StatelessWidget {
     final selectedIndex = _selectedIndex(navItems, currentPath);
 
     return Scaffold(
-      body: child,
+      body: Padding(padding: AppPageInsets.compactStandard, child: child),
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
           border: Border(top: BorderSide(color: context.appColors.divider)),

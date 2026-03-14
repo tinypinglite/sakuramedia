@@ -22,6 +22,25 @@ class PlaylistBannerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final spacing = context.appSpacing;
+    final Widget blurredBackground;
+    if (coverImageUrl != null && coverImageUrl!.trim().isNotEmpty) {
+      blurredBackground = MaskedImage(url: coverImageUrl!, fit: BoxFit.cover);
+    } else {
+      blurredBackground = DecoratedBox(
+        key: const Key('playlist-banner-placeholder'),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colors.movieDetailHeroBackgroundStart,
+              Theme.of(context).colorScheme.primary.withValues(alpha: 0.72),
+              colors.movieDetailHeroBackgroundEnd,
+            ],
+          ),
+        ),
+      );
+    }
 
     final card = Container(
       height: context.appComponentTokens.playlistBannerHeight,
@@ -34,38 +53,22 @@ class PlaylistBannerCard extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (coverImageUrl != null && coverImageUrl!.trim().isNotEmpty)
-            MaskedImage(url: coverImageUrl!, fit: BoxFit.cover)
-          else
-            DecoratedBox(
-              key: const Key('playlist-banner-placeholder'),
+          Positioned.fill(
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+              child: blurredBackground,
+            ),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                   colors: [
-                    colors.movieDetailHeroBackgroundStart,
-                    Theme.of(
-                      context,
-                    ).colorScheme.primary.withValues(alpha: 0.72),
-                    colors.movieDetailHeroBackgroundEnd,
+                    colors.mediaOverlaySoft.withValues(alpha: 0.18),
+                    colors.mediaOverlayStrong.withValues(alpha: 0.78),
                   ],
-                ),
-              ),
-            ),
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      colors.mediaOverlaySoft.withValues(alpha: 0.18),
-                      colors.mediaOverlayStrong.withValues(alpha: 0.78),
-                    ],
-                  ),
                 ),
               ),
             ),

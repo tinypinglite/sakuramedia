@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
@@ -11,23 +12,22 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/desktop_search_route_state.dart';
 import 'package:sakuramedia/widgets/search/catalog_search_content.dart';
 
-class CatalogSearchPage extends StatefulWidget {
-  const CatalogSearchPage({
+class MobileCatalogSearchPage extends StatefulWidget {
+  const MobileCatalogSearchPage({
     super.key,
     required this.initialQuery,
-    this.fallbackPath,
     this.initialUseOnlineSearch = false,
   });
 
   final String initialQuery;
-  final String? fallbackPath;
   final bool initialUseOnlineSearch;
 
   @override
-  State<CatalogSearchPage> createState() => _CatalogSearchPageState();
+  State<MobileCatalogSearchPage> createState() =>
+      _MobileCatalogSearchPageState();
 }
 
-class _CatalogSearchPageState extends State<CatalogSearchPage>
+class _MobileCatalogSearchPageState extends State<MobileCatalogSearchPage>
     with SingleTickerProviderStateMixin {
   late final CatalogSearchController _controller;
   late final TextEditingController _textController;
@@ -53,7 +53,7 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
   }
 
   @override
-  void didUpdateWidget(covariant CatalogSearchPage oldWidget) {
+  void didUpdateWidget(covariant MobileCatalogSearchPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     final useOnlineSearchChanged =
         oldWidget.initialUseOnlineSearch != widget.initialUseOnlineSearch;
@@ -97,16 +97,8 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
           onTabSelected: (index) {
             _controller.setActiveKind(_kindForIndex(index));
           },
-          onMovieTap:
-              (movie) => context.go(
-                '$desktopMoviesPath/${Uri.encodeComponent(movie.movieNumber)}',
-                extra: _currentSearchPath,
-              ),
-          onActorTap:
-              (actor) => context.go(
-                '$desktopActorsPath/${actor.id}',
-                extra: _currentSearchPath,
-              ),
+          onMovieTap: (_) => showToast('移动端影片详情开发中'),
+          onActorTap: (_) => showToast('移动端女优详情开发中'),
           onMovieSubscriptionTap:
               (movie) => _toggleMovieSubscription(movie.movieNumber),
           onActorSubscriptionTap: (actor) => _toggleActorSubscription(actor.id),
@@ -114,10 +106,6 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
       },
     );
   }
-
-  String get _currentSearchPath => buildDesktopSearchRoutePath(
-    _controller.query.isEmpty ? widget.initialQuery : _controller.query,
-  );
 
   CatalogSearchKind _kindForIndex(int index) {
     return index == 0 ? CatalogSearchKind.movies : CatalogSearchKind.actors;
@@ -134,11 +122,14 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
   void _submitSearch() {
     final submittedQuery = _textController.text;
     final trimmedQuery = submittedQuery.trim();
-    final routePath = buildDesktopSearchRoutePath(submittedQuery);
+    final routePath = buildMobileSearchRoutePath(submittedQuery);
     final currentPath = GoRouterState.of(context).uri.path;
 
-    if (trimmedQuery.isNotEmpty &&
-        routePath == currentPath &&
+    if (trimmedQuery.isEmpty && currentPath == mobileSearchPath) {
+      return;
+    }
+
+    if (routePath == currentPath &&
         widget.initialUseOnlineSearch == _useOnlineSearch) {
       unawaited(
         _controller.submit(submittedQuery, useOnlineSearch: _useOnlineSearch),
@@ -146,10 +137,10 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
       return;
     }
 
-    context.go(
+    context.push(
       routePath,
       extra: DesktopSearchRouteState(
-        fallbackPath: widget.fallbackPath,
+        fallbackPath: mobileOverviewPath,
         useOnlineSearch: _useOnlineSearch,
       ),
     );

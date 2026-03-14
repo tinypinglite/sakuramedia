@@ -207,8 +207,6 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final filterTitle = tester.widget<Text>(find.text('搜索筛选'));
-      final filterSectionTitle = tester.widget<Text>(find.text('已订阅女优范围'));
       final filterSummary = tester.widget<Text>(
         find.byKey(const Key('desktop-image-search-filter-summary')),
       );
@@ -1136,6 +1134,176 @@ void main() {
       );
     },
   );
+
+  testWidgets('image search page uses injected preview action callbacks', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/image-search/sessions',
+      body: _imageSearchSessionJson(
+        sessionId: 'session-override',
+        items: [
+          _imageSearchResultJson(
+            thumbnailId: 123,
+            mediaId: 456,
+            movieId: 789,
+            movieNumber: 'ABC-001',
+            offsetSeconds: 120,
+            score: 0.91,
+            imageId: 10,
+            imagePath: '/thumb-1.webp',
+          ),
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: <String, dynamic>{
+        'javdb_id': 'MovieA1',
+        'movie_number': 'ABC-001',
+        'title': 'Movie 1',
+        'cover_image': null,
+        'release_date': null,
+        'duration_minutes': 120,
+        'score': 4.5,
+        'watched_count': 12,
+        'want_watch_count': 23,
+        'comment_count': 34,
+        'score_number': 45,
+        'is_collection': false,
+        'is_subscribed': true,
+        'can_play': true,
+        'summary': '',
+        'actors': [],
+        'tags': [],
+        'thin_cover_image': null,
+        'plot_images': [],
+        'media_items': [],
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/456/points',
+      body: const <Map<String, dynamic>>[],
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: <String, dynamic>{
+        'javdb_id': 'MovieA1',
+        'movie_number': 'ABC-001',
+        'title': 'Movie 1',
+        'cover_image': null,
+        'release_date': null,
+        'duration_minutes': 120,
+        'score': 4.5,
+        'watched_count': 12,
+        'want_watch_count': 23,
+        'comment_count': 34,
+        'score_number': 45,
+        'is_collection': false,
+        'is_subscribed': true,
+        'can_play': true,
+        'summary': '',
+        'actors': [],
+        'tags': [],
+        'thin_cover_image': null,
+        'plot_images': [],
+        'media_items': [],
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/456/points',
+      body: const <Map<String, dynamic>>[],
+    );
+
+    var playTapped = false;
+    var detailTapped = false;
+    var similarTapped = false;
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          Provider<ApiClient>.value(value: bundle.apiClient),
+          Provider<ActorsApi>.value(value: bundle.actorsApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<MediaApi>(
+            create: (_) => MediaApi(apiClient: bundle.apiClient),
+          ),
+          Provider<ImageSearchApi>(
+            create: (_) => ImageSearchApi(apiClient: bundle.apiClient),
+          ),
+        ],
+        child: OKToast(
+          child: MaterialApp(
+            theme: sakuraThemeData,
+            home: Scaffold(
+              body: DesktopImageSearchPage(
+                fallbackPath: desktopOverviewPath,
+                initialFileName: 'query.png',
+                initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+                initialMimeType: 'image/png',
+                onSearchSimilar: (context, item) async {
+                  similarTapped = true;
+                  return true;
+                },
+                onOpenPlayer: (context, item) {
+                  playTapped = true;
+                },
+                onOpenMovieDetail: (context, item) {
+                  detailTapped = true;
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(
+        const Key('image-search-result-card-123'),
+        skipOffstage: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.ancestor(of: find.text('播放'), matching: find.byType(InkWell)),
+    );
+    await tester.pumpAndSettle();
+    expect(playTapped, isTrue);
+
+    await tester.tap(
+      find.byKey(
+        const Key('image-search-result-card-123'),
+        skipOffstage: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.ancestor(of: find.text('影片详情'), matching: find.byType(InkWell)),
+    );
+    await tester.pumpAndSettle();
+    expect(detailTapped, isTrue);
+
+    await tester.tap(
+      find.byKey(
+        const Key('image-search-result-card-123'),
+        skipOffstage: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.ancestor(of: find.text('相似图片'), matching: find.byType(InkWell)),
+    );
+    await tester.pumpAndSettle();
+    expect(similarTapped, isTrue);
+  });
 
   testWidgets('image search page loads next result page on scroll', (
     WidgetTester tester,

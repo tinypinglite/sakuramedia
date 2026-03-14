@@ -23,6 +23,7 @@ void main() {
     debugImageSearchDocumentsDirectoryProvider = null;
     debugImageSearchEnvironmentLookup = null;
     debugImageSearchDirectoryExists = null;
+    debugMobileImageSearchFilePicker = null;
   });
 
   test('pickImageSearchFile uses downloads directory on macOS', () async {
@@ -109,10 +110,59 @@ void main() {
       expect(recordingFilePicker.pickFilesInitialDirectory, isNull);
     },
   );
+
+  test('pickMobileImageSearchFile uses debug override', () async {
+    debugMobileImageSearchFilePicker =
+        () async => ImageSearchPickedFile(
+          bytes: Uint8List.fromList(const <int>[7, 8, 9]),
+          fileName: 'mobile.png',
+          mimeType: 'image/png',
+        );
+
+    final picked = await pickMobileImageSearchFile();
+
+    expect(picked, isNotNull);
+    expect(picked!.fileName, 'mobile.png');
+    expect(picked.mimeType, 'image/png');
+    expect(picked.bytes, Uint8List.fromList(const <int>[7, 8, 9]));
+  });
+
+  test(
+    'pickMobileImageSearchFile returns null when picker is cancelled',
+    () async {
+      debugMobileImageSearchFilePicker = () async => null;
+
+      final picked = await pickMobileImageSearchFile();
+
+      expect(picked, isNull);
+    },
+  );
+
+  test(
+    'pickMobileImageSearchFile uses image file type picker on Android',
+    () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+      await pickMobileImageSearchFile();
+
+      expect(recordingFilePicker.pickFilesType, FileType.image);
+      expect(recordingFilePicker.pickFilesInitialDirectory, isNull);
+    },
+  );
+
+  test('pickMobileImageSearchFile disables compression on Android', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+    await pickMobileImageSearchFile();
+
+    expect(recordingFilePicker.pickFilesAllowCompression, isFalse);
+  });
 }
 
 class _RecordingFilePicker extends FilePicker {
   String? pickFilesInitialDirectory;
+  FileType? pickFilesType;
+  bool? pickFilesAllowCompression;
 
   @override
   Future<FilePickerResult?> pickFiles({
@@ -130,6 +180,8 @@ class _RecordingFilePicker extends FilePicker {
     bool readSequential = false,
   }) async {
     pickFilesInitialDirectory = initialDirectory;
+    pickFilesType = type;
+    pickFilesAllowCompression = allowCompression;
     return null;
   }
 

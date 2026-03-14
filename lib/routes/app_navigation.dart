@@ -19,6 +19,9 @@ const String desktopMomentsPath = '/desktop/library/moments';
 const String desktopPlaylistsPath = '/desktop/library/playlists';
 const String desktopConfigurationPath = '/desktop/system/configuration';
 const String mobileOverviewPath = '/mobile/overview';
+const String mobilePlaylistDetailPathPrefix = '$mobileOverviewPath/playlists';
+const String mobileSearchPath = '/mobile/search';
+const String mobileImageSearchPath = '/mobile/search/image';
 const String mobileMoviesPath = '/mobile/library/movies';
 const String mobileActorsPath = '/mobile/library/actors';
 const String mobileRankingsPath = '/mobile/rankings';
@@ -31,6 +34,18 @@ String buildDesktopSearchRoutePath(String query) {
     return desktopSearchPath;
   }
   return '$desktopSearchPath/${Uri.encodeComponent(trimmed)}';
+}
+
+String buildMobileSearchRoutePath(String query) {
+  final trimmed = query.trim();
+  if (trimmed.isEmpty) {
+    return mobileSearchPath;
+  }
+  return '$mobileSearchPath/${Uri.encodeComponent(trimmed)}';
+}
+
+String buildMobilePlaylistDetailRoutePath(int playlistId) {
+  return '$mobilePlaylistDetailPathPrefix/$playlistId';
 }
 
 String buildDesktopMoviePlayerRoutePath(

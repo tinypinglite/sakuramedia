@@ -1,14 +1,18 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/presentation/desktop_actor_detail_page.dart';
 import 'package:sakuramedia/features/auth/presentation/login_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlist_detail_page.dart';
+import 'package:sakuramedia/features/playlists/presentation/mobile_playlist_detail_page.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_page.dart';
+import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
@@ -16,6 +20,7 @@ import 'package:sakuramedia/routes/desktop_search_route_state.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/widgets/app_shell/app_desktop_shell.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_shell.dart';
+import 'package:sakuramedia/widgets/app_shell/app_mobile_subpage_shell.dart';
 
 GoRouter buildAppRouter(AppPlatform platform, SessionStore sessionStore) {
   switch (platform) {
@@ -86,6 +91,7 @@ GoRouter _buildRouter({
                 ),
       )
       .toList(growable: true);
+  final mobileSubpageRoutes = <RouteBase>[];
 
   if (platform == AppPlatform.desktop) {
     shellRoutes.add(
@@ -213,6 +219,86 @@ GoRouter _buildRouter({
             ),
       ),
     );
+  } else if (platform == AppPlatform.mobile) {
+    mobileSubpageRoutes.add(
+      GoRoute(
+        path: '$mobilePlaylistDetailPathPrefix/:playlistId',
+        name: 'mobile-playlist-detail',
+        builder:
+            (context, state) => MobilePlaylistDetailPage(
+              playlistId:
+                  int.tryParse(state.pathParameters['playlistId'] ?? '') ?? 0,
+            ),
+      ),
+    );
+    mobileSubpageRoutes.add(
+      GoRoute(
+        path: mobileSearchPath,
+        name: 'mobile-search-empty',
+        builder:
+            (context, state) => MobileCatalogSearchPage(
+              initialQuery: '',
+              initialUseOnlineSearch:
+                  DesktopSearchRouteState.maybeFromExtra(
+                    state.extra,
+                  ).useOnlineSearch,
+            ),
+      ),
+    );
+    mobileSubpageRoutes.add(
+      GoRoute(
+        path: mobileImageSearchPath,
+        name: 'mobile-image-search',
+        builder:
+            (context, state) => DesktopImageSearchPage(
+              fallbackPath:
+                  DesktopImageSearchRouteState.maybeFromExtra(
+                    state.extra,
+                  ).fallbackPath,
+              initialFileName:
+                  DesktopImageSearchRouteState.maybeFromExtra(
+                    state.extra,
+                  ).initialFileName,
+              initialFileBytes:
+                  DesktopImageSearchRouteState.maybeFromExtra(
+                    state.extra,
+                  ).initialFileBytes,
+              initialMimeType:
+                  DesktopImageSearchRouteState.maybeFromExtra(
+                    state.extra,
+                  ).initialMimeType,
+              currentMovieNumber:
+                  DesktopImageSearchRouteState.maybeFromExtra(
+                    state.extra,
+                  ).currentMovieNumber,
+              initialCurrentMovieScope:
+                  DesktopImageSearchRouteState.maybeFromExtra(
+                    state.extra,
+                  ).initialCurrentMovieScope,
+              imagePicker: pickMobileImageSearchFile,
+              onSearchSimilar: (context, item) async {
+                showToast('移动端以图搜图开发中');
+                return false;
+              },
+              onOpenPlayer: (_, __) => showToast('移动端播放器开发中'),
+              onOpenMovieDetail: (_, __) => showToast('移动端影片详情开发中'),
+            ),
+      ),
+    );
+    mobileSubpageRoutes.add(
+      GoRoute(
+        path: '$mobileSearchPath/:query',
+        name: 'mobile-search',
+        builder:
+            (context, state) => MobileCatalogSearchPage(
+              initialQuery: state.pathParameters['query'] ?? '',
+              initialUseOnlineSearch:
+                  DesktopSearchRouteState.maybeFromExtra(
+                    state.extra,
+                  ).useOnlineSearch,
+            ),
+      ),
+    );
   }
 
   final routes = <RouteBase>[
@@ -288,6 +374,17 @@ GoRouter _buildRouter({
         routes: shellRoutes,
       ),
     );
+    routes.add(
+      ShellRoute(
+        builder:
+            (context, state, child) => AppMobileSubpageShell(
+              title: _mobileSubpageTitleFromPath(state.uri.path),
+              fallbackPath: _mobileSubpageFallbackPathFromExtra(state.extra),
+              child: child,
+            ),
+        routes: mobileSubpageRoutes,
+      ),
+    );
   } else {
     routes.addAll(shellRoutes);
   }
@@ -321,4 +418,37 @@ NoTransitionPage<void> _buildDesktopNoTransitionPage({
   required Widget child,
 }) {
   return NoTransitionPage<void>(key: state.pageKey, name: name, child: child);
+}
+
+String _mobileSubpageFallbackPathFromExtra(Object? routeExtra) {
+  if (routeExtra is String && routeExtra.startsWith('/mobile/')) {
+    return routeExtra;
+  }
+  final searchState = DesktopSearchRouteState.maybeFromExtra(routeExtra);
+  final searchFallbackPath = searchState.fallbackPath;
+  if (searchFallbackPath != null && searchFallbackPath.startsWith('/mobile/')) {
+    return searchFallbackPath;
+  }
+  final imageSearchState = DesktopImageSearchRouteState.maybeFromExtra(
+    routeExtra,
+  );
+  final imageSearchFallbackPath = imageSearchState.fallbackPath;
+  if (imageSearchFallbackPath != null &&
+      imageSearchFallbackPath.startsWith('/mobile/')) {
+    return imageSearchFallbackPath;
+  }
+  return mobileOverviewPath;
+}
+
+String _mobileSubpageTitleFromPath(String path) {
+  if (path == mobileImageSearchPath) {
+    return '以图搜图';
+  }
+  if (path == mobileSearchPath || path.startsWith('$mobileSearchPath/')) {
+    return '搜索';
+  }
+  if (path.startsWith('$mobilePlaylistDetailPathPrefix/')) {
+    return '播放列表详情';
+  }
+  return '详情';
 }

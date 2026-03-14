@@ -79,15 +79,45 @@ void main() {
         home: const AppMobileShell(
           currentPath: '/mobile/library/movies',
           navGroups: navGroups,
-          child: SizedBox.shrink(),
+          child: SizedBox(key: Key('mobile-shell-child')),
         ),
       ),
     );
 
     final tabBar = tester.widget<CupertinoTabBar>(find.byType(CupertinoTabBar));
+    final shellPadding = tester.widget<Padding>(
+      find.ancestor(
+        of: find.byKey(const Key('mobile-shell-child')),
+        matching: find.byType(Padding),
+      ),
+    );
+
     expect(tabBar.currentIndex, 1);
     expect(tabBar.height, 52);
+    expect(shellPadding.padding, AppPageInsets.compactStandard);
+    expect(find.byType(AppBar), findsNothing);
   });
+
+  testWidgets(
+    'mobile shell keeps overview tab selected on nested overview path',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: const AppMobileShell(
+            currentPath: '/mobile/overview/playlists/8',
+            navGroups: navGroups,
+            child: SizedBox.shrink(),
+          ),
+        ),
+      );
+
+      final tabBar = tester.widget<CupertinoTabBar>(
+        find.byType(CupertinoTabBar),
+      );
+      expect(tabBar.currentIndex, 0);
+    },
+  );
 
   testWidgets('mobile shell navigates when tapping bottom destination', (
     tester,

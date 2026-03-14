@@ -37,6 +37,10 @@ class DesktopImageSearchPage extends StatefulWidget {
     this.initialMimeType,
     this.currentMovieNumber,
     this.initialCurrentMovieScope = ImageSearchCurrentMovieScope.all,
+    this.imagePicker = pickImageSearchFile,
+    this.onSearchSimilar,
+    this.onOpenPlayer,
+    this.onOpenMovieDetail,
   });
 
   final String? fallbackPath;
@@ -45,6 +49,16 @@ class DesktopImageSearchPage extends StatefulWidget {
   final String? initialMimeType;
   final String? currentMovieNumber;
   final ImageSearchCurrentMovieScope initialCurrentMovieScope;
+  final ImageSearchFilePicker imagePicker;
+  final Future<bool> Function(
+    BuildContext context,
+    ImageSearchResultItemDto item,
+  )?
+  onSearchSimilar;
+  final void Function(BuildContext context, ImageSearchResultItemDto item)?
+  onOpenPlayer;
+  final void Function(BuildContext context, ImageSearchResultItemDto item)?
+  onOpenMovieDetail;
 
   @override
   State<DesktopImageSearchPage> createState() => _DesktopImageSearchPageState();
@@ -505,7 +519,7 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
 
   Future<void> _pickAndSearchImage() async {
     try {
-      final pickedFile = await pickImageSearchFile();
+      final pickedFile = await widget.imagePicker();
       if (pickedFile == null || !mounted) {
         return;
       }
@@ -559,6 +573,10 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   }
 
   Future<bool> _searchSimilarFromResult(ImageSearchResultItemDto item) async {
+    final customHandler = widget.onSearchSimilar;
+    if (customHandler != null) {
+      return customHandler(context, item);
+    }
     try {
       await launchDesktopImageSearchFromUrl(
         context,
@@ -576,6 +594,11 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   }
 
   void _openPlayerForResult(ImageSearchResultItemDto item) {
+    final customHandler = widget.onOpenPlayer;
+    if (customHandler != null) {
+      customHandler(context, item);
+      return;
+    }
     context.push(
       buildDesktopMoviePlayerRoutePath(
         item.movieNumber,
@@ -586,6 +609,11 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   }
 
   void _openMovieDetailForResult(ImageSearchResultItemDto item) {
+    final customHandler = widget.onOpenMovieDetail;
+    if (customHandler != null) {
+      customHandler(context, item);
+      return;
+    }
     context.push(
       '$desktopMoviesPath/${Uri.encodeComponent(item.movieNumber)}',
       extra: desktopImageSearchPath,
