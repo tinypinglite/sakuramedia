@@ -1,0 +1,115 @@
+enum MovieStatusFilter { all, subscribed, playable }
+
+extension MovieStatusFilterX on MovieStatusFilter {
+  String get apiValue => switch (this) {
+    MovieStatusFilter.all => 'all',
+    MovieStatusFilter.subscribed => 'subscribed',
+    MovieStatusFilter.playable => 'playable',
+  };
+
+  String get label => switch (this) {
+    MovieStatusFilter.all => '全部',
+    MovieStatusFilter.subscribed => '已订阅',
+    MovieStatusFilter.playable => '可播放',
+  };
+}
+
+enum MovieCollectionTypeFilter { all, single }
+
+extension MovieCollectionTypeFilterX on MovieCollectionTypeFilter {
+  String get apiValue => switch (this) {
+    MovieCollectionTypeFilter.all => 'all',
+    MovieCollectionTypeFilter.single => 'single',
+  };
+
+  String get label => switch (this) {
+    MovieCollectionTypeFilter.all => '全部',
+    MovieCollectionTypeFilter.single => '单体',
+  };
+}
+
+enum MovieSortField {
+  releaseDate,
+  addedAt,
+  subscribedAt,
+  commentCount,
+  scoreNumber,
+  wantWatchCount,
+  heat,
+}
+
+extension MovieSortFieldX on MovieSortField {
+  String get apiValue => switch (this) {
+    MovieSortField.releaseDate => 'release_date',
+    MovieSortField.addedAt => 'added_at',
+    MovieSortField.subscribedAt => 'subscribed_at',
+    MovieSortField.commentCount => 'comment_count',
+    MovieSortField.scoreNumber => 'score_number',
+    MovieSortField.wantWatchCount => 'want_watch_count',
+    MovieSortField.heat => 'heat',
+  };
+
+  String get label => switch (this) {
+    MovieSortField.releaseDate => '发行时间',
+    MovieSortField.addedAt => '最近入库',
+    MovieSortField.subscribedAt => '订阅时间',
+    MovieSortField.commentCount => '评论人数',
+    MovieSortField.scoreNumber => '评分人数',
+    MovieSortField.wantWatchCount => '想看人数',
+    MovieSortField.heat => '热度',
+  };
+}
+
+enum SortDirection { asc, desc }
+
+extension SortDirectionX on SortDirection {
+  String get apiValue => switch (this) {
+    SortDirection.asc => 'asc',
+    SortDirection.desc => 'desc',
+  };
+
+  String get label => switch (this) {
+    SortDirection.asc => '升序',
+    SortDirection.desc => '降序',
+  };
+}
+
+class MovieFilterState {
+  const MovieFilterState({
+    this.status = MovieStatusFilter.all,
+    this.collectionType = MovieCollectionTypeFilter.single,
+    this.sortField = MovieSortField.releaseDate,
+    this.sortDirection = SortDirection.desc,
+  });
+
+  final MovieStatusFilter status;
+  final MovieCollectionTypeFilter collectionType;
+  final MovieSortField sortField;
+  final SortDirection sortDirection;
+
+  static const MovieFilterState initial = MovieFilterState();
+
+  bool get isDefault =>
+      status == MovieStatusFilter.all &&
+      collectionType == MovieCollectionTypeFilter.single &&
+      sortField == MovieSortField.releaseDate &&
+      sortDirection == SortDirection.desc;
+
+  String get sortExpression =>
+      '${sortField.apiValue}:${sortDirection.apiValue}';
+  String get triggerLabel => status.label;
+
+  MovieFilterState copyWith({
+    MovieStatusFilter? status,
+    MovieCollectionTypeFilter? collectionType,
+    MovieSortField? sortField,
+    SortDirection? sortDirection,
+  }) {
+    return MovieFilterState(
+      status: status ?? this.status,
+      collectionType: collectionType ?? this.collectionType,
+      sortField: sortField ?? this.sortField,
+      sortDirection: sortDirection ?? this.sortDirection,
+    );
+  }
+}

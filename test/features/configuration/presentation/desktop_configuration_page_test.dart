@@ -1,0 +1,1516 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:oktoast/oktoast.dart';
+import 'package:provider/provider.dart';
+import 'package:sakuramedia/app/app_state.dart';
+import 'package:sakuramedia/features/account/data/account_api.dart';
+import 'package:sakuramedia/features/auth/data/auth_api.dart';
+import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
+import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
+import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
+import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
+import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/status/data/status_api.dart';
+import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/app_router.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_button.dart';
+
+import '../../../support/test_api_bundle.dart';
+
+void main() {
+  group('DesktopConfigurationPage', () {
+    late SessionStore sessionStore;
+    late TestApiBundle bundle;
+
+    setUp(() async {
+      sessionStore = await _buildLoggedInSessionStore();
+      bundle = await createTestApiBundle(sessionStore);
+    });
+
+    tearDown(() {
+      bundle.dispose();
+    });
+
+    testWidgets('renders downloads tab before indexers tab', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      final tabs = tester.widgetList<Tab>(find.byType(Tab)).toList();
+      expect(tabs.map((tab) => tab.text).toList(), ['基础信息', '下载器', '索引器']);
+    });
+
+    testWidgets('loads download clients lazily when switching tabs', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle, libraries: const []);
+      _enqueueDownloadClientsList(bundle, clients: const []);
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      expect(bundle.adapter.hitCount('GET', '/download-clients'), 0);
+      expect(bundle.adapter.hitCount('GET', '/media-libraries'), 1);
+      expect(find.text('还没有媒体库'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('GET', '/download-clients'), 1);
+      expect(bundle.adapter.hitCount('GET', '/media-libraries'), 2);
+      expect(find.text('还没有下载器配置'), findsOneWidget);
+    });
+
+    testWidgets('creates a media library and refreshes the list', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle, libraries: const []);
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/media-libraries',
+        statusCode: 201,
+        body: {
+          'id': 2,
+          'name': 'Archive Library',
+          'root_path': '/media/library/archive',
+          'created_at': '2026-03-09T09:30:00Z',
+          'updated_at': '2026-03-09T09:30:00Z',
+        },
+      );
+      _enqueueMediaLibraries(
+        bundle,
+        libraries: const [
+          {
+            'id': 2,
+            'name': 'Archive Library',
+            'root_path': '/media/library/archive',
+            'created_at': '2026-03-09T09:30:00Z',
+            'updated_at': '2026-03-09T09:30:00Z',
+          },
+        ],
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(
+        find.byKey(const Key('configuration-media-library-create-button')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('media-library-name-field')),
+        'Archive Library',
+      );
+      await tester.enterText(
+        find.byKey(const Key('media-library-root-path-field')),
+        '/media/library/archive',
+      );
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+
+      final postRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'POST' && request.path == '/media-libraries',
+      );
+      expect(postRequest.body['name'], 'Archive Library');
+      expect(postRequest.body['root_path'], '/media/library/archive');
+      expect(find.text('Archive Library'), findsWidgets);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('shows media library id on configuration cards', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      expect(find.text('ID: 1'), findsOneWidget);
+    });
+
+    testWidgets('edits a media library and refreshes download tab libraries', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/media-libraries/1',
+        body: {
+          'id': 1,
+          'name': 'Main Library Updated',
+          'root_path': '/media/library/updated',
+          'created_at': '2026-03-08T09:30:00Z',
+          'updated_at': '2026-03-10T09:30:00Z',
+        },
+      );
+      _enqueueMediaLibraries(
+        bundle,
+        libraries: const [
+          {
+            'id': 1,
+            'name': 'Main Library Updated',
+            'root_path': '/media/library/updated',
+            'created_at': '2026-03-08T09:30:00Z',
+            'updated_at': '2026-03-10T09:30:00Z',
+          },
+        ],
+      );
+      _enqueueDownloadClientsList(bundle, clients: const []);
+      _enqueueMediaLibraries(
+        bundle,
+        libraries: const [
+          {
+            'id': 1,
+            'name': 'Main Library Updated',
+            'root_path': '/media/library/updated',
+            'created_at': '2026-03-08T09:30:00Z',
+            'updated_at': '2026-03-10T09:30:00Z',
+          },
+        ],
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('media-library-edit-1')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('media-library-name-field')),
+        'Main Library Updated',
+      );
+      await tester.enterText(
+        find.byKey(const Key('media-library-root-path-field')),
+        '/media/library/updated',
+      );
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+
+      final patchRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'PATCH' && request.path == '/media-libraries/1',
+      );
+      expect(patchRequest.body['name'], 'Main Library Updated');
+      expect(patchRequest.body['root_path'], '/media/library/updated');
+      expect(find.text('Main Library Updated'), findsWidgets);
+
+      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-download-client-create-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('download-client-media-library-field')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Main Library Updated'), findsWidgets);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('prevents creating a media library with a relative root path', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle, libraries: const []);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(
+        find.byKey(const Key('configuration-media-library-create-button')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('media-library-name-field')),
+        'Archive Library',
+      );
+      await tester.enterText(
+        find.byKey(const Key('media-library-root-path-field')),
+        'relative/path',
+      );
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('POST', '/media-libraries'), 0);
+      expect(find.text('请输入路径'), findsOneWidget);
+    });
+
+    testWidgets('shows backend error when creating a media library fails', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle, libraries: const []);
+      bundle.adapter.enqueueResponder(
+        method: 'POST',
+        path: '/media-libraries',
+        responder: (options, requestBody) async {
+          return ResponseBody.fromString(
+            jsonEncode({
+              'error': {
+                'code': 'media_library_conflict',
+                'message': '媒体库名称已存在',
+              },
+            }),
+            409,
+            headers: const {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(
+        find.byKey(const Key('configuration-media-library-create-button')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('media-library-name-field')),
+        'Main Library',
+      );
+      await tester.enterText(
+        find.byKey(const Key('media-library-root-path-field')),
+        '/media/library/main',
+      );
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('媒体库名称已存在'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('renders account security form in basic tab', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      expect(find.text('账号安全'), findsOneWidget);
+      expect(
+        find.byKey(const Key('configuration-password-current-field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('configuration-password-new-field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('configuration-password-confirm-field')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('validates required password fields before submit', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('请输入当前密码'), findsOneWidget);
+      expect(find.text('请输入新密码'), findsOneWidget);
+      expect(find.text('请再次输入新密码'), findsOneWidget);
+      expect(bundle.adapter.hitCount('POST', '/account/password'), 0);
+    });
+
+    testWidgets('prevents reusing current password as new password', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-current-field')),
+        'same-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-new-field')),
+        'same-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-confirm-field')),
+        'same-password',
+      );
+
+      await tester.tap(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('新密码不能与当前密码相同'), findsOneWidget);
+      expect(bundle.adapter.hitCount('POST', '/account/password'), 0);
+    });
+
+    testWidgets('prevents submit when password confirmation mismatches', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-current-field')),
+        'old-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-new-field')),
+        'new-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-confirm-field')),
+        'other-password',
+      );
+
+      await tester.tap(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('两次输入的新密码不一致'), findsOneWidget);
+      expect(bundle.adapter.hitCount('POST', '/account/password'), 0);
+    });
+
+    testWidgets('submits password change request and clears fields on reset', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/account',
+        body: {
+          'username': 'account',
+          'created_at': '2026-03-08T09:00:00Z',
+          'last_login_at': '2026-03-08T10:00:00Z',
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/account/password',
+        statusCode: 204,
+      );
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/auth/tokens',
+        body: {
+          'access_token': 'verified-access-token',
+          'refresh_token': 'verified-refresh-token',
+          'token_type': 'Bearer',
+          'expires_in': 3600,
+          'expires_at': '2026-03-10T13:00:00Z',
+          'refresh_expires_at': '2026-03-17T13:00:00Z',
+          'user': {'username': 'account'},
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-current-field')),
+        'old-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-new-field')),
+        'new-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-confirm-field')),
+        'new-password',
+      );
+
+      await tester.tap(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final postRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'POST' && request.path == '/account/password',
+      );
+      expect(postRequest.body, <String, dynamic>{
+        'current_password': 'old-password',
+        'new_password': 'new-password',
+      });
+      final verifyRequest = bundle.adapter.requests.firstWhere(
+        (request) => request.method == 'POST' && request.path == '/auth/tokens',
+      );
+      expect(verifyRequest.body, <String, dynamic>{
+        'username': 'account',
+        'password': 'new-password',
+      });
+      expect(sessionStore.hasSession, isFalse);
+
+      await sessionStore.saveTokens(
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        expiresAt: DateTime.parse('2026-03-10T12:00:00Z'),
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-current-field')),
+        'stale-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-new-field')),
+        'reset-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-confirm-field')),
+        'reset-password',
+      );
+
+      await tester.tap(
+        find.byKey(const Key('configuration-password-reset-button')),
+      );
+      await tester.pump();
+
+      expect(
+        tester
+            .widget<TextFormField>(
+              find.byKey(const Key('configuration-password-current-field')),
+            )
+            .controller
+            ?.text,
+        isEmpty,
+      );
+      expect(
+        tester
+            .widget<TextFormField>(
+              find.byKey(const Key('configuration-password-new-field')),
+            )
+            .controller
+            ?.text,
+        isEmpty,
+      );
+      expect(
+        tester
+            .widget<TextFormField>(
+              find.byKey(const Key('configuration-password-confirm-field')),
+            )
+            .controller
+            ?.text,
+        isEmpty,
+      );
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('shows backend error when password change fails', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/account',
+        body: {
+          'username': 'account',
+          'created_at': '2026-03-08T09:00:00Z',
+          'last_login_at': '2026-03-08T10:00:00Z',
+        },
+      );
+      await sessionStore.saveTokens(
+        accessToken: 'access-token',
+        refreshToken: '',
+        expiresAt: DateTime.parse('2026-03-10T12:00:00Z'),
+      );
+      bundle.adapter.enqueueResponder(
+        method: 'POST',
+        path: '/account/password',
+        responder: (options, requestBody) async {
+          return ResponseBody.fromString(
+            jsonEncode({
+              'error': {
+                'code': 'invalid_credentials',
+                'message': 'Current password is incorrect',
+                'details': null,
+              },
+            }),
+            401,
+            headers: const {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-current-field')),
+        'wrong-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-new-field')),
+        'new-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-confirm-field')),
+        'new-password',
+      );
+
+      await tester.tap(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Current password is incorrect'), findsOneWidget);
+      expect(find.byKey(const Key('configuration-page')), findsOneWidget);
+      expect(sessionStore.accessToken, 'access-token');
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('keeps session when new password verification fails', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/account',
+        body: {
+          'username': 'account',
+          'created_at': '2026-03-08T09:00:00Z',
+          'last_login_at': '2026-03-08T10:00:00Z',
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/account/password',
+        statusCode: 204,
+      );
+      bundle.adapter.enqueueResponder(
+        method: 'POST',
+        path: '/auth/tokens',
+        responder: (options, requestBody) async {
+          return ResponseBody.fromString(
+            jsonEncode({
+              'error': {'code': 'invalid_credentials', 'message': '用户名或密码错误'},
+            }),
+            401,
+            headers: const {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-current-field')),
+        'old-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-new-field')),
+        'new-password',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-password-confirm-field')),
+        'new-password',
+      );
+
+      await tester.tap(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('密码已修改，但新密码登录校验失败，请重新登录确认'), findsOneWidget);
+      expect(sessionStore.hasSession, isTrue);
+      expect(find.byKey(const Key('configuration-page')), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('creates a download client and refreshes the list', (
+      WidgetTester tester,
+    ) async {
+      _enqueueDownloadClientsList(bundle, clients: const []);
+      _enqueueMediaLibraries(bundle);
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/download-clients',
+        statusCode: 201,
+        body: {
+          'id': 1,
+          'name': 'client-a',
+          'base_url': 'http://localhost:8080',
+          'username': 'alice',
+          'client_save_path': '/downloads/a',
+          'local_root_path': '/mnt/qb/downloads/a',
+          'media_library_id': 1,
+          'has_password': true,
+          'created_at': '2026-03-10T08:00:00Z',
+          'updated_at': '2026-03-10T08:00:00Z',
+        },
+      );
+      _enqueueDownloadClientsList(
+        bundle,
+        clients: [
+          const {
+            'id': 1,
+            'name': 'client-a',
+            'base_url': 'http://localhost:8080',
+            'username': 'alice',
+            'client_save_path': '/downloads/a',
+            'local_root_path': '/mnt/qb/downloads/a',
+            'media_library_id': 1,
+            'has_password': true,
+            'created_at': '2026-03-10T08:00:00Z',
+            'updated_at': '2026-03-10T08:00:00Z',
+          },
+        ],
+      );
+      _enqueueMediaLibraries(bundle);
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-download-client-create-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('添加下载器'), findsOneWidget);
+      expect(find.text('给下载器起个名字，例如：pt 专属'), findsOneWidget);
+      expect(find.text('填写完整内网地址，例如：http://192.168.1.2:8080'), findsOneWidget);
+      expect(find.text('输入用于登录下载器的用户名'), findsOneWidget);
+      expect(find.text('输入用于登录下载器的密码'), findsOneWidget);
+      expect(
+        find.text('填写 qBittorrent 容器内使用的路径，例如：/downloads'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('填写 SakuraMediaBE 中的实际下载绝对路径，例如:/mnt/downloads'),
+        findsOneWidget,
+      );
+
+      final usernameRows =
+          tester
+              .elementList(
+                find.ancestor(
+                  of: find.byKey(const Key('download-client-username-field')),
+                  matching: find.byType(Row),
+                ),
+              )
+              .toSet();
+      final passwordRows =
+          tester
+              .elementList(
+                find.ancestor(
+                  of: find.byKey(const Key('download-client-password-field')),
+                  matching: find.byType(Row),
+                ),
+              )
+              .toSet();
+      expect(usernameRows.intersection(passwordRows), isNotEmpty);
+
+      await tester.enterText(
+        find.byKey(const Key('download-client-name-field')),
+        'client-a',
+      );
+      await tester.enterText(
+        find.byKey(const Key('download-client-base-url-field')),
+        'http://localhost:8080',
+      );
+      await tester.enterText(
+        find.byKey(const Key('download-client-username-field')),
+        'alice',
+      );
+      await tester.enterText(
+        find.byKey(const Key('download-client-password-field')),
+        'secret',
+      );
+      await tester.enterText(
+        find.byKey(const Key('download-client-client-save-path-field')),
+        '/downloads/a',
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('download-client-local-root-path-field')),
+      );
+      await tester.enterText(
+        find.byKey(const Key('download-client-local-root-path-field')),
+        '/mnt/qb/downloads/a',
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('download-client-media-library-field')),
+      );
+      await tester.tap(
+        find.byKey(const Key('download-client-media-library-field')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Main Library'), findsOneWidget);
+      await tester.tap(find.text('Main Library').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+
+      final postRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'POST' && request.path == '/download-clients',
+      );
+      expect(postRequest.body['password'], 'secret');
+      expect(postRequest.body['media_library_id'], 1);
+      expect(postRequest.body['client_save_path'], '/downloads/a');
+      expect(postRequest.body['local_root_path'], '/mnt/qb/downloads/a');
+      expect(find.text('client-a'), findsWidgets);
+      expect(
+        find.textContaining('qBittorrent保存路径: /downloads/a'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('本地访问路径: /mnt/qb/downloads/a'),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('download client dialog uses custom dialog layout', (
+      WidgetTester tester,
+    ) async {
+      _enqueueDownloadClientsList(bundle, clients: const []);
+      _enqueueMediaLibraries(bundle);
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-download-client-create-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('添加下载器'), findsOneWidget);
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    testWidgets('editing a download client omits password when left blank', (
+      WidgetTester tester,
+    ) async {
+      _enqueueDownloadClientsList(
+        bundle,
+        clients: [
+          const {
+            'id': 1,
+            'name': 'client-a',
+            'base_url': 'http://localhost:8080',
+            'username': 'alice',
+            'client_save_path': '/downloads/a',
+            'local_root_path': '/mnt/qb/downloads/a',
+            'media_library_id': 1,
+            'has_password': true,
+            'created_at': '2026-03-10T08:00:00Z',
+            'updated_at': '2026-03-10T08:00:00Z',
+          },
+        ],
+      );
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/download-clients/1',
+        body: {
+          'id': 1,
+          'name': 'client-a',
+          'base_url': 'http://localhost:8080',
+          'username': 'bob',
+          'client_save_path': '/downloads/a',
+          'local_root_path': '/mnt/qb/downloads/a',
+          'media_library_id': 1,
+          'has_password': true,
+          'created_at': '2026-03-10T08:00:00Z',
+          'updated_at': '2026-03-10T08:10:00Z',
+        },
+      );
+      _enqueueDownloadClientsList(
+        bundle,
+        clients: [
+          const {
+            'id': 1,
+            'name': 'client-a',
+            'base_url': 'http://localhost:8080',
+            'username': 'bob',
+            'client_save_path': '/downloads/a',
+            'local_root_path': '/mnt/qb/downloads/a',
+            'media_library_id': 1,
+            'has_password': true,
+            'created_at': '2026-03-10T08:00:00Z',
+            'updated_at': '2026-03-10T08:10:00Z',
+          },
+        ],
+      );
+      _enqueueMediaLibraries(bundle);
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('download-client-edit-1')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('download-client-username-field')),
+        'bob',
+      );
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+
+      final patchRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'PATCH' && request.path == '/download-clients/1',
+      );
+      expect(patchRequest.body['username'], 'bob');
+      expect(patchRequest.body.containsKey('password'), isFalse);
+      expect(
+        find.textContaining('qBittorrent保存路径: /downloads/a'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('本地访问路径: /mnt/qb/downloads/a'),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('prevents creating a download client with a relative path', (
+      WidgetTester tester,
+    ) async {
+      _enqueueDownloadClientsList(bundle, clients: const []);
+      _enqueueMediaLibraries(bundle);
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-download-client-create-button')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('download-client-name-field')),
+        'client-a',
+      );
+      await tester.enterText(
+        find.byKey(const Key('download-client-base-url-field')),
+        'http://localhost:8080',
+      );
+      await tester.enterText(
+        find.byKey(const Key('download-client-username-field')),
+        'alice',
+      );
+      await tester.enterText(
+        find.byKey(const Key('download-client-password-field')),
+        'secret',
+      );
+      await tester.enterText(
+        find.byKey(const Key('download-client-client-save-path-field')),
+        'downloads/a',
+      );
+      await tester.enterText(
+        find.byKey(const Key('download-client-local-root-path-field')),
+        '/mnt/qb/downloads/a',
+      );
+      await tester.tap(
+        find.byKey(const Key('download-client-media-library-field')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Main Library').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('POST', '/download-clients'), 0);
+      expect(find.text('请输入路径'), findsOneWidget);
+    });
+
+    testWidgets('shows backend error when deleting a client fails', (
+      WidgetTester tester,
+    ) async {
+      _enqueueDownloadClientsList(
+        bundle,
+        clients: [
+          const {
+            'id': 1,
+            'name': 'client-a',
+            'base_url': 'http://localhost:8080',
+            'username': 'alice',
+            'client_save_path': '/downloads/a',
+            'local_root_path': '/mnt/qb/downloads/a',
+            'media_library_id': 1,
+            'has_password': true,
+            'created_at': '2026-03-10T08:00:00Z',
+            'updated_at': '2026-03-10T08:00:00Z',
+          },
+        ],
+      );
+      _enqueueMediaLibraries(bundle);
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueResponder(
+        method: 'DELETE',
+        path: '/download-clients/1',
+        responder: (options, requestBody) async {
+          return ResponseBody.fromString(
+            jsonEncode({
+              'error': {
+                'code': 'download_client_in_use',
+                'message': '下载器仍被任务引用',
+              },
+            }),
+            409,
+            headers: const {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('download-client-delete-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('删除').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('下载器仍被任务引用'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets(
+      'loads indexer settings and download clients when switching tabs',
+      (WidgetTester tester) async {
+        _enqueueMediaLibraries(bundle);
+        _enqueueIndexerSettings(bundle, indexers: const []);
+        _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+
+        await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+        expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 0);
+        expect(bundle.adapter.hitCount('GET', '/download-clients'), 0);
+
+        await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+        await tester.pumpAndSettle();
+
+        expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 1);
+        expect(bundle.adapter.hitCount('GET', '/download-clients'), 1);
+      },
+    );
+
+    testWidgets('disables creating indexer when no download clients exist', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueIndexerSettings(bundle, indexers: const []);
+      _enqueueDownloadClientsList(bundle, clients: const []);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+      await tester.pumpAndSettle();
+
+      final createButton = tester.widget<AppButton>(
+        find.byKey(const Key('configuration-indexer-create-button')),
+      );
+      expect(createButton.onPressed, isNull);
+      expect(find.text('请先在下载器 Tab 创建下载器'), findsOneWidget);
+    });
+
+    testWidgets('requires selecting a download client when creating indexer', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueIndexerSettings(bundle, indexers: const []);
+      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-indexer-create-button')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('indexer-entry-name-field')),
+        'mteam',
+      );
+      await tester.enterText(
+        find.byKey(const Key('indexer-entry-url-field')),
+        'https://mirror.example.com/torznab',
+      );
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('请选择下载器'), findsWidgets);
+    });
+
+    testWidgets(
+      'saves indexers with download client binding and shows client name',
+      (WidgetTester tester) async {
+        _enqueueMediaLibraries(bundle);
+        _enqueueIndexerSettings(bundle, indexers: const []);
+        _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+        bundle.adapter.enqueueJson(
+          method: 'PATCH',
+          path: '/indexer-settings',
+          body: {
+            'type': 'jackett',
+            'api_key': 'secret-key',
+            'indexers': [
+              {
+                'id': 1,
+                'name': 'mteam',
+                'url': 'https://mirror.example.com/torznab',
+                'kind': 'pt',
+                'download_client_id': 1,
+                'download_client_name': 'client-a',
+              },
+            ],
+          },
+        );
+
+        await _pumpPage(tester, bundle, sessionStore: sessionStore);
+        await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const Key('configuration-indexer-create-button')),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const Key('indexer-entry-name-field')),
+          'mteam',
+        );
+        await tester.enterText(
+          find.byKey(const Key('indexer-entry-url-field')),
+          'https://mirror.example.com/torznab',
+        );
+        await tester.tap(
+          find.byKey(const Key('indexer-entry-download-client-field')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('client-a').last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('保存').last);
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const Key('configuration-indexer-save-button')),
+        );
+        await tester.pumpAndSettle();
+
+        final patchRequest = bundle.adapter.requests.firstWhere(
+          (request) =>
+              request.method == 'PATCH' && request.path == '/indexer-settings',
+        );
+        expect(patchRequest.body['indexers'][0]['download_client_id'], 1);
+        expect(find.textContaining('下载器: client-a'), findsOneWidget);
+        await tester.pump(const Duration(seconds: 3));
+      },
+    );
+
+    testWidgets('searches indexers by bound download client name', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueIndexerSettings(
+        bundle,
+        indexers: const [
+          {
+            'id': 1,
+            'name': 'mteam',
+            'url': 'https://mirror.example.com/torznab',
+            'kind': 'pt',
+            'download_client_id': 1,
+            'download_client_name': 'client-a',
+          },
+          {
+            'id': 2,
+            'name': 'dmhy',
+            'url': 'https://public.example.com/torznab',
+            'kind': 'bt',
+            'download_client_id': 2,
+            'download_client_name': 'client-b',
+          },
+        ],
+      );
+      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText).last, 'client-b');
+      await tester.pumpAndSettle();
+
+      expect(find.text('dmhy'), findsOneWidget);
+      expect(find.text('mteam'), findsNothing);
+    });
+
+    testWidgets('edits indexer with prefilled download client binding', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueIndexerSettings(
+        bundle,
+        indexers: const [
+          {
+            'id': 1,
+            'name': 'mteam',
+            'url': 'https://mirror.example.com/torznab',
+            'kind': 'pt',
+            'download_client_id': 1,
+            'download_client_name': 'client-a',
+          },
+        ],
+      );
+      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/indexer-settings',
+        body: {
+          'type': 'jackett',
+          'api_key': 'secret-key',
+          'indexers': [
+            {
+              'id': 1,
+              'name': 'mteam',
+              'url': 'https://mirror.example.com/torznab',
+              'kind': 'pt',
+              'download_client_id': 2,
+              'download_client_name': 'client-b',
+            },
+          ],
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('indexer-entry-edit-0')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('client-a'), findsWidgets);
+      await tester.tap(
+        find.byKey(const Key('indexer-entry-download-client-field')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('client-b').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-indexer-save-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final patchRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'PATCH' && request.path == '/indexer-settings',
+      );
+      expect(patchRequest.body['indexers'][0]['download_client_id'], 2);
+      expect(find.textContaining('下载器: client-b'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('prevents duplicate indexer names before saving', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueIndexerSettings(
+        bundle,
+        indexers: const [
+          {
+            'id': 1,
+            'name': 'mteam',
+            'url': 'https://example.com/torznab',
+            'kind': 'pt',
+            'download_client_id': 1,
+            'download_client_name': 'client-a',
+          },
+        ],
+      );
+      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-indexer-create-button')),
+      );
+      await tester.tap(
+        find.byKey(const Key('configuration-indexer-create-button')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('indexer-entry-name-field')),
+        'mteam',
+      );
+      await tester.enterText(
+        find.byKey(const Key('indexer-entry-url-field')),
+        'https://mirror.example.com/torznab',
+      );
+      await tester.tap(
+        find.byKey(const Key('indexer-entry-download-client-field')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('client-a').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-indexer-save-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('PATCH', '/indexer-settings'), 0);
+      expect(find.text('索引器名称重复: mteam'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+  });
+
+  testWidgets('successful password change returns to login through router', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueOverviewResponses(bundle);
+    _enqueueMediaLibraries(bundle);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/account',
+      body: {
+        'username': 'account',
+        'created_at': '2026-03-08T09:00:00Z',
+        'last_login_at': '2026-03-08T10:00:00Z',
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/account/password',
+      statusCode: 204,
+    );
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/auth/tokens',
+      body: {
+        'access_token': 'verified-access-token',
+        'refresh_token': 'verified-refresh-token',
+        'token_type': 'Bearer',
+        'expires_in': 3600,
+        'expires_at': '2026-03-10T13:00:00Z',
+        'refresh_expires_at': '2026-03-17T13:00:00Z',
+        'user': {'username': 'account'},
+      },
+    );
+
+    final router = buildDesktopRouter(sessionStore: sessionStore);
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AppShellController()),
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          Provider<AccountApi>.value(value: bundle.accountApi),
+          Provider<AuthApi>.value(value: bundle.authApi),
+          Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
+          Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
+          Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ],
+        child: OKToast(
+          child: MaterialApp.router(
+            theme: sakuraThemeData,
+            routerConfig: router,
+          ),
+        ),
+      ),
+    );
+    addTearDown(tester.view.reset);
+
+    router.go(desktopConfigurationPath);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('configuration-password-current-field')),
+      'old-password',
+    );
+    await tester.enterText(
+      find.byKey(const Key('configuration-password-new-field')),
+      'new-password',
+    );
+    await tester.enterText(
+      find.byKey(const Key('configuration-password-confirm-field')),
+      'new-password',
+    );
+    await tester.tap(
+      find.byKey(const Key('configuration-password-submit-button')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(sessionStore.hasSession, isFalse);
+    expect(find.byKey(const Key('login-form-base-url')), findsOneWidget);
+    expect(router.routeInformationProvider.value.uri.path, loginPath);
+    await tester.pump(const Duration(seconds: 3));
+  });
+}
+
+Future<void> _pumpPage(
+  WidgetTester tester,
+  TestApiBundle bundle, {
+  required SessionStore sessionStore,
+}) async {
+  tester.view.physicalSize = const Size(1440, 900);
+  tester.view.devicePixelRatio = 1;
+
+  await tester.pumpWidget(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+        Provider<AccountApi>.value(value: bundle.accountApi),
+        Provider<AuthApi>.value(value: bundle.authApi),
+        Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
+        Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
+        Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
+      ],
+      child: OKToast(
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: const Scaffold(body: DesktopConfigurationPage()),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  addTearDown(tester.view.reset);
+}
+
+void _enqueueDownloadClientsList(
+  TestApiBundle bundle, {
+  required List<Map<String, Object?>> clients,
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/download-clients',
+    body: clients,
+  );
+}
+
+const List<Map<String, Object?>> _defaultDownloadClients = [
+  {
+    'id': 1,
+    'name': 'client-a',
+    'base_url': 'http://localhost:8080',
+    'username': 'alice',
+    'client_save_path': '/downloads/a',
+    'local_root_path': '/mnt/qb/downloads/a',
+    'media_library_id': 1,
+    'has_password': true,
+    'created_at': '2026-03-10T08:00:00Z',
+    'updated_at': '2026-03-10T08:00:00Z',
+  },
+  {
+    'id': 2,
+    'name': 'client-b',
+    'base_url': 'http://localhost:8081',
+    'username': 'bob',
+    'client_save_path': '/downloads/b',
+    'local_root_path': '/mnt/qb/downloads/b',
+    'media_library_id': 1,
+    'has_password': true,
+    'created_at': '2026-03-10T09:00:00Z',
+    'updated_at': '2026-03-10T09:00:00Z',
+  },
+];
+
+void _enqueueIndexerSettings(
+  TestApiBundle bundle, {
+  List<Map<String, Object?>> indexers = const [],
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/indexer-settings',
+    body: {'type': 'jackett', 'api_key': 'secret-key', 'indexers': indexers},
+  );
+}
+
+void _enqueueMediaLibraries(
+  TestApiBundle bundle, {
+  List<Map<String, Object?>> libraries = const [
+    {
+      'id': 1,
+      'name': 'Main Library',
+      'root_path': '/media/library/main',
+      'created_at': '2026-03-08T09:30:00Z',
+      'updated_at': '2026-03-08T09:30:00Z',
+    },
+  ],
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/media-libraries',
+    body: libraries,
+  );
+}
+
+Future<SessionStore> _buildLoggedInSessionStore() async {
+  final store = SessionStore.inMemory();
+  await store.saveBaseUrl('https://api.example.com');
+  await store.saveTokens(
+    accessToken: 'access-token',
+    refreshToken: 'refresh-token',
+    expiresAt: DateTime.parse('2026-03-10T12:00:00Z'),
+  );
+  return store;
+}
+
+void _enqueueOverviewResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/status',
+    body: <String, dynamic>{
+      'actors': <String, dynamic>{'female_total': 12, 'female_subscribed': 8},
+      'movies': <String, dynamic>{
+        'total': 120,
+        'subscribed': 35,
+        'playable': 88,
+      },
+      'media_files': <String, dynamic>{
+        'total': 156,
+        'total_size_bytes': 987654321,
+      },
+      'media_libraries': <String, dynamic>{'total': 3},
+    },
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/movies/latest',
+    body: <String, dynamic>{
+      'items': List<Map<String, dynamic>>.generate(
+        8,
+        (index) => <String, dynamic>{
+          'javdb_id': 'MovieA${index + 1}',
+          'movie_number': 'ABC-${(index + 1).toString().padLeft(3, '0')}',
+          'title': 'Movie ${index + 1}',
+          'cover_image': null,
+          'release_date': '2024-01-02',
+          'duration_minutes': 120,
+          'is_subscribed': index.isEven,
+          'can_play': true,
+        },
+      ),
+      'page': 1,
+      'page_size': 8,
+      'total': 8,
+    },
+  );
+}
