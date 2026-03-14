@@ -205,7 +205,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ],
                               ),
                               SizedBox(height: spacing.lg),
-                              Text('登录', style: textTheme.titleLarge),
+                              Text('登录', style: textTheme.bodyMedium),
                               SizedBox(height: spacing.sm),
                               Text(
                                 '请输入服务器地址与账号信息',
@@ -224,7 +224,7 @@ class _LoginPageState extends State<LoginPage> {
                                 validator: _validateBaseUrl,
                                 onFieldSubmitted:
                                     (_) => _usernameFocusNode.requestFocus(),
-                                hintText: '服务器地址，例如 http://127.0.0.1:8003',
+                                hintText: '服务器地址，例如 http://127.0.0.1:38000',
                                 prefix: Icon(
                                   Icons.dns_outlined,
                                   size: context.appComponentTokens.iconSizeMd,

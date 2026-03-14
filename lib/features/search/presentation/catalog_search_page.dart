@@ -120,7 +120,7 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
                     status: _controller.streamStatus!,
                   ),
                 ],
-                SizedBox(height: context.appSpacing.lg),
+                SizedBox(height: context.appSpacing.xs),
                 AppTabBar(
                   controller: _tabController,
                   onTap: (index) {
