@@ -164,4 +164,26 @@ void main() {
     expect(find.byKey(const Key('login-error-message')), findsOneWidget);
     expect(find.text('用户名或密码错误'), findsOneWidget);
   });
+
+  testWidgets('centers login card vertically on desktop viewport', (
+    WidgetTester tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1600, 1000)
+      ..devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi);
+
+    final cardRect = tester.getRect(find.byKey(const Key('login-main-card')));
+    final viewportCenterY = tester.binding.renderView.size.height / 2;
+    final cardCenterY = cardRect.center.dy;
+    final viewportHeight = tester.binding.renderView.size.height;
+
+    expect((cardCenterY - viewportCenterY).abs(), lessThan(2.0));
+    expect(cardRect.height, lessThan(viewportHeight * 0.8));
+  });
 }

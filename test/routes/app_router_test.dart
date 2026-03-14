@@ -40,13 +40,24 @@ void main() {
     ]);
   });
 
-  test('mobile and web route placeholders remain intact', () {
-    expect(mobileRouteSpecs.length, greaterThan(1));
+  test('mobile navigation tree contains expected skeleton entries', () {
+    expect(mobileNavGroups.length, 4);
+    expect(mobileNavGroups.map((group) => group.label), [
+      '概览',
+      '影片',
+      '女优',
+      '榜单',
+    ]);
+    expect(mobileRouteSpecs.map((spec) => spec.path), [
+      mobileOverviewPath,
+      mobileMoviesPath,
+      mobileActorsPath,
+      mobileRankingsPath,
+    ]);
+  });
+
+  test('web route placeholders remain intact', () {
     expect(webRouteSpecs.length, greaterThan(1));
-    expect(
-      mobileRouteSpecs.any((spec) => spec.path.endsWith('/library/movies')),
-      isTrue,
-    );
     expect(
       webRouteSpecs.any((spec) => spec.path.endsWith('/system/ui-kit')),
       isTrue,
@@ -644,6 +655,13 @@ void main() {
     );
 
     expect(overviewPage, isNot(isA<NoTransitionPage<void>>()));
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-overview-tabs')), findsOneWidget);
+    expect(find.text('我的'), findsOneWidget);
+    expect(find.text('关注'), findsOneWidget);
+    expect(find.text('发现'), findsOneWidget);
+    expect(find.text('时刻'), findsOneWidget);
+    expect(find.text('热评'), findsNothing);
   });
 
   testWidgets('desktop router redirects root to overview', (
@@ -765,8 +783,34 @@ void main() {
       router.routeInformationProvider.value.uri.path,
       '/mobile/library/movies',
     );
-    expect(find.text('影片库'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
+    expect(find.text('影片'), findsWidgets);
     expect(find.byKey(const Key('login-form-base-url')), findsNothing);
+  });
+
+  testWidgets('mobile bottom navigation switches between skeleton routes', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('女优').last);
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, mobileActorsPath);
+    expect(find.text('路径: $mobileActorsPath'), findsOneWidget);
   });
 
   testWidgets('desktop router opens movie detail route inside shell', (

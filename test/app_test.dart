@@ -40,10 +40,11 @@ void main() {
       mobileOverviewPath,
     );
 
-    initialRouter.go('/mobile/library/actors');
+    initialRouter.go(mobileActorsPath);
     await tester.pumpAndSettle();
 
-    expect(find.text('路径: /mobile/library/actors'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
+    expect(find.text('路径: $mobileActorsPath'), findsOneWidget);
 
     rebuildNotifier.value += 1;
     await tester.pumpAndSettle();
@@ -52,9 +53,10 @@ void main() {
     expect(identical(rebuiltRouter, initialRouter), isTrue);
     expect(
       rebuiltRouter.routeInformationProvider.value.uri.path,
-      '/mobile/library/actors',
+      mobileActorsPath,
     );
-    expect(find.text('路径: /mobile/library/actors'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
+    expect(find.text('路径: $mobileActorsPath'), findsOneWidget);
   });
 }
 

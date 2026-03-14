@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -161,19 +163,28 @@ class _LoginPageState extends State<LoginPage> {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
+              final horizontalPadding = isCompact ? spacing.lg : spacing.xxxl;
+              final topPadding = spacing.xxl;
+              final bottomPadding = spacing.xxl + viewInsets.bottom;
+              final availableHeight =
+                  constraints.maxHeight - topPadding - bottomPadding;
+
               return SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
-                  isCompact ? spacing.lg : spacing.xxxl,
-                  spacing.xxl,
-                  isCompact ? spacing.lg : spacing.xxxl,
-                  spacing.xxl + viewInsets.bottom,
+                  horizontalPadding,
+                  topPadding,
+                  horizontalPadding,
+                  bottomPadding,
                 ),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  constraints: BoxConstraints(
+                    minHeight: math.max(0, availableHeight),
+                  ),
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 460),
                       child: Container(
+                        key: const Key('login-main-card'),
                         padding: EdgeInsets.all(spacing.xl),
                         decoration: BoxDecoration(
                           color: colors.surfaceCard.withValues(alpha: 0.94),
@@ -188,6 +199,7 @@ class _LoginPageState extends State<LoginPage> {
                                   ? AutovalidateMode.onUserInteraction
                                   : AutovalidateMode.disabled,
                           child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: <Widget>[
                               Row(

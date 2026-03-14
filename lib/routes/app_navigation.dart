@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/configuration/presentation/desktop_configur
 import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dart';
 import 'package:sakuramedia/features/overview/presentation/desktop_overview_page.dart';
+import 'package:sakuramedia/features/overview/presentation/mobile_overview_skeleton_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlists_page.dart';
 import 'package:sakuramedia/features/workbench/workbench_placeholder_page.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
@@ -18,6 +19,9 @@ const String desktopMomentsPath = '/desktop/library/moments';
 const String desktopPlaylistsPath = '/desktop/library/playlists';
 const String desktopConfigurationPath = '/desktop/system/configuration';
 const String mobileOverviewPath = '/mobile/overview';
+const String mobileMoviesPath = '/mobile/library/movies';
+const String mobileActorsPath = '/mobile/library/actors';
+const String mobileRankingsPath = '/mobile/rankings';
 const String webOverviewPath = '/web/overview';
 const String loginPath = '/login';
 
@@ -59,7 +63,7 @@ String overviewPathForPlatform(AppPlatform platform) {
   }
 }
 
-const List<_NavSeed> _sharedNavSeeds = [
+const List<_NavSeed> _webNavSeeds = [
   _NavSeed(
     id: 'overview',
     label: '概览',
@@ -133,6 +137,61 @@ const List<_NavSeed> _sharedNavSeeds = [
         label: 'UI 规范',
         icon: Icons.palette_outlined,
         description: '项目专属设计令牌、组件基线与布局规范预览。',
+      ),
+    ],
+  ),
+];
+
+const List<_NavSeed> _mobileNavSeeds = [
+  _NavSeed(
+    id: 'overview',
+    label: '概览',
+    icon: Icons.pix_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'overview',
+        label: '概览',
+        icon: Icons.pix_outlined,
+        description: '移动端首页骨架与后续动态入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'movies',
+    label: '影片',
+    icon: Icons.movie_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'library/movies',
+        label: '影片',
+        icon: Icons.movie_outlined,
+        description: '移动端影片列表与后续详情入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'actors',
+    label: '女优',
+    icon: Icons.face_4_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'library/actors',
+        label: '女优',
+        icon: Icons.face_4_outlined,
+        description: '移动端女优列表与后续详情入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'rankings',
+    label: '榜单',
+    icon: Icons.local_fire_department_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'rankings',
+        label: '榜单',
+        icon: Icons.local_fire_department_outlined,
+        description: '移动端榜单骨架与后续推荐入口。',
       ),
     ],
   ),
@@ -241,8 +300,11 @@ List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
     );
   }
 
-  final seeds =
-      platform == AppPlatform.desktop ? _desktopNavSeeds : _sharedNavSeeds;
+  final seeds = switch (platform) {
+    AppPlatform.desktop => _desktopNavSeeds,
+    AppPlatform.mobile => _mobileNavSeeds,
+    AppPlatform.web => _webNavSeeds,
+  };
 
   return seeds
       .map(
@@ -289,6 +351,9 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
                     platform == AppPlatform.desktop &&
                             item.path == desktopOverviewPath
                         ? const DesktopOverviewPage()
+                        : platform == AppPlatform.mobile &&
+                            item.path == mobileOverviewPath
+                        ? const MobileOverviewSkeletonPage()
                         : platform == AppPlatform.desktop &&
                             item.path == desktopMoviesPath
                         ? const DesktopMoviesPage()

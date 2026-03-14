@@ -15,6 +15,7 @@ import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/routes/desktop_search_route_state.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/widgets/app_shell/app_desktop_shell.dart';
+import 'package:sakuramedia/widgets/app_shell/app_mobile_shell.dart';
 
 GoRouter buildAppRouter(AppPlatform platform, SessionStore sessionStore) {
   switch (platform) {
@@ -269,6 +270,18 @@ GoRouter _buildRouter({
                 routeSpecs: routeSpecs,
                 routeExtra: state.extra,
               ),
+              navGroups: navGroups,
+              child: child,
+            ),
+        routes: shellRoutes,
+      ),
+    );
+  } else if (platform == AppPlatform.mobile) {
+    routes.add(
+      ShellRoute(
+        builder:
+            (context, state, child) => AppMobileShell(
+              currentPath: state.uri.path,
               navGroups: navGroups,
               child: child,
             ),
