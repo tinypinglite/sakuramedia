@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_con
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movies/movie_filter_toolbar.dart';
@@ -228,74 +229,10 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
     if (_moviesController.items.isEmpty) {
       return null;
     }
-
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final componentTokens = context.appComponentTokens;
-
-    if (_moviesController.isLoadingMore) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: spacing.md),
-          child: SizedBox(
-            width: componentTokens.movieCardLoaderSize,
-            height: componentTokens.movieCardLoaderSize,
-            child: CircularProgressIndicator(
-              strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_moviesController.loadMoreErrorMessage == null) {
-      return null;
-    }
-
-    return Center(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surfaceMuted,
-          borderRadius: context.appRadius.mdBorder,
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: spacing.lg,
-            vertical: spacing.sm,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline_rounded,
-                size: componentTokens.iconSizeXl,
-                color: colors.textSecondary,
-              ),
-              SizedBox(width: spacing.sm),
-              Text(
-                _moviesController.loadMoreErrorMessage!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
-              ),
-              SizedBox(width: spacing.sm),
-              TextButton(
-                onPressed: _moviesController.loadMore,
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: spacing.sm,
-                    vertical: spacing.xs,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text('重试'),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return AppPagedLoadMoreFooter(
+      isLoading: _moviesController.isLoadingMore,
+      errorMessage: _moviesController.loadMoreErrorMessage,
+      onRetry: _moviesController.loadMore,
     );
   }
 }

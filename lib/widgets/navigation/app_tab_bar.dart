@@ -54,13 +54,11 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
         return _AppTabBarStyleSpec(
           visualTabHeight: 40,
           labelPadding: const EdgeInsets.only(right: 10),
-          labelStyle: textTheme.titleSmall!.copyWith(
-            fontSize: 14,
+          labelStyle: textTheme.labelLarge!.copyWith(
             fontWeight: FontWeight.w700,
             color: colors.textPrimary,
           ),
-          unselectedLabelStyle: textTheme.titleSmall!.copyWith(
-            fontSize: 14,
+          unselectedLabelStyle: textTheme.labelLarge!.copyWith(
             fontWeight: FontWeight.w500,
             color: colors.textSecondary,
           ),
@@ -90,23 +88,20 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
         );
       case AppTabBarVariant.mobileTop:
         return _AppTabBarStyleSpec(
-          dividerHeight:0,
-          visualTabHeight: 48,
+          dividerHeight: 0,
+          visualTabHeight: context.appComponentTokens.mobileTopTabHeight,
           labelPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.lg),
           labelStyle: textTheme.titleSmall!.copyWith(
-            fontSize: 16,
             fontWeight: FontWeight.w700,
             color: colors.textPrimary,
           ),
           unselectedLabelStyle: textTheme.titleSmall!.copyWith(
-            fontSize: 16,
             fontWeight: FontWeight.w500,
             color: colors.textSecondary,
           ),
           isScrollable: true,
           tabAlignment: TabAlignment.center,
           dividerColor: colors.divider,
-          // dividerHeight: 0.5,
           indicatorThickness: 5,
         );
     }

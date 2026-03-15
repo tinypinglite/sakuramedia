@@ -191,7 +191,7 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
       return const AppEmptyState(message: '暂无最近添加影片');
     }
 
-    const cardWidth = 142.0;
+    final cardWidth = context.appComponentTokens.mobileLatestMovieCardWidth;
     final cardHeight =
         cardWidth / context.appComponentTokens.movieCardAspectRatio;
 
@@ -222,7 +222,7 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
   }
 
   Widget _buildLatestMoviesSkeleton() {
-    const cardWidth = 142.0;
+    final cardWidth = context.appComponentTokens.mobileLatestMovieCardWidth;
     final cardHeight =
         cardWidth / context.appComponentTokens.movieCardAspectRatio;
     final colors = context.appColors;
@@ -269,10 +269,6 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
                   child: PlaylistBannerCard(
                     key: Key('mobile-overview-playlist-${playlist.id}'),
                     title: playlist.name,
-                    subtitle:
-                        playlist.description.trim().isEmpty
-                            ? null
-                            : playlist.description.trim(),
                     coverImageUrl: _playlistsController.coverUrlFor(
                       playlist.id,
                     ),

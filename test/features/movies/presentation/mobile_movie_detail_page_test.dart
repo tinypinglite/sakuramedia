@@ -86,6 +86,50 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets(
+    'mobile movie detail loading skeleton does not overflow on narrow widths',
+    (WidgetTester tester) async {
+      final completer = Completer<void>();
+      addTearDown(() {
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      });
+
+      bundle.adapter.enqueueResponder(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        responder: (options, requestBody) async {
+          await completer.future;
+          return ResponseBody.fromString(
+            jsonEncode(_movieDetailJson()),
+            200,
+            headers: const <String, List<String>>{
+              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      await _pumpPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        physicalSize: const Size(320, 720),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const Key('movie-detail-loading-skeleton')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+
+      completer.complete();
+      await tester.pumpAndSettle();
+    },
+  );
+
   testWidgets('mobile movie detail page shows error state and can retry', (
     WidgetTester tester,
   ) async {
@@ -582,7 +626,13 @@ Future<void> _pumpPage(
   WidgetTester tester, {
   required SessionStore sessionStore,
   required TestApiBundle bundle,
+  Size physicalSize = const Size(430, 900),
 }) async {
+  tester.view.physicalSize = physicalSize;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
   await tester.pumpWidget(
     MultiProvider(
       providers: [

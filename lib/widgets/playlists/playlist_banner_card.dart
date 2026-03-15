@@ -9,13 +9,11 @@ class PlaylistBannerCard extends StatelessWidget {
     super.key,
     required this.title,
     this.coverImageUrl,
-    this.subtitle,
     this.onTap,
   });
 
   final String title;
   final String? coverImageUrl;
-  final String? subtitle;
   final VoidCallback? onTap;
 
   @override

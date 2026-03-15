@@ -51,6 +51,13 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     required this.movieDetailPlotPreviewThumbnailHeight,
     required this.playlistBannerHeight,
     required this.playlistDialogWidth,
+    required this.mobileBottomNavHeight,
+    required this.mobileTopTabHeight,
+    required this.mobileSubpageLeadingWidth,
+    required this.mobileLatestMovieCardWidth,
+    required this.mobileFollowMovieCardHeight,
+    required this.mobileFollowMovieThinCoverWidth,
+    required this.mobileFollowMovieStillWidth,
     required this.moviePlayerThumbnailAspectRatio,
   });
 
@@ -101,6 +108,13 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       movieDetailPlotPreviewThumbnailHeight = 72,
       playlistBannerHeight = 100,
       playlistDialogWidth = 520,
+      mobileBottomNavHeight = 52,
+      mobileTopTabHeight = 48,
+      mobileSubpageLeadingWidth = 40,
+      mobileLatestMovieCardWidth = 142,
+      mobileFollowMovieCardHeight = 150,
+      mobileFollowMovieThinCoverWidth = 96,
+      mobileFollowMovieStillWidth = 86,
       moviePlayerThumbnailAspectRatio = 16 / 9;
 
   final double desktopTitleBarHeight;
@@ -149,6 +163,13 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
   final double movieDetailPlotPreviewThumbnailHeight;
   final double playlistBannerHeight;
   final double playlistDialogWidth;
+  final double mobileBottomNavHeight;
+  final double mobileTopTabHeight;
+  final double mobileSubpageLeadingWidth;
+  final double mobileLatestMovieCardWidth;
+  final double mobileFollowMovieCardHeight;
+  final double mobileFollowMovieThinCoverWidth;
+  final double mobileFollowMovieStillWidth;
   final double moviePlayerThumbnailAspectRatio;
 
   @override
@@ -199,6 +220,13 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     double? movieDetailPlotPreviewThumbnailHeight,
     double? playlistBannerHeight,
     double? playlistDialogWidth,
+    double? mobileBottomNavHeight,
+    double? mobileTopTabHeight,
+    double? mobileSubpageLeadingWidth,
+    double? mobileLatestMovieCardWidth,
+    double? mobileFollowMovieCardHeight,
+    double? mobileFollowMovieThinCoverWidth,
+    double? mobileFollowMovieStillWidth,
     double? moviePlayerThumbnailAspectRatio,
   }) {
     return AppComponentTokens(
@@ -288,6 +316,20 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
           this.movieDetailPlotPreviewThumbnailHeight,
       playlistBannerHeight: playlistBannerHeight ?? this.playlistBannerHeight,
       playlistDialogWidth: playlistDialogWidth ?? this.playlistDialogWidth,
+      mobileBottomNavHeight:
+          mobileBottomNavHeight ?? this.mobileBottomNavHeight,
+      mobileTopTabHeight: mobileTopTabHeight ?? this.mobileTopTabHeight,
+      mobileSubpageLeadingWidth:
+          mobileSubpageLeadingWidth ?? this.mobileSubpageLeadingWidth,
+      mobileLatestMovieCardWidth:
+          mobileLatestMovieCardWidth ?? this.mobileLatestMovieCardWidth,
+      mobileFollowMovieCardHeight:
+          mobileFollowMovieCardHeight ?? this.mobileFollowMovieCardHeight,
+      mobileFollowMovieThinCoverWidth:
+          mobileFollowMovieThinCoverWidth ??
+          this.mobileFollowMovieThinCoverWidth,
+      mobileFollowMovieStillWidth:
+          mobileFollowMovieStillWidth ?? this.mobileFollowMovieStillWidth,
       moviePlayerThumbnailAspectRatio:
           moviePlayerThumbnailAspectRatio ??
           this.moviePlayerThumbnailAspectRatio,
@@ -496,6 +538,40 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
           lerpDouble(playlistBannerHeight, other.playlistBannerHeight, t)!,
       playlistDialogWidth:
           lerpDouble(playlistDialogWidth, other.playlistDialogWidth, t)!,
+      mobileBottomNavHeight:
+          lerpDouble(mobileBottomNavHeight, other.mobileBottomNavHeight, t)!,
+      mobileTopTabHeight:
+          lerpDouble(mobileTopTabHeight, other.mobileTopTabHeight, t)!,
+      mobileSubpageLeadingWidth:
+          lerpDouble(
+            mobileSubpageLeadingWidth,
+            other.mobileSubpageLeadingWidth,
+            t,
+          )!,
+      mobileLatestMovieCardWidth:
+          lerpDouble(
+            mobileLatestMovieCardWidth,
+            other.mobileLatestMovieCardWidth,
+            t,
+          )!,
+      mobileFollowMovieCardHeight:
+          lerpDouble(
+            mobileFollowMovieCardHeight,
+            other.mobileFollowMovieCardHeight,
+            t,
+          )!,
+      mobileFollowMovieThinCoverWidth:
+          lerpDouble(
+            mobileFollowMovieThinCoverWidth,
+            other.mobileFollowMovieThinCoverWidth,
+            t,
+          )!,
+      mobileFollowMovieStillWidth:
+          lerpDouble(
+            mobileFollowMovieStillWidth,
+            other.mobileFollowMovieStillWidth,
+            t,
+          )!,
       moviePlayerThumbnailAspectRatio:
           lerpDouble(
             moviePlayerThumbnailAspectRatio,

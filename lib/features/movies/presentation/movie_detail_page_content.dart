@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
@@ -208,6 +210,10 @@ class MovieDetailLoadingSkeleton extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final heroHeight = _resolveViewportHeight(context, constraints) * 0.3;
+        final availableWidth = _resolveViewportWidth(context, constraints);
+        final titleWidth = math.min(240.0, availableWidth * 0.56);
+        final summaryWidth = math.min(520.0, availableWidth * 0.82);
+        final labelWidth = math.min(120.0, availableWidth * 0.3);
         return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,15 +231,15 @@ class MovieDetailLoadingSkeleton extends StatelessWidget {
                             .movieDetailPlotThumbnailHeight,
                   ),
                   SizedBox(height: context.appSpacing.xl),
-                  const _SkeletonBlock(height: 28, width: 240),
+                  _SkeletonBlock(height: 28, width: titleWidth),
                   SizedBox(height: context.appSpacing.md),
-                  const _SkeletonBlock(height: 18, width: 520),
+                  _SkeletonBlock(height: 18, width: summaryWidth),
                   SizedBox(height: context.appSpacing.xxl),
-                  const _SkeletonBlock(height: 18, width: 120),
+                  _SkeletonBlock(height: 18, width: labelWidth),
                   SizedBox(height: context.appSpacing.md),
                   const _SkeletonBlock(height: 64),
                   SizedBox(height: context.appSpacing.lg),
-                  const _SkeletonBlock(height: 18, width: 120),
+                  _SkeletonBlock(height: 18, width: labelWidth),
                   SizedBox(height: context.appSpacing.md),
                   const _SkeletonBlock(height: 96),
                 ],
@@ -295,6 +301,13 @@ double _resolveViewportHeight(
     return constraints.maxHeight;
   }
   return MediaQuery.sizeOf(context).height;
+}
+
+double _resolveViewportWidth(BuildContext context, BoxConstraints constraints) {
+  if (constraints.hasBoundedWidth && constraints.maxWidth.isFinite) {
+    return constraints.maxWidth;
+  }
+  return MediaQuery.sizeOf(context).width;
 }
 
 List<MovieDetailStatItem> buildMovieDetailStatItems(

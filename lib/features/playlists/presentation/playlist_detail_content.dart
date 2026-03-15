@@ -94,10 +94,6 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
               PlaylistBannerCard(
                 key: Key('playlist-banner-card-${playlist.id}'),
                 title: playlist.name,
-                subtitle:
-                    playlist.description.trim().isEmpty
-                        ? null
-                        : playlist.description.trim(),
                 coverImageUrl:
                     _moviesController
                         .items

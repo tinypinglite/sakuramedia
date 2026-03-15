@@ -46,8 +46,8 @@ class AppMobileShell extends StatelessWidget {
             ),
             child: CupertinoTabBar(
               key: const Key('mobile-bottom-navigation'),
-              height: 52,
-              iconSize: 24,
+              height: context.appComponentTokens.mobileBottomNavHeight,
+              iconSize: context.appComponentTokens.iconSizeXl,
               backgroundColor: context.appColors.surfaceCard,
               activeColor: Theme.of(context).colorScheme.primary,
               inactiveColor: context.appColors.textSecondary,

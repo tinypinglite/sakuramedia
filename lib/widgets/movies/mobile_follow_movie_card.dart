@@ -62,6 +62,7 @@ class _MobileFollowMovieCardState extends State<MobileFollowMovieCard> {
     final colors = context.appColors;
     final spacing = context.appSpacing;
     final componentTokens = context.appComponentTokens;
+    final cardHeight = componentTokens.mobileFollowMovieCardHeight;
     final titleText =
         widget.detailSummary?.trim().isNotEmpty ?? false
             ? widget.detailSummary!.trim()
@@ -88,7 +89,7 @@ class _MobileFollowMovieCardState extends State<MobileFollowMovieCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                height: 150,
+                height: cardHeight,
                 child: Row(
                   children: [
                     _FollowThinCover(
@@ -197,11 +198,13 @@ class _FollowThinCover extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final componentTokens = context.appComponentTokens;
+    final coverWidth = componentTokens.mobileFollowMovieThinCoverWidth;
+    final cardHeight = componentTokens.mobileFollowMovieCardHeight;
     final cover = ClipRRect(
       borderRadius: context.appRadius.smBorder,
       child: SizedBox(
-        width: 96,
-        height: 150,
+        width: coverWidth,
+        height: cardHeight,
         child:
             imageUrl == null || imageUrl!.isEmpty
                 ? DecoratedBox(
@@ -280,10 +283,12 @@ class _StillImagesStrip extends StatelessWidget {
     final colors = context.appColors;
     final spacing = context.appSpacing;
     final radius = context.appRadius.smBorder;
+    final cardHeight = context.appComponentTokens.mobileFollowMovieCardHeight;
+    final stillWidth = context.appComponentTokens.mobileFollowMovieStillWidth;
     if (isLoading) {
       return Container(
         key: Key('mobile-follow-movie-card-detail-loading-$movieNumber'),
-        height: 150,
+        height: cardHeight,
         decoration: BoxDecoration(
           color: colors.surfaceMuted,
           borderRadius: radius,
@@ -294,7 +299,7 @@ class _StillImagesStrip extends StatelessWidget {
     if (imageUrls.isEmpty) {
       return Container(
         key: Key('mobile-follow-movie-card-detail-empty-$movieNumber'),
-        height: 150,
+        height: cardHeight,
         decoration: BoxDecoration(
           color: colors.surfaceMuted,
           borderRadius: radius,
@@ -312,7 +317,7 @@ class _StillImagesStrip extends StatelessWidget {
 
     return Container(
       key: Key('mobile-follow-movie-card-strip-$movieNumber'),
-      height: 150,
+      height: cardHeight,
       decoration: BoxDecoration(
         color: colors.surfaceMuted,
         borderRadius: radius,
@@ -327,7 +332,7 @@ class _StillImagesStrip extends StatelessWidget {
           return ClipRRect(
             borderRadius: radius,
             child: SizedBox(
-              width: 86,
+              width: stillWidth,
               child: MaskedImage(url: url, fit: BoxFit.cover),
             ),
           );

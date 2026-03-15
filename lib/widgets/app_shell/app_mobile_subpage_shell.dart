@@ -44,7 +44,8 @@ class AppMobileSubpageShell extends StatelessWidget {
                 backgroundColor: context.appColors.surfaceCard,
                 elevation: 0,
                 scrolledUnderElevation: 0,
-                leadingWidth: 40, // 默认 56
+                leadingWidth:
+                    context.appComponentTokens.mobileSubpageLeadingWidth,
                 titleSpacing: 0, // 默认 16
                 leading: IconButton(
                   iconSize: context.appComponentTokens.iconSizeSm,
