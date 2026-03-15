@@ -14,8 +14,8 @@ jobs:
     runs-on: macos-latest
 
     env:
-      APP_NAME: sakuramedia
-      ARCHIVE_NAME: sakuramedia-macos-${{ github.ref_name }}-unsigned.zip
+      APP_NAME: 樱视
+      ARCHIVE_NAME: 樱视-macos-${{ github.ref_name }}-unsigned.zip
 
     steps:
       - name: Checkout repository
@@ -57,7 +57,7 @@ jobs:
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          name: sakuramedia ${{ github.ref_name }}
+          name: 樱视 ${{ github.ref_name }}
           generate_release_notes: true
           files: |
             dist/${{ env.ARCHIVE_NAME }}
