@@ -69,6 +69,9 @@ class MoviePlayerController extends ChangeNotifier {
   Duration? get initialPlaybackPosition => _startupPlaybackPosition;
 
   Future<void> load() async {
+    debugPrint(
+      '[player-debug] controller_load_start movie=$movieNumber initialMediaId=$initialMediaId initialPositionSeconds=$initialPositionSeconds',
+    );
     _stopProgressTimer();
     _isLoading = true;
     _errorMessage = null;
@@ -84,6 +87,9 @@ class MoviePlayerController extends ChangeNotifier {
       _startupPlaybackPosition = _resolveStartupPlaybackPosition(
         _selectedMedia,
       );
+      debugPrint(
+        '[player-debug] controller_load_resolved movie=$movieNumber selectedMediaId=${_selectedMedia?.mediaId} hasPlayUrl=${_selectedMedia?.hasPlayableUrl} storedProgress=${_selectedMedia?.progress?.lastPositionSeconds} startupPositionSeconds=${_startupPlaybackPosition?.inSeconds}',
+      );
       _currentPlaybackSeconds = _startupPlaybackPosition?.inSeconds ?? 0;
       _lastReportedPositionSeconds = _startupPlaybackPosition?.inSeconds;
       _activeThumbnailIndex = null;
@@ -92,6 +98,9 @@ class MoviePlayerController extends ChangeNotifier {
       }
       _errorMessage = null;
     } catch (error) {
+      debugPrint(
+        '[player-debug] controller_load_error movie=$movieNumber error=$error',
+      );
       _movie = null;
       _selectedMedia = null;
       _thumbnails = const <MovieMediaThumbnailDto>[];
@@ -215,14 +224,23 @@ class MoviePlayerController extends ChangeNotifier {
 
   Duration? _resolveStartupPlaybackPosition(MovieMediaItemDto? media) {
     if (initialPositionSeconds != null && initialPositionSeconds! > 0) {
+      debugPrint(
+        '[player-debug] startup_position_source=requested requested=$initialPositionSeconds mediaId=${media?.mediaId}',
+      );
       return Duration(seconds: initialPositionSeconds!);
     }
 
     final storedSeconds = media?.progress?.lastPositionSeconds ?? 0;
     if (storedSeconds > 0) {
+      debugPrint(
+        '[player-debug] startup_position_source=stored stored=$storedSeconds mediaId=${media?.mediaId}',
+      );
       return Duration(seconds: storedSeconds);
     }
 
+    debugPrint(
+      '[player-debug] startup_position_source=none mediaId=${media?.mediaId}',
+    );
     return null;
   }
 

@@ -9,7 +9,7 @@ class MovieDetailStatRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: context.appSpacing.lg,
+      spacing: context.appSpacing.sm,
       runSpacing: context.appSpacing.sm,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: items

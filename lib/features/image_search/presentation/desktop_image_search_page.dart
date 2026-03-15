@@ -21,12 +21,17 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/image_search/image_search_filter_panel.dart';
 import 'package:sakuramedia/widgets/image_search/image_search_result_grid.dart';
 import 'package:sakuramedia/widgets/image_search/image_search_result_preview_dialog.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
+import 'package:sakuramedia/widgets/media/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_thumbnail.dart';
+
+enum ImageSearchResultPreviewPresentation { dialog, bottomDrawer }
 
 class DesktopImageSearchPage extends StatefulWidget {
   const DesktopImageSearchPage({
@@ -37,6 +42,12 @@ class DesktopImageSearchPage extends StatefulWidget {
     this.initialMimeType,
     this.currentMovieNumber,
     this.initialCurrentMovieScope = ImageSearchCurrentMovieScope.all,
+    this.imagePicker = pickImageSearchFile,
+    this.onSearchSimilar,
+    this.onOpenPlayer,
+    this.onOpenMovieDetail,
+    this.resultPreviewPresentation =
+        ImageSearchResultPreviewPresentation.dialog,
   });
 
   final String? fallbackPath;
@@ -45,6 +56,17 @@ class DesktopImageSearchPage extends StatefulWidget {
   final String? initialMimeType;
   final String? currentMovieNumber;
   final ImageSearchCurrentMovieScope initialCurrentMovieScope;
+  final ImageSearchFilePicker imagePicker;
+  final Future<bool> Function(
+    BuildContext context,
+    ImageSearchResultItemDto item,
+  )?
+  onSearchSimilar;
+  final void Function(BuildContext context, ImageSearchResultItemDto item)?
+  onOpenPlayer;
+  final void Function(BuildContext context, ImageSearchResultItemDto item)?
+  onOpenMovieDetail;
+  final ImageSearchResultPreviewPresentation resultPreviewPresentation;
 
   @override
   State<DesktopImageSearchPage> createState() => _DesktopImageSearchPageState();
@@ -505,7 +527,7 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
 
   Future<void> _pickAndSearchImage() async {
     try {
-      final pickedFile = await pickImageSearchFile();
+      final pickedFile = await widget.imagePicker();
       if (pickedFile == null || !mounted) {
         return;
       }
@@ -529,21 +551,37 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
 
   Future<void> _openResultPreviewDialog(ImageSearchResultItemDto item) {
     _ImageSearchResultPreviewAction? selectedAction;
+    final previewDialog = ImageSearchResultPreviewDialog(
+      item: item,
+      onSearchSimilar: () => _searchSimilarFromResult(item),
+      onPlay: () {
+        selectedAction = _ImageSearchResultPreviewAction.play;
+      },
+      onOpenMovieDetail: () {
+        selectedAction = _ImageSearchResultPreviewAction.openMovieDetail;
+      },
+      presentation:
+          widget.resultPreviewPresentation ==
+                  ImageSearchResultPreviewPresentation.bottomDrawer
+              ? MediaPreviewPresentation.bottomDrawer
+              : MediaPreviewPresentation.dialog,
+    );
 
-    return showDialog<void>(
-      context: context,
-      builder:
-          (dialogContext) => ImageSearchResultPreviewDialog(
-            item: item,
-            onSearchSimilar: () => _searchSimilarFromResult(item),
-            onPlay: () {
-              selectedAction = _ImageSearchResultPreviewAction.play;
-            },
-            onOpenMovieDetail: () {
-              selectedAction = _ImageSearchResultPreviewAction.openMovieDetail;
-            },
-          ),
-    ).then((_) {
+    final previewFuture = switch (widget.resultPreviewPresentation) {
+      ImageSearchResultPreviewPresentation.dialog => showDialog<void>(
+        context: context,
+        builder: (_) => previewDialog,
+      ),
+      ImageSearchResultPreviewPresentation.bottomDrawer =>
+        showAppBottomDrawer<void>(
+          maxHeightFactor: 0.7,
+          context: context,
+          drawerKey: const Key('image-search-result-preview-bottom-sheet'),
+          builder: (_) => previewDialog,
+        ),
+    };
+
+    return previewFuture.then((_) {
       if (!mounted) {
         return;
       }
@@ -559,6 +597,10 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   }
 
   Future<bool> _searchSimilarFromResult(ImageSearchResultItemDto item) async {
+    final customHandler = widget.onSearchSimilar;
+    if (customHandler != null) {
+      return customHandler(context, item);
+    }
     try {
       await launchDesktopImageSearchFromUrl(
         context,
@@ -576,6 +618,11 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   }
 
   void _openPlayerForResult(ImageSearchResultItemDto item) {
+    final customHandler = widget.onOpenPlayer;
+    if (customHandler != null) {
+      customHandler(context, item);
+      return;
+    }
     context.push(
       buildDesktopMoviePlayerRoutePath(
         item.movieNumber,
@@ -586,6 +633,11 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   }
 
   void _openMovieDetailForResult(ImageSearchResultItemDto item) {
+    final customHandler = widget.onOpenMovieDetail;
+    if (customHandler != null) {
+      customHandler(context, item);
+      return;
+    }
     context.push(
       '$desktopMoviesPath/${Uri.encodeComponent(item.movieNumber)}',
       extra: desktopImageSearchPath,
@@ -787,101 +839,96 @@ class _ActorSelectorDialogState extends State<_ActorSelectorDialog> {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
 
-    return Dialog(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760, maxHeight: 780),
-        child: Padding(
-          padding: EdgeInsets.all(spacing.xl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return AppDesktopDialog(
+      constraints: const BoxConstraints(maxWidth: 760, maxHeight: 780),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '已选 ${_selectedActorIds.length} 位',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => setState(_selectedActorIds.clear),
-                    child: const Text('清空'),
-                  ),
-                ],
-              ),
-              SizedBox(height: spacing.lg),
               Expanded(
-                child: ListView.separated(
-                  itemCount: widget.actors.length,
-                  separatorBuilder:
-                      (context, index) => SizedBox(height: spacing.sm),
-                  itemBuilder: (context, index) {
-                    final actor = widget.actors[index];
-                    final selected = _selectedActorIds.contains(actor.id);
-                    return InkWell(
-                      key: Key('desktop-image-search-actor-option-${actor.id}'),
-                      borderRadius: context.appRadius.mdBorder,
-                      onTap:
-                          () => setState(() {
-                            if (selected) {
-                              _selectedActorIds.remove(actor.id);
-                            } else {
-                              _selectedActorIds.add(actor.id);
-                            }
-                          }),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: spacing.lg,
-                          vertical: spacing.md,
-                        ),
-                        decoration: BoxDecoration(
-                          color: context.appColors.surfaceCard,
-                          borderRadius: context.appRadius.mdBorder,
-                          border: Border.all(
-                            color:
-                                selected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : context.appColors.borderSubtle,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(child: Text(actor.displayName)),
-                            Checkbox(value: selected, onChanged: (_) {}),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                child: Text(
+                  '已选 ${_selectedActorIds.length} 位',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              SizedBox(height: spacing.lg),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  AppButton(
-                    label: '取消',
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  SizedBox(width: spacing.sm),
-                  AppButton(
-                    label: '完成',
-                    variant: AppButtonVariant.primary,
-                    onPressed:
-                        () => Navigator.of(context).pop(
-                          widget.actors
-                              .where(
-                                (ActorListItemDto actor) =>
-                                    _selectedActorIds.contains(actor.id),
-                              )
-                              .toList(growable: false),
-                        ),
-                  ),
-                ],
+              TextButton(
+                onPressed: () => setState(_selectedActorIds.clear),
+                child: const Text('清空'),
               ),
             ],
           ),
-        ),
+          SizedBox(height: spacing.lg),
+          Expanded(
+            child: ListView.separated(
+              itemCount: widget.actors.length,
+              separatorBuilder:
+                  (context, index) => SizedBox(height: spacing.sm),
+              itemBuilder: (context, index) {
+                final actor = widget.actors[index];
+                final selected = _selectedActorIds.contains(actor.id);
+                return InkWell(
+                  key: Key('desktop-image-search-actor-option-${actor.id}'),
+                  borderRadius: context.appRadius.mdBorder,
+                  onTap:
+                      () => setState(() {
+                        if (selected) {
+                          _selectedActorIds.remove(actor.id);
+                        } else {
+                          _selectedActorIds.add(actor.id);
+                        }
+                      }),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: spacing.lg,
+                      vertical: spacing.md,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.appColors.surfaceCard,
+                      borderRadius: context.appRadius.mdBorder,
+                      border: Border.all(
+                        color:
+                            selected
+                                ? Theme.of(context).colorScheme.primary
+                                : context.appColors.borderSubtle,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(actor.displayName)),
+                        Checkbox(value: selected, onChanged: (_) {}),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          SizedBox(height: spacing.lg),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              AppButton(
+                label: '取消',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              SizedBox(width: spacing.sm),
+              AppButton(
+                label: '完成',
+                variant: AppButtonVariant.primary,
+                onPressed:
+                    () => Navigator.of(context).pop(
+                      widget.actors
+                          .where(
+                            (ActorListItemDto actor) =>
+                                _selectedActorIds.contains(actor.id),
+                          )
+                          .toList(growable: false),
+                    ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

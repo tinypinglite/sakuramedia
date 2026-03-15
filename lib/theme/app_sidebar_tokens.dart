@@ -11,7 +11,7 @@ class AppSidebarTokens extends ThemeExtension<AppSidebarTokens> {
   });
 
   const AppSidebarTokens.defaults()
-    : expandedWidth = 240,
+    : expandedWidth = 220,
       collapsedWidth = 72,
       itemHeight = 44;
 

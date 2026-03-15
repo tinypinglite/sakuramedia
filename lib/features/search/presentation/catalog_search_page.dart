@@ -9,13 +9,7 @@ import 'package:sakuramedia/features/search/presentation/catalog_search_controll
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/desktop_search_route_state.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actors/actor_summary_grid.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
-import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
-import 'package:sakuramedia/widgets/search/catalog_search_field.dart';
-import 'package:sakuramedia/widgets/search/catalog_search_stream_status_card.dart';
+import 'package:sakuramedia/widgets/search/catalog_search_content.dart';
 
 class CatalogSearchPage extends StatefulWidget {
   const CatalogSearchPage({
@@ -92,103 +86,33 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        return Material(
-          color: context.appColors.surfaceElevated,
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CatalogSearchField(
-                  key: const Key('catalog-search-page-field'),
-                  fieldKey: const Key('catalog-search-page-input'),
-                  searchButtonKey: const Key('catalog-search-page-submit'),
-                  onlineToggleKey: const Key(
-                    'catalog-search-page-online-toggle',
-                  ),
-                  controller: _textController,
-                  hintText: '找影片',
-                  showOnlineToggle: true,
-                  isOnlineSearchEnabled: _useOnlineSearch,
-                  onOnlineSearchToggle:
-                      (value) => setState(() => _useOnlineSearch = value),
-                  onSubmitted: (_) => _submitSearch(),
-                  onSearchTap: _submitSearch,
-                ),
-                if (_controller.streamStatus != null) ...[
-                  SizedBox(height: context.appSpacing.md),
-                  CatalogSearchStreamStatusCard(
-                    status: _controller.streamStatus!,
-                  ),
-                ],
-                SizedBox(height: context.appSpacing.lg),
-                AppTabBar(
-                  controller: _tabController,
-                  onTap: (index) {
-                    _controller.setActiveKind(_kindForIndex(index));
-                  },
-                  tabs: const [Tab(text: '影片'), Tab(text: '女优')],
-                ),
-                SizedBox(height: context.appSpacing.lg),
-                _buildBody(context),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildBody(BuildContext context) {
-    if (_controller.query.isEmpty && !_controller.isLoading) {
-      return const AppEmptyState(message: '输入关键词开始搜索');
-    }
-
-    if (_controller.errorMessage != null) {
-      return AppEmptyState(message: _controller.errorMessage!);
-    }
-
-    if (_controller.isLoading) {
-      return const _CatalogSearchLoadingIndicator();
-    }
-
-    switch (_controller.activeKind) {
-      case CatalogSearchKind.movies:
-        return MovieSummaryGrid(
-          items: _controller.movieResults,
-          isLoading: false,
-          emptyMessage:
-              _controller.isOnlineSearchActive
-                  ? '在线源未找到该番号或未成功入库'
-                  : '本地库中没有匹配该番号的影片。',
+        return CatalogSearchContent(
+          controller: _controller,
+          textController: _textController,
+          tabController: _tabController,
+          useOnlineSearch: _useOnlineSearch,
+          onOnlineSearchToggle:
+              (value) => setState(() => _useOnlineSearch = value),
+          onSubmitSearch: _submitSearch,
+          onTabSelected: (index) {
+            _controller.setActiveKind(_kindForIndex(index));
+          },
           onMovieTap:
               (movie) => context.go(
                 '$desktopMoviesPath/${Uri.encodeComponent(movie.movieNumber)}',
                 extra: _currentSearchPath,
               ),
-          onMovieSubscriptionTap:
-              (movie) => _toggleMovieSubscription(movie.movieNumber),
-          isMovieSubscriptionUpdating:
-              (movie) =>
-                  _controller.isMovieSubscriptionUpdating(movie.movieNumber),
-        );
-      case CatalogSearchKind.actors:
-        return ActorSummaryGrid(
-          items: _controller.actorResults,
-          isLoading: false,
-          emptyMessage:
-              _controller.isOnlineSearchActive
-                  ? '在线源未找到匹配女优'
-                  : '本地库中没有匹配该关键词的女优记录。',
           onActorTap:
               (actor) => context.go(
                 '$desktopActorsPath/${actor.id}',
                 extra: _currentSearchPath,
               ),
+          onMovieSubscriptionTap:
+              (movie) => _toggleMovieSubscription(movie.movieNumber),
           onActorSubscriptionTap: (actor) => _toggleActorSubscription(actor.id),
-          isActorSubscriptionUpdating:
-              (actor) => _controller.isActorSubscriptionUpdating(actor.id),
         );
-    }
+      },
+    );
   }
 
   String get _currentSearchPath => buildDesktopSearchRoutePath(
@@ -247,24 +171,5 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
       return;
     }
     showActorSubscriptionFeedback(result);
-  }
-}
-
-class _CatalogSearchLoadingIndicator extends StatelessWidget {
-  const _CatalogSearchLoadingIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 240,
-      child: Center(
-        child: SizedBox(
-          key: const Key('catalog-search-loading-indicator'),
-          width: 24,
-          height: 24,
-          child: const CircularProgressIndicator.adaptive(strokeWidth: 2.4),
-        ),
-      ),
-    );
   }
 }

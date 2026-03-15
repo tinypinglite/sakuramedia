@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 
 class PreviewDialogSurface extends StatelessWidget {
   const PreviewDialogSurface({
@@ -10,6 +11,8 @@ class PreviewDialogSurface extends StatelessWidget {
     this.constraints,
     this.insetPadding,
     this.backgroundColor,
+    this.showCloseButton = true,
+    this.onClose,
     required this.child,
   }) : assert(
          constraints == null || (width == null && height == null),
@@ -23,24 +26,23 @@ class PreviewDialogSurface extends StatelessWidget {
   final BoxConstraints? constraints;
   final EdgeInsets? insetPadding;
   final Color? backgroundColor;
+  final bool showCloseButton;
+  final VoidCallback? onClose;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    Widget content = child;
-
-    if (constraints != null) {
-      content = ConstrainedBox(constraints: constraints!, child: child);
-    } else if (width != null || height != null) {
-      content = SizedBox(width: width, height: height, child: child);
-    }
-
-    return Dialog(
-      key: dialogKey,
+    return AppDesktopDialog(
+      dialogKey: dialogKey,
+      contentKey: contentKey,
+      width: width,
+      height: height,
+      constraints: constraints,
       insetPadding: insetPadding,
       backgroundColor: backgroundColor,
-      clipBehavior: Clip.antiAlias,
-      child: KeyedSubtree(key: contentKey, child: content),
+      showCloseButton: showCloseButton,
+      onClose: onClose,
+      child: child,
     );
   }
 }

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/actors/presentation/desktop_actors_page.dart';
+import 'package:sakuramedia/features/actors/presentation/mobile_actors_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
 import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dart';
+import 'package:sakuramedia/features/movies/presentation/mobile_movies_page.dart';
 import 'package:sakuramedia/features/overview/presentation/desktop_overview_page.dart';
+import 'package:sakuramedia/features/overview/presentation/mobile_overview_skeleton_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlists_page.dart';
+import 'package:sakuramedia/features/rankings/presentation/mobile_rankings_page.dart';
 import 'package:sakuramedia/features/workbench/workbench_placeholder_page.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 
@@ -18,6 +22,12 @@ const String desktopMomentsPath = '/desktop/library/moments';
 const String desktopPlaylistsPath = '/desktop/library/playlists';
 const String desktopConfigurationPath = '/desktop/system/configuration';
 const String mobileOverviewPath = '/mobile/overview';
+const String mobilePlaylistDetailPathPrefix = '$mobileOverviewPath/playlists';
+const String mobileSearchPath = '/mobile/search';
+const String mobileImageSearchPath = '/mobile/search/image';
+const String mobileMoviesPath = '/mobile/library/movies';
+const String mobileActorsPath = '/mobile/library/actors';
+const String mobileRankingsPath = '/mobile/rankings';
 const String webOverviewPath = '/web/overview';
 const String loginPath = '/login';
 
@@ -27,6 +37,45 @@ String buildDesktopSearchRoutePath(String query) {
     return desktopSearchPath;
   }
   return '$desktopSearchPath/${Uri.encodeComponent(trimmed)}';
+}
+
+String buildMobileSearchRoutePath(String query) {
+  final trimmed = query.trim();
+  if (trimmed.isEmpty) {
+    return mobileSearchPath;
+  }
+  return '$mobileSearchPath/${Uri.encodeComponent(trimmed)}';
+}
+
+String buildMobilePlaylistDetailRoutePath(int playlistId) {
+  return '$mobilePlaylistDetailPathPrefix/$playlistId';
+}
+
+String buildMobileMovieDetailRoutePath(String movieNumber) {
+  return '$mobileMoviesPath/${Uri.encodeComponent(movieNumber)}';
+}
+
+String buildMobileMoviePlayerRoutePath(
+  String movieNumber, {
+  int? mediaId,
+  int? positionSeconds,
+}) {
+  final queryParameters = <String, String>{};
+  if (mediaId != null) {
+    queryParameters['mediaId'] = '$mediaId';
+  }
+  if (positionSeconds != null) {
+    queryParameters['positionSeconds'] = '$positionSeconds';
+  }
+  final path = Uri(
+    path: '$mobileMoviesPath/${Uri.encodeComponent(movieNumber)}/player',
+    queryParameters: queryParameters.isEmpty ? null : queryParameters,
+  );
+  return path.toString();
+}
+
+String buildMobileActorDetailRoutePath(int actorId) {
+  return '$mobileActorsPath/$actorId';
 }
 
 String buildDesktopMoviePlayerRoutePath(
@@ -59,7 +108,7 @@ String overviewPathForPlatform(AppPlatform platform) {
   }
 }
 
-const List<_NavSeed> _sharedNavSeeds = [
+const List<_NavSeed> _webNavSeeds = [
   _NavSeed(
     id: 'overview',
     label: '概览',
@@ -133,6 +182,61 @@ const List<_NavSeed> _sharedNavSeeds = [
         label: 'UI 规范',
         icon: Icons.palette_outlined,
         description: '项目专属设计令牌、组件基线与布局规范预览。',
+      ),
+    ],
+  ),
+];
+
+const List<_NavSeed> _mobileNavSeeds = [
+  _NavSeed(
+    id: 'overview',
+    label: '概览',
+    icon: Icons.pix_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'overview',
+        label: '概览',
+        icon: Icons.pix_outlined,
+        description: '移动端首页骨架与后续动态入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'movies',
+    label: '影片',
+    icon: Icons.movie_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'library/movies',
+        label: '影片',
+        icon: Icons.movie_outlined,
+        description: '移动端影片列表与后续详情入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'actors',
+    label: '女优',
+    icon: Icons.face_4_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'library/actors',
+        label: '女优',
+        icon: Icons.face_4_outlined,
+        description: '移动端女优列表与后续详情入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'rankings',
+    label: '榜单',
+    icon: Icons.local_fire_department_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'rankings',
+        label: '榜单',
+        icon: Icons.local_fire_department_outlined,
+        description: '移动端榜单骨架与后续推荐入口。',
       ),
     ],
   ),
@@ -241,8 +345,11 @@ List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
     );
   }
 
-  final seeds =
-      platform == AppPlatform.desktop ? _desktopNavSeeds : _sharedNavSeeds;
+  final seeds = switch (platform) {
+    AppPlatform.desktop => _desktopNavSeeds,
+    AppPlatform.mobile => _mobileNavSeeds,
+    AppPlatform.web => _webNavSeeds,
+  };
 
   return seeds
       .map(
@@ -289,12 +396,24 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
                     platform == AppPlatform.desktop &&
                             item.path == desktopOverviewPath
                         ? const DesktopOverviewPage()
+                        : platform == AppPlatform.mobile &&
+                            item.path == mobileOverviewPath
+                        ? const MobileOverviewSkeletonPage()
                         : platform == AppPlatform.desktop &&
                             item.path == desktopMoviesPath
                         ? const DesktopMoviesPage()
+                        : platform == AppPlatform.mobile &&
+                            item.path == mobileMoviesPath
+                        ? const MobileMoviesPage()
                         : platform == AppPlatform.desktop &&
                             item.path == desktopActorsPath
                         ? const DesktopActorsPage()
+                        : platform == AppPlatform.mobile &&
+                            item.path == mobileActorsPath
+                        ? const MobileActorsPage()
+                        : platform == AppPlatform.mobile &&
+                            item.path == mobileRankingsPath
+                        ? const MobileRankingsPage()
                         : platform == AppPlatform.desktop &&
                             item.path == desktopMomentsPath
                         ? const DesktopMomentsPage()

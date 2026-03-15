@@ -6,7 +6,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/playlists/playlist_banner_card.dart';
 
 void main() {
-  testWidgets('playlist banner card renders blur overlay and title', (
+  testWidgets('playlist banner card renders blurred background and title', (
     WidgetTester tester,
   ) async {
     final sessionStore = SessionStore.inMemory();
@@ -29,7 +29,8 @@ void main() {
     );
 
     expect(find.text('我的收藏'), findsOneWidget);
-    expect(find.byType(BackdropFilter), findsWidgets);
+    expect(find.byType(ImageFiltered), findsOneWidget);
+    expect(find.byType(BackdropFilter), findsNothing);
   });
 
   testWidgets('playlist banner card exposes placeholder state and tap', (

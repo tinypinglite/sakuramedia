@@ -25,6 +25,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_detail_hero_card.dart';
 
 import '../../../support/test_api_bundle.dart';
 
@@ -193,6 +194,14 @@ void main() {
       );
       expect(find.text('我的收藏'), findsOneWidget);
       expect(find.text('最近播放'), findsNothing);
+      expect(find.text('关闭'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('movie-playlist-picker-dialog')),
+          matching: find.byTooltip('关闭'),
+        ),
+        findsOneWidget,
+      );
     },
   );
 
@@ -798,7 +807,10 @@ void main() {
         find.byKey(const Key('movie-detail-magnet-open-configuration')),
         findsNothing,
       );
-      expect(find.byKey(const Key('movie-detail-inspector-dialog')), findsOneWidget);
+      expect(
+        find.byKey(const Key('movie-detail-inspector-dialog')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -1144,6 +1156,29 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('发行日期'), findsOneWidget);
+  });
+
+  testWidgets('movie detail page hero height follows 30% viewport rule', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 960);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: _movieDetailJson(),
+    );
+
+    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    final viewportHeight =
+        tester.getSize(find.byType(DesktopMovieDetailPage)).height;
+    final heroHeight = tester.getSize(find.byType(MovieDetailHeroCard)).height;
+
+    expect(heroHeight, closeTo(viewportHeight * 0.3, 0.1));
   });
 
   testWidgets(

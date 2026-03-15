@@ -38,12 +38,16 @@ class DesktopMoviePlayerPage extends StatefulWidget {
     required this.movieNumber,
     this.initialMediaId,
     this.initialPositionSeconds,
+    this.fallbackPath,
+    this.enableThumbnailActionMenu = true,
     this.surfaceBuilder,
   });
 
   final String movieNumber;
   final int? initialMediaId;
   final int? initialPositionSeconds;
+  final String? fallbackPath;
+  final bool enableThumbnailActionMenu;
   final MoviePlayerSurfaceBuilder? surfaceBuilder;
 
   @override
@@ -58,6 +62,9 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
   @override
   void initState() {
     super.initState();
+    debugPrint(
+      '[player-debug] desktop_player_page_init movie=${widget.movieNumber} initialMediaId=${widget.initialMediaId} initialPositionSeconds=${widget.initialPositionSeconds} fallbackPath=${widget.fallbackPath}',
+    );
     _controller = MoviePlayerController(
       movieNumber: widget.movieNumber,
       initialMediaId: widget.initialMediaId,
@@ -141,7 +148,10 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
                                 Duration(seconds: item.offsetSeconds),
                               );
                             },
-                            onThumbnailMenuRequested: _showThumbnailActions,
+                            onThumbnailMenuRequested:
+                                widget.enableThumbnailActionMenu
+                                    ? _showThumbnailActions
+                                    : null,
                             onRetry: _controller.loadThumbnails,
                           ),
                 );
@@ -183,7 +193,9 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
       context.pop();
       return;
     }
-    context.go('/desktop/library/movies/${widget.movieNumber}');
+    context.go(
+      widget.fallbackPath ?? '/desktop/library/movies/${widget.movieNumber}',
+    );
   }
 
   Future<void> _showThumbnailActions(int index, Offset globalPosition) async {

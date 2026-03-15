@@ -17,6 +17,8 @@ Future<void> showMoviePlotImageActionMenu({
   required int index,
   required Offset globalPosition,
   bool closeCurrentRouteOnSearch = false,
+  Future<void> Function(BuildContext context, String imageUrl, String fileName)?
+  onSearchSimilar,
 }) async {
   if (index < 0 || index >= plotImages.length) {
     return;
@@ -52,14 +54,25 @@ Future<void> showMoviePlotImageActionMenu({
 
   switch (action) {
     case AppImageActionType.searchSimilar:
-      await _searchSimilar(
-        context: context,
-        hostContext: hostContext,
-        imageUrl: imageUrl,
-        fileName: fileName,
-        movieNumber: movieNumber,
-        closeCurrentRouteOnSearch: closeCurrentRouteOnSearch,
-      );
+      if (onSearchSimilar != null) {
+        await _searchSimilarWithCallback(
+          context: context,
+          hostContext: hostContext,
+          imageUrl: imageUrl,
+          fileName: fileName,
+          closeCurrentRouteOnSearch: closeCurrentRouteOnSearch,
+          onSearchSimilar: onSearchSimilar,
+        );
+      } else {
+        await _searchSimilar(
+          context: context,
+          hostContext: hostContext,
+          imageUrl: imageUrl,
+          fileName: fileName,
+          movieNumber: movieNumber,
+          closeCurrentRouteOnSearch: closeCurrentRouteOnSearch,
+        );
+      }
       break;
     case AppImageActionType.saveToLocal:
       await _saveToLocal(
@@ -72,6 +85,38 @@ Future<void> showMoviePlotImageActionMenu({
     case AppImageActionType.play:
     case AppImageActionType.movieDetail:
       break;
+  }
+}
+
+Future<void> _searchSimilarWithCallback({
+  required BuildContext context,
+  required BuildContext hostContext,
+  required String imageUrl,
+  required String fileName,
+  required bool closeCurrentRouteOnSearch,
+  required Future<void> Function(
+    BuildContext context,
+    String imageUrl,
+    String fileName,
+  )
+  onSearchSimilar,
+}) async {
+  try {
+    if (closeCurrentRouteOnSearch) {
+      Navigator.of(context).pop();
+      Future<void>.microtask(() async {
+        if (!hostContext.mounted) {
+          return;
+        }
+        await onSearchSimilar(hostContext, imageUrl, fileName);
+      });
+      return;
+    }
+    await onSearchSimilar(hostContext, imageUrl, fileName);
+  } catch (error) {
+    if (hostContext.mounted) {
+      showToast(apiErrorMessage(error, fallback: '读取图片失败，请稍后重试'));
+    }
   }
 }
 

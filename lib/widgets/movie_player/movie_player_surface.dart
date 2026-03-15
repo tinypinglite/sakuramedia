@@ -51,28 +51,45 @@ class MoviePlayerSurfaceOpenCoordinator {
     required bool Function() shouldContinue,
     required VoidCallback markReady,
   }) async {
-    await driver.open(
-      resolvedUrl,
-      startPosition:
-          initialPosition != null && initialPosition > Duration.zero
-              ? initialPosition
-              : null,
-      play: false,
+    final startupPosition =
+        initialPosition != null && initialPosition > Duration.zero
+            ? initialPosition
+            : null;
+    debugPrint(
+      '[player-debug] surface_open_begin url=$resolvedUrl initialPositionSeconds=${initialPosition?.inSeconds} startupPositionSeconds=${startupPosition?.inSeconds}',
     );
+    await driver.open(resolvedUrl, startPosition: startupPosition, play: false);
     if (!shouldContinue()) {
+      debugPrint('[player-debug] surface_open_abort_after=open');
       return;
     }
 
+    debugPrint('[player-debug] surface_open_step=play');
     await driver.play();
     if (!shouldContinue()) {
+      debugPrint('[player-debug] surface_open_abort_after=play');
       return;
     }
 
+    debugPrint('[player-debug] surface_open_step=wait_first_frame');
     await driver.waitUntilFirstFrameRendered();
     if (!shouldContinue()) {
+      debugPrint('[player-debug] surface_open_abort_after=wait_first_frame');
       return;
     }
 
+    if (startupPosition != null) {
+      debugPrint(
+        '[player-debug] surface_open_step=seek startupPositionSeconds=${startupPosition.inSeconds}',
+      );
+      await driver.seek(startupPosition);
+      if (!shouldContinue()) {
+        debugPrint('[player-debug] surface_open_abort_after=seek');
+        return;
+      }
+    }
+
+    debugPrint('[player-debug] surface_open_step=ready');
     markReady();
   }
 }
@@ -87,8 +104,18 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<bool>? _playingSubscription;
   int _openRequestId = 0;
+  Duration? _startupSeekTarget;
+  DateTime? _startupSeekStartedAt;
+  bool _startupSeekSettled = true;
+  int _startupSeekRetryCount = 0;
+  int _startupSeekNearTargetSamples = 0;
   static const MoviePlayerSurfaceOpenCoordinator _openCoordinator =
       MoviePlayerSurfaceOpenCoordinator();
+  static const int _startupSeekToleranceSeconds = 2;
+  static const int _startupSeekRetryDelayMs = 800;
+  static const int _startupSeekMaxWindowMs = 8000;
+  static const int _startupSeekMaxRetries = 2;
+  static const int _startupSeekMinNearSamples = 2;
 
   @override
   void initState() {
@@ -108,6 +135,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     });
     _positionSubscription = _player.stream.position.listen((position) {
       widget.onPositionChanged?.call(position);
+      _maybeRetryStartupSeek(position);
     });
     _playingSubscription = _player.stream.playing.listen((playing) {
       widget.onPlayingChanged?.call(playing);
@@ -146,6 +174,18 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
 
   Future<void> _openMedia() async {
     final requestId = ++_openRequestId;
+    _startupSeekTarget =
+        widget.initialPosition != null &&
+                widget.initialPosition! > Duration.zero
+            ? widget.initialPosition
+            : null;
+    _startupSeekStartedAt = DateTime.now();
+    _startupSeekRetryCount = 0;
+    _startupSeekNearTargetSamples = 0;
+    _startupSeekSettled = _startupSeekTarget == null;
+    debugPrint(
+      '[player-debug] surface_state_open_media requestId=$requestId url=${widget.resolvedUrl} initialPositionSeconds=${widget.initialPosition?.inSeconds} startupTargetSeconds=${_startupSeekTarget?.inSeconds}',
+    );
     _readiness.reset();
     await _openCoordinator.open(
       driver: _playbackDriver,
@@ -154,6 +194,63 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       shouldContinue: () => mounted && requestId == _openRequestId,
       markReady: _readiness.markReady,
     );
+  }
+
+  void _maybeRetryStartupSeek(Duration currentPosition) {
+    final target = _startupSeekTarget;
+    if (target == null || _startupSeekSettled) {
+      return;
+    }
+    if (!_readiness.isReady) {
+      return;
+    }
+    final startedAt = _startupSeekStartedAt;
+    if (startedAt == null) {
+      _startupSeekSettled = true;
+      return;
+    }
+    final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+    final currentSeconds = currentPosition.inSeconds;
+    final targetSeconds = target.inSeconds;
+    final isNearTarget =
+        currentSeconds >= targetSeconds - _startupSeekToleranceSeconds;
+
+    debugPrint(
+      '[player-debug] startup_seek_probe currentSeconds=$currentSeconds targetSeconds=$targetSeconds elapsedMs=$elapsedMs retries=$_startupSeekRetryCount nearSamples=$_startupSeekNearTargetSamples',
+    );
+
+    if (isNearTarget) {
+      _startupSeekNearTargetSamples++;
+    } else {
+      _startupSeekNearTargetSamples = 0;
+    }
+
+    if (_startupSeekNearTargetSamples >= _startupSeekMinNearSamples) {
+      _startupSeekSettled = true;
+      debugPrint(
+        '[player-debug] startup_seek_verified currentSeconds=$currentSeconds targetSeconds=$targetSeconds retries=$_startupSeekRetryCount nearSamples=$_startupSeekNearTargetSamples',
+      );
+      return;
+    }
+
+    if (elapsedMs >= _startupSeekMaxWindowMs) {
+      _startupSeekSettled = true;
+      debugPrint(
+        '[player-debug] startup_seek_give_up reason=window_timeout currentSeconds=$currentSeconds targetSeconds=$targetSeconds retries=$_startupSeekRetryCount',
+      );
+      return;
+    }
+
+    if (elapsedMs < _startupSeekRetryDelayMs ||
+        _startupSeekRetryCount >= _startupSeekMaxRetries) {
+      return;
+    }
+
+    _startupSeekRetryCount++;
+    debugPrint(
+      '[player-debug] startup_seek_retry attempt=$_startupSeekRetryCount currentSeconds=$currentSeconds targetSeconds=$targetSeconds',
+    );
+    unawaited(_player.seek(target));
   }
 
   @override

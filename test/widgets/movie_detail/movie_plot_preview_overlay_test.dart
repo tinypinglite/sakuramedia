@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -47,6 +48,72 @@ void main() {
     expect(find.byKey(const Key('movie-plot-preview-dialog')), findsOneWidget);
     expect(find.byType(PreviewDialogSurface), findsOneWidget);
     expect(find.text('2 / 2'), findsOneWidget);
+  });
+
+  testWidgets('plot preview supports bottom drawer presentation', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      awaitableOverlayApp(
+        child: Builder(
+          builder:
+              (context) => TextButton(
+                onPressed:
+                    () => showMoviePlotPreviewOverlay(
+                      context: context,
+                      plotImages: _plotImages,
+                      initialIndex: 1,
+                      presentation: MoviePlotPreviewPresentation.bottomDrawer,
+                    ),
+                child: const Text('open'),
+              ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('movie-plot-preview-bottom-drawer')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('movie-plot-preview-dialog')), findsNothing);
+    expect(find.byType(PreviewDialogSurface), findsNothing);
+    expect(find.text('2 / 2'), findsOneWidget);
+  });
+
+  testWidgets('plot preview on mobile hides close button', (
+    WidgetTester tester,
+  ) async {
+    final previousOverride = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      await tester.pumpWidget(
+        awaitableOverlayApp(
+          child: Builder(
+            builder:
+                (context) => TextButton(
+                  onPressed:
+                      () => showMoviePlotPreviewOverlay(
+                        context: context,
+                        plotImages: _plotImages,
+                        initialIndex: 1,
+                        presentation: MoviePlotPreviewPresentation.bottomDrawer,
+                      ),
+                  child: const Text('open'),
+                ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('movie-plot-preview-close')), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = previousOverride;
+    }
   });
 
   testWidgets('plot preview dialog switches page when tapping thumbnail', (
