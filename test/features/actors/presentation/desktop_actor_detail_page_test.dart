@@ -106,6 +106,17 @@ void main() {
     expect(find.byKey(const Key('actor-detail-total')), findsOneWidget);
     expect(find.text('2 部'), findsOneWidget);
     expect(
+      find.byKey(const Key('actor-detail-subscription-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('actor-detail-subscription-1')),
+        matching: find.byIcon(Icons.favorite_rounded),
+      ),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const Key('movies-filter-trigger-label')),
       findsOneWidget,
     );
@@ -303,6 +314,38 @@ void main() {
       );
     },
   );
+
+  testWidgets('actor detail page toggles actor subscription from header', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors/1',
+      body: _actorDetailJson(),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(total: 0, items: const <Map<String, dynamic>>[]),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/actors/1/subscription',
+      statusCode: 204,
+    );
+
+    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('actor-detail-subscription-1')));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(bundle.adapter.hitCount('DELETE', '/actors/1/subscription'), 1);
+    expect(find.text('已取消订阅女优'), findsOneWidget);
+    expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
 
   testWidgets(
     'actor detail page toggles movie subscription from related list',

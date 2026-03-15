@@ -6,17 +6,47 @@ import 'package:sakuramedia/features/playlists/data/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/forms/app_text_field.dart';
 
-Future<PlaylistDto?> showCreatePlaylistDialog(BuildContext context) {
-  return showDialog<PlaylistDto>(
-    context: context,
-    builder: (dialogContext) => const CreatePlaylistDialog(),
-  );
+enum CreatePlaylistDialogPresentation { dialog, bottomDrawer }
+
+Future<PlaylistDto?> showCreatePlaylistDialog(
+  BuildContext context, {
+  CreatePlaylistDialogPresentation presentation =
+      CreatePlaylistDialogPresentation.dialog,
+}) {
+  switch (presentation) {
+    case CreatePlaylistDialogPresentation.dialog:
+      return showDialog<PlaylistDto>(
+        context: context,
+        builder:
+            (dialogContext) => const CreatePlaylistDialog(
+              presentation: CreatePlaylistDialogPresentation.dialog,
+            ),
+      );
+    case CreatePlaylistDialogPresentation.bottomDrawer:
+      return showAppBottomDrawer<PlaylistDto>(
+        context: context,
+        drawerKey: const Key('create-playlist-bottom-sheet'),
+        // maxHeightFactor: 0.4,
+        heightFactor: 0.4,
+        builder:
+            (sheetContext) => const CreatePlaylistDialog(
+              presentation: CreatePlaylistDialogPresentation.bottomDrawer,
+            ),
+      );
+  }
 }
 
 class CreatePlaylistDialog extends StatefulWidget {
-  const CreatePlaylistDialog({super.key});
+  const CreatePlaylistDialog({
+    super.key,
+    this.presentation = CreatePlaylistDialogPresentation.dialog,
+  });
+
+  final CreatePlaylistDialogPresentation presentation;
 
   @override
   State<CreatePlaylistDialog> createState() => _CreatePlaylistDialogState();
@@ -37,68 +67,63 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-
-    return Dialog(
-      backgroundColor: context.appColors.surfaceCard,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: context.appRadius.lgBorder),
-      child: SizedBox(
+    if (widget.presentation == CreatePlaylistDialogPresentation.dialog) {
+      return AppDesktopDialog(
         width: context.appComponentTokens.playlistDialogWidth,
-        child: Padding(
-          padding: EdgeInsets.all(spacing.xl),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('新建播放列表', style: Theme.of(context).textTheme.titleSmall),
-                SizedBox(height: spacing.xl),
-                AppTextField(
-                  fieldKey: const Key('create-playlist-name-field'),
-                  controller: _nameController,
-                  hintText: '例如：稍后再看',
-                  validator:
-                      (value) =>
-                          value == null || value.trim().isEmpty
-                              ? '请输入播放列表名称'
-                              : null,
-                ),
-                SizedBox(height: spacing.lg),
-                AppTextField(
-                  fieldKey: const Key('create-playlist-description-field'),
-                  controller: _descriptionController,
-                  hintText: '描述可选',
-                ),
-                SizedBox(height: spacing.xl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        label: '取消',
-                        onPressed:
-                            _isSubmitting
-                                ? null
-                                : () => Navigator.of(context).pop(),
-                      ),
-                    ),
-                    SizedBox(width: spacing.md),
-                    Expanded(
-                      child: AppButton(
-                        key: const Key('create-playlist-submit-button'),
-                        label: '创建',
-                        variant: AppButtonVariant.primary,
-                        isLoading: _isSubmitting,
-                        onPressed: _submit,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        child: _buildFormContent(context),
+      );
+    }
+
+    return SingleChildScrollView(child: _buildFormContent(context));
+  }
+
+  Widget _buildFormContent(BuildContext context) {
+    final spacing = context.appSpacing;
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('新建播放列表', style: Theme.of(context).textTheme.bodyMedium),
+          SizedBox(height: spacing.md),
+          AppTextField(
+            fieldKey: const Key('create-playlist-name-field'),
+            controller: _nameController,
+            hintText: '例如：稍后再看',
+            validator:
+                (value) =>
+                    value == null || value.trim().isEmpty ? '请输入播放列表名称' : null,
           ),
-        ),
+          SizedBox(height: spacing.sm),
+          AppTextField(
+            fieldKey: const Key('create-playlist-description-field'),
+            controller: _descriptionController,
+            hintText: '描述可选',
+          ),
+          SizedBox(height: spacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: AppButton(
+                  label: '取消',
+                  onPressed:
+                      _isSubmitting ? null : () => Navigator.of(context).pop(),
+                ),
+              ),
+              SizedBox(width: spacing.md),
+              Expanded(
+                child: AppButton(
+                  key: const Key('create-playlist-submit-button'),
+                  label: '创建',
+                  variant: AppButtonVariant.primary,
+                  isLoading: _isSubmitting,
+                  onPressed: _submit,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

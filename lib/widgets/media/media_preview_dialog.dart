@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/media/media_preview_action_grid.dart';
 import 'package:sakuramedia/widgets/media/preview_dialog_surface.dart';
 import 'package:sakuramedia/widgets/media/preview_image_stage.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_thumbnail.dart';
@@ -36,6 +37,8 @@ class MediaPreviewItem {
   final String? scoreText;
 }
 
+enum MediaPreviewPresentation { dialog, bottomDrawer }
+
 class MediaPreviewDialog extends StatefulWidget {
   const MediaPreviewDialog({
     super.key,
@@ -45,6 +48,7 @@ class MediaPreviewDialog extends StatefulWidget {
     this.onOpenMovieDetail,
     this.onPointRemoved,
     this.closeOnPointRemoved = false,
+    this.presentation = MediaPreviewPresentation.dialog,
   });
 
   final MediaPreviewItem item;
@@ -53,6 +57,7 @@ class MediaPreviewDialog extends StatefulWidget {
   final VoidCallback? onOpenMovieDetail;
   final VoidCallback? onPointRemoved;
   final bool closeOnPointRemoved;
+  final MediaPreviewPresentation presentation;
 
   @override
   State<MediaPreviewDialog> createState() => _MediaPreviewDialogState();
@@ -172,6 +177,15 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.presentation == MediaPreviewPresentation.bottomDrawer) {
+      final screenHeight = MediaQuery.sizeOf(context).height;
+      final previewHeight = math.min(
+        320.0,
+        math.max(220.0, screenHeight * 0.32),
+      );
+      return _buildPreviewContent(context, previewHeight: previewHeight);
+    }
+
     final spacing = context.appSpacing;
     final insetPadding = EdgeInsets.symmetric(
       horizontal: spacing.xxxl,
@@ -189,97 +203,138 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
       insetPadding: insetPadding,
       width: context.appComponentTokens.movieDetailDialogWidth,
       height: dialogHeight,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          PreviewImageStage(
-            stageKey: const Key('image-search-result-preview-hero'),
-            imageUrl: widget.item.imageUrl,
-            height: previewHeight,
-            onClose: () => Navigator.of(context).pop(),
-          ),
-          Container(
-            key: const Key('image-search-result-preview-summary'),
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(
-              horizontal: spacing.lg,
-              vertical: spacing.sm,
-            ),
-            color: context.appColors.surfaceMuted,
-            child: Text(
-              _summaryText,
-              textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.all(spacing.lg),
-              child: _buildMovieInfoSection(context),
-            ),
-          ),
-          Divider(height: 1, color: context.appColors.borderSubtle),
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              spacing.lg,
-              spacing.md,
-              spacing.lg,
-              spacing.lg,
-            ),
-            child: Wrap(
-              key: const Key('image-search-result-preview-actions'),
-              alignment: WrapAlignment.start,
-              runAlignment: WrapAlignment.start,
-              spacing: spacing.md,
-              runSpacing: spacing.md,
+      child: _buildPreviewContent(context, previewHeight: previewHeight),
+    );
+  }
+
+  Widget _buildPreviewContent(
+    BuildContext context, {
+    required double previewHeight,
+  }) {
+    final spacing = context.appSpacing;
+    final movieInfoSection = _buildMovieInfoSection(context);
+    final actionsSection = MediaPreviewActionGrid(
+      key: const Key('image-search-result-preview-actions'),
+      layout: MediaPreviewActionGridLayout.horizontalScroll,
+      spacing: spacing.xs,
+      tileWidth: 64,
+      actions: [
+        MediaPreviewActionItem(
+          label: '相似图片',
+          icon: Icons.image_search_outlined,
+          isLoading: _isSearchingSimilar,
+          onTap: widget.onSearchSimilar == null ? null : _handleSearchSimilar,
+        ),
+        MediaPreviewActionItem(
+          label: '保存',
+          icon: Icons.download_outlined,
+          isLoading: _isSavingImage,
+          onTap: _handleSaveToLocal,
+        ),
+        MediaPreviewActionItem(
+          label: _existingPoint == null ? '添加标记' : '删除标记',
+          icon:
+              _existingPoint == null
+                  ? Icons.bookmark_add_outlined
+                  : Icons.bookmark_remove_outlined,
+          isLoading: _isTogglingPoint,
+          onTap: _canTogglePoint ? _handleTogglePoint : null,
+        ),
+        MediaPreviewActionItem(
+          label: '播放',
+          icon: Icons.play_circle_outline_rounded,
+          visible: widget.item.mediaId > 0,
+          onTap:
+              widget.item.mediaId > 0 && widget.onPlay != null
+                  ? _handlePlay
+                  : null,
+        ),
+        MediaPreviewActionItem(
+          label: '影片详情',
+          icon: Icons.info_outline_rounded,
+          onTap:
+              widget.onOpenMovieDetail == null ? null : _handleOpenMovieDetail,
+        ),
+      ],
+    );
+
+    if (widget.presentation == MediaPreviewPresentation.bottomDrawer) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final maxPreviewHeight = math.max(
+            140.0,
+            constraints.maxHeight * 0.34,
+          );
+          final resolvedPreviewHeight = math.min(
+            previewHeight,
+            maxPreviewHeight,
+          );
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _PreviewActionTile(
-                  label: '相似图片',
-                  icon: Icons.image_search_outlined,
-                  isLoading: _isSearchingSimilar,
-                  onTap:
-                      widget.onSearchSimilar == null
-                          ? null
-                          : _handleSearchSimilar,
+                PreviewImageStage(
+                  stageKey: const Key('image-search-result-preview-hero'),
+                  imageUrl: widget.item.imageUrl,
+                  height: resolvedPreviewHeight,
+                  onClose: () => Navigator.of(context).pop(),
+                  showCloseButton: false,
                 ),
-                _PreviewActionTile(
-                  label: '保存到本地',
-                  icon: Icons.download_outlined,
-                  isLoading: _isSavingImage,
-                  onTap: _handleSaveToLocal,
+                Container(
+                  key: const Key('image-search-result-preview-summary'),
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    // horizontal: spacing.lg,
+                    vertical: spacing.sm,
+                  ),
+                  // color: context.appColors.surfaceMuted,
+                  child: Text(
+                    _summaryText,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ),
-                _PreviewActionTile(
-                  label: _existingPoint == null ? '添加标记' : '删除标记',
-                  icon:
-                      _existingPoint == null
-                          ? Icons.bookmark_add_outlined
-                          : Icons.bookmark_remove_outlined,
-                  isLoading: _isTogglingPoint,
-                  onTap: _canTogglePoint ? _handleTogglePoint : null,
-                ),
-                _PreviewActionTile(
-                  label: '播放',
-                  icon: Icons.play_circle_outline_rounded,
-                  onTap:
-                      widget.item.mediaId > 0 && widget.onPlay != null
-                          ? _handlePlay
-                          : null,
-                ),
-                _PreviewActionTile(
-                  label: '影片详情',
-                  icon: Icons.info_outline_rounded,
-                  onTap:
-                      widget.onOpenMovieDetail == null
-                          ? null
-                          : _handleOpenMovieDetail,
-                ),
+                movieInfoSection,
+                SizedBox(height: context.appSpacing.sm),
+                // Divider(height: 1, color: context.appColors.borderSubtle),
+                actionsSection,
               ],
             ),
+          );
+        },
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PreviewImageStage(
+          stageKey: const Key('image-search-result-preview-hero'),
+          imageUrl: widget.item.imageUrl,
+          height: previewHeight,
+          onClose: () => Navigator.of(context).pop(),
+          showCloseButton: false,
+        ),
+        Container(
+          key: const Key('image-search-result-preview-summary'),
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.lg,
+            vertical: spacing.sm,
           ),
-        ],
-      ),
+          color: context.appColors.surfaceMuted,
+          child: Text(
+            _summaryText,
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+        Expanded(child: movieInfoSection),
+        // Divider(height: 1, color: context.appColors.borderSubtle),
+        actionsSection,
+      ],
     );
   }
 
@@ -333,7 +388,7 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
                     borderRadius: context.appRadius.mdBorder,
                     child: SizedBox(
                       width: 88,
-                      height: 116,
+                      height: 80,
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           color: context.appColors.surfaceMuted,
@@ -344,13 +399,13 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
                   )
                   : MoviePlotThumbnail(
                     url: movie.coverImage!.bestAvailableUrl,
-                    maxHeight: 116,
+                    maxHeight: 80,
                     fit: BoxFit.cover,
                     borderRadius: context.appRadius.mdBorder,
                     fallbackAspectRatio: 0.72,
                   ),
         ),
-        SizedBox(width: spacing.lg),
+        SizedBox(width: spacing.sm),
         Expanded(
           child:
               movie.actors.isEmpty
@@ -462,6 +517,9 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
   }
 
   void _handlePlay() {
+    debugPrint(
+      '[player-debug] preview_play_tap movie=${widget.item.movieNumber} mediaId=${widget.item.mediaId} offsetSeconds=${widget.item.offsetSeconds} presentation=${widget.presentation.name}',
+    );
     widget.onPlay?.call();
     Navigator.of(context).pop();
   }
@@ -491,9 +549,8 @@ class _MovieActorStrip extends StatelessWidget {
     return SizedBox(
       key: const Key('image-search-result-preview-actor-strip'),
       height: itemHeight,
-      child: Scrollbar(
-        controller: controller,
-        thumbVisibility: true,
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
         child: ListView.separated(
           key: const Key('image-search-result-preview-actor-list'),
           controller: controller,
@@ -546,75 +603,6 @@ class _MovieActorStrip extends StatelessWidget {
               ),
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-class _PreviewActionTile extends StatelessWidget {
-  const _PreviewActionTile({
-    required this.label,
-    required this.icon,
-    this.onTap,
-    this.isLoading = false,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback? onTap;
-  final bool isLoading;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final tokens = context.appComponentTokens;
-    return SizedBox(
-      width: 120,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: context.appRadius.mdBorder,
-          onTap: isLoading ? null : onTap,
-          child: Ink(
-            padding: EdgeInsets.symmetric(
-              horizontal: context.appSpacing.md,
-              vertical: context.appSpacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: colors.surfaceMuted,
-              borderRadius: context.appRadius.mdBorder,
-              border: Border.all(color: colors.borderSubtle),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child:
-                      isLoading
-                          ? const CircularProgressIndicator(strokeWidth: 2)
-                          : Icon(
-                            icon,
-                            size: tokens.iconSizeMd,
-                            color: colors.textPrimary,
-                          ),
-                ),
-                SizedBox(height: context.appSpacing.sm),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color:
-                        onTap == null ? colors.textMuted : colors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );

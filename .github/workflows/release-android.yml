@@ -1,0 +1,67 @@
+name: Release Android
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Android APK and publish release
+    runs-on: ubuntu-latest
+
+    env:
+      ARCHIVE_NAME: sakuramedia-android-${{ github.ref_name }}-debug-signed.apk
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.29.3
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests before release
+        run: flutter test
+
+      - name: Build Android release APK
+        run: flutter build apk --release
+
+      - name: Package release APK
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/${ARCHIVE_NAME}"
+          sha256sum "dist/${ARCHIVE_NAME}" > "dist/${ARCHIVE_NAME}.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-${{ github.ref_name }}
+          path: |
+            dist/${{ env.ARCHIVE_NAME }}
+            dist/${{ env.ARCHIVE_NAME }}.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: sakuramedia ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/${{ env.ARCHIVE_NAME }}
+            dist/${{ env.ARCHIVE_NAME }}.sha256

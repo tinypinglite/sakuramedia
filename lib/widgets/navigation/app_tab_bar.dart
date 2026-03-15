@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
 
-enum AppTabBarVariant { desktop, compact }
+enum AppTabBarVariant { desktop, compact, mobileTop }
 
 class _AppTabBarStyleSpec {
   const _AppTabBarStyleSpec({
@@ -54,13 +54,11 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
         return _AppTabBarStyleSpec(
           visualTabHeight: 40,
           labelPadding: const EdgeInsets.only(right: 10),
-          labelStyle: textTheme.titleSmall!.copyWith(
-            fontSize: 14,
+          labelStyle: textTheme.labelLarge!.copyWith(
             fontWeight: FontWeight.w700,
             color: colors.textPrimary,
           ),
-          unselectedLabelStyle: textTheme.titleSmall!.copyWith(
-            fontSize: 14,
+          unselectedLabelStyle: textTheme.labelLarge!.copyWith(
             fontWeight: FontWeight.w500,
             color: colors.textSecondary,
           ),
@@ -88,13 +86,31 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
           dividerHeight: 0,
           indicatorThickness: 3,
         );
+      case AppTabBarVariant.mobileTop:
+        return _AppTabBarStyleSpec(
+          dividerHeight: 0,
+          visualTabHeight: context.appComponentTokens.mobileTopTabHeight,
+          labelPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.lg),
+          labelStyle: textTheme.titleSmall!.copyWith(
+            fontWeight: FontWeight.w700,
+            color: colors.textPrimary,
+          ),
+          unselectedLabelStyle: textTheme.titleSmall!.copyWith(
+            fontWeight: FontWeight.w500,
+            color: colors.textSecondary,
+          ),
+          isScrollable: true,
+          tabAlignment: TabAlignment.center,
+          dividerColor: colors.divider,
+          indicatorThickness: 5,
+        );
     }
   }
 
-  Decoration _buildIndicator(BuildContext context) {
+  Decoration _buildIndicator(BuildContext context, double thickness) {
     return _ThinTabIndicator(
       color: Theme.of(context).colorScheme.primary,
-      thickness: variant == AppTabBarVariant.desktop ? 3 : 3,
+      thickness: thickness,
     );
   }
 
@@ -108,15 +124,9 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final spec = _spec(context);
     final resolvedHeight = tabHeight ?? spec.visualTabHeight;
-    final resolvedTabs =
-        tabs
-            .map(
-              (tab) => SizedBox(
-                height: resolvedHeight,
-                child: tab,
-              ),
-            )
-            .toList(growable: false);
+    final resolvedTabs = tabs
+        .map((tab) => SizedBox(height: resolvedHeight, child: tab))
+        .toList(growable: false);
 
     return TabBar(
       controller: controller,
@@ -130,7 +140,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
       unselectedLabelStyle: spec.unselectedLabelStyle,
       dividerColor: spec.dividerColor,
       dividerHeight: spec.dividerHeight,
-      indicator: _buildIndicator(context),
+      indicator: _buildIndicator(context, spec.indicatorThickness),
       indicatorSize: indicatorSize,
       indicatorPadding: _indicatorPadding(
         resolvedHeight,
@@ -151,6 +161,8 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
         return 40;
       case AppTabBarVariant.compact:
         return 32;
+      case AppTabBarVariant.mobileTop:
+        return 48;
     }
   }
 }

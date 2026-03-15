@@ -60,4 +60,41 @@ void main() {
 
     expect(widget.preferredSize.height, 32);
   });
+
+  test('mobileTop app tab bar reports mobile preferred height', () {
+    const widget = AppTabBar(
+      variant: AppTabBarVariant.mobileTop,
+      tabs: [Tab(text: 'A')],
+    );
+
+    expect(widget.preferredSize.height, 48);
+  });
+
+  testWidgets('mobileTop app tab bar centers tabs and allows scroll layout', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: DefaultTabController(
+          length: 4,
+          child: const Material(
+            child: AppTabBar(
+              variant: AppTabBarVariant.mobileTop,
+              tabs: [
+                Tab(text: '我的'),
+                Tab(text: '关注'),
+                Tab(text: '发现'),
+                Tab(text: '时刻'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final tabBar = tester.widget<TabBar>(find.byType(TabBar));
+    expect(tabBar.isScrollable, isTrue);
+    expect(tabBar.tabAlignment, TabAlignment.center);
+  });
 }

@@ -5,6 +5,7 @@ import 'package:sakuramedia/widgets/media/masked_image.dart';
 class MovieDetailHeroCard extends StatelessWidget {
   const MovieDetailHeroCard({
     super.key,
+    required this.height,
     required this.mainImageKey,
     required this.mainImageUrl,
     required this.thinCoverUrl,
@@ -16,6 +17,7 @@ class MovieDetailHeroCard extends StatelessWidget {
     this.isSubscriptionUpdating = false,
   });
 
+  final double height;
   final String mainImageKey;
   final String? mainImageUrl;
   final String? thinCoverUrl;
@@ -33,7 +35,7 @@ class MovieDetailHeroCard extends StatelessWidget {
     final tokens = context.appComponentTokens;
 
     return Container(
-      height: tokens.movieDetailHeroHeight,
+      height: height,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

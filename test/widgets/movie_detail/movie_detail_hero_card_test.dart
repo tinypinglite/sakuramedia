@@ -62,6 +62,7 @@ void main() {
             body: SizedBox(
               width: 1200,
               child: MovieDetailHeroCard(
+                height: 420,
                 mainImageKey: 'cover',
                 mainImageUrl: '/covers/main.jpg',
                 thinCoverUrl: '/covers/thin.jpg',
@@ -102,6 +103,7 @@ void main() {
               body: SizedBox(
                 width: 1200,
                 child: MovieDetailHeroCard(
+                  height: 420,
                   mainImageKey: 'cover',
                   mainImageUrl: '/covers/main.jpg',
                   thinCoverUrl: '/covers/thin.jpg',
@@ -148,6 +150,7 @@ void main() {
             body: SizedBox(
               width: 1200,
               child: MovieDetailHeroCard(
+                height: 420,
                 mainImageKey: 'cover',
                 mainImageUrl: '/covers/main.jpg',
                 thinCoverUrl: '/covers/thin.jpg',
@@ -183,6 +186,7 @@ void main() {
             body: SizedBox(
               width: 1200,
               child: MovieDetailHeroCard(
+                height: 420,
                 mainImageKey: 'cover',
                 mainImageUrl: '/covers/main.jpg',
                 thinCoverUrl: '/covers/thin.jpg',
@@ -225,6 +229,7 @@ Widget _buildApp({required SessionStore sessionStore}) {
         body: SizedBox(
           width: 1200,
           child: MovieDetailHeroCard(
+            height: 420,
             mainImageKey: 'cover',
             mainImageUrl: '/covers/main.jpg',
             thinCoverUrl: '/covers/thin.jpg',

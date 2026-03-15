@@ -15,6 +15,7 @@ import 'package:sakuramedia/features/configuration/data/media_library_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
 import 'package:sakuramedia/widgets/app_shell/app_page_frame.dart';
@@ -652,20 +653,40 @@ class _DownloadClientsTabState extends State<_DownloadClientsTab> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
-          (dialogContext) => AlertDialog(
-            title: const Text('删除下载器'),
-            content: Text('确认删除下载器“${client.name}”？该操作不会删除下载任务。'),
-            actions: [
-              AppButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                label: '取消',
-              ),
-              AppButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                label: '删除',
-                variant: AppButtonVariant.danger,
-              ),
-            ],
+          (dialogContext) => AppDesktopDialog(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '删除下载器',
+                  style: Theme.of(dialogContext).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                SizedBox(height: dialogContext.appSpacing.lg),
+                Text('确认删除下载器“${client.name}”？该操作不会删除下载任务。'),
+                SizedBox(height: dialogContext.appSpacing.xl),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        label: '取消',
+                      ),
+                    ),
+                    SizedBox(width: dialogContext.appSpacing.md),
+                    Expanded(
+                      child: AppButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        label: '删除',
+                        variant: AppButtonVariant.danger,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
     );
 
@@ -976,78 +997,70 @@ class _MediaLibraryDialogState extends State<_MediaLibraryDialog> {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
 
-    return Dialog(
+    return AppDesktopDialog(
       backgroundColor: Colors.white,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: context.appRadius.lgBorder),
-      child: SizedBox(
-        width: 520,
-        child: Padding(
-          padding: EdgeInsets.all(spacing.xl),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+      width: 520,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            SizedBox(height: spacing.xl),
+            const _DialogFieldLabel(label: '名称'),
+            SizedBox(height: spacing.sm),
+            AppTextField(
+              fieldKey: const Key('media-library-name-field'),
+              controller: _nameController,
+              hintText: '例如: Main Library',
+              validator:
+                  (value) =>
+                      value == null || value.trim().isEmpty ? '请输入媒体库名称' : null,
+            ),
+            SizedBox(height: spacing.lg),
+            const _DialogFieldLabel(label: '根路径'),
+            SizedBox(height: spacing.sm),
+            AppTextField(
+              fieldKey: const Key('media-library-root-path-field'),
+              controller: _rootPathController,
+              hintText: '填映射到容器内的路径，例如: /mnt/medialibray1',
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return '请输入媒体库根路径';
+                }
+                if (!_isAbsolutePath(value.trim())) {
+                  return '请输入路径';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: spacing.xl),
+            Row(
               children: [
-                Text(
-                  widget.title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: AppButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    label: '取消',
                   ),
                 ),
-                SizedBox(height: spacing.xl),
-                const _DialogFieldLabel(label: '名称'),
-                SizedBox(height: spacing.sm),
-                AppTextField(
-                  fieldKey: const Key('media-library-name-field'),
-                  controller: _nameController,
-                  hintText: '例如: Main Library',
-                  validator:
-                      (value) =>
-                          value == null || value.trim().isEmpty
-                              ? '请输入媒体库名称'
-                              : null,
-                ),
-                SizedBox(height: spacing.lg),
-                const _DialogFieldLabel(label: '根路径'),
-                SizedBox(height: spacing.sm),
-                AppTextField(
-                  fieldKey: const Key('media-library-root-path-field'),
-                  controller: _rootPathController,
-                  hintText: '填映射到容器内的路径，例如: /mnt/medialibray1',
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return '请输入媒体库根路径';
-                    }
-                    if (!_isAbsolutePath(value.trim())) {
-                      return '请输入路径';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: spacing.xl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        label: '取消',
-                      ),
-                    ),
-                    SizedBox(width: context.appSpacing.md),
-                    Expanded(
-                      child: AppButton(
-                        onPressed: _submit,
-                        label: '保存',
-                        variant: AppButtonVariant.primary,
-                      ),
-                    ),
-                  ],
+                SizedBox(width: context.appSpacing.md),
+                Expanded(
+                  child: AppButton(
+                    onPressed: _submit,
+                    label: '保存',
+                    variant: AppButtonVariant.primary,
+                  ),
                 ),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -1572,174 +1585,164 @@ class _DownloadClientDialogState extends State<_DownloadClientDialog> {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
 
-    return Dialog(
+    return AppDesktopDialog(
       backgroundColor: Colors.white,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: context.appRadius.lgBorder),
-      child: SizedBox(
-        width: 520,
-        child: Padding(
-          padding: EdgeInsets.all(spacing.xl),
-          child: Form(
-            key: _formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
+      width: 520,
+      child: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              SizedBox(height: spacing.xl),
+              AppTextField(
+                fieldKey: const Key('download-client-name-field'),
+                controller: _nameController,
+                label: '名称',
+                hintText: '给下载器起个名字，例如：pt 专属',
+                validator:
+                    (value) =>
+                        value == null || value.trim().isEmpty
+                            ? '请输入下载器名称'
+                            : null,
+              ),
+              SizedBox(height: context.appSpacing.lg),
+              AppTextField(
+                fieldKey: const Key('download-client-base-url-field'),
+                controller: _baseUrlController,
+                label: '服务地址',
+                hintText: '填写完整内网地址，例如：http://192.168.1.2:8080',
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return '请输入服务地址';
+                  }
+                  if (!_isValidHttpUrl(value.trim())) {
+                    return '请输入合法的 http/https 地址';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: context.appSpacing.lg),
+              Row(
                 children: [
-                  Text(
-                    widget.title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: AppTextField(
+                      fieldKey: const Key('download-client-username-field'),
+                      controller: _usernameController,
+                      label: '用户名',
+                      hintText: '输入用于登录下载器的用户名',
+                      validator:
+                          (value) =>
+                              value == null || value.trim().isEmpty
+                                  ? '请输入用户名'
+                                  : null,
                     ),
                   ),
-                  SizedBox(height: spacing.xl),
-                  AppTextField(
-                    fieldKey: const Key('download-client-name-field'),
-                    controller: _nameController,
-                    label: '名称',
-                    hintText: '给下载器起个名字，例如：pt 专属',
-                    validator:
-                        (value) =>
-                            value == null || value.trim().isEmpty
-                                ? '请输入下载器名称'
-                                : null,
-                  ),
-                  SizedBox(height: context.appSpacing.lg),
-                  AppTextField(
-                    fieldKey: const Key('download-client-base-url-field'),
-                    controller: _baseUrlController,
-                    label: '服务地址',
-                    hintText: '填写完整内网地址，例如：http://192.168.1.2:8080',
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return '请输入服务地址';
-                      }
-                      if (!_isValidHttpUrl(value.trim())) {
-                        return '请输入合法的 http/https 地址';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: context.appSpacing.lg),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppTextField(
-                          fieldKey: const Key('download-client-username-field'),
-                          controller: _usernameController,
-                          label: '用户名',
-                          hintText: '输入用于登录下载器的用户名',
-                          validator:
-                              (value) =>
-                                  value == null || value.trim().isEmpty
-                                      ? '请输入用户名'
-                                      : null,
-                        ),
-                      ),
-                      SizedBox(width: context.appSpacing.md),
-                      Expanded(
-                        child: AppTextField(
-                          fieldKey: const Key('download-client-password-field'),
-                          controller: _passwordController,
-                          label: '密码',
-                          hintText: '输入用于登录下载器的密码',
-                          helperText: _isEditing ? '留空则保持原密码不变' : null,
-                          obscureText: true,
-                          validator: (value) {
-                            if (_isEditing) {
-                              return null;
-                            }
-                            if (value == null || value.trim().isEmpty) {
-                              return '请输入密码';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: context.appSpacing.lg),
-                  AppTextField(
-                    fieldKey: const Key(
-                      'download-client-client-save-path-field',
+                  SizedBox(width: context.appSpacing.md),
+                  Expanded(
+                    child: AppTextField(
+                      fieldKey: const Key('download-client-password-field'),
+                      controller: _passwordController,
+                      label: '密码',
+                      hintText: '输入用于登录下载器的密码',
+                      helperText: _isEditing ? '留空则保持原密码不变' : null,
+                      obscureText: true,
+                      validator: (value) {
+                        if (_isEditing) {
+                          return null;
+                        }
+                        if (value == null || value.trim().isEmpty) {
+                          return '请输入密码';
+                        }
+                        return null;
+                      },
                     ),
-                    controller: _clientSavePathController,
-                    label: 'qBittorrent保存路径',
-                    hintText: '填写 qBittorrent 容器内使用的路径，例如：/downloads',
-                    helperText: 'qBittorrent 实际保存文件时使用的路径',
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return '请输入qBittorrent保存路径';
-                      }
-                      if (!_isAbsolutePath(value.trim())) {
-                        return '请输入路径';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: context.appSpacing.lg),
-                  AppTextField(
-                    fieldKey: const Key(
-                      'download-client-local-root-path-field',
-                    ),
-                    controller: _localRootPathController,
-                    label: '本地访问路径',
-                    hintText: '填写 SakuraMediaBE 中的实际下载绝对路径，例如:/mnt/downloads',
-                    helperText: '注意确保和 qBittorrent 的下载路径在宿主机上是同一个路径.',
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return '请输入本地访问路径';
-                      }
-                      if (!_isAbsolutePath(value.trim())) {
-                        return '请输入路径';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: context.appSpacing.lg),
-                  AppSelectField<int>(
-                    key: const Key('download-client-media-library-field'),
-                    value: _selectedLibraryId,
-                    items: widget.libraries
-                        .map(
-                          (library) => DropdownMenuItem<int>(
-                            value: library.id,
-                            child: Text(library.name),
-                          ),
-                        )
-                        .toList(growable: false),
-                    label: '目标媒体库',
-                    onChanged:
-                        widget.libraries.isEmpty
-                            ? null
-                            : (value) => setState(() {
-                              _selectedLibraryId = value;
-                            }),
-                    validator: (value) => value == null ? '请选择目标媒体库' : null,
-                  ),
-                  SizedBox(height: spacing.xl),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: AppButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          label: '取消',
-                        ),
-                      ),
-                      SizedBox(width: context.appSpacing.md),
-                      Expanded(
-                        child: AppButton(
-                          onPressed: _submit,
-                          label: '保存',
-                          variant: AppButtonVariant.primary,
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
-            ),
+              SizedBox(height: context.appSpacing.lg),
+              AppTextField(
+                fieldKey: const Key('download-client-client-save-path-field'),
+                controller: _clientSavePathController,
+                label: 'qBittorrent保存路径',
+                hintText: '填写 qBittorrent 容器内使用的路径，例如：/downloads',
+                helperText: 'qBittorrent 实际保存文件时使用的路径',
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return '请输入qBittorrent保存路径';
+                  }
+                  if (!_isAbsolutePath(value.trim())) {
+                    return '请输入路径';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: context.appSpacing.lg),
+              AppTextField(
+                fieldKey: const Key('download-client-local-root-path-field'),
+                controller: _localRootPathController,
+                label: '本地访问路径',
+                hintText: '填写 SakuraMediaBE 中的实际下载绝对路径，例如:/mnt/downloads',
+                helperText: '注意确保和 qBittorrent 的下载路径在宿主机上是同一个路径.',
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return '请输入本地访问路径';
+                  }
+                  if (!_isAbsolutePath(value.trim())) {
+                    return '请输入路径';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: context.appSpacing.lg),
+              AppSelectField<int>(
+                key: const Key('download-client-media-library-field'),
+                value: _selectedLibraryId,
+                items: widget.libraries
+                    .map(
+                      (library) => DropdownMenuItem<int>(
+                        value: library.id,
+                        child: Text(library.name),
+                      ),
+                    )
+                    .toList(growable: false),
+                label: '目标媒体库',
+                onChanged:
+                    widget.libraries.isEmpty
+                        ? null
+                        : (value) => setState(() {
+                          _selectedLibraryId = value;
+                        }),
+                validator: (value) => value == null ? '请选择目标媒体库' : null,
+              ),
+              SizedBox(height: spacing.xl),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      label: '取消',
+                    ),
+                  ),
+                  SizedBox(width: context.appSpacing.md),
+                  Expanded(
+                    child: AppButton(
+                      onPressed: _submit,
+                      label: '保存',
+                      variant: AppButtonVariant.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -1826,127 +1829,118 @@ class _IndexerEntryDialogState extends State<_IndexerEntryDialog> {
     final isEditing = widget.initialEntry != null;
     final spacing = context.appSpacing;
 
-    return Dialog(
+    return AppDesktopDialog(
       backgroundColor: Colors.white,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: context.appRadius.lgBorder),
-      child: SizedBox(
-        width: 520,
-        child: Padding(
-          padding: EdgeInsets.all(spacing.xl),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+      width: 520,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            SizedBox(height: spacing.xl),
+            _DialogFieldLabel(label: '名称 (NAME)'),
+            SizedBox(height: spacing.sm),
+            AppTextField(
+              fieldKey: const Key('indexer-entry-name-field'),
+              controller: _nameController,
+              hintText: '例如: 馒头',
+              validator:
+                  (value) =>
+                      value == null || value.trim().isEmpty ? '请输入索引器名称' : null,
+            ),
+            SizedBox(height: spacing.lg),
+            _DialogFieldLabel(label: '资源地址 (URL)'),
+            SizedBox(height: spacing.sm),
+            AppTextField(
+              fieldKey: const Key('indexer-entry-url-field'),
+              controller: _urlController,
+              hintText: '填写完整的 torznab 地址',
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return '请输入索引器 URL';
+                }
+                if (!_isValidHttpUrl(value.trim())) {
+                  return '请输入合法的 http/https 地址';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: spacing.lg),
+            _DialogFieldLabel(label: '类别 (KIND)'),
+            SizedBox(height: spacing.sm),
+            Row(
+              key: const Key('indexer-entry-kind-field'),
               children: [
-                Text(
-                  widget.title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                Expanded(
+                  child: _KindOptionButton(
+                    label: 'PT (私有)',
+                    selected: _kind == 'pt',
+                    onTap: () => setState(() => _kind = 'pt'),
                   ),
                 ),
-                SizedBox(height: spacing.xl),
-                _DialogFieldLabel(label: '名称 (NAME)'),
-                SizedBox(height: spacing.sm),
-                AppTextField(
-                  fieldKey: const Key('indexer-entry-name-field'),
-                  controller: _nameController,
-                  hintText: '例如: 馒头',
-                  validator:
-                      (value) =>
-                          value == null || value.trim().isEmpty
-                              ? '请输入索引器名称'
-                              : null,
-                ),
-                SizedBox(height: spacing.lg),
-                _DialogFieldLabel(label: '资源地址 (URL)'),
-                SizedBox(height: spacing.sm),
-                AppTextField(
-                  fieldKey: const Key('indexer-entry-url-field'),
-                  controller: _urlController,
-                  hintText: '填写完整的 torznab 地址',
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return '请输入索引器 URL';
-                    }
-                    if (!_isValidHttpUrl(value.trim())) {
-                      return '请输入合法的 http/https 地址';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: spacing.lg),
-                _DialogFieldLabel(label: '类别 (KIND)'),
-                SizedBox(height: spacing.sm),
-                Row(
-                  key: const Key('indexer-entry-kind-field'),
-                  children: [
-                    Expanded(
-                      child: _KindOptionButton(
-                        label: 'PT (私有)',
-                        selected: _kind == 'pt',
-                        onTap: () => setState(() => _kind = 'pt'),
-                      ),
-                    ),
-                    SizedBox(width: context.appSpacing.md),
-                    Expanded(
-                      child: _KindOptionButton(
-                        label: 'BT (公网)',
-                        selected: _kind == 'bt',
-                        onTap: () => setState(() => _kind = 'bt'),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: spacing.lg),
-                AppSelectField<int>(
-                  key: const Key('indexer-entry-download-client-field'),
-                  value: _selectedDownloadClientId,
-                  items: widget.downloadClients
-                      .map(
-                        (client) => DropdownMenuItem<int>(
-                          value: client.id,
-                          child: Text(client.name),
-                        ),
-                      )
-                      .toList(growable: false),
-                  label: '绑定下载器',
-                  placeholder:
-                      widget.downloadClients.isEmpty
-                          ? '请先在下载器 Tab 创建下载器'
-                          : '请选择下载器',
-                  onChanged:
-                      widget.downloadClients.isEmpty
-                          ? null
-                          : (value) => setState(() {
-                            _selectedDownloadClientId = value;
-                          }),
-                  validator: (value) => value == null ? '请选择下载器' : null,
-                ),
-                SizedBox(height: spacing.xl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        label: '取消',
-                      ),
-                    ),
-                    SizedBox(width: context.appSpacing.md),
-                    Expanded(
-                      child: AppButton(
-                        onPressed:
-                            widget.downloadClients.isEmpty ? null : _submit,
-                        label: isEditing ? '保存' : '保存',
-                        variant: AppButtonVariant.primary,
-                      ),
-                    ),
-                  ],
+                SizedBox(width: context.appSpacing.md),
+                Expanded(
+                  child: _KindOptionButton(
+                    label: 'BT (公网)',
+                    selected: _kind == 'bt',
+                    onTap: () => setState(() => _kind = 'bt'),
+                  ),
                 ),
               ],
             ),
-          ),
+            SizedBox(height: spacing.lg),
+            AppSelectField<int>(
+              key: const Key('indexer-entry-download-client-field'),
+              value: _selectedDownloadClientId,
+              items: widget.downloadClients
+                  .map(
+                    (client) => DropdownMenuItem<int>(
+                      value: client.id,
+                      child: Text(client.name),
+                    ),
+                  )
+                  .toList(growable: false),
+              label: '绑定下载器',
+              placeholder:
+                  widget.downloadClients.isEmpty
+                      ? '请先在下载器 Tab 创建下载器'
+                      : '请选择下载器',
+              onChanged:
+                  widget.downloadClients.isEmpty
+                      ? null
+                      : (value) => setState(() {
+                        _selectedDownloadClientId = value;
+                      }),
+              validator: (value) => value == null ? '请选择下载器' : null,
+            ),
+            SizedBox(height: spacing.xl),
+            Row(
+              children: [
+                Expanded(
+                  child: AppButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    label: '取消',
+                  ),
+                ),
+                SizedBox(width: context.appSpacing.md),
+                Expanded(
+                  child: AppButton(
+                    onPressed: widget.downloadClients.isEmpty ? null : _submit,
+                    label: isEditing ? '保存' : '保存',
+                    variant: AppButtonVariant.primary,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -435,6 +435,66 @@ void main() {
     );
   });
 
+  test('getSubscribedActorsLatestMovies parses paginated response', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/subscribed-actors/latest',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'javdb_id': 'MovieA2',
+            'movie_number': 'ABC-002',
+            'title': 'Movie 2',
+            'cover_image': null,
+            'release_date': '2026-03-10',
+            'duration_minutes': 130,
+            'is_subscribed': false,
+            'can_play': true,
+          },
+        ],
+        'page': 1,
+        'page_size': 10,
+        'total': 1,
+      },
+    );
+
+    final page = await moviesApi.getSubscribedActorsLatestMovies(
+      page: 1,
+      pageSize: 10,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.path, '/movies/subscribed-actors/latest');
+    expect(request.uri.queryParameters['page'], '1');
+    expect(request.uri.queryParameters['page_size'], '10');
+    expect(page.total, 1);
+    expect(page.items.single.movieNumber, 'ABC-002');
+    expect(page.items.single.releaseDate, DateTime.parse('2026-03-10'));
+  });
+
+  test('getSubscribedActorsLatestMovies converts backend error', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/subscribed-actors/latest',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+      },
+    );
+
+    expect(
+      () => moviesApi.getSubscribedActorsLatestMovies(page: 1, pageSize: 10),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'server_error',
+        ),
+      ),
+    );
+  });
+
   test('getMovieDetail parses full movie detail response', () async {
     adapter.enqueueJson(
       method: 'GET',
