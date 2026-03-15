@@ -15,8 +15,8 @@ Future<void> bootstrapApplication() async {
   await windowManager.ensureInitialized();
   final isMacOS = defaultTargetPlatform == TargetPlatform.macOS;
   final windowOptions = WindowOptions(
-    size: Size(1280, 720),
-    minimumSize: Size(1280, 720),
+    size: Size(1280, 800),
+    minimumSize: Size(1280, 800),
     center: true,
     backgroundColor: isMacOS ? Colors.transparent : Color(0xFFFFFFFF),
     skipTaskbar: false,
