@@ -36,6 +36,21 @@ class PlaylistsApi {
     return PlaylistDto.fromJson(response);
   }
 
+  Future<PlaylistDto> updatePlaylist({
+    required int playlistId,
+    required UpdatePlaylistPayload payload,
+  }) async {
+    final response = await _apiClient.patch(
+      '/playlists/$playlistId',
+      data: payload.toJson(),
+    );
+    return PlaylistDto.fromJson(response);
+  }
+
+  Future<void> deletePlaylist(int playlistId) {
+    return _apiClient.deleteNoContent('/playlists/$playlistId');
+  }
+
   Future<PaginatedResponseDto<MovieListItemDto>> getPlaylistMovies({
     required int playlistId,
     int page = 1,

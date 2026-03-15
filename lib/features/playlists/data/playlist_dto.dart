@@ -39,6 +39,20 @@ class PlaylistDto {
   }
 }
 
+class UpdatePlaylistPayload {
+  const UpdatePlaylistPayload({this.name, this.description});
+
+  final String? name;
+  final String? description;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      if (name != null) 'name': name,
+      if (description != null) 'description': description,
+    };
+  }
+}
+
 DateTime? _dateTimeFromJson(dynamic value) {
   if (value is! String || value.isEmpty) {
     return null;

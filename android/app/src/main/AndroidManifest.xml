@@ -13,7 +13,7 @@
         android:maxSdkVersion="28" />
 
     <application
-        android:label="sakuramedia"
+        android:label="樱视"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">

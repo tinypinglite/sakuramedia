@@ -12,6 +12,9 @@ import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dar
 import 'package:sakuramedia/features/configuration/data/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_library_dto.dart';
+import 'package:sakuramedia/features/playlists/data/playlist_dto.dart';
+import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
+import 'package:sakuramedia/features/playlists/presentation/create_playlist_dialog.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
@@ -40,7 +43,7 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this)
+    _tabController = TabController(length: 4, vsync: this)
       ..addListener(_handleTabChanged);
   }
 
@@ -81,6 +84,7 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage>
               Tab(key: Key('configuration-tab-basic'), text: '基础信息'),
               Tab(key: Key('configuration-tab-downloads'), text: '下载器'),
               Tab(key: Key('configuration-tab-indexers'), text: '索引器'),
+              Tab(key: Key('configuration-tab-playlists'), text: '播放列表'),
             ],
           ),
           SizedBox(height: context.appSpacing.xl),
@@ -96,6 +100,7 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage>
                 librariesRevision: _mediaLibrariesRevision,
               ),
               _IndexerSettingsTab(active: _selectedIndex == 2),
+              _PlaylistsTab(active: _selectedIndex == 3),
             ],
           ),
         ],
@@ -853,6 +858,423 @@ class _DownloadClientCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PlaylistsTab extends StatefulWidget {
+  const _PlaylistsTab({required this.active});
+
+  final bool active;
+
+  @override
+  State<_PlaylistsTab> createState() => _PlaylistsTabState();
+}
+
+class _PlaylistsTabState extends State<_PlaylistsTab> {
+  bool _initialized = false;
+  bool _isLoading = false;
+  String? _errorMessage;
+  List<PlaylistDto> _playlists = const <PlaylistDto>[];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.active) {
+      _loadPlaylists();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlaylistsTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !_initialized && !_isLoading) {
+      _loadPlaylists();
+    }
+  }
+
+  Future<void> _loadPlaylists() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final playlists = await context.read<PlaylistsApi>().getPlaylists(
+        includeSystem: false,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _playlists = playlists
+            .where((playlist) => !playlist.isSystem)
+            .toList(growable: false);
+        _initialized = true;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _initialized = true;
+        _isLoading = false;
+        _errorMessage = _apiMessage(error, fallback: '播放列表加载失败，请稍后重试。');
+      });
+    }
+  }
+
+  Future<void> _createPlaylist() async {
+    final created = await showCreatePlaylistDialog(context);
+    if (!mounted || created == null) {
+      return;
+    }
+
+    showToast('播放列表已创建');
+    await _loadPlaylists();
+  }
+
+  Future<void> _editPlaylist(PlaylistDto playlist) async {
+    if (!playlist.isMutable) {
+      return;
+    }
+
+    final payload = await showDialog<UpdatePlaylistPayload>(
+      context: context,
+      builder:
+          (dialogContext) =>
+              _PlaylistDialog(title: '编辑播放列表', initialPlaylist: playlist),
+    );
+    if (!mounted || payload == null) {
+      return;
+    }
+
+    try {
+      await context.read<PlaylistsApi>().updatePlaylist(
+        playlistId: playlist.id,
+        payload: payload,
+      );
+      showToast('播放列表已更新');
+      await _loadPlaylists();
+    } catch (error) {
+      showToast(_apiMessage(error, fallback: '更新播放列表失败'));
+    }
+  }
+
+  Future<void> _deletePlaylist(PlaylistDto playlist) async {
+    if (!playlist.isDeletable) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (dialogContext) => AppDesktopDialog(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '删除播放列表',
+                  style: Theme.of(dialogContext).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                SizedBox(height: dialogContext.appSpacing.lg),
+                Text('确认删除播放列表“${playlist.name}”？该操作不可恢复。'),
+                SizedBox(height: dialogContext.appSpacing.xl),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        label: '取消',
+                      ),
+                    ),
+                    SizedBox(width: dialogContext.appSpacing.md),
+                    Expanded(
+                      child: AppButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        label: '删除',
+                        variant: AppButtonVariant.danger,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+    );
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    try {
+      await context.read<PlaylistsApi>().deletePlaylist(playlist.id);
+      showToast('播放列表已删除');
+      await _loadPlaylists();
+    } catch (error) {
+      showToast(_apiMessage(error, fallback: '删除播放列表失败'));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_initialized && !widget.active) {
+      return const SizedBox.shrink();
+    }
+
+    if (_isLoading) {
+      return const _SectionSkeleton(lineCount: 4);
+    }
+
+    if (_errorMessage != null) {
+      return _SectionErrorState(
+        title: '播放列表加载失败',
+        message: _errorMessage!,
+        onRetry: _loadPlaylists,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_playlists.isEmpty)
+          const _EmptyPanel(message: '还没有自定义播放列表')
+        else
+          _LineSection(
+            children: _playlists
+                .map(
+                  (playlist) => _PlaylistCard(
+                    playlist: playlist,
+                    onEdit:
+                        playlist.isMutable
+                            ? () => _editPlaylist(playlist)
+                            : null,
+                    onDelete:
+                        playlist.isDeletable
+                            ? () => _deletePlaylist(playlist)
+                            : null,
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        SizedBox(height: context.appSpacing.lg),
+        Align(
+          alignment: Alignment.bottomRight,
+          child: AppButton(
+            key: const Key('configuration-playlist-create-button'),
+            label: '新建播放列表',
+            icon: const Icon(Icons.add_rounded),
+            variant: AppButtonVariant.primary,
+            onPressed: _createPlaylist,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlaylistCard extends StatelessWidget {
+  const _PlaylistCard({
+    required this.playlist,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final PlaylistDto playlist;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final description = playlist.description.trim();
+
+    return Container(
+      key: Key('playlist-card-${playlist.id}'),
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(vertical: context.appSpacing.lg),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.appColors.divider)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      playlist.name,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    if (description.isNotEmpty) ...[
+                      SizedBox(height: context.appSpacing.xs),
+                      Text(
+                        description,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: context.appColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (onEdit != null || onDelete != null)
+                Wrap(
+                  spacing: context.appSpacing.sm,
+                  runSpacing: context.appSpacing.sm,
+                  children: [
+                    if (onEdit != null)
+                      AppButton(
+                        key: Key('playlist-edit-${playlist.id}'),
+                        onPressed: onEdit,
+                        icon: const Icon(Icons.edit_outlined),
+                        label: '编辑',
+                        size: AppButtonSize.small,
+                        variant: AppButtonVariant.ghost,
+                      ),
+                    if (onDelete != null)
+                      AppButton(
+                        key: Key('playlist-delete-${playlist.id}'),
+                        onPressed: onDelete,
+                        icon: const Icon(Icons.delete_outline),
+                        label: '删除',
+                        size: AppButtonSize.small,
+                        variant: AppButtonVariant.ghost,
+                      ),
+                  ],
+                ),
+            ],
+          ),
+          SizedBox(height: context.appSpacing.lg),
+          Wrap(
+            spacing: context.appSpacing.md,
+            runSpacing: context.appSpacing.md,
+            children: [
+              _InfoPill(label: '影片数', value: '${playlist.movieCount}'),
+              _InfoPill(label: '类型', value: playlist.kind),
+              _InfoPill(
+                label: '更新时间',
+                value: _formatUpdatedAt(playlist.updatedAt),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlaylistDialog extends StatefulWidget {
+  const _PlaylistDialog({required this.title, required this.initialPlaylist});
+
+  final String title;
+  final PlaylistDto initialPlaylist;
+
+  @override
+  State<_PlaylistDialog> createState() => _PlaylistDialogState();
+}
+
+class _PlaylistDialogState extends State<_PlaylistDialog> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  late final TextEditingController _nameController;
+  late final TextEditingController _descriptionController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialPlaylist.name);
+    _descriptionController = TextEditingController(
+      text: widget.initialPlaylist.description,
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    Navigator.of(context).pop(
+      UpdatePlaylistPayload(
+        name: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+
+    return AppDesktopDialog(
+      width: context.appComponentTokens.playlistDialogWidth,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            SizedBox(height: spacing.xl),
+            const _DialogFieldLabel(label: '名称'),
+            SizedBox(height: spacing.sm),
+            AppTextField(
+              fieldKey: const Key('configuration-playlist-name-field'),
+              controller: _nameController,
+              hintText: '例如：稍后再看',
+              validator:
+                  (value) =>
+                      value == null || value.trim().isEmpty
+                          ? '请输入播放列表名称'
+                          : null,
+            ),
+            SizedBox(height: spacing.lg),
+            const _DialogFieldLabel(label: '描述'),
+            SizedBox(height: spacing.sm),
+            AppTextField(
+              fieldKey: const Key('configuration-playlist-description-field'),
+              controller: _descriptionController,
+              hintText: '描述可选',
+            ),
+            SizedBox(height: spacing.xl),
+            Row(
+              children: [
+                Expanded(
+                  child: AppButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    label: '取消',
+                  ),
+                ),
+                SizedBox(width: context.appSpacing.md),
+                Expanded(
+                  child: AppButton(
+                    onPressed: _submit,
+                    label: '保存',
+                    variant: AppButtonVariant.primary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
