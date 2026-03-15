@@ -862,13 +862,13 @@ packages:
     source: hosted
     version: "14.3.1"
   volume_controller:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: volume_controller
-      sha256: "966ed51695bed77823b7ab429854b63e616e414c31ed171147553c9ca5cc9672"
+      sha256: d75039e69c0d90e7810bfd47e3eedf29ff8543ea7a10392792e81f9bded7edf5
       url: "https://pub.dev"
     source: hosted
-    version: "3.4.2"
+    version: "3.4.0"
   wakelock_plus:
     dependency: transitive
     description:
