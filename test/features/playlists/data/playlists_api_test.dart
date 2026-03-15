@@ -155,6 +155,71 @@ void main() {
     expect(playlist.updatedAt, DateTime.parse('2026-03-12T11:20:00Z'));
   });
 
+  test('updatePlaylist sends patch request and parses response', () async {
+    adapter.enqueueJson(
+      method: 'PATCH',
+      path: '/playlists/8',
+      body: <String, dynamic>{
+        'id': 8,
+        'name': '稍后再看',
+        'kind': 'custom',
+        'description': 'Need watch later',
+        'is_system': false,
+        'is_mutable': true,
+        'is_deletable': true,
+        'movie_count': 8,
+        'created_at': '2026-03-12T10:10:00Z',
+        'updated_at': '2026-03-12T11:30:00Z',
+      },
+    );
+
+    final playlist = await playlistsApi.updatePlaylist(
+      playlistId: 8,
+      payload: const UpdatePlaylistPayload(
+        name: '稍后再看',
+        description: 'Need watch later',
+      ),
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'PATCH');
+    expect(request.path, '/playlists/8');
+    expect(request.body, <String, dynamic>{
+      'name': '稍后再看',
+      'description': 'Need watch later',
+    });
+    expect(playlist.name, '稍后再看');
+    expect(playlist.updatedAt, DateTime.parse('2026-03-12T11:30:00Z'));
+  });
+
+  test('updatePlaylist converts conflict response to ApiException', () async {
+    adapter.enqueueJson(
+      method: 'PATCH',
+      path: '/playlists/8',
+      statusCode: 409,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'playlist_name_conflict',
+          'message': '播放列表名称已存在',
+        },
+      },
+    );
+
+    expect(
+      () => playlistsApi.updatePlaylist(
+        playlistId: 8,
+        payload: const UpdatePlaylistPayload(name: '最近播放'),
+      ),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'playlist_name_conflict',
+        ),
+      ),
+    );
+  });
+
   test('getPlaylistMovies parses paginated movie response', () async {
     adapter.enqueueJson(
       method: 'GET',
@@ -231,5 +296,19 @@ void main() {
     final request = adapter.requests.single;
     expect(request.method, 'DELETE');
     expect(request.path, '/playlists/8/movies/ABC-001');
+  });
+
+  test('deletePlaylist sends delete request', () async {
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/playlists/8',
+      statusCode: 204,
+    );
+
+    await playlistsApi.deletePlaylist(8);
+
+    final request = adapter.requests.single;
+    expect(request.method, 'DELETE');
+    expect(request.path, '/playlists/8');
   });
 }
