@@ -67,18 +67,25 @@ void main() {
     expect(componentTokens.movieDetailPillHorizontalPadding, 6);
     expect(componentTokens.movieDetailPillVerticalPadding, 3);
     expect(componentTokens.movieDetailPillGap, 6);
-    expect(componentTokens.movieDetailBottomBarMinHeight, 36);
-    expect(componentTokens.playlistBannerHeight, 125);
+    expect(componentTokens.movieDetailBottomBarMinHeight, 42);
+    expect(componentTokens.playlistBannerHeight, 100);
     expect(componentTokens.playlistDialogWidth, 520);
+    expect(componentTokens.mobileBottomNavHeight, 52);
+    expect(componentTokens.mobileTopTabHeight, 48);
+    expect(componentTokens.mobileSubpageLeadingWidth, 40);
+    expect(componentTokens.mobileLatestMovieCardWidth, 142);
+    expect(componentTokens.mobileFollowMovieCardHeight, 150);
+    expect(componentTokens.mobileFollowMovieThinCoverWidth, 96);
+    expect(componentTokens.mobileFollowMovieStillWidth, 86);
     expect(
       componentTokens.moviePlayerThumbnailAspectRatio,
       closeTo(16 / 9, 0.0001),
     );
-    expect(sidebarTokens.expandedWidth, 240);
+    expect(sidebarTokens.expandedWidth, 220);
     expect(sidebarTokens.collapsedWidth, 72);
     expect(sidebarTokens.itemHeight, 44);
     expect(AppPageInsets.desktopStandard.left, 24);
-    expect(AppPageInsets.compactStandard.left, 16);
+    expect(AppPageInsets.compactStandard.left, 8);
     expect(shadows.card, isNotEmpty);
   });
 

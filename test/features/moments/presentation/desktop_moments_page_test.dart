@@ -87,7 +87,7 @@ void main() {
     expect(find.textContaining('番号 ABC-001'), findsOneWidget);
     expect(find.textContaining('时间点 02:00'), findsOneWidget);
     expect(find.text('相似图片'), findsOneWidget);
-    expect(find.text('保存到本地'), findsOneWidget);
+    expect(find.text('保存'), findsOneWidget);
     expect(find.text('删除标记'), findsOneWidget);
     expect(find.text('播放'), findsOneWidget);
     expect(find.text('影片详情'), findsOneWidget);

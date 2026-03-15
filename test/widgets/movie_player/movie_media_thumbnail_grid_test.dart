@@ -180,34 +180,133 @@ void main() {
     expect(state.position.pixels, offsetBefore);
   });
 
-  testWidgets('thumbnail grid pauses image widgets while user scrolling', (
-    WidgetTester tester,
-  ) async {
-    await _pumpGrid(
-      tester,
-      thumbnails: _manyThumbnails(60),
-      activeIndex: 0,
-      isScrollLocked: false,
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'thumbnail grid keeps already-rendered image widgets while user scrolling',
+    (WidgetTester tester) async {
+      await _pumpGrid(
+        tester,
+        thumbnails: _manyThumbnails(60),
+        activeIndex: 0,
+        isScrollLocked: false,
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byType(CachedNetworkImage), findsWidgets);
+      expect(find.byType(CachedNetworkImage), findsWidgets);
 
-    final gesture = await tester.startGesture(
-      tester.getCenter(find.byKey(const Key('movie-media-thumbnail-grid'))),
-    );
-    await gesture.moveBy(const Offset(0, -220));
-    await tester.pump();
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(const Key('movie-media-thumbnail-grid'))),
+      );
+      await gesture.moveBy(const Offset(0, -220));
+      await tester.pump();
 
-    expect(find.byType(CachedNetworkImage), findsNothing);
+      expect(find.byType(CachedNetworkImage), findsWidgets);
 
-    await gesture.up();
-    await tester.pump(const Duration(milliseconds: 50));
-    expect(find.byType(CachedNetworkImage), findsNothing);
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(find.byType(CachedNetworkImage), findsWidgets);
 
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(find.byType(CachedNetworkImage), findsWidgets);
-  });
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byType(CachedNetworkImage), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'thumbnail grid only renders previously loaded images during active scroll',
+    (WidgetTester tester) async {
+      await _pumpGrid(
+        tester,
+        thumbnails: _manyThumbnails(120),
+        activeIndex: 0,
+        isScrollLocked: false,
+      );
+      await tester.pumpAndSettle();
+
+      final unseenTile = find.byKey(const Key('movie-media-thumb-80'));
+      expect(unseenTile, findsNothing);
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(const Key('movie-media-thumbnail-grid'))),
+      );
+      for (var step = 0; step < 10 && unseenTile.evaluate().isEmpty; step++) {
+        await gesture.moveBy(const Offset(0, -260));
+        await tester.pump();
+      }
+
+      expect(unseenTile, findsOneWidget);
+      expect(
+        find.descendant(
+          of: unseenTile,
+          matching: find.byType(CachedNetworkImage),
+        ),
+        findsNothing,
+      );
+
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(
+        find.descendant(
+          of: unseenTile,
+          matching: find.byType(CachedNetworkImage),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'thumbnail grid resets rendered cache when thumbnail dataset changes',
+    (WidgetTester tester) async {
+      await _pumpGrid(
+        tester,
+        thumbnails: _manyThumbnails(120, mediaId: 100, imagePrefix: 'first'),
+        activeIndex: 0,
+        isScrollLocked: false,
+      );
+      await tester.pumpAndSettle();
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(const Key('movie-media-thumbnail-grid'))),
+      );
+      await gesture.moveBy(const Offset(0, -220));
+      await tester.pump();
+      final cachedTile = find.byKey(const Key('movie-media-thumb-5'));
+      expect(cachedTile, findsOneWidget);
+      expect(
+        find.descendant(
+          of: cachedTile,
+          matching: find.byType(CachedNetworkImage),
+        ),
+        findsOneWidget,
+      );
+
+      await _pumpGrid(
+        tester,
+        thumbnails: _manyThumbnails(120, mediaId: 200, imagePrefix: 'second'),
+        activeIndex: 0,
+        isScrollLocked: false,
+      );
+      await tester.pump();
+
+      expect(cachedTile, findsOneWidget);
+      expect(
+        find.descendant(
+          of: cachedTile,
+          matching: find.byType(CachedNetworkImage),
+        ),
+        findsNothing,
+      );
+
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(
+        find.descendant(
+          of: cachedTile,
+          matching: find.byType(CachedNetworkImage),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('thumbnail grid re-centers active item when relocked', (
     WidgetTester tester,
@@ -362,19 +461,23 @@ List<MovieMediaThumbnailDto> _thumbnails() {
   ];
 }
 
-List<MovieMediaThumbnailDto> _manyThumbnails(int count) {
+List<MovieMediaThumbnailDto> _manyThumbnails(
+  int count, {
+  int mediaId = 100,
+  String imagePrefix = 'thumb',
+}) {
   return List<MovieMediaThumbnailDto>.generate(
     count,
     (index) => MovieMediaThumbnailDto(
       thumbnailId: index + 1,
-      mediaId: 100,
+      mediaId: mediaId,
       offsetSeconds: (index + 1) * 10,
       image: MovieImageDto(
         id: index + 1,
-        origin: 'relative/thumb-$index.webp',
-        small: 'relative/thumb-$index.webp',
-        medium: 'relative/thumb-$index.webp',
-        large: 'relative/thumb-$index.webp',
+        origin: 'relative/$imagePrefix-$index.webp',
+        small: 'relative/$imagePrefix-$index.webp',
+        medium: 'relative/$imagePrefix-$index.webp',
+        large: 'relative/$imagePrefix-$index.webp',
       ),
     ),
   );

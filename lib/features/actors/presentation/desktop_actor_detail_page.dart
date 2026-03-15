@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/actors/data/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_detail_controller.dart';
+import 'package:sakuramedia/features/actors/presentation/paged_actor_summary_controller.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
@@ -29,6 +31,8 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
   late final ActorDetailController _actorController;
   late final PagedMovieSummaryController _moviesController;
   MovieFilterState _filterState = MovieFilterState.initial;
+  bool? _isActorSubscribedOverride;
+  bool _isActorSubscriptionUpdating = false;
 
   Listenable get _pageListenable =>
       Listenable.merge(<Listenable>[_actorController, _moviesController]);
@@ -98,6 +102,48 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
     showMovieSubscriptionFeedback(result);
   }
 
+  Future<void> _toggleActorSubscription({required bool isSubscribed}) async {
+    if (_isActorSubscriptionUpdating) {
+      return;
+    }
+
+    setState(() {
+      _isActorSubscriptionUpdating = true;
+    });
+
+    ActorSubscriptionToggleResult result;
+
+    try {
+      if (isSubscribed) {
+        await context.read<ActorsApi>().unsubscribeActor(
+          actorId: widget.actorId,
+        );
+        result = const ActorSubscriptionToggleResult.unsubscribed();
+        _isActorSubscribedOverride = false;
+      } else {
+        await context.read<ActorsApi>().subscribeActor(actorId: widget.actorId);
+        result = const ActorSubscriptionToggleResult.subscribed();
+        _isActorSubscribedOverride = true;
+      }
+    } catch (error) {
+      result = ActorSubscriptionToggleResult.failed(
+        message: apiErrorMessage(
+          error,
+          fallback: isSubscribed ? '取消订阅女优失败' : '订阅女优失败',
+        ),
+      );
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isActorSubscriptionUpdating = false;
+    });
+    showActorSubscriptionFeedback(result);
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -116,6 +162,8 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
         }
 
         final actor = _actorController.actor!;
+        final isActorSubscribed =
+            _isActorSubscribedOverride ?? actor.isSubscribed;
         final footer = _buildLoadMoreFooter(context);
 
         return ColoredBox(
@@ -129,6 +177,14 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
                 _ActorDetailHeader(
                   actor: actor,
                   total: _moviesController.total,
+                  isSubscribed: isActorSubscribed,
+                  isSubscriptionUpdating: _isActorSubscriptionUpdating,
+                  onSubscriptionTap:
+                      _isActorSubscriptionUpdating
+                          ? null
+                          : () => _toggleActorSubscription(
+                            isSubscribed: isActorSubscribed,
+                          ),
                 ),
                 SizedBox(height: context.appSpacing.lg),
                 MovieFilterToolbar(
@@ -246,10 +302,19 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
 }
 
 class _ActorDetailHeader extends StatelessWidget {
-  const _ActorDetailHeader({required this.actor, required this.total});
+  const _ActorDetailHeader({
+    required this.actor,
+    required this.total,
+    required this.isSubscribed,
+    required this.isSubscriptionUpdating,
+    required this.onSubscriptionTap,
+  });
 
   final ActorListItemDto actor;
   final int total;
+  final bool isSubscribed;
+  final bool isSubscriptionUpdating;
+  final VoidCallback? onSubscriptionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -275,6 +340,13 @@ class _ActorDetailHeader extends StatelessWidget {
           ),
         ),
         SizedBox(width: context.appSpacing.lg),
+        _ActorSubscriptionBadge(
+          actorId: actor.id,
+          isSubscribed: isSubscribed,
+          isUpdating: isSubscriptionUpdating,
+          onTap: onSubscriptionTap,
+        ),
+        SizedBox(width: context.appSpacing.sm),
         Text(
           '$total 部',
           key: const Key('actor-detail-total'),
@@ -283,6 +355,65 @@ class _ActorDetailHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ActorSubscriptionBadge extends StatelessWidget {
+  const _ActorSubscriptionBadge({
+    required this.actorId,
+    required this.isSubscribed,
+    required this.isUpdating,
+    required this.onTap,
+  });
+
+  final int actorId;
+  final bool isSubscribed;
+  final bool isUpdating;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final componentTokens = context.appComponentTokens;
+    final colors = context.appColors;
+
+    final badge = SizedBox(
+      key: Key('actor-detail-subscription-$actorId'),
+      width: componentTokens.movieCardStatusBadgeSize,
+      height: componentTokens.movieCardStatusBadgeSize,
+      child: Center(
+        child:
+            isUpdating
+                ? SizedBox(
+                  width: componentTokens.movieCardLoaderSize,
+                  height: componentTokens.movieCardLoaderSize,
+                  child: CircularProgressIndicator(
+                    key: Key('actor-detail-subscription-loading-$actorId'),
+                    strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
+                    color: colors.subscriptionHeartIcon,
+                  ),
+                )
+                : Icon(
+                  isSubscribed
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  size: componentTokens.iconSizeXl,
+                  color: colors.subscriptionHeartIcon,
+                ),
+      ),
+    );
+
+    if (onTap == null || isUpdating) {
+      return badge;
+    }
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: onTap,
+        child: badge,
+      ),
     );
   }
 }
@@ -303,6 +434,8 @@ class _ActorDetailLoadingSkeleton extends StatelessWidget {
               SizedBox(width: context.appSpacing.md),
               const Expanded(child: _SkeletonBlock(height: 24)),
               SizedBox(width: context.appSpacing.lg),
+              const _SkeletonBlock(height: 24, width: 24),
+              SizedBox(width: context.appSpacing.sm),
               const _SkeletonBlock(height: 18, width: 56),
             ],
           ),

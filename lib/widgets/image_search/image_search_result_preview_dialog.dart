@@ -10,12 +10,14 @@ class ImageSearchResultPreviewDialog extends StatelessWidget {
     required this.onSearchSimilar,
     required this.onPlay,
     required this.onOpenMovieDetail,
+    this.presentation = MediaPreviewPresentation.dialog,
   });
 
   final ImageSearchResultItemDto item;
   final Future<bool> Function() onSearchSimilar;
   final VoidCallback onPlay;
   final VoidCallback onOpenMovieDetail;
+  final MediaPreviewPresentation presentation;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +39,7 @@ class ImageSearchResultPreviewDialog extends StatelessWidget {
       onSearchSimilar: onSearchSimilar,
       onPlay: onPlay,
       onOpenMovieDetail: onOpenMovieDetail,
+      presentation: presentation,
     );
   }
 }

@@ -73,12 +73,7 @@ class _MoviePlayerThumbnailPanelState extends State<MoviePlayerThumbnailPanel> {
             children: [
               Row(
                 children: [
-                  Expanded(
-                    child: Text(
-                      '缩略图',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                  ),
+                  
                   for (final count in const <int>[2, 3, 4, 5]) ...[
                     if (count != 2) SizedBox(width: spacing.xs),
                     AppButton(

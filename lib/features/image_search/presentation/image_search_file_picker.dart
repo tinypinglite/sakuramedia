@@ -28,6 +28,8 @@ typedef ImageSearchDirectoryExists = bool Function(String path);
 @visibleForTesting
 ImageSearchFilePicker? debugImageSearchFilePicker;
 @visibleForTesting
+ImageSearchFilePicker? debugMobileImageSearchFilePicker;
+@visibleForTesting
 ImageSearchSavePathPicker? debugImageSearchSavePathPicker;
 @visibleForTesting
 ImageSearchDirectoryProvider? debugImageSearchDownloadsDirectoryProvider;
@@ -85,6 +87,54 @@ Future<ImageSearchPickedFile?> pickImageSearchFile() async {
   } on PlatformException catch (error, stackTrace) {
     debugPrint(
       'Image search file picker failed: ${error.message ?? error.code}',
+    );
+    debugPrintStack(stackTrace: stackTrace);
+    throw ImageSearchFilePickerException(error.message ?? '打开图片选择器失败，请稍后再试');
+  }
+}
+
+Future<ImageSearchPickedFile?> pickMobileImageSearchFile() async {
+  final override = debugMobileImageSearchFilePicker;
+  if (override != null) {
+    return override();
+  }
+  if (kIsWeb ||
+      (defaultTargetPlatform != TargetPlatform.android &&
+          defaultTargetPlatform != TargetPlatform.iOS)) {
+    return pickImageSearchFile();
+  }
+
+  try {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+      allowCompression: false,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) {
+      return null;
+    }
+
+    final file = result.files.single;
+    Uint8List? bytes = file.bytes;
+    if (bytes == null && file.path != null) {
+      bytes = await File(file.path!).readAsBytes();
+    }
+    if (bytes == null || bytes.isEmpty) {
+      throw const ImageSearchFilePickerException('无法读取所选图片，请换一张再试');
+    }
+    return ImageSearchPickedFile(
+      bytes: bytes,
+      fileName: file.name,
+      mimeType: guessImageMimeType(file.name),
+    );
+  } on MissingPluginException catch (error, stackTrace) {
+    debugPrint('Mobile image file picker plugin is unavailable: $error');
+    debugPrintStack(stackTrace: stackTrace);
+    throw const ImageSearchFilePickerException('图片选择器尚未加载，请完整重启应用后再试');
+  } on PlatformException catch (error, stackTrace) {
+    debugPrint(
+      'Mobile image file picker failed: ${error.message ?? error.code}',
     );
     debugPrintStack(stackTrace: stackTrace);
     throw ImageSearchFilePickerException(error.message ?? '打开图片选择器失败，请稍后再试');

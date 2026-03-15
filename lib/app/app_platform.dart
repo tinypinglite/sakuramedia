@@ -23,3 +23,7 @@ AppPlatform resolveAppPlatform({AppPlatform? override}) {
       return AppPlatform.desktop;
   }
 }
+
+bool isMobileAppPlatform({AppPlatform? override}) {
+  return resolveAppPlatform(override: override) == AppPlatform.mobile;
+}
