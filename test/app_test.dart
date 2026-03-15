@@ -44,7 +44,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
-    expect(find.text('路径: $mobileActorsPath'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-actors-page')), findsOneWidget);
 
     rebuildNotifier.value += 1;
     await tester.pumpAndSettle();
@@ -56,7 +56,7 @@ void main() {
       mobileActorsPath,
     );
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
-    expect(find.text('路径: $mobileActorsPath'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-actors-page')), findsOneWidget);
   });
 }
 

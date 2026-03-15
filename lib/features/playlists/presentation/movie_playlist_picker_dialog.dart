@@ -7,23 +7,45 @@ import 'package:sakuramedia/features/playlists/data/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/create_playlist_dialog.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+
+enum MoviePlaylistPickerPresentation { dialog, bottomDrawer }
 
 Future<void> showMoviePlaylistPickerDialog(
   BuildContext context, {
   required String movieNumber,
   required List<MoviePlaylistSummaryDto> initialPlaylists,
+  MoviePlaylistPickerPresentation presentation =
+      MoviePlaylistPickerPresentation.dialog,
 }) {
-  return showDialog<void>(
-    context: context,
-    builder:
-        (dialogContext) => MoviePlaylistPickerDialog(
-          movieNumber: movieNumber,
-          initialPlaylists: initialPlaylists,
-        ),
-  );
+  switch (presentation) {
+    case MoviePlaylistPickerPresentation.dialog:
+      return showDialog<void>(
+        context: context,
+        builder:
+            (dialogContext) => MoviePlaylistPickerDialog(
+              movieNumber: movieNumber,
+              initialPlaylists: initialPlaylists,
+              presentation: MoviePlaylistPickerPresentation.dialog,
+            ),
+      );
+    case MoviePlaylistPickerPresentation.bottomDrawer:
+      return showAppBottomDrawer<void>(
+        context: context,
+        drawerKey: const Key('movie-playlist-picker-bottom-sheet'),
+        heightFactor: 0.4,
+        // maxHeightFactor: 0.4,
+        builder:
+            (sheetContext) => MoviePlaylistPickerDialog(
+              movieNumber: movieNumber,
+              initialPlaylists: initialPlaylists,
+              presentation: MoviePlaylistPickerPresentation.bottomDrawer,
+            ),
+      );
+  }
 }
 
 class MoviePlaylistPickerDialog extends StatefulWidget {
@@ -31,10 +53,12 @@ class MoviePlaylistPickerDialog extends StatefulWidget {
     super.key,
     required this.movieNumber,
     required this.initialPlaylists,
+    this.presentation = MoviePlaylistPickerPresentation.dialog,
   });
 
   final String movieNumber;
   final List<MoviePlaylistSummaryDto> initialPlaylists;
+  final MoviePlaylistPickerPresentation presentation;
 
   @override
   State<MoviePlaylistPickerDialog> createState() =>
@@ -82,15 +106,65 @@ class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final isAnyUpdating = _updatingPlaylistIds.isNotEmpty;
+    final isBottomDrawer =
+        widget.presentation == MoviePlaylistPickerPresentation.bottomDrawer;
+    final playlistList = ListView.separated(
+      key: const Key('movie-playlist-list'),
+      shrinkWrap: true,
+      itemCount: _playlists.length,
+      separatorBuilder: (context, index) => SizedBox(height: spacing.sm),
+      itemBuilder: (context, index) {
+        final playlist = _playlists[index];
+        final selected = _selectedPlaylistIds.contains(playlist.id);
+        return InkWell(
+          key: Key('movie-playlist-option-${playlist.id}'),
+          borderRadius: context.appRadius.xsBorder,
+          onTap: isAnyUpdating ? null : () => _togglePlaylist(playlist),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: spacing.md),
+            decoration: BoxDecoration(
+              color: context.appColors.surfaceMuted,
+              borderRadius: context.appRadius.xsBorder,
+              border: Border.all(
+                color:
+                    selected
+                        ? Theme.of(context).colorScheme.primary
+                        : context.appColors.borderSubtle,
+              ),
+            ),
+            child: Row(
+              children: [
+                Checkbox(
+                  key: Key('movie-playlist-checkbox-${playlist.id}'),
+                  value: selected,
+                  onChanged:
+                      isAnyUpdating ? null : (_) => _togglePlaylist(playlist),
+                ),
+                SizedBox(width: spacing.sm),
+                Expanded(
+                  child: Text(
+                    playlist.name,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+                if (playlist.movieCount > 0)
+                  Text(
+                    '${playlist.movieCount}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
 
-    return Dialog(
-      key: const Key('movie-playlist-picker-dialog'),
-      backgroundColor: context.appColors.surfaceCard,
-      shape: RoundedRectangleBorder(borderRadius: context.appRadius.lgBorder),
-      child: SizedBox(
-        width: context.appComponentTokens.playlistDialogWidth,
-        child: Padding(
-          padding: EdgeInsets.all(spacing.xl),
+    final content = Stack(
+      alignment: Alignment.center,
+      children: [
+        AbsorbPointer(
+          absorbing: isAnyUpdating,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,112 +186,67 @@ class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
               ),
               SizedBox(height: spacing.lg),
               if (_isLoading)
-                const SizedBox(
-                  key: Key('movie-playlist-loading'),
-                  height: 160,
-                  child: Center(child: CircularProgressIndicator()),
-                )
+                isBottomDrawer
+                    ? const Flexible(
+                      fit: FlexFit.loose,
+                      child: Center(
+                        key: Key('movie-playlist-loading'),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                    : const SizedBox(
+                      key: Key('movie-playlist-loading'),
+                      height: 160,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
               else if (_errorMessage != null)
-                SizedBox(
-                  height: 160,
-                  child: AppEmptyState(message: _errorMessage!),
-                )
+                isBottomDrawer
+                    ? Flexible(
+                      fit: FlexFit.loose,
+                      child: AppEmptyState(message: _errorMessage!),
+                    )
+                    : SizedBox(
+                      height: 160,
+                      child: AppEmptyState(message: _errorMessage!),
+                    )
               else if (_playlists.isEmpty)
-                const SizedBox(
-                  height: 160,
-                  child: Center(child: Text('暂无自定义播放列表')),
-                )
+                isBottomDrawer
+                    ? const Flexible(
+                      fit: FlexFit.loose,
+                      child: Center(child: Text('暂无播放列表')),
+                    )
+                    : const SizedBox(
+                      height: 160,
+                      child: Center(child: Text('暂无播放列表')),
+                    )
+              else if (isBottomDrawer)
+                Flexible(fit: FlexFit.loose, child: playlistList)
               else
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 320),
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: _playlists.length,
-                    separatorBuilder:
-                        (context, index) => SizedBox(height: spacing.sm),
-                    itemBuilder: (context, index) {
-                      final playlist = _playlists[index];
-                      final selected = _selectedPlaylistIds.contains(
-                        playlist.id,
-                      );
-                      final isUpdating = _updatingPlaylistIds.contains(
-                        playlist.id,
-                      );
-                      return InkWell(
-                        key: Key('movie-playlist-option-${playlist.id}'),
-                        borderRadius: context.appRadius.mdBorder,
-                        onTap:
-                            isUpdating ? null : () => _togglePlaylist(playlist),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: spacing.lg,
-                            vertical: spacing.md,
-                          ),
-                          decoration: BoxDecoration(
-                            color: context.appColors.surfaceMuted,
-                            borderRadius: context.appRadius.mdBorder,
-                            border: Border.all(
-                              color:
-                                  selected
-                                      ? Theme.of(context).colorScheme.primary
-                                      : context.appColors.borderSubtle,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              if (isUpdating)
-                                SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                )
-                              else
-                                Checkbox(
-                                  key: Key(
-                                    'movie-playlist-checkbox-${playlist.id}',
-                                  ),
-                                  value: selected,
-                                  onChanged:
-                                      isUpdating
-                                          ? null
-                                          : (_) => _togglePlaylist(playlist),
-                                ),
-                              SizedBox(width: spacing.sm),
-                              Expanded(
-                                child: Text(
-                                  playlist.name,
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                              ),
-                              if (playlist.movieCount > 0)
-                                Text(
-                                  '${playlist.movieCount}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  child: playlistList,
                 ),
-              SizedBox(height: spacing.lg),
-              Align(
-                alignment: Alignment.centerRight,
-                child: AppButton(
-                  label: '关闭',
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
             ],
           ),
         ),
-      ),
+        if (isAnyUpdating)
+          const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+          ),
+      ],
     );
+
+    if (!isBottomDrawer) {
+      return AppDesktopDialog(
+        dialogKey: const Key('movie-playlist-picker-dialog'),
+        width: context.appComponentTokens.playlistDialogWidth,
+        child: content,
+      );
+    }
+
+    return content;
   }
 
   Future<void> _togglePlaylist(PlaylistDto playlist) async {
@@ -264,7 +293,13 @@ class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
   }
 
   Future<void> _createPlaylist() async {
-    final playlist = await showCreatePlaylistDialog(context);
+    final playlist = await showCreatePlaylistDialog(
+      context,
+      presentation:
+          widget.presentation == MoviePlaylistPickerPresentation.bottomDrawer
+              ? CreatePlaylistDialogPresentation.bottomDrawer
+              : CreatePlaylistDialogPresentation.dialog,
+    );
     if (!mounted || playlist == null) {
       return;
     }

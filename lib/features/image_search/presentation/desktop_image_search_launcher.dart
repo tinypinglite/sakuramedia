@@ -17,6 +17,29 @@ Future<void> launchDesktopImageSearchFromUrl(
       ImageSearchCurrentMovieScope.all,
   bool replaceCurrent = false,
 }) async {
+  await launchImageSearchFromUrl(
+    context,
+    imageUrl: imageUrl,
+    routePath: desktopImageSearchPath,
+    fallbackPath: fallbackPath,
+    fileName: fileName,
+    currentMovieNumber: currentMovieNumber,
+    initialCurrentMovieScope: initialCurrentMovieScope,
+    replaceCurrent: replaceCurrent,
+  );
+}
+
+Future<void> launchImageSearchFromUrl(
+  BuildContext context, {
+  required String imageUrl,
+  required String routePath,
+  required String fallbackPath,
+  required String fileName,
+  String? currentMovieNumber,
+  ImageSearchCurrentMovieScope initialCurrentMovieScope =
+      ImageSearchCurrentMovieScope.all,
+  bool replaceCurrent = false,
+}) async {
   final apiClient = context.read<ApiClient>();
   final bytes = await apiClient.getBytes(imageUrl);
   if (!context.mounted) {
@@ -31,8 +54,8 @@ Future<void> launchDesktopImageSearchFromUrl(
     initialCurrentMovieScope: initialCurrentMovieScope,
   );
   if (replaceCurrent) {
-    context.go(desktopImageSearchPath, extra: routeState);
+    context.go(routePath, extra: routeState);
     return;
   }
-  context.push(desktopImageSearchPath, extra: routeState);
+  context.push(routePath, extra: routeState);
 }

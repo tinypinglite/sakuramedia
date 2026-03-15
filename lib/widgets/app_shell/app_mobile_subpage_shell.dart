@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/theme.dart';
 
@@ -9,12 +10,14 @@ class AppMobileSubpageShell extends StatelessWidget {
     required this.fallbackPath,
     required this.child,
     this.onBackOverride,
+    this.bodyPadding = AppPageInsets.compactStandard,
   });
 
   final String title;
   final String fallbackPath;
   final Widget child;
   final VoidCallback? onBackOverride;
+  final EdgeInsetsGeometry bodyPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -26,25 +29,43 @@ class AppMobileSubpageShell extends StatelessWidget {
         }
         context.go(fallbackPath);
       },
-      child: Scaffold(
-        appBar: AppBar(
-          key: const Key('mobile-subpage-topbar'),
-          backgroundColor: context.appColors.surfacePage,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          leadingWidth: 40, // 默认 56
-          titleSpacing: 0, // 默认 16
-          leading: IconButton(
-            iconSize: context.appComponentTokens.iconSizeSm,
-            // iconSize: context.theme,
-            key: const Key('mobile-subpage-back-button'),
-            onPressed: onBackOverride ?? () => _handleBack(context),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded),
-            tooltip: '返回',
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        key: const Key('mobile-subpage-system-overlay'),
+        value: _mobileSystemOverlayStyle(context),
+        child: ColoredBox(
+          key: const Key('mobile-subpage-root-surface'),
+          color: context.appColors.surfaceCard,
+          child: SafeArea(
+            key: const Key('mobile-subpage-safe-area'),
+            child: Scaffold(
+              backgroundColor: context.appColors.surfaceCard,
+              appBar: AppBar(
+                key: const Key('mobile-subpage-topbar'),
+                backgroundColor: context.appColors.surfaceCard,
+                elevation: 0,
+                scrolledUnderElevation: 0,
+                leadingWidth: 40, // 默认 56
+                titleSpacing: 0, // 默认 16
+                leading: IconButton(
+                  iconSize: context.appComponentTokens.iconSizeSm,
+                  key: const Key('mobile-subpage-back-button'),
+                  onPressed: onBackOverride ?? () => _handleBack(context),
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  tooltip: '返回',
+                ),
+                title: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+              ),
+              body: Padding(
+                key: const Key('mobile-subpage-body-padding'),
+                padding: bodyPadding,
+                child: child,
+              ),
+            ),
           ),
-          title: Text(title, style: Theme.of(context).textTheme.titleSmall),
         ),
-        body: Padding(padding: AppPageInsets.compactStandard, child: child),
       ),
     );
 
@@ -72,5 +93,16 @@ class AppMobileSubpageShell extends StatelessWidget {
       return;
     }
     context.go(fallbackPath);
+  }
+
+  SystemUiOverlayStyle _mobileSystemOverlayStyle(BuildContext context) {
+    return SystemUiOverlayStyle(
+      statusBarColor: context.appColors.surfaceCard,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: context.appColors.surfaceCard,
+      systemNavigationBarIconBrightness: Brightness.dark,
+      systemNavigationBarDividerColor: context.appColors.divider,
+    );
   }
 }

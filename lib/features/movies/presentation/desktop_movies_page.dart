@@ -9,6 +9,8 @@ import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_con
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/app_filter_total_header.dart';
+import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/movies/movie_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 
@@ -91,16 +93,22 @@ class _DesktopMoviesPageState extends State<DesktopMoviesPage> {
         child: AnimatedBuilder(
           animation: _moviesController,
           builder: (context, _) {
-            final footer = _buildLoadMoreFooter(context);
+            final showFooter =
+                _moviesController.items.isNotEmpty &&
+                (_moviesController.isLoadingMore ||
+                    _moviesController.loadMoreErrorMessage != null);
             return Column(
               key: const Key('movies-page'),
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _MoviesHeader(
-                  total: _moviesController.total,
-                  filterState: _filterState,
-                  onFilterChanged: _applyFilter,
-                  onResetFilters: _resetFilters,
+                AppFilterTotalHeader(
+                  leading: MovieFilterToolbar(
+                    filterState: _filterState,
+                    onChanged: _applyFilter,
+                    onReset: _resetFilters,
+                  ),
+                  totalText: '${_moviesController.total} 部',
+                  totalKey: const Key('movies-page-total'),
                 ),
                 SizedBox(height: context.appSpacing.lg),
                 MovieSummaryGrid(
@@ -123,125 +131,19 @@ class _DesktopMoviesPageState extends State<DesktopMoviesPage> {
                       ),
                   emptyMessage: '暂无影片数据',
                 ),
-                if (footer != null) ...[
+                if (showFooter) ...[
                   SizedBox(height: context.appSpacing.md),
-                  footer,
+                  AppPagedLoadMoreFooter(
+                    isLoading: _moviesController.isLoadingMore,
+                    errorMessage: _moviesController.loadMoreErrorMessage,
+                    onRetry: _moviesController.loadMore,
+                  ),
                 ],
               ],
             );
           },
         ),
       ),
-    );
-  }
-
-  Widget? _buildLoadMoreFooter(BuildContext context) {
-    if (_moviesController.items.isEmpty) {
-      return null;
-    }
-
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final componentTokens = context.appComponentTokens;
-
-    if (_moviesController.isLoadingMore) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: spacing.md),
-          child: SizedBox(
-            width: componentTokens.movieCardLoaderSize,
-            height: componentTokens.movieCardLoaderSize,
-            child: CircularProgressIndicator(
-              strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_moviesController.loadMoreErrorMessage == null) {
-      return null;
-    }
-
-    return Center(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surfaceMuted,
-          borderRadius: context.appRadius.mdBorder,
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: spacing.lg,
-            vertical: spacing.sm,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline_rounded,
-                size: componentTokens.iconSizeXl,
-                color: colors.textSecondary,
-              ),
-              SizedBox(width: spacing.sm),
-              Text(
-                _moviesController.loadMoreErrorMessage!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
-              ),
-              SizedBox(width: spacing.sm),
-              TextButton(
-                onPressed: _moviesController.loadMore,
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: spacing.sm,
-                    vertical: spacing.xs,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text('重试'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MoviesHeader extends StatelessWidget {
-  const _MoviesHeader({
-    required this.total,
-    required this.filterState,
-    required this.onFilterChanged,
-    required this.onResetFilters,
-  });
-
-  final int total;
-  final MovieFilterState filterState;
-  final ValueChanged<MovieFilterState> onFilterChanged;
-  final VoidCallback onResetFilters;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        MovieFilterToolbar(
-          filterState: filterState,
-          onChanged: onFilterChanged,
-          onReset: onResetFilters,
-        ),
-        const Spacer(),
-        Text(
-          '$total 部',
-          key: const Key('movies-page-total'),
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: context.appColors.textSecondary,
-          ),
-        ),
-      ],
     );
   }
 }

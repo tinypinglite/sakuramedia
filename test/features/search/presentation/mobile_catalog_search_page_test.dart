@@ -246,7 +246,7 @@ void main() {
     },
   );
 
-  testWidgets('mobile catalog search movie tap shows developing toast', (
+  testWidgets('mobile catalog search movie tap navigates to movie detail', (
     WidgetTester tester,
   ) async {
     bundle.adapter.enqueueJson(
@@ -276,7 +276,12 @@ void main() {
       ],
     );
 
-    final router = _buildRouter();
+    Object? movieDetailExtra;
+    final router = _buildRouter(
+      onMovieDetailBuild: (_, state) {
+        movieDetailExtra = state.extra;
+      },
+    );
     await _pumpPage(tester, bundle: bundle, router: router);
     router.go('/mobile/search/abp123');
     await tester.pumpAndSettle();
@@ -284,12 +289,60 @@ void main() {
     await tester.tap(find.byKey(const Key('movie-summary-card-ABP-123')));
     await tester.pumpAndSettle();
 
-    expect(find.text('移动端影片详情开发中'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
+    expect(find.text('movie-detail:ABP-123'), findsOneWidget);
+    expect(movieDetailExtra, '/mobile/search/abp123');
+  });
+
+  testWidgets('mobile catalog search actor tap navigates to actor detail', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/search/parse-number',
+      body: <String, dynamic>{
+        'query': 'yua',
+        'parsed': false,
+        'movie_number': null,
+        'reason': 'not_a_movie_number',
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors/search/local',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'javdb_id': 'ActorA1',
+          'name': '三上悠亚',
+          'alias_name': '三上悠亚 / 鬼头桃菜',
+          'profile_image': null,
+          'is_subscribed': true,
+        },
+      ],
+    );
+
+    Object? actorDetailExtra;
+    final router = _buildRouter(
+      onActorDetailBuild: (_, state) {
+        actorDetailExtra = state.extra;
+      },
+    );
+    await _pumpPage(tester, bundle: bundle, router: router);
+    router.go('/mobile/search/yua');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('actor-summary-card-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('actor-detail:1'), findsOneWidget);
+    expect(actorDetailExtra, '/mobile/search/yua');
   });
 }
 
-GoRouter _buildRouter() {
+GoRouter _buildRouter({
+  void Function(BuildContext context, GoRouterState state)? onMovieDetailBuild,
+  void Function(BuildContext context, GoRouterState state)? onActorDetailBuild,
+}) {
   return GoRouter(
     initialLocation: mobileSearchPath,
     routes: [
@@ -303,6 +356,26 @@ GoRouter _buildRouter() {
             (_, state) => MobileCatalogSearchPage(
               initialQuery: state.pathParameters['query'] ?? '',
             ),
+      ),
+      GoRoute(
+        path: '$mobileMoviesPath/:movieNumber',
+        builder: (context, state) {
+          onMovieDetailBuild?.call(context, state);
+          return Text(
+            'movie-detail:${state.pathParameters['movieNumber']}',
+            textDirection: TextDirection.ltr,
+          );
+        },
+      ),
+      GoRoute(
+        path: '$mobileActorsPath/:actorId',
+        builder: (context, state) {
+          onActorDetailBuild?.call(context, state);
+          return Text(
+            'actor-detail:${state.pathParameters['actorId']}',
+            textDirection: TextDirection.ltr,
+          );
+        },
       ),
     ],
   );

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
@@ -97,8 +96,20 @@ class _MobileCatalogSearchPageState extends State<MobileCatalogSearchPage>
           onTabSelected: (index) {
             _controller.setActiveKind(_kindForIndex(index));
           },
-          onMovieTap: (_) => showToast('移动端影片详情开发中'),
-          onActorTap: (_) => showToast('移动端女优详情开发中'),
+          onMovieTap: (movie) {
+            final fallbackPath = GoRouterState.of(context).uri.path;
+            context.push(
+              buildMobileMovieDetailRoutePath(movie.movieNumber),
+              extra: fallbackPath,
+            );
+          },
+          onActorTap: (actor) {
+            final fallbackPath = GoRouterState.of(context).uri.path;
+            context.push(
+              buildMobileActorDetailRoutePath(actor.id),
+              extra: fallbackPath,
+            );
+          },
           onMovieSubscriptionTap:
               (movie) => _toggleMovieSubscription(movie.movieNumber),
           onActorSubscriptionTap: (actor) => _toggleActorSubscription(actor.id),

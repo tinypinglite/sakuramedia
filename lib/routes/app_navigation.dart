@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/actors/presentation/desktop_actors_page.dart';
+import 'package:sakuramedia/features/actors/presentation/mobile_actors_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
 import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dart';
+import 'package:sakuramedia/features/movies/presentation/mobile_movies_page.dart';
 import 'package:sakuramedia/features/overview/presentation/desktop_overview_page.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_skeleton_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlists_page.dart';
+import 'package:sakuramedia/features/rankings/presentation/mobile_rankings_page.dart';
 import 'package:sakuramedia/features/workbench/workbench_placeholder_page.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 
@@ -46,6 +49,33 @@ String buildMobileSearchRoutePath(String query) {
 
 String buildMobilePlaylistDetailRoutePath(int playlistId) {
   return '$mobilePlaylistDetailPathPrefix/$playlistId';
+}
+
+String buildMobileMovieDetailRoutePath(String movieNumber) {
+  return '$mobileMoviesPath/${Uri.encodeComponent(movieNumber)}';
+}
+
+String buildMobileMoviePlayerRoutePath(
+  String movieNumber, {
+  int? mediaId,
+  int? positionSeconds,
+}) {
+  final queryParameters = <String, String>{};
+  if (mediaId != null) {
+    queryParameters['mediaId'] = '$mediaId';
+  }
+  if (positionSeconds != null) {
+    queryParameters['positionSeconds'] = '$positionSeconds';
+  }
+  final path = Uri(
+    path: '$mobileMoviesPath/${Uri.encodeComponent(movieNumber)}/player',
+    queryParameters: queryParameters.isEmpty ? null : queryParameters,
+  );
+  return path.toString();
+}
+
+String buildMobileActorDetailRoutePath(int actorId) {
+  return '$mobileActorsPath/$actorId';
 }
 
 String buildDesktopMoviePlayerRoutePath(
@@ -372,9 +402,18 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
                         : platform == AppPlatform.desktop &&
                             item.path == desktopMoviesPath
                         ? const DesktopMoviesPage()
+                        : platform == AppPlatform.mobile &&
+                            item.path == mobileMoviesPath
+                        ? const MobileMoviesPage()
                         : platform == AppPlatform.desktop &&
                             item.path == desktopActorsPath
                         ? const DesktopActorsPage()
+                        : platform == AppPlatform.mobile &&
+                            item.path == mobileActorsPath
+                        ? const MobileActorsPage()
+                        : platform == AppPlatform.mobile &&
+                            item.path == mobileRankingsPath
+                        ? const MobileRankingsPage()
                         : platform == AppPlatform.desktop &&
                             item.path == desktopMomentsPath
                         ? const DesktopMomentsPage()

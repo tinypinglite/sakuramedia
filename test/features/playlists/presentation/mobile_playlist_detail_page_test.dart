@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/mobile_playlist_detail_page.dart';
+import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
@@ -45,6 +47,10 @@ void main() {
       find.byKey(const Key('mobile-playlist-detail-page')),
       findsOneWidget,
     );
+    final pageRoot = tester.widget<ColoredBox>(
+      find.byKey(const Key('mobile-playlist-detail-page')),
+    );
+    expect(pageRoot.color, sakuraThemeData.appColors.surfaceCard);
     expect(find.text('我的收藏'), findsWidgets);
     expect(find.text('1 部影片'), findsOneWidget);
     expect(find.byKey(const Key('playlist-banner-card-8')), findsOneWidget);
@@ -92,21 +98,46 @@ void main() {
     },
   );
 
-  testWidgets('mobile playlist detail page movie tap shows developing toast', (
-    WidgetTester tester,
-  ) async {
-    _enqueuePlaylistDetailSuccess(bundle);
-    _enqueuePlaylistMoviesSuccess(bundle);
+  testWidgets(
+    'mobile playlist detail page movie tap navigates to movie detail',
+    (WidgetTester tester) async {
+      _enqueuePlaylistDetailSuccess(bundle);
+      _enqueuePlaylistMoviesSuccess(bundle);
+      Object? movieDetailExtra;
+      final router = GoRouter(
+        initialLocation: buildMobilePlaylistDetailRoutePath(8),
+        routes: [
+          GoRoute(
+            path: '$mobilePlaylistDetailPathPrefix/:playlistId',
+            builder:
+                (_, state) => MobilePlaylistDetailPage(
+                  playlistId: int.parse(state.pathParameters['playlistId']!),
+                ),
+          ),
+          GoRoute(
+            path: '$mobileMoviesPath/:movieNumber',
+            builder: (_, state) {
+              movieDetailExtra = state.extra;
+              return Text(
+                'movie-detail:${state.pathParameters['movieNumber']}',
+                textDirection: TextDirection.ltr,
+              );
+            },
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
 
-    await _pumpPage(tester, bundle: bundle);
-    await tester.pumpAndSettle();
+      await _pumpRouterPage(tester, bundle: bundle, router: router);
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('movie-summary-card-ABC-001')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('movie-summary-card-ABC-001')));
+      await tester.pumpAndSettle();
 
-    expect(find.text('移动端影片详情开发中'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-  });
+      expect(find.text('movie-detail:ABC-001'), findsOneWidget);
+      expect(movieDetailExtra, buildMobilePlaylistDetailRoutePath(8));
+    },
+  );
 }
 
 Future<void> _pumpPage(WidgetTester tester, {required TestApiBundle bundle}) {
@@ -121,6 +152,24 @@ Future<void> _pumpPage(WidgetTester tester, {required TestApiBundle bundle}) {
         home: const OKToast(
           child: Scaffold(body: MobilePlaylistDetailPage(playlistId: 8)),
         ),
+      ),
+    ),
+  );
+}
+
+Future<void> _pumpRouterPage(
+  WidgetTester tester, {
+  required TestApiBundle bundle,
+  required GoRouter router,
+}) {
+  return tester.pumpWidget(
+    MultiProvider(
+      providers: [
+        Provider<MoviesApi>.value(value: bundle.moviesApi),
+        Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+      ],
+      child: OKToast(
+        child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
     ),
   );

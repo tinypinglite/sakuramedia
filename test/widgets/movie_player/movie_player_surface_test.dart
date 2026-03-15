@@ -99,6 +99,7 @@ void main() {
           'open:https://example.com/video.mp4:start=0:01:01.000000:play=false',
           'play',
           'waitUntilFirstFrameRendered',
+          'seek:0:01:01.000000',
         ]);
         expect(markedReady, isTrue);
       },
@@ -149,6 +150,33 @@ void main() {
         expect(markedReady, isFalse);
       },
     );
+
+    test(
+      'stops before readiness when request becomes stale after first frame',
+      () async {
+        final driver = _FakeMoviePlayerSurfacePlaybackDriver();
+        var shouldContinue = true;
+        var markedReady = false;
+        driver.onAfterWaitUntilFirstFrameRendered = () {
+          shouldContinue = false;
+        };
+
+        await const MoviePlayerSurfaceOpenCoordinator().open(
+          driver: driver,
+          resolvedUrl: 'https://example.com/video.mp4',
+          initialPosition: const Duration(seconds: 12),
+          shouldContinue: () => shouldContinue,
+          markReady: () => markedReady = true,
+        );
+
+        expect(driver.operations, <String>[
+          'open:https://example.com/video.mp4:start=0:00:12.000000:play=false',
+          'play',
+          'waitUntilFirstFrameRendered',
+        ]);
+        expect(markedReady, isFalse);
+      },
+    );
   });
 }
 
@@ -156,6 +184,7 @@ class _FakeMoviePlayerSurfacePlaybackDriver
     implements MoviePlayerSurfacePlaybackDriver {
   final List<String> operations = <String>[];
   VoidCallback? onAfterOpen;
+  VoidCallback? onAfterWaitUntilFirstFrameRendered;
 
   @override
   Future<void> open(
@@ -180,5 +209,6 @@ class _FakeMoviePlayerSurfacePlaybackDriver
   @override
   Future<void> waitUntilFirstFrameRendered() async {
     operations.add('waitUntilFirstFrameRendered');
+    onAfterWaitUntilFirstFrameRendered?.call();
   }
 }

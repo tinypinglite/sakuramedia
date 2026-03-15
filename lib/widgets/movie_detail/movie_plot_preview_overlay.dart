@@ -2,9 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 import 'package:sakuramedia/widgets/media/preview_dialog_surface.dart';
@@ -12,12 +13,16 @@ import 'package:sakuramedia/widgets/movie_detail/movie_plot_thumbnail.dart';
 
 enum MoviePlotPreviewThumbnailStripLayout { adaptive, fixed }
 
+enum MoviePlotPreviewPresentation { dialog, bottomDrawer }
+
 Future<void> showMoviePlotPreviewOverlay({
   required BuildContext context,
   required List<MovieImageDto> plotImages,
   required int initialIndex,
   Future<void> Function(BuildContext context, int index, Offset globalPosition)?
   onRequestImageMenu,
+  MoviePlotPreviewPresentation presentation =
+      MoviePlotPreviewPresentation.dialog,
   MoviePlotPreviewThumbnailStripLayout thumbnailStripLayout =
       MoviePlotPreviewThumbnailStripLayout.adaptive,
 }) {
@@ -25,16 +30,32 @@ Future<void> showMoviePlotPreviewOverlay({
     return Future<void>.value();
   }
 
-  return showDialog<void>(
-    context: context,
-    builder:
-        (dialogContext) => _MoviePlotPreviewDialog(
-          plotImages: plotImages,
-          initialIndex: initialIndex,
-          onRequestImageMenu: onRequestImageMenu,
-          thumbnailStripLayout: thumbnailStripLayout,
-        ),
-  );
+  switch (presentation) {
+    case MoviePlotPreviewPresentation.dialog:
+      return showDialog<void>(
+        context: context,
+        builder:
+            (dialogContext) => _MoviePlotPreviewDialog(
+              plotImages: plotImages,
+              initialIndex: initialIndex,
+              onRequestImageMenu: onRequestImageMenu,
+              thumbnailStripLayout: thumbnailStripLayout,
+            ),
+      );
+    case MoviePlotPreviewPresentation.bottomDrawer:
+      return showAppBottomDrawer<void>(
+        context: context,
+        drawerKey: const Key('movie-plot-preview-bottom-drawer'),
+        heightFactor: 0.5,
+        builder:
+            (sheetContext) => _MoviePlotPreviewContent(
+              plotImages: plotImages,
+              initialIndex: initialIndex,
+              onRequestImageMenu: onRequestImageMenu,
+              thumbnailStripLayout: thumbnailStripLayout,
+            ),
+      );
+  }
 }
 
 class _MoviePlotPreviewDialog extends StatelessWidget {
@@ -275,114 +296,99 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
     return KeyboardListener(
       focusNode: _focusNode,
       onKeyEvent: _handleKeyEvent,
-      child: Padding(
-        padding: EdgeInsets.all(spacing.lg),
-        child: Column(
-          children: [
-            Row(
+      child: Column(
+        children: [
+          Padding(
+            padding:
+                isMobileAppPlatform()
+                    ? EdgeInsets.symmetric(horizontal: spacing.md)
+                    : EdgeInsets.all(spacing.lg),
+            child: Row(
               children: [
                 Expanded(
                   child: Text(
-                    '剧情图预览',
-                    style: Theme.of(context).textTheme.titleSmall,
+                    '${_currentIndex + 1} / ${widget.plotImages.length}',
+                    key: const Key('movie-plot-preview-counter'),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: colors.textSecondary,
+                    ),
                   ),
-                ),
-                Text(
-                  '${_currentIndex + 1} / ${widget.plotImages.length}',
-                  key: const Key('movie-plot-preview-counter'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
-                ),
-                SizedBox(width: spacing.sm),
-                AppIconButton(
-                  key: const Key('movie-plot-preview-close'),
-                  tooltip: '关闭',
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded),
                 ),
               ],
             ),
-            SizedBox(height: spacing.md),
-            Expanded(
-              child: PageView.builder(
-                key: const Key('movie-plot-preview-page-view'),
-                controller: _pageController,
-                itemCount: widget.plotImages.length,
-                onPageChanged: (index) {
-                  if (_currentIndex == index) {
-                    return;
-                  }
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                  _scrollThumbnailsToCurrent();
-                },
-                itemBuilder: (context, index) {
-                  final image = widget.plotImages[index];
-                  return Padding(
-                    padding: EdgeInsets.symmetric(horizontal: spacing.sm),
-                    child: Center(
-                      child: ClipRRect(
-                        borderRadius: context.appRadius.mdBorder,
-                        child: MaskedImage(
-                          url: image.bestAvailableUrl,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+          ),
+          // SizedBox(height: spacing.md),
+          Expanded(
+            child: PageView.builder(
+              key: const Key('movie-plot-preview-page-view'),
+              controller: _pageController,
+              itemCount: widget.plotImages.length,
+              onPageChanged: (index) {
+                if (_currentIndex == index) {
+                  return;
+                }
+                setState(() {
+                  _currentIndex = index;
+                });
+                _scrollThumbnailsToCurrent();
+              },
+              itemBuilder: (context, index) {
+                final image = widget.plotImages[index];
+                return MaskedImage(
+                  url: image.bestAvailableUrl,
+                  fit: BoxFit.contain,
+                );
+              },
             ),
-            SizedBox(height: spacing.md),
-            SizedBox(
-              height:
-                  tokens.movieDetailPlotPreviewThumbnailHeight + spacing.xs * 2,
-              child: ListView.separated(
-                key: const Key('movie-plot-preview-thumbnail-list'),
-                controller: _thumbnailScrollController,
-                scrollDirection: Axis.horizontal,
-                itemCount: widget.plotImages.length,
-                separatorBuilder: (_, __) => SizedBox(width: spacing.sm),
-                itemBuilder: (context, index) {
-                  final image = widget.plotImages[index];
-                  final isCurrent = index == _currentIndex;
-                  final animatedThumbnail = AnimatedScale(
-                    key: _thumbnailKeys[index],
+          ),
+          SizedBox(height: spacing.md),
+          SizedBox(
+            height:
+                tokens.movieDetailPlotPreviewThumbnailHeight + spacing.xs * 2,
+            child: ListView.separated(
+              key: const Key('movie-plot-preview-thumbnail-list'),
+              controller: _thumbnailScrollController,
+              scrollDirection: Axis.horizontal,
+              itemCount: widget.plotImages.length,
+              separatorBuilder: (_, __) => SizedBox(width: spacing.sm),
+              itemBuilder: (context, index) {
+                final image = widget.plotImages[index];
+                final isCurrent = index == _currentIndex;
+                final animatedThumbnail = AnimatedScale(
+                  key: _thumbnailKeys[index],
+                  duration: const Duration(milliseconds: 180),
+                  scale: isCurrent ? 1.0 : 0.94,
+                  child: AnimatedOpacity(
                     duration: const Duration(milliseconds: 180),
-                    scale: isCurrent ? 1.0 : 0.94,
-                    child: AnimatedOpacity(
-                      duration: const Duration(milliseconds: 180),
-                      opacity: isCurrent ? 1 : 0.58,
-                      child: _PreviewStripThumbnail(
-                        image: image,
-                        thumbnailStripLayout: widget.thumbnailStripLayout,
-                      ),
+                    opacity: isCurrent ? 1 : 0.58,
+                    child: _PreviewStripThumbnail(
+                      image: image,
+                      thumbnailStripLayout: widget.thumbnailStripLayout,
                     ),
-                  );
-                  return widget.onRequestImageMenu == null
-                      ? GestureDetector(
-                        key: Key('movie-plot-preview-thumb-$index'),
-                        onTap: () => _goToIndex(index),
-                        child: animatedThumbnail,
-                      )
-                      : AppImageActionTrigger(
-                        key: Key('movie-plot-preview-thumb-$index'),
-                        onTap: () => _goToIndex(index),
-                        onRequestMenu:
-                            (globalPosition) => widget.onRequestImageMenu!(
-                              context,
-                              index,
-                              globalPosition,
-                            ),
-                        child: animatedThumbnail,
-                      );
-                },
-              ),
+                  ),
+                );
+                return widget.onRequestImageMenu == null
+                    ? GestureDetector(
+                      key: Key('movie-plot-preview-thumb-$index'),
+                      onTap: () => _goToIndex(index),
+                      child: animatedThumbnail,
+                    )
+                    : AppImageActionTrigger(
+                      key: Key('movie-plot-preview-thumb-$index'),
+                      onTap: () => _goToIndex(index),
+                      onRequestMenu:
+                          (globalPosition) => widget.onRequestImageMenu!(
+                            context,
+                            index,
+                            globalPosition,
+                          ),
+                      child: animatedThumbnail,
+                    );
+              },
             ),
-          ],
-        ),
+          ),
+          SizedBox(height: spacing.md),
+        ],
       ),
     );
   }

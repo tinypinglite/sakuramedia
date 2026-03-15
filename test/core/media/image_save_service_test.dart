@@ -90,4 +90,72 @@ void main() {
     expect(result.status, ImageSaveStatus.failed);
     expect(result.message, '保存失败，请稍后重试');
   });
+
+  test('image save service saves to gallery on mobile', () async {
+    var permissionRequested = false;
+    Uint8List? savedBytes;
+    String? savedFileName;
+
+    final service = ImageSaveService(
+      fetchBytes: (_) async => Uint8List.fromList(const <int>[4, 5, 6]),
+      resolvePlatform: () => ImageSavePlatform.mobile,
+      requestGalleryPermission: () async {
+        permissionRequested = true;
+        return true;
+      },
+      saveToGallery: ({required bytes, required fileName}) async {
+        savedBytes = bytes;
+        savedFileName = fileName;
+        return true;
+      },
+    );
+
+    final result = await service.saveImageFromUrl(
+      imageUrl: '/images/thumb.webp',
+      fileName: 'thumb.webp',
+    );
+
+    expect(permissionRequested, isTrue);
+    expect(savedBytes, Uint8List.fromList(const <int>[4, 5, 6]));
+    expect(savedFileName, 'thumb.webp');
+    expect(result.status, ImageSaveStatus.success);
+    expect(result.message, '已保存到系统相册');
+  });
+
+  test(
+    'image save service returns error when gallery permission is denied',
+    () async {
+      final service = ImageSaveService(
+        fetchBytes: (_) async => Uint8List.fromList(const <int>[4, 5, 6]),
+        resolvePlatform: () => ImageSavePlatform.mobile,
+        requestGalleryPermission: () async => false,
+        saveToGallery: ({required bytes, required fileName}) async => true,
+      );
+
+      final result = await service.saveImageFromUrl(
+        imageUrl: '/images/thumb.webp',
+        fileName: 'thumb.webp',
+      );
+
+      expect(result.status, ImageSaveStatus.failed);
+      expect(result.message, '没有相册权限，无法保存图片');
+    },
+  );
+
+  test('image save service reports gallery save failures', () async {
+    final service = ImageSaveService(
+      fetchBytes: (_) async => Uint8List.fromList(const <int>[4, 5, 6]),
+      resolvePlatform: () => ImageSavePlatform.mobile,
+      requestGalleryPermission: () async => true,
+      saveToGallery: ({required bytes, required fileName}) async => false,
+    );
+
+    final result = await service.saveImageFromUrl(
+      imageUrl: '/images/thumb.webp',
+      fileName: 'thumb.webp',
+    );
+
+    expect(result.status, ImageSaveStatus.failed);
+    expect(result.message, '保存失败，请稍后重试');
+  });
 }

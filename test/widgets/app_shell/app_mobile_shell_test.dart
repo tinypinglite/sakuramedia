@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
@@ -85,16 +86,24 @@ void main() {
     );
 
     final tabBar = tester.widget<CupertinoTabBar>(find.byType(CupertinoTabBar));
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
     final shellPadding = tester.widget<Padding>(
-      find.ancestor(
-        of: find.byKey(const Key('mobile-shell-child')),
-        matching: find.byType(Padding),
-      ),
+      find.byKey(const Key('mobile-shell-body-padding')),
+    );
+    final bodySafeArea = tester.widget<SafeArea>(
+      find.byKey(const Key('mobile-shell-body-safe-area')),
+    );
+    final bottomSafeArea = tester.widget<SafeArea>(
+      find.byKey(const Key('mobile-shell-bottom-safe-area')),
     );
 
     expect(tabBar.currentIndex, 1);
     expect(tabBar.height, 52);
+    expect(scaffold.backgroundColor, sakuraThemeData.appColors.surfaceCard);
     expect(shellPadding.padding, AppPageInsets.compactStandard);
+    expect(bodySafeArea.bottom, isFalse);
+    expect(bottomSafeArea.top, isFalse);
+    expect(find.byType(AnnotatedRegion<SystemUiOverlayStyle>), findsOneWidget);
     expect(find.byType(AppBar), findsNothing);
   });
 

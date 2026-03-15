@@ -63,6 +63,18 @@ class MoviesApi {
     );
   }
 
+  Future<PaginatedResponseDto<MovieListItemDto>>
+  getSubscribedActorsLatestMovies({int page = 1, int pageSize = 20}) async {
+    final response = await _apiClient.get(
+      '/movies/subscribed-actors/latest',
+      queryParameters: <String, dynamic>{'page': page, 'page_size': pageSize},
+    );
+    return PaginatedResponseDto<MovieListItemDto>.fromJson(
+      response,
+      MovieListItemDto.fromJson,
+    );
+  }
+
   Future<MovieDetailDto> getMovieDetail({required String movieNumber}) async {
     final response = await _apiClient.get('/movies/$movieNumber');
     return MovieDetailDto.fromJson(response);

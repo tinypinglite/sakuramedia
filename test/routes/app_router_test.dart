@@ -1,16 +1,24 @@
 import 'dart:typed_data';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_state.dart';
+import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
+import 'package:sakuramedia/features/image_search/data/image_search_result_item_dto.dart';
+import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
+import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -277,6 +285,36 @@ void main() {
       buildMobilePlaylistDetailRoutePath(8),
       '$mobileOverviewPath/playlists/8',
     );
+  });
+
+  test('mobile movie detail route helper builds expected path', () {
+    expect(
+      buildMobileMovieDetailRoutePath('ABP-123'),
+      '$mobileMoviesPath/ABP-123',
+    );
+  });
+
+  test('mobile movie player route helper encodes query parameters', () {
+    expect(
+      buildMobileMoviePlayerRoutePath('ABP-123', mediaId: 100),
+      '/mobile/library/movies/ABP-123/player?mediaId=100',
+    );
+    expect(
+      buildMobileMoviePlayerRoutePath(
+        'ABP-123',
+        mediaId: 100,
+        positionSeconds: 61,
+      ),
+      '/mobile/library/movies/ABP-123/player?mediaId=100&positionSeconds=61',
+    );
+    expect(
+      buildMobileMoviePlayerRoutePath('ABP-123'),
+      '/mobile/library/movies/ABP-123/player',
+    );
+  });
+
+  test('mobile actor detail route helper builds expected path', () {
+    expect(buildMobileActorDetailRoutePath(9), '$mobileActorsPath/9');
   });
 
   testWidgets('desktop overview route uses NoTransitionPage', (
@@ -648,7 +686,7 @@ void main() {
     expect(loginPage, isA<NoTransitionPage<void>>());
   });
 
-  testWidgets('mobile overview route keeps default page transition type', (
+  testWidgets('mobile overview route uses NoTransitionPage', (
     WidgetTester tester,
   ) async {
     final sessionStore = await _buildLoggedInSessionStore(
@@ -673,7 +711,7 @@ void main() {
           .name,
     );
 
-    expect(overviewPage, isNot(isA<NoTransitionPage<void>>()));
+    expect(overviewPage, isA<NoTransitionPage<void>>());
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
     expect(find.byKey(const Key('mobile-overview-tabs')), findsOneWidget);
     expect(find.text('我的'), findsOneWidget);
@@ -776,6 +814,76 @@ void main() {
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
     expect(find.text('播放列表详情'), findsOneWidget);
+  });
+
+  testWidgets('mobile movie detail route uses subpage shell', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    _enqueueMovieDetailResponse(bundle);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(buildMobileMovieDetailRoutePath('ABC-001'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('影片详情'), findsOneWidget);
+    expect(find.byKey(const Key('movie-detail-page')), findsOneWidget);
+    final detailPage = _findPageByName(tester, 'mobile-movie-detail');
+    expect(detailPage, isA<CupertinoPage<void>>());
+
+    final infoBarRect = tester.getRect(
+      find.byKey(const Key('movie-detail-fixed-info-bar')),
+    );
+    final appSize = tester.getSize(find.byType(MaterialApp).first);
+    expect(infoBarRect.left, 0);
+    expect(infoBarRect.right, appSize.width);
+    expect(infoBarRect.bottom, closeTo(appSize.height, 0.1));
+  });
+
+  testWidgets('mobile actor detail route uses subpage shell', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    _enqueueActorDetailResponse(bundle);
+    _enqueueActorMoviesResponse(bundle);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(buildMobileActorDetailRoutePath(1));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('女优详情'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-actor-detail-page')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-actor-detail-header')), findsOneWidget);
+    final detailPage = _findPageByName(tester, 'mobile-actor-detail');
+    expect(detailPage, isA<CupertinoPage<void>>());
   });
 
   testWidgets('mobile overview playlist supports system back to overview', (
@@ -979,6 +1087,142 @@ void main() {
   });
 
   testWidgets(
+    'mobile image search route configures bottom drawer result preview presentation',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore(
+        platform: AppPlatform.mobile,
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      final router = buildMobileRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      router.go(mobileImageSearchPath);
+      await tester.pumpAndSettle();
+
+      final page = tester.widget<DesktopImageSearchPage>(
+        find.byType(DesktopImageSearchPage),
+      );
+      expect(
+        page.resultPreviewPresentation,
+        ImageSearchResultPreviewPresentation.bottomDrawer,
+      );
+    },
+  );
+
+  testWidgets('mobile image search route wires preview action callbacks', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileImageSearchPath);
+    await tester.pumpAndSettle();
+
+    final page = tester.widget<DesktopImageSearchPage>(
+      find.byType(DesktopImageSearchPage),
+    );
+    expect(page.onSearchSimilar, isNotNull);
+    expect(page.onOpenPlayer, isNotNull);
+    expect(page.onOpenMovieDetail, isNotNull);
+  });
+
+  testWidgets(
+    'mobile image search route callbacks navigate to mobile detail and player pages',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore(
+        platform: AppPlatform.mobile,
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      final router = buildMobileRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      router.go(mobileImageSearchPath);
+      await tester.pumpAndSettle();
+
+      final page = tester.widget<DesktopImageSearchPage>(
+        find.byType(DesktopImageSearchPage),
+      );
+      final hostContext = tester.element(find.byType(DesktopImageSearchPage));
+      final resultItem = ImageSearchResultItemDto(
+        thumbnailId: 123,
+        mediaId: 456,
+        movieId: 789,
+        movieNumber: 'ABC-001',
+        offsetSeconds: 120,
+        score: 0.91,
+        image: const MovieImageDto(
+          id: 10,
+          origin: '/thumb-1.webp',
+          small: '/thumb-1.webp',
+          medium: '/thumb-1.webp',
+          large: '/thumb-1.webp',
+        ),
+      );
+
+      page.onOpenMovieDetail!(hostContext, resultItem);
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        buildMobileMovieDetailRoutePath('ABC-001'),
+      );
+
+      router.go(mobileImageSearchPath);
+      await tester.pumpAndSettle();
+      final pageAfterDetail = tester.widget<DesktopImageSearchPage>(
+        find.byType(DesktopImageSearchPage),
+      );
+      final contextAfterDetail = tester.element(
+        find.byType(DesktopImageSearchPage),
+      );
+
+      pageAfterDetail.onOpenPlayer!(contextAfterDetail, resultItem);
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/mobile/library/movies/ABC-001/player',
+      );
+      expect(
+        router.routeInformationProvider.value.uri.queryParameters['mediaId'],
+        '456',
+      );
+      expect(
+        router
+            .routeInformationProvider
+            .value
+            .uri
+            .queryParameters['positionSeconds'],
+        '120',
+      );
+    },
+  );
+
+  testWidgets(
     'mobile subpage back uses DesktopSearchRouteState fallback path',
     (WidgetTester tester) async {
       final sessionStore = await _buildLoggedInSessionStore(
@@ -1044,6 +1288,66 @@ void main() {
       expect(router.routeInformationProvider.value.uri.path, mobileActorsPath);
     },
   );
+
+  testWidgets('mobile movie detail back uses fallback path from route extra', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    _enqueueMovieDetailResponse(bundle);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(
+      buildMobileMovieDetailRoutePath('ABC-001'),
+      extra: mobileSearchPath,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, mobileSearchPath);
+  });
+
+  testWidgets('mobile actor detail back uses fallback path from route extra', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    _enqueueActorDetailResponse(bundle);
+    _enqueueActorMoviesResponse(bundle);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(buildMobileActorDetailRoutePath(1), extra: mobileMoviesPath);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, mobileMoviesPath);
+  });
 
   testWidgets('desktop router redirects root to overview', (
     WidgetTester tester,
@@ -1142,6 +1446,7 @@ void main() {
     final sessionStore = await _buildLoggedInSessionStore();
     final bundle = await createTestApiBundle(sessionStore);
     addTearDown(bundle.dispose);
+    _enqueueMobileMoviesResponse(bundle);
     final router = buildMobileRouter(sessionStore: sessionStore);
 
     await tester.pumpWidget(
@@ -1166,11 +1471,120 @@ void main() {
       '/mobile/library/movies',
     );
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
-    expect(find.text('影片'), findsWidgets);
+    expect(find.byKey(const Key('mobile-movies-page')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-movies-page-total')), findsOneWidget);
     expect(find.byKey(const Key('login-form-base-url')), findsNothing);
   });
 
-  testWidgets('mobile bottom navigation switches between skeleton routes', (
+  testWidgets('mobile bottom navigation switches to movies route', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueMobileMoviesResponse(bundle);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('影片').last);
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, mobileMoviesPath);
+    expect(find.byKey(const Key('mobile-movies-page')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-movies-page-total')), findsOneWidget);
+  });
+
+  testWidgets('mobile bottom navigation switches to actors route', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueMobileActorsResponse(bundle);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('女优').last);
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, mobileActorsPath);
+    expect(find.byKey(const Key('mobile-actors-page')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-actors-page-total')), findsOneWidget);
+  });
+
+  testWidgets('mobile movies root route renders real page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueMobileMoviesResponse(bundle);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileMoviesPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-movies-page')), findsOneWidget);
+    expect(find.text('1 部'), findsOneWidget);
+    expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
+  });
+
+  testWidgets('mobile actors root route renders real page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueMobileActorsResponse(bundle);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileActorsPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-actors-page')), findsOneWidget);
+    expect(find.text('1 位'), findsOneWidget);
+    expect(find.byKey(const Key('actor-summary-card-1')), findsOneWidget);
+  });
+
+  testWidgets('mobile rankings root route renders developing placeholder', (
     WidgetTester tester,
   ) async {
     final sessionStore = await _buildLoggedInSessionStore(
@@ -1188,11 +1602,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('女优').last);
+    router.go(mobileRankingsPath);
     await tester.pumpAndSettle();
 
-    expect(router.routeInformationProvider.value.uri.path, mobileActorsPath);
-    expect(find.text('路径: $mobileActorsPath'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-rankings-page')), findsOneWidget);
+    expect(find.text('开发中'), findsOneWidget);
   });
 
   testWidgets('desktop router opens movie detail route inside shell', (
@@ -1342,6 +1756,50 @@ void main() {
     );
     expect(find.byKey(const Key('topbar-header')), findsNothing);
     expect(find.text('暂无可播放媒体'), findsOneWidget);
+  });
+
+  testWidgets('mobile router opens movie player route outside shell', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueMovieDetailResponse(bundle);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(
+      buildMobileMoviePlayerRoutePath(
+        'ABC-001',
+        mediaId: 100,
+        positionSeconds: 61,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/mobile/library/movies/ABC-001/player?mediaId=100&positionSeconds=61',
+    );
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsNothing);
+    expect(find.byKey(const Key('movie-player-page-frame')), findsOneWidget);
+    final moviePlayerPage = _findPageByName(tester, 'mobile-movie-player');
+    expect(moviePlayerPage, isA<CupertinoPage<void>>());
+    final playerWidget = tester.widget<MobileMoviePlayerPage>(
+      find.byType(MobileMoviePlayerPage),
+    );
+    expect(playerWidget.initialMediaId, 100);
+    expect(playerWidget.initialPositionSeconds, 61);
   });
 
   testWidgets('desktop shell keeps consistent page inset across routes', (
@@ -1563,7 +2021,9 @@ Future<void> _pumpRouterApp(
     ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
     if (includeShellController)
       ChangeNotifierProvider(create: (_) => AppShellController()),
+    Provider<ApiClient>.value(value: bundle.apiClient),
     Provider<ActorsApi>.value(value: bundle.actorsApi),
+    Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
     Provider<ImageSearchApi>(
       create: (_) => ImageSearchApi(apiClient: bundle.apiClient),
     ),
@@ -1575,7 +2035,9 @@ Future<void> _pumpRouterApp(
   return tester.pumpWidget(
     MultiProvider(
       providers: providers,
-      child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
+      child: OKToast(
+        child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
+      ),
     ),
   );
 }
@@ -1643,6 +2105,52 @@ void _enqueueDesktopOverviewResponses(TestApiBundle bundle) {
       ],
       'page': 1,
       'page_size': 8,
+      'total': 1,
+    },
+  );
+}
+
+void _enqueueMobileActorsResponse(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/actors',
+    body: <String, dynamic>{
+      'items': [
+        <String, dynamic>{
+          'id': 1,
+          'javdb_id': 'ActorA1',
+          'name': '三上悠亚',
+          'alias_name': '三上悠亚 / 鬼头桃菜',
+          'profile_image': null,
+          'is_subscribed': true,
+        },
+      ],
+      'page': 1,
+      'page_size': 24,
+      'total': 1,
+    },
+  );
+}
+
+void _enqueueMobileMoviesResponse(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/movies',
+    body: <String, dynamic>{
+      'items': [
+        <String, dynamic>{
+          'javdb_id': 'MovieA1',
+          'movie_number': 'ABC-001',
+          'title': 'Movie 1',
+          'cover_image': null,
+          'release_date': '2024-01-02',
+          'duration_minutes': 120,
+          'is_subscribed': true,
+          'can_play': true,
+        },
+      ],
+      'page': 1,
+      'page_size': 24,
       'total': 1,
     },
   );

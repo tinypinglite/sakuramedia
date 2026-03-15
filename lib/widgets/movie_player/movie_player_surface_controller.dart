@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 class MoviePlayerSurfaceController {
   final StreamController<Duration> _seekController =
       StreamController<Duration>.broadcast();
@@ -13,6 +15,9 @@ class MoviePlayerSurfaceController {
     if (_seekController.isClosed) {
       return;
     }
+    debugPrint(
+      '[player-debug] surface_controller_seek_to seconds=${position.inSeconds}',
+    );
     _seekController.add(position);
   }
 
@@ -20,6 +25,7 @@ class MoviePlayerSurfaceController {
     if (_playController.isClosed) {
       return;
     }
+    debugPrint('[player-debug] surface_controller_play');
     _playController.add(null);
   }
 

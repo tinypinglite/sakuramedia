@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/features/overview/presentation/mobile_overview_follow_tab.dart';
+import 'package:sakuramedia/features/moments/presentation/mobile_overview_moments_tab.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
@@ -19,8 +21,6 @@ import 'package:sakuramedia/widgets/search/catalog_search_field.dart';
 class MobileOverviewSkeletonPage extends StatelessWidget {
   const MobileOverviewSkeletonPage({super.key});
 
-  static const List<String> _tabs = ['我的', '关注', '发现', '时刻'];
-
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
@@ -30,40 +30,35 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
       length: 4,
       child: ColoredBox(
         key: const Key('mobile-overview-skeleton-page'),
-        color: colors.surfacePage,
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: EdgeInsets.only(top: spacing.sm),
-                child: const AppTabBar(
-                  key: Key('mobile-overview-tabs'),
-                  variant: AppTabBarVariant.mobileTop,
-                  tabs: [
-                    Tab(text: '我的'),
-                    Tab(text: '关注'),
-                    Tab(text: '发现'),
-                    Tab(text: '时刻'),
-                  ],
-                ),
+        color: colors.surfaceCard,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(top: spacing.sm),
+              child: const AppTabBar(
+                key: Key('mobile-overview-tabs'),
+                variant: AppTabBarVariant.mobileTop,
+                tabs: [
+                  Tab(text: '我的'),
+                  Tab(text: '关注'),
+                  Tab(text: '发现'),
+                  Tab(text: '时刻'),
+                ],
               ),
-              Expanded(
-                child: TabBarView(
-                  key: const Key('mobile-overview-tab-view'),
-                  children: _tabs
-                      .map(
-                        (tabLabel) => switch (tabLabel) {
-                          '我的' => const _MobileOverviewMyTab(),
-                          _ => _MobileOverviewTabPane(tabLabel: tabLabel),
-                        },
-                      )
-                      .toList(growable: false),
-                ),
+            ),
+            Expanded(
+              child: TabBarView(
+                key: const Key('mobile-overview-tab-view'),
+                children: const [
+                  _MobileOverviewMyTab(),
+                  MobileOverviewFollowTab(),
+                  _MobileOverviewDiscoverTab(),
+                  MobileOverviewMomentsTab(),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -214,7 +209,11 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
             width: cardWidth,
             child: MovieSummaryCard(
               movie: movie,
-              onTap: () => showToast('移动端影片详情开发中'),
+              onTap:
+                  () => context.push(
+                    buildMobileMovieDetailRoutePath(movie.movieNumber),
+                    extra: mobileOverviewPath,
+                  ),
             ),
           );
         },
@@ -347,48 +346,11 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
   }
 }
 
-class _MobileOverviewTabPane extends StatelessWidget {
-  const _MobileOverviewTabPane({required this.tabLabel});
-
-  final String tabLabel;
+class _MobileOverviewDiscoverTab extends StatelessWidget {
+  const _MobileOverviewDiscoverTab();
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _SkeletonBlock(height: 48),
-          SizedBox(height: spacing.lg),
-          _SkeletonBlock(height: 180),
-          SizedBox(height: spacing.lg),
-          _SkeletonBlock(height: 120),
-          SizedBox(height: spacing.xl),
-          AppEmptyState(message: '$tabLabel内容骨架搭建中'),
-        ],
-      ),
-    );
-  }
-}
-
-class _SkeletonBlock extends StatelessWidget {
-  const _SkeletonBlock({required this.height});
-
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final radius = context.appRadius;
-
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: colors.surfaceMuted,
-        borderRadius: radius.mdBorder,
-      ),
-    );
+    return const Center(child: AppEmptyState(message: '开发中'));
   }
 }

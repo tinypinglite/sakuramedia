@@ -90,7 +90,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       movieDetailPillHorizontalPadding = 6,
       movieDetailPillVerticalPadding = 3,
       movieDetailPillGap = 6,
-      movieDetailBottomBarMinHeight = 36,
+      movieDetailBottomBarMinHeight = 42,
       movieDetailMediaRowMinHeight = 88,
       movieDetailMoreEntryHeight = 56,
       movieDetailDialogWidth = 960,

@@ -90,6 +90,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
         );
       case AppTabBarVariant.mobileTop:
         return _AppTabBarStyleSpec(
+          dividerHeight:0,
           visualTabHeight: 48,
           labelPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.lg),
           labelStyle: textTheme.titleSmall!.copyWith(
@@ -105,7 +106,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
           isScrollable: true,
           tabAlignment: TabAlignment.center,
           dividerColor: colors.divider,
-          dividerHeight: 0.5,
+          // dividerHeight: 0.5,
           indicatorThickness: 5,
         );
     }

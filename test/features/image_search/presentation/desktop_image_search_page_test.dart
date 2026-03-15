@@ -19,6 +19,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/media/media_preview_action_grid.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_thumbnail.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -780,10 +781,10 @@ void main() {
         of: find.byKey(const Key('image-search-result-preview-dialog')),
         matching: find.byType(SingleChildScrollView),
       ),
-      findsNothing,
+      findsOneWidget,
     );
     expect(find.text('相似图片'), findsOneWidget);
-    expect(find.text('保存到本地'), findsOneWidget);
+    expect(find.text('保存'), findsOneWidget);
     expect(find.text('添加标记'), findsOneWidget);
     expect(find.text('播放'), findsOneWidget);
     expect(find.text('影片详情'), findsOneWidget);
@@ -800,9 +801,8 @@ void main() {
     expect(find.text('桥本有菜'), findsOneWidget);
     expect(find.text('白峰美羽'), findsNothing);
 
-    await tester.drag(
-      find.byKey(const Key('image-search-result-preview-actor-list')),
-      const Offset(-600, 0),
+    actorList.controller!.jumpTo(
+      actorList.controller!.position.maxScrollExtent,
     );
     await tester.pumpAndSettle();
 
@@ -833,11 +833,18 @@ void main() {
     final previewTopRight = tester.getTopRight(
       find.byKey(const Key('image-search-result-preview-hero')),
     );
-    expect(previewTopLeft.dx, moreOrLessEquals(dialogTopLeft.dx, epsilon: 0.1));
-    expect(previewTopLeft.dy, moreOrLessEquals(dialogTopLeft.dy, epsilon: 0.1));
+    final baseDialogPadding = sakuraThemeData.appSpacing.xl;
+    expect(
+      previewTopLeft.dx,
+      moreOrLessEquals(dialogTopLeft.dx + baseDialogPadding, epsilon: 0.1),
+    );
+    expect(
+      previewTopLeft.dy,
+      moreOrLessEquals(dialogTopLeft.dy + baseDialogPadding, epsilon: 0.1),
+    );
     expect(
       previewTopRight.dx,
-      moreOrLessEquals(dialogTopRight.dx, epsilon: 0.1),
+      moreOrLessEquals(dialogTopRight.dx - baseDialogPadding, epsilon: 0.1),
     );
 
     final actionLabel = tester.widget<Text>(find.text('相似图片'));
@@ -849,10 +856,7 @@ void main() {
     expect(firstActionTile, findsOneWidget);
     expect(
       tester.getTopLeft(firstActionTile).dx,
-      moreOrLessEquals(
-        dialogTopLeft.dx + sakuraThemeData.appSpacing.lg,
-        epsilon: 0.1,
-      ),
+      moreOrLessEquals(dialogTopLeft.dx + baseDialogPadding, epsilon: 0.1),
     );
     expect(
       find.descendant(
@@ -871,12 +875,184 @@ void main() {
     expect(previewHeroImage.fit, BoxFit.contain);
     expect(
       find.descendant(
-        of: find.byKey(const Key('image-search-result-preview-hero')),
+        of: find.byKey(const Key('image-search-result-preview-dialog')),
         matching: find.byIcon(Icons.close_rounded),
       ),
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'image search page opens result preview bottom sheet when configured',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/image-search/sessions',
+        body: _imageSearchSessionJson(
+          sessionId: 'session-bottom-sheet',
+          items: [
+            _imageSearchResultJson(
+              thumbnailId: 123,
+              mediaId: 456,
+              movieId: 789,
+              movieNumber: 'ABC-001',
+              offsetSeconds: 120,
+              score: 0.91,
+              imageId: 10,
+              imagePath: '/thumb-1.webp',
+            ),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: <String, dynamic>{
+          'javdb_id': 'MovieA1',
+          'movie_number': 'ABC-001',
+          'title': 'Movie 1',
+          'cover_image': null,
+          'release_date': null,
+          'duration_minutes': 120,
+          'score': 4.5,
+          'watched_count': 12,
+          'want_watch_count': 23,
+          'comment_count': 34,
+          'score_number': 45,
+          'is_collection': false,
+          'is_subscribed': true,
+          'can_play': true,
+          'summary': '',
+          'actors': const <Map<String, dynamic>>[],
+          'tags': const <Map<String, dynamic>>[],
+          'thin_cover_image': null,
+          'plot_images': const <Map<String, dynamic>>[],
+          'media_items': const <Map<String, dynamic>>[],
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/456/points',
+        body: const <Map<String, dynamic>>[],
+      );
+
+      await _pumpImageSearchApp(
+        tester,
+        bundle: bundle,
+        sessionStore: sessionStore,
+        initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+        initialFileName: 'query.png',
+        initialMimeType: 'image/png',
+        resultPreviewPresentation:
+            ImageSearchResultPreviewPresentation.bottomDrawer,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(
+          const Key('image-search-result-card-123'),
+          skipOffstage: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('image-search-result-preview-bottom-sheet')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('image-search-result-preview-dialog')),
+        findsNothing,
+      );
+      expect(find.text('相似图片'), findsOneWidget);
+      expect(find.text('保存'), findsOneWidget);
+      expect(find.text('添加标记'), findsOneWidget);
+      expect(find.text('播放'), findsOneWidget);
+      expect(find.text('影片详情'), findsOneWidget);
+
+      final actionGrid = tester.widget<MediaPreviewActionGrid>(
+        find.byKey(const Key('image-search-result-preview-actions')),
+      );
+      expect(actionGrid.layout, MediaPreviewActionGridLayout.horizontalScroll);
+    },
+  );
+
+  testWidgets(
+    'image search preview hides play action when media id is missing',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/image-search/sessions',
+        body: _imageSearchSessionJson(
+          sessionId: 'session-missing-media',
+          items: [
+            _imageSearchResultJson(
+              thumbnailId: 123,
+              mediaId: 0,
+              movieId: 789,
+              movieNumber: 'ABC-001',
+              offsetSeconds: 120,
+              score: 0.91,
+              imageId: 10,
+              imagePath: '/thumb-1.webp',
+            ),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: <String, dynamic>{
+          'javdb_id': 'MovieA1',
+          'movie_number': 'ABC-001',
+          'title': 'Movie 1',
+          'cover_image': null,
+          'release_date': null,
+          'duration_minutes': 120,
+          'score': 4.5,
+          'watched_count': 12,
+          'want_watch_count': 23,
+          'comment_count': 34,
+          'score_number': 45,
+          'is_collection': false,
+          'is_subscribed': true,
+          'can_play': true,
+          'summary': '',
+          'actors': const <Map<String, dynamic>>[],
+          'tags': const <Map<String, dynamic>>[],
+          'thin_cover_image': null,
+          'plot_images': const <Map<String, dynamic>>[],
+          'media_items': const <Map<String, dynamic>>[],
+        },
+      );
+
+      await _pumpImageSearchApp(
+        tester,
+        bundle: bundle,
+        sessionStore: sessionStore,
+        initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+        initialFileName: 'query.png',
+        initialMimeType: 'image/png',
+        resultPreviewPresentation:
+            ImageSearchResultPreviewPresentation.bottomDrawer,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(
+          const Key('image-search-result-card-123'),
+          skipOffstage: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('相似图片'), findsOneWidget);
+      expect(find.text('保存'), findsOneWidget);
+      expect(find.text('添加标记'), findsOneWidget);
+      expect(find.text('影片详情'), findsOneWidget);
+      expect(find.text('播放'), findsNothing);
+    },
+  );
 
   testWidgets(
     'image search preview falls back to movie title when actor list is empty',
@@ -1920,6 +2096,8 @@ Future<void> _pumpImageSearchApp(
   String? currentMovieNumber,
   ImageSearchCurrentMovieScope initialCurrentMovieScope =
       ImageSearchCurrentMovieScope.all,
+  ImageSearchResultPreviewPresentation resultPreviewPresentation =
+      ImageSearchResultPreviewPresentation.dialog,
   Size? surfaceSize,
 }) async {
   if (surfaceSize != null) {
@@ -1954,6 +2132,7 @@ Future<void> _pumpImageSearchApp(
               initialMimeType: initialMimeType,
               currentMovieNumber: currentMovieNumber,
               initialCurrentMovieScope: initialCurrentMovieScope,
+              resultPreviewPresentation: resultPreviewPresentation,
             ),
           ),
         ),

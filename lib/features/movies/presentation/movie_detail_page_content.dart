@@ -1,0 +1,361 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_actor_wrap.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_detail_bottom_info_bar.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_detail_hero_card.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_detail_section.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_detail_stat_row.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_media_item_list.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_plot_gallery.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_tag_wrap.dart';
+
+class MovieDetailPageContent extends StatelessWidget {
+  const MovieDetailPageContent({
+    super.key,
+    required this.movie,
+    required this.selectedPreviewKey,
+    required this.selectedPreviewUrl,
+    required this.isSubscribed,
+    required this.isSubscriptionUpdating,
+    required this.selectedMediaId,
+    required this.statItems,
+    required this.onInspectorTap,
+    required this.onPlaylistTap,
+    required this.onMediaSelect,
+    this.onPlayTap,
+    this.onSubscriptionTap,
+    this.onActorTap,
+    this.onRequestPlotImageMenu,
+    this.onOpenPlotPreview,
+    this.contentPadding = EdgeInsets.zero,
+    this.bottomInfoBarVariant = MovieDetailBottomInfoBarVariant.desktopCard,
+  });
+
+  final MovieDetailDto movie;
+  final String selectedPreviewKey;
+  final String? selectedPreviewUrl;
+  final bool isSubscribed;
+  final bool isSubscriptionUpdating;
+  final int? selectedMediaId;
+  final List<MovieDetailStatItem> statItems;
+  final VoidCallback onInspectorTap;
+  final VoidCallback onPlaylistTap;
+  final ValueChanged<MovieMediaItemDto> onMediaSelect;
+  final VoidCallback? onPlayTap;
+  final VoidCallback? onSubscriptionTap;
+  final ValueChanged<MovieActorDto>? onActorTap;
+  final Future<void> Function(
+    BuildContext context,
+    int index,
+    Offset globalPosition,
+  )?
+  onRequestPlotImageMenu;
+  final ValueChanged<int>? onOpenPlotPreview;
+  final EdgeInsetsGeometry contentPadding;
+  final MovieDetailBottomInfoBarVariant bottomInfoBarVariant;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: context.appColors.surfaceCard,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final viewportHeight = _resolveViewportHeight(context, constraints);
+          final heroHeight = viewportHeight * 0.3;
+          final scrollBottomPadding =
+              bottomInfoBarVariant ==
+                      MovieDetailBottomInfoBarVariant.mobileFullWidth
+                  ? context.appComponentTokens.movieDetailBottomBarMinHeight
+                  : context.appComponentTokens.movieDetailBottomBarMinHeight +
+                      context.appSpacing.sm;
+
+          final scrollableContent = SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: scrollBottomPadding),
+              child: Padding(
+                padding: contentPadding,
+                child: _buildDetailBody(
+                  context: context,
+                  heroHeight: heroHeight,
+                ),
+              ),
+            ),
+          );
+
+          if (bottomInfoBarVariant ==
+              MovieDetailBottomInfoBarVariant.desktopCard) {
+            return Column(
+              children: [
+                Expanded(child: scrollableContent),
+                SizedBox(height: context.appSpacing.xs),
+                MovieDetailBottomInfoBar(
+                  items: statItems,
+                  onTap: onInspectorTap,
+                ),
+              ],
+            );
+          }
+
+          return Stack(
+            children: [
+              Positioned.fill(child: scrollableContent),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: MovieDetailBottomInfoBar(
+                  items: statItems,
+                  onTap: onInspectorTap,
+                  variant: MovieDetailBottomInfoBarVariant.mobileFullWidth,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDetailBody({
+    required BuildContext context,
+    required double heroHeight,
+  }) {
+    return Column(
+      key: const Key('movie-detail-page'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        MovieDetailHeroCard(
+          height: heroHeight,
+          mainImageKey: selectedPreviewKey,
+          mainImageUrl: selectedPreviewUrl,
+          thinCoverUrl: movie.thinCoverImage?.bestAvailableUrl,
+          canPlay: movie.canPlay,
+          isSubscribed: isSubscribed,
+          isCollection: movie.isCollection,
+          onSubscriptionTap: onSubscriptionTap,
+          isSubscriptionUpdating: isSubscriptionUpdating,
+          onPlayTap: onPlayTap,
+        ),
+        SizedBox(height: context.appSpacing.lg),
+        MoviePlotGallery(
+          plotImages: movie.plotImages,
+          onRequestImageMenu: onRequestPlotImageMenu,
+          onOpenPreview: onOpenPlotPreview,
+        ),
+        SizedBox(height: context.appComponentTokens.movieDetailSectionGap),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              movie.movieNumber,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            SizedBox(width: context.appSpacing.md),
+            AppIconButton(
+              key: const Key('movie-detail-playlist-trigger'),
+              onPressed: onPlaylistTap,
+              icon: Icon(
+                Icons.playlist_add_rounded,
+                size: context.appComponentTokens.iconSizeLg,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              tooltip: '加入播放列表',
+            ),
+          ],
+        ),
+        MovieDetailSection(title: '标签', child: MovieTagWrap(tags: movie.tags)),
+        movie.seriesName.trim().isNotEmpty
+            ? MovieDetailSection(
+              title: '系列',
+              child: Text(
+                movie.seriesName.trim(),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            )
+            : const SizedBox(),
+        MovieDetailSection(
+          title: '演员',
+          titleBottomSpacing: context.appSpacing.xs,
+          child: MovieActorWrap(actors: movie.actors, onActorTap: onActorTap),
+        ),
+        if (movie.mediaItems.isNotEmpty)
+          MovieDetailSection(
+            title: '媒体源',
+            child: MovieMediaItemList(
+              mediaItems: movie.mediaItems,
+              selectedMediaId: selectedMediaId,
+              onSelect: onMediaSelect,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class MovieDetailLoadingSkeleton extends StatelessWidget {
+  const MovieDetailLoadingSkeleton({super.key, required this.controller});
+
+  final MovieDetailController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final heroHeight = _resolveViewportHeight(context, constraints) * 0.3;
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Column(
+                key: const Key('movie-detail-loading-skeleton'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SkeletonBlock(height: heroHeight),
+                  SizedBox(height: context.appSpacing.lg),
+                  _SkeletonBlock(
+                    height:
+                        context
+                            .appComponentTokens
+                            .movieDetailPlotThumbnailHeight,
+                  ),
+                  SizedBox(height: context.appSpacing.xl),
+                  const _SkeletonBlock(height: 28, width: 240),
+                  SizedBox(height: context.appSpacing.md),
+                  const _SkeletonBlock(height: 18, width: 520),
+                  SizedBox(height: context.appSpacing.xxl),
+                  const _SkeletonBlock(height: 18, width: 120),
+                  SizedBox(height: context.appSpacing.md),
+                  const _SkeletonBlock(height: 64),
+                  SizedBox(height: context.appSpacing.lg),
+                  const _SkeletonBlock(height: 18, width: 120),
+                  SizedBox(height: context.appSpacing.md),
+                  const _SkeletonBlock(height: 96),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class MovieDetailErrorState extends StatelessWidget {
+  const MovieDetailErrorState({
+    super.key,
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        AppEmptyState(message: message),
+        SizedBox(height: context.appSpacing.lg),
+        TextButton(onPressed: onRetry, child: const Text('重试')),
+      ],
+    );
+  }
+}
+
+class _SkeletonBlock extends StatelessWidget {
+  const _SkeletonBlock({required this.height, this.width});
+
+  final double height;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width ?? double.infinity,
+      height: height,
+      decoration: BoxDecoration(
+        color: context.appColors.surfaceMuted,
+        borderRadius: context.appRadius.mdBorder,
+      ),
+    );
+  }
+}
+
+double _resolveViewportHeight(
+  BuildContext context,
+  BoxConstraints constraints,
+) {
+  if (constraints.hasBoundedHeight && constraints.maxHeight.isFinite) {
+    return constraints.maxHeight;
+  }
+  return MediaQuery.sizeOf(context).height;
+}
+
+List<MovieDetailStatItem> buildMovieDetailStatItems(
+  BuildContext context,
+  MovieDetailDto movie,
+) {
+  final releaseLabel =
+      movie.releaseDate == null
+          ? '--'
+          : DateFormat('yy/MM/dd').format(movie.releaseDate!);
+  final durationLabel =
+      movie.durationMinutes > 0 ? '${movie.durationMinutes} 分钟' : '--';
+  final scoreLabel = movie.score > 0 ? movie.score.toStringAsFixed(1) : '--';
+  final scoreNumberLabel =
+      movie.scoreNumber > 0 ? '${movie.scoreNumber}' : '--';
+  final commentCountLabel =
+      movie.commentCount > 0 ? '${movie.commentCount}' : '--';
+  final wantWatchCountLabel =
+      movie.wantWatchCount > 0 ? '${movie.wantWatchCount}' : '--';
+
+  return [
+    MovieDetailStatItem(
+      icon: Icons.calendar_today_outlined,
+      label: releaseLabel,
+      tooltip: '发行日期',
+      iconColor: context.appColors.movieDetailReleaseDateIcon,
+    ),
+    MovieDetailStatItem(
+      icon: Icons.schedule_outlined,
+      label: durationLabel,
+      tooltip: '影片时长',
+      iconColor: context.appColors.movieDetailDurationIcon,
+    ),
+    MovieDetailStatItem(
+      icon: Icons.star_outline_rounded,
+      label: scoreLabel,
+      tooltip: '评分',
+      iconColor: context.appColors.movieDetailScoreIcon,
+    ),
+
+    MovieDetailStatItem(
+      icon: Icons.chat_bubble_outline_rounded,
+      label: commentCountLabel,
+      tooltip: '评论数',
+      iconColor: context.appColors.movieDetailCommentCountIcon,
+    ),
+
+    MovieDetailStatItem(
+      icon: Icons.favorite_border_rounded,
+      label: wantWatchCountLabel,
+      tooltip: '想看人数',
+      iconColor: context.appColors.movieDetailWantWatchCountIcon,
+    ),
+  ];
+}
+
+extension MovieMediaItemIterableX on Iterable<MovieMediaItemDto> {
+  MovieMediaItemDto? get firstOrNull {
+    for (final item in this) {
+      return item;
+    }
+    return null;
+  }
+}

@@ -13,6 +13,10 @@ class MomentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final labelTextStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w700,
+    );
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -43,7 +47,7 @@ class MomentCard extends StatelessWidget {
                     bottom: 0,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.58),
+                        color: Colors.black.withValues(alpha: 0.44),
                       ),
                       child: Padding(
                         padding: EdgeInsets.symmetric(
@@ -57,23 +61,13 @@ class MomentCard extends StatelessWidget {
                                 item.movieNumber,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.titleSmall?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                style: labelTextStyle,
                               ),
                             ),
                             SizedBox(width: spacing.sm),
                             Text(
                               formatMediaTimecode(item.offsetSeconds),
-                              style: Theme.of(
-                                context,
-                              ).textTheme.titleSmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: labelTextStyle,
                             ),
                           ],
                         ),

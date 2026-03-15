@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/features/playlists/presentation/playlist_detail_content.dart';
+import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 
 class MobilePlaylistDetailPage extends StatelessWidget {
@@ -12,10 +13,14 @@ class MobilePlaylistDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ColoredBox(
       key: const Key('mobile-playlist-detail-page'),
-      color: context.appColors.surfacePage,
+      color: context.appColors.surfaceCard,
       child: PlaylistDetailContent(
         playlistId: playlistId,
-        onMovieTap: (_) => showToast('移动端影片详情开发中'),
+        onMovieTap:
+            (movie) => context.push(
+              buildMobileMovieDetailRoutePath(movie.movieNumber),
+              extra: buildMobilePlaylistDetailRoutePath(playlistId),
+            ),
       ),
     );
   }

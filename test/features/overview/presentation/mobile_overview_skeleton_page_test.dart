@@ -3,9 +3,12 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
+import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_skeleton_page.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
@@ -57,7 +60,11 @@ void main() {
     final tabBar = tester.widget<AppTabBar>(
       find.byKey(const Key('mobile-overview-tabs')),
     );
+    final pageRoot = tester.widget<ColoredBox>(
+      find.byKey(const Key('mobile-overview-skeleton-page')),
+    );
     expect(tabBar.variant, AppTabBarVariant.mobileTop);
+    expect(pageRoot.color, sakuraThemeData.appColors.surfaceCard);
   });
 
   testWidgets('mobile overview supports swipe to switch tabs', (
@@ -76,12 +83,43 @@ void main() {
 
     expect(find.text('最近添加'), findsOneWidget);
     expect(find.text('播放列表'), findsOneWidget);
-    expect(find.text('关注内容骨架搭建中'), findsNothing);
+    expect(find.text('暂无关注影片'), findsNothing);
+    expect(find.text('开发中'), findsNothing);
 
     await tester.fling(find.byType(PageView), const Offset(-600, 0), 1200);
     await tester.pumpAndSettle();
 
-    expect(find.text('关注内容骨架搭建中'), findsOneWidget);
+    expect(find.text('暂无关注影片'), findsOneWidget);
+
+    await tester.fling(find.byType(PageView), const Offset(-600, 0), 1200);
+    await tester.pumpAndSettle();
+
+    expect(find.text('开发中'), findsOneWidget);
+  });
+
+  testWidgets('mobile overview moments tab renders real content', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        child: const MobileOverviewSkeletonPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('时刻'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('mobile-overview-moments-tab')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('mobile-moments-page-total')), findsOneWidget);
+    expect(find.text('时刻内容骨架搭建中'), findsNothing);
   });
 
   testWidgets('mobile overview search submits to mobile search route', (
@@ -339,6 +377,355 @@ void main() {
       expect(find.text('mobile-image-search'), findsNothing);
     },
   );
+
+  testWidgets('mobile overview latest movie tap navigates to movie detail', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+    Object? movieDetailExtra;
+    final router = GoRouter(
+      initialLocation: mobileOverviewPath,
+      routes: [
+        GoRoute(
+          path: mobileOverviewPath,
+          builder:
+              (_, __) => const Scaffold(body: MobileOverviewSkeletonPage()),
+        ),
+        GoRoute(
+          path: '$mobileMoviesPath/:movieNumber',
+          builder: (_, state) {
+            movieDetailExtra = state.extra;
+            return Scaffold(
+              body: Text(
+                'movie:${state.pathParameters['movieNumber']}',
+                textDirection: TextDirection.ltr,
+              ),
+            );
+          },
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      _buildRouterApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('movie-summary-card-ABP-123')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('movie:ABP-123'), findsOneWidget);
+    expect(movieDetailExtra, mobileOverviewPath);
+    expect(router.canPop(), isTrue);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-overview-tabs')), findsOneWidget);
+    expect(router.canPop(), isFalse);
+  });
+
+  testWidgets('mobile overview follow tab shows error and supports retry', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/subscribed-actors/latest',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/subscribed-actors/latest',
+      statusCode: 200,
+      body: _followMoviesPageJson(
+        page: 1,
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _followMovieItemJson(movieNumber: 'ABP-200', isSubscribed: false),
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABP-200',
+      statusCode: 200,
+      body: _movieDetailJson(movieNumber: 'ABP-200'),
+    );
+    _enqueueOverviewResponses(bundle);
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        child: const MobileOverviewSkeletonPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('关注'));
+    await tester.pumpAndSettle();
+    expect(find.text('关注影片加载失败，请稍后重试'), findsOneWidget);
+
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('mobile-overview-follow-list')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('mobile-follow-movie-card-ABP-200')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'mobile overview follow tab loads more and retries failed load more',
+    (WidgetTester tester) async {
+      final page1Items = List<Map<String, dynamic>>.generate(
+        20,
+        (index) => _followMovieItemJson(movieNumber: 'ABP-${index + 200}'),
+      );
+      final page2Items = List<Map<String, dynamic>>.generate(
+        10,
+        (index) => _followMovieItemJson(movieNumber: 'ABP-${index + 220}'),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/subscribed-actors/latest',
+        statusCode: 200,
+        body: _followMoviesPageJson(page: 1, total: 30, items: page1Items),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/subscribed-actors/latest',
+        statusCode: 500,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/subscribed-actors/latest',
+        statusCode: 200,
+        body: _followMoviesPageJson(page: 2, total: 30, items: page2Items),
+      );
+      _enqueueFollowMovieDetails(bundle, <String>[
+        ...page1Items.map((item) => item['movie_number']! as String),
+        ...page2Items.map((item) => item['movie_number']! as String),
+      ]);
+      _enqueueOverviewResponses(bundle);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          child: const MobileOverviewSkeletonPage(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('关注'));
+      await tester.pumpAndSettle();
+
+      expect(
+        bundle.adapter.hitCount('GET', '/movies/subscribed-actors/latest'),
+        1,
+      );
+
+      for (var index = 0; index < 6; index += 1) {
+        await tester.fling(
+          find.byKey(const Key('mobile-overview-follow-list')),
+          const Offset(0, -900),
+          1500,
+        );
+        await tester.pumpAndSettle();
+      }
+      await tester.pumpAndSettle();
+      expect(
+        bundle.adapter.hitCount('GET', '/movies/subscribed-actors/latest'),
+        greaterThanOrEqualTo(2),
+      );
+
+      await tester.fling(
+        find.byKey(const Key('mobile-overview-follow-list')),
+        const Offset(0, -300),
+        1200,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        bundle.adapter.hitCount('GET', '/movies/subscribed-actors/latest'),
+        greaterThanOrEqualTo(3),
+      );
+      expect(
+        find.byKey(const Key('mobile-follow-movie-card-ABP-229')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('mobile overview follow tab card tap navigates to movie detail', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/subscribed-actors/latest',
+      statusCode: 200,
+      body: _followMoviesPageJson(
+        page: 1,
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _followMovieItemJson(movieNumber: 'ABP-300', isSubscribed: false),
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABP-300',
+      statusCode: 200,
+      body: _movieDetailJson(movieNumber: 'ABP-300'),
+    );
+    _enqueueOverviewResponses(bundle);
+
+    Object? movieDetailExtra;
+    final router = GoRouter(
+      initialLocation: mobileOverviewPath,
+      routes: [
+        GoRoute(
+          path: mobileOverviewPath,
+          builder:
+              (_, __) => const Scaffold(body: MobileOverviewSkeletonPage()),
+        ),
+        GoRoute(
+          path: '$mobileMoviesPath/:movieNumber',
+          builder: (_, state) {
+            movieDetailExtra = state.extra;
+            return Scaffold(
+              body: Text(
+                'movie:${state.pathParameters['movieNumber']}',
+                textDirection: TextDirection.ltr,
+              ),
+            );
+          },
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      _buildRouterApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('关注'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-follow-movie-card-ABP-300')));
+    await tester.pumpAndSettle();
+    expect(find.text('movie:ABP-300'), findsOneWidget);
+    expect(movieDetailExtra, mobileOverviewPath);
+  });
+
+  testWidgets('mobile overview follow tab toggles movie subscription', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/subscribed-actors/latest',
+      statusCode: 200,
+      body: _followMoviesPageJson(
+        page: 1,
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _followMovieItemJson(movieNumber: 'ABP-301', isSubscribed: false),
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABP-301',
+      statusCode: 200,
+      body: _movieDetailJson(movieNumber: 'ABP-301'),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'PUT',
+      path: '/movies/ABP-301/subscription',
+      statusCode: 204,
+      body: null,
+    );
+    _enqueueOverviewResponses(bundle);
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        child: const MobileOverviewSkeletonPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('关注'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('mobile-follow-movie-card-subscription-ABP-301')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(bundle.adapter.hitCount('PUT', '/movies/ABP-301/subscription'), 1);
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('mobile overview follow tab caches detail request per movie', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/subscribed-actors/latest',
+      statusCode: 200,
+      body: _followMoviesPageJson(
+        page: 1,
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _followMovieItemJson(movieNumber: 'ABP-302', isSubscribed: false),
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABP-302',
+      statusCode: 200,
+      body: _movieDetailJson(movieNumber: 'ABP-302'),
+    );
+    _enqueueOverviewResponses(bundle);
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        child: const MobileOverviewSkeletonPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('关注'));
+    await tester.pumpAndSettle();
+    expect(bundle.adapter.hitCount('GET', '/movies/ABP-302'), 1);
+
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('关注'));
+    await tester.pumpAndSettle();
+    expect(bundle.adapter.hitCount('GET', '/movies/ABP-302'), 1);
+  });
 }
 
 Widget _buildTestApp({
@@ -349,11 +736,15 @@ Widget _buildTestApp({
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+      Provider<ApiClient>.value(value: bundle.apiClient),
       Provider<ActorsApi>.value(value: bundle.actorsApi),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+      Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
     ],
-    child: MaterialApp(theme: sakuraThemeData, home: Scaffold(body: child)),
+    child: OKToast(
+      child: MaterialApp(theme: sakuraThemeData, home: Scaffold(body: child)),
+    ),
   );
 }
 
@@ -365,11 +756,15 @@ Widget _buildRouterApp({
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+      Provider<ApiClient>.value(value: bundle.apiClient),
       Provider<ActorsApi>.value(value: bundle.actorsApi),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+      Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
     ],
-    child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
+    child: OKToast(
+      child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
+    ),
   );
 }
 
@@ -398,6 +793,16 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
   );
   bundle.adapter.enqueueJson(
     method: 'GET',
+    path: '/movies/subscribed-actors/latest',
+    statusCode: 200,
+    body: _followMoviesPageJson(
+      page: 1,
+      total: 0,
+      items: const <Map<String, dynamic>>[],
+    ),
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
     path: '/playlists',
     statusCode: 200,
     body: [
@@ -415,4 +820,133 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
       },
     ],
   );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/media-points',
+    statusCode: 200,
+    body: <String, dynamic>{
+      'items': [
+        <String, dynamic>{
+          'point_id': 10,
+          'media_id': 456,
+          'movie_number': 'ABP-123',
+          'offset_seconds': 120,
+          'created_at': '2026-03-12T10:00:00Z',
+        },
+      ],
+      'page': 1,
+      'page_size': 20,
+      'total': 1,
+    },
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/media/456/thumbnails',
+    statusCode: 200,
+    body: <Map<String, dynamic>>[
+      <String, dynamic>{
+        'thumbnail_id': 1,
+        'media_id': 456,
+        'offset_seconds': 120,
+        'image': <String, dynamic>{
+          'id': 10,
+          'origin': '/thumb-1.webp',
+          'small': '/thumb-1.webp',
+          'medium': '/thumb-1.webp',
+          'large': '/thumb-1.webp',
+        },
+      },
+    ],
+  );
+}
+
+Map<String, dynamic> _followMoviesPageJson({
+  required int page,
+  required int total,
+  required List<Map<String, dynamic>> items,
+}) {
+  return <String, dynamic>{
+    'items': items,
+    'page': page,
+    'page_size': 20,
+    'total': total,
+  };
+}
+
+Map<String, dynamic> _followMovieItemJson({
+  required String movieNumber,
+  bool isSubscribed = false,
+  bool canPlay = true,
+}) {
+  return <String, dynamic>{
+    'javdb_id': 'Movie-$movieNumber',
+    'movie_number': movieNumber,
+    'title': 'Title $movieNumber',
+    'cover_image': null,
+    'release_date': '2026-03-10',
+    'duration_minutes': 120,
+    'is_subscribed': isSubscribed,
+    'can_play': canPlay,
+  };
+}
+
+Map<String, dynamic> _movieDetailJson({required String movieNumber}) {
+  return <String, dynamic>{
+    'javdb_id': 'Movie-$movieNumber',
+    'movie_number': movieNumber,
+    'title': 'Detail $movieNumber',
+    'cover_image': <String, dynamic>{
+      'id': 1,
+      'origin': '/files/images/movies/$movieNumber/cover.jpg',
+      'small': '/files/images/movies/$movieNumber/cover-small.jpg',
+      'medium': '/files/images/movies/$movieNumber/cover-medium.jpg',
+      'large': '/files/images/movies/$movieNumber/cover-large.jpg',
+    },
+    'release_date': '2026-03-10',
+    'duration_minutes': 120,
+    'score': 0.0,
+    'watched_count': 0,
+    'want_watch_count': 0,
+    'comment_count': 0,
+    'score_number': 0,
+    'is_collection': false,
+    'is_subscribed': false,
+    'can_play': true,
+    'series_name': null,
+    'summary': 'summary $movieNumber',
+    'actors': const <Map<String, dynamic>>[],
+    'tags': const <Map<String, dynamic>>[],
+    'thin_cover_image': <String, dynamic>{
+      'id': 2,
+      'origin': '/files/images/movies/$movieNumber/thin.jpg',
+      'small': '/files/images/movies/$movieNumber/thin-small.jpg',
+      'medium': '/files/images/movies/$movieNumber/thin-medium.jpg',
+      'large': '/files/images/movies/$movieNumber/thin-large.jpg',
+    },
+    'plot_images': <Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 3,
+        'origin': '/files/images/movies/$movieNumber/plot-1.jpg',
+        'small': '/files/images/movies/$movieNumber/plot-1-small.jpg',
+        'medium': '/files/images/movies/$movieNumber/plot-1-medium.jpg',
+        'large': '/files/images/movies/$movieNumber/plot-1-large.jpg',
+      },
+    ],
+    'media_items': const <Map<String, dynamic>>[],
+    'playlists': const <Map<String, dynamic>>[],
+  };
+}
+
+void _enqueueFollowMovieDetails(
+  TestApiBundle bundle,
+  List<String> movieNumbers,
+) {
+  for (final movieNumber in movieNumbers) {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/$movieNumber',
+      statusCode: 200,
+      body: _movieDetailJson(movieNumber: movieNumber),
+    );
+  }
 }

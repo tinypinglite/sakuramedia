@@ -975,6 +975,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('download-client-delete-1')));
       await tester.pumpAndSettle();
+
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byType(AlertDialog), findsNothing);
+
       await tester.tap(find.text('删除').last);
       await tester.pumpAndSettle();
 

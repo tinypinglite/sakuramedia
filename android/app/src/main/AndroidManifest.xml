@@ -2,6 +2,8 @@
     <!-- Network access (matches macOS network client/server capability). -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Android 13+ image library access for gallery saves. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <!-- User-selected file read/write on legacy Android versions. -->
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"

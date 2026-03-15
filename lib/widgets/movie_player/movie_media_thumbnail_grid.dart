@@ -49,6 +49,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   bool _isUserScrollInProgress = false;
   int? _visibleStartIndex;
   int? _visibleEndIndex;
+  final Set<int> _renderedImageIndices = <int>{};
 
   @override
   void initState() {
@@ -75,6 +76,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   @override
   void didUpdateWidget(covariant MovieMediaThumbnailGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _syncRenderedImageCache(oldWidget);
     final shouldAutoScroll =
         widget.isScrollLocked &&
         (oldWidget.activeIndex != widget.activeIndex ||
@@ -93,6 +95,44 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     if (shouldAutoScroll) {
       _scheduleScrollToActive();
     }
+  }
+
+  void _syncRenderedImageCache(MovieMediaThumbnailGrid oldWidget) {
+    if (widget.thumbnails.isEmpty) {
+      _renderedImageIndices.clear();
+      return;
+    }
+
+    if (_didThumbnailDatasetChange(oldWidget)) {
+      _renderedImageIndices.clear();
+      return;
+    }
+
+    _renderedImageIndices.removeWhere(
+      (index) => index >= widget.thumbnails.length,
+    );
+  }
+
+  bool _didThumbnailDatasetChange(MovieMediaThumbnailGrid oldWidget) {
+    final oldThumbnails = oldWidget.thumbnails;
+    final nextThumbnails = widget.thumbnails;
+    if (oldThumbnails.length != nextThumbnails.length) {
+      return true;
+    }
+
+    for (var index = 0; index < nextThumbnails.length; index++) {
+      final oldThumbnail = oldThumbnails[index];
+      final nextThumbnail = nextThumbnails[index];
+      if (oldThumbnail.thumbnailId != nextThumbnail.thumbnailId ||
+          oldThumbnail.mediaId != nextThumbnail.mediaId ||
+          oldThumbnail.offsetSeconds != nextThumbnail.offsetSeconds ||
+          oldThumbnail.image.bestAvailableUrl !=
+              nextThumbnail.image.bestAvailableUrl) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   void _scheduleScrollToActive() {
@@ -230,6 +270,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       final changed = _visibleStartIndex != null || _visibleEndIndex != null;
       _visibleStartIndex = null;
       _visibleEndIndex = null;
+      _renderedImageIndices.clear();
       return changed;
     }
 
@@ -273,9 +314,18 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   }
 
   bool _shouldBuildImageForIndex(int index) {
+    final isInVisibleRange = _isWithinVisibleRange(index);
     if (_isUserScrollInProgress) {
+      return _renderedImageIndices.contains(index);
+    }
+    if (!isInVisibleRange) {
       return false;
     }
+    _renderedImageIndices.add(index);
+    return true;
+  }
+
+  bool _isWithinVisibleRange(int index) {
     final visibleStartIndex = _visibleStartIndex;
     final visibleEndIndex = _visibleEndIndex;
     if (visibleStartIndex == null || visibleEndIndex == null) {

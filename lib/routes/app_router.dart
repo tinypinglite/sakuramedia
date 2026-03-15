@@ -1,14 +1,21 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/presentation/desktop_actor_detail_page.dart';
+import 'package:sakuramedia/features/actors/presentation/mobile_actor_detail_page.dart';
 import 'package:sakuramedia/features/auth/presentation/login_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_detail_page.dart';
+import 'package:sakuramedia/features/movies/presentation/mobile_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
+import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlist_detail_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/mobile_playlist_detail_page.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_page.dart';
@@ -18,6 +25,7 @@ import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/routes/desktop_search_route_state.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
+import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_desktop_shell.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_shell.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_subpage_shell.dart';
@@ -79,6 +87,17 @@ GoRouter _buildRouter({
                   name: spec.name,
                   pageBuilder:
                       (context, state) => _buildDesktopNoTransitionPage(
+                        state: state,
+                        name: spec.name,
+                        child: spec.builder(context),
+                      ),
+                )
+                : platform == AppPlatform.mobile
+                ? GoRoute(
+                  path: spec.path,
+                  name: spec.name,
+                  pageBuilder:
+                      (context, state) => _buildMobileNoTransitionPage(
                         state: state,
                         name: spec.name,
                         child: spec.builder(context),
@@ -222,12 +241,45 @@ GoRouter _buildRouter({
   } else if (platform == AppPlatform.mobile) {
     mobileSubpageRoutes.add(
       GoRoute(
+        path: '$mobileMoviesPath/:movieNumber',
+        name: 'mobile-movie-detail',
+        pageBuilder:
+            (context, state) => _buildMobileCupertinoPage(
+              state: state,
+              name: 'mobile-movie-detail',
+              child: MobileMovieDetailPage(
+                movieNumber: state.pathParameters['movieNumber'] ?? '',
+              ),
+            ),
+      ),
+    );
+    mobileSubpageRoutes.add(
+      GoRoute(
+        path: '$mobileActorsPath/:actorId',
+        name: 'mobile-actor-detail',
+        pageBuilder:
+            (context, state) => _buildMobileCupertinoPage(
+              state: state,
+              name: 'mobile-actor-detail',
+              child: MobileActorDetailPage(
+                actorId:
+                    int.tryParse(state.pathParameters['actorId'] ?? '') ?? 0,
+              ),
+            ),
+      ),
+    );
+    mobileSubpageRoutes.add(
+      GoRoute(
         path: '$mobilePlaylistDetailPathPrefix/:playlistId',
         name: 'mobile-playlist-detail',
-        builder:
-            (context, state) => MobilePlaylistDetailPage(
-              playlistId:
-                  int.tryParse(state.pathParameters['playlistId'] ?? '') ?? 0,
+        pageBuilder:
+            (context, state) => _buildMobileCupertinoPage(
+              state: state,
+              name: 'mobile-playlist-detail',
+              child: MobilePlaylistDetailPage(
+                playlistId:
+                    int.tryParse(state.pathParameters['playlistId'] ?? '') ?? 0,
+              ),
             ),
       ),
     );
@@ -235,13 +287,17 @@ GoRouter _buildRouter({
       GoRoute(
         path: mobileSearchPath,
         name: 'mobile-search-empty',
-        builder:
-            (context, state) => MobileCatalogSearchPage(
-              initialQuery: '',
-              initialUseOnlineSearch:
-                  DesktopSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).useOnlineSearch,
+        pageBuilder:
+            (context, state) => _buildMobileCupertinoPage(
+              state: state,
+              name: 'mobile-search-empty',
+              child: MobileCatalogSearchPage(
+                initialQuery: '',
+                initialUseOnlineSearch:
+                    DesktopSearchRouteState.maybeFromExtra(
+                      state.extra,
+                    ).useOnlineSearch,
+              ),
             ),
       ),
     );
@@ -249,39 +305,79 @@ GoRouter _buildRouter({
       GoRoute(
         path: mobileImageSearchPath,
         name: 'mobile-image-search',
-        builder:
-            (context, state) => DesktopImageSearchPage(
-              fallbackPath:
-                  DesktopImageSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).fallbackPath,
-              initialFileName:
-                  DesktopImageSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).initialFileName,
-              initialFileBytes:
-                  DesktopImageSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).initialFileBytes,
-              initialMimeType:
-                  DesktopImageSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).initialMimeType,
-              currentMovieNumber:
-                  DesktopImageSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).currentMovieNumber,
-              initialCurrentMovieScope:
-                  DesktopImageSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).initialCurrentMovieScope,
-              imagePicker: pickMobileImageSearchFile,
-              onSearchSimilar: (context, item) async {
-                showToast('移动端以图搜图开发中');
-                return false;
-              },
-              onOpenPlayer: (_, __) => showToast('移动端播放器开发中'),
-              onOpenMovieDetail: (_, __) => showToast('移动端影片详情开发中'),
+        pageBuilder:
+            (context, state) => _buildMobileCupertinoPage(
+              state: state,
+              name: 'mobile-image-search',
+              child: Builder(
+                builder: (context) {
+                  final routeState =
+                      DesktopImageSearchRouteState.maybeFromExtra(state.extra);
+                  return DesktopImageSearchPage(
+                    fallbackPath: routeState.fallbackPath,
+                    initialFileName: routeState.initialFileName,
+                    initialFileBytes: routeState.initialFileBytes,
+                    initialMimeType: routeState.initialMimeType,
+                    currentMovieNumber: routeState.currentMovieNumber,
+                    initialCurrentMovieScope:
+                        routeState.initialCurrentMovieScope,
+                    imagePicker: pickMobileImageSearchFile,
+                    onSearchSimilar: (context, item) async {
+                      final imageUrl =
+                          item.image.origin.trim().isNotEmpty
+                              ? item.image.origin.trim()
+                              : item.image.bestAvailableUrl;
+                      final fileName =
+                          'image_search_${item.movieNumber}_${item.thumbnailId}.${guessImageFileExtension(imageUrl)}';
+                      try {
+                        final imageBytes = await context
+                            .read<ApiClient>()
+                            .getBytes(imageUrl);
+                        if (!context.mounted) {
+                          return false;
+                        }
+                        context.push(
+                          mobileImageSearchPath,
+                          extra: DesktopImageSearchRouteState(
+                            fallbackPath: routeState.fallbackPath,
+                            initialFileName: fileName,
+                            initialFileBytes: imageBytes,
+                            initialMimeType: guessImageMimeType(fileName),
+                            currentMovieNumber: item.movieNumber,
+                          ),
+                        );
+                        return true;
+                      } catch (error) {
+                        if (context.mounted) {
+                          showToast(
+                            apiErrorMessage(error, fallback: '读取结果图片失败，请稍后重试'),
+                          );
+                        }
+                        return false;
+                      }
+                    },
+                    onOpenPlayer: (context, item) {
+                      final routePath = buildMobileMoviePlayerRoutePath(
+                        item.movieNumber,
+                        mediaId: item.mediaId > 0 ? item.mediaId : null,
+                        positionSeconds: item.offsetSeconds,
+                      );
+                      debugPrint(
+                        '[player-debug] mobile_image_search_open_player movie=${item.movieNumber} mediaId=${item.mediaId} offsetSeconds=${item.offsetSeconds} route=$routePath',
+                      );
+                      context.push(routePath);
+                    },
+                    onOpenMovieDetail: (context, item) {
+                      context.push(
+                        buildMobileMovieDetailRoutePath(item.movieNumber),
+                        extra: mobileImageSearchPath,
+                      );
+                    },
+                    resultPreviewPresentation:
+                        ImageSearchResultPreviewPresentation.bottomDrawer,
+                  );
+                },
+              ),
             ),
       ),
     );
@@ -289,13 +385,17 @@ GoRouter _buildRouter({
       GoRoute(
         path: '$mobileSearchPath/:query',
         name: 'mobile-search',
-        builder:
-            (context, state) => MobileCatalogSearchPage(
-              initialQuery: state.pathParameters['query'] ?? '',
-              initialUseOnlineSearch:
-                  DesktopSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).useOnlineSearch,
+        pageBuilder:
+            (context, state) => _buildMobileCupertinoPage(
+              state: state,
+              name: 'mobile-search',
+              child: MobileCatalogSearchPage(
+                initialQuery: state.pathParameters['query'] ?? '',
+                initialUseOnlineSearch:
+                    DesktopSearchRouteState.maybeFromExtra(
+                      state.extra,
+                    ).useOnlineSearch,
+              ),
             ),
       ),
     );
@@ -364,6 +464,33 @@ GoRouter _buildRouter({
     );
   } else if (platform == AppPlatform.mobile) {
     routes.add(
+      GoRoute(
+        path: '$mobileMoviesPath/:movieNumber/player',
+        name: 'mobile-movie-player',
+        pageBuilder: (context, state) {
+          final movieNumber = state.pathParameters['movieNumber'] ?? '';
+          final initialMediaId = int.tryParse(
+            state.uri.queryParameters['mediaId'] ?? '',
+          );
+          final initialPositionSeconds = int.tryParse(
+            state.uri.queryParameters['positionSeconds'] ?? '',
+          );
+          debugPrint(
+            '[player-debug] mobile_player_route_build movie=$movieNumber mediaId=$initialMediaId positionSeconds=$initialPositionSeconds uri=${state.uri}',
+          );
+          return _buildMobileCupertinoPage(
+            state: state,
+            name: 'mobile-movie-player',
+            child: MobileMoviePlayerPage(
+              movieNumber: movieNumber,
+              initialMediaId: initialMediaId,
+              initialPositionSeconds: initialPositionSeconds,
+            ),
+          );
+        },
+      ),
+    );
+    routes.add(
       ShellRoute(
         builder:
             (context, state, child) => AppMobileShell(
@@ -380,6 +507,7 @@ GoRouter _buildRouter({
             (context, state, child) => AppMobileSubpageShell(
               title: _mobileSubpageTitleFromPath(state.uri.path),
               fallbackPath: _mobileSubpageFallbackPathFromExtra(state.extra),
+              bodyPadding: _mobileSubpageBodyPaddingFromPath(state.uri.path),
               child: child,
             ),
         routes: mobileSubpageRoutes,
@@ -420,6 +548,22 @@ NoTransitionPage<void> _buildDesktopNoTransitionPage({
   return NoTransitionPage<void>(key: state.pageKey, name: name, child: child);
 }
 
+CupertinoPage<void> _buildMobileCupertinoPage({
+  required GoRouterState state,
+  required String name,
+  required Widget child,
+}) {
+  return CupertinoPage<void>(key: state.pageKey, name: name, child: child);
+}
+
+NoTransitionPage<void> _buildMobileNoTransitionPage({
+  required GoRouterState state,
+  required String name,
+  required Widget child,
+}) {
+  return NoTransitionPage<void>(key: state.pageKey, name: name, child: child);
+}
+
 String _mobileSubpageFallbackPathFromExtra(Object? routeExtra) {
   if (routeExtra is String && routeExtra.startsWith('/mobile/')) {
     return routeExtra;
@@ -441,6 +585,12 @@ String _mobileSubpageFallbackPathFromExtra(Object? routeExtra) {
 }
 
 String _mobileSubpageTitleFromPath(String path) {
+  if (path.startsWith('$mobileMoviesPath/')) {
+    return '影片详情';
+  }
+  if (path.startsWith('$mobileActorsPath/')) {
+    return '女优详情';
+  }
   if (path == mobileImageSearchPath) {
     return '以图搜图';
   }
@@ -451,4 +601,11 @@ String _mobileSubpageTitleFromPath(String path) {
     return '播放列表详情';
   }
   return '详情';
+}
+
+EdgeInsets _mobileSubpageBodyPaddingFromPath(String path) {
+  if (path.startsWith('$mobileMoviesPath/')) {
+    return const EdgeInsets.only(top: AppPageInsets.compact);
+  }
+  return AppPageInsets.compactStandard;
 }
