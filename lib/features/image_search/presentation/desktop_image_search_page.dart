@@ -742,14 +742,14 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   Future<MediaPointDto?> _loadMatchingPoint(
     ImageSearchResultItemDto item,
   ) async {
-    if (item.mediaId <= 0) {
+    if (item.mediaId <= 0 || item.thumbnailId <= 0) {
       return null;
     }
     final points = await context.read<MediaApi>().getMediaPoints(
       mediaId: item.mediaId,
     );
     for (final point in points) {
-      if (point.offsetSeconds == item.offsetSeconds) {
+      if (point.thumbnailId == item.thumbnailId) {
         return point;
       }
     }
@@ -779,14 +779,14 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     ImageSearchResultItemDto item,
     MediaPointDto? point,
   ) async {
-    if (item.mediaId <= 0) {
+    if (item.mediaId <= 0 || item.thumbnailId <= 0) {
       return;
     }
     try {
       if (point == null) {
         await context.read<MediaApi>().createMediaPoint(
           mediaId: item.mediaId,
-          offsetSeconds: item.offsetSeconds,
+          thumbnailId: item.thumbnailId,
         );
         if (mounted) {
           showToast('已添加标记');

@@ -1997,6 +1997,91 @@ void main() {
     expect(find.text('影片详情'), findsOneWidget);
   });
 
+  testWidgets(
+    'image search action menu matches points by thumbnail id instead of offset',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/image-search/sessions',
+        body: <String, dynamic>{
+          'session_id': 'session-1',
+          'status': 'ready',
+          'page_size': 20,
+          'next_cursor': null,
+          'expires_at': '2026-03-08T10:10:00Z',
+          'items': [
+            <String, dynamic>{
+              'thumbnail_id': 123,
+              'media_id': 456,
+              'movie_id': 789,
+              'movie_number': 'ABC-001',
+              'offset_seconds': 120,
+              'score': 0.91,
+              'image': <String, dynamic>{
+                'id': 10,
+                'origin': '/thumb-1.webp',
+                'small': '/thumb-1.webp',
+                'medium': '/thumb-1.webp',
+                'large': '/thumb-1.webp',
+              },
+            },
+          ],
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/456/points',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'point_id': 900,
+            'media_id': 456,
+            'thumbnail_id': 999,
+            'offset_seconds': 120,
+            'created_at': '2026-03-08T10:10:00Z',
+          },
+        ],
+      );
+
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: desktopImageSearchPath,
+            builder:
+                (context, state) => DesktopImageSearchPage(
+                  fallbackPath: '/desktop/overview',
+                  initialFileName: 'query.png',
+                  initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+                  initialMimeType: 'image/png',
+                ),
+          ),
+        ],
+        initialLocation: desktopImageSearchPath,
+      );
+      addTearDown(router.dispose);
+
+      await _pumpImageSearchRouterApp(
+        tester,
+        bundle: bundle,
+        sessionStore: sessionStore,
+        router: router,
+      );
+      await tester.pumpAndSettle();
+
+      final resultCard = find.byKey(
+        const Key('image-search-result-card-123'),
+        skipOffstage: false,
+      );
+      await tester.tapAt(
+        tester.getCenter(resultCard),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('添加标记'), findsOneWidget);
+      expect(find.text('删除标记'), findsNothing);
+    },
+  );
+
   testWidgets('image search page result action toggles media point', (
     WidgetTester tester,
   ) async {
@@ -2039,7 +2124,15 @@ void main() {
       body: <String, dynamic>{
         'point_id': 900,
         'media_id': 456,
+        'thumbnail_id': 123,
         'offset_seconds': 120,
+        'image': <String, dynamic>{
+          'id': 10,
+          'origin': '/thumb-1.webp',
+          'small': '/thumb-1.webp',
+          'medium': '/thumb-1.webp',
+          'large': '/thumb-1.webp',
+        },
         'created_at': '2026-03-08T10:10:00Z',
       },
     );
@@ -2083,6 +2176,13 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
 
     expect(bundle.adapter.hitCount('POST', '/media/456/points'), 1);
+    final createRequests = bundle.adapter.requests
+        .where(
+          (request) =>
+              request.method == 'POST' && request.path == '/media/456/points',
+        )
+        .toList(growable: false);
+    expect(createRequests.single.body, <String, dynamic>{'thumbnail_id': 123});
   });
 }
 

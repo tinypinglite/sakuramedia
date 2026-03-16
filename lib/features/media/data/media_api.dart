@@ -34,11 +34,11 @@ class MediaApi {
 
   Future<MediaPointDto> createMediaPoint({
     required int mediaId,
-    required int offsetSeconds,
+    required int thumbnailId,
   }) async {
     final response = await _apiClient.post(
       '/media/$mediaId/points',
-      data: <String, dynamic>{'offset_seconds': offsetSeconds},
+      data: <String, dynamic>{'thumbnail_id': thumbnailId},
     );
     return MediaPointDto.fromJson(response);
   }

@@ -830,7 +830,15 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
           'point_id': 10,
           'media_id': 456,
           'movie_number': 'ABP-123',
+          'thumbnail_id': 1,
           'offset_seconds': 120,
+          'image': <String, dynamic>{
+            'id': 10,
+            'origin': '/thumb-1.webp',
+            'small': '/thumb-1.webp',
+            'medium': '/thumb-1.webp',
+            'large': '/thumb-1.webp',
+          },
           'created_at': '2026-03-12T10:00:00Z',
         },
       ],
@@ -838,25 +846,6 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
       'page_size': 20,
       'total': 1,
     },
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/media/456/thumbnails',
-    statusCode: 200,
-    body: <Map<String, dynamic>>[
-      <String, dynamic>{
-        'thumbnail_id': 1,
-        'media_id': 456,
-        'offset_seconds': 120,
-        'image': <String, dynamic>{
-          'id': 10,
-          'origin': '/thumb-1.webp',
-          'small': '/thumb-1.webp',
-          'medium': '/thumb-1.webp',
-          'large': '/thumb-1.webp',
-        },
-      },
-    ],
   );
 }
 

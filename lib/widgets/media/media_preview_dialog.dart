@@ -25,6 +25,7 @@ class MediaPreviewItem {
     required this.fileName,
     required this.mediaId,
     required this.movieNumber,
+    required this.thumbnailId,
     required this.offsetSeconds,
     this.scoreText,
   });
@@ -33,6 +34,7 @@ class MediaPreviewItem {
   final String fileName;
   final int mediaId;
   final String movieNumber;
+  final int thumbnailId;
   final int offsetSeconds;
   final String? scoreText;
 }
@@ -163,7 +165,7 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
 
   MediaPointDto? get _existingPoint {
     for (final point in _mediaPoints) {
-      if (point.offsetSeconds == widget.item.offsetSeconds) {
+      if (point.thumbnailId == widget.item.thumbnailId) {
         return point;
       }
     }
@@ -172,6 +174,7 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
 
   bool get _canTogglePoint =>
       widget.item.mediaId > 0 &&
+      widget.item.thumbnailId > 0 &&
       !_isLoadingMediaPoints &&
       _mediaPointsErrorMessage == null;
 
@@ -477,7 +480,7 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
       if (existingPoint == null) {
         final point = await context.read<MediaApi>().createMediaPoint(
           mediaId: widget.item.mediaId,
-          offsetSeconds: widget.item.offsetSeconds,
+          thumbnailId: widget.item.thumbnailId,
         );
         if (!mounted) {
           return;

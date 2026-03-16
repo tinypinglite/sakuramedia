@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_launcher.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
-import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
@@ -37,7 +36,6 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
           (page, pageSize, sort) => context
               .read<MediaApi>()
               .getGlobalMediaPoints(page: page, pageSize: pageSize, sort: sort),
-      fetchMediaThumbnails: context.read<MoviesApi>().getMediaThumbnails,
       pageSize: 20,
       loadMoreTriggerOffset: 300,
     );

@@ -154,14 +154,14 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
   Future<MediaPointDto?> _loadMatchingPoint(
     MovieMediaThumbnailDto thumbnail,
   ) async {
-    if (thumbnail.mediaId <= 0) {
+    if (thumbnail.mediaId <= 0 || thumbnail.thumbnailId <= 0) {
       return null;
     }
     final points = await context.read<MediaApi>().getMediaPoints(
       mediaId: thumbnail.mediaId,
     );
     for (final point in points) {
-      if (point.offsetSeconds == thumbnail.offsetSeconds) {
+      if (point.thumbnailId == thumbnail.thumbnailId) {
         return point;
       }
     }
@@ -210,14 +210,14 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
         }
         break;
       case AppImageActionType.toggleMark:
-        if (thumbnail.mediaId <= 0) {
+        if (thumbnail.mediaId <= 0 || thumbnail.thumbnailId <= 0) {
           return;
         }
         try {
           if (point == null) {
             await context.read<MediaApi>().createMediaPoint(
               mediaId: thumbnail.mediaId,
-              offsetSeconds: thumbnail.offsetSeconds,
+              thumbnailId: thumbnail.thumbnailId,
             );
             if (mounted) {
               showToast('已添加标记');

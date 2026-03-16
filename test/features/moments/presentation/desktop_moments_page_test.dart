@@ -51,6 +51,7 @@ void main() {
     expect(find.text('ABC-001'), findsOneWidget);
     expect(find.text('02:00'), findsOneWidget);
     expect(_mediaPointsQueryValue(bundle, 0, 'sort'), 'created_at:desc');
+    expect(bundle.adapter.hitCount('GET', '/media/456/thumbnails'), 0);
   });
 
   testWidgets('desktop moments page reloads with earliest sort', (
@@ -154,7 +155,15 @@ void _enqueueMomentsPageResponses(
           'point_id': 10,
           'media_id': 456,
           'movie_number': 'ABC-001',
+          'thumbnail_id': 1,
           'offset_seconds': 120,
+          'image': <String, dynamic>{
+            'id': 10,
+            'origin': '/thumb-1.webp',
+            'small': '/thumb-1.webp',
+            'medium': '/thumb-1.webp',
+            'large': '/thumb-1.webp',
+          },
           'created_at': '2026-03-12T10:00:00Z',
         },
       ],
@@ -162,24 +171,6 @@ void _enqueueMomentsPageResponses(
       'page_size': 20,
       'total': 1,
     },
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/media/456/thumbnails',
-    body: <Map<String, dynamic>>[
-      <String, dynamic>{
-        'thumbnail_id': 1,
-        'media_id': 456,
-        'offset_seconds': 120,
-        'image': <String, dynamic>{
-          'id': 10,
-          'origin': '/thumb-1.webp',
-          'small': '/thumb-1.webp',
-          'medium': '/thumb-1.webp',
-          'large': '/thumb-1.webp',
-        },
-      },
-    ],
   );
   bundle.adapter.enqueueJson(
     method: 'GET',
@@ -238,7 +229,15 @@ void _enqueueMomentsPageResponses(
       <String, dynamic>{
         'point_id': 10,
         'media_id': 456,
+        'thumbnail_id': 1,
         'offset_seconds': 120,
+        'image': <String, dynamic>{
+          'id': 10,
+          'origin': '/thumb-1.webp',
+          'small': '/thumb-1.webp',
+          'medium': '/thumb-1.webp',
+          'large': '/thumb-1.webp',
+        },
         'created_at': '2026-03-12T10:00:00Z',
       },
     ],
