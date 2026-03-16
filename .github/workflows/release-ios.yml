@@ -14,7 +14,7 @@ jobs:
     runs-on: macos-latest
 
     env:
-      ARCHIVE_NAME: 樱视-ios-${{ github.ref_name }}-unsigned-app.zip
+      ARCHIVE_NAME: sakuramedia-ios-${{ github.ref_name }}-unsigned-app.zip
 
     steps:
       - name: Checkout repository
@@ -56,8 +56,10 @@ jobs:
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          name: 樱视 ${{ github.ref_name }}
-          generate_release_notes: true
+          name: sakuramedia ${{ github.ref_name }}
+          # Keep release notes generation in macOS workflow only to avoid duplicate
+          # "What's Changed" sections when multiple workflows publish the same tag.
+          generate_release_notes: false
           files: |
             dist/${{ env.ARCHIVE_NAME }}
             dist/${{ env.ARCHIVE_NAME }}.sha256
