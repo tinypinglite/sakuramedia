@@ -471,6 +471,105 @@ void main() {
   });
 
   testWidgets(
+    'movie player page keeps player surface stable during position updates',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/thumbnails',
+        body: _mediaThumbnailsJson(),
+      );
+
+      ValueChanged<Duration>? emitPosition;
+      var surfaceBuildCount = 0;
+      await _pumpPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        surfaceBuilder: (
+          context,
+          resolvedUrl,
+          surfaceController,
+          initialPosition,
+          onPositionChanged,
+          onPlayingChanged,
+        ) {
+          surfaceBuildCount += 1;
+          emitPosition = onPositionChanged;
+          return Text('surface:$resolvedUrl');
+        },
+      );
+      await tester.pumpAndSettle();
+
+      final baselineBuildCount = surfaceBuildCount;
+      expect(emitPosition, isNotNull);
+
+      emitPosition!(const Duration(seconds: 12));
+      await tester.pump();
+      emitPosition!(const Duration(seconds: 20));
+      await tester.pump();
+      emitPosition!(const Duration(seconds: 35));
+      await tester.pump();
+
+      expect(surfaceBuildCount, baselineBuildCount);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'movie player page updates thumbnail highlight as playback moves',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/thumbnails',
+        body: _mediaThumbnailsJson(),
+      );
+
+      ValueChanged<Duration>? emitPosition;
+      await _pumpPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        surfaceBuilder: (
+          context,
+          resolvedUrl,
+          surfaceController,
+          initialPosition,
+          onPositionChanged,
+          onPlayingChanged,
+        ) {
+          emitPosition = onPositionChanged;
+          return Text('surface:$resolvedUrl');
+        },
+      );
+      await tester.pumpAndSettle();
+
+      expect(_thumbnailBorderWidth(tester, 0), 1.5);
+      expect(_thumbnailBorderWidth(tester, 1), 1.0);
+
+      emitPosition!(const Duration(seconds: 20));
+      await tester.pump();
+
+      expect(_thumbnailBorderWidth(tester, 0), 1.0);
+      expect(_thumbnailBorderWidth(tester, 1), 1.5);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
     'movie player page passes stored progress as initial seek position',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
@@ -906,4 +1005,13 @@ class _TestMoviePlayerSurfaceState extends State<_TestMoviePlayerSurface> {
       child: content,
     );
   }
+}
+
+double _thumbnailBorderWidth(WidgetTester tester, int index) {
+  final decoratedBox = tester.widget<DecoratedBox>(
+    find.byKey(Key('movie-player-thumbnail-tile-$index-decoration')),
+  );
+  final decoration = decoratedBox.decoration as BoxDecoration;
+  final border = decoration.border as Border;
+  return border.top.width;
 }

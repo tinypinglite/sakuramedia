@@ -14,8 +14,7 @@ jobs:
     runs-on: macos-latest
 
     env:
-      APP_NAME: 樱视
-      ARCHIVE_NAME: 樱视-macos-${{ github.ref_name }}-unsigned.zip
+      ARCHIVE_NAME: sakuramedia-macos-${{ github.ref_name }}-unsigned.zip
 
     steps:
       - name: Checkout repository
@@ -40,8 +39,27 @@ jobs:
       - name: Package unsigned app
         run: |
           mkdir -p dist
+          release_dir="build/macos/Build/Products/Release"
+          shopt -s nullglob
+          apps=("${release_dir}"/*.app)
+          shopt -u nullglob
+
+          if [ "${#apps[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one .app in ${release_dir}, found ${#apps[@]}"
+            ls -la "${release_dir}" || true
+            printf 'Matched .app entries:\n'
+            if [ "${#apps[@]}" -gt 0 ]; then
+              printf '  %s\n' "${apps[@]}"
+            else
+              echo '  (none)'
+            fi
+            exit 1
+          fi
+
+          app_path="${apps[0]}"
+          echo "Packaging app bundle: ${app_path}"
           ditto -c -k --sequesterRsrc --keepParent \
-            "build/macos/Build/Products/Release/${APP_NAME}.app" \
+            "${app_path}" \
             "dist/${ARCHIVE_NAME}"
           shasum -a 256 "dist/${ARCHIVE_NAME}" > "dist/${ARCHIVE_NAME}.sha256"
 
@@ -57,7 +75,7 @@ jobs:
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          name: 樱视 ${{ github.ref_name }}
+          name: sakuramedia ${{ github.ref_name }}
           generate_release_notes: true
           files: |
             dist/${{ env.ARCHIVE_NAME }}

@@ -10,11 +10,11 @@ permissions:
 
 jobs:
   build-and-release:
-    name: Build iOS app archive and publish release
+    name: Build iOS IPA and publish release
     runs-on: macos-latest
 
     env:
-      ARCHIVE_NAME: 樱视-ios-${{ github.ref_name }}-unsigned-app.zip
+      ARCHIVE_NAME: sakuramedia-ios-${{ github.ref_name }}-unsigned.ipa
 
     steps:
       - name: Checkout repository
@@ -33,15 +33,30 @@ jobs:
       - name: Run tests before release
         run: flutter test
 
-      - name: Build iOS release (no codesign)
-        run: flutter build ios --release --no-codesign
+      - name: Build iOS IPA (no codesign)
+        run: flutter build ipa --release --no-codesign
 
-      - name: Package unsigned iOS app
+      - name: Collect unsigned iOS IPA
         run: |
           mkdir -p dist
-          ditto -c -k --sequesterRsrc --keepParent \
-            "build/ios/iphoneos/Runner.app" \
-            "dist/${ARCHIVE_NAME}"
+          ipa_dir="build/ios/ipa"
+          shopt -s nullglob
+          ipas=("${ipa_dir}"/*.ipa)
+          shopt -u nullglob
+
+          if [ "${#ipas[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one .ipa in ${ipa_dir}, found ${#ipas[@]}"
+            ls -la "${ipa_dir}" || true
+            printf 'Matched .ipa entries:\n'
+            if [ "${#ipas[@]}" -gt 0 ]; then
+              printf '  %s\n' "${ipas[@]}"
+            else
+              echo '  (none)'
+            fi
+            exit 1
+          fi
+
+          cp "${ipas[0]}" "dist/${ARCHIVE_NAME}"
           shasum -a 256 "dist/${ARCHIVE_NAME}" > "dist/${ARCHIVE_NAME}.sha256"
 
       - name: Upload workflow artifact
@@ -56,8 +71,10 @@ jobs:
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          name: 樱视 ${{ github.ref_name }}
-          generate_release_notes: true
+          name: sakuramedia ${{ github.ref_name }}
+          # Keep release notes generation in macOS workflow only to avoid duplicate
+          # "What's Changed" sections when multiple workflows publish the same tag.
+          generate_release_notes: false
           files: |
             dist/${{ env.ARCHIVE_NAME }}
             dist/${{ env.ARCHIVE_NAME }}.sha256

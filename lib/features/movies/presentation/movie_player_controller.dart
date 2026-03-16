@@ -43,7 +43,9 @@ class MoviePlayerController extends ChangeNotifier {
   int? _thumbnailColumns;
   bool _hasManualThumbnailColumnOverride = false;
   int _currentPlaybackSeconds = 0;
-  int? _activeThumbnailIndex;
+  final ValueNotifier<int?> _activeThumbnailIndexNotifier = ValueNotifier<int?>(
+    null,
+  );
   int? _lastReportedPositionSeconds;
   Duration? _startupPlaybackPosition;
   String? _errorMessage;
@@ -61,7 +63,9 @@ class MoviePlayerController extends ChangeNotifier {
   bool get usesAutoThumbnailColumns => !_hasManualThumbnailColumnOverride;
   int? get thumbnailColumns => _thumbnailColumns;
   int get currentPlaybackSeconds => _currentPlaybackSeconds;
-  int? get activeThumbnailIndex => _activeThumbnailIndex;
+  int? get activeThumbnailIndex => _activeThumbnailIndexNotifier.value;
+  ValueListenable<int?> get activeThumbnailIndexListenable =>
+      _activeThumbnailIndexNotifier;
 
   String? get resolvedPlayUrl =>
       resolveMediaUrl(rawUrl: _selectedMedia?.playUrl, baseUrl: baseUrl);
@@ -92,7 +96,7 @@ class MoviePlayerController extends ChangeNotifier {
       );
       _currentPlaybackSeconds = _startupPlaybackPosition?.inSeconds ?? 0;
       _lastReportedPositionSeconds = _startupPlaybackPosition?.inSeconds;
-      _activeThumbnailIndex = null;
+      _setActiveThumbnailIndex(null);
       if (_selectedMedia != null) {
         await loadThumbnails();
       }
@@ -107,6 +111,7 @@ class MoviePlayerController extends ChangeNotifier {
       _thumbnailErrorMessage = null;
       _isThumbnailLoading = false;
       _startupPlaybackPosition = null;
+      _setActiveThumbnailIndex(null);
       _errorMessage = _messageForError(error);
     } finally {
       _isLoading = false;
@@ -119,7 +124,7 @@ class MoviePlayerController extends ChangeNotifier {
     if (media == null) {
       _thumbnails = const <MovieMediaThumbnailDto>[];
       _thumbnailErrorMessage = null;
-      _activeThumbnailIndex = null;
+      _setActiveThumbnailIndex(null);
       notifyListeners();
       return;
     }
@@ -134,7 +139,7 @@ class MoviePlayerController extends ChangeNotifier {
     } catch (_) {
       _thumbnails = const <MovieMediaThumbnailDto>[];
       _thumbnailErrorMessage = '请稍后重试。';
-      _activeThumbnailIndex = null;
+      _setActiveThumbnailIndex(null);
     } finally {
       _isThumbnailLoading = false;
       notifyListeners();
@@ -168,24 +173,17 @@ class MoviePlayerController extends ChangeNotifier {
       return;
     }
     final nextSeconds = _thumbnails[index].offsetSeconds;
-    final needsNotify =
-        _currentPlaybackSeconds != nextSeconds ||
-        _activeThumbnailIndex != index;
     _currentPlaybackSeconds = nextSeconds;
-    _activeThumbnailIndex = index;
-    if (needsNotify) {
-      notifyListeners();
-    }
+    _setActiveThumbnailIndex(index);
   }
 
   void handlePlaybackPosition(Duration position) {
     final nextSeconds = position.inSeconds;
-    if (_currentPlaybackSeconds == nextSeconds && _thumbnails.isEmpty) {
+    if (_currentPlaybackSeconds == nextSeconds) {
       return;
     }
     _currentPlaybackSeconds = nextSeconds;
     _updateActiveThumbnailIndex();
-    notifyListeners();
   }
 
   void handlePlaybackPlayingChanged(bool isPlaying) {
@@ -279,7 +277,7 @@ class MoviePlayerController extends ChangeNotifier {
 
   void _updateActiveThumbnailIndex() {
     if (_thumbnails.isEmpty) {
-      _activeThumbnailIndex = null;
+      _setActiveThumbnailIndex(null);
       return;
     }
 
@@ -291,7 +289,14 @@ class MoviePlayerController extends ChangeNotifier {
       }
       break;
     }
-    _activeThumbnailIndex = candidate;
+    _setActiveThumbnailIndex(candidate);
+  }
+
+  void _setActiveThumbnailIndex(int? index) {
+    if (_activeThumbnailIndexNotifier.value == index) {
+      return;
+    }
+    _activeThumbnailIndexNotifier.value = index;
   }
 
   String _messageForError(Object error) {
@@ -305,6 +310,7 @@ class MoviePlayerController extends ChangeNotifier {
   @override
   void dispose() {
     _stopProgressTimer();
+    _activeThumbnailIndexNotifier.dispose();
     super.dispose();
   }
 }
