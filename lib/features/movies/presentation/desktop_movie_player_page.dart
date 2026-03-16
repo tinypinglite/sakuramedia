@@ -257,14 +257,14 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
   Future<MediaPointDto?> _loadMatchingPoint(
     MovieMediaThumbnailDto thumbnail,
   ) async {
-    if (thumbnail.mediaId <= 0) {
+    if (thumbnail.mediaId <= 0 || thumbnail.thumbnailId <= 0) {
       return null;
     }
     final points = await context.read<MediaApi>().getMediaPoints(
       mediaId: thumbnail.mediaId,
     );
     for (final point in points) {
-      if (point.offsetSeconds == thumbnail.offsetSeconds) {
+      if (point.thumbnailId == thumbnail.thumbnailId) {
         return point;
       }
     }
@@ -320,14 +320,14 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
         }
         break;
       case AppImageActionType.toggleMark:
-        if (thumbnail.mediaId <= 0) {
+        if (thumbnail.mediaId <= 0 || thumbnail.thumbnailId <= 0) {
           return;
         }
         try {
           if (point == null) {
             await context.read<MediaApi>().createMediaPoint(
               mediaId: thumbnail.mediaId,
-              offsetSeconds: thumbnail.offsetSeconds,
+              thumbnailId: thumbnail.thumbnailId,
             );
           } else {
             await context.read<MediaApi>().deleteMediaPoint(

@@ -38,7 +38,15 @@ void main() {
         <String, dynamic>{
           'point_id': 10,
           'media_id': 100,
+          'thumbnail_id': 88,
           'offset_seconds': 120,
+          'image': <String, dynamic>{
+            'id': 9001,
+            'origin': '/points/88-origin.webp',
+            'small': '/points/88-small.webp',
+            'medium': '/points/88-medium.webp',
+            'large': '/points/88-large.webp',
+          },
           'created_at': '2026-03-12T10:00:00Z',
         },
       ],
@@ -49,7 +57,9 @@ void main() {
     expect(points, hasLength(1));
     expect(points.single.pointId, 10);
     expect(points.single.mediaId, 100);
+    expect(points.single.thumbnailId, 88);
     expect(points.single.offsetSeconds, 120);
+    expect(points.single.image?.bestAvailableUrl, '/points/88-large.webp');
     expect(points.single.createdAt, DateTime.parse('2026-03-12T10:00:00Z'));
   });
 
@@ -63,7 +73,15 @@ void main() {
             'point_id': 10,
             'media_id': 100,
             'movie_number': 'ABC-001',
+            'thumbnail_id': 88,
             'offset_seconds': 120,
+            'image': <String, dynamic>{
+              'id': 9001,
+              'origin': '/points/88-origin.webp',
+              'small': '/points/88-small.webp',
+              'medium': '/points/88-medium.webp',
+              'large': '/points/88-large.webp',
+            },
             'created_at': '2026-03-12T10:00:00Z',
           },
         ],
@@ -83,7 +101,9 @@ void main() {
     expect(page.items.single.pointId, 10);
     expect(page.items.single.mediaId, 100);
     expect(page.items.single.movieNumber, 'ABC-001');
+    expect(page.items.single.thumbnailId, 88);
     expect(page.items.single.offsetSeconds, 120);
+    expect(page.items.single.image?.bestAvailableUrl, '/points/88-large.webp');
     expect(page.items.single.createdAt, DateTime.parse('2026-03-12T10:00:00Z'));
     expect(page.total, 1);
     expect(adapter.requests.single.uri.queryParameters, <String, String>{
@@ -101,22 +121,29 @@ void main() {
       body: <String, dynamic>{
         'point_id': 20,
         'media_id': 100,
+        'thumbnail_id': 66,
         'offset_seconds': 600,
+        'image': <String, dynamic>{
+          'id': 9901,
+          'origin': '/points/66-origin.webp',
+          'small': '/points/66-small.webp',
+          'medium': '/points/66-medium.webp',
+          'large': '/points/66-large.webp',
+        },
         'created_at': '2026-03-12T14:00:00Z',
       },
     );
 
     final point = await mediaApi.createMediaPoint(
       mediaId: 100,
-      offsetSeconds: 600,
+      thumbnailId: 66,
     );
 
     expect(point.pointId, 20);
+    expect(point.thumbnailId, 66);
     expect(point.offsetSeconds, 600);
     expect(adapter.hitCount('POST', '/media/100/points'), 1);
-    expect(adapter.requests.single.body, <String, dynamic>{
-      'offset_seconds': 600,
-    });
+    expect(adapter.requests.single.body, <String, dynamic>{'thumbnail_id': 66});
   });
 
   test(

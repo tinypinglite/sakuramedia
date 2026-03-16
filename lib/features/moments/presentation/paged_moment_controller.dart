@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/media/data/media_point_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
-import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 
 typedef MomentPageFetcher =
     Future<PaginatedResponseDto<MediaPointListItemDto>> Function(
@@ -12,9 +11,6 @@ typedef MomentPageFetcher =
       int pageSize,
       String sort,
     );
-
-typedef MediaThumbnailFetcher =
-    Future<List<MovieMediaThumbnailDto>> Function({required int mediaId});
 
 enum MomentSortOrder {
   latest(label: '最新', apiValue: 'created_at:desc'),
@@ -31,25 +27,24 @@ class MomentListItem {
     required this.pointId,
     required this.mediaId,
     required this.movieNumber,
+    required this.thumbnailId,
     required this.offsetSeconds,
     required this.createdAt,
-    required this.thumbnail,
+    required this.image,
   });
 
   final int pointId;
   final int mediaId;
   final String movieNumber;
+  final int thumbnailId;
   final int offsetSeconds;
   final DateTime? createdAt;
-  final MovieMediaThumbnailDto? thumbnail;
-
-  MovieImageDto? get image => thumbnail?.image;
+  final MovieImageDto? image;
 }
 
 class PagedMomentController extends ChangeNotifier {
   PagedMomentController({
     required this.fetchPage,
-    required this.fetchMediaThumbnails,
     this.initialPage = 1,
     this.pageSize = 20,
     this.loadMoreTriggerOffset = 300,
@@ -60,7 +55,6 @@ class PagedMomentController extends ChangeNotifier {
        _currentPage = initialPage - 1;
 
   final MomentPageFetcher fetchPage;
-  final MediaThumbnailFetcher fetchMediaThumbnails;
   final int initialPage;
   final int pageSize;
   final double loadMoreTriggerOffset;
@@ -69,8 +63,6 @@ class PagedMomentController extends ChangeNotifier {
   final ScrollController scrollController;
 
   final List<MomentListItem> _items = <MomentListItem>[];
-  final Map<int, List<MovieMediaThumbnailDto>> _thumbnailCache =
-      <int, List<MovieMediaThumbnailDto>>{};
 
   bool _isInitialLoading = false;
   bool _isLoadingMore = false;
@@ -169,10 +161,19 @@ class PagedMomentController extends ChangeNotifier {
       if (_isDisposed) {
         return;
       }
-      final hydratedItems = await _hydrateItems(response.items);
-      if (_isDisposed) {
-        return;
-      }
+      final hydratedItems = response.items
+          .map(
+            (item) => MomentListItem(
+              pointId: item.pointId,
+              mediaId: item.mediaId,
+              movieNumber: item.movieNumber,
+              thumbnailId: item.thumbnailId,
+              offsetSeconds: item.offsetSeconds,
+              createdAt: item.createdAt,
+              image: item.image,
+            ),
+          )
+          .toList(growable: false);
 
       if (reset) {
         _items
@@ -206,65 +207,6 @@ class PagedMomentController extends ChangeNotifier {
         _safeNotifyListeners();
       }
     }
-  }
-
-  Future<List<MomentListItem>> _hydrateItems(
-    List<MediaPointListItemDto> rawItems,
-  ) async {
-    final mediaIds =
-        rawItems.map((item) => item.mediaId).where((id) => id > 0).toSet();
-    await Future.wait(mediaIds.map(_ensureThumbnailsLoaded));
-    return rawItems
-        .map(
-          (item) => MomentListItem(
-            pointId: item.pointId,
-            mediaId: item.mediaId,
-            movieNumber: item.movieNumber,
-            offsetSeconds: item.offsetSeconds,
-            createdAt: item.createdAt,
-            thumbnail: _resolveThumbnail(
-              mediaId: item.mediaId,
-              offsetSeconds: item.offsetSeconds,
-            ),
-          ),
-        )
-        .toList(growable: false);
-  }
-
-  Future<void> _ensureThumbnailsLoaded(int mediaId) async {
-    if (_thumbnailCache.containsKey(mediaId)) {
-      return;
-    }
-    try {
-      _thumbnailCache[mediaId] = await fetchMediaThumbnails(mediaId: mediaId);
-    } catch (_) {
-      _thumbnailCache[mediaId] = const <MovieMediaThumbnailDto>[];
-    }
-  }
-
-  MovieMediaThumbnailDto? _resolveThumbnail({
-    required int mediaId,
-    required int offsetSeconds,
-  }) {
-    final thumbnails = _thumbnailCache[mediaId];
-    if (thumbnails == null || thumbnails.isEmpty) {
-      return null;
-    }
-    for (final thumbnail in thumbnails) {
-      if (thumbnail.offsetSeconds == offsetSeconds) {
-        return thumbnail;
-      }
-    }
-    MovieMediaThumbnailDto? closest;
-    var closestDistance = 1 << 30;
-    for (final thumbnail in thumbnails) {
-      final distance = (thumbnail.offsetSeconds - offsetSeconds).abs();
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        closest = thumbnail;
-      }
-    }
-    return closest;
   }
 
   void _handleScroll() {

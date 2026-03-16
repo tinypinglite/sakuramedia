@@ -30,6 +30,7 @@ class ImageSearchResultPreviewDialog extends StatelessWidget {
       fileName: 'image_search_${item.movieNumber}_${item.thumbnailId}.webp',
       mediaId: item.mediaId,
       movieNumber: item.movieNumber,
+      thumbnailId: item.thumbnailId,
       offsetSeconds: item.offsetSeconds,
       scoreText: formatImageSearchScore(item.score),
     );

@@ -31,6 +31,7 @@ class MomentPreviewDialog extends StatelessWidget {
       fileName: buildMomentImageFileName(item, imageUrl),
       mediaId: item.mediaId,
       movieNumber: item.movieNumber,
+      thumbnailId: item.thumbnailId,
       offsetSeconds: item.offsetSeconds,
     );
 
