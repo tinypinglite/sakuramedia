@@ -33,31 +33,42 @@ jobs:
       - name: Run tests before release
         run: flutter test
 
-      - name: Build iOS IPA (no codesign)
-        run: flutter build ipa --release --no-codesign
+      - name: Build iOS app archive input (no codesign)
+        run: flutter build ios --release --no-codesign
 
       - name: Collect unsigned iOS IPA
         run: |
           mkdir -p dist
-          ipa_dir="build/ios/ipa"
+          app_dir="build/ios/iphoneos"
           shopt -s nullglob
-          ipas=("${ipa_dir}"/*.ipa)
+          apps=("${app_dir}"/*.app)
           shopt -u nullglob
 
-          if [ "${#ipas[@]}" -ne 1 ]; then
-            echo "::error::Expected exactly one .ipa in ${ipa_dir}, found ${#ipas[@]}"
-            ls -la "${ipa_dir}" || true
-            printf 'Matched .ipa entries:\n'
-            if [ "${#ipas[@]}" -gt 0 ]; then
-              printf '  %s\n' "${ipas[@]}"
+          if [ "${#apps[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one .app in ${app_dir}, found ${#apps[@]}"
+            ls -la "${app_dir}" || true
+            printf 'Matched .app entries:\n'
+            if [ "${#apps[@]}" -gt 0 ]; then
+              printf '  %s\n' "${apps[@]}"
             else
               echo '  (none)'
             fi
             exit 1
           fi
 
-          cp "${ipas[0]}" "dist/${ARCHIVE_NAME}"
-          shasum -a 256 "dist/${ARCHIVE_NAME}" > "dist/${ARCHIVE_NAME}.sha256"
+          payload_root="$(mktemp -d)"
+          trap 'rm -rf "${payload_root}"' EXIT
+          mkdir -p "${payload_root}/Payload"
+          cp -R "${apps[0]}" "${payload_root}/Payload/"
+
+          archive_path="$(pwd)/dist/${ARCHIVE_NAME}"
+          rm -f "${archive_path}"
+          (
+            cd "${payload_root}"
+            zip -qry "${archive_path}" Payload
+          )
+
+          shasum -a 256 "${archive_path}" > "${archive_path}.sha256"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
