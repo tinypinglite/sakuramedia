@@ -43,6 +43,8 @@ class MovieMediaThumbnailGrid extends StatefulWidget {
 class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   static const Duration _scrollIdleDuration = Duration(milliseconds: 100);
   static const int _visibleRowBuffer = 1;
+  static const double _decodeSizeSafetyFactor = 1.15;
+  static const int _decodeSizeUpperBound = 2048;
 
   late final ScrollController _scrollController;
   Timer? _scrollIdleTimer;
@@ -334,6 +336,34 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     return index >= visibleStartIndex && index <= visibleEndIndex;
   }
 
+  ({int? width, int? height}) _resolveDecodeHint(BoxConstraints constraints) {
+    if (!constraints.hasBoundedWidth ||
+        !constraints.maxWidth.isFinite ||
+        constraints.maxWidth <= 0) {
+      return (width: null, height: null);
+    }
+    if (!constraints.hasBoundedHeight ||
+        !constraints.maxHeight.isFinite ||
+        constraints.maxHeight <= 0) {
+      return (width: null, height: null);
+    }
+
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final cacheWidth =
+        ((constraints.maxWidth * dpr * _decodeSizeSafetyFactor).round()).clamp(
+              1,
+              _decodeSizeUpperBound,
+            )
+            as int;
+    final cacheHeight =
+        ((constraints.maxHeight * dpr * _decodeSizeSafetyFactor).round()).clamp(
+              1,
+              _decodeSizeUpperBound,
+            )
+            as int;
+    return (width: cacheWidth, height: cacheHeight);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.isLoading) {
@@ -400,9 +430,16 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
                 borderRadius: context.appRadius.xsBorder,
                 child:
                     _shouldBuildImageForIndex(index)
-                        ? MaskedImage(
-                          url: thumbnail.image.bestAvailableUrl,
-                          fit: BoxFit.cover,
+                        ? LayoutBuilder(
+                          builder: (context, constraints) {
+                            final decodeHint = _resolveDecodeHint(constraints);
+                            return MaskedImage(
+                              url: thumbnail.image.bestAvailableUrl,
+                              fit: BoxFit.cover,
+                              memCacheWidth: decodeHint.width,
+                              memCacheHeight: decodeHint.height,
+                            );
+                          },
                         )
                         : const _MovieMediaThumbnailImagePlaceholder(),
               ),

@@ -324,6 +324,106 @@ void main() {
   });
 
   test(
+    'handlePlaybackPosition ignores duplicate seconds without notifying page listeners',
+    () async {
+      final controller = MoviePlayerController(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        updateMediaProgress: ({
+          required mediaId,
+          required positionSeconds,
+        }) async {
+          return MovieMediaProgressDto(
+            lastPositionSeconds: positionSeconds,
+            lastWatchedAt: null,
+          );
+        },
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      var pageNotifications = 0;
+      controller.addListener(() {
+        pageNotifications += 1;
+      });
+
+      controller.handlePlaybackPosition(const Duration(seconds: 30));
+      controller.handlePlaybackPosition(const Duration(seconds: 30));
+
+      expect(controller.currentPlaybackSeconds, 30);
+      expect(pageNotifications, 0);
+    },
+  );
+
+  test(
+    'handlePlaybackPosition keeps page listeners silent when active index does not change',
+    () async {
+      final controller = MoviePlayerController(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        updateMediaProgress: ({
+          required mediaId,
+          required positionSeconds,
+        }) async {
+          return MovieMediaProgressDto(
+            lastPositionSeconds: positionSeconds,
+            lastWatchedAt: null,
+          );
+        },
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      var pageNotifications = 0;
+      controller.addListener(() {
+        pageNotifications += 1;
+      });
+
+      controller.handlePlaybackPosition(const Duration(seconds: 15));
+
+      expect(controller.currentPlaybackSeconds, 15);
+      expect(controller.activeThumbnailIndex, 0);
+      expect(pageNotifications, 0);
+    },
+  );
+
+  test('active thumbnail notifier emits only when index changes', () async {
+    final controller = MoviePlayerController(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      updateMediaProgress: ({
+        required mediaId,
+        required positionSeconds,
+      }) async {
+        return MovieMediaProgressDto(
+          lastPositionSeconds: positionSeconds,
+          lastWatchedAt: null,
+        );
+      },
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final activeIndexChanges = <int?>[];
+    controller.activeThumbnailIndexListenable.addListener(() {
+      activeIndexChanges.add(controller.activeThumbnailIndexListenable.value);
+    });
+
+    controller.handlePlaybackPosition(const Duration(seconds: 19));
+    controller.handlePlaybackPosition(const Duration(seconds: 20));
+    controller.handlePlaybackPosition(const Duration(seconds: 24));
+    controller.handlePlaybackPosition(const Duration(seconds: 35));
+
+    expect(activeIndexChanges, <int?>[1, 2]);
+  });
+
+  test(
     'initial playback position remains the startup position after playback updates',
     () async {
       final controller = MoviePlayerController(

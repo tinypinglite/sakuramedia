@@ -127,33 +127,7 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
                   rightChild:
                       _controller.selectedMedia == null
                           ? const SizedBox.expand()
-                          : MoviePlayerThumbnailPanel(
-                            thumbnails: _controller.thumbnails,
-                            isLoading: _controller.isThumbnailLoading,
-                            errorMessage: _controller.thumbnailErrorMessage,
-                            columns: _controller.thumbnailColumns,
-                            activeIndex: _controller.activeThumbnailIndex,
-                            isScrollLocked: _controller.isThumbnailScrollLocked,
-                            usesAutoColumns:
-                                _controller.usesAutoThumbnailColumns,
-                            onAutoColumnsResolved:
-                                _controller.applyAutoThumbnailColumns,
-                            onColumnsChanged: _controller.setThumbnailColumns,
-                            onToggleScrollLock:
-                                _controller.toggleThumbnailScrollLock,
-                            onThumbnailTap: (index) {
-                              _controller.handleThumbnailTap(index);
-                              final item = _controller.thumbnails[index];
-                              _surfaceController.seekTo(
-                                Duration(seconds: item.offsetSeconds),
-                              );
-                            },
-                            onThumbnailMenuRequested:
-                                widget.enableThumbnailActionMenu
-                                    ? _showThumbnailActions
-                                    : null,
-                            onRetry: _controller.loadThumbnails,
-                          ),
+                          : _buildThumbnailPanel(),
                 );
               },
             ),
@@ -185,6 +159,34 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
       initialPosition: _controller.initialPlaybackPosition,
       onPositionChanged: _controller.handlePlaybackPosition,
       onPlayingChanged: _controller.handlePlaybackPlayingChanged,
+    );
+  }
+
+  Widget _buildThumbnailPanel() {
+    return ValueListenableBuilder<int?>(
+      valueListenable: _controller.activeThumbnailIndexListenable,
+      builder: (context, activeIndex, child) {
+        return MoviePlayerThumbnailPanel(
+          thumbnails: _controller.thumbnails,
+          isLoading: _controller.isThumbnailLoading,
+          errorMessage: _controller.thumbnailErrorMessage,
+          columns: _controller.thumbnailColumns,
+          activeIndex: activeIndex,
+          isScrollLocked: _controller.isThumbnailScrollLocked,
+          usesAutoColumns: _controller.usesAutoThumbnailColumns,
+          onAutoColumnsResolved: _controller.applyAutoThumbnailColumns,
+          onColumnsChanged: _controller.setThumbnailColumns,
+          onToggleScrollLock: _controller.toggleThumbnailScrollLock,
+          onThumbnailTap: (index) {
+            _controller.handleThumbnailTap(index);
+            final item = _controller.thumbnails[index];
+            _surfaceController.seekTo(Duration(seconds: item.offsetSeconds));
+          },
+          onThumbnailMenuRequested:
+              widget.enableThumbnailActionMenu ? _showThumbnailActions : null,
+          onRetry: _controller.loadThumbnails,
+        );
+      },
     );
   }
 

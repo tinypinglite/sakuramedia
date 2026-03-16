@@ -7,6 +7,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/media/masked_image.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_media_thumbnail_grid.dart';
 
 void main() {
@@ -53,6 +54,28 @@ void main() {
     final decoration = decoratedBox.decoration as BoxDecoration;
 
     expect(decoration.border, isA<Border>());
+  });
+
+  testWidgets('thumbnail grid provides decode size hints for masked images', (
+    WidgetTester tester,
+  ) async {
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _pumpGrid(tester, thumbnails: _thumbnails());
+    await tester.pump();
+
+    final maskedImage = tester.widget<MaskedImage>(
+      find.descendant(
+        of: find.byKey(const Key('movie-media-thumb-0')),
+        matching: find.byType(MaskedImage),
+      ),
+    );
+
+    expect(maskedImage.memCacheWidth, isNotNull);
+    expect(maskedImage.memCacheHeight, isNotNull);
+    expect(maskedImage.memCacheWidth, greaterThan(0));
+    expect(maskedImage.memCacheHeight, greaterThan(0));
   });
 
   testWidgets('thumbnail grid shows retry action when loading fails', (
