@@ -1,0 +1,87 @@
+name: Release Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Windows zip and publish release
+    runs-on: windows-latest
+
+    env:
+      ARCHIVE_NAME: sakuramedia-windows-${{ github.ref_name }}-unsigned.zip
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.29.3
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests before release
+        run: flutter test
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - name: Package unsigned Windows build
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $releaseDir = "build/windows/x64/runner/Release"
+          $exePath = Join-Path $releaseDir "sakuramedia.exe"
+
+          if (-not (Test-Path $exePath)) {
+            Write-Error "Expected executable not found: $exePath"
+            if (Test-Path $releaseDir) {
+              Write-Host "Release directory contents:"
+              Get-ChildItem -Force $releaseDir
+            } else {
+              Write-Host "Release directory not found: $releaseDir"
+            }
+            exit 1
+          }
+
+          $archivePath = Join-Path "dist" $env:ARCHIVE_NAME
+          if (Test-Path $archivePath) {
+            Remove-Item -Force $archivePath
+          }
+          Compress-Archive -Path "$releaseDir/*" -DestinationPath $archivePath -CompressionLevel Optimal
+
+          $hash = (Get-FileHash -Algorithm SHA256 -Path $archivePath).Hash.ToLower()
+          "$hash  $($env:ARCHIVE_NAME)" | Out-File -FilePath "$archivePath.sha256" -Encoding ascii
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-${{ github.ref_name }}
+          path: |
+            dist/${{ env.ARCHIVE_NAME }}
+            dist/${{ env.ARCHIVE_NAME }}.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: sakuramedia ${{ github.ref_name }}
+          # Keep release notes generation in macOS workflow only to avoid duplicate
+          # "What's Changed" sections when multiple workflows publish the same tag.
+          generate_release_notes: false
+          files: |
+            dist/${{ env.ARCHIVE_NAME }}
+            dist/${{ env.ARCHIVE_NAME }}.sha256
