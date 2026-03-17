@@ -28,7 +28,6 @@ const String mobileImageSearchPath = '/mobile/search/image';
 const String mobileMoviesPath = '/mobile/library/movies';
 const String mobileActorsPath = '/mobile/library/actors';
 const String mobileRankingsPath = '/mobile/rankings';
-const String webOverviewPath = '/web/overview';
 const String loginPath = '/login';
 
 String buildDesktopSearchRoutePath(String query) {
@@ -104,88 +103,9 @@ String overviewPathForPlatform(AppPlatform platform) {
     case AppPlatform.mobile:
       return mobileOverviewPath;
     case AppPlatform.web:
-      return webOverviewPath;
+      return desktopOverviewPath;
   }
 }
-
-const List<_NavSeed> _webNavSeeds = [
-  _NavSeed(
-    id: 'overview',
-    label: '概览',
-    icon: Icons.space_dashboard_outlined,
-    items: [
-      _NavItemSeed(
-        slug: 'overview',
-        label: '概览',
-        icon: Icons.space_dashboard_outlined,
-        description: '桌面工作台总览、待办与快捷入口的统一落点。',
-      ),
-    ],
-  ),
-  _NavSeed(
-    id: 'library',
-    label: '媒体库',
-    icon: Icons.video_library_outlined,
-    items: [
-      _NavItemSeed(
-        slug: 'library/movies',
-        label: '影片库',
-        icon: Icons.movie_creation_outlined,
-        description: '影片资料、筛选入口与后续详情工作流的承载区域。',
-      ),
-      _NavItemSeed(
-        slug: 'library/actors',
-        label: '女优库',
-        icon: Icons.face_retouching_natural_outlined,
-        description: '演员资料、关联影片与标签体系的管理入口。',
-      ),
-      _NavItemSeed(
-        slug: 'library/tags',
-        label: '标签与分类',
-        icon: Icons.sell_outlined,
-        description: '标签、系列、厂牌等分类体系的统一管理面板。',
-      ),
-    ],
-  ),
-  _NavSeed(
-    id: 'resources',
-    label: '资源管理',
-    icon: Icons.inventory_2_outlined,
-    items: [
-      _NavItemSeed(
-        slug: 'resources/downloads',
-        label: '下载任务',
-        icon: Icons.download_for_offline_outlined,
-        description: '下载任务、队列状态与异常处理的后续入口。',
-      ),
-      _NavItemSeed(
-        slug: 'resources/files',
-        label: '文件整理',
-        icon: Icons.folder_open_outlined,
-        description: '文件归档、整理规则与扫描任务的占位页面。',
-      ),
-    ],
-  ),
-  _NavSeed(
-    id: 'system',
-    label: '系统',
-    icon: Icons.settings_suggest_outlined,
-    items: [
-      _NavItemSeed(
-        slug: 'system/settings',
-        label: '应用设置',
-        icon: Icons.tune_outlined,
-        description: '应用配置、偏好设置和后续系统能力的统一入口。',
-      ),
-      _NavItemSeed(
-        slug: 'system/ui-kit',
-        label: 'UI 规范',
-        icon: Icons.palette_outlined,
-        description: '项目专属设计令牌、组件基线与布局规范预览。',
-      ),
-    ],
-  ),
-];
 
 const List<_NavSeed> _mobileNavSeeds = [
   _NavSeed(
@@ -327,7 +247,7 @@ List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
   final prefix = switch (platform) {
     AppPlatform.desktop => '/desktop',
     AppPlatform.mobile => '/mobile',
-    AppPlatform.web => '/web',
+    AppPlatform.web => '/desktop',
   };
 
   AppNavItem item({
@@ -348,7 +268,7 @@ List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
   final seeds = switch (platform) {
     AppPlatform.desktop => _desktopNavSeeds,
     AppPlatform.mobile => _mobileNavSeeds,
-    AppPlatform.web => _webNavSeeds,
+    AppPlatform.web => _desktopNavSeeds,
   };
 
   return seeds
@@ -374,6 +294,8 @@ List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
 }
 
 List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
+  final useDesktopExperience =
+      platform == AppPlatform.desktop || platform == AppPlatform.web;
   final platformLabel = switch (platform) {
     AppPlatform.desktop => '桌面端',
     AppPlatform.mobile => '移动端',
@@ -393,20 +315,17 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
             layout: AppShellLayout.standard,
             builder:
                 (context) =>
-                    platform == AppPlatform.desktop &&
-                            item.path == desktopOverviewPath
+                    useDesktopExperience && item.path == desktopOverviewPath
                         ? const DesktopOverviewPage()
                         : platform == AppPlatform.mobile &&
                             item.path == mobileOverviewPath
                         ? const MobileOverviewSkeletonPage()
-                        : platform == AppPlatform.desktop &&
-                            item.path == desktopMoviesPath
+                        : useDesktopExperience && item.path == desktopMoviesPath
                         ? const DesktopMoviesPage()
                         : platform == AppPlatform.mobile &&
                             item.path == mobileMoviesPath
                         ? const MobileMoviesPage()
-                        : platform == AppPlatform.desktop &&
-                            item.path == desktopActorsPath
+                        : useDesktopExperience && item.path == desktopActorsPath
                         ? const DesktopActorsPage()
                         : platform == AppPlatform.mobile &&
                             item.path == mobileActorsPath
@@ -414,13 +333,13 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
                         : platform == AppPlatform.mobile &&
                             item.path == mobileRankingsPath
                         ? const MobileRankingsPage()
-                        : platform == AppPlatform.desktop &&
+                        : useDesktopExperience &&
                             item.path == desktopMomentsPath
                         ? const DesktopMomentsPage()
-                        : platform == AppPlatform.desktop &&
+                        : useDesktopExperience &&
                             item.path == desktopPlaylistsPath
                         ? const DesktopPlaylistsPage()
-                        : platform == AppPlatform.desktop &&
+                        : useDesktopExperience &&
                             item.path == desktopConfigurationPath
                         ? const DesktopConfigurationPage()
                         : WorkbenchPlaceholderPage(

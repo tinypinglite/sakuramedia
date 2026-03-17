@@ -1,9 +1,9 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_file_system_stub.dart'
+    if (dart.library.io) 'package:sakuramedia/features/image_search/presentation/image_search_file_system_io.dart'
+    as file_system;
 
 class ImageSearchPickedFile {
   const ImageSearchPickedFile({
@@ -20,8 +20,8 @@ class ImageSearchPickedFile {
 typedef ImageSearchFilePicker = Future<ImageSearchPickedFile?> Function();
 typedef ImageSearchSavePathPicker =
     Future<String?> Function(String suggestedFileName, String? dialogTitle);
-typedef ImageSearchDirectoryProvider = Future<Directory?> Function();
-typedef ImageSearchDocumentsDirectoryProvider = Future<Directory> Function();
+typedef ImageSearchDirectoryProvider = Future<String?> Function();
+typedef ImageSearchDocumentsDirectoryProvider = Future<String?> Function();
 typedef ImageSearchEnvironmentLookup = String? Function(String name);
 typedef ImageSearchDirectoryExists = bool Function(String path);
 
@@ -69,7 +69,7 @@ Future<ImageSearchPickedFile?> pickImageSearchFile() async {
     final file = result.files.single;
     Uint8List? bytes = file.bytes;
     if (bytes == null && file.path != null) {
-      bytes = await File(file.path!).readAsBytes();
+      bytes = await file_system.readFileBytes(file.path!);
     }
     if (bytes == null || bytes.isEmpty) {
       throw const ImageSearchFilePickerException('无法读取所选图片，请换一张再试');
@@ -118,7 +118,7 @@ Future<ImageSearchPickedFile?> pickMobileImageSearchFile() async {
     final file = result.files.single;
     Uint8List? bytes = file.bytes;
     if (bytes == null && file.path != null) {
-      bytes = await File(file.path!).readAsBytes();
+      bytes = await file_system.readFileBytes(file.path!);
     }
     if (bytes == null || bytes.isEmpty) {
       throw const ImageSearchFilePickerException('无法读取所选图片，请换一张再试');
@@ -237,32 +237,17 @@ String guessImageFileExtension(String fileName, {String fallback = 'webp'}) {
 }
 
 Future<String?> _resolveDownloadsDirectoryPath() async {
-  try {
-    final provider =
-        debugImageSearchDownloadsDirectoryProvider ?? getDownloadsDirectory;
-    return (await provider())?.path;
-  } on MissingPluginException {
-    return null;
-  } on PlatformException {
-    return null;
-  } on UnsupportedError {
-    return null;
-  }
+  final provider =
+      debugImageSearchDownloadsDirectoryProvider ??
+      file_system.resolveDownloadsDirectoryPath;
+  return provider();
 }
 
 Future<String?> _resolveDocumentsDirectoryPath() async {
-  try {
-    final provider =
-        debugImageSearchDocumentsDirectoryProvider ??
-        getApplicationDocumentsDirectory;
-    return (await provider()).path;
-  } on MissingPluginException {
-    return null;
-  } on PlatformException {
-    return null;
-  } on UnsupportedError {
-    return null;
-  }
+  final provider =
+      debugImageSearchDocumentsDirectoryProvider ??
+      file_system.resolveDocumentsDirectoryPath;
+  return provider();
 }
 
 Future<String?> _resolveExistingDirectoryPath(
@@ -291,12 +276,12 @@ String? _lookupEnvironmentPath(String name) {
   return normalized;
 }
 
-String? _readEnvironment(String name) => Platform.environment[name];
+String? _readEnvironment(String name) => file_system.readEnvironment(name);
 
 bool _directoryExists(String path) {
   final override = debugImageSearchDirectoryExists;
   if (override != null) {
     return override(path);
   }
-  return Directory(path).existsSync();
+  return file_system.directoryExists(path);
 }

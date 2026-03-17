@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -29,7 +28,7 @@ void main() {
   test('pickImageSearchFile uses downloads directory on macOS', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
     debugImageSearchDownloadsDirectoryProvider =
-        () async => Directory('/Users/test/Downloads');
+        () async => '/Users/test/Downloads';
     debugImageSearchDirectoryExists = (_) => true;
 
     await pickImageSearchFile();
@@ -43,7 +42,7 @@ void main() {
   test('pickImageSearchFile uses downloads directory on Android', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     debugImageSearchDownloadsDirectoryProvider =
-        () async => Directory('/storage/emulated/0/Download');
+        () async => '/storage/emulated/0/Download';
     debugImageSearchDirectoryExists = (_) => true;
 
     await pickImageSearchFile();
@@ -60,7 +59,7 @@ void main() {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       debugImageSearchDownloadsDirectoryProvider = () async => null;
       debugImageSearchDocumentsDirectoryProvider =
-          () async => Directory('/var/mobile/Documents');
+          () async => '/var/mobile/Documents';
       debugImageSearchDirectoryExists = (_) => true;
 
       await pickImageSearchFile();
@@ -89,7 +88,7 @@ void main() {
     () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.linux;
       debugImageSearchDownloadsDirectoryProvider =
-          () async => Directory('/home/test/Downloads');
+          () async => '/home/test/Downloads';
       debugImageSearchEnvironmentLookup =
           (name) => name == 'HOME' ? '/home/test' : null;
       debugImageSearchDirectoryExists = (path) => path == '/home/test';

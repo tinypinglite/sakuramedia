@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:sakuramedia/app/app_platform.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:sakuramedia/app/window_bootstrap_stub.dart'
+    if (dart.library.io) 'package:sakuramedia/app/window_bootstrap_desktop.dart'
+    as window_bootstrap;
 
 Future<void> bootstrapApplication() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,19 +13,5 @@ Future<void> bootstrapApplication() async {
     return;
   }
 
-  await windowManager.ensureInitialized();
-  final isMacOS = defaultTargetPlatform == TargetPlatform.macOS;
-  final windowOptions = WindowOptions(
-    size: Size(1280, 800),
-    minimumSize: Size(1280, 800),
-    center: true,
-    backgroundColor: isMacOS ? Colors.transparent : Color(0xFFFFFFFF),
-    skipTaskbar: false,
-    titleBarStyle: isMacOS ? TitleBarStyle.hidden : TitleBarStyle.normal,
-    windowButtonVisibility: true,
-  );
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
+  await window_bootstrap.bootstrapDesktopWindow();
 }

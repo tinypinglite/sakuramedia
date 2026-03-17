@@ -1,14 +1,21 @@
-import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:sakuramedia/core/media/image_browser_download_stub.dart'
+    if (dart.library.html) 'package:sakuramedia/core/media/image_browser_download_web.dart'
+    as browser_download;
+import 'package:sakuramedia/core/media/image_file_writer_stub.dart'
+    if (dart.library.io) 'package:sakuramedia/core/media/image_file_writer_io.dart'
+    as file_writer;
+import 'package:sakuramedia/core/media/image_runtime_platform_stub.dart'
+    if (dart.library.io) 'package:sakuramedia/core/media/image_runtime_platform_io.dart'
+    as runtime_platform;
 
 enum ImageSaveStatus { success, cancelled, failed }
 
-enum ImageSavePlatform { desktop, mobile, unsupported }
+enum ImageSavePlatform { desktop, mobile, web, unsupported }
 
 class ImageSaveResult {
   const ImageSaveResult({required this.status, this.savedPath, this.message});
@@ -29,6 +36,8 @@ typedef ImageSavePlatformResolver = ImageSavePlatform Function();
 typedef ImageGalleryPermissionRequester = Future<bool> Function();
 typedef ImageGallerySaver =
     Future<bool> Function({required Uint8List bytes, required String fileName});
+typedef ImageBrowserDownloadSaver =
+    Future<bool> Function({required Uint8List bytes, required String fileName});
 
 class ImageSaveService {
   ImageSaveService({
@@ -38,12 +47,15 @@ class ImageSaveService {
     ImageSavePlatformResolver? resolvePlatform,
     ImageGalleryPermissionRequester? requestGalleryPermission,
     ImageGallerySaver? saveToGallery,
+    ImageBrowserDownloadSaver? saveByBrowserDownload,
   }) : pickSavePath = pickSavePath ?? _defaultPickSavePath,
        writeFile = writeFile ?? _defaultWriteFile,
        resolvePlatform = resolvePlatform ?? _defaultResolvePlatform,
        requestGalleryPermission =
            requestGalleryPermission ?? _defaultRequestGalleryPermission,
-       saveToGallery = saveToGallery ?? _defaultSaveToGallery;
+       saveToGallery = saveToGallery ?? _defaultSaveToGallery,
+       saveByBrowserDownload =
+           saveByBrowserDownload ?? _defaultSaveByBrowserDownload;
 
   final ImageBytesFetcher fetchBytes;
   final ImageSavePathPicker pickSavePath;
@@ -51,6 +63,7 @@ class ImageSaveService {
   final ImageSavePlatformResolver resolvePlatform;
   final ImageGalleryPermissionRequester requestGalleryPermission;
   final ImageGallerySaver saveToGallery;
+  final ImageBrowserDownloadSaver saveByBrowserDownload;
 
   Future<ImageSaveResult> saveImageFromUrl({
     required String imageUrl,
@@ -102,6 +115,22 @@ class ImageSaveService {
             status: ImageSaveStatus.success,
             message: '已保存到系统相册',
           );
+        case ImageSavePlatform.web:
+          final bytes = await fetchBytes(imageUrl);
+          final saved = await saveByBrowserDownload(
+            bytes: bytes,
+            fileName: suggestedFileName,
+          );
+          if (!saved) {
+            return const ImageSaveResult(
+              status: ImageSaveStatus.failed,
+              message: '浏览器下载失败，请稍后重试',
+            );
+          }
+          return const ImageSaveResult(
+            status: ImageSaveStatus.success,
+            message: '已触发浏览器下载',
+          );
         case ImageSavePlatform.unsupported:
           return const ImageSaveResult(
             status: ImageSaveStatus.failed,
@@ -134,21 +163,30 @@ class ImageSaveService {
   }
 
   static Future<void> _defaultWriteFile(String path, Uint8List bytes) {
-    return File(path).writeAsBytes(bytes, flush: true);
+    return file_writer.writeBytesToFile(path, bytes);
   }
 
   static ImageSavePlatform _defaultResolvePlatform() {
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    if (kIsWeb) {
+      return ImageSavePlatform.web;
+    }
+    if (runtime_platform.runtimeIsDesktopPlatform() ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
       return ImageSavePlatform.desktop;
     }
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (runtime_platform.runtimeIsMobilePlatform() ||
+        defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
       return ImageSavePlatform.mobile;
     }
     return ImageSavePlatform.unsupported;
   }
 
   static Future<bool> _defaultRequestGalleryPermission() async {
-    if (Platform.isIOS) {
+    if (runtime_platform.runtimeIsIosPlatform() ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
       final photosAddOnly = await Permission.photosAddOnly.request();
       if (photosAddOnly.isGranted || photosAddOnly.isLimited) {
         return true;
@@ -156,7 +194,8 @@ class ImageSaveService {
       final photos = await Permission.photos.request();
       return photos.isGranted || photos.isLimited;
     }
-    if (Platform.isAndroid) {
+    if (runtime_platform.runtimeIsAndroidPlatform() ||
+        defaultTargetPlatform == TargetPlatform.android) {
       final photos = await Permission.photos.request();
       if (photos.isGranted || photos.isLimited) {
         return true;
@@ -191,6 +230,16 @@ class ImageSaveService {
       return success == '1' || success.toLowerCase() == 'true';
     }
     return false;
+  }
+
+  static Future<bool> _defaultSaveByBrowserDownload({
+    required Uint8List bytes,
+    required String fileName,
+  }) {
+    return browser_download.saveImageBytesByBrowserDownload(
+      bytes: bytes,
+      fileName: fileName,
+    );
   }
 
   static String _resolveFileName(String imageUrl) {
