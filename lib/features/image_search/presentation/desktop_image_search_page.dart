@@ -2,8 +2,11 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/app/app_page_state_cache.dart';
+import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/features/actors/data/actor_list_item_dto.dart';
@@ -14,6 +17,7 @@ import 'package:sakuramedia/features/image_search/presentation/desktop_image_sea
 import 'package:sakuramedia/features/image_search/presentation/image_search_controller.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_page_state.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
@@ -73,22 +77,36 @@ class DesktopImageSearchPage extends StatefulWidget {
 }
 
 class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
-  late final ImageSearchController _controller;
-  late ImageSearchFilterState _filterState;
-  Object? _bootstrappedSourceSignature;
+  late final ImageSearchPageStateEntry _pageState;
+  late final bool _ownsPageState;
   bool _isViewportFillCheckScheduled = false;
+
+  ImageSearchController get _controller => _pageState.controller;
+  ImageSearchFilterState get _filterState => _pageState.filterState;
 
   @override
   void initState() {
     super.initState();
-    _controller = ImageSearchController(
-      imageSearchApi: context.read<ImageSearchApi>(),
-      actorsApi: context.read<ActorsApi>(),
-    );
-    _filterState = ImageSearchFilterState(
-      currentMovieScope: widget.initialCurrentMovieScope,
-    );
-    _controller.attachScrollListener();
+    final cache = maybeReadAppPageStateCache(context);
+    if (cache == null) {
+      _ownsPageState = true;
+      _pageState = ImageSearchPageStateEntry(
+        imageSearchApi: context.read<ImageSearchApi>(),
+        actorsApi: context.read<ActorsApi>(),
+        initialCurrentMovieScope: widget.initialCurrentMovieScope,
+      );
+    } else {
+      _ownsPageState = false;
+      _pageState = cache.obtain<ImageSearchPageStateEntry>(
+        key: _resolveStateKey(),
+        create:
+            () => ImageSearchPageStateEntry(
+              imageSearchApi: context.read<ImageSearchApi>(),
+              actorsApi: context.read<ActorsApi>(),
+              initialCurrentMovieScope: widget.initialCurrentMovieScope,
+            ),
+      );
+    }
     _controller.addListener(_handleControllerChanged);
     _bootstrapInitialSource();
   }
@@ -107,7 +125,9 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   @override
   void dispose() {
     _controller.removeListener(_handleControllerChanged);
-    _controller.dispose();
+    if (_ownsPageState) {
+      _pageState.dispose();
+    }
     super.dispose();
   }
 
@@ -125,10 +145,13 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
       widget.initialMimeType,
       bytes.length,
     );
-    if (_bootstrappedSourceSignature == signature) {
+    if (_pageState.bootstrappedSourceSignature == signature) {
       return;
     }
-    _bootstrappedSourceSignature = signature;
+    _pageState.bootstrappedSourceSignature = signature;
+    _pageState.filterState = _filterState.copyWith(
+      currentMovieScope: widget.initialCurrentMovieScope,
+    );
     _controller.setSource(
       fileBytes: bytes,
       fileName: fileName,
@@ -173,7 +196,7 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
                     onCurrentMovieScopeChanged:
                         (scope) => setState(
                           () =>
-                              _filterState = _filterState.copyWith(
+                              _pageState.filterState = _filterState.copyWith(
                                 currentMovieScope: scope,
                               ),
                         ),
@@ -183,7 +206,7 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
                     onModeChanged:
                         (mode) => setState(
                           () =>
-                              _filterState = _filterState.copyWith(
+                              _pageState.filterState = _filterState.copyWith(
                                 actorFilterMode: mode,
                               ),
                         ),
@@ -478,6 +501,25 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     });
   }
 
+  String _resolveStateKey() {
+    final routePath = _currentRoutePath();
+    if (routePath != null && routePath.startsWith('/mobile/')) {
+      return mobileImageSearchPageStateKey();
+    }
+    if ((widget.fallbackPath ?? '').startsWith('/mobile/')) {
+      return mobileImageSearchPageStateKey();
+    }
+    return desktopImageSearchPageStateKey();
+  }
+
+  String? _currentRoutePath() {
+    try {
+      return GoRouterState.of(context).uri.path;
+    } catch (_) {
+      return null;
+    }
+  }
+
   bool _shouldAutoLoadMoreForViewport() {
     if (!_controller.hasMore ||
         _controller.isSearching ||
@@ -521,7 +563,9 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
       return;
     }
     setState(() {
-      _filterState = _filterState.copyWith(selectedActors: selectedActors);
+      _pageState.filterState = _filterState.copyWith(
+        selectedActors: selectedActors,
+      );
     });
   }
 
@@ -531,7 +575,7 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
       if (pickedFile == null || !mounted) {
         return;
       }
-      _bootstrappedSourceSignature = null;
+      _pageState.bootstrappedSourceSignature = null;
       _controller.setSource(
         fileBytes: pickedFile.bytes,
         fileName: pickedFile.fileName,

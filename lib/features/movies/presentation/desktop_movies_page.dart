@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/app/app_page_state_cache.dart';
+import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_list_page_state.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
@@ -22,35 +25,37 @@ class DesktopMoviesPage extends StatefulWidget {
 }
 
 class _DesktopMoviesPageState extends State<DesktopMoviesPage> {
-  late final PagedMovieSummaryController _moviesController;
-  MovieFilterState _filterState = MovieFilterState.initial;
+  late final MovieListPageStateEntry _pageState;
+  late final bool _ownsPageState;
+
+  PagedMovieSummaryController get _moviesController => _pageState.controller;
+  MovieFilterState get _filterState => _pageState.filterState;
 
   @override
   void initState() {
     super.initState();
-    _moviesController = PagedMovieSummaryController(
-      fetchPage:
-          (page, pageSize) => context.read<MoviesApi>().getMovies(
-            page: page,
-            pageSize: pageSize,
-            status: _filterState.status,
-            collectionType: _filterState.collectionType,
-            sort: _filterState.sortExpression,
-          ),
-      subscribeMovie: context.read<MoviesApi>().subscribeMovie,
-      unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
-      pageSize: 24,
-      loadMoreTriggerOffset: 300,
-      initialLoadErrorText: '影片列表加载失败，请稍后重试',
-      loadMoreErrorText: '加载更多失败，请点击重试',
+    final cache = maybeReadAppPageStateCache(context);
+    if (cache == null) {
+      _ownsPageState = true;
+      _pageState = MovieListPageStateEntry(
+        moviesApi: context.read<MoviesApi>(),
+      );
+      return;
+    }
+
+    _ownsPageState = false;
+    _pageState = cache.obtain<MovieListPageStateEntry>(
+      key: desktopMoviesPageStateKey(),
+      create:
+          () => MovieListPageStateEntry(moviesApi: context.read<MoviesApi>()),
     );
-    _moviesController.attachScrollListener();
-    _moviesController.initialize();
   }
 
   @override
   void dispose() {
-    _moviesController.dispose();
+    if (_ownsPageState) {
+      _pageState.dispose();
+    }
     super.dispose();
   }
 
@@ -62,7 +67,7 @@ class _DesktopMoviesPageState extends State<DesktopMoviesPage> {
       return;
     }
     setState(() {
-      _filterState = nextState;
+      _pageState.filterState = nextState;
     });
     if (_moviesController.scrollController.hasClients) {
       _moviesController.scrollController.jumpTo(0);

@@ -13,6 +13,7 @@ class AppDesktopShell extends StatelessWidget {
     required this.currentPath,
     required this.layout,
     required this.topBarConfig,
+    required this.shellNavigatorKey,
     required this.navGroups,
     required this.child,
   });
@@ -20,6 +21,7 @@ class AppDesktopShell extends StatelessWidget {
   final String currentPath;
   final AppShellLayout layout;
   final DesktopTopBarConfig topBarConfig;
+  final GlobalKey<NavigatorState> shellNavigatorKey;
   final List<AppNavGroup> navGroups;
   final Widget child;
 
@@ -43,7 +45,11 @@ class AppDesktopShell extends StatelessWidget {
                 color: context.appColors.surfaceElevated,
                 child: Column(
                   children: [
-                    AppTopBar(currentPath: currentPath, config: topBarConfig),
+                    AppTopBar(
+                      currentPath: currentPath,
+                      config: topBarConfig,
+                      shellNavigatorKey: shellNavigatorKey,
+                    ),
                     Expanded(
                       child: _DesktopShellBody(layout: layout, child: child),
                     ),

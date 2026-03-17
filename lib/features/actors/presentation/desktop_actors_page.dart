@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/app/app_page_state_cache.dart';
+import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
+import 'package:sakuramedia/features/actors/presentation/actor_list_page_state.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_filter_state.dart';
 import 'package:sakuramedia/features/actors/presentation/paged_actor_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
@@ -20,32 +23,37 @@ class DesktopActorsPage extends StatefulWidget {
 }
 
 class _DesktopActorsPageState extends State<DesktopActorsPage> {
-  late final PagedActorSummaryController _actorsController;
-  ActorFilterState _filterState = ActorFilterState.initial;
+  late final ActorListPageStateEntry _pageState;
+  late final bool _ownsPageState;
+
+  PagedActorSummaryController get _actorsController => _pageState.controller;
+  ActorFilterState get _filterState => _pageState.filterState;
 
   @override
   void initState() {
     super.initState();
-    _actorsController = PagedActorSummaryController(
-      fetchPage:
-          (page, pageSize) => context.read<ActorsApi>().getActors(
-            page: page,
-            pageSize: pageSize,
-            subscriptionStatus: _filterState.subscriptionStatus,
-            gender: _filterState.gender,
-          ),
-      subscribeActor: context.read<ActorsApi>().subscribeActor,
-      unsubscribeActor: context.read<ActorsApi>().unsubscribeActor,
-      pageSize: 24,
-      loadMoreTriggerOffset: 300,
+    final cache = maybeReadAppPageStateCache(context);
+    if (cache == null) {
+      _ownsPageState = true;
+      _pageState = ActorListPageStateEntry(
+        actorsApi: context.read<ActorsApi>(),
+      );
+      return;
+    }
+
+    _ownsPageState = false;
+    _pageState = cache.obtain<ActorListPageStateEntry>(
+      key: desktopActorsPageStateKey(),
+      create:
+          () => ActorListPageStateEntry(actorsApi: context.read<ActorsApi>()),
     );
-    _actorsController.attachScrollListener();
-    _actorsController.initialize();
   }
 
   @override
   void dispose() {
-    _actorsController.dispose();
+    if (_ownsPageState) {
+      _pageState.dispose();
+    }
     super.dispose();
   }
 
@@ -55,7 +63,7 @@ class _DesktopActorsPageState extends State<DesktopActorsPage> {
       return;
     }
     setState(() {
-      _filterState = nextState;
+      _pageState.filterState = nextState;
     });
     if (_actorsController.scrollController.hasClients) {
       _actorsController.scrollController.jumpTo(0);

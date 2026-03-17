@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
@@ -10,6 +11,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
+import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
@@ -83,6 +85,17 @@ class _MyAppState extends State<MyApp> {
       providers: [
         ChangeNotifierProvider(create: (_) => AppShellController()),
         ChangeNotifierProvider<SessionStore>.value(value: _activeSessionStore),
+        ChangeNotifierProxyProvider<SessionStore, AppPageStateCache>(
+          create:
+              (context) =>
+                  AppPageStateCache()
+                    ..bindSessionStore(context.read<SessionStore>()),
+          update: (context, sessionStore, cache) {
+            final activeCache = cache ?? AppPageStateCache();
+            activeCache.bindSessionStore(sessionStore);
+            return activeCache;
+          },
+        ),
         Provider<ApiClient>(
           create:
               (context) =>
@@ -98,6 +111,12 @@ class _MyAppState extends State<MyApp> {
         ),
         Provider<AccountApi>(
           create: (context) => AccountApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<CollectionNumberFeaturesApi>(
+          create:
+              (context) => CollectionNumberFeaturesApi(
+                apiClient: context.read<ApiClient>(),
+              ),
         ),
         Provider<ActorsApi>(
           create: (context) => ActorsApi(apiClient: context.read<ApiClient>()),
