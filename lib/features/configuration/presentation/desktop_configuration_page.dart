@@ -6,6 +6,8 @@ import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
+import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
+import 'package:sakuramedia/features/configuration/data/collection_number_features_dto.dart';
 import 'package:sakuramedia/features/configuration/data/download_client_dto.dart';
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
@@ -123,16 +125,23 @@ class _BasicInformationTab extends StatefulWidget {
 }
 
 class _BasicInformationTabState extends State<_BasicInformationTab> {
+  late final TextEditingController _collectionNumberFeaturesController;
+
   bool _initialized = false;
   bool _isLoading = false;
-  String? _errorMessage;
+  bool _isSavingCollectionNumberFeatures = false;
+  bool _applyCollectionSyncNow = true;
+  String? _librariesErrorMessage;
+  String? _collectionFeaturesErrorMessage;
   List<MediaLibraryDto> _libraries = const <MediaLibraryDto>[];
+  CollectionNumberFeaturesSyncStatsDto? _collectionSyncStats;
 
   @override
   void initState() {
     super.initState();
+    _collectionNumberFeaturesController = TextEditingController();
     if (widget.active) {
-      _loadLibraries();
+      _loadTabData();
     }
   }
 
@@ -140,14 +149,75 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
   void didUpdateWidget(covariant _BasicInformationTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.active && !_initialized && !_isLoading) {
-      _loadLibraries();
+      _loadTabData();
     }
+  }
+
+  @override
+  void dispose() {
+    _collectionNumberFeaturesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadTabData() async {
+    setState(() {
+      _isLoading = true;
+      _librariesErrorMessage = null;
+      _collectionFeaturesErrorMessage = null;
+    });
+
+    final librariesFuture = context.read<MediaLibrariesApi>().getLibraries();
+    final collectionFeaturesFuture =
+        context.read<CollectionNumberFeaturesApi>().getFeatures();
+
+    List<MediaLibraryDto>? libraries;
+    CollectionNumberFeaturesDto? collectionFeatures;
+    Object? librariesError;
+    Object? collectionFeaturesError;
+
+    try {
+      libraries = await librariesFuture;
+    } catch (error) {
+      librariesError = error;
+    }
+
+    try {
+      collectionFeatures = await collectionFeaturesFuture;
+    } catch (error) {
+      collectionFeaturesError = error;
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _initialized = true;
+      _isLoading = false;
+      if (libraries != null) {
+        _libraries = libraries;
+      }
+      if (collectionFeatures != null) {
+        _applyCollectionFeatures(collectionFeatures);
+      }
+      _librariesErrorMessage =
+          librariesError == null
+              ? null
+              : _apiMessage(librariesError, fallback: '媒体库加载失败，请稍后重试。');
+      _collectionFeaturesErrorMessage =
+          collectionFeaturesError == null
+              ? null
+              : _apiMessage(
+                collectionFeaturesError,
+                fallback: '合集番号特征加载失败，请稍后重试。',
+              );
+    });
   }
 
   Future<void> _loadLibraries() async {
     setState(() {
       _isLoading = true;
-      _errorMessage = null;
+      _librariesErrorMessage = null;
     });
 
     try {
@@ -167,7 +237,7 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
       setState(() {
         _initialized = true;
         _isLoading = false;
-        _errorMessage = _apiMessage(error, fallback: '媒体库加载失败，请稍后重试。');
+        _librariesErrorMessage = _apiMessage(error, fallback: '媒体库加载失败，请稍后重试。');
       });
     }
   }
@@ -215,6 +285,50 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
     }
   }
 
+  void _applyCollectionFeatures(CollectionNumberFeaturesDto settings) {
+    _collectionNumberFeaturesController.text = settings.features.join('\n');
+    _collectionSyncStats = settings.syncStats;
+  }
+
+  Future<void> _saveCollectionNumberFeatures() async {
+    if (_isSavingCollectionNumberFeatures) {
+      return;
+    }
+
+    final features = _parseCollectionNumberFeaturesInput(
+      _collectionNumberFeaturesController.text,
+    );
+
+    setState(() {
+      _isSavingCollectionNumberFeatures = true;
+    });
+    try {
+      final settings = await context
+          .read<CollectionNumberFeaturesApi>()
+          .updateFeatures(
+            UpdateCollectionNumberFeaturesPayload(features: features),
+            applyNow: _applyCollectionSyncNow,
+          );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _applyCollectionFeatures(settings);
+        _collectionFeaturesErrorMessage = null;
+        _isSavingCollectionNumberFeatures = false;
+      });
+      showToast(_applyCollectionSyncNow ? '已保存并完成合集重算' : '合集番号特征已保存');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSavingCollectionNumberFeatures = false;
+      });
+      showToast(_apiMessage(error, fallback: '保存合集番号特征失败'));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_initialized && !widget.active) {
@@ -227,6 +341,8 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
         _buildMediaLibrariesSection(context),
         SizedBox(height: context.appSpacing.xl),
         const _AccountSecuritySection(),
+        SizedBox(height: context.appSpacing.xl),
+        _buildCollectionNumberFeaturesSection(context),
       ],
     );
   }
@@ -236,10 +352,10 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
       return const _SectionSkeleton(lineCount: 4);
     }
 
-    if (_errorMessage != null) {
+    if (_librariesErrorMessage != null) {
       return _SectionErrorState(
         title: '媒体库加载失败',
-        message: _errorMessage!,
+        message: _librariesErrorMessage!,
         onRetry: _loadLibraries,
       );
     }
@@ -286,6 +402,139 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
                 .toList(growable: false),
           ),
       ],
+    );
+  }
+
+  Widget _buildCollectionNumberFeaturesSection(BuildContext context) {
+    if (_isLoading) {
+      return const _SectionSkeleton(lineCount: 5);
+    }
+
+    if (_collectionFeaturesErrorMessage != null) {
+      return _SectionErrorState(
+        title: '合集番号特征加载失败',
+        message: _collectionFeaturesErrorMessage!,
+        onRetry: _loadTabData,
+      );
+    }
+
+    final syncStats = _collectionSyncStats;
+    final spacing = context.appSpacing;
+
+    return AppContentCard(
+      title: '合集番号特征',
+      padding: EdgeInsets.all(spacing.lg),
+      titleStyle: Theme.of(context).textTheme.titleSmall,
+      headerBottomSpacing: spacing.md,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '每行输入一个番号特征，用于判定影片是否为合集。保存时可选择是否立即触发全库重算。',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
+          ),
+          SizedBox(height: spacing.lg),
+          AppTextField(
+            fieldKey: const Key('configuration-collection-features-field'),
+            controller: _collectionNumberFeaturesController,
+            maxLines: 8,
+            minLines: 6,
+            hintText: '例如:\nFC2\nOFJE\nDVAJ',
+          ),
+          SizedBox(height: spacing.lg),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '保存后动作',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: context.appColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: spacing.sm),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    SizedBox(
+                      width: 260,
+                      child: AppSelectField<bool>(
+                        key: const Key(
+                          'configuration-collection-apply-now-field',
+                        ),
+                        value: _applyCollectionSyncNow,
+                        size: AppSelectFieldSize.compact,
+                        items: const [
+                          DropdownMenuItem<bool>(
+                            value: true,
+                            child: Text('保存并立即重算合集'),
+                          ),
+                          DropdownMenuItem<bool>(
+                            value: false,
+                            child: Text('仅保存特征配置'),
+                          ),
+                        ],
+                        onChanged:
+                            (value) => setState(() {
+                              _applyCollectionSyncNow = value ?? true;
+                            }),
+                      ),
+                    ),
+                    SizedBox(width: spacing.md),
+                    SizedBox(
+                      width: 260,
+                      child: AppButton(
+                        key: const Key(
+                          'configuration-collection-features-save-button',
+                        ),
+                        onPressed:
+                            _isSavingCollectionNumberFeatures
+                                ? null
+                                : _saveCollectionNumberFeatures,
+                        icon:
+                            _isSavingCollectionNumberFeatures
+                                ? null
+                                : const Icon(Icons.save_outlined),
+                        label:
+                            _isSavingCollectionNumberFeatures ? '保存中' : '保存特征',
+                        variant: AppButtonVariant.primary,
+                        isLoading: _isSavingCollectionNumberFeatures,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (syncStats != null) ...[
+            SizedBox(height: spacing.lg),
+            Text('最近一次即时重算结果', style: Theme.of(context).textTheme.bodyMedium),
+            SizedBox(height: spacing.sm),
+            Wrap(
+              spacing: spacing.sm,
+              runSpacing: spacing.sm,
+              children: [
+                _InfoPill(label: '影片总数', value: '${syncStats.totalMovies}'),
+                _InfoPill(label: '匹配数量', value: '${syncStats.matchedCount}'),
+                _InfoPill(
+                  label: '更新为合集',
+                  value: '${syncStats.updatedToCollectionCount}',
+                ),
+                _InfoPill(
+                  label: '更新为单体',
+                  value: '${syncStats.updatedToSingleCount}',
+                ),
+                _InfoPill(label: '未变化', value: '${syncStats.unchangedCount}'),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -2754,6 +3003,14 @@ bool _isAbsolutePath(String value) {
 
 bool _isSupportedIndexerKind(String value) {
   return value == 'pt' || value == 'bt';
+}
+
+List<String> _parseCollectionNumberFeaturesInput(String rawValue) {
+  return rawValue
+      .split('\n')
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList(growable: false);
 }
 
 Set<String> _findDuplicateIndexerNames(List<IndexerEntryDto> items) {

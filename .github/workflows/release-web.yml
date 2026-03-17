@@ -1,0 +1,83 @@
+name: Release Web Docker
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push-web-image:
+    name: Build and push web Docker image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.29.3
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests before release
+        run: flutter test
+
+      - name: Build Flutter web release
+        run: flutter build web --release
+
+      - name: Resolve Docker image name
+        id: image
+        env:
+          DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          raw_image="$DOCKERHUB_IMAGE"
+          if [ -z "$raw_image" ]; then
+            raw_image="$DOCKERHUB_USERNAME/sakuramedia-web"
+          fi
+
+          if [ -z "$raw_image" ]; then
+            echo "::error::Missing DOCKERHUB_IMAGE variable and DOCKERHUB_USERNAME secret."
+            exit 1
+          fi
+
+          image="$(printf '%s' "$raw_image" | tr '[:upper:]' '[:lower:]')"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "Using Docker image: $image"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image.outputs.image }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ github.ref_name }}
+            type=raw,value=sha-${{ github.sha }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.web
+          push: true
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
