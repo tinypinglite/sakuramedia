@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/actors/data/actor_list_item_dto.dart';
@@ -12,6 +11,7 @@ import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/actors/actor_avatar.dart';
@@ -198,12 +198,10 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
                   isLoading: _moviesController.isInitialLoading,
                   errorMessage: _moviesController.initialErrorMessage,
                   onMovieTap:
-                      (movie) => context.goNamed(
-                        'desktop-movie-detail',
-                        pathParameters: <String, String>{
-                          'movieNumber': movie.movieNumber,
-                        },
-                        extra: '/desktop/library/actors/${widget.actorId}',
+                      (movie) => context.pushDesktopMovieDetail(
+                        movieNumber: movie.movieNumber,
+                        fallbackPath:
+                            '/desktop/library/actors/${widget.actorId}',
                       ),
                   onMovieSubscriptionTap:
                       (movie) => _toggleMovieSubscription(movie.movieNumber),

@@ -50,8 +50,20 @@ String buildMobilePlaylistDetailRoutePath(int playlistId) {
   return '$mobilePlaylistDetailPathPrefix/$playlistId';
 }
 
+String buildDesktopMovieDetailRoutePath(String movieNumber) {
+  return '$desktopMoviesPath/${Uri.encodeComponent(movieNumber)}';
+}
+
 String buildMobileMovieDetailRoutePath(String movieNumber) {
   return '$mobileMoviesPath/${Uri.encodeComponent(movieNumber)}';
+}
+
+String buildDesktopActorDetailRoutePath(int actorId) {
+  return '$desktopActorsPath/$actorId';
+}
+
+String buildDesktopPlaylistDetailRoutePath(int playlistId) {
+  return '$desktopPlaylistsPath/$playlistId';
 }
 
 String buildMobileMoviePlayerRoutePath(

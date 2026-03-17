@@ -196,7 +196,8 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
       return;
     }
     context.go(
-      widget.fallbackPath ?? '/desktop/library/movies/${widget.movieNumber}',
+      widget.fallbackPath ??
+          buildDesktopMovieDetailRoutePath(widget.movieNumber),
     );
   }
 

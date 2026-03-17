@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/create_playlist_dialog.dart';
 import 'package:sakuramedia/features/playlists/presentation/playlists_overview_controller.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
@@ -103,9 +103,9 @@ class _DesktopPlaylistsPageState extends State<DesktopPlaylistsPage> {
                                 playlist.id,
                               ),
                               onTap:
-                                  () => context.go(
-                                    '$desktopPlaylistsPath/${playlist.id}',
-                                    extra: desktopPlaylistsPath,
+                                  () => context.pushDesktopPlaylistDetail(
+                                    playlistId: playlist.id,
+                                    fallbackPath: desktopPlaylistsPath,
                                   ),
                             );
                           },

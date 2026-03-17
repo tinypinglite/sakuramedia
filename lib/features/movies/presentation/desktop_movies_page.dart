@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
@@ -116,12 +116,9 @@ class _DesktopMoviesPageState extends State<DesktopMoviesPage> {
                   isLoading: _moviesController.isInitialLoading,
                   errorMessage: _moviesController.initialErrorMessage,
                   onMovieTap:
-                      (movie) => context.goNamed(
-                        'desktop-movie-detail',
-                        pathParameters: <String, String>{
-                          'movieNumber': movie.movieNumber,
-                        },
-                        extra: desktopMoviesPath,
+                      (movie) => context.pushDesktopMovieDetail(
+                        movieNumber: movie.movieNumber,
+                        fallbackPath: desktopMoviesPath,
                       ),
                   onMovieSubscriptionTap:
                       (movie) => _toggleMovieSubscription(movie.movieNumber),

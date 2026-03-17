@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_filter_state.dart';
 import 'package:sakuramedia/features/actors/presentation/paged_actor_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actors/actor_filter_toolbar.dart';
@@ -101,12 +101,9 @@ class _DesktopActorsPageState extends State<DesktopActorsPage> {
                   isLoading: _actorsController.isInitialLoading,
                   errorMessage: _actorsController.initialErrorMessage,
                   onActorTap:
-                      (actor) => context.goNamed(
-                        'desktop-actor-detail',
-                        pathParameters: <String, String>{
-                          'actorId': actor.id.toString(),
-                        },
-                        extra: desktopActorsPath,
+                      (actor) => context.pushDesktopActorDetail(
+                        actorId: actor.id,
+                        fallbackPath: desktopActorsPath,
                       ),
                   onActorSubscriptionTap:
                       (actor) => _toggleActorSubscription(actor.id),

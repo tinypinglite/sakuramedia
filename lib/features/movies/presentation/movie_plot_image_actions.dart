@@ -140,7 +140,7 @@ Future<void> _searchSimilar({
       () => launchDesktopImageSearchFromUrl(
         hostContext,
         imageUrl: imageUrl,
-        fallbackPath: '$desktopMoviesPath/${Uri.encodeComponent(movieNumber)}',
+        fallbackPath: buildDesktopMovieDetailRoutePath(movieNumber),
         fileName: fileName,
         currentMovieNumber: movieNumber,
       );

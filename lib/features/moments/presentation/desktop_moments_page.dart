@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_launcher.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
@@ -148,19 +148,18 @@ class _DesktopMomentsPageState extends State<DesktopMomentsPage> {
   }
 
   void _openPlayerForMoment(MomentListItem item) {
-    context.push(
-      buildDesktopMoviePlayerRoutePath(
-        item.movieNumber,
-        mediaId: item.mediaId > 0 ? item.mediaId : null,
-        positionSeconds: item.offsetSeconds,
-      ),
+    context.pushDesktopMoviePlayer(
+      movieNumber: item.movieNumber,
+      fallbackPath: desktopMomentsPath,
+      mediaId: item.mediaId > 0 ? item.mediaId : null,
+      positionSeconds: item.offsetSeconds,
     );
   }
 
   void _openMovieDetailForMoment(MomentListItem item) {
-    context.push(
-      '$desktopMoviesPath/${Uri.encodeComponent(item.movieNumber)}',
-      extra: desktopMomentsPath,
+    context.pushDesktopMovieDetail(
+      movieNumber: item.movieNumber,
+      fallbackPath: desktopMomentsPath,
     );
   }
 }
