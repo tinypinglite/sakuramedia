@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
@@ -31,6 +30,7 @@ import 'package:sakuramedia/widgets/app_shell/app_mobile_shell.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_subpage_shell.dart';
 
 GoRouter buildAppRouter(AppPlatform platform, SessionStore sessionStore) {
+  GoRouter.optionURLReflectsImperativeAPIs = true;
   switch (platform) {
     case AppPlatform.desktop:
       return buildDesktopRouter(sessionStore: sessionStore);
@@ -72,6 +72,7 @@ GoRouter _buildRouter({
   required List<AppRouteSpec> routeSpecs,
   required String rootRedirectPath,
 }) {
+  GoRouter.optionURLReflectsImperativeAPIs = true;
   final shellRoutes = routeSpecs
       .map(
         (spec) =>
@@ -432,6 +433,7 @@ GoRouter _buildRouter({
                 initialPositionSeconds: int.tryParse(
                   state.uri.queryParameters['positionSeconds'] ?? '',
                 ),
+                fallbackPath: _desktopFallbackPathFromExtra(state.extra),
               ),
             ),
       ),
@@ -602,4 +604,25 @@ EdgeInsets _mobileSubpageBodyPaddingFromPath(String path) {
     return const EdgeInsets.only(top: AppPageInsets.compact);
   }
   return AppPageInsets.compactStandard;
+}
+
+String? _desktopFallbackPathFromExtra(Object? routeExtra) {
+  if (routeExtra is String && routeExtra.startsWith('/desktop/')) {
+    return routeExtra;
+  }
+  final searchState = DesktopSearchRouteState.maybeFromExtra(routeExtra);
+  final searchFallbackPath = searchState.fallbackPath;
+  if (searchFallbackPath != null &&
+      searchFallbackPath.startsWith('/desktop/')) {
+    return searchFallbackPath;
+  }
+  final imageSearchState = DesktopImageSearchRouteState.maybeFromExtra(
+    routeExtra,
+  );
+  final imageSearchFallbackPath = imageSearchState.fallbackPath;
+  if (imageSearchFallbackPath != null &&
+      imageSearchFallbackPath.startsWith('/desktop/')) {
+    return imageSearchFallbackPath;
+  }
+  return null;
 }

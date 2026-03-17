@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
@@ -17,6 +16,7 @@ import 'package:sakuramedia/features/image_search/presentation/image_search_file
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
@@ -623,12 +623,11 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
       customHandler(context, item);
       return;
     }
-    context.push(
-      buildDesktopMoviePlayerRoutePath(
-        item.movieNumber,
-        mediaId: item.mediaId > 0 ? item.mediaId : null,
-        positionSeconds: item.offsetSeconds,
-      ),
+    context.pushDesktopMoviePlayer(
+      movieNumber: item.movieNumber,
+      fallbackPath: desktopImageSearchPath,
+      mediaId: item.mediaId > 0 ? item.mediaId : null,
+      positionSeconds: item.offsetSeconds,
     );
   }
 
@@ -638,9 +637,9 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
       customHandler(context, item);
       return;
     }
-    context.push(
-      '$desktopMoviesPath/${Uri.encodeComponent(item.movieNumber)}',
-      extra: desktopImageSearchPath,
+    context.pushDesktopMovieDetail(
+      movieNumber: item.movieNumber,
+      fallbackPath: desktopImageSearchPath,
     );
   }
 

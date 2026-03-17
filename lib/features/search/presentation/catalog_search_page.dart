@@ -7,8 +7,8 @@ import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_search_route_state.dart';
 import 'package:sakuramedia/widgets/search/catalog_search_content.dart';
 
 class CatalogSearchPage extends StatefulWidget {
@@ -98,14 +98,14 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
             _controller.setActiveKind(_kindForIndex(index));
           },
           onMovieTap:
-              (movie) => context.go(
-                '$desktopMoviesPath/${Uri.encodeComponent(movie.movieNumber)}',
-                extra: _currentSearchPath,
+              (movie) => context.pushDesktopMovieDetail(
+                movieNumber: movie.movieNumber,
+                fallbackPath: _currentSearchPath,
               ),
           onActorTap:
-              (actor) => context.go(
-                '$desktopActorsPath/${actor.id}',
-                extra: _currentSearchPath,
+              (actor) => context.pushDesktopActorDetail(
+                actorId: actor.id,
+                fallbackPath: _currentSearchPath,
               ),
           onMovieSubscriptionTap:
               (movie) => _toggleMovieSubscription(movie.movieNumber),
@@ -146,12 +146,10 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
       return;
     }
 
-    context.go(
-      routePath,
-      extra: DesktopSearchRouteState(
-        fallbackPath: widget.fallbackPath,
-        useOnlineSearch: _useOnlineSearch,
-      ),
+    context.pushDesktopSearch(
+      query: submittedQuery,
+      fallbackPath: widget.fallbackPath,
+      useOnlineSearch: _useOnlineSearch,
     );
   }
 

@@ -323,7 +323,10 @@ void main() {
     await tester.tap(find.byKey(const Key('movie-summary-card-ABC-001')));
     await tester.pumpAndSettle();
 
-    expect(router.routeInformationProvider.value.uri.path, '/movies/ABC-001');
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      '/desktop/library/movies/ABC-001',
+    );
     expect(find.text('detail: ABC-001'), findsOneWidget);
   });
 
@@ -451,7 +454,7 @@ Future<GoRouter> _pumpMoviesRouter(
         builder: (context, state) => const Scaffold(body: DesktopMoviesPage()),
       ),
       GoRoute(
-        path: '/movies/:movieNumber',
+        path: '/desktop/library/movies/:movieNumber',
         name: 'desktop-movie-detail',
         builder:
             (context, state) => Scaffold(

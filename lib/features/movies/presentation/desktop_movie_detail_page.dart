@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
@@ -10,6 +9,7 @@ import 'package:sakuramedia/features/movies/presentation/movie_plot_image_action
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/playlists/presentation/movie_playlist_picker_dialog.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_inspector_dialog.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_preview_overlay.dart';
@@ -81,11 +81,12 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
                   : () => _toggleMovieSubscription(isSubscribed: isSubscribed),
           onPlayTap:
               selectedMedia != null && selectedMedia.hasPlayableUrl
-                  ? () => context.push(
-                    buildDesktopMoviePlayerRoutePath(
+                  ? () => context.pushDesktopMoviePlayer(
+                    movieNumber: widget.movieNumber,
+                    fallbackPath: buildDesktopMovieDetailRoutePath(
                       widget.movieNumber,
-                      mediaId: selectedMedia.mediaId,
                     ),
+                    mediaId: selectedMedia.mediaId,
                   )
                   : null,
           onPlaylistTap:
@@ -100,12 +101,11 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
                 _selectedMediaId = item.mediaId;
               }),
           onActorTap:
-              (actor) => context.goNamed(
-                'desktop-actor-detail',
-                pathParameters: <String, String>{
-                  'actorId': actor.id.toString(),
-                },
-                extra: '/desktop/library/movies/${widget.movieNumber}',
+              (actor) => context.pushDesktopActorDetail(
+                actorId: actor.id,
+                fallbackPath: buildDesktopMovieDetailRoutePath(
+                  widget.movieNumber,
+                ),
               ),
           onRequestPlotImageMenu:
               (menuContext, index, globalPosition) =>

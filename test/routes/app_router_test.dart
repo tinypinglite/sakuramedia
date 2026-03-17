@@ -2009,6 +2009,114 @@ void main() {
     expect(router.routeInformationProvider.value.uri.path, desktopOverviewPath);
   });
 
+  testWidgets('image search detail back keeps image search route in history', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    _enqueueImageSearchSingleResultResponse(bundle);
+    _enqueueMovieDetailResponse(bundle);
+    _enqueueMovieDetailResponse(bundle);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/456/points',
+      body: const <Map<String, dynamic>>[],
+    );
+    final router = buildDesktopRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(
+      desktopImageSearchPath,
+      extra: DesktopImageSearchRouteState(
+        fallbackPath: desktopOverviewPath,
+        initialFileName: 'query.png',
+        initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+        initialMimeType: 'image/png',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(
+        const Key('image-search-result-card-123'),
+        skipOffstage: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.ancestor(of: find.text('影片详情'), matching: find.byType(InkWell)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      '/desktop/library/movies/ABC-001',
+    );
+
+    await tester.tap(find.byKey(const Key('topbar-back-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      desktopImageSearchPath,
+    );
+  });
+
+  testWidgets('movie detail back resolves origin path consistently', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    _enqueueMobileMoviesResponse(bundle);
+    _enqueueMobileActorsResponse(bundle);
+    _enqueueDesktopPlaylistsOverviewResponses(bundle);
+    for (var i = 0; i < 5; i += 1) {
+      _enqueueMovieDetailResponse(bundle);
+    }
+    final router = buildDesktopRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    await tester.pumpAndSettle();
+
+    final origins = <String>[
+      desktopOverviewPath,
+      desktopMoviesPath,
+      desktopActorsPath,
+      desktopSearchPath,
+      desktopPlaylistsPath,
+    ];
+    for (final origin in origins) {
+      router.go('/desktop/library/movies/ABC-001', extra: origin);
+      await tester.pumpAndSettle();
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/desktop/library/movies/ABC-001',
+      );
+
+      await tester.tap(find.byKey(const Key('topbar-back-button')));
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, origin);
+    }
+  });
+
   testWidgets('overview top bar back button stays disabled', (
     WidgetTester tester,
   ) async {
@@ -2135,6 +2243,37 @@ void _enqueueDesktopOverviewResponses(TestApiBundle bundle) {
   );
 }
 
+void _enqueueImageSearchSingleResultResponse(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'POST',
+    path: '/image-search/sessions',
+    body: <String, dynamic>{
+      'session_id': 'desktop-image-session',
+      'status': 'ready',
+      'page_size': 20,
+      'next_cursor': null,
+      'expires_at': '2026-03-08T10:10:00Z',
+      'items': [
+        <String, dynamic>{
+          'thumbnail_id': 123,
+          'media_id': 456,
+          'movie_id': 789,
+          'movie_number': 'ABC-001',
+          'offset_seconds': 120,
+          'score': 0.91,
+          'image': <String, dynamic>{
+            'id': 10,
+            'origin': '/thumb-1.webp',
+            'small': '/thumb-1.webp',
+            'medium': '/thumb-1.webp',
+            'large': '/thumb-1.webp',
+          },
+        },
+      ],
+    },
+  );
+}
+
 void _enqueueMobileActorsResponse(TestApiBundle bundle) {
   bundle.adapter.enqueueJson(
     method: 'GET',
@@ -2176,6 +2315,49 @@ void _enqueueMobileMoviesResponse(TestApiBundle bundle) {
       ],
       'page': 1,
       'page_size': 24,
+      'total': 1,
+    },
+  );
+}
+
+void _enqueueDesktopPlaylistsOverviewResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/playlists',
+    body: <Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 1,
+        'name': '收藏夹',
+        'kind': 'custom',
+        'description': 'Favorite movies',
+        'is_system': false,
+        'is_mutable': true,
+        'is_deletable': true,
+        'movie_count': 1,
+        'created_at': '2026-03-12T10:10:00Z',
+        'updated_at': '2026-03-12T11:20:00Z',
+      },
+    ],
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/playlists/1/movies',
+    body: <String, dynamic>{
+      'items': [
+        <String, dynamic>{
+          'javdb_id': 'MovieA1',
+          'movie_number': 'ABC-001',
+          'title': 'Movie 1',
+          'cover_image': null,
+          'release_date': '2024-01-02',
+          'duration_minutes': 120,
+          'is_subscribed': true,
+          'can_play': true,
+          'playlist_item_updated_at': '2026-03-12T10:20:00Z',
+        },
+      ],
+      'page': 1,
+      'page_size': 1,
       'total': 1,
     },
   );

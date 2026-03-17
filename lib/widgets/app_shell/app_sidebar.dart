@@ -1,13 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
@@ -159,7 +157,7 @@ class AppSidebarGroup extends StatelessWidget {
       label: group.label,
       selected: currentPath == primaryItem.path,
       collapsed: isCompact,
-      onTap: () => context.go(primaryItem.path),
+      onTap: () => context.goPrimaryRoute(primaryItem.path),
     );
   }
 }
@@ -204,8 +202,10 @@ class _SidebarSearchSectionState extends State<_SidebarSearchSection> {
             child: InkWell(
               key: const Key('sidebar-search-button'),
               onTap:
-                  () =>
-                      context.go(desktopSearchPath, extra: widget.currentPath),
+                  () => context.pushDesktopSearch(
+                    query: '',
+                    fallbackPath: widget.currentPath,
+                  ),
               borderRadius: context.appRadius.smBorder,
               child: SizedBox(
                 height: context.appSidebarTokens.itemHeight,
@@ -242,7 +242,7 @@ class _SidebarSearchSectionState extends State<_SidebarSearchSection> {
     if (query.isEmpty) {
       return;
     }
-    context.go(buildDesktopSearchRoutePath(query), extra: widget.currentPath);
+    context.pushDesktopSearch(query: query, fallbackPath: widget.currentPath);
     _controller.clear();
   }
 
@@ -252,14 +252,11 @@ class _SidebarSearchSectionState extends State<_SidebarSearchSection> {
       if (pickedFile == null || !context.mounted) {
         return;
       }
-      context.go(
-        desktopImageSearchPath,
-        extra: DesktopImageSearchRouteState(
-          fallbackPath: widget.currentPath,
-          initialFileName: pickedFile.fileName,
-          initialFileBytes: pickedFile.bytes,
-          initialMimeType: pickedFile.mimeType,
-        ),
+      context.pushDesktopImageSearch(
+        fallbackPath: widget.currentPath,
+        initialFileName: pickedFile.fileName,
+        initialFileBytes: pickedFile.bytes,
+        initialMimeType: pickedFile.mimeType,
       );
     } on ImageSearchFilePickerException catch (error) {
       if (context.mounted) {
