@@ -14,7 +14,7 @@ jobs:
     runs-on: macos-latest
 
     env:
-      ARCHIVE_NAME: sakuramedia-ios-${{ github.ref_name }}-unsigned.ipa
+      ARCHIVE_NAME: sakuramedia-ios-${{ github.ref_name }}-sidestore-ready.ipa
 
     steps:
       - name: Checkout repository
@@ -36,7 +36,7 @@ jobs:
       - name: Build iOS app archive input (no codesign)
         run: flutter build ios --release --no-codesign
 
-      - name: Collect unsigned iOS IPA
+      - name: Pre-sign and collect SideStore-ready iOS IPA
         run: |
           mkdir -p dist
           app_dir="build/ios/iphoneos"
@@ -56,10 +56,47 @@ jobs:
             exit 1
           fi
 
+          app_path="${apps[0]}"
+
+          sign_path() {
+            local target="$1"
+            echo "Signing: ${target}"
+            codesign --force --sign - --timestamp=none "${target}"
+          }
+
+          if [ -d "${app_path}/Frameworks" ]; then
+            while IFS= read -r framework; do
+              sign_path "${framework}"
+            done < <(find "${app_path}/Frameworks" -type d -name "*.framework" | sort)
+
+            while IFS= read -r dylib; do
+              sign_path "${dylib}"
+            done < <(find "${app_path}/Frameworks" -type f -name "*.dylib" | sort)
+          fi
+
+          if [ -d "${app_path}/PlugIns" ]; then
+            while IFS= read -r appex; do
+              if [ -d "${appex}/Frameworks" ]; then
+                while IFS= read -r appex_framework; do
+                  sign_path "${appex_framework}"
+                done < <(find "${appex}/Frameworks" -type d -name "*.framework" | sort)
+
+                while IFS= read -r appex_dylib; do
+                  sign_path "${appex_dylib}"
+                done < <(find "${appex}/Frameworks" -type f -name "*.dylib" | sort)
+              fi
+              sign_path "${appex}"
+            done < <(find "${app_path}/PlugIns" -type d -name "*.appex" | sort)
+          fi
+
+          sign_path "${app_path}"
+          codesign --verify --deep --strict "${app_path}"
+          codesign -dvv "${app_path}"
+
           payload_root="$(mktemp -d)"
           trap 'rm -rf "${payload_root}"' EXIT
           mkdir -p "${payload_root}/Payload"
-          cp -R "${apps[0]}" "${payload_root}/Payload/"
+          cp -R "${app_path}" "${payload_root}/Payload/"
 
           archive_path="$(pwd)/dist/${ARCHIVE_NAME}"
           rm -f "${archive_path}"
