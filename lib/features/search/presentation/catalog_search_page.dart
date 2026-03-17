@@ -3,9 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/app/app_page_state_cache.dart';
+import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_controller.dart';
+import 'package:sakuramedia/features/search/presentation/catalog_search_page_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -29,27 +32,47 @@ class CatalogSearchPage extends StatefulWidget {
 
 class _CatalogSearchPageState extends State<CatalogSearchPage>
     with SingleTickerProviderStateMixin {
-  late final CatalogSearchController _controller;
+  late final CatalogSearchPageStateEntry _pageState;
+  late final bool _ownsPageState;
   late final TextEditingController _textController;
   late final TabController _tabController;
-  late bool _useOnlineSearch;
+
+  CatalogSearchController get _controller => _pageState.controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = CatalogSearchController(
-      moviesApi: context.read<MoviesApi>(),
-      actorsApi: context.read<ActorsApi>(),
-    )..addListener(_handleControllerChanged);
-    _textController = TextEditingController(text: widget.initialQuery);
-    _tabController = TabController(length: 2, vsync: this);
-    _useOnlineSearch = widget.initialUseOnlineSearch;
-    if (widget.initialQuery.trim().isNotEmpty) {
-      _controller.submit(
-        widget.initialQuery,
-        useOnlineSearch: _useOnlineSearch,
+    final cache = maybeReadAppPageStateCache(context);
+    if (cache == null) {
+      _ownsPageState = true;
+      _pageState = CatalogSearchPageStateEntry(
+        moviesApi: context.read<MoviesApi>(),
+        actorsApi: context.read<ActorsApi>(),
+      );
+    } else {
+      _ownsPageState = false;
+      _pageState = cache.obtain<CatalogSearchPageStateEntry>(
+        key: desktopSearchPageStateKey(_resolveCachePath()),
+        create:
+            () => CatalogSearchPageStateEntry(
+              moviesApi: context.read<MoviesApi>(),
+              actorsApi: context.read<ActorsApi>(),
+            ),
       );
     }
+
+    _pageState.bootstrap(
+      initialQuery: widget.initialQuery,
+      initialUseOnlineSearch: widget.initialUseOnlineSearch,
+    );
+    _controller.addListener(_handleControllerChanged);
+    _textController = TextEditingController(text: _pageState.queryText)
+      ..addListener(_handleTextChanged);
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: _controller.activeKind == CatalogSearchKind.movies ? 0 : 1,
+    );
   }
 
   @override
@@ -58,24 +81,30 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
     final useOnlineSearchChanged =
         oldWidget.initialUseOnlineSearch != widget.initialUseOnlineSearch;
     if (useOnlineSearchChanged) {
-      _useOnlineSearch = widget.initialUseOnlineSearch;
+      _pageState.useOnlineSearch = widget.initialUseOnlineSearch;
     }
     if (!useOnlineSearchChanged &&
         oldWidget.initialQuery == widget.initialQuery) {
       return;
     }
+    _pageState.queryText = widget.initialQuery;
     _textController.text = widget.initialQuery;
     if (widget.initialQuery.trim().isEmpty) {
       return;
     }
-    _controller.submit(widget.initialQuery, useOnlineSearch: _useOnlineSearch);
+    _controller.submit(
+      widget.initialQuery,
+      useOnlineSearch: _pageState.useOnlineSearch,
+    );
   }
 
   @override
   void dispose() {
-    _controller
-      ..removeListener(_handleControllerChanged)
-      ..dispose();
+    _controller.removeListener(_handleControllerChanged);
+    if (_ownsPageState) {
+      _pageState.dispose();
+    }
+    _textController.removeListener(_handleTextChanged);
     _textController.dispose();
     _tabController.dispose();
     super.dispose();
@@ -90,9 +119,9 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
           controller: _controller,
           textController: _textController,
           tabController: _tabController,
-          useOnlineSearch: _useOnlineSearch,
+          useOnlineSearch: _pageState.useOnlineSearch,
           onOnlineSearchToggle:
-              (value) => setState(() => _useOnlineSearch = value),
+              (value) => setState(() => _pageState.useOnlineSearch = value),
           onSubmitSearch: _submitSearch,
           onTabSelected: (index) {
             _controller.setActiveKind(_kindForIndex(index));
@@ -115,12 +144,15 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
     );
   }
 
-  String get _currentSearchPath => buildDesktopSearchRoutePath(
-    _controller.query.isEmpty ? widget.initialQuery : _controller.query,
-  );
+  String get _currentSearchPath =>
+      _currentRoutePathOr(buildDesktopSearchRoutePath(widget.initialQuery));
 
   CatalogSearchKind _kindForIndex(int index) {
     return index == 0 ? CatalogSearchKind.movies : CatalogSearchKind.actors;
+  }
+
+  void _handleTextChanged() {
+    _pageState.queryText = _textController.text;
   }
 
   void _handleControllerChanged() {
@@ -139,9 +171,12 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
 
     if (trimmedQuery.isNotEmpty &&
         routePath == currentPath &&
-        widget.initialUseOnlineSearch == _useOnlineSearch) {
+        _pageState.useOnlineSearch == widget.initialUseOnlineSearch) {
       unawaited(
-        _controller.submit(submittedQuery, useOnlineSearch: _useOnlineSearch),
+        _controller.submit(
+          submittedQuery,
+          useOnlineSearch: _pageState.useOnlineSearch,
+        ),
       );
       return;
     }
@@ -149,7 +184,7 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
     context.pushDesktopSearch(
       query: submittedQuery,
       fallbackPath: widget.fallbackPath,
-      useOnlineSearch: _useOnlineSearch,
+      useOnlineSearch: _pageState.useOnlineSearch,
     );
   }
 
@@ -169,5 +204,19 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
       return;
     }
     showActorSubscriptionFeedback(result);
+  }
+
+  String _resolveCachePath() {
+    return _currentRoutePathOr(
+      buildDesktopSearchRoutePath(widget.initialQuery),
+    );
+  }
+
+  String _currentRoutePathOr(String fallbackPath) {
+    try {
+      return GoRouterState.of(context).uri.path;
+    } catch (_) {
+      return fallbackPath;
+    }
   }
 }

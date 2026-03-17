@@ -73,6 +73,12 @@ GoRouter _buildRouter({
   required String rootRedirectPath,
 }) {
   GoRouter.optionURLReflectsImperativeAPIs = true;
+  final desktopShellNavigatorKey = GlobalKey<NavigatorState>(
+    debugLabel: 'desktop-shell-navigator',
+  );
+  final mobileSubpageNavigatorKey = GlobalKey<NavigatorState>(
+    debugLabel: 'mobile-subpage-navigator',
+  );
   final shellRoutes = routeSpecs
       .map(
         (spec) =>
@@ -440,6 +446,7 @@ GoRouter _buildRouter({
     );
     routes.add(
       ShellRoute(
+        navigatorKey: desktopShellNavigatorKey,
         builder:
             (context, state, child) => AppDesktopShell(
               currentPath: state.uri.path,
@@ -452,6 +459,7 @@ GoRouter _buildRouter({
                 routeSpecs: routeSpecs,
                 routeExtra: state.extra,
               ),
+              shellNavigatorKey: desktopShellNavigatorKey,
               navGroups: navGroups,
               child: child,
             ),
@@ -499,10 +507,12 @@ GoRouter _buildRouter({
     );
     routes.add(
       ShellRoute(
+        navigatorKey: mobileSubpageNavigatorKey,
         builder:
             (context, state, child) => AppMobileSubpageShell(
               title: _mobileSubpageTitleFromPath(state.uri.path),
               fallbackPath: _mobileSubpageFallbackPathFromExtra(state.extra),
+              shellNavigatorKey: mobileSubpageNavigatorKey,
               bodyPadding: _mobileSubpageBodyPaddingFromPath(state.uri.path),
               child: child,
             ),

@@ -107,6 +107,27 @@ void main() {
     expect(placeholderStyle.style.color, sakuraThemeData.appColors.textMuted);
   });
 
+  testWidgets('supports compact trigger height for action rows', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            size: AppSelectFieldSize.compact,
+            value: 1,
+            items: const [DropdownMenuItem<int>(value: 1, child: Text('默认'))],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final triggerRect = tester.getRect(findTriggerSurface());
+    expect(triggerRect.height, moreOrLessEquals(36, epsilon: 0.1));
+  });
+
   testWidgets('opens menu selects item and closes on outside tap', (
     WidgetTester tester,
   ) async {

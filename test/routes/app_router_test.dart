@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
@@ -15,6 +16,11 @@ import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_result_item_dto.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
+import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
+import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
+import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
+import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
+import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
@@ -2072,6 +2078,288 @@ void main() {
     );
   });
 
+  testWidgets(
+    'desktop movies page keeps list state after detail back and route switches',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      _enqueueDesktopOverviewResponses(bundle);
+      _enqueueMobileMoviesResponse(bundle);
+      _enqueueMovieDetailResponse(bundle);
+      _enqueueMobileActorsResponse(bundle);
+      final router = buildDesktopRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        includeShellController: true,
+      );
+      await tester.pumpAndSettle();
+
+      router.go(desktopMoviesPath);
+      await tester.pumpAndSettle();
+      expect(bundle.adapter.hitCount('GET', '/movies'), 1);
+
+      await tester.tap(find.byKey(const Key('movie-summary-card-ABC-001')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('topbar-back-button')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, desktopMoviesPath);
+      expect(bundle.adapter.hitCount('GET', '/movies'), 1);
+
+      router.go(desktopActorsPath);
+      await tester.pumpAndSettle();
+      router.go(desktopMoviesPath);
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('GET', '/movies'), 1);
+      expect(
+        find.byKey(const Key('movie-summary-card-ABC-001')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'desktop actors page keeps list state after detail back and route switches',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      _enqueueDesktopOverviewResponses(bundle);
+      _enqueueMobileActorsResponse(bundle);
+      _enqueueActorDetailResponse(bundle);
+      _enqueueActorMoviesResponse(bundle);
+      _enqueueMobileMoviesResponse(bundle);
+      final router = buildDesktopRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        includeShellController: true,
+      );
+      await tester.pumpAndSettle();
+
+      router.go(desktopActorsPath);
+      await tester.pumpAndSettle();
+      expect(bundle.adapter.hitCount('GET', '/actors'), 1);
+
+      await tester.tap(find.byKey(const Key('actor-summary-card-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('topbar-back-button')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, desktopActorsPath);
+      expect(bundle.adapter.hitCount('GET', '/actors'), 1);
+
+      router.go(desktopMoviesPath);
+      await tester.pumpAndSettle();
+      router.go(desktopActorsPath);
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('GET', '/actors'), 1);
+      expect(find.byKey(const Key('actor-summary-card-1')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'desktop search page keeps results after detail back and route switches',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      _enqueueDesktopOverviewResponses(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/movies/search/parse-number',
+        body: <String, dynamic>{
+          'query': 'abc001',
+          'parsed': true,
+          'movie_number': 'ABC-001',
+          'reason': null,
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/search/local',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'javdb_id': 'MovieA1',
+            'movie_number': 'ABC-001',
+            'title': 'Movie 1',
+            'cover_image': null,
+            'release_date': null,
+            'duration_minutes': 120,
+            'is_subscribed': false,
+            'can_play': true,
+          },
+        ],
+      );
+      _enqueueMovieDetailResponse(bundle);
+      _enqueueMobileActorsResponse(bundle);
+      final router = buildDesktopRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        includeShellController: true,
+      );
+      await tester.pumpAndSettle();
+
+      router.go('/desktop/search/abc001');
+      await tester.pumpAndSettle();
+      expect(bundle.adapter.hitCount('POST', '/movies/search/parse-number'), 1);
+      expect(bundle.adapter.hitCount('GET', '/movies/search/local'), 1);
+
+      await tester.tap(find.byKey(const Key('movie-summary-card-ABC-001')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('topbar-back-button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/desktop/search/abc001',
+      );
+      expect(bundle.adapter.hitCount('POST', '/movies/search/parse-number'), 1);
+      expect(bundle.adapter.hitCount('GET', '/movies/search/local'), 1);
+
+      router.go(desktopActorsPath);
+      await tester.pumpAndSettle();
+      router.go('/desktop/search/abc001');
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('POST', '/movies/search/parse-number'), 1);
+      expect(bundle.adapter.hitCount('GET', '/movies/search/local'), 1);
+      expect(
+        find.byKey(const Key('movie-summary-card-ABC-001')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'desktop image search keeps source and results after route switches',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      _enqueueDesktopOverviewResponses(bundle);
+      _enqueueImageSearchSingleResultResponse(bundle);
+      _enqueueMovieDetailResponse(bundle);
+      _enqueueMobileActorsResponse(bundle);
+      final router = buildDesktopRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        includeShellController: true,
+      );
+      await tester.pumpAndSettle();
+
+      router.go(
+        desktopImageSearchPath,
+        extra: DesktopImageSearchRouteState(
+          fallbackPath: desktopOverviewPath,
+          initialFileName: 'query.png',
+          initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+          initialMimeType: 'image/png',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);
+      expect(
+        find.byKey(const Key('image-search-result-card-123')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const Key('image-search-result-card-123'),
+          skipOffstage: false,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.ancestor(of: find.text('影片详情'), matching: find.byType(InkWell)),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('topbar-back-button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        desktopImageSearchPath,
+      );
+      expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);
+
+      router.go(desktopActorsPath);
+      await tester.pumpAndSettle();
+      router.go(desktopImageSearchPath);
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);
+      expect(
+        find.byKey(const Key('image-search-result-card-123')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'mobile movies page keeps list state when leaving and returning',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore(
+        platform: AppPlatform.mobile,
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      _enqueueMobileMoviesResponse(bundle);
+      _enqueueMovieDetailResponse(bundle);
+      final router = buildMobileRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      router.go(mobileMoviesPath);
+      await tester.pumpAndSettle();
+      expect(bundle.adapter.hitCount('GET', '/movies'), 1);
+
+      await tester.tap(find.byKey(const Key('movie-summary-card-ABC-001')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, mobileMoviesPath);
+      expect(bundle.adapter.hitCount('GET', '/movies'), 1);
+
+      router.go(mobileOverviewPath);
+      await tester.pumpAndSettle();
+      router.go(mobileMoviesPath);
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('GET', '/movies'), 1);
+      expect(
+        find.byKey(const Key('movie-summary-card-ABC-001')),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('movie detail back resolves origin path consistently', (
     WidgetTester tester,
   ) async {
@@ -2152,6 +2440,9 @@ Future<void> _pumpRouterApp(
 }) {
   final providers = [
     ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+    ChangeNotifierProvider<AppPageStateCache>(
+      create: (_) => AppPageStateCache()..bindSessionStore(sessionStore),
+    ),
     if (includeShellController)
       ChangeNotifierProvider(create: (_) => AppShellController()),
     Provider<ApiClient>.value(value: bundle.apiClient),
@@ -2163,6 +2454,13 @@ Future<void> _pumpRouterApp(
     Provider<StatusApi>.value(value: bundle.statusApi),
     Provider<MoviesApi>.value(value: bundle.moviesApi),
     Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+    Provider<CollectionNumberFeaturesApi>.value(
+      value: bundle.collectionNumberFeaturesApi,
+    ),
+    Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
+    Provider<DownloadsApi>.value(value: bundle.downloadsApi),
+    Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
+    Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
   ];
 
   return tester.pumpWidget(

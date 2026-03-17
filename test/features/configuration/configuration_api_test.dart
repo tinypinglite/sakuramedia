@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/configuration/data/collection_number_features_dto.dart';
 import 'package:sakuramedia/features/configuration/data/download_client_dto.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/data/media_library_dto.dart';
@@ -174,6 +175,78 @@ void main() {
         bundle.adapter.requests[2].body['root_path'],
         '/media/library/archive-new',
       );
+    });
+
+    test('collection number features api maps singleton resource', () async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/collection-number-features',
+        body: {
+          'features': ['CJOB', 'DVAJ'],
+          'sync_stats': null,
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/collection-number-features',
+        body: {
+          'features': ['FC2', 'OFJE'],
+          'sync_stats': {
+            'total_movies': 100,
+            'matched_count': 30,
+            'updated_to_collection_count': 6,
+            'updated_to_single_count': 4,
+            'unchanged_count': 90,
+          },
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/collection-number-features',
+        body: {
+          'features': ['FC2'],
+          'sync_stats': null,
+        },
+      );
+
+      final fetched = await bundle.collectionNumberFeaturesApi.getFeatures();
+      final updatedWithSync = await bundle.collectionNumberFeaturesApi
+          .updateFeatures(
+            const UpdateCollectionNumberFeaturesPayload(
+              features: ['FC2', 'OFJE'],
+            ),
+            applyNow: true,
+          );
+      final updatedWithoutSync = await bundle.collectionNumberFeaturesApi
+          .updateFeatures(
+            const UpdateCollectionNumberFeaturesPayload(features: ['FC2']),
+            applyNow: false,
+          );
+
+      expect(fetched.features, ['CJOB', 'DVAJ']);
+      expect(fetched.syncStats, isNull);
+      expect(updatedWithSync.features, ['FC2', 'OFJE']);
+      expect(updatedWithSync.syncStats?.totalMovies, 100);
+      expect(updatedWithSync.syncStats?.updatedToCollectionCount, 6);
+      expect(updatedWithSync.syncStats?.updatedToSingleCount, 4);
+      expect(updatedWithoutSync.features, ['FC2']);
+      expect(updatedWithoutSync.syncStats, isNull);
+
+      final patchRequests = bundle.adapter.requests
+          .where(
+            (request) =>
+                request.method == 'PATCH' &&
+                request.path == '/collection-number-features',
+          )
+          .toList(growable: false);
+      expect(patchRequests[0].body['features'], ['FC2', 'OFJE']);
+      expect(patchRequests[0].uri.queryParameters['apply_now'], 'true');
+      expect(patchRequests[1].body['features'], ['FC2']);
+      expect(patchRequests[1].uri.queryParameters['apply_now'], 'false');
     });
 
     test('indexer settings api maps singleton resource', () async {

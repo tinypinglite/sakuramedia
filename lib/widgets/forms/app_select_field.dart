@@ -6,6 +6,9 @@ import 'package:sakuramedia/theme.dart';
 const double _kAppSelectItemHeight = 40;
 const double _kAppSelectMenuGap = 4;
 const double _kAppSelectMenuMaxHeight = 240;
+const double _kAppSelectTriggerCompactHeight = 36;
+
+enum AppSelectFieldSize { regular, compact }
 
 class AppSelectField<T> extends StatelessWidget {
   const AppSelectField({
@@ -16,6 +19,7 @@ class AppSelectField<T> extends StatelessWidget {
     this.label,
     this.validator,
     this.placeholder,
+    this.size = AppSelectFieldSize.regular,
   });
 
   final List<DropdownMenuItem<T>> items;
@@ -24,6 +28,7 @@ class AppSelectField<T> extends StatelessWidget {
   final String? label;
   final FormFieldValidator<T>? validator;
   final String? placeholder;
+  final AppSelectFieldSize size;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +43,7 @@ class AppSelectField<T> extends StatelessWidget {
           items: items,
           placeholder: placeholder ?? '请选择',
           errorText: field.errorText,
+          size: size,
           enabled: onChanged != null,
           onSelected: (nextValue) {
             field.didChange(nextValue);
@@ -55,6 +61,7 @@ class _AppSelectTrigger<T> extends StatefulWidget {
     required this.placeholder,
     required this.onSelected,
     required this.enabled,
+    required this.size,
     this.label,
     this.value,
     this.errorText,
@@ -64,6 +71,7 @@ class _AppSelectTrigger<T> extends StatefulWidget {
   final String placeholder;
   final ValueChanged<T> onSelected;
   final bool enabled;
+  final AppSelectFieldSize size;
   final String? label;
   final T? value;
   final String? errorText;
@@ -216,6 +224,7 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
     final textColor =
         selectedItem == null ? colors.textMuted : colors.textPrimary;
     final fontWeight = selectedItem == null ? FontWeight.w500 : FontWeight.w600;
+    final isCompact = widget.size == AppSelectFieldSize.compact;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,9 +252,10 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
                 key: _triggerKey,
                 duration: const Duration(milliseconds: 120),
                 width: double.infinity,
+                height: isCompact ? _kAppSelectTriggerCompactHeight : null,
                 padding: EdgeInsets.symmetric(
                   horizontal: context.appSpacing.lg,
-                  vertical: 14,
+                  vertical: isCompact ? 0 : 14,
                 ),
                 decoration: BoxDecoration(
                   color: colors.surfaceMuted,

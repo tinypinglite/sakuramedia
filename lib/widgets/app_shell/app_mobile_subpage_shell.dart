@@ -10,6 +10,7 @@ class AppMobileSubpageShell extends StatelessWidget {
     required this.fallbackPath,
     required this.child,
     this.onBackOverride,
+    this.shellNavigatorKey,
     this.bodyPadding = AppPageInsets.compactStandard,
   });
 
@@ -17,12 +18,13 @@ class AppMobileSubpageShell extends StatelessWidget {
   final String fallbackPath;
   final Widget child;
   final VoidCallback? onBackOverride;
+  final GlobalKey<NavigatorState>? shellNavigatorKey;
   final EdgeInsetsGeometry bodyPadding;
 
   @override
   Widget build(BuildContext context) {
     final content = PopScope<void>(
-      canPop: Navigator.of(context).canPop(),
+      canPop: _canPop(context),
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) {
           return;
@@ -76,8 +78,7 @@ class AppMobileSubpageShell extends StatelessWidget {
 
     return BackButtonListener(
       onBackButtonPressed: () async {
-        final navigator = Navigator.of(context);
-        if (navigator.canPop()) {
+        if (_canPop(context)) {
           return false;
         }
         context.go(fallbackPath);
@@ -88,12 +89,17 @@ class AppMobileSubpageShell extends StatelessWidget {
   }
 
   void _handleBack(BuildContext context) {
-    final navigator = Navigator.of(context);
+    final navigator = shellNavigatorKey?.currentState ?? Navigator.of(context);
     if (navigator.canPop()) {
       navigator.pop();
       return;
     }
     context.go(fallbackPath);
+  }
+
+  bool _canPop(BuildContext context) {
+    final navigator = shellNavigatorKey?.currentState ?? Navigator.of(context);
+    return navigator.canPop();
   }
 
   SystemUiOverlayStyle _mobileSystemOverlayStyle(BuildContext context) {

@@ -6,10 +6,16 @@ import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_window_drag_area.dart';
 
 class AppTopBar extends StatelessWidget {
-  const AppTopBar({super.key, required this.currentPath, required this.config});
+  const AppTopBar({
+    super.key,
+    required this.currentPath,
+    required this.config,
+    this.shellNavigatorKey,
+  });
 
   final String currentPath;
   final DesktopTopBarConfig config;
+  final GlobalKey<NavigatorState>? shellNavigatorKey;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +81,12 @@ class AppTopBar extends StatelessWidget {
   }
 
   Future<void> _handleBack(BuildContext context) async {
+    final shellNavigator = shellNavigatorKey?.currentState;
+    if (shellNavigator != null && shellNavigator.canPop()) {
+      shellNavigator.pop();
+      return;
+    }
+
     final router = GoRouter.of(context);
     if (router.canPop()) {
       router.pop();

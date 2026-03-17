@@ -9,6 +9,7 @@ import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
@@ -72,6 +73,227 @@ void main() {
       expect(bundle.adapter.hitCount('GET', '/download-clients'), 1);
       expect(bundle.adapter.hitCount('GET', '/media-libraries'), 2);
       expect(find.text('还没有下载器配置'), findsOneWidget);
+    });
+
+    testWidgets('loads collection number features on basic tab', (
+      WidgetTester tester,
+    ) async {
+      _enqueueCollectionNumberFeatures(bundle, features: const ['FC2', 'OFJE']);
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      final field = tester.widget<TextFormField>(
+        find.byKey(const Key('configuration-collection-features-field')),
+      );
+      expect(field.controller?.text, 'FC2\nOFJE');
+      expect(
+        bundle.adapter.hitCount('GET', '/collection-number-features'),
+        greaterThanOrEqualTo(1),
+      );
+    });
+
+    testWidgets(
+      'collection feature action controls are right aligned and fixed width',
+      (WidgetTester tester) async {
+        _enqueueCollectionNumberFeatures(bundle, features: const ['FC2']);
+        _enqueueMediaLibraries(bundle);
+
+        await _pumpPage(tester, bundle, sessionStore: sessionStore);
+        await tester.ensureVisible(
+          find.byKey(
+            const Key('configuration-collection-features-save-button'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final selectRect = tester.getRect(
+          find.byKey(const Key('configuration-collection-apply-now-field')),
+        );
+        final buttonRect = tester.getRect(
+          find.byKey(
+            const Key('configuration-collection-features-save-button'),
+          ),
+        );
+        final fieldRect = tester.getRect(
+          find.byKey(const Key('configuration-collection-features-field')),
+        );
+
+        expect(selectRect.width, buttonRect.width);
+        expect(
+          selectRect.height,
+          moreOrLessEquals(buttonRect.height, epsilon: 0.1),
+        );
+        expect(selectRect.width, lessThan(fieldRect.width));
+        expect(
+          (fieldRect.right - buttonRect.right).abs(),
+          lessThanOrEqualTo(1),
+        );
+      },
+    );
+
+    testWidgets('saves collection number features with apply_now false', (
+      WidgetTester tester,
+    ) async {
+      _enqueueCollectionNumberFeatures(bundle, features: const ['FC2']);
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/collection-number-features',
+        body: {
+          'features': ['OFJE', 'FC2'],
+          'sync_stats': null,
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-collection-features-field')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('configuration-collection-features-field')),
+        ' ofje \nFC2\n',
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-collection-apply-now-field')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-collection-apply-now-field')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('仅保存特征配置').last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-collection-features-save-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-collection-features-save-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final patchRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'PATCH' &&
+            request.path == '/collection-number-features',
+      );
+      expect(patchRequest.body['features'], ['ofje', 'FC2']);
+      expect(patchRequest.uri.queryParameters['apply_now'], 'false');
+
+      final field = tester.widget<TextFormField>(
+        find.byKey(const Key('configuration-collection-features-field')),
+      );
+      expect(field.controller?.text, 'OFJE\nFC2');
+      expect(find.text('最近一次即时重算结果'), findsNothing);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('saves collection number features with sync stats', (
+      WidgetTester tester,
+    ) async {
+      _enqueueCollectionNumberFeatures(bundle, features: const ['FC2']);
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/collection-number-features',
+        body: {
+          'features': ['FC2', 'OFJE'],
+          'sync_stats': {
+            'total_movies': 100,
+            'matched_count': 20,
+            'updated_to_collection_count': 5,
+            'updated_to_single_count': 3,
+            'unchanged_count': 92,
+          },
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-collection-features-field')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('configuration-collection-features-field')),
+        'FC2\nOFJE',
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-collection-features-save-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-collection-features-save-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final patchRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'PATCH' &&
+            request.path == '/collection-number-features',
+      );
+      expect(patchRequest.uri.queryParameters['apply_now'], 'true');
+      expect(find.text('最近一次即时重算结果'), findsOneWidget);
+      expect(find.text('影片总数: 100'), findsOneWidget);
+      expect(find.text('更新为合集: 5'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('keeps input when saving collection features fails', (
+      WidgetTester tester,
+    ) async {
+      _enqueueCollectionNumberFeatures(bundle, features: const ['FC2']);
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueResponder(
+        method: 'PATCH',
+        path: '/collection-number-features',
+        responder: (options, requestBody) async {
+          return ResponseBody.fromString(
+            jsonEncode({
+              'error': {
+                'code': 'invalid_collection_number_feature',
+                'message': '特征值不合法',
+              },
+            }),
+            422,
+            headers: const {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-collection-features-field')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('configuration-collection-features-field')),
+        'FC2\n??',
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-collection-features-save-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-collection-features-save-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextFormField>(
+        find.byKey(const Key('configuration-collection-features-field')),
+      );
+      expect(field.controller?.text, 'FC2\n??');
+      expect(
+        bundle.adapter.hitCount('PATCH', '/collection-number-features'),
+        1,
+      );
+      await tester.pump(const Duration(seconds: 3));
     });
 
     testWidgets('loads playlists lazily and hides system playlists', (
@@ -1571,6 +1793,9 @@ void main() {
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           Provider<AccountApi>.value(value: bundle.accountApi),
           Provider<AuthApi>.value(value: bundle.authApi),
+          Provider<CollectionNumberFeaturesApi>.value(
+            value: bundle.collectionNumberFeaturesApi,
+          ),
           Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
           Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
           Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
@@ -1630,6 +1855,9 @@ Future<void> _pumpPage(
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         Provider<AccountApi>.value(value: bundle.accountApi),
         Provider<AuthApi>.value(value: bundle.authApi),
+        Provider<CollectionNumberFeaturesApi>.value(
+          value: bundle.collectionNumberFeaturesApi,
+        ),
         Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
         Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
         Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
@@ -1723,6 +1951,19 @@ void _enqueueMediaLibraries(
     method: 'GET',
     path: '/media-libraries',
     body: libraries,
+  );
+  _enqueueCollectionNumberFeatures(bundle);
+}
+
+void _enqueueCollectionNumberFeatures(
+  TestApiBundle bundle, {
+  List<String> features = const ['CJOB', 'DVAJ'],
+  Map<String, Object?>? syncStats,
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/collection-number-features',
+    body: {'features': features, 'sync_stats': syncStats},
   );
 }
 

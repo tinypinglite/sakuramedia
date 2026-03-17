@@ -3,6 +3,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
+import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
@@ -19,6 +20,7 @@ class TestApiBundle {
     required this.accountApi,
     required this.actorsApi,
     required this.authApi,
+    required this.collectionNumberFeaturesApi,
     required this.downloadClientsApi,
     required this.downloadsApi,
     required this.indexerSettingsApi,
@@ -33,6 +35,7 @@ class TestApiBundle {
   final AccountApi accountApi;
   final ActorsApi actorsApi;
   final AuthApi authApi;
+  final CollectionNumberFeaturesApi collectionNumberFeaturesApi;
   final DownloadClientsApi downloadClientsApi;
   final DownloadsApi downloadsApi;
   final IndexerSettingsApi indexerSettingsApi;
@@ -58,6 +61,9 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     accountApi: AccountApi(apiClient: apiClient),
     actorsApi: ActorsApi(apiClient: apiClient),
     authApi: AuthApi(apiClient: apiClient, sessionStore: sessionStore),
+    collectionNumberFeaturesApi: CollectionNumberFeaturesApi(
+      apiClient: apiClient,
+    ),
     downloadClientsApi: DownloadClientsApi(apiClient: apiClient),
     downloadsApi: DownloadsApi(apiClient: apiClient),
     indexerSettingsApi: IndexerSettingsApi(apiClient: apiClient),
