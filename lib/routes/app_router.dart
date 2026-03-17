@@ -37,7 +37,7 @@ GoRouter buildAppRouter(AppPlatform platform, SessionStore sessionStore) {
     case AppPlatform.mobile:
       return buildMobileRouter(sessionStore: sessionStore);
     case AppPlatform.web:
-      return buildWebRouter(sessionStore: sessionStore);
+      return buildDesktopRouter(sessionStore: sessionStore);
   }
 }
 
@@ -62,13 +62,7 @@ GoRouter buildMobileRouter({required SessionStore sessionStore}) {
 }
 
 GoRouter buildWebRouter({required SessionStore sessionStore}) {
-  return _buildRouter(
-    platform: AppPlatform.web,
-    sessionStore: sessionStore,
-    navGroups: webNavGroups,
-    routeSpecs: webRouteSpecs,
-    rootRedirectPath: webOverviewPath,
-  );
+  return buildDesktopRouter(sessionStore: sessionStore);
 }
 
 GoRouter _buildRouter({

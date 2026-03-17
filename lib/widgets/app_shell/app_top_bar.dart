@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
-import 'package:window_manager/window_manager.dart';
+import 'package:sakuramedia/widgets/app_shell/app_window_drag_area.dart';
 
 class AppTopBar extends StatelessWidget {
   const AppTopBar({super.key, required this.currentPath, required this.config});
@@ -47,7 +47,7 @@ class AppTopBar extends StatelessWidget {
                   ),
                 if (titleLeadingGap > 0) SizedBox(width: titleLeadingGap),
                 Expanded(
-                  child: DragToMoveArea(
+                  child: AppWindowDragArea(
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text(

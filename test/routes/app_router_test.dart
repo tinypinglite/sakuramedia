@@ -67,12 +67,37 @@ void main() {
     ]);
   });
 
-  test('web route placeholders remain intact', () {
-    expect(webRouteSpecs.length, greaterThan(1));
+  test('web overview path resolves to desktop overview path', () {
+    expect(overviewPathForPlatform(AppPlatform.web), desktopOverviewPath);
     expect(
-      webRouteSpecs.any((spec) => spec.path.endsWith('/system/ui-kit')),
+      webRouteSpecs.every((spec) => spec.path.startsWith('/desktop/')),
       isTrue,
     );
+  });
+
+  testWidgets('web platform reuses desktop router shell and paths', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.web,
+    );
+    addTearDown(sessionStore.dispose);
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    final router = buildAppRouter(AppPlatform.web, sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, desktopOverviewPath);
+    expect(find.byKey(const Key('desktop-shell-sidebar')), findsOneWidget);
   });
 
   test('desktop top bar config disables back on overview', () {
