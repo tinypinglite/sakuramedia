@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -55,13 +57,13 @@ class MaskedImage extends StatelessWidget {
 
     Widget imageContent = image;
 
-    if (AppImageConfig.enableMask) {
-      imageContent = ColorFiltered(
-        colorFilter: ColorFilter.mode(
-          context.appColors.mediaMaskOverlay,
-          BlendMode.srcOver,
+    if (AppImageConfig.enableBlur && AppImageConfig.blurSigma > 0) {
+      imageContent = ImageFiltered(
+        imageFilter: ImageFilter.blur(
+          sigmaX: AppImageConfig.blurSigma,
+          sigmaY: AppImageConfig.blurSigma,
         ),
-        child: image,
+        child: imageContent,
       );
     }
 

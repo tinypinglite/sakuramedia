@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -121,7 +123,6 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
     final radius = widget.borderRadius ?? BorderRadius.zero;
 
     if (_resolvedImageProvider == null) {
@@ -153,11 +154,11 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
       },
     );
 
-    if (AppImageConfig.enableMask) {
-      image = ColorFiltered(
-        colorFilter: ColorFilter.mode(
-          colors.mediaMaskOverlay,
-          BlendMode.srcOver,
+    if (AppImageConfig.enableBlur && AppImageConfig.blurSigma > 0) {
+      image = ImageFiltered(
+        imageFilter: ImageFilter.blur(
+          sigmaX: AppImageConfig.blurSigma,
+          sigmaY: AppImageConfig.blurSigma,
         ),
         child: image,
       );
