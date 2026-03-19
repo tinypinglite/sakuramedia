@@ -21,6 +21,7 @@ class DesktopOverviewPage extends StatefulWidget {
 class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
   bool _isLoadingStatus = true;
   StatusDto? _status;
+  StatusImageSearchDto? _imageSearchStatus;
   String? _statusError;
   late final PagedMovieSummaryController _moviesController;
 
@@ -50,8 +51,13 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
 
   Future<void> _loadOverview() async {
     final statusFuture = _loadStatus();
+    final imageSearchStatusFuture = _loadImageSearchStatus();
     final moviesFuture = _moviesController.initialize();
-    await Future.wait<void>([statusFuture, moviesFuture]);
+    await Future.wait<void>([
+      statusFuture,
+      imageSearchStatusFuture,
+      moviesFuture,
+    ]);
   }
 
   Future<void> _loadStatus() async {
@@ -72,6 +78,26 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
       setState(() {
         _statusError = '系统信息加载失败，请稍后重试';
         _isLoadingStatus = false;
+      });
+    }
+  }
+
+  Future<void> _loadImageSearchStatus() async {
+    try {
+      final imageSearchStatus =
+          await context.read<StatusApi>().getImageSearchStatus();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _imageSearchStatus = imageSearchStatus;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _imageSearchStatus = null;
       });
     }
   }
@@ -121,6 +147,21 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
                 id: 'media-files-size',
                 label: '媒体总量',
                 value: _formatGigabytes(_status!.mediaFiles.totalSizeBytes),
+              ),
+              OverviewStatItem(
+                id: 'joytag-health',
+                label: 'JoyTag 健康',
+                value: _buildJoyTagHealthValue(),
+              ),
+              OverviewStatItem(
+                id: 'joytag-device',
+                label: '推理设备',
+                value: _buildJoyTagDeviceValue(),
+              ),
+              OverviewStatItem(
+                id: 'joytag-indexing-backlog',
+                label: '待索引',
+                value: _buildJoyTagIndexingValue(),
               ),
             ];
 
@@ -183,6 +224,28 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
     const bytesPerGigabyte = 1024 * 1024 * 1024;
     final value = bytes <= 0 ? 0.0 : bytes / bytesPerGigabyte;
     return '${value.toStringAsFixed(1)} GB';
+  }
+
+  String _buildJoyTagHealthValue() {
+    if (_imageSearchStatus == null) {
+      return '不可用';
+    }
+    return _imageSearchStatus!.joyTag.healthy ? '正常' : '异常';
+  }
+
+  String _buildJoyTagDeviceValue() {
+    final device = _imageSearchStatus?.joyTag.usedDevice;
+    if (device == null || device.trim().isEmpty) {
+      return '未知';
+    }
+    return device;
+  }
+
+  String _buildJoyTagIndexingValue() {
+    if (_imageSearchStatus == null) {
+      return '不可用';
+    }
+    return _imageSearchStatus!.indexing.pendingThumbnails.toString();
   }
 
   Widget? _buildMovieLoadMoreFooter(BuildContext context) {

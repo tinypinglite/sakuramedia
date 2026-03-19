@@ -10,4 +10,9 @@ class StatusApi {
     final response = await _apiClient.get('/status');
     return StatusDto.fromJson(response);
   }
+
+  Future<StatusImageSearchDto> getImageSearchStatus() async {
+    final response = await _apiClient.get('/status/image-search');
+    return StatusImageSearchDto.fromJson(response);
+  }
 }
