@@ -75,6 +75,22 @@ void main() {
     expect(find.text('2024-01-01'), findsNothing);
     expect(find.text('0.9 GB'), findsOneWidget);
     expect(find.textContaining('MB'), findsNothing);
+    expect(
+      find.byKey(const Key('overview-stat-joytag-health')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('overview-stat-joytag-device')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('overview-stat-joytag-indexing-backlog')),
+      findsOneWidget,
+    );
+    expect(find.text('待索引'), findsOneWidget);
+    expect(find.text('正常'), findsOneWidget);
+    expect(find.text('GPU'), findsOneWidget);
+    expect(find.text('23'), findsOneWidget);
   });
 
   testWidgets('desktop overview uses a denser poster grid on wide screens', (
@@ -108,6 +124,7 @@ void main() {
       statusCode: 200,
       body: _statusJson(totalSizeBytes: 0),
     );
+    _enqueueImageSearchStatusSuccess(bundle);
     _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
 
     await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
@@ -117,10 +134,68 @@ void main() {
   });
 
   testWidgets(
+    'desktop overview shows fallback joytag values when image search status fails',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/status',
+        statusCode: 200,
+        body: _statusJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/status/image-search',
+        statusCode: 500,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{
+            'code': 'server_error',
+            'message': 'server error',
+          },
+        },
+      );
+      _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
+
+      await _pumpOverviewPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      final joyTagHealthTile = find.byKey(
+        const Key('overview-stat-joytag-health'),
+      );
+      final joyTagDeviceTile = find.byKey(
+        const Key('overview-stat-joytag-device'),
+      );
+      final joyTagIndexingTile = find.byKey(
+        const Key('overview-stat-joytag-indexing-backlog'),
+      );
+
+      expect(joyTagHealthTile, findsOneWidget);
+      expect(joyTagDeviceTile, findsOneWidget);
+      expect(joyTagIndexingTile, findsOneWidget);
+      expect(
+        find.descendant(of: joyTagHealthTile, matching: find.text('不可用')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: joyTagDeviceTile, matching: find.text('未知')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: joyTagIndexingTile, matching: find.text('不可用')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'desktop overview shows loading placeholders before data resolves',
     (WidgetTester tester) async {
       final statusCompleter = Completer<void>();
       final moviesCompleter = Completer<void>();
+      _enqueueImageSearchStatusSuccess(bundle);
 
       bundle.adapter.enqueueResponder(
         method: 'GET',
@@ -380,6 +455,16 @@ void _enqueueStatusSuccess(TestApiBundle bundle) {
     statusCode: 200,
     body: _statusJson(),
   );
+  _enqueueImageSearchStatusSuccess(bundle);
+}
+
+void _enqueueImageSearchStatusSuccess(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/status/image-search',
+    statusCode: 200,
+    body: _imageSearchStatusJson(),
+  );
 }
 
 void _enqueueLatestMoviesSuccess(
@@ -413,6 +498,28 @@ Map<String, dynamic> _statusJson({int totalSizeBytes = 987654321}) {
       'total_size_bytes': totalSizeBytes,
     },
     'media_libraries': <String, dynamic>{'total': 3},
+  };
+}
+
+Map<String, dynamic> _imageSearchStatusJson({
+  bool healthy = true,
+  bool joyTagHealthy = true,
+  String? usedDevice = 'GPU',
+  int pendingThumbnails = 23,
+  int failedThumbnails = 2,
+}) {
+  return <String, dynamic>{
+    'healthy': healthy,
+    'checked_at': '2026-03-16T07:30:00Z',
+    'joytag': <String, dynamic>{
+      'healthy': joyTagHealthy,
+      'used_device': usedDevice,
+    },
+    'indexing': <String, dynamic>{
+      'pending_thumbnails': pendingThumbnails,
+      'failed_thumbnails': failedThumbnails,
+      'success_thumbnails': 15295,
+    },
   };
 }
 

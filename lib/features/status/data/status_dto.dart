@@ -85,6 +85,78 @@ class MediaLibraryStatsDto {
   }
 }
 
+class ImageSearchJoyTagStatsDto {
+  const ImageSearchJoyTagStatsDto({required this.healthy, this.usedDevice});
+
+  final bool healthy;
+  final String? usedDevice;
+
+  factory ImageSearchJoyTagStatsDto.fromJson(Map<String, dynamic> json) {
+    return ImageSearchJoyTagStatsDto(
+      healthy: _asBool(json['healthy']),
+      usedDevice: json['used_device'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{'healthy': healthy, 'used_device': usedDevice};
+  }
+}
+
+class ImageSearchIndexingStatsDto {
+  const ImageSearchIndexingStatsDto({
+    required this.pendingThumbnails,
+    required this.failedThumbnails,
+  });
+
+  final int pendingThumbnails;
+  final int failedThumbnails;
+
+  factory ImageSearchIndexingStatsDto.fromJson(Map<String, dynamic> json) {
+    return ImageSearchIndexingStatsDto(
+      pendingThumbnails: _asInt(json['pending_thumbnails']),
+      failedThumbnails: _asInt(json['failed_thumbnails']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'pending_thumbnails': pendingThumbnails,
+      'failed_thumbnails': failedThumbnails,
+    };
+  }
+}
+
+class StatusImageSearchDto {
+  const StatusImageSearchDto({
+    required this.healthy,
+    required this.joyTag,
+    required this.indexing,
+  });
+
+  final bool healthy;
+  final ImageSearchJoyTagStatsDto joyTag;
+  final ImageSearchIndexingStatsDto indexing;
+
+  factory StatusImageSearchDto.fromJson(Map<String, dynamic> json) {
+    return StatusImageSearchDto(
+      healthy: _asBool(json['healthy']),
+      joyTag: ImageSearchJoyTagStatsDto.fromJson(_asJsonMap(json['joytag'])),
+      indexing: ImageSearchIndexingStatsDto.fromJson(
+        _asJsonMap(json['indexing']),
+      ),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'healthy': healthy,
+      'joytag': joyTag.toJson(),
+      'indexing': indexing.toJson(),
+    };
+  }
+}
+
 class StatusDto {
   const StatusDto({
     required this.actors,
@@ -117,16 +189,24 @@ class StatusDto {
       'media_libraries': mediaLibraries.toJson(),
     };
   }
+}
 
-  static Map<String, dynamic> _asJsonMap(dynamic value) {
-    if (value is Map<String, dynamic>) {
-      return value;
-    }
-    if (value is Map) {
-      return value.map(
-        (dynamic key, dynamic data) => MapEntry(key.toString(), data),
-      );
-    }
-    return const <String, dynamic>{};
+Map<String, dynamic> _asJsonMap(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return value;
   }
+  if (value is Map) {
+    return value.map(
+      (dynamic key, dynamic data) => MapEntry(key.toString(), data),
+    );
+  }
+  return const <String, dynamic>{};
+}
+
+int _asInt(dynamic value) {
+  return value is int ? value : 0;
+}
+
+bool _asBool(dynamic value) {
+  return value is bool ? value : false;
 }

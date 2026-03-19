@@ -86,4 +86,55 @@ void main() {
       ),
     );
   });
+
+  test('getImageSearchStatus parses joytag and indexing stats', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/status/image-search',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'healthy': true,
+        'joytag': <String, dynamic>{'healthy': true, 'used_device': 'GPU'},
+        'indexing': <String, dynamic>{
+          'pending_thumbnails': 23,
+          'failed_thumbnails': 2,
+          'success_thumbnails': 15295,
+        },
+      },
+    );
+
+    final status = await statusApi.getImageSearchStatus();
+
+    expect(status.healthy, isTrue);
+    expect(status.joyTag.healthy, isTrue);
+    expect(status.joyTag.usedDevice, 'GPU');
+    expect(status.indexing.pendingThumbnails, 23);
+    expect(status.indexing.failedThumbnails, 2);
+  });
+
+  test('getImageSearchStatus converts backend error to ApiException', () async {
+    await sessionStore.clearSession();
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/status/image-search',
+      statusCode: 401,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'unauthorized',
+          'message': 'Unauthorized',
+        },
+      },
+    );
+
+    expect(
+      () => statusApi.getImageSearchStatus(),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'unauthorized',
+        ),
+      ),
+    );
+  });
 }

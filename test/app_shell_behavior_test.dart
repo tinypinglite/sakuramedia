@@ -566,6 +566,18 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
   );
   bundle.adapter.enqueueJson(
     method: 'GET',
+    path: '/status/image-search',
+    body: <String, dynamic>{
+      'healthy': true,
+      'joytag': <String, dynamic>{'healthy': true, 'used_device': 'GPU'},
+      'indexing': <String, dynamic>{
+        'pending_thumbnails': 23,
+        'failed_thumbnails': 2,
+      },
+    },
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
     path: '/movies/latest',
     body: <String, dynamic>{
       'items': List<Map<String, dynamic>>.generate(

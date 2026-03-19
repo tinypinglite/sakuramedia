@@ -19,5 +19,8 @@ void main() {
     expect(source, isNot(contains('height: 10')));
     expect(source, isNot(contains('width: 96')));
     expect(source, isNot(contains('height: 22')));
+    expect(source, contains('maxLines: 1'));
+    expect(source, contains('softWrap: false'));
+    expect(source, contains('TextOverflow.ellipsis'));
   });
 }

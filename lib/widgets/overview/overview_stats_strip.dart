@@ -101,6 +101,9 @@ class _OverviewStatTile extends StatelessWidget {
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: context.appColors.textPrimary,
             ),
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
