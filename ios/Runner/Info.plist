@@ -31,6 +31,8 @@
 	<string>用于将图片搜索结果保存到系统相册。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>用于从系统相册选择图片进行以图搜图。</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>用于连接局域网中的 SakuraMedia 服务器（NAS）以完成登录与媒体访问。</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
