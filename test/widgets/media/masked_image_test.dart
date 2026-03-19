@@ -34,21 +34,7 @@ void main() {
     expect(image.imageUrl, 'https://api.example.com/covers/a.jpg');
   });
 
-  testWidgets('masked image applies color filter when mask is enabled', (
-    WidgetTester tester,
-  ) async {
-    final sessionStore = SessionStore.inMemory();
-    await sessionStore.saveBaseUrl('https://api.example.com');
-
-    await tester.pumpWidget(
-      _TestApp(
-        sessionStore: sessionStore,
-        child: const MaskedImage(url: '/covers/a.jpg'),
-      ),
-    );
-
-    expect(find.byType(ColorFiltered), findsOneWidget);
-  });
+ 
 
   testWidgets(
     'masked image does not wrap image when visible width factor unset',

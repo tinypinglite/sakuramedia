@@ -134,6 +134,101 @@ void main() {
   });
 
   testWidgets(
+    'desktop overview shows joytag loading values before image search status resolves',
+    (WidgetTester tester) async {
+      final imageSearchStatusCompleter = Completer<void>();
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/status',
+        statusCode: 200,
+        body: _statusJson(),
+      );
+      bundle.adapter.enqueueResponder(
+        method: 'GET',
+        path: '/status/image-search',
+        responder: (options, body) async {
+          await imageSearchStatusCompleter.future;
+          return ResponseBody.fromString(
+            jsonEncode(_imageSearchStatusJson()),
+            200,
+            headers: const <String, List<String>>{
+              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+            },
+          );
+        },
+      );
+      _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
+
+      await _pumpOverviewPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+
+      final joyTagHealthTile = find.byKey(
+        const Key('overview-stat-joytag-health'),
+      );
+      final joyTagDeviceTile = find.byKey(
+        const Key('overview-stat-joytag-device'),
+      );
+      final joyTagIndexingTile = find.byKey(
+        const Key('overview-stat-joytag-indexing-backlog'),
+      );
+
+      for (var i = 0; i < 10; i++) {
+        if (joyTagHealthTile.evaluate().isNotEmpty) {
+          break;
+        }
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      expect(joyTagHealthTile, findsOneWidget);
+      expect(joyTagDeviceTile, findsOneWidget);
+      expect(joyTagIndexingTile, findsOneWidget);
+      expect(
+        find.byKey(const Key('overview-stat-loading-joytag-health')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('overview-stat-loading-joytag-device')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('overview-stat-loading-joytag-indexing-backlog')),
+        findsOneWidget,
+      );
+
+      imageSearchStatusCompleter.complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(of: joyTagHealthTile, matching: find.text('正常')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: joyTagDeviceTile, matching: find.text('GPU')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: joyTagIndexingTile, matching: find.text('23')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('overview-stat-loading-joytag-health')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('overview-stat-loading-joytag-device')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('overview-stat-loading-joytag-indexing-backlog')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
     'desktop overview shows fallback joytag values when image search status fails',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
@@ -186,6 +281,18 @@ void main() {
       expect(
         find.descendant(of: joyTagIndexingTile, matching: find.text('不可用')),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('overview-stat-loading-joytag-health')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('overview-stat-loading-joytag-device')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('overview-stat-loading-joytag-indexing-backlog')),
+        findsNothing,
       );
     },
   );

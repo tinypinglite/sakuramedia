@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/movies/presentation/mobile_movies_page.dart
 import 'package:sakuramedia/features/overview/presentation/desktop_overview_page.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_skeleton_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlists_page.dart';
+import 'package:sakuramedia/features/rankings/presentation/desktop_rankings_page.dart';
 import 'package:sakuramedia/features/rankings/presentation/mobile_rankings_page.dart';
 import 'package:sakuramedia/features/workbench/workbench_placeholder_page.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
@@ -20,6 +21,7 @@ const String desktopMoviesPath = '/desktop/library/movies';
 const String desktopActorsPath = '/desktop/library/actors';
 const String desktopMomentsPath = '/desktop/library/moments';
 const String desktopPlaylistsPath = '/desktop/library/playlists';
+const String desktopRankingsPath = '/desktop/library/rankings';
 const String desktopConfigurationPath = '/desktop/system/configuration';
 const String mobileOverviewPath = '/mobile/overview';
 const String mobilePlaylistDetailPathPrefix = '$mobileOverviewPath/playlists';
@@ -241,6 +243,19 @@ const List<_NavSeed> _desktopNavSeeds = [
     ],
   ),
   _NavSeed(
+    id: 'rankings',
+    label: '排行榜',
+    icon: Icons.local_fire_department_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'library/rankings',
+        label: '排行榜',
+        icon: Icons.local_fire_department_outlined,
+        description: '来源榜单聚合、周期切换与影片热榜浏览入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
     id: 'configuration',
     label: '配置管理',
     icon: Icons.settings_suggest_outlined,
@@ -351,6 +366,9 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
                         : useDesktopExperience &&
                             item.path == desktopPlaylistsPath
                         ? const DesktopPlaylistsPage()
+                        : useDesktopExperience &&
+                            item.path == desktopRankingsPath
+                        ? const DesktopRankingsPage()
                         : useDesktopExperience &&
                             item.path == desktopConfigurationPath
                         ? const DesktopConfigurationPage()

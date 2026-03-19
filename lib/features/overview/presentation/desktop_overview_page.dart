@@ -20,6 +20,7 @@ class DesktopOverviewPage extends StatefulWidget {
 
 class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
   bool _isLoadingStatus = true;
+  bool _isLoadingImageSearchStatus = true;
   StatusDto? _status;
   StatusImageSearchDto? _imageSearchStatus;
   String? _statusError;
@@ -91,6 +92,7 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
       }
       setState(() {
         _imageSearchStatus = imageSearchStatus;
+        _isLoadingImageSearchStatus = false;
       });
     } catch (_) {
       if (!mounted) {
@@ -98,6 +100,7 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
       }
       setState(() {
         _imageSearchStatus = null;
+        _isLoadingImageSearchStatus = false;
       });
     }
   }
@@ -152,16 +155,19 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
                 id: 'joytag-health',
                 label: 'JoyTag 健康',
                 value: _buildJoyTagHealthValue(),
+                isLoading: _isLoadingImageSearchStatus,
               ),
               OverviewStatItem(
                 id: 'joytag-device',
                 label: '推理设备',
                 value: _buildJoyTagDeviceValue(),
+                isLoading: _isLoadingImageSearchStatus,
               ),
               OverviewStatItem(
                 id: 'joytag-indexing-backlog',
                 label: '待索引',
                 value: _buildJoyTagIndexingValue(),
+                isLoading: _isLoadingImageSearchStatus,
               ),
             ];
 
