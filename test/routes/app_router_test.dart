@@ -1618,7 +1618,7 @@ void main() {
     expect(find.byKey(const Key('actor-summary-card-1')), findsOneWidget);
   });
 
-  testWidgets('mobile rankings root route renders developing placeholder', (
+  testWidgets('mobile rankings root route renders real page', (
     WidgetTester tester,
   ) async {
     final sessionStore = await _buildLoggedInSessionStore(
@@ -1626,6 +1626,7 @@ void main() {
     );
     final bundle = await createTestApiBundle(sessionStore);
     addTearDown(bundle.dispose);
+    _enqueueDesktopRankingsResponses(bundle);
     final router = buildMobileRouter(sessionStore: sessionStore);
 
     await _pumpRouterApp(
@@ -1640,7 +1641,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-rankings-page')), findsOneWidget);
-    expect(find.text('开发中'), findsOneWidget);
+    expect(find.text('1 部'), findsOneWidget);
   });
 
   testWidgets('desktop rankings root route renders real page', (
