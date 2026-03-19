@@ -6,11 +6,13 @@ class OverviewStatItem {
     required this.id,
     required this.label,
     required this.value,
+    this.isLoading = false,
   });
 
   final String id;
   final String label;
   final String value;
+  final bool isLoading;
 }
 
 class OverviewStatsStrip extends StatelessWidget {
@@ -91,20 +93,31 @@ class _OverviewStatTile extends StatelessWidget {
         children: [
           Text(
             item.label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: 10,
+              color: context.appColors.textMuted,
+            ),
           ),
           SizedBox(height: context.appSpacing.sm),
-          Text(
-            item.value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: context.appColors.textPrimary,
+          if (item.isLoading)
+            SizedBox(
+              width: componentTokens.iconSizeMd,
+              height: componentTokens.iconSizeMd,
+              child: CircularProgressIndicator.adaptive(
+                key: Key('overview-stat-loading-${item.id}'),
+                strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
+              ),
+            )
+          else
+            Text(
+              item.value,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: context.appColors.textPrimary,
+              ),
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-          ),
         ],
       ),
     );

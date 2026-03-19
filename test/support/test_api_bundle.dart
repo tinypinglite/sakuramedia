@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
+import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 
 import 'fake_http_client_adapter.dart';
@@ -28,6 +29,7 @@ class TestApiBundle {
     required this.statusApi,
     required this.moviesApi,
     required this.playlistsApi,
+    required this.rankingsApi,
     required this.adapter,
   });
 
@@ -43,6 +45,7 @@ class TestApiBundle {
   final StatusApi statusApi;
   final MoviesApi moviesApi;
   final PlaylistsApi playlistsApi;
+  final RankingsApi rankingsApi;
   final FakeHttpClientAdapter adapter;
 
   void dispose() {
@@ -71,6 +74,7 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     statusApi: StatusApi(apiClient: apiClient),
     moviesApi: MoviesApi(apiClient: apiClient),
     playlistsApi: PlaylistsApi(apiClient: apiClient),
+    rankingsApi: RankingsApi(apiClient: apiClient),
     adapter: adapter,
   );
 }

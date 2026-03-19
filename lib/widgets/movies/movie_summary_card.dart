@@ -8,6 +8,7 @@ class MovieSummaryCard extends StatelessWidget {
     super.key,
     required this.movie,
     this.showStatusBadges = true,
+    this.rank,
     this.onTap,
     this.onSubscriptionTap,
     this.isSubscriptionUpdating = false,
@@ -15,6 +16,7 @@ class MovieSummaryCard extends StatelessWidget {
 
   final MovieListItemDto movie;
   final bool showStatusBadges;
+  final int? rank;
   final VoidCallback? onTap;
   final VoidCallback? onSubscriptionTap;
   final bool isSubscriptionUpdating;
@@ -79,6 +81,12 @@ class MovieSummaryCard extends StatelessWidget {
     return Stack(
       children: [
         tappableCard,
+        if (rank != null)
+          Positioned(
+            top: spacing.sm,
+            right: spacing.sm,
+            child: _RankBadge(rank: rank!, movieNumber: movie.movieNumber),
+          ),
         Positioned(
           top: spacing.sm,
           left: spacing.sm,
@@ -110,6 +118,37 @@ class MovieSummaryCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _RankBadge extends StatelessWidget {
+  const _RankBadge({required this.rank, required this.movieNumber});
+
+  final int rank;
+  final String movieNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Container(
+      key: Key('movie-summary-card-rank-$movieNumber'),
+      padding: EdgeInsets.symmetric(
+        horizontal: context.appSpacing.sm,
+        vertical: context.appSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: colors.mediaOverlayStrong,
+        borderRadius: context.appRadius.pillBorder,
+        border: Border.all(color: colors.borderSubtle.withValues(alpha: 0.42)),
+      ),
+      child: Text(
+        '#$rank',
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: colors.textOnMedia,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

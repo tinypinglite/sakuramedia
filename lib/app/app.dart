@@ -20,6 +20,7 @@ import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
+import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
@@ -149,6 +150,10 @@ class _MyAppState extends State<MyApp> {
         Provider<PlaylistsApi>(
           create:
               (context) => PlaylistsApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<RankingsApi>(
+          create:
+              (context) => RankingsApi(apiClient: context.read<ApiClient>()),
         ),
         Provider<MediaApi>(
           create: (context) => MediaApi(apiClient: context.read<ApiClient>()),

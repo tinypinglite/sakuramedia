@@ -26,6 +26,7 @@ import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
+import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
@@ -38,13 +39,14 @@ import '../support/test_api_bundle.dart';
 
 void main() {
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 6);
+    expect(desktopNavGroups.length, 7);
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
       '影片',
       '女优',
       '时刻',
       '播放列表',
+      '排行榜',
       '配置管理',
     ]);
     expect(desktopRouteSpecs.map((spec) => spec.path), [
@@ -53,6 +55,7 @@ void main() {
       desktopActorsPath,
       desktopMomentsPath,
       desktopPlaylistsPath,
+      desktopRankingsPath,
       desktopConfigurationPath,
     ]);
   });
@@ -1640,6 +1643,32 @@ void main() {
     expect(find.text('开发中'), findsOneWidget);
   });
 
+  testWidgets('desktop rankings root route renders real page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    _enqueueDesktopRankingsResponses(bundle);
+    final router = buildDesktopRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(desktopRankingsPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('desktop-rankings-page')), findsOneWidget);
+    expect(find.text('1 部'), findsOneWidget);
+  });
+
   testWidgets('desktop router opens movie detail route inside shell', (
     WidgetTester tester,
   ) async {
@@ -2454,6 +2483,7 @@ Future<void> _pumpRouterApp(
     Provider<StatusApi>.value(value: bundle.statusApi),
     Provider<MoviesApi>.value(value: bundle.moviesApi),
     Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+    Provider<RankingsApi>.value(value: bundle.rankingsApi),
     Provider<CollectionNumberFeaturesApi>.value(
       value: bundle.collectionNumberFeaturesApi,
     ),
@@ -2613,6 +2643,51 @@ void _enqueueMobileMoviesResponse(TestApiBundle bundle) {
     body: <String, dynamic>{
       'items': [
         <String, dynamic>{
+          'javdb_id': 'MovieA1',
+          'movie_number': 'ABC-001',
+          'title': 'Movie 1',
+          'cover_image': null,
+          'release_date': '2024-01-02',
+          'duration_minutes': 120,
+          'is_subscribed': true,
+          'can_play': true,
+        },
+      ],
+      'page': 1,
+      'page_size': 24,
+      'total': 1,
+    },
+  );
+}
+
+void _enqueueDesktopRankingsResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/ranking-sources',
+    body: <Map<String, dynamic>>[
+      <String, dynamic>{'source_key': 'javdb', 'name': 'JavDB'},
+    ],
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/ranking-sources/javdb/boards',
+    body: <Map<String, dynamic>>[
+      <String, dynamic>{
+        'source_key': 'javdb',
+        'board_key': 'censored',
+        'name': '有码',
+        'supported_periods': <String>['daily', 'weekly', 'monthly'],
+        'default_period': 'daily',
+      },
+    ],
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/ranking-sources/javdb/boards/censored/items',
+    body: <String, dynamic>{
+      'items': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'rank': 1,
           'javdb_id': 'MovieA1',
           'movie_number': 'ABC-001',
           'title': 'Movie 1',
