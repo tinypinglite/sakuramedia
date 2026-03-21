@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_follow_tab.dart';
 import 'package:sakuramedia/features/moments/presentation/mobile_overview_moments_tab.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
@@ -27,7 +28,7 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
     final colors = context.appColors;
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: ColoredBox(
         key: const Key('mobile-overview-skeleton-page'),
         color: colors.surfaceCard,
@@ -44,6 +45,7 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
                   Tab(text: '关注'),
                   Tab(text: '发现'),
                   Tab(text: '时刻'),
+                  Tab(text: '热评'),
                 ],
               ),
             ),
@@ -55,6 +57,7 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
                   MobileOverviewFollowTab(),
                   _MobileOverviewDiscoverTab(),
                   MobileOverviewMomentsTab(),
+                  MobileOverviewHotReviewsTab(),
                 ],
               ),
             ),

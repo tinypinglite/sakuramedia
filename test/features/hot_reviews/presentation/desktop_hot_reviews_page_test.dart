@@ -207,10 +207,20 @@ void main() {
       );
       final spacing = sakuraThemeData.extension<AppSpacing>()!.sm;
       final appColors = sakuraThemeData.extension<AppColors>()!;
+      final componentTokens = sakuraThemeData.extension<AppComponentTokens>()!;
       final icon = tester.widget<Icon>(find.byIcon(Icons.thumb_up_alt_rounded));
       final contentText = tester.widget<Text>(find.text('这位女主是Riho（宾户里帆）'));
 
       expect(cover.fit, BoxFit.cover);
+      expect(
+        cover.visibleWidthFactor,
+        componentTokens.movieCardCoverVisibleWidthFactor,
+      );
+      expect(cover.visibleAlignment, Alignment.centerRight);
+      expect(
+        coverPaneRect.width / coverPaneRect.height,
+        closeTo(componentTokens.movieCardAspectRatio, 0.02),
+      );
       expect(
         icon.size,
         lessThan(sakuraThemeData.extension<AppComponentTokens>()!.iconSizeXs),
