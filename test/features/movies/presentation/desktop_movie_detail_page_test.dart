@@ -1401,6 +1401,33 @@ void main() {
   );
 
   testWidgets(
+    'movie detail page plot preview main image opens action menu on secondary tap',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('movie-plot-thumb-0')));
+      await tester.pumpAndSettle();
+      await tester.tapAt(
+        tester.getCenter(
+          find.byKey(const Key('movie-plot-preview-main-image-0')),
+        ),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('相似图片'), findsOneWidget);
+      expect(find.text('保存到本地'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'movie detail page plot similar-image action opens image search route',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(

@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/configuration/data/download_clients_api.dar
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
+import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
@@ -30,6 +31,7 @@ class TestApiBundle {
     required this.moviesApi,
     required this.playlistsApi,
     required this.rankingsApi,
+    required this.hotReviewsApi,
     required this.adapter,
   });
 
@@ -46,6 +48,7 @@ class TestApiBundle {
   final MoviesApi moviesApi;
   final PlaylistsApi playlistsApi;
   final RankingsApi rankingsApi;
+  final HotReviewsApi hotReviewsApi;
   final FakeHttpClientAdapter adapter;
 
   void dispose() {
@@ -75,6 +78,7 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     moviesApi: MoviesApi(apiClient: apiClient),
     playlistsApi: PlaylistsApi(apiClient: apiClient),
     rankingsApi: RankingsApi(apiClient: apiClient),
+    hotReviewsApi: HotReviewsApi(apiClient: apiClient),
     adapter: adapter,
   );
 }

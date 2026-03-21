@@ -17,6 +17,7 @@ import 'package:sakuramedia/features/image_search/data/image_search_result_item_
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
+import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
@@ -39,7 +40,7 @@ import '../support/test_api_bundle.dart';
 
 void main() {
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 8);
+    expect(desktopNavGroups.length, 9);
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
       '女优上新',
@@ -48,6 +49,7 @@ void main() {
       '时刻',
       '播放列表',
       '排行榜',
+      '热评',
       '配置管理',
     ]);
     expect(desktopRouteSpecs.map((spec) => spec.path), [
@@ -58,6 +60,7 @@ void main() {
       desktopMomentsPath,
       desktopPlaylistsPath,
       desktopRankingsPath,
+      desktopHotReviewsPath,
       desktopConfigurationPath,
     ]);
   });
@@ -146,6 +149,39 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('1 部'), findsOneWidget);
+  });
+
+  testWidgets('web hot reviews route renders desktop hot reviews page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.web,
+    );
+    addTearDown(sessionStore.dispose);
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    _enqueueDesktopHotReviewsResponses(bundle);
+    final router = buildAppRouter(AppPlatform.web, sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(desktopHotReviewsPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('desktop-hot-reviews-page')), findsOneWidget);
+    expect(
+      find.byKey(const Key('desktop-hot-reviews-page-total')),
+      findsOneWidget,
+    );
+    expect(find.text('1 条'), findsOneWidget);
   });
 
   test('desktop top bar config disables back on overview', () {
@@ -2524,6 +2560,7 @@ Future<void> _pumpRouterApp(
     Provider<MoviesApi>.value(value: bundle.moviesApi),
     Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
     Provider<RankingsApi>.value(value: bundle.rankingsApi),
+    Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
     Provider<CollectionNumberFeaturesApi>.value(
       value: bundle.collectionNumberFeaturesApi,
     ),
@@ -2740,6 +2777,40 @@ void _enqueueDesktopRankingsResponses(TestApiBundle bundle) {
       ],
       'page': 1,
       'page_size': 24,
+      'total': 1,
+    },
+  );
+}
+
+void _enqueueDesktopHotReviewsResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/hot-reviews',
+    body: <String, dynamic>{
+      'items': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'rank': 1,
+          'review_id': 101,
+          'score': 5,
+          'content': '值得反复看',
+          'created_at': '2026-03-21T01:00:00Z',
+          'username': 'demo-user',
+          'like_count': 11,
+          'watch_count': 21,
+          'movie': <String, dynamic>{
+            'javdb_id': 'javdb-abp001',
+            'movie_number': 'ABP-001',
+            'title': 'Movie A',
+            'cover_image': null,
+            'release_date': null,
+            'duration_minutes': 0,
+            'is_subscribed': false,
+            'can_play': false,
+          },
+        },
+      ],
+      'page': 1,
+      'page_size': 20,
       'total': 1,
     },
   );

@@ -410,6 +410,34 @@ void main() {
     },
   );
 
+  testWidgets(
+    'mobile movie detail plot preview main image opens action menu on long press',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('movie-plot-thumb-0')));
+      await tester.pumpAndSettle();
+
+      final center = tester.getCenter(
+        find.byKey(const Key('movie-plot-preview-main-image-0')),
+      );
+      final gesture = await tester.startGesture(center);
+      await tester.pump(kLongPressTimeout);
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(find.text('相似图片'), findsOneWidget);
+      expect(find.text('保存到本地'), findsOneWidget);
+    },
+  );
+
   testWidgets('mobile movie detail hero height follows 30% viewport rule', (
     WidgetTester tester,
   ) async {

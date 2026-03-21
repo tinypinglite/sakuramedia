@@ -1,8 +1,12 @@
 import 'dart:math' as math;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
@@ -334,9 +338,20 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
               },
               itemBuilder: (context, index) {
                 final image = widget.plotImages[index];
-                return MaskedImage(
-                  url: image.bestAvailableUrl,
-                  fit: BoxFit.contain,
+                return _PreviewMainImageActionTarget(
+                  key: Key('movie-plot-preview-main-image-$index'),
+                  imageUrl: image.bestAvailableUrl,
+                  fallbackAspectRatio:
+                      tokens.movieDetailPlotThumbnailWidth /
+                      tokens.movieDetailPlotThumbnailHeight,
+                  onRequestMenu:
+                      widget.onRequestImageMenu == null
+                          ? null
+                          : (globalPosition) => widget.onRequestImageMenu!(
+                            context,
+                            index,
+                            globalPosition,
+                          ),
                 );
               },
             ),
@@ -423,5 +438,190 @@ class _PreviewStripThumbnail extends StatelessWidget {
         child: thumbnail,
       ),
     };
+  }
+}
+
+class _PreviewMainImageActionTarget extends StatefulWidget {
+  const _PreviewMainImageActionTarget({
+    super.key,
+    required this.imageUrl,
+    required this.fallbackAspectRatio,
+    this.onRequestMenu,
+  });
+
+  final String imageUrl;
+  final double fallbackAspectRatio;
+  final ValueChanged<Offset>? onRequestMenu;
+
+  @override
+  State<_PreviewMainImageActionTarget> createState() =>
+      _PreviewMainImageActionTargetState();
+}
+
+class _PreviewMainImageActionTargetState
+    extends State<_PreviewMainImageActionTarget> {
+  ImageStream? _imageStream;
+  ImageStreamListener? _imageStreamListener;
+  ImageProvider<Object>? _resolvedImageProvider;
+  double? _imageAspectRatio;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _resolveImageProvider();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PreviewMainImageActionTarget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imageUrl != widget.imageUrl) {
+      _resolveImageProvider();
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopListeningToImageStream();
+    super.dispose();
+  }
+
+  void _resolveImageProvider() {
+    final baseUrl = context.read<SessionStore>().baseUrl;
+    final resolvedUrl = resolveMediaUrl(
+      rawUrl: widget.imageUrl,
+      baseUrl: baseUrl,
+    );
+    if (resolvedUrl == null) {
+      _stopListeningToImageStream();
+      if (_resolvedImageProvider != null || _imageAspectRatio != null) {
+        setState(() {
+          _resolvedImageProvider = null;
+          _imageAspectRatio = null;
+        });
+      }
+      return;
+    }
+
+    final nextProvider = CachedNetworkImageProvider(resolvedUrl);
+    if (_resolvedImageProvider == nextProvider) {
+      return;
+    }
+
+    _resolvedImageProvider = nextProvider;
+    _imageAspectRatio = null;
+    _listenToImageStream(nextProvider);
+  }
+
+  void _listenToImageStream(ImageProvider<Object> provider) {
+    _stopListeningToImageStream();
+
+    final stream = provider.resolve(createLocalImageConfiguration(context));
+    final listener = ImageStreamListener((
+      ImageInfo imageInfo,
+      bool synchronousCall,
+    ) {
+      final width = imageInfo.image.width.toDouble();
+      final height = imageInfo.image.height.toDouble();
+      if (!mounted || width <= 0 || height <= 0) {
+        return;
+      }
+
+      final nextAspectRatio = width / height;
+      if (_imageAspectRatio == nextAspectRatio) {
+        return;
+      }
+      setState(() {
+        _imageAspectRatio = nextAspectRatio;
+      });
+    });
+
+    stream.addListener(listener);
+    _imageStream = stream;
+    _imageStreamListener = listener;
+  }
+
+  void _stopListeningToImageStream() {
+    if (_imageStream != null && _imageStreamListener != null) {
+      _imageStream!.removeListener(_imageStreamListener!);
+    }
+    _imageStream = null;
+    _imageStreamListener = null;
+  }
+
+  void _requestMenuIfHit({
+    required Offset localPosition,
+    required Offset globalPosition,
+  }) {
+    final callback = widget.onRequestMenu;
+    if (callback == null) {
+      return;
+    }
+
+    final renderObject = context.findRenderObject();
+    if (renderObject is! RenderBox) {
+      return;
+    }
+
+    if (!_isWithinRenderedImage(localPosition, renderObject.size)) {
+      return;
+    }
+
+    callback(globalPosition);
+  }
+
+  bool _isWithinRenderedImage(Offset localPosition, Size viewportSize) {
+    if (viewportSize.width <= 0 || viewportSize.height <= 0) {
+      return false;
+    }
+
+    final resolvedAspectRatio =
+        (_imageAspectRatio != null && _imageAspectRatio! > 0)
+            ? _imageAspectRatio!
+            : widget.fallbackAspectRatio;
+    if (resolvedAspectRatio <= 0) {
+      return false;
+    }
+
+    final viewportAspectRatio = viewportSize.width / viewportSize.height;
+    late final double imageWidth;
+    late final double imageHeight;
+
+    if (viewportAspectRatio > resolvedAspectRatio) {
+      imageHeight = viewportSize.height;
+      imageWidth = imageHeight * resolvedAspectRatio;
+    } else {
+      imageWidth = viewportSize.width;
+      imageHeight = imageWidth / resolvedAspectRatio;
+    }
+
+    final imageRect = Rect.fromLTWH(
+      (viewportSize.width - imageWidth) / 2,
+      (viewportSize.height - imageHeight) / 2,
+      imageWidth,
+      imageHeight,
+    );
+    return imageRect.contains(localPosition);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPressStart:
+          widget.onRequestMenu == null
+              ? null
+              : (details) => _requestMenuIfHit(
+                localPosition: details.localPosition,
+                globalPosition: details.globalPosition,
+              ),
+      onSecondaryTapDown:
+          widget.onRequestMenu == null
+              ? null
+              : (details) => _requestMenuIfHit(
+                localPosition: details.localPosition,
+                globalPosition: details.globalPosition,
+              ),
+      child: MaskedImage(url: widget.imageUrl, fit: BoxFit.contain),
+    );
   }
 }

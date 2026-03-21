@@ -188,6 +188,159 @@ void main() {
     expect(menuPosition, equals(center));
   });
 
+  testWidgets('plot preview dialog forwards main image secondary tap to menu', (
+    WidgetTester tester,
+  ) async {
+    int? menuIndex;
+    Offset? menuPosition;
+
+    await tester.pumpWidget(
+      awaitableOverlayApp(
+        child: Builder(
+          builder:
+              (context) => TextButton(
+                onPressed:
+                    () => showMoviePlotPreviewOverlay(
+                      context: context,
+                      plotImages: _plotImages,
+                      initialIndex: 0,
+                      onRequestImageMenu: (
+                        context,
+                        index,
+                        globalPosition,
+                      ) async {
+                        menuIndex = index;
+                        menuPosition = globalPosition;
+                      },
+                    ),
+                child: const Text('open'),
+              ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(
+      find.byKey(const Key('movie-plot-preview-main-image-0')),
+    );
+    await tester.tapAt(center, buttons: kSecondaryMouseButton);
+    await tester.pumpAndSettle();
+
+    expect(menuIndex, 0);
+    expect(menuPosition, equals(center));
+  });
+
+  testWidgets('plot preview dialog forwards main image long press to menu', (
+    WidgetTester tester,
+  ) async {
+    int? menuIndex;
+    Offset? menuPosition;
+
+    await tester.pumpWidget(
+      awaitableOverlayApp(
+        child: Builder(
+          builder:
+              (context) => TextButton(
+                onPressed:
+                    () => showMoviePlotPreviewOverlay(
+                      context: context,
+                      plotImages: _plotImages,
+                      initialIndex: 0,
+                      onRequestImageMenu: (
+                        context,
+                        index,
+                        globalPosition,
+                      ) async {
+                        menuIndex = index;
+                        menuPosition = globalPosition;
+                      },
+                    ),
+                child: const Text('open'),
+              ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(
+      find.byKey(const Key('movie-plot-preview-main-image-0')),
+    );
+    final gesture = await tester.startGesture(center);
+    await tester.pump(kLongPressTimeout);
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(menuIndex, 0);
+    expect(menuPosition, equals(center));
+  });
+
+  testWidgets('plot preview dialog ignores main image gutter menu request', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    int? menuIndex;
+    Offset? menuPosition;
+
+    await tester.pumpWidget(
+      awaitableOverlayApp(
+        child: Builder(
+          builder:
+              (context) => TextButton(
+                onPressed:
+                    () => showMoviePlotPreviewOverlay(
+                      context: context,
+                      plotImages: _plotImages,
+                      initialIndex: 0,
+                      onRequestImageMenu: (
+                        context,
+                        index,
+                        globalPosition,
+                      ) async {
+                        menuIndex = index;
+                        menuPosition = globalPosition;
+                      },
+                    ),
+                child: const Text('open'),
+              ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    final mainImageRect = tester.getRect(
+      find.byKey(const Key('movie-plot-preview-main-image-0')),
+    );
+    final fallbackAspectRatio =
+        sakuraThemeData
+            .extension<AppComponentTokens>()!
+            .movieDetailPlotThumbnailWidth /
+        sakuraThemeData
+            .extension<AppComponentTokens>()!
+            .movieDetailPlotThumbnailHeight;
+    final viewportAspectRatio = mainImageRect.width / mainImageRect.height;
+
+    final outsidePoint =
+        viewportAspectRatio > fallbackAspectRatio
+            ? Offset(mainImageRect.left + 4, mainImageRect.center.dy)
+            : Offset(mainImageRect.center.dx, mainImageRect.top + 4);
+
+    await tester.tapAt(outsidePoint, buttons: kSecondaryMouseButton);
+    await tester.pumpAndSettle();
+
+    expect(menuIndex, isNull);
+    expect(menuPosition, isNull);
+  });
+
   testWidgets('plot preview dialog switches page with arrow keys', (
     WidgetTester tester,
   ) async {

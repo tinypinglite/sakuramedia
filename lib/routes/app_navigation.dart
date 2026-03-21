@@ -3,6 +3,7 @@ import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/actors/presentation/desktop_actors_page.dart';
 import 'package:sakuramedia/features/actors/presentation/mobile_actors_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
+import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_reviews_page.dart';
 import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/desktop_follow_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dart';
@@ -24,6 +25,7 @@ const String desktopActorsPath = '/desktop/library/actors';
 const String desktopMomentsPath = '/desktop/library/moments';
 const String desktopPlaylistsPath = '/desktop/library/playlists';
 const String desktopRankingsPath = '/desktop/library/rankings';
+const String desktopHotReviewsPath = '/desktop/library/hot-reviews';
 const String desktopConfigurationPath = '/desktop/system/configuration';
 const String mobileOverviewPath = '/mobile/overview';
 const String mobilePlaylistDetailPathPrefix = '$mobileOverviewPath/playlists';
@@ -271,6 +273,19 @@ const List<_NavSeed> _desktopNavSeeds = [
     ],
   ),
   _NavSeed(
+    id: 'hot-reviews',
+    label: '热评',
+    icon: Icons.rate_review_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'library/hot-reviews',
+        label: '热评',
+        icon: Icons.rate_review_outlined,
+        description: '本地热评快照浏览、周期切换与评论洞察入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
     id: 'configuration',
     label: '配置管理',
     icon: Icons.settings_suggest_outlined,
@@ -386,6 +401,9 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
                         : useDesktopExperience &&
                             item.path == desktopRankingsPath
                         ? const DesktopRankingsPage()
+                        : useDesktopExperience &&
+                            item.path == desktopHotReviewsPath
+                        ? const DesktopHotReviewsPage()
                         : useDesktopExperience &&
                             item.path == desktopConfigurationPath
                         ? const DesktopConfigurationPage()
