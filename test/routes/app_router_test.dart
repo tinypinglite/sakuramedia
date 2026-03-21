@@ -827,7 +827,7 @@ void main() {
     expect(find.text('关注'), findsOneWidget);
     expect(find.text('发现'), findsOneWidget);
     expect(find.text('时刻'), findsOneWidget);
-    expect(find.text('热评'), findsNothing);
+    expect(find.text('热评'), findsOneWidget);
   });
 
   testWidgets('mobile search routes use subpage shell and are reachable', (

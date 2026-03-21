@@ -17,8 +17,25 @@ import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 
+typedef HotReviewMovieOpenHandler =
+    void Function(BuildContext context, HotReviewListItemDto item);
+const double _hotReviewCardHeight = 150;
+
 class DesktopHotReviewsPage extends StatefulWidget {
-  const DesktopHotReviewsPage({super.key});
+  const DesktopHotReviewsPage({
+    super.key,
+    this.onOpenMovieDetail,
+    this.minColumns = 2,
+    this.maxColumns = 4,
+    this.targetCardWidth = 420,
+  }) : assert(minColumns >= 1),
+       assert(maxColumns >= minColumns),
+       assert(targetCardWidth > 0);
+
+  final HotReviewMovieOpenHandler? onOpenMovieDetail;
+  final int minColumns;
+  final int maxColumns;
+  final double targetCardWidth;
 
   @override
   State<DesktopHotReviewsPage> createState() => _DesktopHotReviewsPageState();
@@ -108,9 +125,12 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
 
   Widget _buildBody(BuildContext context) {
     if (_controller.isInitialLoading && _controller.items.isEmpty) {
-      return const _HotReviewGrid(
+      return _HotReviewGrid(
         isLoading: true,
         items: <HotReviewListItemDto>[],
+        minColumns: widget.minColumns,
+        maxColumns: widget.maxColumns,
+        targetCardWidth: widget.targetCardWidth,
       );
     }
 
@@ -126,12 +146,20 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
       isLoading: false,
       items: _controller.items,
       onItemTap: _openMovieDetail,
+      minColumns: widget.minColumns,
+      maxColumns: widget.maxColumns,
+      targetCardWidth: widget.targetCardWidth,
     );
   }
 
   void _openMovieDetail(HotReviewListItemDto item) {
     final movieNumber = item.movie.movieNumber.trim();
     if (movieNumber.isEmpty) {
+      return;
+    }
+    final onOpenMovieDetail = widget.onOpenMovieDetail;
+    if (onOpenMovieDetail != null) {
+      onOpenMovieDetail(context, item);
       return;
     }
     context.pushDesktopMovieDetail(
@@ -145,11 +173,17 @@ class _HotReviewGrid extends StatelessWidget {
   const _HotReviewGrid({
     required this.items,
     required this.isLoading,
+    required this.minColumns,
+    required this.maxColumns,
+    required this.targetCardWidth,
     this.onItemTap,
   });
 
   final List<HotReviewListItemDto> items;
   final bool isLoading;
+  final int minColumns;
+  final int maxColumns;
+  final double targetCardWidth;
   final ValueChanged<HotReviewListItemDto>? onItemTap;
 
   @override
@@ -177,7 +211,7 @@ class _HotReviewGrid extends StatelessWidget {
         final columns = _resolveColumns(
           width: constraints.maxWidth,
           spacing: spacing,
-          targetWidth: 420,
+          targetWidth: targetCardWidth,
         );
         return GridView.builder(
           key: const Key('hot-review-grid'),
@@ -188,7 +222,7 @@ class _HotReviewGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: spacing,
             mainAxisSpacing: spacing,
-            mainAxisExtent: 150,
+            mainAxisExtent: _hotReviewCardHeight,
           ),
           itemBuilder: (context, index) => children[index],
         );
@@ -202,7 +236,7 @@ class _HotReviewGrid extends StatelessWidget {
     required double targetWidth,
   }) {
     final columns = ((width + spacing) / (targetWidth + spacing)).floor();
-    return math.max(2, math.min(4, columns));
+    return math.max(minColumns, math.min(maxColumns, columns));
   }
 }
 
@@ -216,6 +250,7 @@ class _HotReviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final spacing = context.appSpacing;
+    final componentTokens = context.appComponentTokens;
     final reviewDate =
         item.createdAt == null
             ? '--/--/--'
@@ -244,8 +279,9 @@ class _HotReviewCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                flex: 4,
+              SizedBox(
+                width:
+                    _hotReviewCardHeight * componentTokens.movieCardAspectRatio,
                 child: ColoredBox(
                   key: Key('hot-review-card-cover-pane-${item.reviewId}'),
                   color: colors.surfaceMuted,
@@ -254,12 +290,16 @@ class _HotReviewCard extends StatelessWidget {
                       key: Key('hot-review-card-cover-${item.reviewId}'),
                       url: item.movie.coverImage?.bestAvailableUrl ?? '',
                       fit: BoxFit.cover,
+                      visibleWidthFactor:
+                          context
+                              .appComponentTokens
+                              .movieCardCoverVisibleWidthFactor,
+                      visibleAlignment: Alignment.centerRight,
                     ),
                   ),
                 ),
               ),
               Expanded(
-                flex: 6,
                 child: Padding(
                   padding: EdgeInsets.all(spacing.sm),
                   child: Column(
@@ -361,6 +401,7 @@ class _HotReviewCardSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final spacing = context.appSpacing;
+    final componentTokens = context.appComponentTokens;
 
     return Container(
       decoration: BoxDecoration(
@@ -373,8 +414,8 @@ class _HotReviewCardSkeleton extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            flex: 4,
+          SizedBox(
+            width: _hotReviewCardHeight * componentTokens.movieCardAspectRatio,
             child: DecoratedBox(
               decoration: BoxDecoration(color: colors.surfaceMuted),
               child: SizedBox.expand(
@@ -389,7 +430,6 @@ class _HotReviewCardSkeleton extends StatelessWidget {
             ),
           ),
           Expanded(
-            flex: 6,
             child: Padding(
               padding: EdgeInsets.all(spacing.sm),
               child: Column(

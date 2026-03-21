@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
+import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_skeleton_page.dart';
@@ -67,6 +68,30 @@ void main() {
     expect(pageRoot.color, sakuraThemeData.appColors.surfaceCard);
   });
 
+  testWidgets('mobile overview tab bar puts hot reviews after moments', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        child: const MobileOverviewSkeletonPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tabBar = find.byKey(const Key('mobile-overview-tabs'));
+    final momentsCenter = tester.getCenter(
+      find.descendant(of: tabBar, matching: find.text('时刻')),
+    );
+    final hotReviewsCenter = tester.getCenter(
+      find.descendant(of: tabBar, matching: find.text('热评')),
+    );
+    expect(hotReviewsCenter.dx, greaterThan(momentsCenter.dx));
+  });
+
   testWidgets('mobile overview supports swipe to switch tabs', (
     WidgetTester tester,
   ) async {
@@ -121,6 +146,86 @@ void main() {
     expect(find.byKey(const Key('mobile-moments-page-total')), findsOneWidget);
     expect(find.text('时刻内容骨架搭建中'), findsNothing);
   });
+
+  testWidgets(
+    'mobile overview hot reviews tab renders reused hot reviews page',
+    (WidgetTester tester) async {
+      _enqueueOverviewResponses(bundle);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          child: const MobileOverviewSkeletonPage(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('热评'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('mobile-overview-hot-reviews-tab')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('desktop-hot-reviews-page-total')),
+        findsOneWidget,
+      );
+
+      final reviewRequests = bundle.adapter.requests
+          .where((request) => request.path == '/hot-reviews')
+          .toList(growable: false);
+      expect(reviewRequests, isNotEmpty);
+      expect(reviewRequests.last.uri.queryParameters['period'], 'weekly');
+    },
+  );
+
+  testWidgets(
+    'mobile overview hot reviews grid resolves to 1 column on narrow and 2 on wide',
+    (WidgetTester tester) async {
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      _enqueueOverviewResponses(bundle);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          child: const MobileOverviewSkeletonPage(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('热评'));
+      await tester.pumpAndSettle();
+
+      final gridOnNarrow = tester.widget<GridView>(
+        find.byKey(const Key('hot-review-grid')),
+      );
+      expect(
+        (gridOnNarrow.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
+            .crossAxisCount,
+        1,
+      );
+
+      tester.view.physicalSize = const Size(1024, 844);
+      await tester.pumpAndSettle();
+
+      final gridOnWide = tester.widget<GridView>(
+        find.byKey(const Key('hot-review-grid')),
+      );
+      expect(
+        (gridOnWide.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount)
+            .crossAxisCount,
+        2,
+      );
+    },
+  );
 
   testWidgets('mobile overview search submits to mobile search route', (
     WidgetTester tester,
@@ -429,6 +534,56 @@ void main() {
     expect(find.byKey(const Key('mobile-overview-tabs')), findsOneWidget);
     expect(router.canPop(), isFalse);
   });
+
+  testWidgets(
+    'mobile overview hot reviews card tap navigates to movie detail with overview fallback',
+    (WidgetTester tester) async {
+      _enqueueOverviewResponses(bundle);
+      Object? movieDetailExtra;
+      final router = GoRouter(
+        initialLocation: mobileOverviewPath,
+        routes: [
+          GoRoute(
+            path: mobileOverviewPath,
+            builder:
+                (_, __) => const Scaffold(body: MobileOverviewSkeletonPage()),
+          ),
+          GoRoute(
+            path: '$mobileMoviesPath/:movieNumber',
+            builder: (_, state) {
+              movieDetailExtra = state.extra;
+              return Scaffold(
+                body: Text(
+                  'movie:${state.pathParameters['movieNumber']}',
+                  textDirection: TextDirection.ltr,
+                ),
+              );
+            },
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        _buildRouterApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          router: router,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('热评'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('hot-review-card-101')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('movie:ABP-001'), findsOneWidget);
+      expect(movieDetailExtra, mobileOverviewPath);
+      expect(router.canPop(), isTrue);
+    },
+  );
 
   testWidgets('mobile overview follow tab shows error and supports retry', (
     WidgetTester tester,
@@ -740,6 +895,7 @@ Widget _buildTestApp({
       Provider<ActorsApi>.value(value: bundle.actorsApi),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+      Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
       Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
     ],
     child: OKToast(
@@ -760,6 +916,7 @@ Widget _buildRouterApp({
       Provider<ActorsApi>.value(value: bundle.actorsApi),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+      Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
       Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
     ],
     child: OKToast(
@@ -847,6 +1004,12 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
       'total': 1,
     },
   );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/hot-reviews',
+    statusCode: 200,
+    body: _hotReviewsPageJson(),
+  );
 }
 
 Map<String, dynamic> _followMoviesPageJson({
@@ -923,6 +1086,50 @@ Map<String, dynamic> _movieDetailJson({required String movieNumber}) {
     ],
     'media_items': const <Map<String, dynamic>>[],
     'playlists': const <Map<String, dynamic>>[],
+  };
+}
+
+Map<String, dynamic> _hotReviewsPageJson({
+  int page = 1,
+  int pageSize = 20,
+  int total = 1,
+  List<Map<String, dynamic>>? items,
+}) {
+  return <String, dynamic>{
+    'items': items ?? <Map<String, dynamic>>[_hotReviewItemJson()],
+    'page': page,
+    'page_size': pageSize,
+    'total': total,
+  };
+}
+
+Map<String, dynamic> _hotReviewItemJson({
+  int rank = 1,
+  int reviewId = 101,
+  int score = 5,
+  String movieNumber = 'ABP-001',
+  String content = '值得反复看',
+  String username = 'demo-user',
+}) {
+  return <String, dynamic>{
+    'rank': rank,
+    'review_id': reviewId,
+    'score': score,
+    'content': content,
+    'created_at': '2026-03-21T01:00:00Z',
+    'username': username,
+    'like_count': 11,
+    'watch_count': 21,
+    'movie': <String, dynamic>{
+      'javdb_id': 'javdb-$movieNumber',
+      'movie_number': movieNumber,
+      'title': 'Movie $movieNumber',
+      'cover_image': null,
+      'release_date': null,
+      'duration_minutes': 0,
+      'is_subscribed': false,
+      'can_play': false,
+    },
   };
 }
 
