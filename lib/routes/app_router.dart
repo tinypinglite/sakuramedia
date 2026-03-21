@@ -37,7 +37,7 @@ GoRouter buildAppRouter(AppPlatform platform, SessionStore sessionStore) {
     case AppPlatform.mobile:
       return buildMobileRouter(sessionStore: sessionStore);
     case AppPlatform.web:
-      return buildDesktopRouter(sessionStore: sessionStore);
+      return buildWebRouter(sessionStore: sessionStore);
   }
 }
 
@@ -62,7 +62,13 @@ GoRouter buildMobileRouter({required SessionStore sessionStore}) {
 }
 
 GoRouter buildWebRouter({required SessionStore sessionStore}) {
-  return buildDesktopRouter(sessionStore: sessionStore);
+  return _buildRouter(
+    platform: AppPlatform.web,
+    sessionStore: sessionStore,
+    navGroups: webNavGroups,
+    routeSpecs: webRouteSpecs,
+    rootRedirectPath: desktopOverviewPath,
+  );
 }
 
 GoRouter _buildRouter({
@@ -73,6 +79,8 @@ GoRouter _buildRouter({
   required String rootRedirectPath,
 }) {
   GoRouter.optionURLReflectsImperativeAPIs = true;
+  final isDesktopLike =
+      platform == AppPlatform.desktop || platform == AppPlatform.web;
   final desktopShellNavigatorKey = GlobalKey<NavigatorState>(
     debugLabel: 'desktop-shell-navigator',
   );
@@ -82,7 +90,7 @@ GoRouter _buildRouter({
   final shellRoutes = routeSpecs
       .map(
         (spec) =>
-            platform == AppPlatform.desktop
+            isDesktopLike
                 ? GoRoute(
                   path: spec.path,
                   name: spec.name,
@@ -113,7 +121,7 @@ GoRouter _buildRouter({
       .toList(growable: true);
   final mobileSubpageRoutes = <RouteBase>[];
 
-  if (platform == AppPlatform.desktop) {
+  if (isDesktopLike) {
     shellRoutes.add(
       GoRoute(
         path: desktopImageSearchPath,
@@ -404,7 +412,7 @@ GoRouter _buildRouter({
 
   final routes = <RouteBase>[
     GoRoute(path: '/', builder: (context, state) => const SizedBox.shrink()),
-    platform == AppPlatform.desktop
+    isDesktopLike
         ? GoRoute(
           path: loginPath,
           name: 'login',
@@ -422,7 +430,7 @@ GoRouter _buildRouter({
         ),
   ];
 
-  if (platform == AppPlatform.desktop) {
+  if (isDesktopLike) {
     routes.add(
       GoRoute(
         path: '/desktop/library/movies/:movieNumber/player',
