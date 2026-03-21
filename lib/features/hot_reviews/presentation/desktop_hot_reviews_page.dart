@@ -222,6 +222,10 @@ class _HotReviewCard extends StatelessWidget {
             : DateFormat('yy/MM/dd').format(item.createdAt!.toLocal());
     final username = item.username.trim().isEmpty ? '匿名用户' : item.username;
     final content = item.content.trim().isEmpty ? '暂无评论内容' : item.content;
+    final compactTextStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: colors.textSecondary,
+      fontWeight: FontWeight.w600,
+    );
 
     return Material(
       color: Colors.transparent,
@@ -238,13 +242,14 @@ class _HotReviewCard extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
                 flex: 4,
                 child: ColoredBox(
+                  key: Key('hot-review-card-cover-pane-${item.reviewId}'),
                   color: colors.surfaceMuted,
-                  child: Padding(
-                    padding: EdgeInsets.all(spacing.sm),
+                  child: SizedBox.expand(
                     child: MaskedImage(
                       key: Key('hot-review-card-cover-${item.reviewId}'),
                       url: item.movie.coverImage?.bestAvailableUrl ?? '',
@@ -260,30 +265,24 @@ class _HotReviewCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        username,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      SizedBox(height: spacing.xs),
-                      Wrap(
-                        spacing: spacing.xs,
-                        runSpacing: spacing.xs,
-                        crossAxisAlignment: WrapCrossAlignment.center,
+                      Row(
+                        key: Key('hot-review-card-meta-row-${item.reviewId}'),
                         children: [
-                          Text(
-                            reviewDate,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: colors.textSecondary),
+                          Expanded(
+                            child: Text(
+                              '$username · $reviewDate',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: compactTextStyle,
+                            ),
                           ),
+                          SizedBox(width: spacing.xs),
                           _MetaStat(
                             icon: Icons.thumb_up_alt_rounded,
                             color: colors.movieCardPlayableBadgeBackground,
                             value: '${item.likeCount}',
                           ),
+                          SizedBox(width: spacing.xs),
                           _MetaStat(
                             icon: Icons.star_rounded,
                             color: colors.movieDetailScoreIcon,
@@ -293,10 +292,9 @@ class _HotReviewCard extends StatelessWidget {
                       ),
                       SizedBox(height: spacing.sm),
                       Expanded(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: colors.surfaceMuted,
-                            borderRadius: context.appRadius.smBorder,
+                        child: SizedBox(
+                          key: Key(
+                            'hot-review-card-content-box-${item.reviewId}',
                           ),
                           child: SingleChildScrollView(
                             key: Key(
@@ -305,7 +303,8 @@ class _HotReviewCard extends StatelessWidget {
                             padding: EdgeInsets.all(spacing.sm),
                             child: Text(
                               content,
-                              style: Theme.of(context).textTheme.bodySmall,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: colors.textPrimary),
                             ),
                           ),
                         ),
@@ -335,17 +334,21 @@ class _MetaStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compactTextStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+      color: context.appColors.textSecondary,
+      fontWeight: FontWeight.w700,
+    );
+    final compactIconSize =
+        (Theme.of(context).textTheme.labelSmall?.fontSize ??
+            context.appComponentTokens.iconSizeXs) +
+        1;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: context.appComponentTokens.iconSizeXs, color: color),
+        Icon(icon, size: compactIconSize, color: color),
         SizedBox(width: context.appSpacing.xs),
-        Text(
-          value,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
-        ),
+        Text(value, style: compactTextStyle),
       ],
     );
   }
@@ -368,6 +371,7 @@ class _HotReviewCardSkeleton extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
             flex: 4,
