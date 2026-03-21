@@ -63,6 +63,10 @@ class _MobileFollowMovieCardState extends State<MobileFollowMovieCard> {
     final spacing = context.appSpacing;
     final componentTokens = context.appComponentTokens;
     final cardHeight = componentTokens.mobileFollowMovieCardHeight;
+    final topMediaBorderRadius = BorderRadius.only(
+      topLeft: Radius.circular(context.appRadius.md),
+      topRight: Radius.circular(context.appRadius.md),
+    );
     final titleText =
         widget.detailSummary?.trim().isNotEmpty ?? false
             ? widget.detailSummary!.trim()
@@ -83,89 +87,98 @@ class _MobileFollowMovieCardState extends State<MobileFollowMovieCard> {
           border: Border.all(color: colors.borderSubtle),
           boxShadow: context.appShadows.card,
         ),
-        child: Padding(
-          padding: EdgeInsets.all(spacing.sm),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: spacing.xs),
+              child: SizedBox(
                 height: cardHeight,
-                child: Row(
-                  children: [
-                    _FollowThinCover(
-                      movieNumber: widget.movie.movieNumber,
-                      imageUrl: thinCoverUrl,
-                      isSubscribed: widget.movie.isSubscribed,
-                      isSubscriptionUpdating: widget.isSubscriptionUpdating,
-                      onSubscriptionTap: widget.onSubscriptionTap,
-                    ),
-                    SizedBox(width: spacing.sm),
-                    Expanded(
-                      child: _StillImagesStrip(
+                child: ClipRRect(
+                  borderRadius: topMediaBorderRadius,
+                  child: Row(
+                    children: [
+                      _FollowThinCover(
                         movieNumber: widget.movie.movieNumber,
-                        isLoading: widget.isDetailLoading,
-                        imageUrls: widget.detailStillImageUrls,
+                        imageUrl: thinCoverUrl,
+                        isSubscribed: widget.movie.isSubscribed,
+                        isSubscriptionUpdating: widget.isSubscriptionUpdating,
+                        onSubscriptionTap: widget.onSubscriptionTap,
                       ),
-                    ),
-                  ],
+                      Expanded(
+                        child: _StillImagesStrip(
+                          movieNumber: widget.movie.movieNumber,
+                          isLoading: widget.isDetailLoading,
+                          imageUrls: widget.detailStillImageUrls,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              SizedBox(height: spacing.sm),
-              Text(
-                titleText,
-                key: Key(
-                  'mobile-follow-movie-card-title-${widget.movie.movieNumber}',
-                ),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              SizedBox(height: spacing.xs),
-              Wrap(
-                spacing: spacing.sm,
-                runSpacing: spacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
+            ),
+            Padding(
+              padding: EdgeInsets.all(spacing.sm),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.movie.movieNumber,
+                    titleText,
                     key: Key(
-                      'mobile-follow-movie-card-number-${widget.movie.movieNumber}',
+                      'mobile-follow-movie-card-title-${widget.movie.movieNumber}',
                     ),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
+                      color: colors.textSecondary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  Text(
-                    _formatReleaseDate(widget.movie.releaseDate),
-                    style: Theme.of(context).textTheme.bodySmall,
+                  SizedBox(height: spacing.xs),
+                  Wrap(
+                    spacing: spacing.sm,
+                    runSpacing: spacing.xs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        widget.movie.movieNumber,
+                        key: Key(
+                          'mobile-follow-movie-card-number-${widget.movie.movieNumber}',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        _formatReleaseDate(widget.movie.releaseDate),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      if (widget.movie.canPlay)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.play_arrow_rounded,
+                              size: componentTokens.iconSizeXs,
+                              color: colors.movieCardPlayableBadgeBackground,
+                            ),
+                            SizedBox(width: spacing.xs),
+                            Text(
+                              '可播放',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(
+                                color: colors.movieCardPlayableBadgeBackground,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
-                  if (widget.movie.canPlay)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.play_arrow_rounded,
-                          size: componentTokens.iconSizeXs,
-                          color: colors.movieCardPlayableBadgeBackground,
-                        ),
-                        SizedBox(width: spacing.xs),
-                        Text(
-                          '可播放',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color: colors.movieCardPlayableBadgeBackground,
-                          ),
-                        ),
-                      ],
-                    ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -200,26 +213,29 @@ class _FollowThinCover extends StatelessWidget {
     final componentTokens = context.appComponentTokens;
     final coverWidth = componentTokens.mobileFollowMovieThinCoverWidth;
     final cardHeight = componentTokens.mobileFollowMovieCardHeight;
-    final cover = ClipRRect(
-      borderRadius: context.appRadius.smBorder,
-      child: SizedBox(
-        width: coverWidth,
-        height: cardHeight,
-        child:
-            imageUrl == null || imageUrl!.isEmpty
-                ? DecoratedBox(
-                  key: Key(
-                    'mobile-follow-movie-card-cover-placeholder-$movieNumber',
-                  ),
-                  decoration: BoxDecoration(color: colors.surfaceMuted),
-                  child: Icon(
-                    Icons.movie_creation_outlined,
-                    size: componentTokens.iconSize2xl,
-                    color: colors.textMuted,
-                  ),
-                )
-                : MaskedImage(url: imageUrl!, fit: BoxFit.cover),
-      ),
+    final cover = SizedBox(
+      width: coverWidth,
+      height: cardHeight,
+      child:
+          imageUrl == null || imageUrl!.isEmpty
+              ? DecoratedBox(
+                key: Key(
+                  'mobile-follow-movie-card-cover-placeholder-$movieNumber',
+                ),
+                decoration: BoxDecoration(color: colors.surfaceMuted),
+                child: Icon(
+                  Icons.movie_creation_outlined,
+                  size: componentTokens.iconSize2xl,
+                  color: colors.textMuted,
+                ),
+              )
+              : MaskedImage(
+                url: imageUrl!,
+                fit: BoxFit.cover,
+                visibleWidthFactor:
+                    componentTokens.movieCardCoverVisibleWidthFactor,
+                visibleAlignment: Alignment.centerRight,
+              ),
     );
 
     return Stack(
@@ -282,17 +298,14 @@ class _StillImagesStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final spacing = context.appSpacing;
-    final radius = context.appRadius.smBorder;
     final cardHeight = context.appComponentTokens.mobileFollowMovieCardHeight;
     final stillWidth = context.appComponentTokens.mobileFollowMovieStillWidth;
+    final thumbnailRadius = context.appRadius.smBorder;
     if (isLoading) {
       return Container(
         key: Key('mobile-follow-movie-card-detail-loading-$movieNumber'),
         height: cardHeight,
-        decoration: BoxDecoration(
-          color: colors.surfaceMuted,
-          borderRadius: radius,
-        ),
+        decoration: BoxDecoration(color: colors.surfaceMuted),
       );
     }
 
@@ -300,10 +313,7 @@ class _StillImagesStrip extends StatelessWidget {
       return Container(
         key: Key('mobile-follow-movie-card-detail-empty-$movieNumber'),
         height: cardHeight,
-        decoration: BoxDecoration(
-          color: colors.surfaceMuted,
-          borderRadius: radius,
-        ),
+        decoration: BoxDecoration(color: colors.surfaceMuted),
         child: Center(
           child: Text(
             '暂无剧照',
@@ -318,19 +328,16 @@ class _StillImagesStrip extends StatelessWidget {
     return Container(
       key: Key('mobile-follow-movie-card-strip-$movieNumber'),
       height: cardHeight,
-      decoration: BoxDecoration(
-        color: colors.surfaceMuted,
-        borderRadius: radius,
-      ),
-      padding: EdgeInsets.all(spacing.xs),
+      decoration: BoxDecoration(color: colors.surfaceMuted),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.zero,
         itemCount: imageUrls.length,
         separatorBuilder: (_, __) => SizedBox(width: spacing.xs),
         itemBuilder: (context, index) {
           final url = imageUrls[index];
           return ClipRRect(
-            borderRadius: radius,
+            borderRadius: thumbnailRadius,
             child: SizedBox(
               width: stillWidth,
               child: MaskedImage(url: url, fit: BoxFit.cover),
