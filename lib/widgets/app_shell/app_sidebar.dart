@@ -81,24 +81,27 @@ class AppSidebar extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: ListView(
+                child: SingleChildScrollView(
                   padding: EdgeInsets.symmetric(
                     horizontal: context.appSpacing.sm,
                   ),
-                  children: navGroups
-                      .map(
-                        (group) => Padding(
-                          padding: EdgeInsets.only(
-                            bottom: context.appSpacing.xs,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: navGroups
+                        .map(
+                          (group) => Padding(
+                            padding: EdgeInsets.only(
+                              bottom: context.appSpacing.xs,
+                            ),
+                            child: AppSidebarGroup(
+                              group: group,
+                              currentPath: currentPath,
+                              isCompact: isCompact,
+                            ),
                           ),
-                          child: AppSidebarGroup(
-                            group: group,
-                            currentPath: currentPath,
-                            isCompact: isCompact,
-                          ),
-                        ),
-                      )
-                      .toList(growable: false),
+                        )
+                        .toList(growable: false),
+                  ),
                 ),
               ),
               Padding(
