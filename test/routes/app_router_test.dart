@@ -107,6 +107,41 @@ void main() {
 
     expect(router.routeInformationProvider.value.uri.path, desktopOverviewPath);
     expect(find.byKey(const Key('desktop-shell-sidebar')), findsOneWidget);
+    expect(find.byKey(const Key('nav-group-rankings')), findsOneWidget);
+    expect(find.text('排行榜'), findsOneWidget);
+  });
+
+  testWidgets('web rankings route renders desktop rankings page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.web,
+    );
+    addTearDown(sessionStore.dispose);
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    _enqueueDesktopRankingsResponses(bundle);
+    final router = buildAppRouter(AppPlatform.web, sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(desktopRankingsPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('desktop-rankings-page')), findsOneWidget);
+    expect(
+      find.byKey(const Key('desktop-rankings-page-total')),
+      findsOneWidget,
+    );
+    expect(find.text('1 部'), findsOneWidget);
   });
 
   test('desktop top bar config disables back on overview', () {
