@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
@@ -10,11 +11,12 @@ import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_magnet_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_detail_review_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_thumbnail_controller.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/media/thumbnail_grid_column_resolver.dart';
@@ -27,6 +29,7 @@ class MovieDetailInspectorPanel extends StatefulWidget {
     super.key,
     required this.movieNumber,
     required this.selectedMedia,
+    required this.fetchMovieReviews,
     required this.fetchMediaThumbnails,
     required this.searchCandidates,
     required this.createDownloadRequest,
@@ -38,6 +41,13 @@ class MovieDetailInspectorPanel extends StatefulWidget {
 
   final String movieNumber;
   final MovieMediaItemDto? selectedMedia;
+  final Future<List<MovieReviewDto>> Function({
+    required String movieNumber,
+    required int page,
+    required int pageSize,
+    required MovieReviewSort sort,
+  })
+  fetchMovieReviews;
   final Future<List<MovieMediaThumbnailDto>> Function({required int mediaId})
   fetchMediaThumbnails;
   final Future<List<DownloadCandidateDto>> Function({
@@ -69,13 +79,19 @@ class MovieDetailInspectorPanel extends StatefulWidget {
 class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  late final MovieDetailReviewController _reviewController;
   late final MovieDetailThumbnailController _thumbnailController;
   late final MovieDetailMagnetController _magnetController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this, initialIndex: 1);
+    _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
+    _reviewController = MovieDetailReviewController(
+      movieNumber: widget.movieNumber,
+      fetchMovieReviews: widget.fetchMovieReviews,
+      initialSort: MovieReviewSort.hotly,
+    );
     _thumbnailController = MovieDetailThumbnailController(
       mediaId: widget.selectedMedia?.mediaId,
       fetchMediaThumbnails: widget.fetchMediaThumbnails,
@@ -85,12 +101,14 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
       searchCandidates: widget.searchCandidates,
       createDownloadRequest: widget.createDownloadRequest,
     );
+    _reviewController.loadInitial();
     _thumbnailController.loadIfNeeded();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _reviewController.dispose();
     _thumbnailController.dispose();
     _magnetController.dispose();
     super.dispose();
@@ -267,7 +285,11 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
               Expanded(
                 child: AppTabBar(
                   controller: _tabController,
-                  tabs: const <Widget>[Tab(text: '磁力搜索'), Tab(text: '缩略图')],
+                  tabs: const <Widget>[
+                    Tab(text: '评论'),
+                    Tab(text: '磁力搜索'),
+                    Tab(text: '缩略图'),
+                  ],
                 ),
               ),
               // if (widget.showCloseButton)
@@ -283,6 +305,12 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
           child: TabBarView(
             controller: _tabController,
             children: [
+              AnimatedBuilder(
+                animation: _reviewController,
+                builder: (context, child) {
+                  return _MovieDetailReviewTab(controller: _reviewController);
+                },
+              ),
               AnimatedBuilder(
                 animation: _magnetController,
                 builder: (context, child) {
@@ -305,6 +333,321 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
           ),
         ),
       ],
+    );
+  }
+}
+
+class _MovieDetailReviewTab extends StatefulWidget {
+  const _MovieDetailReviewTab({required this.controller});
+
+  final MovieDetailReviewController controller;
+
+  @override
+  State<_MovieDetailReviewTab> createState() => _MovieDetailReviewTabState();
+}
+
+class _MovieDetailReviewTabState extends State<_MovieDetailReviewTab> {
+  static const double _loadMoreExtentAfterThreshold = 200;
+  late final ScrollController _scrollController;
+  int _lastAutoLoadTriggerItemCount = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController()..addListener(_handleScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_handleScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleScroll() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    if (_scrollController.position.extentAfter >
+        _loadMoreExtentAfterThreshold) {
+      _lastAutoLoadTriggerItemCount = -1;
+      return;
+    }
+    if (widget.controller.items.length == _lastAutoLoadTriggerItemCount) {
+      return;
+    }
+    _lastAutoLoadTriggerItemCount = widget.controller.items.length;
+    widget.controller.loadMore();
+  }
+
+  Future<void> _handleSortChange(MovieReviewSort sort) async {
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
+    _lastAutoLoadTriggerItemCount = -1;
+    await widget.controller.setSort(sort);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = widget.controller;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        context.appSpacing.md,
+        context.appSpacing.sm,
+        context.appSpacing.md,
+        context.appSpacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: context.appSpacing.xs,
+            runSpacing: context.appSpacing.xs,
+            children: [
+              for (final sort in MovieReviewSort.values)
+                AppButton(
+                  key: Key('movie-detail-review-sort-${sort.apiValue}'),
+                  label: sort.label,
+                  size: AppButtonSize.xSmall,
+                  variant: AppButtonVariant.secondary,
+                  isSelected: controller.sort == sort,
+                  onPressed: () => _handleSortChange(sort),
+                ),
+            ],
+          ),
+          SizedBox(height: context.appSpacing.sm),
+          Expanded(child: _buildContent(context)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    final controller = widget.controller;
+    if (controller.isInitialLoading && controller.items.isEmpty) {
+      return const _MovieDetailReviewLoadingList();
+    }
+
+    if (controller.initialErrorMessage != null && controller.items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              controller.initialErrorMessage!,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: context.appColors.textSecondary,
+              ),
+            ),
+            SizedBox(height: context.appSpacing.md),
+            AppButton(
+              key: const Key('movie-detail-review-retry-button'),
+              label: '重试',
+              variant: AppButtonVariant.secondary,
+              onPressed: controller.loadInitial,
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (controller.items.isEmpty) {
+      return const Center(child: AppEmptyState(message: '暂无评论'));
+    }
+
+    return ListView.separated(
+      controller: _scrollController,
+      key: const Key('movie-detail-review-list'),
+      itemCount: controller.items.length + 1,
+      separatorBuilder:
+          (context, index) => SizedBox(height: context.appSpacing.sm),
+      itemBuilder: (context, index) {
+        if (index < controller.items.length) {
+          return _MovieDetailReviewCard(review: controller.items[index]);
+        }
+        return _MovieDetailReviewFooter(controller: controller);
+      },
+    );
+  }
+}
+
+class _MovieDetailReviewCard extends StatelessWidget {
+  const _MovieDetailReviewCard({required this.review});
+
+  final MovieReviewDto review;
+
+  @override
+  Widget build(BuildContext context) {
+    final reviewDate =
+        review.createdAt == null
+            ? '--/--/--'
+            : DateFormat('yy/MM/dd').format(review.createdAt!.toLocal());
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(context.appSpacing.md),
+      decoration: BoxDecoration(
+        color: context.appColors.surfaceMuted,
+        borderRadius: context.appRadius.mdBorder,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: context.appSpacing.xs,
+            runSpacing: context.appSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                review.username.trim().isEmpty ? '匿名用户' : review.username,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              Text(
+                reviewDate,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: context.appColors.textSecondary,
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.star_rounded,
+                    size: context.appComponentTokens.iconSizeXs,
+                    color: context.appColors.movieDetailScoreIcon,
+                  ),
+                  SizedBox(width: context.appSpacing.xs),
+                  Text(
+                    '${review.score}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.thumb_up_alt_rounded,
+                    size: context.appComponentTokens.iconSizeXs,
+                    color: context.appColors.movieCardPlayableBadgeBackground,
+                  ),
+                  SizedBox(width: context.appSpacing.xs),
+                  Text(
+                    '${review.likeCount}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          SizedBox(height: context.appSpacing.xs),
+          Text(
+            review.content.trim().isEmpty ? '暂无评论内容' : review.content,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MovieDetailReviewFooter extends StatelessWidget {
+  const _MovieDetailReviewFooter({required this.controller});
+
+  final MovieDetailReviewController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    if (controller.isLoadingMore) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: CircularProgressIndicator.adaptive(
+            key: Key('movie-detail-review-load-more-progress'),
+          ),
+        ),
+      );
+    }
+
+    if (controller.loadMoreErrorMessage != null) {
+      return Column(
+        key: const Key('movie-detail-review-load-more-error'),
+        children: [
+          Text(
+            controller.loadMoreErrorMessage!,
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
+          ),
+          SizedBox(height: context.appSpacing.sm),
+          AppButton(
+            key: const Key('movie-detail-review-load-more-retry-button'),
+            label: '重试加载更多',
+            size: AppButtonSize.xSmall,
+            variant: AppButtonVariant.secondary,
+            onPressed: controller.loadMore,
+          ),
+        ],
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+}
+
+class _MovieDetailReviewLoadingList extends StatelessWidget {
+  const _MovieDetailReviewLoadingList();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      itemCount: 3,
+      separatorBuilder:
+          (context, index) => SizedBox(height: context.appSpacing.sm),
+      itemBuilder: (context, index) {
+        return Container(
+          padding: EdgeInsets.all(context.appSpacing.md),
+          decoration: BoxDecoration(
+            color: context.appColors.surfaceMuted,
+            borderRadius: context.appRadius.mdBorder,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ReviewSkeletonLine(width: 232),
+              SizedBox(height: context.appSpacing.xs),
+              _ReviewSkeletonLine(width: double.infinity),
+              SizedBox(height: context.appSpacing.xs),
+              _ReviewSkeletonLine(width: 296),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ReviewSkeletonLine extends StatelessWidget {
+  const _ReviewSkeletonLine({required this.width});
+
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: 12,
+      decoration: BoxDecoration(
+        color: context.appColors.borderSubtle,
+        borderRadius: context.appRadius.smBorder,
+      ),
     );
   }
 }

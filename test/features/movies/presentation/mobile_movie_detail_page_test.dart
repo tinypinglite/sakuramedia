@@ -176,6 +176,11 @@ void main() {
       path: '/media/101/thumbnails',
       body: _mediaThumbnailsJson(mediaId: 101),
     );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/reviews',
+      body: _movieReviewsJson(prefix: 'hot', count: 2),
+    );
 
     await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
@@ -205,9 +210,12 @@ void main() {
       find.byKey(const Key('movie-detail-inspector-panel')),
     );
     expect(panelTopLeft.dx - drawerContentTopLeft.dx, 0);
+    expect(find.text('评论'), findsOneWidget);
     expect(find.text('磁力搜索'), findsOneWidget);
     expect(find.text('缩略图'), findsWidgets);
+    expect(find.text('hot-review-1'), findsOneWidget);
     expect(bundle.adapter.hitCount('GET', '/media/101/thumbnails'), 1);
+    expect(bundle.adapter.hitCount('GET', '/movies/ABC-001/reviews'), 1);
   });
 
   testWidgets(
@@ -557,6 +565,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('缩略图'));
+    await tester.pumpAndSettle();
     await tester.tapAt(
       tester.getCenter(find.byKey(const Key('movie-media-thumb-0'))),
       buttons: kSecondaryMouseButton,
@@ -785,6 +795,24 @@ Map<String, dynamic> _mediaItemJson({
     },
     'points': const <Map<String, dynamic>>[],
   };
+}
+
+List<Map<String, dynamic>> _movieReviewsJson({
+  required String prefix,
+  required int count,
+}) {
+  return List<Map<String, dynamic>>.generate(count, (index) {
+    final seed = index + 1;
+    return <String, dynamic>{
+      'id': seed,
+      'score': 5,
+      'content': '$prefix-review-$seed',
+      'created_at': '2026-03-10T08:00:00Z',
+      'username': '$prefix-user-$seed',
+      'like_count': 10 + seed,
+      'watch_count': 20 + seed,
+    };
+  });
 }
 
 List<Map<String, dynamic>> _mediaThumbnailsJson({int mediaId = 100}) {

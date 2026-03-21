@@ -426,6 +426,11 @@ void main() {
       path: '/media/100/thumbnails',
       body: _mediaThumbnailsJson(),
     );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/reviews',
+      body: _movieReviewsJson(prefix: 'hot', count: 2),
+    );
 
     await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
@@ -437,10 +442,132 @@ void main() {
       find.byKey(const Key('movie-detail-inspector-dialog')),
       findsOneWidget,
     );
+    expect(find.text('评论'), findsOneWidget);
     expect(find.text('磁力搜索'), findsOneWidget);
     expect(find.text('缩略图'), findsWidgets);
+    expect(find.text('hot-user-1'), findsOneWidget);
+    expect(find.text('hot-review-1'), findsOneWidget);
+    expect(bundle.adapter.hitCount('GET', '/movies/ABC-001/reviews'), 1);
+    final hotSortButton = tester.widget<AppButton>(
+      find.byKey(const Key('movie-detail-review-sort-hotly')),
+    );
+    expect(hotSortButton.isSelected, isTrue);
     expect(find.byTooltip('关闭'), findsOneWidget);
   });
+
+  testWidgets(
+    'movie detail page inspector review tab supports sort switch and load more retry',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/thumbnails',
+        body: _mediaThumbnailsJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001/reviews',
+        body: _movieReviewsJson(prefix: 'hot', count: 20),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001/reviews',
+        body: _movieReviewsJson(prefix: 'recent', count: 20),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001/reviews',
+        statusCode: 502,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{
+            'code': 'movie_review_fetch_failed',
+            'message': 'boom',
+          },
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001/reviews',
+        body: _movieReviewsJson(prefix: 'recent-page2', count: 2),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('hot-review-1'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const Key('movie-detail-review-sort-recently')),
+      );
+      await tester.pumpAndSettle();
+
+      final recentSortButton = tester.widget<AppButton>(
+        find.byKey(const Key('movie-detail-review-sort-recently')),
+      );
+      expect(recentSortButton.isSelected, isTrue);
+
+      final reviewListFinder = find.byKey(
+        const Key('movie-detail-review-list'),
+      );
+      expect(
+        find.byKey(const Key('movie-detail-review-load-more-button')),
+        findsNothing,
+      );
+      await tester.drag(reviewListFinder, const Offset(0, -1200));
+      await tester.pumpAndSettle();
+
+      var reviewRequests = bundle.adapter.requests
+          .where((request) => request.path == '/movies/ABC-001/reviews')
+          .toList(growable: false);
+      if (reviewRequests.length < 3) {
+        await tester.drag(reviewListFinder, const Offset(0, -1200));
+        await tester.pumpAndSettle();
+        reviewRequests = bundle.adapter.requests
+            .where((request) => request.path == '/movies/ABC-001/reviews')
+            .toList(growable: false);
+      }
+      expect(reviewRequests.length, greaterThanOrEqualTo(3));
+      expect(reviewRequests[2].uri.queryParameters['sort'], 'recently');
+      expect(reviewRequests[2].uri.queryParameters['page'], '2');
+
+      await tester.dragUntilVisible(
+        find.byKey(const Key('movie-detail-review-load-more-retry-button')),
+        reviewListFinder,
+        const Offset(0, -240),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('movie-detail-review-load-more-retry-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('movie-detail-review-load-more-error')),
+        findsNothing,
+      );
+
+      reviewRequests = bundle.adapter.requests
+          .where((request) => request.path == '/movies/ABC-001/reviews')
+          .toList(growable: false);
+      expect(reviewRequests, hasLength(4));
+      expect(reviewRequests[0].uri.queryParameters['sort'], 'hotly');
+      expect(reviewRequests[0].uri.queryParameters['page'], '1');
+      expect(reviewRequests[1].uri.queryParameters['sort'], 'recently');
+      expect(reviewRequests[1].uri.queryParameters['page'], '1');
+      expect(reviewRequests[2].uri.queryParameters['sort'], 'recently');
+      expect(reviewRequests[2].uri.queryParameters['page'], '2');
+      expect(reviewRequests[3].uri.queryParameters['sort'], 'recently');
+      expect(reviewRequests[3].uri.queryParameters['page'], '2');
+    },
+  );
 
   testWidgets(
     'movie detail page inspector thumbnail tab uses auto columns and exposes 5-column toggle',
@@ -460,6 +587,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('缩略图'));
       await tester.pumpAndSettle();
 
       final gridView = tester.widget<GridView>(
@@ -839,6 +968,8 @@ void main() {
 
       await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
       await tester.pumpAndSettle();
+      await tester.tap(find.text('缩略图'));
+      await tester.pumpAndSettle();
 
       expect(find.text('缩略图加载失败'), findsOneWidget);
       expect(bundle.adapter.hitCount('GET', '/media/100/thumbnails'), 1);
@@ -872,6 +1003,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('缩略图'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('movie-media-thumb-1')));
@@ -932,6 +1065,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('缩略图'));
       await tester.pumpAndSettle();
       await tester.tapAt(
         tester.getCenter(find.byKey(const Key('movie-media-thumb-1'))),
@@ -1008,6 +1143,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('缩略图'));
       await tester.pumpAndSettle();
       await tester.tapAt(
         tester.getCenter(find.byKey(const Key('movie-media-thumb-1'))),
@@ -1095,6 +1232,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('缩略图'));
       await tester.pumpAndSettle();
       await tester.tapAt(
         tester.getCenter(find.byKey(const Key('movie-media-thumb-1'))),
@@ -1898,6 +2037,24 @@ Map<String, dynamic> _movieDetailJson({
         ],
     'playlists': playlists ?? const <Map<String, dynamic>>[],
   };
+}
+
+List<Map<String, dynamic>> _movieReviewsJson({
+  required String prefix,
+  required int count,
+}) {
+  return List<Map<String, dynamic>>.generate(count, (index) {
+    final seed = index + 1;
+    return <String, dynamic>{
+      'id': seed,
+      'score': 5,
+      'content': '$prefix-review-$seed',
+      'created_at': '2026-03-10T08:00:00Z',
+      'username': '$prefix-user-$seed',
+      'like_count': 10 + seed,
+      'watch_count': 20 + seed,
+    };
+  });
 }
 
 List<Map<String, dynamic>> _mediaThumbnailsJson({int mediaId = 100}) {

@@ -4,6 +4,7 @@ import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/data/parsed_movie_number_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
@@ -674,6 +675,70 @@ void main() {
 
     expect(
       () => moviesApi.getMovieDetail(movieNumber: 'ABC-404'),
+      throwsA(
+        isA<ApiException>()
+            .having((ApiException error) => error.statusCode, 'statusCode', 404)
+            .having(
+              (ApiException error) => error.error?.code,
+              'error.code',
+              'movie_not_found',
+            ),
+      ),
+    );
+  });
+
+  test('getMovieReviews sends query and parses review list', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/reviews',
+      statusCode: 200,
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'score': 5,
+          'content': '很不错',
+          'created_at': '2026-03-10T08:00:00Z',
+          'username': 'tester',
+          'like_count': 8,
+          'watch_count': 15,
+        },
+      ],
+    );
+
+    final reviews = await moviesApi.getMovieReviews(
+      movieNumber: 'ABC-001',
+      page: 2,
+      pageSize: 5,
+      sort: MovieReviewSort.hotly,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'GET');
+    expect(request.path, '/movies/ABC-001/reviews');
+    expect(request.uri.queryParameters['page'], '2');
+    expect(request.uri.queryParameters['page_size'], '5');
+    expect(request.uri.queryParameters['sort'], 'hotly');
+    expect(reviews, hasLength(1));
+    expect(reviews.single.score, 5);
+    expect(reviews.single.username, 'tester');
+    expect(reviews.single.createdAt, DateTime.parse('2026-03-10T08:00:00Z'));
+  });
+
+  test('getMovieReviews preserves backend ApiException payload', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-404/reviews',
+      statusCode: 404,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'movie_not_found',
+          'message': '影片不存在',
+        },
+      },
+    );
+
+    expect(
+      () => moviesApi.getMovieReviews(movieNumber: 'ABC-404'),
       throwsA(
         isA<ApiException>()
             .having((ApiException error) => error.statusCode, 'statusCode', 404)

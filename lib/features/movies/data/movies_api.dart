@@ -4,6 +4,7 @@ import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_search_stream_update.dart';
 import 'package:sakuramedia/features/movies/data/parsed_movie_number_dto.dart';
 import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
@@ -78,6 +79,23 @@ class MoviesApi {
   Future<MovieDetailDto> getMovieDetail({required String movieNumber}) async {
     final response = await _apiClient.get('/movies/$movieNumber');
     return MovieDetailDto.fromJson(response);
+  }
+
+  Future<List<MovieReviewDto>> getMovieReviews({
+    required String movieNumber,
+    int page = 1,
+    int pageSize = 20,
+    MovieReviewSort sort = MovieReviewSort.recently,
+  }) async {
+    final response = await _apiClient.getList(
+      '/movies/$movieNumber/reviews',
+      queryParameters: <String, dynamic>{
+        'page': page,
+        'page_size': pageSize,
+        'sort': sort.apiValue,
+      },
+    );
+    return response.map(MovieReviewDto.fromJson).toList(growable: false);
   }
 
   Future<List<MovieMediaThumbnailDto>> getMediaThumbnails({
