@@ -165,40 +165,83 @@ void main() {
     );
   });
 
-  testWidgets('desktop hot reviews card uses cover and scrollable content', (
-    WidgetTester tester,
-  ) async {
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/hot-reviews',
-      body: _hotReviewsJson(
-        total: 1,
-        items: <Map<String, dynamic>>[
-          _hotReviewItem(
-            reviewId: 101,
-            movieNumber: 'ABP-001',
-            content: List<String>.filled(30, '值得反复看').join(' '),
-          ),
-        ],
-      ),
-    );
+  testWidgets(
+    'desktop hot reviews card uses full cover pane and full-height content box',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/hot-reviews',
+        body: _hotReviewsJson(
+          total: 1,
+          items: <Map<String, dynamic>>[
+            _hotReviewItem(
+              reviewId: 101,
+              movieNumber: 'ABP-001',
+              content: '这位女主是Riho（宾户里帆）',
+            ),
+          ],
+        ),
+      );
 
-    await _pumpHotReviewsPage(
-      tester,
-      sessionStore: sessionStore,
-      bundle: bundle,
-    );
-    await tester.pumpAndSettle();
+      await _pumpHotReviewsPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
 
-    final cover = tester.widget<MaskedImage>(
-      find.byKey(const Key('hot-review-card-cover-101')),
-    );
-    expect(cover.fit, BoxFit.cover);
-    expect(
-      find.byKey(const Key('hot-review-card-content-scroll-101')),
-      findsOneWidget,
-    );
-  });
+      final cover = tester.widget<MaskedImage>(
+        find.byKey(const Key('hot-review-card-cover-101')),
+      );
+      final coverPaneRect = tester.getRect(
+        find.byKey(const Key('hot-review-card-cover-pane-101')),
+      );
+      final coverRect = tester.getRect(
+        find.byKey(const Key('hot-review-card-cover-101')),
+      );
+      final cardRect = tester.getRect(
+        find.byKey(const Key('hot-review-card-101')),
+      );
+      final contentRect = tester.getRect(
+        find.byKey(const Key('hot-review-card-content-box-101')),
+      );
+      final spacing = sakuraThemeData.extension<AppSpacing>()!.sm;
+      final appColors = sakuraThemeData.extension<AppColors>()!;
+      final icon = tester.widget<Icon>(find.byIcon(Icons.thumb_up_alt_rounded));
+      final contentText = tester.widget<Text>(find.text('这位女主是Riho（宾户里帆）'));
+
+      expect(cover.fit, BoxFit.cover);
+      expect(
+        icon.size,
+        lessThan(sakuraThemeData.extension<AppComponentTokens>()!.iconSizeXs),
+      );
+      expect(coverRect.left, closeTo(coverPaneRect.left, 0.1));
+      expect(coverRect.top, closeTo(coverPaneRect.top, 0.1));
+      expect(coverRect.right, closeTo(coverPaneRect.right, 0.1));
+      expect(coverRect.bottom, closeTo(coverPaneRect.bottom, 0.1));
+      expect(contentRect.bottom, closeTo(cardRect.bottom - spacing, 1.5));
+      expect(
+        find.byKey(const Key('hot-review-card-content-box-101')),
+        findsOneWidget,
+      );
+      expect(
+        tester.widget<SizedBox>(
+          find.byKey(const Key('hot-review-card-content-box-101')),
+        ),
+        isA<SizedBox>(),
+      );
+      expect(contentText.style?.color, appColors.textPrimary);
+      expect(
+        find.byKey(const Key('hot-review-card-meta-row-101')),
+        findsOneWidget,
+      );
+      expect(find.text('demo-user · 26/03/21'), findsOneWidget);
+      expect(
+        find.byKey(const Key('hot-review-card-content-scroll-101')),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets(
     'desktop hot reviews card navigates to movie detail with fallback path',
