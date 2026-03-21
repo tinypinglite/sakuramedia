@@ -30,6 +30,7 @@ Future<void> showMovieDetailInspectorDialog({
         child: MovieDetailInspectorPanel(
           movieNumber: movieNumber,
           selectedMedia: selectedMedia,
+          fetchMovieReviews: moviesApi.getMovieReviews,
           fetchMediaThumbnails: moviesApi.getMediaThumbnails,
           searchCandidates: downloadsApi.searchCandidates,
           createDownloadRequest: downloadsApi.createDownloadRequest,
@@ -105,6 +106,7 @@ Future<void> showMobileMovieDetailInspectorBottomSheet({
       return MovieDetailInspectorPanel(
         movieNumber: movieNumber,
         selectedMedia: selectedMedia,
+        fetchMovieReviews: moviesApi.getMovieReviews,
         fetchMediaThumbnails: moviesApi.getMediaThumbnails,
         searchCandidates: downloadsApi.searchCandidates,
         createDownloadRequest: downloadsApi.createDownloadRequest,
