@@ -39,9 +39,10 @@ import '../support/test_api_bundle.dart';
 
 void main() {
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 7);
+    expect(desktopNavGroups.length, 8);
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
+      '女优上新',
       '影片',
       '女优',
       '时刻',
@@ -51,6 +52,7 @@ void main() {
     ]);
     expect(desktopRouteSpecs.map((spec) => spec.path), [
       desktopOverviewPath,
+      desktopFollowPath,
       desktopMoviesPath,
       desktopActorsPath,
       desktopMomentsPath,
@@ -107,6 +109,8 @@ void main() {
 
     expect(router.routeInformationProvider.value.uri.path, desktopOverviewPath);
     expect(find.byKey(const Key('desktop-shell-sidebar')), findsOneWidget);
+    expect(find.byKey(const Key('nav-group-follow')), findsOneWidget);
+    expect(find.text('女优上新'), findsOneWidget);
     expect(find.byKey(const Key('nav-group-rankings')), findsOneWidget);
     expect(find.text('排行榜'), findsOneWidget);
   });

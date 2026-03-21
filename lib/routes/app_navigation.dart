@@ -4,6 +4,7 @@ import 'package:sakuramedia/features/actors/presentation/desktop_actors_page.dar
 import 'package:sakuramedia/features/actors/presentation/mobile_actors_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
 import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.dart';
+import 'package:sakuramedia/features/subscriptions/presentation/desktop_follow_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movies_page.dart';
 import 'package:sakuramedia/features/overview/presentation/desktop_overview_page.dart';
@@ -15,6 +16,7 @@ import 'package:sakuramedia/features/workbench/workbench_placeholder_page.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 
 const String desktopOverviewPath = '/desktop/overview';
+const String desktopFollowPath = '/desktop/library/follow';
 const String desktopSearchPath = '/desktop/search';
 const String desktopImageSearchPath = '/desktop/search/image';
 const String desktopMoviesPath = '/desktop/library/movies';
@@ -191,6 +193,19 @@ const List<_NavSeed> _desktopNavSeeds = [
     ],
   ),
   _NavSeed(
+    id: 'follow',
+    label: '女优上新',
+    icon: Icons.favorite_border_rounded,
+    items: [
+      _NavItemSeed(
+        slug: 'library/follow',
+        label: '女优上新',
+        icon: Icons.favorite_border_rounded,
+        description: '所有订阅女优最新影片流的统一入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
     id: 'movies',
     label: '影片',
     icon: Icons.movie_creation_outlined,
@@ -344,6 +359,8 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
                 (context) =>
                     useDesktopExperience && item.path == desktopOverviewPath
                         ? const DesktopOverviewPage()
+                        : useDesktopExperience && item.path == desktopFollowPath
+                        ? const DesktopFollowPage()
                         : platform == AppPlatform.mobile &&
                             item.path == mobileOverviewPath
                         ? const MobileOverviewSkeletonPage()
