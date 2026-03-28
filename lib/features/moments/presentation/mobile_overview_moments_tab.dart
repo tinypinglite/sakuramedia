@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_launcher.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
@@ -178,20 +178,15 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
   }
 
   void _openPlayerForMoment(MomentListItem item) {
-    context.push(
-      buildMobileMoviePlayerRoutePath(
-        item.movieNumber,
-        mediaId: item.mediaId > 0 ? item.mediaId : null,
-        positionSeconds: item.offsetSeconds,
-      ),
-    );
+    MobileMoviePlayerRouteData(
+      movieNumber: item.movieNumber,
+      mediaId: item.mediaId > 0 ? item.mediaId : null,
+      positionSeconds: item.offsetSeconds,
+    ).push(context);
   }
 
   void _openMovieDetailForMoment(MomentListItem item) {
-    context.push(
-      buildMobileMovieDetailRoutePath(item.movieNumber),
-      extra: mobileOverviewPath,
-    );
+    MobileMovieDetailRouteData(movieNumber: item.movieNumber).push(context);
   }
 }
 

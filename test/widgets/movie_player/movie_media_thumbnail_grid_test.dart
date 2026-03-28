@@ -389,6 +389,58 @@ void main() {
     },
   );
 
+  testWidgets(
+    'thumbnail grid throttles locked auto scroll and settles on latest active item',
+    (WidgetTester tester) async {
+      await _pumpGrid(
+        tester,
+        thumbnails: _manyThumbnails(90),
+        activeIndex: 0,
+        isScrollLocked: true,
+      );
+      await tester.pumpAndSettle();
+
+      final scrollableFinder = find.descendant(
+        of: find.byKey(const Key('movie-media-thumbnail-grid')),
+        matching: find.byType(Scrollable),
+      );
+
+      await _pumpGrid(
+        tester,
+        thumbnails: _manyThumbnails(90),
+        activeIndex: 48,
+        isScrollLocked: true,
+      );
+      await tester.pump();
+
+      final offsetAfterLeading = _scrollOffset(tester, scrollableFinder);
+      expect(offsetAfterLeading, greaterThan(0));
+
+      await _pumpGrid(
+        tester,
+        thumbnails: _manyThumbnails(90),
+        activeIndex: 72,
+        isScrollLocked: true,
+      );
+      await tester.pump();
+
+      expect(_scrollOffset(tester, scrollableFinder), offsetAfterLeading);
+      expect(find.byKey(const Key('movie-media-thumb-72')), findsNothing);
+
+      await tester.pump(const Duration(milliseconds: 179));
+      expect(_scrollOffset(tester, scrollableFinder), offsetAfterLeading);
+
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pumpAndSettle();
+
+      expect(
+        _scrollOffset(tester, scrollableFinder),
+        greaterThan(offsetAfterLeading),
+      );
+      expect(find.byKey(const Key('movie-media-thumb-72')), findsOneWidget);
+    },
+  );
+
   testWidgets('thumbnail grid forwards thumbnail menu requests', (
     WidgetTester tester,
   ) async {
@@ -504,4 +556,9 @@ List<MovieMediaThumbnailDto> _manyThumbnails(
       ),
     ),
   );
+}
+
+double _scrollOffset(WidgetTester tester, Finder scrollableFinder) {
+  final state = tester.state<ScrollableState>(scrollableFinder);
+  return state.position.pixels;
 }

@@ -88,18 +88,12 @@ void main() {
         'reason': 'movie_number_not_found',
       },
     );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/actors/search/local',
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 1,
-          'javdb_id': 'ActorA1',
-          'name': '三上悠亚',
-          'alias_name': '三上悠亚 / 鬼头桃菜',
-          'profile_image': null,
-          'is_subscribed': false,
-        },
+    bundle.adapter.enqueueSse(
+      method: 'POST',
+      path: '/actors/search/javdb/stream',
+      chunks: <String>[
+        'event: completed\n'
+            'data: {"success":true,"actors":[{"id":1,"javdb_id":"ActorA1","name":"三上悠亚","alias_name":"三上悠亚 / 鬼头桃菜","profile_image":null,"is_subscribed":false}]}\n\n',
       ],
     );
 
@@ -111,6 +105,41 @@ void main() {
     expect(find.byKey(const Key('actor-summary-grid')), findsOneWidget);
     expect(find.text('三上悠亚 / 鬼头桃菜'), findsOneWidget);
     expect(find.text('另一类结果未执行搜索'), findsNothing);
+  });
+
+  testWidgets('search page forces online actor search even when toggle is off', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/search/parse-number',
+      body: <String, dynamic>{
+        'query': 'mikami',
+        'parsed': false,
+        'movie_number': null,
+        'reason': 'movie_number_not_found',
+      },
+    );
+    bundle.adapter.enqueueSse(
+      method: 'POST',
+      path: '/actors/search/javdb/stream',
+      chunks: <String>[
+        'event: completed\n'
+            'data: {"success":false,"reason":"actor_not_found","actors":[]}\n\n',
+      ],
+    );
+
+    final router = _buildRouter(bundle);
+    await _pumpSearchApp(tester, bundle: bundle, router: router);
+    router.go('/desktop/search/mikami');
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('catalog-search-page-online-toggle')),
+      findsOneWidget,
+    );
+    expect(bundle.adapter.hitCount('POST', '/actors/search/javdb/stream'), 1);
+    expect(find.text('在线源未找到匹配女优'), findsOneWidget);
   });
 
   testWidgets('search page top field pushes a new query route on submit', (
@@ -141,10 +170,13 @@ void main() {
         'reason': 'movie_number_not_found',
       },
     );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/actors/search/local',
-      body: <Map<String, dynamic>>[],
+    bundle.adapter.enqueueSse(
+      method: 'POST',
+      path: '/actors/search/javdb/stream',
+      chunks: <String>[
+        'event: completed\n'
+            'data: {"success":false,"reason":"actor_not_found","actors":[]}\n\n',
+      ],
     );
 
     final router = _buildRouter(bundle);
@@ -197,7 +229,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.public_rounded), findsOneWidget);
+    expect(
+      find.byKey(const Key('catalog-search-stream-status-card')),
+      findsOneWidget,
+    );
+    expect(find.text('在线搜索已完成'), findsOneWidget);
     final request = bundle.adapter.requests.last;
     expect(request.path, '/movies/search/javdb/stream');
   });
@@ -692,18 +728,12 @@ void main() {
         'reason': 'movie_number_not_found',
       },
     );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/actors/search/local',
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 1,
-          'javdb_id': 'ActorA1',
-          'name': '三上悠亚',
-          'alias_name': '三上悠亚 / 鬼头桃菜',
-          'profile_image': null,
-          'is_subscribed': false,
-        },
+    bundle.adapter.enqueueSse(
+      method: 'POST',
+      path: '/actors/search/javdb/stream',
+      chunks: <String>[
+        'event: completed\n'
+            'data: {"success":true,"actors":[{"id":1,"javdb_id":"ActorA1","name":"三上悠亚","alias_name":"三上悠亚 / 鬼头桃菜","profile_image":null,"is_subscribed":false}]}\n\n',
       ],
     );
     bundle.adapter.enqueueJson(
@@ -783,33 +813,35 @@ GoRouter _buildRouter(TestApiBundle bundle) {
     routes: [
       GoRoute(
         path: '/desktop/search',
-        builder:
-            (context, state) => CatalogSearchPage(
-              initialQuery: '',
-              fallbackPath:
-                  DesktopSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).fallbackPath,
-              initialUseOnlineSearch:
-                  DesktopSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).useOnlineSearch,
+        builder: (context, state) {
+          final routeState = DesktopSearchRouteState.maybeFromExtra(
+            state.extra,
+          );
+          return CatalogSearchPage(
+            initialQuery: '',
+            fallbackPath: routeState.fallbackPath,
+            initialUseOnlineSearch: _resolveUseOnlineSearch(
+              state,
+              fallback: routeState.useOnlineSearch,
             ),
+          );
+        },
       ),
       GoRoute(
         path: '/desktop/search/:query',
-        builder:
-            (context, state) => CatalogSearchPage(
-              initialQuery: state.pathParameters['query']!,
-              fallbackPath:
-                  DesktopSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).fallbackPath,
-              initialUseOnlineSearch:
-                  DesktopSearchRouteState.maybeFromExtra(
-                    state.extra,
-                  ).useOnlineSearch,
+        builder: (context, state) {
+          final routeState = DesktopSearchRouteState.maybeFromExtra(
+            state.extra,
+          );
+          return CatalogSearchPage(
+            initialQuery: state.pathParameters['query']!,
+            fallbackPath: routeState.fallbackPath,
+            initialUseOnlineSearch: _resolveUseOnlineSearch(
+              state,
+              fallback: routeState.useOnlineSearch,
             ),
+          );
+        },
       ),
       GoRoute(
         path: '/desktop/library/movies/:movieNumber',
@@ -821,6 +853,16 @@ GoRouter _buildRouter(TestApiBundle bundle) {
       ),
     ],
   );
+}
+
+bool _resolveUseOnlineSearch(GoRouterState state, {required bool fallback}) {
+  final rawValue =
+      state.uri.queryParameters['use-online-search'] ??
+      state.uri.queryParameters['useOnlineSearch'];
+  if (rawValue == null) {
+    return fallback;
+  }
+  return rawValue == 'true';
 }
 
 Future<void> _pumpSearchApp(

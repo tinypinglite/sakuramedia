@@ -30,6 +30,7 @@ typedef MoviePlayerSurfaceBuilder =
       Duration? initialPosition,
       ValueChanged<Duration>? onPositionChanged,
       ValueChanged<bool>? onPlayingChanged,
+      bool useTouchOptimizedControls,
     );
 
 class DesktopMoviePlayerPage extends StatefulWidget {
@@ -40,6 +41,8 @@ class DesktopMoviePlayerPage extends StatefulWidget {
     this.initialPositionSeconds,
     this.fallbackPath,
     this.enableThumbnailActionMenu = true,
+    this.imageSearchRoutePath = desktopImageSearchPath,
+    this.useTouchOptimizedControls = false,
     this.surfaceBuilder,
   });
 
@@ -48,6 +51,8 @@ class DesktopMoviePlayerPage extends StatefulWidget {
   final int? initialPositionSeconds;
   final String? fallbackPath;
   final bool enableThumbnailActionMenu;
+  final String imageSearchRoutePath;
+  final bool useTouchOptimizedControls;
   final MoviePlayerSurfaceBuilder? surfaceBuilder;
 
   @override
@@ -151,6 +156,7 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
         _controller.initialPlaybackPosition,
         _controller.handlePlaybackPosition,
         _controller.handlePlaybackPlayingChanged,
+        widget.useTouchOptimizedControls,
       );
     }
     return MoviePlayerSurface(
@@ -159,6 +165,7 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
       initialPosition: _controller.initialPlaybackPosition,
       onPositionChanged: _controller.handlePlaybackPosition,
       onPlayingChanged: _controller.handlePlaybackPlayingChanged,
+      useTouchOptimizedControls: widget.useTouchOptimizedControls,
     );
   }
 
@@ -287,9 +294,10 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
 
     switch (action) {
       case AppImageActionType.searchSimilar:
-        await launchDesktopImageSearchFromUrl(
+        await launchImageSearchFromUrl(
           context,
           imageUrl: imageUrl,
+          routePath: widget.imageSearchRoutePath,
           fallbackPath: buildDesktopMoviePlayerRoutePath(
             widget.movieNumber,
             mediaId: _controller.selectedMedia?.mediaId,

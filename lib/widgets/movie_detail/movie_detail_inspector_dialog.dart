@@ -11,6 +11,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_inspector_panel.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_plot_preview_overlay.dart';
 
 Future<void> showMovieDetailInspectorDialog({
   required BuildContext context,
@@ -32,6 +33,7 @@ Future<void> showMovieDetailInspectorDialog({
           selectedMedia: selectedMedia,
           fetchMovieReviews: moviesApi.getMovieReviews,
           fetchMediaThumbnails: moviesApi.getMediaThumbnails,
+          fetchMissavThumbnailsStream: moviesApi.getMissavThumbnailsStream,
           searchCandidates: downloadsApi.searchCandidates,
           createDownloadRequest: downloadsApi.createDownloadRequest,
           onClose: () => Navigator.of(dialogContext).pop(),
@@ -108,9 +110,11 @@ Future<void> showMobileMovieDetailInspectorBottomSheet({
         selectedMedia: selectedMedia,
         fetchMovieReviews: moviesApi.getMovieReviews,
         fetchMediaThumbnails: moviesApi.getMediaThumbnails,
+        fetchMissavThumbnailsStream: moviesApi.getMissavThumbnailsStream,
         searchCandidates: downloadsApi.searchCandidates,
         createDownloadRequest: downloadsApi.createDownloadRequest,
         onClose: () => Navigator.of(sheetContext).pop(),
+        thumbnailPreviewPresentation: MoviePlotPreviewPresentation.bottomDrawer,
         onSearchSimilar: onSearchSimilar,
         onPlay: onPlay,
       );

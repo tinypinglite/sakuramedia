@@ -74,6 +74,35 @@ extension SortDirectionX on SortDirection {
   };
 }
 
+enum MovieFilterPreset { latestSubscribed, latestAdded }
+
+extension MovieFilterPresetX on MovieFilterPreset {
+  String get key => switch (this) {
+    MovieFilterPreset.latestSubscribed => 'latest-subscribed',
+    MovieFilterPreset.latestAdded => 'latest-added',
+  };
+
+  String get label => switch (this) {
+    MovieFilterPreset.latestSubscribed => '最新订阅',
+    MovieFilterPreset.latestAdded => '最新入库',
+  };
+
+  MovieFilterState get filterState => switch (this) {
+    MovieFilterPreset.latestSubscribed => const MovieFilterState(
+      status: MovieStatusFilter.subscribed,
+      collectionType: MovieCollectionTypeFilter.single,
+      sortField: MovieSortField.subscribedAt,
+      sortDirection: SortDirection.desc,
+    ),
+    MovieFilterPreset.latestAdded => const MovieFilterState(
+      status: MovieStatusFilter.playable,
+      collectionType: MovieCollectionTypeFilter.single,
+      sortField: MovieSortField.addedAt,
+      sortDirection: SortDirection.desc,
+    ),
+  };
+}
+
 class MovieFilterState {
   const MovieFilterState({
     this.status = MovieStatusFilter.all,
@@ -98,6 +127,14 @@ class MovieFilterState {
   String get sortExpression =>
       '${sortField.apiValue}:${sortDirection.apiValue}';
   String get triggerLabel => status.label;
+
+  bool matches(MovieFilterState other) =>
+      status == other.status &&
+      collectionType == other.collectionType &&
+      sortField == other.sortField &&
+      sortDirection == other.sortDirection;
+
+  bool matchesPreset(MovieFilterPreset preset) => matches(preset.filterState);
 
   MovieFilterState copyWith({
     MovieStatusFilter? status,

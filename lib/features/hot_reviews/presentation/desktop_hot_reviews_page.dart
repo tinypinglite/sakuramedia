@@ -343,7 +343,7 @@ class _HotReviewCard extends StatelessWidget {
                             padding: EdgeInsets.all(spacing.sm),
                             child: Text(
                               content,
-                              style: Theme.of(context).textTheme.bodySmall
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: colors.textPrimary),
                             ),
                           ),

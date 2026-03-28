@@ -96,5 +96,9 @@ void main() {
     final tabBar = tester.widget<TabBar>(find.byType(TabBar));
     expect(tabBar.isScrollable, isTrue);
     expect(tabBar.tabAlignment, TabAlignment.center);
+    expect(
+      tabBar.labelPadding,
+      EdgeInsets.symmetric(horizontal: sakuraThemeData.appSpacing.sm),
+    );
   });
 }

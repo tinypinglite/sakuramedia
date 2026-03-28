@@ -497,6 +497,7 @@ void main() {
           initialPosition,
           onPositionChanged,
           onPlayingChanged,
+          useTouchOptimizedControls,
         ) {
           surfaceBuildCount += 1;
           emitPosition = onPositionChanged;
@@ -548,6 +549,7 @@ void main() {
           initialPosition,
           onPositionChanged,
           onPlayingChanged,
+          useTouchOptimizedControls,
         ) {
           emitPosition = onPositionChanged;
           return Text('surface:$resolvedUrl');
@@ -563,6 +565,84 @@ void main() {
 
       expect(_thumbnailBorderWidth(tester, 0), 1.0);
       expect(_thumbnailBorderWidth(tester, 1), 1.5);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'movie player page throttles locked thumbnail auto scroll during rapid playback updates',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/thumbnails',
+        body: _manyMediaThumbnailsJson(90),
+      );
+
+      ValueChanged<Duration>? emitPosition;
+      await _pumpPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        surfaceBuilder: (
+          context,
+          resolvedUrl,
+          surfaceController,
+          initialPosition,
+          onPositionChanged,
+          onPlayingChanged,
+          useTouchOptimizedControls,
+        ) {
+          emitPosition = onPositionChanged;
+          return Text('surface:$resolvedUrl');
+        },
+      );
+      await tester.pumpAndSettle();
+
+      final scrollableFinder = find.descendant(
+        of: find.byKey(const Key('movie-player-thumbnail-grid')),
+        matching: find.byType(Scrollable),
+      );
+
+      emitPosition!(const Duration(seconds: 850));
+      await tester.pump();
+      await tester.pump();
+
+      final offsetAfterLeading = _thumbnailScrollOffset(
+        tester,
+        scrollableFinder,
+      );
+      expect(find.byKey(const Key('movie-player-thumb-84')), findsOneWidget);
+      expect(_thumbnailBorderWidth(tester, 84), 1.5);
+
+      emitPosition!(const Duration(seconds: 890));
+      await tester.pump();
+      await tester.pump();
+      emitPosition!(const Duration(seconds: 900));
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        _thumbnailScrollOffset(tester, scrollableFinder),
+        offsetAfterLeading,
+      );
+      expect(_thumbnailBorderWidth(tester, 89), 1.5);
+
+      await tester.pump(const Duration(milliseconds: 180));
+      await tester.pumpAndSettle();
+
+      expect(
+        _thumbnailScrollOffset(tester, scrollableFinder),
+        greaterThanOrEqualTo(offsetAfterLeading),
+      );
+      expect(find.byKey(const Key('movie-player-thumb-89')), findsOneWidget);
+      expect(_thumbnailBorderWidth(tester, 89), 1.5);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
@@ -699,6 +779,7 @@ void main() {
             initialPosition,
             onPositionChanged,
             onPlayingChanged,
+            useTouchOptimizedControls,
           ) => _TestMoviePlayerSurface(
             resolvedUrl: resolvedUrl,
             surfaceController: surfaceController,
@@ -803,6 +884,7 @@ MoviePlayerSurfaceBuilder _testSurfaceBuilder(
     Duration? initialPosition,
     ValueChanged<Duration>? onPositionChanged,
     ValueChanged<bool>? onPlayingChanged,
+    bool useTouchOptimizedControls,
   ) {
     return _TestMoviePlayerSurface(
       resolvedUrl: resolvedUrl,
@@ -830,6 +912,7 @@ Future<void> _pumpPage(
     Duration? initialPosition,
     ValueChanged<Duration>? onPositionChanged,
     ValueChanged<bool>? onPlayingChanged,
+    bool useTouchOptimizedControls,
   )?
   surfaceBuilder,
 }) async {
@@ -935,6 +1018,27 @@ List<Map<String, dynamic>> _mediaThumbnailsJson({int mediaId = 100}) {
   ];
 }
 
+List<Map<String, dynamic>> _manyMediaThumbnailsJson(
+  int count, {
+  int mediaId = 100,
+}) {
+  return List<Map<String, dynamic>>.generate(count, (index) {
+    final seconds = (index + 1) * 10;
+    return <String, dynamic>{
+      'thumbnail_id': index + 1,
+      'media_id': mediaId,
+      'offset_seconds': seconds,
+      'image': <String, dynamic>{
+        'id': index + 11,
+        'origin': '/files/images/thumb-$seconds.webp',
+        'small': '/files/images/thumb-$seconds.webp',
+        'medium': '/files/images/thumb-$seconds.webp',
+        'large': '/files/images/thumb-$seconds.webp',
+      },
+    };
+  });
+}
+
 class _TestMoviePlayerSurface extends StatefulWidget {
   const _TestMoviePlayerSurface({
     required this.resolvedUrl,
@@ -1014,4 +1118,9 @@ double _thumbnailBorderWidth(WidgetTester tester, int index) {
   final decoration = decoratedBox.decoration as BoxDecoration;
   final border = decoration.border as Border;
   return border.top.width;
+}
+
+double _thumbnailScrollOffset(WidgetTester tester, Finder scrollableFinder) {
+  final state = tester.state<ScrollableState>(scrollableFinder);
+  return state.position.pixels;
 }

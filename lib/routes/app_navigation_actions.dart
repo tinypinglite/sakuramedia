@@ -2,60 +2,86 @@ import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
-import 'package:sakuramedia/routes/desktop_search_route_state.dart';
+import 'package:sakuramedia/routes/desktop_routes.dart';
+import 'package:sakuramedia/routes/mobile_routes.dart';
 
 extension AppNavigationActions on BuildContext {
   void goPrimaryRoute(String path) {
-    _enableImperativeUrlSync();
-    go(path);
-  }
-
-  void _enableImperativeUrlSync() {
     GoRouter.optionURLReflectsImperativeAPIs = true;
+    switch (path) {
+      case desktopOverviewPath:
+        return const DesktopOverviewRouteData().go(this);
+      case desktopFollowPath:
+        return const DesktopFollowRouteData().go(this);
+      case desktopMoviesPath:
+        return const DesktopMoviesRouteData().go(this);
+      case desktopActorsPath:
+        return const DesktopActorsRouteData().go(this);
+      case desktopMomentsPath:
+        return const DesktopMomentsRouteData().go(this);
+      case desktopPlaylistsPath:
+        return const DesktopPlaylistsRouteData().go(this);
+      case desktopRankingsPath:
+        return const DesktopRankingsRouteData().go(this);
+      case desktopHotReviewsPath:
+        return const DesktopHotReviewsRouteData().go(this);
+      case desktopConfigurationPath:
+        return const DesktopConfigurationRouteData().go(this);
+      case desktopActivityPath:
+        return const DesktopActivityRouteData().go(this);
+      case mobileOverviewPath:
+        return const MobileOverviewRouteData().go(this);
+      case mobileMoviesPath:
+        return const MobileMoviesRouteData().go(this);
+      case mobileActorsPath:
+        return const MobileActorsRouteData().go(this);
+      case mobileRankingsPath:
+        return const MobileRankingsRouteData().go(this);
+      default:
+        return go(path);
+    }
   }
 
   void pushDesktopMovieDetail({
     required String movieNumber,
-    required String fallbackPath,
+    String? fallbackPath,
   }) {
-    _enableImperativeUrlSync();
-    push(buildDesktopMovieDetailRoutePath(movieNumber), extra: fallbackPath);
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopMovieDetailRouteData(movieNumber: movieNumber).push(this);
   }
 
   void pushDesktopActorDetail({
     required int actorId,
-    required String fallbackPath,
+    String? fallbackPath,
   }) {
-    _enableImperativeUrlSync();
-    push(buildDesktopActorDetailRoutePath(actorId), extra: fallbackPath);
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopActorDetailRouteData(actorId: actorId).push(this);
   }
 
   void pushDesktopPlaylistDetail({
     required int playlistId,
-    required String fallbackPath,
+    String? fallbackPath,
   }) {
-    _enableImperativeUrlSync();
-    push(buildDesktopPlaylistDetailRoutePath(playlistId), extra: fallbackPath);
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopPlaylistDetailRouteData(playlistId: playlistId).push(this);
   }
 
   void pushDesktopMoviePlayer({
     required String movieNumber,
-    required String fallbackPath,
+    String? fallbackPath,
     int? mediaId,
     int? positionSeconds,
   }) {
-    _enableImperativeUrlSync();
-    push(
-      buildDesktopMoviePlayerRoutePath(
-        movieNumber,
-        mediaId: mediaId,
-        positionSeconds: positionSeconds,
-      ),
-      extra: fallbackPath,
-    );
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopMoviePlayerRouteData(
+      movieNumber: movieNumber,
+      mediaId: mediaId,
+      positionSeconds: positionSeconds,
+    ).push(this);
   }
 
   void pushDesktopSearch({
@@ -63,18 +89,20 @@ extension AppNavigationActions on BuildContext {
     String? fallbackPath,
     bool useOnlineSearch = false,
   }) {
-    _enableImperativeUrlSync();
-    push(
-      buildDesktopSearchRoutePath(query),
-      extra: DesktopSearchRouteState(
-        fallbackPath: fallbackPath,
-        useOnlineSearch: useOnlineSearch,
-      ),
-    );
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      DesktopSearchRouteData(useOnlineSearch: useOnlineSearch).push(this);
+      return;
+    }
+    DesktopSearchQueryRouteData(
+      query: trimmed,
+      useOnlineSearch: useOnlineSearch,
+    ).push(this);
   }
 
   void pushDesktopImageSearch({
-    required String fallbackPath,
+    String? fallbackPath,
     String? initialFileName,
     Uint8List? initialFileBytes,
     String? initialMimeType,
@@ -82,39 +110,38 @@ extension AppNavigationActions on BuildContext {
     ImageSearchCurrentMovieScope initialCurrentMovieScope =
         ImageSearchCurrentMovieScope.all,
   }) {
-    _enableImperativeUrlSync();
-    push(
-      desktopImageSearchPath,
-      extra: DesktopImageSearchRouteState(
-        fallbackPath: fallbackPath,
-        initialFileName: initialFileName,
-        initialFileBytes: initialFileBytes,
-        initialMimeType: initialMimeType,
-        currentMovieNumber: currentMovieNumber,
-        initialCurrentMovieScope: initialCurrentMovieScope,
-      ),
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    final draftId = _saveImageSearchDraft(
+      fileName: initialFileName,
+      fileBytes: initialFileBytes,
+      mimeType: initialMimeType,
     );
+    DesktopImageSearchRouteData(
+      draftId: draftId,
+      currentMovieNumber: currentMovieNumber,
+      currentMovieScope: initialCurrentMovieScope.name,
+    ).push(this);
   }
 
   void pushMobileMovieDetail({
     required String movieNumber,
     String? fallbackPath,
   }) {
-    _enableImperativeUrlSync();
-    push(buildMobileMovieDetailRoutePath(movieNumber), extra: fallbackPath);
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    MobileMovieDetailRouteData(movieNumber: movieNumber).push(this);
   }
 
   void pushMobileActorDetail({required int actorId, String? fallbackPath}) {
-    _enableImperativeUrlSync();
-    push(buildMobileActorDetailRoutePath(actorId), extra: fallbackPath);
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    MobileActorDetailRouteData(actorId: actorId).push(this);
   }
 
   void pushMobilePlaylistDetail({
     required int playlistId,
     String? fallbackPath,
   }) {
-    _enableImperativeUrlSync();
-    push(buildMobilePlaylistDetailRoutePath(playlistId), extra: fallbackPath);
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    MobilePlaylistDetailRouteData(playlistId: playlistId).push(this);
   }
 
   void pushMobileMoviePlayer({
@@ -123,15 +150,12 @@ extension AppNavigationActions on BuildContext {
     int? positionSeconds,
     String? fallbackPath,
   }) {
-    _enableImperativeUrlSync();
-    push(
-      buildMobileMoviePlayerRoutePath(
-        movieNumber,
-        mediaId: mediaId,
-        positionSeconds: positionSeconds,
-      ),
-      extra: fallbackPath,
-    );
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    MobileMoviePlayerRouteData(
+      movieNumber: movieNumber,
+      mediaId: mediaId,
+      positionSeconds: positionSeconds,
+    ).push(this);
   }
 
   void pushMobileSearch({
@@ -139,18 +163,20 @@ extension AppNavigationActions on BuildContext {
     String? fallbackPath,
     bool useOnlineSearch = false,
   }) {
-    _enableImperativeUrlSync();
-    push(
-      buildMobileSearchRoutePath(query),
-      extra: DesktopSearchRouteState(
-        fallbackPath: fallbackPath,
-        useOnlineSearch: useOnlineSearch,
-      ),
-    );
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      MobileSearchRouteData(useOnlineSearch: useOnlineSearch).push(this);
+      return;
+    }
+    MobileSearchQueryRouteData(
+      query: trimmed,
+      useOnlineSearch: useOnlineSearch,
+    ).push(this);
   }
 
   void pushMobileImageSearch({
-    required String fallbackPath,
+    String? fallbackPath,
     String? initialFileName,
     Uint8List? initialFileBytes,
     String? initialMimeType,
@@ -158,17 +184,34 @@ extension AppNavigationActions on BuildContext {
     ImageSearchCurrentMovieScope initialCurrentMovieScope =
         ImageSearchCurrentMovieScope.all,
   }) {
-    _enableImperativeUrlSync();
-    push(
-      mobileImageSearchPath,
-      extra: DesktopImageSearchRouteState(
-        fallbackPath: fallbackPath,
-        initialFileName: initialFileName,
-        initialFileBytes: initialFileBytes,
-        initialMimeType: initialMimeType,
-        currentMovieNumber: currentMovieNumber,
-        initialCurrentMovieScope: initialCurrentMovieScope,
-      ),
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    final draftId = _saveImageSearchDraft(
+      fileName: initialFileName,
+      fileBytes: initialFileBytes,
+      mimeType: initialMimeType,
+    );
+    MobileImageSearchRouteData(
+      draftId: draftId,
+      currentMovieNumber: currentMovieNumber,
+      currentMovieScope: initialCurrentMovieScope.name,
+    ).push(this);
+  }
+
+  String? _saveImageSearchDraft({
+    required String? fileName,
+    required Uint8List? fileBytes,
+    required String? mimeType,
+  }) {
+    if (fileName == null ||
+        fileName.isEmpty ||
+        fileBytes == null ||
+        fileBytes.isEmpty) {
+      return null;
+    }
+    return read<ImageSearchDraftStore>().save(
+      fileName: fileName,
+      bytes: fileBytes,
+      mimeType: mimeType,
     );
   }
 }

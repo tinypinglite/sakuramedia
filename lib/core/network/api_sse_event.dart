@@ -3,8 +3,9 @@ import 'dart:convert';
 import 'package:sakuramedia/core/network/api_exception.dart';
 
 class ApiSseEvent {
-  const ApiSseEvent({required this.event, required this.data});
+  const ApiSseEvent({this.id, required this.event, required this.data});
 
+  final int? id;
   final String event;
   final String data;
 

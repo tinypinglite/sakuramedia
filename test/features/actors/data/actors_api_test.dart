@@ -190,54 +190,6 @@ void main() {
     );
   });
 
-  test('searchLocalActors sends query parameter and parses list', () async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/actors/search/local',
-      statusCode: 200,
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 1,
-          'javdb_id': 'ActorA1',
-          'name': '三上悠亚',
-          'alias_name': '三上悠亚 / 鬼头桃菜',
-          'profile_image': null,
-          'is_subscribed': false,
-        },
-      ],
-    );
-
-    final results = await actorsApi.searchLocalActors(query: 'mikami');
-
-    final request = adapter.requests.single;
-    expect(request.method, 'GET');
-    expect(request.path, '/actors/search/local');
-    expect(request.uri.queryParameters['query'], 'mikami');
-    expect(results.single.displayName, '三上悠亚 / 鬼头桃菜');
-  });
-
-  test('searchLocalActors converts backend error to ApiException', () async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/actors/search/local',
-      statusCode: 500,
-      body: <String, dynamic>{
-        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
-      },
-    );
-
-    expect(
-      () => actorsApi.searchLocalActors(query: 'mikami'),
-      throwsA(
-        isA<ApiException>().having(
-          (ApiException error) => error.error?.code,
-          'error.code',
-          'server_error',
-        ),
-      ),
-    );
-  });
-
   test('getActorMovieIds parses movie id list', () async {
     adapter.enqueueJson(
       method: 'GET',

@@ -523,6 +523,8 @@ void main() {
         'is_subscribed': false,
         'can_play': true,
         'series_name': 'Series 1',
+        'maker_name': 'S1 NO.1 STYLE',
+        'director_name': '紋℃',
         'summary': 'summary',
         'actors': [
           <String, dynamic>{
@@ -603,6 +605,8 @@ void main() {
     expect(detail, isA<MovieDetailDto>());
     expect(detail.movieNumber, 'ABC-001');
     expect(detail.seriesName, 'Series 1');
+    expect(detail.makerName, 'S1 NO.1 STYLE');
+    expect(detail.directorName, '紋℃');
     expect(detail.coverImage?.bestAvailableUrl, 'cover-large.jpg');
     expect(detail.thinCoverImage?.bestAvailableUrl, 'thin-large.jpg');
     expect(detail.plotImages.single.bestAvailableUrl, 'plot-large.jpg');
@@ -642,6 +646,8 @@ void main() {
         'is_subscribed': false,
         'can_play': false,
         'series_name': null,
+        'maker_name': null,
+        'director_name': null,
         'summary': '',
         'actors': [],
         'tags': [],
@@ -655,6 +661,8 @@ void main() {
 
     expect(detail.coverImage, isNull);
     expect(detail.seriesName, '');
+    expect(detail.makerName, '');
+    expect(detail.directorName, '');
     expect(detail.thinCoverImage, isNull);
     expect(detail.plotImages, isEmpty);
     expect(detail.mediaItems, isEmpty);
@@ -825,6 +833,71 @@ void main() {
       ),
     );
   });
+
+  test(
+    'getMissavThumbnailsStream maps stream progress and completed result',
+    () async {
+      adapter.enqueueSse(
+        method: 'GET',
+        path: '/movies/SSNI-888/thumbnails/missav/stream',
+        chunks: <String>[
+          'event: search_started\n'
+              'data: {"movie_number":"SSNI-888","refresh":false}\n\n',
+          'event: download_progress\n'
+              'data: {"completed":1,"total":3}\n\n',
+          'event: completed\n'
+              'data: {"success":true,"result":{"movie_number":"SSNI-888","source":"missav","total":2,"items":[{"index":0,"url":"/missav-0.jpg"},{"index":1,"url":"/missav-1.jpg"}]}}\n\n',
+        ],
+      );
+
+      final updates =
+          await moviesApi
+              .getMissavThumbnailsStream(movieNumber: 'SSNI-888')
+              .toList();
+
+      expect(updates, hasLength(3));
+      expect(updates[0].stage, 'search_started');
+      expect(updates[0].message, '正在获取 MissAV 缩略图');
+      expect(updates[1].stage, 'download_progress');
+      expect(updates[1].current, 1);
+      expect(updates[1].total, 3);
+      expect(updates[2].stage, 'completed');
+      expect(updates[2].success, isTrue);
+      expect(updates[2].result?.movieNumber, 'SSNI-888');
+      expect(updates[2].result?.items, hasLength(2));
+      expect(updates[2].result?.items[1].url, '/missav-1.jpg');
+
+      final request = adapter.requests.single;
+      expect(request.method, 'GET');
+      expect(request.path, '/movies/SSNI-888/thumbnails/missav/stream');
+      expect(request.uri.queryParameters['refresh'], 'false');
+    },
+  );
+
+  test(
+    'getMissavThumbnailsStream preserves completed failure reason and detail',
+    () async {
+      adapter.enqueueSse(
+        method: 'GET',
+        path: '/movies/SSNI-888/thumbnails/missav/stream',
+        chunks: <String>[
+          'event: completed\n'
+              'data: {"success":false,"reason":"missav_thumbnail_not_found","detail":"thumbnail config missing"}\n\n',
+        ],
+      );
+
+      final updates =
+          await moviesApi
+              .getMissavThumbnailsStream(movieNumber: 'SSNI-888', refresh: true)
+              .toList();
+
+      expect(updates.single.stage, 'completed');
+      expect(updates.single.success, isFalse);
+      expect(updates.single.reason, 'missav_thumbnail_not_found');
+      expect(updates.single.detail, 'thumbnail config missing');
+      expect(adapter.requests.single.uri.queryParameters['refresh'], 'true');
+    },
+  );
 
   test(
     'updateMediaProgress sends position_seconds and parses response',

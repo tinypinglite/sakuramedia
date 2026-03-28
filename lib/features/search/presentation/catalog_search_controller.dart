@@ -83,12 +83,16 @@ class CatalogSearchController extends ChangeNotifier {
         return;
       }
 
+      // 女优本地搜索接口已下线，实际执行策略要按解析结果重新决定。
+      var isActualOnlineSearch = useOnlineSearch;
+
       if (parsed.parsed && (parsed.movieNumber?.isNotEmpty ?? false)) {
         _lastResolvedKind = CatalogSearchKind.movies;
         _activeKind = CatalogSearchKind.movies;
+        _isOnlineSearchActive = isActualOnlineSearch;
         _notifyListenersSafely();
 
-        if (useOnlineSearch) {
+        if (isActualOnlineSearch) {
           _streamStatus = const CatalogSearchStreamStatus(
             message: '正在从外部数据源搜索影片',
             isRunning: true,
@@ -112,27 +116,21 @@ class CatalogSearchController extends ChangeNotifier {
       } else {
         _lastResolvedKind = CatalogSearchKind.actors;
         _activeKind = CatalogSearchKind.actors;
+        // 女优搜索统一走在线源，页面开关只继续影响影片搜索。
+        isActualOnlineSearch = true;
+        _isOnlineSearchActive = true;
         _notifyListenersSafely();
 
-        if (useOnlineSearch) {
-          _streamStatus = const CatalogSearchStreamStatus(
-            message: '正在从外部数据源搜索女优',
-            isRunning: true,
-            isFailure: false,
-          );
-          _notifyListenersSafely();
-          await _consumeActorOnlineSearch(
-            requestVersion: requestVersion,
-            actorName: trimmed,
-          );
-        } else {
-          final results = await _actorsApi.searchLocalActors(query: trimmed);
-          if (requestVersion != _requestVersion) {
-            return;
-          }
-          _actorResults = results;
-          _movieResults = const <MovieListItemDto>[];
-        }
+        _streamStatus = const CatalogSearchStreamStatus(
+          message: '正在从外部数据源搜索女优',
+          isRunning: true,
+          isFailure: false,
+        );
+        _notifyListenersSafely();
+        await _consumeActorOnlineSearch(
+          requestVersion: requestVersion,
+          actorName: trimmed,
+        );
       }
     } catch (error) {
       if (requestVersion != _requestVersion) {
@@ -142,7 +140,7 @@ class CatalogSearchController extends ChangeNotifier {
       _actorResults = const <ActorListItemDto>[];
       _errorMessage = apiErrorMessage(error, fallback: '搜索失败，请稍后重试');
     } finally {
-      if (requestVersion == _requestVersion && !useOnlineSearch) {
+      if (requestVersion == _requestVersion && !_isOnlineSearchActive) {
         _isLoading = false;
         _notifyListenersSafely();
       }

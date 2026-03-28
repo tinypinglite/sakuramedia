@@ -246,7 +246,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('actor:1'), findsOneWidget);
-    expect(actorDetailExtra, mobileActorsPath);
+    expect(actorDetailExtra, isNull);
   });
 }
 

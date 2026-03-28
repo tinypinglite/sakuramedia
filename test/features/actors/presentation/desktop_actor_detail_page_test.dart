@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/actors/presentation/desktop_actor_detail_page.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -167,6 +168,83 @@ void main() {
     expect(_queryValue(bundle, 2, 'collection_type'), 'single');
     expect(_queryValue(bundle, 2, 'sort'), 'release_date:desc');
   });
+
+  testWidgets(
+    'actor detail page applies quick filter presets and keeps actor id',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/actors/1',
+        body: _actorDetailJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        body: _moviesJson(total: 2),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        body: _moviesJson(
+          total: 1,
+          items: <Map<String, dynamic>>[
+            _movieItem(movieNumber: 'ABC-101', isSubscribed: true),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        body: _moviesJson(
+          total: 1,
+          items: <Map<String, dynamic>>[
+            _movieItem(movieNumber: 'ABC-102', canPlay: true),
+          ],
+        ),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('movies-filter-preset-latest-subscribed')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(_queryValue(bundle, 2, 'actor_id'), '1');
+      expect(_queryValue(bundle, 2, 'status'), 'subscribed');
+      expect(_queryValue(bundle, 2, 'collection_type'), 'single');
+      expect(_queryValue(bundle, 2, 'sort'), 'subscribed_at:desc');
+      expect(
+        tester
+            .widget<AppButton>(
+              find.byKey(const Key('movies-filter-preset-latest-subscribed')),
+            )
+            .isSelected,
+        isTrue,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('movies-filter-preset-latest-added')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(_queryValue(bundle, 3, 'actor_id'), '1');
+      expect(_queryValue(bundle, 3, 'status'), 'playable');
+      expect(_queryValue(bundle, 3, 'collection_type'), 'single');
+      expect(_queryValue(bundle, 3, 'sort'), 'added_at:desc');
+      expect(
+        tester
+            .widget<AppButton>(
+              find.byKey(const Key('movies-filter-preset-latest-added')),
+            )
+            .isSelected,
+        isTrue,
+      );
+    },
+  );
 
   testWidgets('actor detail page shows empty movie state', (
     WidgetTester tester,

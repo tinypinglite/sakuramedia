@@ -90,7 +90,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
         return _AppTabBarStyleSpec(
           dividerHeight: 0,
           visualTabHeight: context.appComponentTokens.mobileTopTabHeight,
-          labelPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.lg),
+          labelPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.sm),
           labelStyle: textTheme.titleSmall!.copyWith(
             fontWeight: FontWeight.w700,
             color: colors.textPrimary,

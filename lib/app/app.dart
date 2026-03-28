@@ -9,6 +9,8 @@ import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
+import 'package:sakuramedia/features/activity/data/activity_api.dart';
+import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
@@ -17,6 +19,7 @@ import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dar
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
@@ -85,6 +88,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<AppPlatform>.value(value: _platform),
         ChangeNotifierProvider(create: (_) => AppShellController()),
         ChangeNotifierProvider<SessionStore>.value(value: _activeSessionStore),
         ChangeNotifierProxyProvider<SessionStore, AppPageStateCache>(
@@ -113,6 +117,21 @@ class _MyAppState extends State<MyApp> {
         ),
         Provider<AccountApi>(
           create: (context) => AccountApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<ActivityEventStreamClient>(
+          create:
+              (context) => createActivityEventStreamClient(
+                apiClient: context.read<ApiClient>(),
+                sessionStore: context.read<SessionStore>(),
+              ),
+          dispose: (context, client) => client.dispose(),
+        ),
+        Provider<ActivityApi>(
+          create:
+              (context) => ActivityApi(
+                apiClient: context.read<ApiClient>(),
+                streamClient: context.read<ActivityEventStreamClient>(),
+              ),
         ),
         Provider<CollectionNumberFeaturesApi>(
           create:
@@ -166,6 +185,9 @@ class _MyAppState extends State<MyApp> {
         Provider<ImageSearchApi>(
           create:
               (context) => ImageSearchApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<ImageSearchDraftStore>(
+          create: (_) => ImageSearchDraftStore(),
         ),
       ],
       child: OKToast(

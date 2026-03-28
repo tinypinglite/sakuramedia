@@ -190,6 +190,10 @@ void main() {
     );
     expect(loadedSurface.color, sakuraThemeData.appColors.surfaceCard);
     expect(find.text('标签'), findsOneWidget);
+    expect(find.text('厂商'), findsOneWidget);
+    expect(find.text('S1 NO.1 STYLE'), findsOneWidget);
+    expect(find.text('导演'), findsOneWidget);
+    expect(find.text('紋℃'), findsOneWidget);
     expect(find.text('演员'), findsOneWidget);
     expect(find.text('媒体源'), findsOneWidget);
 
@@ -212,11 +216,154 @@ void main() {
     expect(panelTopLeft.dx - drawerContentTopLeft.dx, 0);
     expect(find.text('评论'), findsOneWidget);
     expect(find.text('磁力搜索'), findsOneWidget);
-    expect(find.text('缩略图'), findsWidgets);
+    expect(find.text('缩略图'), findsOneWidget);
+    expect(find.text('Missav缩略图'), findsOneWidget);
     expect(find.text('hot-review-1'), findsOneWidget);
     expect(bundle.adapter.hitCount('GET', '/media/101/thumbnails'), 1);
     expect(bundle.adapter.hitCount('GET', '/movies/ABC-001/reviews'), 1);
+    expect(
+      bundle.adapter.hitCount(
+        'GET',
+        '/movies/ABC-001/thumbnails/missav/stream',
+      ),
+      0,
+    );
   });
+
+  testWidgets(
+    'mobile movie detail page hides maker and director sections when empty',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(makerName: '', directorName: ''),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      expect(find.text('厂商'), findsNothing);
+      expect(find.text('导演'), findsNothing);
+      expect(find.text('S1 NO.1 STYLE'), findsNothing);
+      expect(find.text('紋℃'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail page inspector review skeleton expands in taller bottom sheet',
+    (WidgetTester tester) async {
+      final reviewsCompleter = Completer<void>();
+      addTearDown(() {
+        if (!reviewsCompleter.isCompleted) {
+          reviewsCompleter.complete();
+        }
+      });
+
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(
+          mediaItems: <Map<String, dynamic>>[
+            _mediaItemJson(mediaId: 100, specialTags: '普通'),
+            _mediaItemJson(mediaId: 101, specialTags: '预告'),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/101/thumbnails',
+        body: _mediaThumbnailsJson(mediaId: 101),
+      );
+      bundle.adapter.enqueueResponder(
+        method: 'GET',
+        path: '/movies/ABC-001/reviews',
+        responder: (options, requestBody) async {
+          await reviewsCompleter.future;
+          return ResponseBody.fromString(
+            jsonEncode(_movieReviewsJson(prefix: 'hot', count: 2)),
+            200,
+            headers: const <String, List<String>>{
+              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      await _pumpPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        physicalSize: const Size(430, 1400),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('预告 1.0 GB'));
+      await tester.tap(find.text('预告 1.0 GB'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
+      await tester.pump();
+
+      expect(
+        find.byKey(const Key('movie-detail-inspector-bottom-sheet')),
+        findsOneWidget,
+      );
+      expect(_reviewSkeletonFinder(), findsWidgets);
+      expect(_reviewSkeletonFinder().evaluate().length, greaterThan(3));
+
+      if (!reviewsCompleter.isCompleted) {
+        reviewsCompleter.complete();
+      }
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail page shows title above hero and summary below movie number',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(title: 'ABC-001 4K 中文字幕', summary: '这是影片简介'),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('movie-detail-title')), findsOneWidget);
+      expect(find.byKey(const Key('movie-detail-summary')), findsOneWidget);
+      expect(find.text('ABC-001 4K 中文字幕'), findsOneWidget);
+      expect(find.text('这是影片简介'), findsOneWidget);
+
+      final titleBottom =
+          tester.getBottomLeft(find.byKey(const Key('movie-detail-title'))).dy;
+      final heroTop = tester.getTopLeft(find.byType(MovieDetailHeroCard)).dy;
+      final movieNumberBottom =
+          tester.getBottomLeft(find.byKey(const Key('movie-detail-number'))).dy;
+      final summaryTop =
+          tester.getTopLeft(find.byKey(const Key('movie-detail-summary'))).dy;
+
+      expect(titleBottom, lessThan(heroTop));
+      expect(movieNumberBottom, lessThan(summaryTop));
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail page hides duplicate title and empty summary',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(title: 'ABC-001', summary: ''),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('movie-detail-title')), findsNothing);
+      expect(find.byKey(const Key('movie-detail-summary')), findsNothing);
+      expect(find.byKey(const Key('movie-detail-number')), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'mobile movie detail opens playlist picker and creator as bottom sheets',
@@ -462,7 +609,7 @@ void main() {
   });
 
   testWidgets(
-    'mobile movie detail inspector supports manual magnet search and thumbnail columns',
+    'mobile movie detail inspector supports manual magnet search compact interval selector and thumbnail columns',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
         method: 'GET',
@@ -472,7 +619,7 @@ void main() {
       bundle.adapter.enqueueJson(
         method: 'GET',
         path: '/media/100/thumbnails',
-        body: _mediaThumbnailsJson(),
+        body: _mediaThumbnailsJson(offsets: <int>[10, 20, 30, 40]),
       );
       bundle.adapter.enqueueJson(
         method: 'GET',
@@ -516,6 +663,31 @@ void main() {
       await tester.tap(find.text('缩略图'));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('movie-media-thumb-0')), findsOneWidget);
+      expect(
+        find.byKey(const Key('movie-detail-thumbnail-interval-icon')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('movie-detail-thumbnail-columns-icon')),
+        findsOneWidget,
+      );
+
+      final toolbarLeft = tester.getTopLeft(
+        find.byKey(const Key('movie-detail-thumbnail-toolbar')),
+      );
+      final intervalGroupLeft = tester.getTopLeft(
+        find.byKey(const Key('movie-detail-thumbnail-interval-group')),
+      );
+      expect(intervalGroupLeft.dx, toolbarLeft.dx);
+
+      await tester.tap(
+        find.byKey(const Key('movie-detail-thumbnail-interval-20')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('movie-media-thumb-1')), findsOneWidget);
+      expect(find.byKey(const Key('movie-media-thumb-2')), findsNothing);
+      expect(find.byKey(const Key('movie-media-thumb-3')), findsNothing);
 
       await tester.tap(
         find.byKey(const Key('movie-detail-thumbnail-columns-5')),
@@ -526,6 +698,82 @@ void main() {
         find.byKey(const Key('movie-detail-thumbnail-columns-5')),
       );
       expect(columnButton.isSelected, isTrue);
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail inspector thumbnail opens bottom drawer preview',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/thumbnails',
+        body: _mediaThumbnailsJson(),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('缩略图'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('movie-media-thumb-0')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('movie-plot-preview-bottom-drawer')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('movie-plot-preview-dialog')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail inspector preview main image opens action menu on long press',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/thumbnails',
+        body: _mediaThumbnailsJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/points',
+        body: const <Map<String, dynamic>>[],
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('缩略图'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('movie-media-thumb-0')));
+      await tester.pumpAndSettle();
+
+      final center = tester.getCenter(
+        find.byKey(const Key('movie-plot-preview-main-image-0')),
+      );
+      final gesture = await tester.startGesture(center);
+      await tester.pump(kLongPressTimeout);
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(find.text('相似图片'), findsOneWidget);
+      expect(find.text('保存到本地'), findsOneWidget);
     },
   );
 
@@ -618,7 +866,6 @@ void main() {
       path: '/movies/ABC-001',
       body: _movieDetailJson(),
     );
-    Object? actorRouteExtra;
     final router = GoRouter(
       initialLocation: buildMobileMovieDetailRoutePath('ABC-001'),
       routes: [
@@ -631,13 +878,11 @@ void main() {
         ),
         GoRoute(
           path: '$mobileActorsPath/:actorId',
-          builder: (_, state) {
-            actorRouteExtra = state.extra;
-            return Text(
-              'actor:${state.pathParameters['actorId']}',
-              textDirection: TextDirection.ltr,
-            );
-          },
+          builder:
+              (_, state) => Text(
+                'actor:${state.pathParameters['actorId']}',
+                textDirection: TextDirection.ltr,
+              ),
         ),
       ],
     );
@@ -656,7 +901,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('actor:1'), findsOneWidget);
-    expect(actorRouteExtra, buildMobileMovieDetailRoutePath('ABC-001'));
+    expect(router.canPop(), isTrue);
   });
 }
 
@@ -715,12 +960,16 @@ Future<void> _pumpRouterPage(
 }
 
 Map<String, dynamic> _movieDetailJson({
+  String title = 'Movie 1',
+  String summary = '',
+  String makerName = 'S1 NO.1 STYLE',
+  String directorName = '紋℃',
   List<Map<String, dynamic>>? mediaItems,
 }) {
   return <String, dynamic>{
     'javdb_id': 'MovieA1',
     'movie_number': 'ABC-001',
-    'title': 'Movie 1',
+    'title': title,
     'cover_image': <String, dynamic>{
       'id': 10,
       'origin': '/files/images/movies/ABC-001/cover.jpg',
@@ -739,7 +988,9 @@ Map<String, dynamic> _movieDetailJson({
     'is_subscribed': true,
     'can_play': true,
     'series_name': 'Attackers',
-    'summary': '',
+    'maker_name': makerName,
+    'director_name': directorName,
+    'summary': summary,
     'actors': <Map<String, dynamic>>[
       <String, dynamic>{
         'id': 1,
@@ -843,19 +1094,31 @@ List<Map<String, dynamic>> _movieReviewsJson({
   });
 }
 
-List<Map<String, dynamic>> _mediaThumbnailsJson({int mediaId = 100}) {
-  return <Map<String, dynamic>>[
-    <String, dynamic>{
-      'thumbnail_id': 1,
+Finder _reviewSkeletonFinder() {
+  return find.byWidgetPredicate((widget) {
+    final key = widget.key;
+    return key is ValueKey<String> &&
+        key.value.startsWith('movie-detail-review-skeleton-');
+  });
+}
+
+List<Map<String, dynamic>> _mediaThumbnailsJson({
+  int mediaId = 100,
+  List<int> offsets = const <int>[10],
+}) {
+  return List<Map<String, dynamic>>.generate(offsets.length, (index) {
+    final thumbnailId = index + 1;
+    return <String, dynamic>{
+      'thumbnail_id': thumbnailId,
       'media_id': mediaId,
-      'offset_seconds': 10,
+      'offset_seconds': offsets[index],
       'image': <String, dynamic>{
-        'id': 101,
-        'origin': '/files/thumbs/$mediaId/1.webp',
-        'small': '/files/thumbs/$mediaId/1-small.webp',
-        'medium': '/files/thumbs/$mediaId/1-medium.webp',
-        'large': '/files/thumbs/$mediaId/1-large.webp',
+        'id': 100 + thumbnailId,
+        'origin': '/files/thumbs/$mediaId/$thumbnailId.webp',
+        'small': '/files/thumbs/$mediaId/$thumbnailId-small.webp',
+        'medium': '/files/thumbs/$mediaId/$thumbnailId-medium.webp',
+        'large': '/files/thumbs/$mediaId/$thumbnailId-large.webp',
       },
-    },
-  ];
+    };
+  }, growable: false);
 }

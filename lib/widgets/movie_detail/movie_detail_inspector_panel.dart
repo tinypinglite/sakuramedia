@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oktoast/oktoast.dart';
@@ -9,12 +11,15 @@ import 'package:sakuramedia/features/downloads/data/download_candidate_dto.dart'
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
+import 'package:sakuramedia/features/movies/data/missav_thumbnail_stream_update.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_detail_missav_thumbnail_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_magnet_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_review_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_thumbnail_controller.dart';
+import 'package:sakuramedia/features/search/presentation/catalog_search_stream_status.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
@@ -23,6 +28,7 @@ import 'package:sakuramedia/widgets/media/thumbnail_grid_column_resolver.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_preview_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_media_thumbnail_grid.dart';
 import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
+import 'package:sakuramedia/widgets/search/catalog_search_stream_status_card.dart';
 
 class MovieDetailInspectorPanel extends StatefulWidget {
   const MovieDetailInspectorPanel({
@@ -31,10 +37,12 @@ class MovieDetailInspectorPanel extends StatefulWidget {
     required this.selectedMedia,
     required this.fetchMovieReviews,
     required this.fetchMediaThumbnails,
+    required this.fetchMissavThumbnailsStream,
     required this.searchCandidates,
     required this.createDownloadRequest,
     required this.onClose,
     this.showCloseButton = true,
+    this.thumbnailPreviewPresentation = MoviePlotPreviewPresentation.dialog,
     this.onSearchSimilar,
     this.onPlay,
   });
@@ -50,6 +58,11 @@ class MovieDetailInspectorPanel extends StatefulWidget {
   fetchMovieReviews;
   final Future<List<MovieMediaThumbnailDto>> Function({required int mediaId})
   fetchMediaThumbnails;
+  final Stream<MissavThumbnailStreamUpdate> Function({
+    required String movieNumber,
+    bool refresh,
+  })
+  fetchMissavThumbnailsStream;
   final Future<List<DownloadCandidateDto>> Function({
     required String movieNumber,
     String? indexerKind,
@@ -63,6 +76,7 @@ class MovieDetailInspectorPanel extends StatefulWidget {
   createDownloadRequest;
   final VoidCallback onClose;
   final bool showCloseButton;
+  final MoviePlotPreviewPresentation thumbnailPreviewPresentation;
   final Future<void> Function(
     MovieMediaThumbnailDto thumbnail,
     String imageUrl,
@@ -81,12 +95,13 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
   late final TabController _tabController;
   late final MovieDetailReviewController _reviewController;
   late final MovieDetailThumbnailController _thumbnailController;
+  late final MovieDetailMissavThumbnailController _missavThumbnailController;
   late final MovieDetailMagnetController _magnetController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
+    _tabController = TabController(length: 4, vsync: this, initialIndex: 0);
     _reviewController = MovieDetailReviewController(
       movieNumber: widget.movieNumber,
       fetchMovieReviews: widget.fetchMovieReviews,
@@ -95,6 +110,10 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
     _thumbnailController = MovieDetailThumbnailController(
       mediaId: widget.selectedMedia?.mediaId,
       fetchMediaThumbnails: widget.fetchMediaThumbnails,
+    );
+    _missavThumbnailController = MovieDetailMissavThumbnailController(
+      movieNumber: widget.movieNumber,
+      fetchMissavThumbnailsStream: widget.fetchMissavThumbnailsStream,
     );
     _magnetController = MovieDetailMagnetController(
       movieNumber: widget.movieNumber,
@@ -110,6 +129,7 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
     _tabController.dispose();
     _reviewController.dispose();
     _thumbnailController.dispose();
+    _missavThumbnailController.dispose();
     _magnetController.dispose();
     super.dispose();
   }
@@ -289,6 +309,7 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
                     Tab(text: '评论'),
                     Tab(text: '磁力搜索'),
                     Tab(text: '缩略图'),
+                    Tab(text: 'Missav缩略图'),
                   ],
                 ),
               ),
@@ -325,7 +346,17 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
                 builder: (context, child) {
                   return _MovieDetailThumbnailTab(
                     controller: _thumbnailController,
+                    thumbnailPreviewPresentation:
+                        widget.thumbnailPreviewPresentation,
                     onThumbnailMenuRequested: _showThumbnailActions,
+                  );
+                },
+              ),
+              AnimatedBuilder(
+                animation: _missavThumbnailController,
+                builder: (context, child) {
+                  return _MovieDetailMissavThumbnailTab(
+                    controller: _missavThumbnailController,
                   );
                 },
               ),
@@ -605,29 +636,58 @@ class _MovieDetailReviewFooter extends StatelessWidget {
 class _MovieDetailReviewLoadingList extends StatelessWidget {
   const _MovieDetailReviewLoadingList();
 
+  static const int _minimumSkeletonCount = 3;
+  static const double _skeletonLineHeight = 12;
+  static const int _skeletonLineCount = 3;
+  static const int _internalGapCount = 2;
+
+  int _resolveSkeletonCount(BuildContext context, BoxConstraints constraints) {
+    final availableHeight = constraints.maxHeight;
+    if (!availableHeight.isFinite) {
+      return _minimumSkeletonCount;
+    }
+
+    final spacing = context.appSpacing;
+    final itemHeight =
+        (spacing.md * 2) +
+        (_skeletonLineHeight * _skeletonLineCount) +
+        (spacing.xs * _internalGapCount);
+    final separatorHeight = spacing.sm;
+    final estimatedCount =
+        ((availableHeight + separatorHeight) / (itemHeight + separatorHeight))
+            .ceil();
+    return math.max(_minimumSkeletonCount, estimatedCount);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      itemCount: 3,
-      separatorBuilder:
-          (context, index) => SizedBox(height: context.appSpacing.sm),
-      itemBuilder: (context, index) {
-        return Container(
-          padding: EdgeInsets.all(context.appSpacing.md),
-          decoration: BoxDecoration(
-            color: context.appColors.surfaceMuted,
-            borderRadius: context.appRadius.mdBorder,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ReviewSkeletonLine(width: 232),
-              SizedBox(height: context.appSpacing.xs),
-              _ReviewSkeletonLine(width: double.infinity),
-              SizedBox(height: context.appSpacing.xs),
-              _ReviewSkeletonLine(width: 296),
-            ],
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemCount = _resolveSkeletonCount(context, constraints);
+        return ListView.separated(
+          itemCount: itemCount,
+          separatorBuilder:
+              (context, index) => SizedBox(height: context.appSpacing.sm),
+          itemBuilder: (context, index) {
+            return Container(
+              key: Key('movie-detail-review-skeleton-$index'),
+              padding: EdgeInsets.all(context.appSpacing.md),
+              decoration: BoxDecoration(
+                color: context.appColors.surfaceMuted,
+                borderRadius: context.appRadius.mdBorder,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ReviewSkeletonLine(width: 232),
+                  SizedBox(height: context.appSpacing.xs),
+                  _ReviewSkeletonLine(width: double.infinity),
+                  SizedBox(height: context.appSpacing.xs),
+                  _ReviewSkeletonLine(width: 296),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -878,12 +938,17 @@ class _MagnetMetaText extends StatelessWidget {
 }
 
 class _MovieDetailThumbnailTab extends StatelessWidget {
+  static const List<int> _intervalOptions = <int>[10, 20, 30, 60];
+  static const List<int> _columnOptions = <int>[2, 3, 4, 5];
+
   const _MovieDetailThumbnailTab({
     required this.controller,
+    required this.thumbnailPreviewPresentation,
     this.onThumbnailMenuRequested,
   });
 
   final MovieDetailThumbnailController controller;
+  final MoviePlotPreviewPresentation thumbnailPreviewPresentation;
   final void Function(int index, Offset globalPosition)?
   onThumbnailMenuRequested;
 
@@ -918,26 +983,25 @@ class _MovieDetailThumbnailTab extends StatelessWidget {
             context.appSpacing.lg,
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
+              Wrap(
+                key: const Key('movie-detail-thumbnail-toolbar'),
+                spacing: _MovieDetailThumbnailControlGroup.groupSpacing,
+                runSpacing: context.appSpacing.xs,
                 children: [
-                  Expanded(
-                    child: Text(
-                      '缩略图',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
+                  _MovieDetailThumbnailIntervalSelector(
+                    keyPrefix: 'movie-detail-thumbnail',
+                    options: _intervalOptions,
+                    selectedIntervalSeconds: controller.selectedIntervalSeconds,
+                    onSelect: controller.setIntervalSeconds,
                   ),
-                  for (final count in const <int>[2, 3, 4, 5]) ...[
-                    if (count != 2) SizedBox(width: context.appSpacing.xs),
-                    AppButton(
-                      key: Key('movie-detail-thumbnail-columns-$count'),
-                      label: '$count',
-                      size: AppButtonSize.xSmall,
-                      variant: AppButtonVariant.secondary,
-                      isSelected: resolvedColumns == count,
-                      onPressed: () => controller.setColumns(count),
-                    ),
-                  ],
+                  _MovieDetailThumbnailColumnsSelector(
+                    keyPrefix: 'movie-detail-thumbnail',
+                    options: _columnOptions,
+                    selectedColumns: resolvedColumns,
+                    onSelect: controller.setColumns,
+                  ),
                 ],
               ),
               SizedBox(height: context.appSpacing.md),
@@ -959,6 +1023,20 @@ class _MovieDetailThumbnailTab extends StatelessWidget {
                           .map((item) => item.image)
                           .toList(growable: false),
                       initialIndex: index,
+                      onRequestImageMenu:
+                          onThumbnailMenuRequested == null
+                              ? null
+                              : (
+                                menuContext,
+                                previewIndex,
+                                globalPosition,
+                              ) async {
+                                onThumbnailMenuRequested!(
+                                  previewIndex,
+                                  globalPosition,
+                                );
+                              },
+                      presentation: thumbnailPreviewPresentation,
                       thumbnailStripLayout:
                           MoviePlotPreviewThumbnailStripLayout.fixed,
                     );
@@ -969,6 +1047,350 @@ class _MovieDetailThumbnailTab extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _MovieDetailMissavThumbnailTab extends StatelessWidget {
+  static const List<int> _intervalOptions = <int>[10, 20, 30, 60];
+  static const List<int> _columnOptions = <int>[2, 3, 4, 5];
+
+  const _MovieDetailMissavThumbnailTab({required this.controller});
+
+  final MovieDetailMissavThumbnailController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = controller.items;
+    final thumbnails = items
+        .map(
+          (item) => MovieMediaThumbnailDto(
+            thumbnailId: item.index,
+            mediaId: 0,
+            offsetSeconds: 0,
+            image: item.toMovieImage(),
+          ),
+        )
+        .toList(growable: false);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final autoColumns = resolveThumbnailGridColumnCount(
+          width: constraints.maxWidth,
+          spacing: context.appSpacing.sm,
+          targetWidth: context.appComponentTokens.movieThumbnailTargetWidth,
+        );
+        final resolvedColumns =
+            controller.usesAutoColumns
+                ? autoColumns
+                : (controller.columns ?? autoColumns);
+        if (controller.usesAutoColumns && controller.columns != autoColumns) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              controller.applyAutoColumns(autoColumns);
+            }
+          });
+        }
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            context.appSpacing.lg,
+            context.appSpacing.md,
+            context.appSpacing.lg,
+            context.appSpacing.lg,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _MovieDetailMissavTabHeader(
+                state: controller.state,
+                columns: resolvedColumns,
+                selectedIntervalSeconds: controller.selectedIntervalSeconds,
+                onSetInterval: controller.setIntervalSeconds,
+                onStart: controller.load,
+                onRetry: controller.load,
+                onSetColumns: controller.setColumns,
+              ),
+              SizedBox(height: context.appSpacing.md),
+              Expanded(
+                child: _buildContent(
+                  context: context,
+                  thumbnails: thumbnails,
+                  resolvedColumns: resolvedColumns,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContent({
+    required BuildContext context,
+    required List<MovieMediaThumbnailDto> thumbnails,
+    required int resolvedColumns,
+  }) {
+    switch (controller.state) {
+      case MovieDetailMissavThumbnailState.idle:
+        return _MovieDetailMissavHintState(
+          message: '这是 MissAV 外部来源帧图，首次获取可能耗时较长。',
+        );
+      case MovieDetailMissavThumbnailState.loading:
+        final status = controller.status;
+        if (status == null) {
+          return const SizedBox.shrink();
+        }
+        return _MovieDetailMissavLoadingState(status: status);
+      case MovieDetailMissavThumbnailState.empty:
+        return const Center(child: AppEmptyState(message: 'MissAV 暂无可展示缩略图'));
+      case MovieDetailMissavThumbnailState.error:
+        return Center(
+          child: AppEmptyState(
+            message: controller.errorMessage ?? 'MissAV 缩略图获取失败，请稍后重试。',
+          ),
+        );
+      case MovieDetailMissavThumbnailState.success:
+        return MovieMediaThumbnailGrid(
+          thumbnails: thumbnails,
+          isLoading: false,
+          errorMessage: null,
+          columns: resolvedColumns,
+          activeIndex: controller.activeIndex,
+          isScrollLocked: false,
+          onRetry: controller.load,
+          keyPrefix: 'movie-detail-missav',
+          onThumbnailTap: controller.selectIndex,
+        );
+    }
+  }
+}
+
+class _MovieDetailMissavTabHeader extends StatelessWidget {
+  const _MovieDetailMissavTabHeader({
+    required this.state,
+    required this.columns,
+    required this.selectedIntervalSeconds,
+    required this.onSetInterval,
+    required this.onStart,
+    required this.onRetry,
+    required this.onSetColumns,
+  });
+
+  final MovieDetailMissavThumbnailState state;
+  final int columns;
+  final int selectedIntervalSeconds;
+  final ValueChanged<int> onSetInterval;
+  final VoidCallback onStart;
+  final VoidCallback onRetry;
+  final ValueChanged<int> onSetColumns;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      key: const Key('movie-detail-missav-toolbar'),
+      spacing: _MovieDetailThumbnailControlGroup.groupSpacing,
+      runSpacing: context.appSpacing.xs,
+      children: [
+        _MovieDetailThumbnailIntervalSelector(
+          keyPrefix: 'movie-detail-missav',
+          options: _MovieDetailMissavThumbnailTab._intervalOptions,
+          selectedIntervalSeconds: selectedIntervalSeconds,
+          onSelect: onSetInterval,
+        ),
+        switch (state) {
+          MovieDetailMissavThumbnailState.idle => AppButton(
+            key: const Key('movie-detail-missav-start-button'),
+            label: '开始获取',
+            size: AppButtonSize.xSmall,
+            variant: AppButtonVariant.primary,
+            onPressed: onStart,
+          ),
+          MovieDetailMissavThumbnailState.error => AppButton(
+            key: const Key('movie-detail-missav-retry-button'),
+            label: '重新获取',
+            size: AppButtonSize.xSmall,
+            variant: AppButtonVariant.secondary,
+            onPressed: onRetry,
+          ),
+          MovieDetailMissavThumbnailState.success => Wrap(
+            children: [
+              _MovieDetailThumbnailColumnsSelector(
+                keyPrefix: 'movie-detail-missav',
+                options: _MovieDetailMissavThumbnailTab._columnOptions,
+                selectedColumns: columns,
+                onSelect: onSetColumns,
+              ),
+            ],
+          ),
+          MovieDetailMissavThumbnailState.loading ||
+          MovieDetailMissavThumbnailState.empty => const SizedBox.shrink(),
+        },
+      ],
+    );
+  }
+}
+
+class _MovieDetailThumbnailIntervalSelector extends StatelessWidget {
+  const _MovieDetailThumbnailIntervalSelector({
+    required this.keyPrefix,
+    required this.options,
+    required this.selectedIntervalSeconds,
+    required this.onSelect,
+  });
+
+  final String keyPrefix;
+  final List<int> options;
+  final int selectedIntervalSeconds;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return _MovieDetailThumbnailControlGroup(
+      key: Key('$keyPrefix-interval-group'),
+      iconKey: Key('$keyPrefix-interval-icon'),
+      icon: Icons.schedule_rounded,
+      tooltip: '缩略图时间间隔',
+      children: [
+        for (final seconds in options)
+          AppButton(
+            key: Key('$keyPrefix-interval-$seconds'),
+            label: '$seconds',
+            size: AppButtonSize.xSmall,
+            variant: AppButtonVariant.secondary,
+            isSelected: selectedIntervalSeconds == seconds,
+            onPressed: () => onSelect(seconds),
+          ),
+      ],
+    );
+  }
+}
+
+class _MovieDetailThumbnailColumnsSelector extends StatelessWidget {
+  const _MovieDetailThumbnailColumnsSelector({
+    required this.keyPrefix,
+    required this.options,
+    required this.selectedColumns,
+    required this.onSelect,
+  });
+
+  final String keyPrefix;
+  final List<int> options;
+  final int selectedColumns;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return _MovieDetailThumbnailControlGroup(
+      key: Key('$keyPrefix-columns-group'),
+      iconKey: Key('$keyPrefix-columns-icon'),
+      icon: Icons.grid_view_rounded,
+      tooltip: '缩略图列数',
+      children: [
+        for (final columns in options)
+          AppButton(
+            key: Key('$keyPrefix-columns-$columns'),
+            label: '$columns',
+            size: AppButtonSize.xSmall,
+            variant: AppButtonVariant.secondary,
+            isSelected: selectedColumns == columns,
+            onPressed: () => onSelect(columns),
+          ),
+      ],
+    );
+  }
+}
+
+class _MovieDetailThumbnailControlGroup extends StatelessWidget {
+  static const double groupSpacing = 12;
+  static const double itemExtent = 28;
+
+  const _MovieDetailThumbnailControlGroup({
+    super.key,
+    required this.icon,
+    required this.iconKey,
+    required this.tooltip,
+    required this.children,
+  });
+
+  final IconData icon;
+  final Key iconKey;
+  final String tooltip;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Wrap(
+      spacing: context.appSpacing.xs,
+      runSpacing: context.appSpacing.xs,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Tooltip(
+          message: tooltip,
+          child: SizedBox.square(
+            key: iconKey,
+            dimension: itemExtent,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: colors.surfaceCard,
+                borderRadius: context.appRadius.smBorder,
+                border: Border.all(color: colors.borderStrong),
+              ),
+              child: Center(
+                child: Icon(
+                  icon,
+                  size: context.appComponentTokens.iconSizeXs,
+                  color: colors.textPrimary,
+                ),
+              ),
+            ),
+          ),
+        ),
+        ...children,
+      ],
+    );
+  }
+}
+
+class _MovieDetailMissavHintState extends StatelessWidget {
+  const _MovieDetailMissavHintState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Text(
+          message,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: context.appColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MovieDetailMissavLoadingState extends StatelessWidget {
+  const _MovieDetailMissavLoadingState({required this.status});
+
+  final CatalogSearchStreamStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        key: const Key('movie-detail-missav-loading-state'),
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [CatalogSearchStreamStatusCard(status: status)],
+        ),
+      ),
     );
   }
 }

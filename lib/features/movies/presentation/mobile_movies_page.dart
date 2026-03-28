@@ -1,16 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_list_page_state.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
@@ -122,10 +122,18 @@ class _MobileMoviesPageState extends State<MobileMoviesPage> {
                   isLoading: _moviesController.isInitialLoading,
                   errorMessage: _moviesController.initialErrorMessage,
                   onMovieTap:
-                      (movie) => context.push(
-                        buildMobileMovieDetailRoutePath(movie.movieNumber),
-                        extra: mobileMoviesPath,
+                      (movie) => MobileMovieDetailRouteData(
+                        movieNumber: movie.movieNumber,
+                      ).push(context),
+                  onMovieMenuRequest: (movie, globalPosition) {
+                    unawaited(
+                      showMovieCollectionFeatureActionMenu(
+                        context: context,
+                        movieNumber: movie.movieNumber,
+                        globalPosition: globalPosition,
                       ),
+                    );
+                  },
                   onMovieSubscriptionTap:
                       (movie) => _toggleMovieSubscription(movie.movieNumber),
                   isMovieSubscriptionUpdating:

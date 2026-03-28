@@ -502,19 +502,21 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   }
 
   String _resolveStateKey() {
-    final routePath = _currentRoutePath();
-    if (routePath != null && routePath.startsWith('/mobile/')) {
-      return mobileImageSearchPageStateKey();
+    final routeLocation = _currentRouteLocation();
+    if (routeLocation != null && routeLocation.startsWith('/mobile/')) {
+      return mobileImageSearchPageStateKey(routeLocation);
     }
     if ((widget.fallbackPath ?? '').startsWith('/mobile/')) {
-      return mobileImageSearchPageStateKey();
+      return mobileImageSearchPageStateKey(widget.fallbackPath!);
     }
-    return desktopImageSearchPageStateKey();
+    return desktopImageSearchPageStateKey(
+      routeLocation ?? widget.fallbackPath ?? desktopImageSearchPath,
+    );
   }
 
-  String? _currentRoutePath() {
+  String? _currentRouteLocation() {
     try {
-      return GoRouterState.of(context).uri.path;
+      return GoRouterState.of(context).uri.toString();
     } catch (_) {
       return null;
     }

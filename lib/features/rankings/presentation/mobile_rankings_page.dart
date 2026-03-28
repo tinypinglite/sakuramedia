@@ -8,7 +8,6 @@ import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/rankings/presentation/rankings_list_page_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
@@ -130,7 +129,6 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
                     onMovieTap:
                         (movie) => context.pushMobileMovieDetail(
                           movieNumber: movie.movieNumber,
-                          fallbackPath: mobileRankingsPath,
                         ),
                     onMovieSubscriptionTap:
                         (movie) => _toggleMovieSubscription(movie.movieNumber),

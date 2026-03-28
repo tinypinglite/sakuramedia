@@ -20,6 +20,7 @@ class AppSelectField<T> extends StatelessWidget {
     this.validator,
     this.placeholder,
     this.size = AppSelectFieldSize.regular,
+    this.textStyle,
   });
 
   final List<DropdownMenuItem<T>> items;
@@ -29,6 +30,7 @@ class AppSelectField<T> extends StatelessWidget {
   final FormFieldValidator<T>? validator;
   final String? placeholder;
   final AppSelectFieldSize size;
+  final TextStyle? textStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +46,7 @@ class AppSelectField<T> extends StatelessWidget {
           placeholder: placeholder ?? '请选择',
           errorText: field.errorText,
           size: size,
+          textStyle: textStyle,
           enabled: onChanged != null,
           onSelected: (nextValue) {
             field.didChange(nextValue);
@@ -62,6 +65,7 @@ class _AppSelectTrigger<T> extends StatefulWidget {
     required this.onSelected,
     required this.enabled,
     required this.size,
+    required this.textStyle,
     this.label,
     this.value,
     this.errorText,
@@ -69,9 +73,10 @@ class _AppSelectTrigger<T> extends StatefulWidget {
 
   final List<DropdownMenuItem<T>> items;
   final String placeholder;
-  final ValueChanged<T> onSelected;
+  final ValueChanged<T?> onSelected;
   final bool enabled;
   final AppSelectFieldSize size;
+  final TextStyle? textStyle;
   final String? label;
   final T? value;
   final String? errorText;
@@ -175,6 +180,7 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
                   height: _menuHeight,
                   items: widget.items,
                   selectedValue: widget.value,
+                  textStyle: widget.textStyle,
                   onSelected: (value) {
                     widget.onSelected(value);
                     _removeOverlay();
@@ -225,6 +231,7 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
         selectedItem == null ? colors.textMuted : colors.textPrimary;
     final fontWeight = selectedItem == null ? FontWeight.w500 : FontWeight.w600;
     final isCompact = widget.size == AppSelectFieldSize.compact;
+    final baseTextStyle = widget.textStyle ?? theme.textTheme.bodyMedium!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,7 +273,7 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
                   children: [
                     Expanded(
                       child: DefaultTextStyle(
-                        style: theme.textTheme.bodyMedium!.copyWith(
+                        style: baseTextStyle.copyWith(
                           color: textColor,
                           fontWeight: fontWeight,
                         ),
@@ -311,6 +318,7 @@ class _AppSelectMenu<T> extends StatelessWidget {
     required this.height,
     required this.items,
     required this.onSelected,
+    required this.textStyle,
     this.selectedValue,
   });
 
@@ -318,7 +326,8 @@ class _AppSelectMenu<T> extends StatelessWidget {
   final double height;
   final List<DropdownMenuItem<T>> items;
   final T? selectedValue;
-  final ValueChanged<T> onSelected;
+  final ValueChanged<T?> onSelected;
+  final TextStyle? textStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -348,11 +357,10 @@ class _AppSelectMenu<T> extends StatelessWidget {
                 .map(
                   (item) => _AppSelectMenuItem<T>(
                     selected: item.value == selectedValue,
+                    textStyle: textStyle,
                     child: item.child,
                     onTap: () {
-                      if (item.value != null) {
-                        onSelected(item.value as T);
-                      }
+                      onSelected(item.value);
                     },
                   ),
                 )
@@ -369,11 +377,13 @@ class _AppSelectMenuItem<T> extends StatefulWidget {
     required this.child,
     required this.onTap,
     required this.selected,
+    required this.textStyle,
   });
 
   final Widget child;
   final VoidCallback onTap;
   final bool selected;
+  final TextStyle? textStyle;
 
   @override
   State<_AppSelectMenuItem<T>> createState() => _AppSelectMenuItemState<T>();
@@ -386,6 +396,7 @@ class _AppSelectMenuItemState<T> extends State<_AppSelectMenuItem<T>> {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final theme = Theme.of(context);
+    final baseTextStyle = widget.textStyle ?? theme.textTheme.bodyMedium!;
     final backgroundColor =
         widget.selected
             ? colors.surfaceMuted
@@ -405,7 +416,7 @@ class _AppSelectMenuItemState<T> extends State<_AppSelectMenuItem<T>> {
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(color: backgroundColor),
           child: DefaultTextStyle(
-            style: theme.textTheme.bodyMedium!.copyWith(
+            style: baseTextStyle.copyWith(
               color: colors.textPrimary,
               fontWeight: widget.selected ? FontWeight.w700 : FontWeight.w500,
             ),

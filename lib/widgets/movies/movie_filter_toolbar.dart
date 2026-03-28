@@ -218,19 +218,34 @@ class _MovieFilterToolbarState extends State<MovieFilterToolbar> {
 
   @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: AppButton(
-        key: _triggerKey,
-        label: widget.filterState.triggerLabel,
-        labelKey: const Key('movies-filter-trigger-label'),
-        icon: const Icon(Icons.filter_alt_outlined),
-        trailingIcon: Icon(_isOpen ? Icons.expand_less : Icons.expand_more),
-        variant: AppButtonVariant.secondary,
-        size: AppButtonSize.small,
-        isSelected: !widget.filterState.isDefault || _isOpen,
-        onPressed: _togglePanel,
-      ),
+    return Wrap(
+      spacing: context.appSpacing.sm,
+      runSpacing: context.appSpacing.sm,
+      children: [
+        CompositedTransformTarget(
+          link: _layerLink,
+          child: AppButton(
+            key: _triggerKey,
+            label: widget.filterState.triggerLabel,
+            labelKey: const Key('movies-filter-trigger-label'),
+            icon: const Icon(Icons.filter_alt_outlined),
+            trailingIcon: Icon(_isOpen ? Icons.expand_less : Icons.expand_more),
+            variant: AppButtonVariant.secondary,
+            size: AppButtonSize.small,
+            isSelected: !widget.filterState.isDefault || _isOpen,
+            onPressed: _togglePanel,
+          ),
+        ),
+        for (final preset in MovieFilterPreset.values)
+          AppButton(
+            key: Key('movies-filter-preset-${preset.key}'),
+            label: preset.label,
+            variant: AppButtonVariant.secondary,
+            size: AppButtonSize.small,
+            isSelected: widget.filterState.matchesPreset(preset),
+            onPressed: () => widget.onChanged(preset.filterState),
+          ),
+      ],
     );
   }
 }

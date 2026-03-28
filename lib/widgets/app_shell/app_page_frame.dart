@@ -7,12 +7,14 @@ class AppPageFrame extends StatelessWidget {
     required this.title,
     this.eyebrow,
     this.description,
+    this.scrollController,
     required this.child,
   });
 
   final String title;
   final String? eyebrow;
   final String? description;
+  final ScrollController? scrollController;
   final Widget child;
 
   @override
@@ -23,6 +25,7 @@ class AppPageFrame extends StatelessWidget {
     final hasHeader = hasEyebrow || hasTitle || hasDescription;
 
     return SingleChildScrollView(
+      controller: scrollController,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

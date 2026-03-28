@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/actors/presentation/desktop_actors_page.dart';
+import 'package:sakuramedia/features/activity/presentation/desktop_activity_page.dart';
 import 'package:sakuramedia/features/actors/presentation/mobile_actors_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_reviews_page.dart';
@@ -14,116 +15,10 @@ import 'package:sakuramedia/features/playlists/presentation/desktop_playlists_pa
 import 'package:sakuramedia/features/rankings/presentation/desktop_rankings_page.dart';
 import 'package:sakuramedia/features/rankings/presentation/mobile_rankings_page.dart';
 import 'package:sakuramedia/features/workbench/workbench_placeholder_page.dart';
+import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 
-const String desktopOverviewPath = '/desktop/overview';
-const String desktopFollowPath = '/desktop/library/follow';
-const String desktopSearchPath = '/desktop/search';
-const String desktopImageSearchPath = '/desktop/search/image';
-const String desktopMoviesPath = '/desktop/library/movies';
-const String desktopActorsPath = '/desktop/library/actors';
-const String desktopMomentsPath = '/desktop/library/moments';
-const String desktopPlaylistsPath = '/desktop/library/playlists';
-const String desktopRankingsPath = '/desktop/library/rankings';
-const String desktopHotReviewsPath = '/desktop/library/hot-reviews';
-const String desktopConfigurationPath = '/desktop/system/configuration';
-const String mobileOverviewPath = '/mobile/overview';
-const String mobilePlaylistDetailPathPrefix = '$mobileOverviewPath/playlists';
-const String mobileSearchPath = '/mobile/search';
-const String mobileImageSearchPath = '/mobile/search/image';
-const String mobileMoviesPath = '/mobile/library/movies';
-const String mobileActorsPath = '/mobile/library/actors';
-const String mobileRankingsPath = '/mobile/rankings';
-const String loginPath = '/login';
-
-String buildDesktopSearchRoutePath(String query) {
-  final trimmed = query.trim();
-  if (trimmed.isEmpty) {
-    return desktopSearchPath;
-  }
-  return '$desktopSearchPath/${Uri.encodeComponent(trimmed)}';
-}
-
-String buildMobileSearchRoutePath(String query) {
-  final trimmed = query.trim();
-  if (trimmed.isEmpty) {
-    return mobileSearchPath;
-  }
-  return '$mobileSearchPath/${Uri.encodeComponent(trimmed)}';
-}
-
-String buildMobilePlaylistDetailRoutePath(int playlistId) {
-  return '$mobilePlaylistDetailPathPrefix/$playlistId';
-}
-
-String buildDesktopMovieDetailRoutePath(String movieNumber) {
-  return '$desktopMoviesPath/${Uri.encodeComponent(movieNumber)}';
-}
-
-String buildMobileMovieDetailRoutePath(String movieNumber) {
-  return '$mobileMoviesPath/${Uri.encodeComponent(movieNumber)}';
-}
-
-String buildDesktopActorDetailRoutePath(int actorId) {
-  return '$desktopActorsPath/$actorId';
-}
-
-String buildDesktopPlaylistDetailRoutePath(int playlistId) {
-  return '$desktopPlaylistsPath/$playlistId';
-}
-
-String buildMobileMoviePlayerRoutePath(
-  String movieNumber, {
-  int? mediaId,
-  int? positionSeconds,
-}) {
-  final queryParameters = <String, String>{};
-  if (mediaId != null) {
-    queryParameters['mediaId'] = '$mediaId';
-  }
-  if (positionSeconds != null) {
-    queryParameters['positionSeconds'] = '$positionSeconds';
-  }
-  final path = Uri(
-    path: '$mobileMoviesPath/${Uri.encodeComponent(movieNumber)}/player',
-    queryParameters: queryParameters.isEmpty ? null : queryParameters,
-  );
-  return path.toString();
-}
-
-String buildMobileActorDetailRoutePath(int actorId) {
-  return '$mobileActorsPath/$actorId';
-}
-
-String buildDesktopMoviePlayerRoutePath(
-  String movieNumber, {
-  int? mediaId,
-  int? positionSeconds,
-}) {
-  final queryParameters = <String, String>{};
-  if (mediaId != null) {
-    queryParameters['mediaId'] = '$mediaId';
-  }
-  if (positionSeconds != null) {
-    queryParameters['positionSeconds'] = '$positionSeconds';
-  }
-  final path = Uri(
-    path: '/desktop/library/movies/$movieNumber/player',
-    queryParameters: queryParameters.isEmpty ? null : queryParameters,
-  );
-  return path.toString();
-}
-
-String overviewPathForPlatform(AppPlatform platform) {
-  switch (platform) {
-    case AppPlatform.desktop:
-      return desktopOverviewPath;
-    case AppPlatform.mobile:
-      return mobileOverviewPath;
-    case AppPlatform.web:
-      return desktopOverviewPath;
-  }
-}
+export 'app_route_paths.dart';
 
 const List<_NavSeed> _mobileNavSeeds = [
   _NavSeed(
@@ -286,6 +181,19 @@ const List<_NavSeed> _desktopNavSeeds = [
     ],
   ),
   _NavSeed(
+    id: 'activity',
+    label: '活动中心',
+    icon: Icons.notifications_active_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'system/activity',
+        label: '活动中心',
+        icon: Icons.notifications_active_outlined,
+        description: '后台通知、任务状态与在线活动流的统一入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
     id: 'configuration',
     label: '配置管理',
     icon: Icons.settings_suggest_outlined,
@@ -404,6 +312,9 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
                         : useDesktopExperience &&
                             item.path == desktopHotReviewsPath
                         ? const DesktopHotReviewsPage()
+                        : useDesktopExperience &&
+                            item.path == desktopActivityPath
+                        ? const DesktopActivityPage()
                         : useDesktopExperience &&
                             item.path == desktopConfigurationPath
                         ? const DesktopConfigurationPage()

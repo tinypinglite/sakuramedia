@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -87,6 +88,7 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
     int statusCode = 200,
     required List<String> chunks,
     Duration chunkInterval = Duration.zero,
+    bool keepOpen = false,
     Map<String, List<String>>? headers,
   }) {
     enqueueResponder(
@@ -94,7 +96,11 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
       path: path,
       responder: (RequestOptions _, dynamic __) async {
         return ResponseBody(
-          _buildSseStream(chunks: chunks, chunkInterval: chunkInterval),
+          _buildSseStream(
+            chunks: chunks,
+            chunkInterval: chunkInterval,
+            keepOpen: keepOpen,
+          ),
           statusCode,
           headers:
               headers ??
@@ -195,12 +201,16 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
   Stream<Uint8List> _buildSseStream({
     required List<String> chunks,
     required Duration chunkInterval,
+    required bool keepOpen,
   }) async* {
     for (final chunk in chunks) {
       if (chunkInterval > Duration.zero) {
         await Future<void>.delayed(chunkInterval);
       }
       yield Uint8List.fromList(utf8.encode(chunk));
+    }
+    if (keepOpen) {
+      await Completer<void>().future;
     }
   }
 }

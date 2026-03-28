@@ -238,7 +238,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('detail: ABC-001'), findsOneWidget);
-      expect(receivedExtra, desktopFollowPath);
+      expect(receivedExtra, isNull);
     },
   );
 

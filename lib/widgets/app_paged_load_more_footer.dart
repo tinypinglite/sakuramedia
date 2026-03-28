@@ -58,11 +58,13 @@ class AppPagedLoadMoreFooter extends StatelessWidget {
                 color: colors.textSecondary,
               ),
               SizedBox(width: spacing.sm),
-              Text(
-                errorMessage!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+              Flexible(
+                child: Text(
+                  errorMessage!,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+                ),
               ),
               SizedBox(width: spacing.sm),
               TextButton(

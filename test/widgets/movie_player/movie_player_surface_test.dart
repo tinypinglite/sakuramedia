@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:media_kit_video/media_kit_video_controls/media_kit_video_controls.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_readiness.dart';
@@ -177,6 +178,54 @@ void main() {
         expect(markedReady, isFalse);
       },
     );
+  });
+
+  group('Touch Optimized Controls', () {
+    test('controls builder always resolves to adaptive controls', () {
+      expect(
+        resolveMoviePlayerVideoControlsBuilder(useTouchOptimizedControls: true),
+        AdaptiveVideoControls,
+      );
+      expect(
+        resolveMoviePlayerVideoControlsBuilder(
+          useTouchOptimizedControls: false,
+        ),
+        AdaptiveVideoControls,
+      );
+    });
+
+    test(
+      'material controls theme keeps default seek sizing for touch flag',
+      () {
+        final themeData = buildMoviePlayerMaterialControlsThemeData(
+          theme: ThemeData.light(),
+          controls: const <Widget>[],
+          useTouchOptimizedControls: true,
+        );
+
+        expect(themeData.seekGesture, isTrue);
+        expect(themeData.seekBarThumbSize, 14);
+        expect(
+          themeData.seekBarMargin,
+          const EdgeInsets.fromLTRB(30, 0, 30, 75),
+        );
+        expect(themeData.volumeGesture, isTrue);
+        expect(themeData.brightnessGesture, isTrue);
+        expect(themeData.seekOnDoubleTap, isTrue);
+      },
+    );
+
+    test('default material controls theme keeps desktop seek sizing', () {
+      final themeData = buildMoviePlayerMaterialControlsThemeData(
+        theme: ThemeData.light(),
+        controls: const <Widget>[],
+        useTouchOptimizedControls: false,
+      );
+
+      expect(themeData.seekGesture, isTrue);
+      expect(themeData.seekBarThumbSize, 14);
+      expect(themeData.seekBarMargin, const EdgeInsets.fromLTRB(30, 0, 30, 75));
+    });
   });
 }
 

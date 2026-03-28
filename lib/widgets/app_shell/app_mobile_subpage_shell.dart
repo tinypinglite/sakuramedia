@@ -7,29 +7,37 @@ class AppMobileSubpageShell extends StatelessWidget {
   const AppMobileSubpageShell({
     super.key,
     required this.title,
-    required this.fallbackPath,
+    this.defaultLocation,
+    @Deprecated('请改用 defaultLocation。') this.fallbackPath,
     required this.child,
-    this.onBackOverride,
-    this.shellNavigatorKey,
+    this.currentPath,
     this.bodyPadding = AppPageInsets.compactStandard,
-  });
+  }) : assert(
+         defaultLocation != null || fallbackPath != null,
+         'defaultLocation 和 fallbackPath 至少需要提供一个',
+       ),
+       resolvedDefaultLocation = defaultLocation ?? fallbackPath ?? '';
 
   final String title;
-  final String fallbackPath;
+  final String? defaultLocation;
+  @Deprecated('请改用 defaultLocation。')
+  final String? fallbackPath;
+  final String resolvedDefaultLocation;
   final Widget child;
-  final VoidCallback? onBackOverride;
-  final GlobalKey<NavigatorState>? shellNavigatorKey;
+  final String? currentPath;
   final EdgeInsetsGeometry bodyPadding;
 
   @override
   Widget build(BuildContext context) {
+    final router = GoRouter.maybeOf(context);
+    final navigator = Navigator.maybeOf(context);
     final content = PopScope<void>(
-      canPop: _canPop(context),
+      canPop: _canPop(router, navigator),
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) {
           return;
         }
-        context.go(fallbackPath);
+        _goToDefault(router, resolvedDefaultLocation);
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         key: const Key('mobile-subpage-system-overlay'),
@@ -52,7 +60,7 @@ class AppMobileSubpageShell extends StatelessWidget {
                 leading: IconButton(
                   iconSize: context.appComponentTokens.iconSizeSm,
                   key: const Key('mobile-subpage-back-button'),
-                  onPressed: onBackOverride ?? () => _handleBack(context),
+                  onPressed: () => _handleBack(context),
                   icon: const Icon(Icons.arrow_back_ios_new_rounded),
                   tooltip: '返回',
                 ),
@@ -71,35 +79,35 @@ class AppMobileSubpageShell extends StatelessWidget {
         ),
       ),
     );
-
-    if (Router.maybeOf(context) == null) {
-      return content;
-    }
-
-    return BackButtonListener(
-      onBackButtonPressed: () async {
-        if (_canPop(context)) {
-          return false;
-        }
-        context.go(fallbackPath);
-        return true;
-      },
-      child: content,
-    );
+    return content;
   }
 
   void _handleBack(BuildContext context) {
-    final navigator = shellNavigatorKey?.currentState ?? Navigator.of(context);
-    if (navigator.canPop()) {
-      navigator.pop();
+    final router = GoRouter.maybeOf(context);
+    final navigator = Navigator.maybeOf(context);
+    if (_canPop(router, navigator)) {
+      if (router != null && router.canPop()) {
+        router.pop();
+        return;
+      }
+      navigator?.pop();
       return;
     }
-    context.go(fallbackPath);
+    final activePath =
+        currentPath ??
+        (router != null ? GoRouterState.of(context).uri.path : null);
+    if (activePath != resolvedDefaultLocation) {
+      _goToDefault(router, resolvedDefaultLocation);
+    }
   }
 
-  bool _canPop(BuildContext context) {
-    final navigator = shellNavigatorKey?.currentState ?? Navigator.of(context);
-    return navigator.canPop();
+  bool _canPop(GoRouter? router, NavigatorState? navigator) {
+    return router?.canPop() ?? navigator?.canPop() ?? false;
+  }
+
+  void _goToDefault(GoRouter? router, String location) {
+    // 子页面优先交给路由系统处理；在纯组件宿主下没有 GoRouter 时保持静默。
+    router?.go(location);
   }
 
   SystemUiOverlayStyle _mobileSystemOverlayStyle(BuildContext context) {

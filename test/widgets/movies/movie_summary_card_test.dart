@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -217,4 +218,95 @@ void main() {
       );
     },
   );
+
+  testWidgets('movie summary card forwards secondary tap menu position', (
+    WidgetTester tester,
+  ) async {
+    Offset? menuPosition;
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+        ],
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: SizedBox(
+              width: 220,
+              child: MovieSummaryCard(
+                movie: const MovieListItemDto(
+                  javdbId: 'MovieA4',
+                  movieNumber: 'OFJE-888',
+                  title: 'Movie 4',
+                  coverImage: null,
+                  releaseDate: null,
+                  durationMinutes: 0,
+                  isSubscribed: false,
+                  canPlay: false,
+                ),
+                onRequestMenu: (position) => menuPosition = position,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final center = tester.getCenter(
+      find.byKey(const Key('movie-summary-card-OFJE-888')),
+    );
+    await tester.tapAt(center, buttons: kSecondaryMouseButton);
+    await tester.pump();
+
+    expect(menuPosition, equals(center));
+  });
+
+  testWidgets('movie summary card forwards long press menu position', (
+    WidgetTester tester,
+  ) async {
+    Offset? menuPosition;
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+        ],
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: SizedBox(
+              width: 220,
+              child: MovieSummaryCard(
+                movie: const MovieListItemDto(
+                  javdbId: 'MovieA5',
+                  movieNumber: 'OFJE-889',
+                  title: 'Movie 5',
+                  coverImage: null,
+                  releaseDate: null,
+                  durationMinutes: 0,
+                  isSubscribed: false,
+                  canPlay: false,
+                ),
+                onRequestMenu: (position) => menuPosition = position,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final center = tester.getCenter(
+      find.byKey(const Key('movie-summary-card-OFJE-889')),
+    );
+    final gesture = await tester.startGesture(center);
+    await tester.pump(kLongPressTimeout);
+    await gesture.up();
+
+    expect(menuPosition, equals(center));
+  });
 }

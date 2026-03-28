@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
@@ -200,6 +201,70 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('detail:ABC-001'), findsOneWidget);
+  });
+
+  testWidgets('mobile movie player uses default adaptive controls', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: _movieDetailJson(
+        mediaItems: const <Map<String, dynamic>>[
+          <String, dynamic>{
+            'media_id': 100,
+            'play_url': '/files/media/movies/ABC-001/video.mp4',
+            'path': '/library/main/ABC-001/video.mp4',
+            'duration_seconds': 7200,
+            'progress': null,
+          },
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/100/thumbnails',
+      body: const <String, dynamic>{'items': <Map<String, dynamic>>[]},
+    );
+
+    bool? capturedUseTouchOptimizedControls;
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ],
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: MobileMoviePlayerPage(
+              movieNumber: 'ABC-001',
+              surfaceBuilder: (
+                BuildContext context,
+                String resolvedUrl,
+                surfaceController,
+                Duration? initialPosition,
+                ValueChanged<Duration>? onPositionChanged,
+                ValueChanged<bool>? onPlayingChanged,
+                bool useTouchOptimizedControls,
+              ) {
+                capturedUseTouchOptimizedControls = useTouchOptimizedControls;
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(capturedUseTouchOptimizedControls, isFalse);
+    final desktopPlayer = tester.widget<DesktopMoviePlayerPage>(
+      find.byType(DesktopMoviePlayerPage),
+    );
+    expect(desktopPlayer.enableThumbnailActionMenu, isTrue);
+    expect(desktopPlayer.imageSearchRoutePath, mobileImageSearchPath);
   });
 }
 

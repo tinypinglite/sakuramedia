@@ -1,5 +1,7 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_sse_event.dart';
+import 'package:sakuramedia/features/movies/data/missav_thumbnail_result_dto.dart';
+import 'package:sakuramedia/features/movies/data/missav_thumbnail_stream_update.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
@@ -107,6 +109,18 @@ class MoviesApi {
         .toList(growable: false);
   }
 
+  Stream<MissavThumbnailStreamUpdate> getMissavThumbnailsStream({
+    required String movieNumber,
+    bool refresh = false,
+  }) {
+    return _apiClient
+        .getSse(
+          '/movies/$movieNumber/thumbnails/missav/stream',
+          queryParameters: <String, dynamic>{'refresh': refresh},
+        )
+        .map(_mapMissavThumbnailStreamEvent);
+  }
+
   Future<MovieMediaProgressDto> updateMediaProgress({
     required int mediaId,
     required int positionSeconds,
@@ -204,6 +218,86 @@ class MoviesApi {
         return MovieSearchStreamUpdate(
           stage: event.event,
           message: '正在同步在线影片搜索结果',
+        );
+    }
+  }
+
+  MissavThumbnailStreamUpdate _mapMissavThumbnailStreamEvent(
+    ApiSseEvent event,
+  ) {
+    final payload = event.jsonData;
+
+    switch (event.event) {
+      case 'search_started':
+        return const MissavThumbnailStreamUpdate(
+          stage: 'search_started',
+          message: '正在获取 MissAV 缩略图',
+        );
+      case 'manifest_resolved':
+        return MissavThumbnailStreamUpdate(
+          stage: 'manifest_resolved',
+          message: '已解析 MissAV 缩略图配置',
+        );
+      case 'download_started':
+        return MissavThumbnailStreamUpdate(
+          stage: 'download_started',
+          message: '正在下载 MissAV 缩略图，请不要关闭此页面',
+          current: 0,
+          total: payload['total'] as int?,
+        );
+      case 'download_progress':
+        return MissavThumbnailStreamUpdate(
+          stage: 'download_progress',
+          message: '正在下载 MissAV 缩略图，请不要关闭此页面',
+          current: payload['completed'] as int?,
+          total: payload['total'] as int?,
+        );
+      case 'download_finished':
+        return MissavThumbnailStreamUpdate(
+          stage: 'download_finished',
+          message: 'MissAV 缩略图下载完成',
+          current: payload['completed'] as int?,
+          total: payload['total'] as int?,
+        );
+      case 'slice_started':
+        return MissavThumbnailStreamUpdate(
+          stage: 'slice_started',
+          message: '正在切分 MissAV 帧图',
+          current: 0,
+          total: payload['total'] as int?,
+        );
+      case 'slice_progress':
+        return MissavThumbnailStreamUpdate(
+          stage: 'slice_progress',
+          message: '正在切分 MissAV 帧图',
+          current: payload['completed'] as int?,
+          total: payload['total'] as int?,
+        );
+      case 'slice_finished':
+        return MissavThumbnailStreamUpdate(
+          stage: 'slice_finished',
+          message: 'MissAV 帧图切分完成',
+          current: payload['completed'] as int?,
+          total: payload['total'] as int?,
+        );
+      case 'completed':
+        final success = payload['success'] as bool? ?? false;
+        final resultPayload = payload['result'];
+        return MissavThumbnailStreamUpdate(
+          stage: 'completed',
+          message: success ? 'MissAV 缩略图获取完成' : 'MissAV 缩略图获取失败',
+          success: success,
+          reason: payload['reason'] as String?,
+          detail: payload['detail'] as String?,
+          result:
+              resultPayload == null
+                  ? null
+                  : MissavThumbnailResultDto.fromJson(_toMap(resultPayload)),
+        );
+      default:
+        return MissavThumbnailStreamUpdate(
+          stage: event.event,
+          message: '正在同步 MissAV 缩略图进度',
         );
     }
   }

@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/actors/presentation/mobile_actor_detail_pag
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -223,6 +224,89 @@ void main() {
     expect(_queryValue(bundle, 2, 'sort'), 'release_date:desc');
   });
 
+  testWidgets('mobile actor detail page applies quick filter presets', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors/1',
+      body: _actorDetailJson(),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(total: 2),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _movieItem(movieNumber: 'ABC-101', isSubscribed: true),
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _movieItem(movieNumber: 'ABC-102', canPlay: true),
+        ],
+      ),
+    );
+
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      physicalSize: const Size(360, 900),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(
+      find.byKey(const Key('movies-filter-preset-latest-subscribed')),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(_queryValue(bundle, 2, 'actor_id'), '1');
+    expect(_queryValue(bundle, 2, 'status'), 'subscribed');
+    expect(_queryValue(bundle, 2, 'collection_type'), 'single');
+    expect(_queryValue(bundle, 2, 'sort'), 'subscribed_at:desc');
+    expect(
+      tester
+          .widget<AppButton>(
+            find.byKey(const Key('movies-filter-preset-latest-subscribed')),
+          )
+          .isSelected,
+      isTrue,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('movies-filter-preset-latest-added')),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(_queryValue(bundle, 3, 'actor_id'), '1');
+    expect(_queryValue(bundle, 3, 'status'), 'playable');
+    expect(_queryValue(bundle, 3, 'collection_type'), 'single');
+    expect(_queryValue(bundle, 3, 'sort'), 'added_at:desc');
+    expect(
+      tester
+          .widget<AppButton>(
+            find.byKey(const Key('movies-filter-preset-latest-added')),
+          )
+          .isSelected,
+      isTrue,
+    );
+  });
+
   testWidgets(
     'mobile actor detail page shows actor and movie subscription feedback',
     (WidgetTester tester) async {
@@ -353,7 +437,7 @@ void main() {
     },
   );
 
-  testWidgets('mobile actor detail movie tap navigates with fallback extra', (
+  testWidgets('mobile actor detail movie tap pushes movie detail route', (
     WidgetTester tester,
   ) async {
     bundle.adapter.enqueueJson(
@@ -372,7 +456,6 @@ void main() {
       ),
     );
 
-    Object? movieDetailExtra;
     final router = GoRouter(
       initialLocation: buildMobileActorDetailRoutePath(1),
       routes: [
@@ -386,13 +469,11 @@ void main() {
         ),
         GoRoute(
           path: '$mobileMoviesPath/:movieNumber',
-          builder: (_, state) {
-            movieDetailExtra = state.extra;
-            return Text(
-              'movie:${state.pathParameters['movieNumber']}',
-              textDirection: TextDirection.ltr,
-            );
-          },
+          builder:
+              (_, state) => Text(
+                'movie:${state.pathParameters['movieNumber']}',
+                textDirection: TextDirection.ltr,
+              ),
         ),
       ],
     );
@@ -410,7 +491,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('movie:ABC-001'), findsOneWidget);
-    expect(movieDetailExtra, buildMobileActorDetailRoutePath(1));
+    expect(router.canPop(), isTrue);
   });
 }
 
@@ -418,8 +499,9 @@ Future<void> _pumpPage(
   WidgetTester tester, {
   required SessionStore sessionStore,
   required TestApiBundle bundle,
+  Size physicalSize = const Size(430, 900),
 }) async {
-  tester.view.physicalSize = const Size(430, 900);
+  tester.view.physicalSize = physicalSize;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);

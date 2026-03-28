@@ -55,3 +55,4 @@ assets/
 android.agents.md
 
 .vscode
+.worktrees/

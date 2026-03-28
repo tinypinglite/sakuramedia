@@ -37,16 +37,6 @@ class ActorsApi {
     return ActorListItemDto.fromJson(response);
   }
 
-  Future<List<ActorListItemDto>> searchLocalActors({
-    required String query,
-  }) async {
-    final response = await _apiClient.getList(
-      '/actors/search/local',
-      queryParameters: <String, dynamic>{'query': query.trim()},
-    );
-    return response.map(ActorListItemDto.fromJson).toList(growable: false);
-  }
-
   Future<List<int>> getActorMovieIds({required int actorId}) async {
     final response = await _apiClient.getValueList(
       '/actors/$actorId/movie-ids',

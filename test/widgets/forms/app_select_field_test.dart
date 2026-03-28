@@ -128,6 +128,58 @@ void main() {
     expect(triggerRect.height, moreOrLessEquals(36, epsilon: 0.1));
   });
 
+  testWidgets('applies custom text style to trigger and menu items', (
+    WidgetTester tester,
+  ) async {
+    const customTextStyle = TextStyle(fontSize: 13);
+
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            value: 1,
+            textStyle: customTextStyle,
+            items: const [
+              DropdownMenuItem<int>(value: 1, child: Text('默认')),
+              DropdownMenuItem<int>(value: 2, child: Text('归档')),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final triggerStyle = tester.widget<DefaultTextStyle>(
+      find
+          .ancestor(
+            of: find.descendant(
+              of: findTriggerSurface(),
+              matching: find.text('默认'),
+            ),
+            matching: find.byType(DefaultTextStyle),
+          )
+          .first,
+    );
+    expect(triggerStyle.style.fontSize, 13);
+
+    await tester.tap(find.text('默认'));
+    await tester.pumpAndSettle();
+
+    final menuStyle = tester.widget<DefaultTextStyle>(
+      find
+          .ancestor(
+            of: find.descendant(
+              of: findMenuSurface(),
+              matching: find.text('归档'),
+            ),
+            matching: find.byType(DefaultTextStyle),
+          )
+          .first,
+    );
+    expect(menuStyle.style.fontSize, 13);
+  });
+
   testWidgets('opens menu selects item and closes on outside tap', (
     WidgetTester tester,
   ) async {
@@ -168,6 +220,47 @@ void main() {
     await tester.tapAt(const Offset(8, 8));
     await tester.pumpAndSettle();
     expect(findMenuSurface(), findsNothing);
+  });
+
+  testWidgets('can switch from non-null option back to null option', (
+    WidgetTester tester,
+  ) async {
+    String? selectedValue = 'reminder';
+
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<String?>(
+            value: selectedValue,
+            items: const [
+              DropdownMenuItem<String?>(value: null, child: Text('全部分类')),
+              DropdownMenuItem<String?>(value: 'result', child: Text('结果')),
+              DropdownMenuItem<String?>(value: 'reminder', child: Text('提醒')),
+            ],
+            onChanged: (value) => selectedValue = value,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('提醒'), findsOneWidget);
+
+    await tester.tap(find.text('提醒'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('全部分类').last);
+    await tester.pumpAndSettle();
+
+    expect(selectedValue, isNull);
+    expect(find.text('全部分类'), findsOneWidget);
+
+    await tester.tap(find.text('全部分类'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('结果').last);
+    await tester.pumpAndSettle();
+
+    expect(selectedValue, 'result');
+    expect(find.text('结果'), findsOneWidget);
   });
 
   testWidgets('aligns menu width and keeps menu close to trigger', (

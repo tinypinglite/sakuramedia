@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/features/playlists/presentation/playlist_detail_content.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 
 class MobilePlaylistDetailPage extends StatelessWidget {
@@ -17,10 +16,9 @@ class MobilePlaylistDetailPage extends StatelessWidget {
       child: PlaylistDetailContent(
         playlistId: playlistId,
         onMovieTap:
-            (movie) => context.push(
-              buildMobileMovieDetailRoutePath(movie.movieNumber),
-              extra: buildMobilePlaylistDetailRoutePath(playlistId),
-            ),
+            (movie) => MobileMovieDetailRouteData(
+              movieNumber: movie.movieNumber,
+            ).push(context),
       ),
     );
   }

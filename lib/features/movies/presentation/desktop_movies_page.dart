@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_list_page_state.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
@@ -125,6 +126,15 @@ class _DesktopMoviesPageState extends State<DesktopMoviesPage> {
                         movieNumber: movie.movieNumber,
                         fallbackPath: desktopMoviesPath,
                       ),
+                  onMovieMenuRequest: (movie, globalPosition) {
+                    unawaited(
+                      showMovieCollectionFeatureActionMenu(
+                        context: context,
+                        movieNumber: movie.movieNumber,
+                        globalPosition: globalPosition,
+                      ),
+                    );
+                  },
                   onMovieSubscriptionTap:
                       (movie) => _toggleMovieSubscription(movie.movieNumber),
                   isMovieSubscriptionUpdating:

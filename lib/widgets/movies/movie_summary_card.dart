@@ -10,6 +10,7 @@ class MovieSummaryCard extends StatelessWidget {
     this.showStatusBadges = true,
     this.rank,
     this.onTap,
+    this.onRequestMenu,
     this.onSubscriptionTap,
     this.isSubscriptionUpdating = false,
   });
@@ -18,6 +19,7 @@ class MovieSummaryCard extends StatelessWidget {
   final bool showStatusBadges;
   final int? rank;
   final VoidCallback? onTap;
+  final ValueChanged<Offset>? onRequestMenu;
   final VoidCallback? onSubscriptionTap;
   final bool isSubscriptionUpdating;
 
@@ -66,21 +68,33 @@ class MovieSummaryCard extends StatelessWidget {
       ),
     );
 
-    final tappableCard =
-        onTap == null
+    final interactiveCard =
+        onTap == null && onRequestMenu == null
             ? card
             : MouseRegion(
               cursor: SystemMouseCursors.click,
-              child: GestureDetector(onTap: onTap, child: card),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTap,
+                onLongPressStart:
+                    onRequestMenu == null
+                        ? null
+                        : (details) => onRequestMenu!(details.globalPosition),
+                onSecondaryTapDown:
+                    onRequestMenu == null
+                        ? null
+                        : (details) => onRequestMenu!(details.globalPosition),
+                child: card,
+              ),
             );
 
     if (!showStatusBadges) {
-      return tappableCard;
+      return interactiveCard;
     }
 
     return Stack(
       children: [
-        tappableCard,
+        interactiveCard,
         if (rank != null)
           Positioned(
             top: spacing.sm,

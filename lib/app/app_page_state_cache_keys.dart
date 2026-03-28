@@ -6,8 +6,10 @@ String mobileActorsPageStateKey() => 'mobile:actors:list';
 
 String mobileRankingsPageStateKey() => 'mobile:rankings:list';
 
-String desktopImageSearchPageStateKey() => 'desktop:image-search';
-String mobileImageSearchPageStateKey() => 'mobile:image-search';
+String desktopImageSearchPageStateKey(String location) =>
+    'desktop:image-search:$location';
+String mobileImageSearchPageStateKey(String location) =>
+    'mobile:image-search:$location';
 
 String desktopSearchPageStateKey(String fullPath) => 'desktop:search:$fullPath';
 String mobileSearchPageStateKey(String fullPath) => 'mobile:search:$fullPath';

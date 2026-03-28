@@ -105,6 +105,7 @@ class _MobileFollowMovieCardState extends State<MobileFollowMovieCard> {
                         isSubscriptionUpdating: widget.isSubscriptionUpdating,
                         onSubscriptionTap: widget.onSubscriptionTap,
                       ),
+                      SizedBox(width: spacing.xs),
                       Expanded(
                         child: _StillImagesStrip(
                           movieNumber: widget.movie.movieNumber,

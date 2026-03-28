@@ -11,10 +11,14 @@ import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/activity/data/activity_api.dart';
+import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
+import 'package:sakuramedia/features/activity/presentation/desktop_activity_page.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_result_item_dto.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
@@ -40,7 +44,7 @@ import '../support/test_api_bundle.dart';
 
 void main() {
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 9);
+    expect(desktopNavGroups.length, 10);
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
       '女优上新',
@@ -50,6 +54,7 @@ void main() {
       '播放列表',
       '排行榜',
       '热评',
+      '活动中心',
       '配置管理',
     ]);
     expect(desktopRouteSpecs.map((spec) => spec.path), [
@@ -61,6 +66,7 @@ void main() {
       desktopPlaylistsPath,
       desktopRankingsPath,
       desktopHotReviewsPath,
+      desktopActivityPath,
       desktopConfigurationPath,
     ]);
   });
@@ -184,6 +190,36 @@ void main() {
     expect(find.text('1 条'), findsOneWidget);
   });
 
+  testWidgets('web activity route renders desktop activity page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.web,
+    );
+    addTearDown(sessionStore.dispose);
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    _enqueueActivityResponses(bundle);
+    final router = buildAppRouter(AppPlatform.web, sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(desktopActivityPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DesktopActivityPage), findsOneWidget);
+    expect(find.byKey(const Key('desktop-activity-page')), findsOneWidget);
+    expect(find.byKey(const Key('activity-tab-notifications')), findsOneWidget);
+  });
+
   test('desktop top bar config disables back on overview', () {
     final config = resolveDesktopTopBarConfig(
       currentPath: desktopOverviewPath,
@@ -202,7 +238,7 @@ void main() {
     );
 
     expect(config.title, '影片详情');
-    expect(config.fallbackPath, desktopOverviewPath);
+    expect(config.fallbackPath, desktopMoviesPath);
     expect(config.isBackEnabled, isTrue);
   });
 
@@ -659,18 +695,12 @@ void main() {
         'reason': 'movie_number_not_found',
       },
     );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/actors/search/local',
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 1,
-          'javdb_id': 'ActorA1',
-          'name': 'Rio',
-          'alias_name': 'Rio %',
-          'profile_image': null,
-          'is_subscribed': false,
-        },
+    bundle.adapter.enqueueSse(
+      method: 'POST',
+      path: '/actors/search/javdb/stream',
+      chunks: <String>[
+        'event: completed\n'
+            'data: {"success":true,"actors":[{"id":1,"javdb_id":"ActorA1","name":"Rio","alias_name":"Rio %","profile_image":null,"is_subscribed":false}]}\n\n',
       ],
     );
     final router = buildDesktopRouter(sessionStore: sessionStore);
@@ -871,6 +901,34 @@ void main() {
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
     expect(find.text('搜索'), findsOneWidget);
     expect(find.byKey(const Key('catalog-search-page-field')), findsOneWidget);
+  });
+
+  testWidgets('mobile configuration route uses subpage shell', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    _enqueueMobileConfigurationResponses(bundle);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileConfigurationPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('配置管理'), findsOneWidget);
+    expect(find.byKey(const Key('configuration-page')), findsOneWidget);
   });
 
   testWidgets('mobile playlist detail route uses subpage shell', (
@@ -1331,74 +1389,89 @@ void main() {
     },
   );
 
-  testWidgets(
-    'mobile subpage back uses DesktopSearchRouteState fallback path',
-    (WidgetTester tester) async {
-      final sessionStore = await _buildLoggedInSessionStore(
-        platform: AppPlatform.mobile,
-      );
-      final bundle = await createTestApiBundle(sessionStore);
-      addTearDown(bundle.dispose);
-      final router = buildMobileRouter(sessionStore: sessionStore);
+  testWidgets('mobile search deep link back falls back to overview', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
 
-      await _pumpRouterApp(
-        tester,
-        router: router,
-        sessionStore: sessionStore,
-        bundle: bundle,
-      );
-      await tester.pumpAndSettle();
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
 
-      router.go(
-        mobileSearchPath,
-        extra: const DesktopSearchRouteState(
-          fallbackPath: mobileMoviesPath,
-          useOnlineSearch: false,
-        ),
-      );
-      await tester.pumpAndSettle();
+    router.go(mobileSearchPath);
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+    await tester.pumpAndSettle();
 
-      expect(router.routeInformationProvider.value.uri.path, mobileMoviesPath);
-    },
-  );
+    expect(router.routeInformationProvider.value.uri.path, mobileOverviewPath);
+  });
 
-  testWidgets(
-    'mobile subpage back uses DesktopImageSearchRouteState fallback path',
-    (WidgetTester tester) async {
-      final sessionStore = await _buildLoggedInSessionStore(
-        platform: AppPlatform.mobile,
-      );
-      final bundle = await createTestApiBundle(sessionStore);
-      addTearDown(bundle.dispose);
-      final router = buildMobileRouter(sessionStore: sessionStore);
+  testWidgets('mobile image search deep link back falls back to overview', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
 
-      await _pumpRouterApp(
-        tester,
-        router: router,
-        sessionStore: sessionStore,
-        bundle: bundle,
-      );
-      await tester.pumpAndSettle();
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
 
-      router.go(
-        mobileImageSearchPath,
-        extra: const DesktopImageSearchRouteState(
-          fallbackPath: mobileActorsPath,
-        ),
-      );
-      await tester.pumpAndSettle();
+    router.go(mobileImageSearchPath);
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+    await tester.pumpAndSettle();
 
-      expect(router.routeInformationProvider.value.uri.path, mobileActorsPath);
-    },
-  );
+    expect(router.routeInformationProvider.value.uri.path, mobileOverviewPath);
+  });
 
-  testWidgets('mobile movie detail back uses fallback path from route extra', (
+  testWidgets('mobile configuration deep link back falls back to overview', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    _enqueueMobileConfigurationResponses(bundle);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileConfigurationPath);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, mobileOverviewPath);
+  });
+
+  testWidgets('mobile movie detail deep link back falls back to movie list', (
     WidgetTester tester,
   ) async {
     final sessionStore = await _buildLoggedInSessionStore(
@@ -1417,19 +1490,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    router.go(
-      buildMobileMovieDetailRoutePath('ABC-001'),
-      extra: mobileSearchPath,
-    );
+    router.go(buildMobileMovieDetailRoutePath('ABC-001'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
     await tester.pumpAndSettle();
 
-    expect(router.routeInformationProvider.value.uri.path, mobileSearchPath);
+    expect(router.routeInformationProvider.value.uri.path, mobileMoviesPath);
   });
 
-  testWidgets('mobile actor detail back uses fallback path from route extra', (
+  testWidgets('mobile actor detail deep link back falls back to actor list', (
     WidgetTester tester,
   ) async {
     final sessionStore = await _buildLoggedInSessionStore(
@@ -1449,13 +1519,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    router.go(buildMobileActorDetailRoutePath(1), extra: mobileMoviesPath);
+    router.go(buildMobileActorDetailRoutePath(1));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
     await tester.pumpAndSettle();
 
-    expect(router.routeInformationProvider.value.uri.path, mobileMoviesPath);
+    expect(router.routeInformationProvider.value.uri.path, mobileActorsPath);
   });
 
   testWidgets('desktop router redirects root to overview', (
@@ -2082,7 +2152,7 @@ void main() {
     expect(router.routeInformationProvider.value.uri.path, desktopOverviewPath);
   });
 
-  testWidgets('top bar back falls back to overview for deep-linked detail', (
+  testWidgets('top bar back falls back to movies list for deep-linked detail', (
     WidgetTester tester,
   ) async {
     final sessionStore = await _buildLoggedInSessionStore();
@@ -2117,7 +2187,7 @@ void main() {
     await tester.tap(find.byKey(const Key('topbar-back-button')));
     await tester.pumpAndSettle();
 
-    expect(router.routeInformationProvider.value.uri.path, desktopOverviewPath);
+    expect(router.routeInformationProvider.value.uri.path, desktopMoviesPath);
   });
 
   testWidgets('image search detail back keeps image search route in history', (
@@ -2136,6 +2206,16 @@ void main() {
       body: const <Map<String, dynamic>>[],
     );
     final router = buildDesktopRouter(sessionStore: sessionStore);
+    final draftStore = ImageSearchDraftStore();
+    final draftId = draftStore.save(
+      fileName: 'query.png',
+      bytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+      mimeType: 'image/png',
+    );
+    final imageSearchLocation = _buildImageSearchLocation(
+      desktopImageSearchPath,
+      draftId: draftId,
+    );
 
     await _pumpRouterApp(
       tester,
@@ -2143,18 +2223,11 @@ void main() {
       sessionStore: sessionStore,
       bundle: bundle,
       includeShellController: true,
+      imageSearchDraftStore: draftStore,
     );
     await tester.pumpAndSettle();
 
-    router.go(
-      desktopImageSearchPath,
-      extra: DesktopImageSearchRouteState(
-        fallbackPath: desktopOverviewPath,
-        initialFileName: 'query.png',
-        initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
-        initialMimeType: 'image/png',
-      ),
-    );
+    router.go(imageSearchLocation);
     await tester.pumpAndSettle();
 
     await tester.tap(
@@ -2178,8 +2251,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      router.routeInformationProvider.value.uri.path,
-      desktopImageSearchPath,
+      router.routeInformationProvider.value.uri.toString(),
+      imageSearchLocation,
     );
   });
 
@@ -2361,6 +2434,16 @@ void main() {
       _enqueueMovieDetailResponse(bundle);
       _enqueueMobileActorsResponse(bundle);
       final router = buildDesktopRouter(sessionStore: sessionStore);
+      final draftStore = ImageSearchDraftStore();
+      final draftId = draftStore.save(
+        fileName: 'query.png',
+        bytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+        mimeType: 'image/png',
+      );
+      final imageSearchLocation = _buildImageSearchLocation(
+        desktopImageSearchPath,
+        draftId: draftId,
+      );
 
       await _pumpRouterApp(
         tester,
@@ -2368,18 +2451,11 @@ void main() {
         sessionStore: sessionStore,
         bundle: bundle,
         includeShellController: true,
+        imageSearchDraftStore: draftStore,
       );
       await tester.pumpAndSettle();
 
-      router.go(
-        desktopImageSearchPath,
-        extra: DesktopImageSearchRouteState(
-          fallbackPath: desktopOverviewPath,
-          initialFileName: 'query.png',
-          initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
-          initialMimeType: 'image/png',
-        ),
-      );
+      router.go(imageSearchLocation);
       await tester.pumpAndSettle();
       expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);
       expect(
@@ -2402,14 +2478,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        router.routeInformationProvider.value.uri.path,
-        desktopImageSearchPath,
+        router.routeInformationProvider.value.uri.toString(),
+        imageSearchLocation,
       );
       expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);
 
       router.go(desktopActorsPath);
       await tester.pumpAndSettle();
-      router.go(desktopImageSearchPath);
+      router.go(imageSearchLocation);
       await tester.pumpAndSettle();
 
       expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);
@@ -2465,50 +2541,54 @@ void main() {
     },
   );
 
-  testWidgets('movie detail back resolves origin path consistently', (
-    WidgetTester tester,
-  ) async {
-    final sessionStore = await _buildLoggedInSessionStore();
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    _enqueueDesktopOverviewResponses(bundle);
-    _enqueueMobileMoviesResponse(bundle);
-    _enqueueMobileActorsResponse(bundle);
-    _enqueueDesktopPlaylistsOverviewResponses(bundle);
-    for (var i = 0; i < 5; i += 1) {
-      _enqueueMovieDetailResponse(bundle);
-    }
-    final router = buildDesktopRouter(sessionStore: sessionStore);
+  testWidgets(
+    'movie detail deep link ignores legacy extra and falls back to canonical list',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      _enqueueDesktopOverviewResponses(bundle);
+      _enqueueMobileMoviesResponse(bundle);
+      _enqueueMobileActorsResponse(bundle);
+      _enqueueDesktopPlaylistsOverviewResponses(bundle);
+      for (var i = 0; i < 5; i += 1) {
+        _enqueueMovieDetailResponse(bundle);
+      }
+      final router = buildDesktopRouter(sessionStore: sessionStore);
 
-    await _pumpRouterApp(
-      tester,
-      router: router,
-      sessionStore: sessionStore,
-      bundle: bundle,
-      includeShellController: true,
-    );
-    await tester.pumpAndSettle();
-
-    final origins = <String>[
-      desktopOverviewPath,
-      desktopMoviesPath,
-      desktopActorsPath,
-      desktopSearchPath,
-      desktopPlaylistsPath,
-    ];
-    for (final origin in origins) {
-      router.go('/desktop/library/movies/ABC-001', extra: origin);
-      await tester.pumpAndSettle();
-      expect(
-        router.routeInformationProvider.value.uri.path,
-        '/desktop/library/movies/ABC-001',
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        includeShellController: true,
       );
-
-      await tester.tap(find.byKey(const Key('topbar-back-button')));
       await tester.pumpAndSettle();
-      expect(router.routeInformationProvider.value.uri.path, origin);
-    }
-  });
+
+      final origins = <String>[
+        desktopOverviewPath,
+        desktopMoviesPath,
+        desktopActorsPath,
+        desktopSearchPath,
+        desktopPlaylistsPath,
+      ];
+      for (final origin in origins) {
+        router.go('/desktop/library/movies/ABC-001', extra: origin);
+        await tester.pumpAndSettle();
+        expect(
+          router.routeInformationProvider.value.uri.path,
+          '/desktop/library/movies/ABC-001',
+        );
+
+        await tester.tap(find.byKey(const Key('topbar-back-button')));
+        await tester.pumpAndSettle();
+        expect(
+          router.routeInformationProvider.value.uri.path,
+          desktopMoviesPath,
+        );
+      }
+    },
+  );
 
   testWidgets('overview top bar back button stays disabled', (
     WidgetTester tester,
@@ -2542,7 +2622,9 @@ Future<void> _pumpRouterApp(
   required SessionStore sessionStore,
   required TestApiBundle bundle,
   bool includeShellController = false,
+  ImageSearchDraftStore? imageSearchDraftStore,
 }) {
+  final draftStore = imageSearchDraftStore ?? ImageSearchDraftStore();
   final providers = [
     ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
     ChangeNotifierProvider<AppPageStateCache>(
@@ -2550,7 +2632,13 @@ Future<void> _pumpRouterApp(
     ),
     if (includeShellController)
       ChangeNotifierProvider(create: (_) => AppShellController()),
+    // 路由现在只传 draftId，测试环境也要注入临时草稿仓库。
+    Provider<ImageSearchDraftStore>.value(value: draftStore),
     Provider<ApiClient>.value(value: bundle.apiClient),
+    Provider<ActivityEventStreamClient>.value(
+      value: bundle.activityEventStreamClient,
+    ),
+    Provider<ActivityApi>.value(value: bundle.activityApi),
     Provider<ActorsApi>.value(value: bundle.actorsApi),
     Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
     Provider<ImageSearchApi>(
@@ -2580,6 +2668,99 @@ Future<void> _pumpRouterApp(
   );
 }
 
+void _enqueueActivityResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/system/notifications',
+    body: <String, dynamic>{
+      'items': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 101,
+          'category': 'reminder',
+          'level': 'info',
+          'title': '有新的影片可以播放了',
+          'content': '本次后台处理新增可播放影片 1 部：SSIS-123',
+          'is_read': false,
+          'archived': false,
+          'created_at': '2026-03-26T09:10:00Z',
+          'updated_at': '2026-03-26T09:10:00Z',
+          'related_task_run_id': 88,
+          'related_resource_type': 'movie',
+          'related_resource_id': 123,
+        },
+      ],
+      'page': 1,
+      'page_size': 20,
+      'total': 1,
+    },
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/system/notifications/unread-count',
+    body: <String, dynamic>{'unread_count': 1},
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/system/task-runs/active',
+    body: <Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 88,
+        'task_key': 'download_task_import',
+        'task_name': '下载任务导入 SSIS-123',
+        'trigger_type': 'manual',
+        'state': 'running',
+        'progress_current': 1,
+        'progress_total': 3,
+        'progress_text': '正在导入影片文件 SSIS-123',
+        'result_text': null,
+        'result_summary': <String, dynamic>{'imported_count': 1},
+        'error_message': null,
+        'started_at': '2026-03-26T09:10:00Z',
+        'finished_at': null,
+        'created_at': '2026-03-26T09:10:00Z',
+        'updated_at': '2026-03-26T09:11:00Z',
+      },
+    ],
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/system/task-runs',
+    body: <String, dynamic>{
+      'items': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 88,
+          'task_key': 'download_task_import',
+          'task_name': '下载任务导入 SSIS-123',
+          'trigger_type': 'manual',
+          'state': 'running',
+          'progress_current': 1,
+          'progress_total': 3,
+          'progress_text': '正在导入影片文件 SSIS-123',
+          'result_text': null,
+          'result_summary': <String, dynamic>{'imported_count': 1},
+          'error_message': null,
+          'started_at': '2026-03-26T09:10:00Z',
+          'finished_at': null,
+          'created_at': '2026-03-26T09:10:00Z',
+          'updated_at': '2026-03-26T09:11:00Z',
+        },
+      ],
+      'page': 1,
+      'page_size': 20,
+      'total': 1,
+    },
+  );
+  bundle.adapter.enqueueSse(
+    method: 'GET',
+    path: '/system/events/stream',
+    chunks: const <String>[
+      'id: 1\n'
+          'event: heartbeat\n'
+          'data: {}\n\n',
+    ],
+  );
+}
+
 Page<dynamic> _findPageByName(WidgetTester tester, String pageName) {
   for (final navigator in tester.widgetList<Navigator>(
     find.byType(Navigator),
@@ -2592,6 +2773,13 @@ Page<dynamic> _findPageByName(WidgetTester tester, String pageName) {
   }
 
   throw TestFailure('No page found with name "$pageName".');
+}
+
+String _buildImageSearchLocation(String path, {required String draftId}) {
+  return Uri(
+    path: path,
+    queryParameters: <String, String>{'draftId': draftId},
+  ).toString();
 }
 
 Future<SessionStore> _buildLoggedInSessionStore({
@@ -2855,6 +3043,30 @@ void _enqueueDesktopPlaylistsOverviewResponses(TestApiBundle bundle) {
       'page': 1,
       'page_size': 1,
       'total': 1,
+    },
+  );
+}
+
+void _enqueueMobileConfigurationResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/media-libraries',
+    body: const <Map<String, Object?>>[
+      <String, Object?>{
+        'id': 1,
+        'name': 'Main Library',
+        'root_path': '/media/library/main',
+        'created_at': '2026-03-08T09:30:00Z',
+        'updated_at': '2026-03-08T09:30:00Z',
+      },
+    ],
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/collection-number-features',
+    body: const <String, Object?>{
+      'features': <String>['CJOB', 'DVAJ'],
+      'sync_stats': null,
     },
   );
 }

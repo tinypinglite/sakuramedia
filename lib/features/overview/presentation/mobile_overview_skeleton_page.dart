@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_follow_tab.dart';
 import 'package:sakuramedia/features/moments/presentation/mobile_overview_moments_tab.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/playlists_overview_controller.dart';
-import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
@@ -24,7 +24,6 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
     final colors = context.appColors;
 
     return DefaultTabController(
@@ -35,20 +34,7 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: EdgeInsets.only(top: spacing.sm),
-              child: const AppTabBar(
-                key: Key('mobile-overview-tabs'),
-                variant: AppTabBarVariant.mobileTop,
-                tabs: [
-                  Tab(text: '我的'),
-                  Tab(text: '关注'),
-                  Tab(text: '发现'),
-                  Tab(text: '时刻'),
-                  Tab(text: '热评'),
-                ],
-              ),
-            ),
+            const _MobileOverviewHeader(),
             Expanded(
               child: TabBarView(
                 key: const Key('mobile-overview-tab-view'),
@@ -58,6 +44,58 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
                   _MobileOverviewDiscoverTab(),
                   MobileOverviewMomentsTab(),
                   MobileOverviewHotReviewsTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MobileOverviewHeader extends StatelessWidget {
+  const _MobileOverviewHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final componentTokens = context.appComponentTokens;
+
+    return Padding(
+      padding: EdgeInsets.only(top: spacing.xs),
+      child: SizedBox(
+        height: componentTokens.mobileTopTabHeight,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Builder(
+              builder: (buttonContext) {
+                final scaffold = Scaffold.maybeOf(buttonContext);
+                final canOpenDrawer = scaffold?.hasDrawer ?? false;
+                return Center(
+                  child: AppIconButton(
+                    key: const Key('mobile-overview-menu-button'),
+                    tooltip: '打开菜单',
+                    semanticLabel: '打开菜单',
+                    size: AppIconButtonSize.regular,
+                    icon: const Icon(Icons.menu_rounded),
+                    onPressed: canOpenDrawer ? scaffold!.openDrawer : null,
+                  ),
+                );
+              },
+            ),
+            SizedBox(width: spacing.xs),
+            const Expanded(
+              child: AppTabBar(
+                key: Key('mobile-overview-tabs'),
+                variant: AppTabBarVariant.mobileTop,
+                tabs: [
+                  Tab(text: '我的'),
+                  Tab(text: '关注'),
+                  Tab(text: '发现'),
+                  Tab(text: '时刻'),
+                  Tab(text: '热评'),
                 ],
               ),
             ),
@@ -213,10 +251,9 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
             child: MovieSummaryCard(
               movie: movie,
               onTap:
-                  () => context.push(
-                    buildMobileMovieDetailRoutePath(movie.movieNumber),
-                    extra: mobileOverviewPath,
-                  ),
+                  () => MobileMovieDetailRouteData(
+                    movieNumber: movie.movieNumber,
+                  ).push(context),
             ),
           );
         },
@@ -276,10 +313,9 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
                       playlist.id,
                     ),
                     onTap:
-                        () => context.push(
-                          buildMobilePlaylistDetailRoutePath(playlist.id),
-                          extra: mobileOverviewPath,
-                        ),
+                        () => MobilePlaylistDetailRouteData(
+                          playlistId: playlist.id,
+                        ).push(context),
                   ),
                 ),
               )
@@ -315,7 +351,7 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
     if (query.isEmpty) {
       return;
     }
-    context.push(buildMobileSearchRoutePath(query));
+    MobileSearchQueryRouteData(query: query).push(context);
   }
 
   Future<void> _openImageSearch() async {
@@ -324,14 +360,10 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
       if (pickedFile == null || !mounted) {
         return;
       }
-      context.push(
-        mobileImageSearchPath,
-        extra: DesktopImageSearchRouteState(
-          fallbackPath: mobileOverviewPath,
-          initialFileName: pickedFile.fileName,
-          initialFileBytes: pickedFile.bytes,
-          initialMimeType: pickedFile.mimeType,
-        ),
+      context.pushMobileImageSearch(
+        initialFileName: pickedFile.fileName,
+        initialFileBytes: pickedFile.bytes,
+        initialMimeType: pickedFile.mimeType,
       );
     } on ImageSearchFilePickerException catch (error) {
       if (mounted) {

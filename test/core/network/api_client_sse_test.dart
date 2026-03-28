@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:dio/dio.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
@@ -35,7 +36,8 @@ void main() {
       method: 'POST',
       path: '/movies/search/javdb/stream',
       chunks: <String>[
-        'event: search_started\n'
+        'id: 7\n'
+            'event: search_started\n'
             'data: {"movie_number":"ABP-123"}\n\n',
         'event: completed\n'
             'data: {"success":true,\n'
@@ -51,11 +53,43 @@ void main() {
             )
             .toList();
 
+    expect(events[0].id, 7);
     expect(events[0].event, 'search_started');
     expect(events[0].jsonData['movie_number'], 'ABP-123');
     expect(events[1].event, 'completed');
     expect(events[1].jsonData['success'], isTrue);
     expect(events[1].jsonData['movies'], isEmpty);
+  });
+
+  test('getSse sends GET request with event stream accept header', () async {
+    adapter.enqueueSse(
+      method: 'GET',
+      path: '/system/events/stream',
+      chunks: <String>[
+        'id: 12\n'
+            'event: heartbeat\n'
+            'data: {}\n\n',
+      ],
+    );
+
+    final events =
+        await apiClient
+            .getSse(
+              '/system/events/stream',
+              queryParameters: <String, dynamic>{'after_event_id': 11},
+            )
+            .toList();
+
+    expect(events.single.id, 12);
+    expect(events.single.event, 'heartbeat');
+    expect(
+      adapter.requests.single.headers[Headers.acceptHeader],
+      'text/event-stream',
+    );
+    expect(
+      adapter.requests.single.uri.queryParameters['after_event_id'],
+      '11',
+    );
   });
 
   test('postSse uses a one-minute receive timeout override', () async {

@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_reviews_page.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 
 class MobileOverviewHotReviewsTab extends StatelessWidget {
@@ -21,7 +20,6 @@ class MobileOverviewHotReviewsTab extends StatelessWidget {
           }
           context.pushMobileMovieDetail(
             movieNumber: movieNumber,
-            fallbackPath: mobileOverviewPath,
           );
         },
       ),

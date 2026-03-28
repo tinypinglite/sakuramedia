@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -90,6 +93,15 @@ class _DesktopFollowPageState extends State<DesktopFollowPage> {
                         movieNumber: movie.movieNumber,
                         fallbackPath: desktopFollowPath,
                       ),
+                  onMovieMenuRequest: (movie, globalPosition) {
+                    unawaited(
+                      showMovieCollectionFeatureActionMenu(
+                        context: context,
+                        movieNumber: movie.movieNumber,
+                        globalPosition: globalPosition,
+                      ),
+                    );
+                  },
                   onMovieSubscriptionTap:
                       (movie) => _toggleMovieSubscription(movie.movieNumber),
                   isMovieSubscriptionUpdating:

@@ -12,7 +12,6 @@ class CatalogSearchStreamStatusCard extends StatelessWidget {
     final colors = context.appColors;
     final theme = Theme.of(context);
     final spacing = context.appSpacing;
-    final componentTokens = context.appComponentTokens;
 
     return Container(
       key: const Key('catalog-search-stream-status-card'),
@@ -23,52 +22,42 @@ class CatalogSearchStreamStatusCard extends StatelessWidget {
         borderRadius: context.appRadius.mdBorder,
         border: Border.all(color: colors.borderSubtle),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Icon(
-            status.isRunning
-                ? Icons.public_rounded
-                : status.isFailure
-                ? Icons.cloud_off_outlined
-                : Icons.cloud_done_outlined,
-            color: status.isRunning ? colors.textPrimary : colors.textMuted,
-            size: componentTokens.iconSizeSm,
-          ),
-          SizedBox(width: spacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+      child: Center(
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            key: const Key('catalog-search-stream-status-content'),
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                status.message,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colors.textPrimary,
+                ),
+              ),
+              if (status.progressLabel != null) ...[
+                SizedBox(height: spacing.xs),
                 Text(
-                  status.message,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: colors.textPrimary,
+                  status.progressLabel!,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colors.textMuted,
                   ),
                 ),
-                if (status.progressLabel != null) ...[
-                  SizedBox(height: spacing.xs),
-                  Text(
-                    status.progressLabel!,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: colors.textMuted,
-                    ),
-                  ),
-                ],
-                if (status.statsLabel != null) ...[
-                  SizedBox(height: spacing.xs),
-                  Text(
-                    status.statsLabel!,
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: colors.textMuted,
-                    ),
-                  ),
-                ],
               ],
-            ),
+              if (status.statsLabel != null) ...[
+                SizedBox(height: spacing.xs),
+                Text(
+                  status.statsLabel!,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colors.textMuted,
+                  ),
+                ),
+              ],
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

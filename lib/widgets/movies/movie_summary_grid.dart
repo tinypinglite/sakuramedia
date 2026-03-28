@@ -13,6 +13,7 @@ class MovieSummaryGrid extends StatelessWidget {
     required this.isLoading,
     this.errorMessage,
     this.onMovieTap,
+    this.onMovieMenuRequest,
     this.onMovieSubscriptionTap,
     this.isMovieSubscriptionUpdating,
     this.emptyMessage = '当前没有可展示的影片数据。',
@@ -23,6 +24,8 @@ class MovieSummaryGrid extends StatelessWidget {
   final bool isLoading;
   final String? errorMessage;
   final ValueChanged<MovieListItemDto>? onMovieTap;
+  final void Function(MovieListItemDto movie, Offset globalPosition)?
+  onMovieMenuRequest;
   final ValueChanged<MovieListItemDto>? onMovieSubscriptionTap;
   final bool Function(MovieListItemDto movie)? isMovieSubscriptionUpdating;
   final String emptyMessage;
@@ -55,6 +58,11 @@ class MovieSummaryGrid extends StatelessWidget {
             (movie) => MovieSummaryCard(
               movie: movie,
               onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
+              onRequestMenu:
+                  onMovieMenuRequest == null
+                      ? null
+                      : (globalPosition) =>
+                          onMovieMenuRequest!(movie, globalPosition),
               onSubscriptionTap:
                   onMovieSubscriptionTap == null
                       ? null

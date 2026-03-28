@@ -42,13 +42,18 @@ class MovieMediaThumbnailGrid extends StatefulWidget {
 
 class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   static const Duration _scrollIdleDuration = Duration(milliseconds: 100);
+  static const Duration _autoScrollThrottleDuration = Duration(
+    milliseconds: 180,
+  );
   static const int _visibleRowBuffer = 1;
   static const double _decodeSizeSafetyFactor = 1.15;
   static const int _decodeSizeUpperBound = 2048;
 
   late final ScrollController _scrollController;
   Timer? _scrollIdleTimer;
+  Timer? _autoScrollThrottleTimer;
   bool _isUserScrollInProgress = false;
+  bool _hasPendingAutoScroll = false;
   int? _visibleStartIndex;
   int? _visibleEndIndex;
   final Set<int> _renderedImageIndices = <int>{};
@@ -64,13 +69,14 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       _markScrollSettled();
     });
     if (widget.isScrollLocked) {
-      _scheduleScrollToActive();
+      _scheduleScrollToActive(immediate: true);
     }
   }
 
   @override
   void dispose() {
     _scrollIdleTimer?.cancel();
+    _autoScrollThrottleTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -80,11 +86,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     super.didUpdateWidget(oldWidget);
     _syncRenderedImageCache(oldWidget);
     final shouldAutoScroll =
-        widget.isScrollLocked &&
-        (oldWidget.activeIndex != widget.activeIndex ||
-            oldWidget.columns != widget.columns ||
-            oldWidget.isScrollLocked != widget.isScrollLocked ||
-            oldWidget.thumbnails.length != widget.thumbnails.length);
+        widget.isScrollLocked && _shouldAutoScroll(oldWidget);
     if (oldWidget.thumbnails.length != widget.thumbnails.length &&
         !widget.isScrollLocked) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -94,9 +96,25 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
         _markScrollSettled();
       });
     }
-    if (shouldAutoScroll) {
-      _scheduleScrollToActive();
+    if (oldWidget.isScrollLocked && !widget.isScrollLocked) {
+      _cancelAutoScrollThrottle();
     }
+    if (shouldAutoScroll) {
+      _scheduleScrollToActive(immediate: _shouldScrollImmediately(oldWidget));
+    }
+  }
+
+  bool _shouldAutoScroll(MovieMediaThumbnailGrid oldWidget) {
+    return oldWidget.activeIndex != widget.activeIndex ||
+        oldWidget.columns != widget.columns ||
+        oldWidget.isScrollLocked != widget.isScrollLocked ||
+        oldWidget.thumbnails.length != widget.thumbnails.length;
+  }
+
+  bool _shouldScrollImmediately(MovieMediaThumbnailGrid oldWidget) {
+    return !oldWidget.isScrollLocked && widget.isScrollLocked ||
+        oldWidget.columns != widget.columns ||
+        oldWidget.thumbnails.length != widget.thumbnails.length;
   }
 
   void _syncRenderedImageCache(MovieMediaThumbnailGrid oldWidget) {
@@ -137,8 +155,53 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     return false;
   }
 
-  void _scheduleScrollToActive() {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToActive());
+  void _scheduleScrollToActive({required bool immediate}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _requestAutoScroll(immediate: immediate);
+    });
+  }
+
+  void _requestAutoScroll({required bool immediate}) {
+    if (!widget.isScrollLocked) {
+      return;
+    }
+    if (immediate) {
+      _cancelAutoScrollThrottle();
+      _scrollToActive();
+      return;
+    }
+    if (_autoScrollThrottleTimer == null) {
+      _scrollToActive();
+      _startAutoScrollThrottleWindow();
+      return;
+    }
+    _hasPendingAutoScroll = true;
+  }
+
+  void _startAutoScrollThrottleWindow() {
+    _autoScrollThrottleTimer?.cancel();
+    _autoScrollThrottleTimer = Timer(_autoScrollThrottleDuration, () {
+      if (!mounted) {
+        return;
+      }
+      if (!_hasPendingAutoScroll || !widget.isScrollLocked) {
+        _autoScrollThrottleTimer = null;
+        _hasPendingAutoScroll = false;
+        return;
+      }
+      _hasPendingAutoScroll = false;
+      _scrollToActive();
+      _startAutoScrollThrottleWindow();
+    });
+  }
+
+  void _cancelAutoScrollThrottle() {
+    _autoScrollThrottleTimer?.cancel();
+    _autoScrollThrottleTimer = null;
+    _hasPendingAutoScroll = false;
   }
 
   void _scrollToActive() {
@@ -146,7 +209,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       return;
     }
     if (!_scrollController.hasClients) {
-      _scheduleScrollToActive();
+      _scheduleScrollToActive(immediate: true);
       return;
     }
     final activeIndex = widget.activeIndex;
@@ -161,7 +224,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   void _scrollToActiveByLayout(int activeIndex) {
     final gridSize = context.size;
     if (gridSize == null) {
-      _scheduleScrollToActive();
+      _scheduleScrollToActive(immediate: true);
       return;
     }
 

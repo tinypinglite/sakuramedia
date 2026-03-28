@@ -6,6 +6,8 @@ class MovieDetailDto {
     required this.movieNumber,
     required this.title,
     required this.seriesName,
+    required this.makerName,
+    required this.directorName,
     required this.coverImage,
     required this.releaseDate,
     required this.durationMinutes,
@@ -30,6 +32,8 @@ class MovieDetailDto {
   final String movieNumber;
   final String title;
   final String seriesName;
+  final String makerName;
+  final String directorName;
   final MovieImageDto? coverImage;
   final DateTime? releaseDate;
   final int durationMinutes;
@@ -55,6 +59,8 @@ class MovieDetailDto {
       movieNumber: json['movie_number'] as String? ?? '',
       title: json['title'] as String? ?? '',
       seriesName: json['series_name'] as String? ?? '',
+      makerName: json['maker_name'] as String? ?? '',
+      directorName: json['director_name'] as String? ?? '',
       coverImage: _movieImageFromJson(json['cover_image']),
       releaseDate: _dateFromJson(json['release_date']),
       durationMinutes: json['duration_minutes'] as int? ?? 0,

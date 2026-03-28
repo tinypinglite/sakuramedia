@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
@@ -10,7 +9,7 @@ import 'package:sakuramedia/features/actors/presentation/actor_list_page_state.d
 import 'package:sakuramedia/features/actors/presentation/actor_filter_state.dart';
 import 'package:sakuramedia/features/actors/presentation/paged_actor_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
@@ -117,10 +116,10 @@ class _MobileActorsPageState extends State<MobileActorsPage> {
                   isLoading: _actorsController.isInitialLoading,
                   errorMessage: _actorsController.initialErrorMessage,
                   onActorTap:
-                      (actor) => context.push(
-                        buildMobileActorDetailRoutePath(actor.id),
-                        extra: mobileActorsPath,
-                      ),
+                      (actor) =>
+                          MobileActorDetailRouteData(actorId: actor.id).push(
+                            context,
+                          ),
                   onActorSubscriptionTap:
                       (actor) => _toggleActorSubscription(actor.id),
                   isActorSubscriptionUpdating:

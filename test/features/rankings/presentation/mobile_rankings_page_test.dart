@@ -351,7 +351,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('movie-detail-destination')), findsOneWidget);
-      expect(receivedExtra, mobileRankingsPath);
+      expect(receivedExtra, isNull);
     },
   );
 }

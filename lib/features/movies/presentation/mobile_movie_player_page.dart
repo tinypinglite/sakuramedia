@@ -11,11 +11,13 @@ class MobileMoviePlayerPage extends StatefulWidget {
     required this.movieNumber,
     this.initialMediaId,
     this.initialPositionSeconds,
+    this.surfaceBuilder,
   });
 
   final String movieNumber;
   final int? initialMediaId;
   final int? initialPositionSeconds;
+  final MoviePlayerSurfaceBuilder? surfaceBuilder;
 
   @override
   State<MobileMoviePlayerPage> createState() => _MobileMoviePlayerPageState();
@@ -94,7 +96,10 @@ class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage> {
       initialMediaId: widget.initialMediaId,
       initialPositionSeconds: widget.initialPositionSeconds,
       fallbackPath: buildMobileMovieDetailRoutePath(widget.movieNumber),
-      enableThumbnailActionMenu: false,
+      enableThumbnailActionMenu: true,
+      imageSearchRoutePath: mobileImageSearchPath,
+      useTouchOptimizedControls: false,
+      surfaceBuilder: widget.surfaceBuilder,
     );
   }
 }

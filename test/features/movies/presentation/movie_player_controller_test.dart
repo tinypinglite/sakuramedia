@@ -18,6 +18,8 @@ void main() {
       movieNumber: 'ABC-001',
       title: 'Movie 1',
       seriesName: '',
+      makerName: '',
+      directorName: '',
       coverImage: null,
       releaseDate: DateTime.parse('2026-03-08'),
       durationMinutes: 120,

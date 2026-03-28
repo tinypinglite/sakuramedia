@@ -10,24 +10,38 @@ class AppMobileShell extends StatelessWidget {
     super.key,
     required this.currentPath,
     required this.navGroups,
+    this.currentIndex,
+    this.onDestinationSelected = _noopDestinationSelected,
+    this.drawer,
+    this.drawerEnableOpenDragGesture = false,
     required this.child,
   });
 
   final String currentPath;
   final List<AppNavGroup> navGroups;
+  final int? currentIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final Widget? drawer;
+  final bool drawerEnableOpenDragGesture;
   final Widget child;
+
+  static void _noopDestinationSelected(int _) {}
 
   @override
   Widget build(BuildContext context) {
     final navItems = navGroups
         .expand((group) => group.items)
         .toList(growable: false);
-    final selectedIndex = _selectedIndex(navItems, currentPath);
+    final resolvedCurrentIndex =
+        currentIndex ?? _resolveCurrentIndex(currentPath, navItems);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: _mobileSystemOverlayStyle(context),
       child: Scaffold(
         backgroundColor: context.appColors.surfaceCard,
+        drawer: drawer,
+        drawerEnableOpenDragGesture:
+            drawer != null && drawerEnableOpenDragGesture,
         body: SafeArea(
           key: const Key('mobile-shell-body-safe-area'),
           bottom: false,
@@ -51,7 +65,7 @@ class AppMobileShell extends StatelessWidget {
               backgroundColor: context.appColors.surfaceCard,
               activeColor: Theme.of(context).colorScheme.primary,
               inactiveColor: context.appColors.textSecondary,
-              currentIndex: selectedIndex,
+              currentIndex: resolvedCurrentIndex,
               items: navItems
                   .map(
                     (item) => BottomNavigationBarItem(
@@ -60,13 +74,7 @@ class AppMobileShell extends StatelessWidget {
                     ),
                   )
                   .toList(growable: false),
-              onTap: (index) {
-                final targetPath = navItems[index].path;
-                if (targetPath == currentPath) {
-                  return;
-                }
-                context.go(targetPath);
-              },
+              onTap: (index) => _handleDestinationTap(context, navItems, index),
             ),
           ),
         ),
@@ -74,16 +82,29 @@ class AppMobileShell extends StatelessWidget {
     );
   }
 
-  int _selectedIndex(List<AppNavItem> navItems, String path) {
-    final exactIndex = navItems.indexWhere((item) => item.path == path);
-    if (exactIndex >= 0) {
-      return exactIndex;
+  void _handleDestinationTap(
+    BuildContext context,
+    List<AppNavItem> navItems,
+    int index,
+  ) {
+    if (onDestinationSelected != _noopDestinationSelected) {
+      onDestinationSelected(index);
+      return;
     }
-    final prefixIndex = navItems.indexWhere(
-      (item) => path.startsWith(item.path),
-    );
-    if (prefixIndex >= 0) {
-      return prefixIndex;
+    // 在未接入 StatefulShellRoute 的场景下，回退到传统的 go 导航。
+    final router = GoRouter.maybeOf(context);
+    if (router == null || index < 0 || index >= navItems.length) {
+      return;
+    }
+    router.go(navItems[index].path);
+  }
+
+  int _resolveCurrentIndex(String path, List<AppNavItem> navItems) {
+    for (var index = 0; index < navItems.length; index += 1) {
+      final item = navItems[index];
+      if (path == item.path || path.startsWith('${item.path}/')) {
+        return index;
+      }
     }
     return 0;
   }

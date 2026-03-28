@@ -103,7 +103,6 @@ void main() {
     (WidgetTester tester) async {
       _enqueuePlaylistDetailSuccess(bundle);
       _enqueuePlaylistMoviesSuccess(bundle);
-      Object? movieDetailExtra;
       final router = GoRouter(
         initialLocation: buildMobilePlaylistDetailRoutePath(8),
         routes: [
@@ -116,13 +115,11 @@ void main() {
           ),
           GoRoute(
             path: '$mobileMoviesPath/:movieNumber',
-            builder: (_, state) {
-              movieDetailExtra = state.extra;
-              return Text(
-                'movie-detail:${state.pathParameters['movieNumber']}',
-                textDirection: TextDirection.ltr,
-              );
-            },
+            builder:
+                (_, state) => Text(
+                  'movie-detail:${state.pathParameters['movieNumber']}',
+                  textDirection: TextDirection.ltr,
+                ),
           ),
         ],
       );
@@ -135,7 +132,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('movie-detail:ABC-001'), findsOneWidget);
-      expect(movieDetailExtra, buildMobilePlaylistDetailRoutePath(8));
+      expect(router.canPop(), isTrue);
     },
   );
 }

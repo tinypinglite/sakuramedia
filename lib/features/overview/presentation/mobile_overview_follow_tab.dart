@@ -2,13 +2,12 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
@@ -187,10 +186,9 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
               return MobileFollowMovieCard(
                 movie: movie,
                 onTap:
-                    () => context.push(
-                      buildMobileMovieDetailRoutePath(movie.movieNumber),
-                      extra: mobileOverviewPath,
-                    ),
+                    () => MobileMovieDetailRouteData(
+                      movieNumber: movie.movieNumber,
+                    ).push(context),
                 onSubscriptionTap:
                     () => _toggleMovieSubscription(movie.movieNumber),
                 isSubscriptionUpdating: _moviesController

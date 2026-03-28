@@ -9,6 +9,7 @@ import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_actor_wrap.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_bottom_info_bar.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_detail_header.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_hero_card.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_section.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_stat_row.dart';
@@ -127,10 +128,28 @@ class MovieDetailPageContent extends StatelessWidget {
     required BuildContext context,
     required double heroHeight,
   }) {
+    final playlistTrigger = AppIconButton(
+      key: const Key('movie-detail-playlist-trigger'),
+      onPressed: onPlaylistTap,
+      icon: Icon(
+        Icons.playlist_add_rounded,
+        size: context.appComponentTokens.iconSizeLg,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+      tooltip: '加入播放列表',
+    );
+
     return Column(
       key: const Key('movie-detail-page'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        MovieDetailHeader(
+          movieNumber: movie.movieNumber,
+          title: movie.title,
+          summary: movie.summary,
+          showNumberRow: false,
+          showSummary: false,
+        ),
         MovieDetailHeroCard(
           height: heroHeight,
           mainImageKey: selectedPreviewKey,
@@ -150,26 +169,12 @@ class MovieDetailPageContent extends StatelessWidget {
           onOpenPreview: onOpenPlotPreview,
         ),
         SizedBox(height: context.appComponentTokens.movieDetailSectionGap),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              movie.movieNumber,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            SizedBox(width: context.appSpacing.md),
-            AppIconButton(
-              key: const Key('movie-detail-playlist-trigger'),
-              onPressed: onPlaylistTap,
-              icon: Icon(
-                Icons.playlist_add_rounded,
-                size: context.appComponentTokens.iconSizeLg,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              tooltip: '加入播放列表',
-            ),
-          ],
+        MovieDetailHeader(
+          movieNumber: movie.movieNumber,
+          title: movie.title,
+          summary: movie.summary,
+          showTitle: false,
+          trailing: playlistTrigger,
         ),
         MovieDetailSection(title: '标签', child: MovieTagWrap(tags: movie.tags)),
         movie.seriesName.trim().isNotEmpty
@@ -177,6 +182,24 @@ class MovieDetailPageContent extends StatelessWidget {
               title: '系列',
               child: Text(
                 movie.seriesName.trim(),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            )
+            : const SizedBox(),
+        movie.makerName.trim().isNotEmpty
+            ? MovieDetailSection(
+              title: '厂商',
+              child: Text(
+                movie.makerName.trim(),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            )
+            : const SizedBox(),
+        movie.directorName.trim().isNotEmpty
+            ? MovieDetailSection(
+              title: '导演',
+              child: Text(
+                movie.directorName.trim(),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             )
@@ -212,6 +235,7 @@ class MovieDetailLoadingSkeleton extends StatelessWidget {
         final heroHeight = _resolveViewportHeight(context, constraints) * 0.3;
         final availableWidth = _resolveViewportWidth(context, constraints);
         final titleWidth = math.min(240.0, availableWidth * 0.56);
+        final movieNumberWidth = math.min(180.0, availableWidth * 0.4);
         final summaryWidth = math.min(520.0, availableWidth * 0.82);
         final labelWidth = math.min(120.0, availableWidth * 0.3);
         return SingleChildScrollView(
@@ -222,6 +246,8 @@ class MovieDetailLoadingSkeleton extends StatelessWidget {
                 key: const Key('movie-detail-loading-skeleton'),
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _SkeletonBlock(height: 28, width: titleWidth),
+                  SizedBox(height: context.appSpacing.lg),
                   _SkeletonBlock(height: heroHeight),
                   SizedBox(height: context.appSpacing.lg),
                   _SkeletonBlock(
@@ -230,8 +256,10 @@ class MovieDetailLoadingSkeleton extends StatelessWidget {
                             .appComponentTokens
                             .movieDetailPlotThumbnailHeight,
                   ),
-                  SizedBox(height: context.appSpacing.xl),
-                  _SkeletonBlock(height: 28, width: titleWidth),
+                  SizedBox(
+                    height: context.appComponentTokens.movieDetailSectionGap,
+                  ),
+                  _SkeletonBlock(height: 18, width: movieNumberWidth),
                   SizedBox(height: context.appSpacing.md),
                   _SkeletonBlock(height: 18, width: summaryWidth),
                   SizedBox(height: context.appSpacing.xxl),

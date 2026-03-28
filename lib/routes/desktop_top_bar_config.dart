@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/routes/app_back_destination.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
+import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/routes/desktop_search_route_state.dart';
 
 @immutable
@@ -32,49 +33,47 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
   }
 
   if (currentPath.startsWith('/desktop/library/movies/')) {
-    final fallbackPath =
-        _fallbackPathFromExtra(routeExtra) ?? desktopOverviewPath;
     return DesktopTopBarConfig(
       title: '影片详情',
-      fallbackPath: fallbackPath,
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra) ??
+          AppBackDestination.defaultLocationForPath(currentPath),
       isBackEnabled: true,
     );
   }
 
   if (currentPath.startsWith('/desktop/library/actors/')) {
-    final fallbackPath =
-        _fallbackPathFromExtra(routeExtra) ?? desktopActorsPath;
     return DesktopTopBarConfig(
       title: '女优详情',
-      fallbackPath: fallbackPath,
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra) ??
+          AppBackDestination.defaultLocationForPath(currentPath),
       isBackEnabled: true,
     );
   }
 
   if (currentPath.startsWith('/desktop/library/playlists/')) {
-    final fallbackPath =
-        _fallbackPathFromExtra(routeExtra) ?? desktopPlaylistsPath;
     return DesktopTopBarConfig(
       title: '播放列表详情',
-      fallbackPath: fallbackPath,
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra) ??
+          AppBackDestination.defaultLocationForPath(currentPath),
       isBackEnabled: true,
     );
   }
 
   if (currentPath == desktopImageSearchPath) {
-    final fallbackPath =
-        _fallbackPathFromExtra(routeExtra) ?? desktopOverviewPath;
     return DesktopTopBarConfig(
       title: '以图搜图',
-      fallbackPath: fallbackPath,
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra) ??
+          AppBackDestination.defaultLocationForPath(currentPath),
       isBackEnabled: true,
     );
   }
 
   if (currentPath == desktopSearchPath ||
       currentPath.startsWith('$desktopSearchPath/')) {
-    final fallbackPath =
-        _fallbackPathFromExtra(routeExtra) ?? desktopOverviewPath;
     final title =
         currentPath == desktopSearchPath
             ? '搜索'
@@ -83,7 +82,9 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
             );
     return DesktopTopBarConfig(
       title: title,
-      fallbackPath: fallbackPath,
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra) ??
+          AppBackDestination.defaultLocationForPath(currentPath),
       isBackEnabled: true,
     );
   }
@@ -99,15 +100,23 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
   );
 }
 
+String _decodeSearchTitleSegment(String value) {
+  try {
+    return Uri.decodeComponent(value);
+  } on ArgumentError {
+    return value;
+  }
+}
+
 String? _fallbackPathFromExtra(Object? routeExtra) {
   if (routeExtra is String && routeExtra.startsWith('/desktop/')) {
     return routeExtra;
   }
-
-  final state = DesktopSearchRouteState.maybeFromExtra(routeExtra);
-  final fallbackPath = state.fallbackPath;
-  if (fallbackPath != null && fallbackPath.startsWith('/desktop/')) {
-    return fallbackPath;
+  final searchState = DesktopSearchRouteState.maybeFromExtra(routeExtra);
+  final searchFallbackPath = searchState.fallbackPath;
+  if (searchFallbackPath != null &&
+      searchFallbackPath.startsWith('/desktop/')) {
+    return searchFallbackPath;
   }
   final imageSearchState = DesktopImageSearchRouteState.maybeFromExtra(
     routeExtra,
@@ -118,14 +127,6 @@ String? _fallbackPathFromExtra(Object? routeExtra) {
     return imageSearchFallbackPath;
   }
   return null;
-}
-
-String _decodeSearchTitleSegment(String value) {
-  try {
-    return Uri.decodeComponent(value);
-  } on ArgumentError {
-    return value;
-  }
 }
 
 AppShellLayout resolveDesktopShellLayout({

@@ -128,41 +128,26 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
   }) async* {
-    final response = await _request<ResponseBody>(
+    yield* _sseRequest(
       method: 'POST',
       path: path,
       data: data,
       queryParameters: queryParameters,
       requiresAuth: requiresAuth,
-      responseType: ResponseType.stream,
-      receiveTimeout: const Duration(minutes: 1),
-      headers: const <String, dynamic>{
-        Headers.acceptHeader: 'text/event-stream',
-      },
-      validateStatus: (_) => true,
     );
+  }
 
-    final responseBody = response.data;
-    if (responseBody is! ResponseBody) {
-      throw const ApiException(
-        message:
-            'Expected event stream response but got unsupported data shape',
-      );
-    }
-
-    final statusCode = response.statusCode ?? responseBody.statusCode;
-    if (statusCode >= 400) {
-      final bodyText = await _readResponseBody(responseBody);
-      final parsedData = _decodeResponseData(bodyText);
-      final errorPayload = _extractError(parsedData);
-      throw ApiException(
-        statusCode: statusCode,
-        message: errorPayload?.message ?? 'Request failed',
-        error: errorPayload,
-      );
-    }
-
-    yield* responseBody.stream.transform(const SseDecoder());
+  Stream<ApiSseEvent> getSse(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    bool requiresAuth = true,
+  }) async* {
+    yield* _sseRequest(
+      method: 'GET',
+      path: path,
+      queryParameters: queryParameters,
+      requiresAuth: requiresAuth,
+    );
   }
 
   Future<Map<String, dynamic>> patch(
@@ -286,6 +271,50 @@ class ApiClient {
     } on DioException catch (error) {
       throw _mapDioException(error);
     }
+  }
+
+  Stream<ApiSseEvent> _sseRequest({
+    required String method,
+    required String path,
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+    bool requiresAuth = true,
+  }) async* {
+    final response = await _request<ResponseBody>(
+      method: method,
+      path: path,
+      data: data,
+      queryParameters: queryParameters,
+      requiresAuth: requiresAuth,
+      responseType: ResponseType.stream,
+      receiveTimeout: const Duration(minutes: 1),
+      headers: const <String, dynamic>{
+        Headers.acceptHeader: 'text/event-stream',
+      },
+      validateStatus: (_) => true,
+    );
+
+    final responseBody = response.data;
+    if (responseBody is! ResponseBody) {
+      throw const ApiException(
+        message:
+            'Expected event stream response but got unsupported data shape',
+      );
+    }
+
+    final statusCode = response.statusCode ?? responseBody.statusCode;
+    if (statusCode >= 400) {
+      final bodyText = await _readResponseBody(responseBody);
+      final parsedData = _decodeResponseData(bodyText);
+      final errorPayload = _extractError(parsedData);
+      throw ApiException(
+        statusCode: statusCode,
+        message: errorPayload?.message ?? 'Request failed',
+        error: errorPayload,
+      );
+    }
+
+    yield* responseBody.stream.transform(const SseDecoder());
   }
 
   Future<void> _refreshTokens() async {

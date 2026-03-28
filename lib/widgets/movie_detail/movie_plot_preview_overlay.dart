@@ -19,6 +19,9 @@ enum MoviePlotPreviewThumbnailStripLayout { adaptive, fixed }
 
 enum MoviePlotPreviewPresentation { dialog, bottomDrawer }
 
+// 移动端剧情图预览底部抽屉高度比例，可在这里统一调整。
+const double kMoviePlotPreviewDrawerHeightFactor = 0.7;
+
 Future<void> showMoviePlotPreviewOverlay({
   required BuildContext context,
   required List<MovieImageDto> plotImages,
@@ -50,7 +53,7 @@ Future<void> showMoviePlotPreviewOverlay({
       return showAppBottomDrawer<void>(
         context: context,
         drawerKey: const Key('movie-plot-preview-bottom-drawer'),
-        heightFactor: 0.5,
+        heightFactor: kMoviePlotPreviewDrawerHeightFactor,
         builder:
             (sheetContext) => _MoviePlotPreviewContent(
               plotImages: plotImages,

@@ -109,10 +109,7 @@ class CatalogSearchContent extends StatelessWidget {
         return ActorSummaryGrid(
           items: controller.actorResults,
           isLoading: false,
-          emptyMessage:
-              controller.isOnlineSearchActive
-                  ? '在线源未找到匹配女优'
-                  : '本地库中没有匹配该关键词的女优记录。',
+          emptyMessage: '在线源未找到匹配女优',
           onActorTap: onActorTap,
           onActorSubscriptionTap: onActorSubscriptionTap,
           isActorSubscriptionUpdating:

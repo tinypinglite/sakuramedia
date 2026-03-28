@@ -42,11 +42,16 @@ class SseDecoder extends StreamTransformerBase<Uint8List, ApiSseEvent> {
       return null;
     }
 
+    int? id;
     var event = 'message';
     final dataLines = <String>[];
 
     for (final line in trimmed.split('\n')) {
       if (line.isEmpty || line.startsWith(':')) {
+        continue;
+      }
+      if (line.startsWith('id:')) {
+        id = int.tryParse(line.substring(3).trim());
         continue;
       }
       if (line.startsWith('event:')) {
@@ -62,6 +67,6 @@ class SseDecoder extends StreamTransformerBase<Uint8List, ApiSseEvent> {
       return null;
     }
 
-    return ApiSseEvent(event: event, data: dataLines.join('\n'));
+    return ApiSseEvent(id: id, event: event, data: dataLines.join('\n'));
   }
 }

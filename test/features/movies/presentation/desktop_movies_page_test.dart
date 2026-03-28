@@ -2,15 +2,18 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -195,6 +198,84 @@ void main() {
     expect(_queryValue(bundle, 2, 'sort'), 'added_at:desc');
   });
 
+  testWidgets('desktop movies page applies quick filter presets', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(total: 2),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _movieItem(movieNumber: 'ABC-101', isSubscribed: true),
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _movieItem(movieNumber: 'ABC-102', canPlay: true),
+        ],
+      ),
+    );
+
+    await _pumpMoviesPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('movies-filter-preset-latest-subscribed')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movies-filter-preset-latest-added')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('movies-filter-preset-latest-subscribed')),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(_queryValue(bundle, 1, 'status'), 'subscribed');
+    expect(_queryValue(bundle, 1, 'collection_type'), 'single');
+    expect(_queryValue(bundle, 1, 'sort'), 'subscribed_at:desc');
+    expect(
+      tester
+          .widget<AppButton>(
+            find.byKey(const Key('movies-filter-preset-latest-subscribed')),
+          )
+          .isSelected,
+      isTrue,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('movies-filter-preset-latest-added')),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(_queryValue(bundle, 2, 'status'), 'playable');
+    expect(_queryValue(bundle, 2, 'collection_type'), 'single');
+    expect(_queryValue(bundle, 2, 'sort'), 'added_at:desc');
+    expect(
+      tester
+          .widget<AppButton>(
+            find.byKey(const Key('movies-filter-preset-latest-added')),
+          )
+          .isSelected,
+      isTrue,
+    );
+  });
+
   testWidgets('desktop movies page filter panel closes when tapping outside', (
     WidgetTester tester,
   ) async {
@@ -216,6 +297,27 @@ void main() {
 
     expect(find.byKey(const Key('movies-filter-panel')), findsNothing);
   });
+
+  testWidgets(
+    'desktop movies page aligns header filter buttons to same height',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        body: _moviesJson(total: 2),
+      );
+
+      await _pumpMoviesPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      final triggerHeight = _buttonHeightForLabel(tester, '全部');
+      final latestSubscribedHeight = _buttonHeightForLabel(tester, '最新订阅');
+      final latestAddedHeight = _buttonHeightForLabel(tester, '最新入库');
+
+      expect(latestSubscribedHeight, triggerHeight);
+      expect(latestAddedHeight, triggerHeight);
+    },
+  );
 
   testWidgets('desktop movies page uses smaller buttons inside filter panel', (
     WidgetTester tester,
@@ -369,6 +471,70 @@ void main() {
     },
   );
 
+  testWidgets('desktop movies page adds collection feature from context menu', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _movieItem(movieNumber: 'OFJE-888', isSubscribed: false),
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/collection-number-features',
+      body: <String, dynamic>{
+        'features': <String>['CJOB-'],
+        'sync_stats': null,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'PATCH',
+      path: '/collection-number-features',
+      body: <String, dynamic>{
+        'features': <String>['CJOB-', 'OFJE-'],
+        'sync_stats': <String, dynamic>{
+          'total_movies': 100,
+          'matched_count': 12,
+          'updated_to_collection_count': 5,
+          'updated_to_single_count': 0,
+          'unchanged_count': 95,
+        },
+      },
+    );
+
+    await _pumpMoviesPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(
+      find.byKey(const Key('movie-summary-card-OFJE-888')),
+    );
+    await tester.tapAt(center, buttons: kSecondaryMouseButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('将"OFJE-"加入合集特征'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const Key('movie-collection-feature-menu-add-item')),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    final patchRequest = bundle.adapter.requests.singleWhere(
+      (request) =>
+          request.method == 'PATCH' &&
+          request.path == '/collection-number-features',
+    );
+    expect(patchRequest.body['features'], <String>['CJOB-', 'OFJE-']);
+    expect(patchRequest.uri.queryParameters['apply_now'], 'true');
+    expect(find.text('已将 OFJE- 加入合集特征，并重新统计合集影片'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
   testWidgets(
     'desktop movies page shows media-blocked toast when unsubscribe fails',
     (WidgetTester tester) async {
@@ -426,6 +592,9 @@ Future<void> _pumpMoviesPage(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+        Provider<CollectionNumberFeaturesApi>.value(
+          value: bundle.collectionNumberFeaturesApi,
+        ),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
       ],
       child: MaterialApp(
@@ -468,6 +637,9 @@ Future<GoRouter> _pumpMoviesRouter(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+        Provider<CollectionNumberFeaturesApi>.value(
+          value: bundle.collectionNumberFeaturesApi,
+        ),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
       ],
       child: OKToast(

@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
@@ -245,6 +247,10 @@ void main() {
     expect(defaultDecoration.boxShadow, isNotEmpty);
 
     debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+
+    // 先卸载旧树，避免同一测试内二次挂载 router 触发 pageKey 冲突。
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
 
     await _pumpDesktopApp(
       tester,
@@ -513,8 +519,16 @@ Future<void> _pumpDesktopApp(
         Provider<ImageSearchApi>(
           create: (_) => ImageSearchApi(apiClient: bundle.apiClient),
         ),
+        Provider<ImageSearchDraftStore>(
+          create: (_) => ImageSearchDraftStore(),
+        ),
       ],
-      child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
+      child: OKToast(
+        child: MaterialApp.router(
+          theme: sakuraThemeData,
+          routerConfig: router,
+        ),
+      ),
     ),
   );
 }
@@ -539,8 +553,16 @@ Future<GoRouter> _pumpDesktopAppWithRouter(
         Provider<ImageSearchApi>(
           create: (_) => ImageSearchApi(apiClient: bundle.apiClient),
         ),
+        Provider<ImageSearchDraftStore>(
+          create: (_) => ImageSearchDraftStore(),
+        ),
       ],
-      child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
+      child: OKToast(
+        child: MaterialApp.router(
+          theme: sakuraThemeData,
+          routerConfig: router,
+        ),
+      ),
     ),
   );
   return router;

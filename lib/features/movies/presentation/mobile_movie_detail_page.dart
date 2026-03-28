@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_page_content.dart';
@@ -12,8 +13,7 @@ import 'package:sakuramedia/features/movies/presentation/movie_plot_image_action
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/playlists/presentation/movie_playlist_picker_dialog.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
+import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_inspector_dialog.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_bottom_info_bar.dart';
@@ -109,12 +109,9 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
                 (item) => setState(() {
                   _selectedMediaId = item.mediaId;
                 }),
-            onActorTap: (actor) {
-              context.push(
-                buildMobileActorDetailRoutePath(actor.id),
-                extra: buildMobileMovieDetailRoutePath(widget.movieNumber),
-              );
-            },
+            onActorTap:
+                (actor) =>
+                    MobileActorDetailRouteData(actorId: actor.id).push(context),
             onRequestPlotImageMenu:
                 (menuContext, index, globalPosition) =>
                     showMoviePlotImageActionMenu(
@@ -182,13 +179,11 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
   }
 
   void _openMoviePlayer({int? mediaId, int? positionSeconds}) {
-    context.push(
-      buildMobileMoviePlayerRoutePath(
-        widget.movieNumber,
-        mediaId: mediaId,
-        positionSeconds: positionSeconds,
-      ),
-    );
+    MobileMoviePlayerRouteData(
+      movieNumber: widget.movieNumber,
+      mediaId: mediaId,
+      positionSeconds: positionSeconds,
+    ).push(context);
   }
 
   Future<void> _openImageSearchFromUrl({
@@ -200,15 +195,15 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
       if (!mounted) {
         return;
       }
-      context.push(
-        mobileImageSearchPath,
-        extra: DesktopImageSearchRouteState(
-          fallbackPath: buildMobileMovieDetailRoutePath(widget.movieNumber),
-          initialFileName: fileName,
-          initialFileBytes: imageBytes,
-          currentMovieNumber: widget.movieNumber,
-        ),
+      final draftId = context.read<ImageSearchDraftStore>().save(
+        fileName: fileName,
+        bytes: imageBytes,
+        mimeType: guessImageMimeType(fileName),
       );
+      MobileImageSearchRouteData(
+        draftId: draftId,
+        currentMovieNumber: widget.movieNumber,
+      ).push(context);
     } catch (error) {
       if (!mounted) {
         return;

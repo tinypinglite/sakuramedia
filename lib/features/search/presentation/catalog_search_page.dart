@@ -11,7 +11,7 @@ import 'package:sakuramedia/features/search/presentation/catalog_search_controll
 import 'package:sakuramedia/features/search/presentation/catalog_search_page_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/desktop_routes.dart';
 import 'package:sakuramedia/widgets/search/catalog_search_content.dart';
 
 class CatalogSearchPage extends StatefulWidget {
@@ -129,12 +129,10 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
           onMovieTap:
               (movie) => context.pushDesktopMovieDetail(
                 movieNumber: movie.movieNumber,
-                fallbackPath: _currentSearchPath,
               ),
           onActorTap:
               (actor) => context.pushDesktopActorDetail(
                 actorId: actor.id,
-                fallbackPath: _currentSearchPath,
               ),
           onMovieSubscriptionTap:
               (movie) => _toggleMovieSubscription(movie.movieNumber),
@@ -143,9 +141,6 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
       },
     );
   }
-
-  String get _currentSearchPath =>
-      _currentRoutePathOr(buildDesktopSearchRoutePath(widget.initialQuery));
 
   CatalogSearchKind _kindForIndex(int index) {
     return index == 0 ? CatalogSearchKind.movies : CatalogSearchKind.actors;
@@ -166,11 +161,14 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
   void _submitSearch() {
     final submittedQuery = _textController.text;
     final trimmedQuery = submittedQuery.trim();
-    final routePath = buildDesktopSearchRoutePath(submittedQuery);
-    final currentPath = GoRouterState.of(context).uri.path;
+    final routeLocation = _routeLocationFor(
+      query: submittedQuery,
+      useOnlineSearch: _pageState.useOnlineSearch,
+    );
+    final currentLocation = _currentRouteLocationOr(routeLocation);
 
     if (trimmedQuery.isNotEmpty &&
-        routePath == currentPath &&
+        routeLocation == currentLocation &&
         _pageState.useOnlineSearch == widget.initialUseOnlineSearch) {
       unawaited(
         _controller.submit(
@@ -183,7 +181,6 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
 
     context.pushDesktopSearch(
       query: submittedQuery,
-      fallbackPath: widget.fallbackPath,
       useOnlineSearch: _pageState.useOnlineSearch,
     );
   }
@@ -207,16 +204,35 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
   }
 
   String _resolveCachePath() {
-    return _currentRoutePathOr(
-      buildDesktopSearchRoutePath(widget.initialQuery),
+    return _currentRouteLocationOr(
+      _routeLocationFor(
+        query: widget.initialQuery,
+        useOnlineSearch: widget.initialUseOnlineSearch,
+      ),
     );
   }
 
-  String _currentRoutePathOr(String fallbackPath) {
+  String _currentRouteLocationOr(String fallbackLocation) {
     try {
-      return GoRouterState.of(context).uri.path;
+      return GoRouterState.of(context).uri.toString();
     } catch (_) {
-      return fallbackPath;
+      return fallbackLocation;
     }
+  }
+
+  String _routeLocationFor({
+    required String query,
+    required bool useOnlineSearch,
+  }) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      return DesktopSearchRouteData(
+        useOnlineSearch: useOnlineSearch,
+      ).location;
+    }
+    return DesktopSearchQueryRouteData(
+      query: trimmed,
+      useOnlineSearch: useOnlineSearch,
+    ).location;
   }
 }

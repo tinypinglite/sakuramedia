@@ -80,7 +80,7 @@ void main() {
     expect(controller.errorMessage, isNull);
   });
 
-  test('submit searches actors when parse fails', () async {
+  test('submit forces online actor search when parse fails', () async {
     bundle.adapter.enqueueJson(
       method: 'POST',
       path: '/movies/search/parse-number',
@@ -91,18 +91,12 @@ void main() {
         'reason': 'movie_number_not_found',
       },
     );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/actors/search/local',
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 1,
-          'javdb_id': 'ActorA1',
-          'name': '三上悠亚',
-          'alias_name': '三上悠亚 / 鬼头桃菜',
-          'profile_image': null,
-          'is_subscribed': false,
-        },
+    bundle.adapter.enqueueSse(
+      method: 'POST',
+      path: '/actors/search/javdb/stream',
+      chunks: <String>[
+        'event: completed\n'
+            'data: {"success":true,"actors":[{"id":1,"javdb_id":"ActorA1","name":"三上悠亚","alias_name":"三上悠亚 / 鬼头桃菜","profile_image":null,"is_subscribed":false}]}\n\n',
       ],
     );
 
@@ -110,8 +104,9 @@ void main() {
 
     expect(bundle.adapter.hitCount('POST', '/movies/search/parse-number'), 1);
     expect(bundle.adapter.hitCount('GET', '/movies/search/local'), 0);
-    expect(bundle.adapter.hitCount('GET', '/actors/search/local'), 1);
+    expect(bundle.adapter.hitCount('POST', '/actors/search/javdb/stream'), 1);
     expect(controller.activeKind, CatalogSearchKind.actors);
+    expect(controller.isOnlineSearchActive, isTrue);
     expect(controller.actorResults.single.id, 1);
     expect(controller.movieResults, isEmpty);
     expect(controller.errorMessage, isNull);
@@ -268,18 +263,12 @@ void main() {
         'reason': 'movie_number_not_found',
       },
     );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/actors/search/local',
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 1,
-          'javdb_id': 'ActorA1',
-          'name': '三上悠亚',
-          'alias_name': '三上悠亚 / 鬼头桃菜',
-          'profile_image': null,
-          'is_subscribed': false,
-        },
+    bundle.adapter.enqueueSse(
+      method: 'POST',
+      path: '/actors/search/javdb/stream',
+      chunks: <String>[
+        'event: completed\n'
+            'data: {"success":true,"actors":[{"id":1,"javdb_id":"ActorA1","name":"三上悠亚","alias_name":"三上悠亚 / 鬼头桃菜","profile_image":null,"is_subscribed":false}]}\n\n',
       ],
     );
     bundle.adapter.enqueueJson(
@@ -497,18 +486,12 @@ void main() {
           'reason': 'movie_number_not_found',
         },
       );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/actors/search/local',
-        body: <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 1,
-            'javdb_id': 'ActorA1',
-            'name': '三上悠亚',
-            'alias_name': '三上悠亚 / 鬼头桃菜',
-            'profile_image': null,
-            'is_subscribed': false,
-          },
+      bundle.adapter.enqueueSse(
+        method: 'POST',
+        path: '/actors/search/javdb/stream',
+        chunks: <String>[
+          'event: completed\n'
+              'data: {"success":true,"actors":[{"id":1,"javdb_id":"ActorA1","name":"三上悠亚","alias_name":"三上悠亚 / 鬼头桃菜","profile_image":null,"is_subscribed":false}]}\n\n',
         ],
       );
 
@@ -517,6 +500,7 @@ void main() {
 
       expect(controller.query, 'mikami');
       expect(controller.activeKind, CatalogSearchKind.actors);
+      expect(bundle.adapter.hitCount('POST', '/actors/search/javdb/stream'), 1);
       expect(controller.actorResults.single.id, 1);
     },
   );

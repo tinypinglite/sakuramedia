@@ -7,11 +7,11 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/moments/presentation/mobile_overview_moments_tab.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/theme.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -130,7 +130,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('movie:ABC-001'), findsOneWidget);
-      expect(detailRouteExtra, mobileOverviewPath);
+      expect(detailRouteExtra, isNull);
     },
   );
 
@@ -144,7 +144,8 @@ void main() {
       path: '/thumb-1.webp',
       body: Uint8List.fromList(const <int>[1, 2, 3, 4]),
     );
-    Object? imageSearchExtra;
+    final draftStore = ImageSearchDraftStore();
+    Uri? imageSearchUri;
 
     final router = GoRouter(
       routes: [
@@ -155,7 +156,7 @@ void main() {
         GoRoute(
           path: mobileImageSearchPath,
           builder: (_, state) {
-            imageSearchExtra = state.extra;
+            imageSearchUri = state.uri;
             return const Scaffold(body: Text('mobile-image-search'));
           },
         ),
@@ -168,6 +169,7 @@ void main() {
       sessionStore: sessionStore,
       bundle: bundle,
       router: router,
+      draftStore: draftStore,
     );
     await tester.pumpAndSettle();
 
@@ -178,11 +180,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('mobile-image-search'), findsOneWidget);
-    final routeState = imageSearchExtra as DesktopImageSearchRouteState;
-    expect(routeState.fallbackPath, mobileOverviewPath);
-    expect(routeState.initialFileName, 'moment_ABC-001_10.webp');
-    expect(routeState.initialFileBytes, const <int>[1, 2, 3, 4]);
-    expect(routeState.initialMimeType, 'image/webp');
+    expect(imageSearchUri, isNotNull);
+    expect(imageSearchUri!.path, mobileImageSearchPath);
+    expect(imageSearchUri!.queryParameters['currentMovieNumber'], isNull);
+    final draftId = imageSearchUri!.queryParameters['draftId'];
+    expect(draftId, isNotNull);
+    final draft = draftStore.get(draftId);
+    expect(draft, isNotNull);
+    expect(draft!.fileName, 'moment_ABC-001_10.webp');
+    expect(draft.bytes, const <int>[1, 2, 3, 4]);
+    expect(draft.mimeType, 'image/webp');
   });
 }
 
@@ -214,6 +221,7 @@ Future<void> _pumpMomentsRouterApp(
   required SessionStore sessionStore,
   required TestApiBundle bundle,
   required GoRouter router,
+  ImageSearchDraftStore? draftStore,
 }) async {
   await tester.pumpWidget(
     MultiProvider(
@@ -221,6 +229,9 @@ Future<void> _pumpMomentsRouterApp(
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         Provider<ApiClient>.value(value: bundle.apiClient),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        Provider<ImageSearchDraftStore>.value(
+          value: draftStore ?? ImageSearchDraftStore(),
+        ),
         Provider<MediaApi>(
           create: (_) => MediaApi(apiClient: bundle.apiClient),
         ),

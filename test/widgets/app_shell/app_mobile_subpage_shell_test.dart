@@ -14,7 +14,7 @@ void main() {
         theme: sakuraThemeData,
         home: const AppMobileSubpageShell(
           title: '播放列表详情',
-          fallbackPath: '/mobile/overview',
+          defaultLocation: '/mobile/overview',
           child: SizedBox.shrink(),
         ),
       ),
@@ -75,7 +75,7 @@ void main() {
           builder:
               (context, state, child) => AppMobileSubpageShell(
                 title: '子页面',
-                fallbackPath: '/home',
+                defaultLocation: '/home',
                 child: child,
               ),
           routes: [
@@ -129,7 +129,7 @@ void main() {
           builder:
               (context, state, child) => AppMobileSubpageShell(
                 title: '子页面',
-                fallbackPath: '/home',
+                defaultLocation: '/home',
                 child: child,
               ),
           routes: [
@@ -178,7 +178,7 @@ void main() {
           builder:
               (context, state, child) => AppMobileSubpageShell(
                 title: '子页面',
-                fallbackPath: '/home',
+                defaultLocation: '/home',
                 child: child,
               ),
           routes: [
@@ -225,7 +225,7 @@ void main() {
           builder:
               (context, state, child) => AppMobileSubpageShell(
                 title: '子页面',
-                fallbackPath: '/home',
+                defaultLocation: '/home',
                 child: child,
               ),
           routes: [
@@ -263,7 +263,7 @@ void main() {
         theme: sakuraThemeData,
         home: AppMobileSubpageShell(
           title: '子页面',
-          fallbackPath: '/home',
+          defaultLocation: '/home',
           bodyPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Container(key: const Key('subpage-body-child')),
         ),

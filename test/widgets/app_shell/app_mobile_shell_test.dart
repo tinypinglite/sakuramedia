@@ -100,6 +100,8 @@ void main() {
     expect(tabBar.currentIndex, 1);
     expect(tabBar.height, 52);
     expect(scaffold.backgroundColor, sakuraThemeData.appColors.surfaceCard);
+    expect(scaffold.drawer, isNull);
+    expect(scaffold.drawerEnableOpenDragGesture, isFalse);
     expect(shellPadding.padding, AppPageInsets.compactStandard);
     expect(bodySafeArea.bottom, isFalse);
     expect(bottomSafeArea.top, isFalse);
@@ -127,6 +129,30 @@ void main() {
       expect(tabBar.currentIndex, 0);
     },
   );
+
+  testWidgets('mobile shell supports optional drawer without affecting tabs', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const AppMobileShell(
+          currentPath: '/mobile/overview',
+          navGroups: navGroups,
+          drawer: Drawer(child: Text('drawer-content')),
+          drawerEnableOpenDragGesture: true,
+          child: SizedBox.shrink(),
+        ),
+      ),
+    );
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    final tabBar = tester.widget<CupertinoTabBar>(find.byType(CupertinoTabBar));
+
+    expect(scaffold.drawer, isNotNull);
+    expect(scaffold.drawerEnableOpenDragGesture, isTrue);
+    expect(tabBar.currentIndex, 0);
+  });
 
   testWidgets('mobile shell navigates when tapping bottom destination', (
     tester,

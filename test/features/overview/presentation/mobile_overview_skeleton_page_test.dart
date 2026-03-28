@@ -7,16 +7,23 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
+import 'package:sakuramedia/features/auth/data/auth_api.dart';
+import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
+import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
+import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
+import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_skeleton_page.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_page.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
+import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
 
@@ -67,6 +74,148 @@ void main() {
     expect(tabBar.variant, AppTabBarVariant.mobileTop);
     expect(pageRoot.color, sakuraThemeData.appColors.surfaceCard);
   });
+
+  testWidgets('mobile overview page renders menu button in header', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        child: const MobileOverviewSkeletonPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('mobile-overview-menu-button')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('mobile overview menu button aligns with top tab row', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        child: const MobileOverviewSkeletonPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final menuCenter = tester.getCenter(
+      find.byKey(const Key('mobile-overview-menu-button')),
+    );
+    final tabBarCenter = tester.getCenter(
+      find.descendant(
+        of: find.byKey(const Key('mobile-overview-tabs')),
+        matching: find.byType(TabBar),
+      ),
+    );
+
+    expect((menuCenter.dy - tabBarCenter.dy).abs(), lessThanOrEqualTo(1));
+    expect(menuCenter.dx, lessThan(tabBarCenter.dx));
+  });
+
+  testWidgets(
+    'mobile overview drawer shows configuration action and bottom logout action',
+    (WidgetTester tester) async {
+      _enqueueOverviewResponses(bundle);
+      _enqueueMobileConfigurationResponses(bundle);
+      final router = buildMobileRouter(sessionStore: sessionStore);
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        _buildRouterApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          router: router,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+      await tester.pumpAndSettle();
+
+      final configurationItem = find.byKey(
+        const Key('mobile-overview-drawer-configuration'),
+      );
+      final logoutItem = find.byKey(const Key('mobile-overview-drawer-logout'));
+      final bottomActions = find.byKey(
+        const Key('mobile-overview-drawer-bottom-actions'),
+      );
+
+      expect(find.byKey(const Key('mobile-overview-drawer')), findsOneWidget);
+      expect(configurationItem, findsOneWidget);
+      expect(logoutItem, findsOneWidget);
+      expect(
+        tester.getTopLeft(bottomActions).dy,
+        greaterThan(tester.getBottomLeft(configurationItem).dy),
+      );
+    },
+  );
+
+  testWidgets('mobile overview drawer configuration opens subpage shell', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+    _enqueueMobileConfigurationResponses(bundle);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      _buildRouterApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('mobile-overview-drawer-configuration')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('配置管理'), findsOneWidget);
+    expect(find.byKey(const Key('configuration-page')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+  });
+
+  testWidgets(
+    'mobile overview drawer logout clears session and returns login',
+    (WidgetTester tester) async {
+      _enqueueOverviewResponses(bundle);
+      final router = buildMobileRouter(sessionStore: sessionStore);
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        _buildRouterApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          router: router,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mobile-overview-drawer-logout')));
+      await tester.pumpAndSettle();
+
+      expect(sessionStore.hasSession, isFalse);
+      expect(find.byKey(const Key('login-form-base-url')), findsOneWidget);
+    },
+  );
 
   testWidgets('mobile overview tab bar puts hot reviews after moments', (
     WidgetTester tester,
@@ -304,7 +453,8 @@ void main() {
           fileName: 'picked.png',
           mimeType: 'image/png',
         );
-    Object? routeExtra;
+    final draftStore = ImageSearchDraftStore();
+    String? draftId;
     final router = GoRouter(
       initialLocation: mobileOverviewPath,
       routes: [
@@ -316,7 +466,7 @@ void main() {
         GoRoute(
           path: mobileImageSearchPath,
           builder: (_, state) {
-            routeExtra = state.extra;
+            draftId = state.uri.queryParameters['draftId'];
             return const Scaffold(body: Text('mobile-image-search'));
           },
         ),
@@ -329,6 +479,7 @@ void main() {
         sessionStore: sessionStore,
         bundle: bundle,
         router: router,
+        imageSearchDraftStore: draftStore,
       ),
     );
     await tester.pumpAndSettle();
@@ -338,12 +489,11 @@ void main() {
 
     expect(find.text('mobile-image-search'), findsOneWidget);
     expect(router.canPop(), isTrue);
-    final routeState = routeExtra as DesktopImageSearchRouteState;
-    expect(routeState.fallbackPath, mobileOverviewPath);
-    expect(routeState.initialFileName, 'picked.png');
-    expect(routeState.initialMimeType, 'image/png');
-    expect(routeState.initialFileBytes, isNotNull);
-    expect(routeState.initialFileBytes!, const <int>[1, 2, 3, 4]);
+    final draft = draftStore.get(draftId);
+    expect(draft, isNotNull);
+    expect(draft!.fileName, 'picked.png');
+    expect(draft.mimeType, 'image/png');
+    expect(draft.bytes, const <int>[1, 2, 3, 4]);
   });
 
   testWidgets(
@@ -483,11 +633,10 @@ void main() {
     },
   );
 
-  testWidgets('mobile overview latest movie tap navigates to movie detail', (
+  testWidgets('mobile overview latest movie tap pushes movie detail', (
     WidgetTester tester,
   ) async {
     _enqueueOverviewResponses(bundle);
-    Object? movieDetailExtra;
     final router = GoRouter(
       initialLocation: mobileOverviewPath,
       routes: [
@@ -498,15 +647,13 @@ void main() {
         ),
         GoRoute(
           path: '$mobileMoviesPath/:movieNumber',
-          builder: (_, state) {
-            movieDetailExtra = state.extra;
-            return Scaffold(
-              body: Text(
-                'movie:${state.pathParameters['movieNumber']}',
-                textDirection: TextDirection.ltr,
+          builder:
+              (_, state) => Scaffold(
+                body: Text(
+                  'movie:${state.pathParameters['movieNumber']}',
+                  textDirection: TextDirection.ltr,
+                ),
               ),
-            );
-          },
         ),
       ],
     );
@@ -525,7 +672,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('movie:ABP-123'), findsOneWidget);
-    expect(movieDetailExtra, mobileOverviewPath);
     expect(router.canPop(), isTrue);
 
     await tester.binding.handlePopRoute();
@@ -535,55 +681,50 @@ void main() {
     expect(router.canPop(), isFalse);
   });
 
-  testWidgets(
-    'mobile overview hot reviews card tap navigates to movie detail with overview fallback',
-    (WidgetTester tester) async {
-      _enqueueOverviewResponses(bundle);
-      Object? movieDetailExtra;
-      final router = GoRouter(
-        initialLocation: mobileOverviewPath,
-        routes: [
-          GoRoute(
-            path: mobileOverviewPath,
-            builder:
-                (_, __) => const Scaffold(body: MobileOverviewSkeletonPage()),
-          ),
-          GoRoute(
-            path: '$mobileMoviesPath/:movieNumber',
-            builder: (_, state) {
-              movieDetailExtra = state.extra;
-              return Scaffold(
+  testWidgets('mobile overview hot reviews card tap pushes movie detail', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+    final router = GoRouter(
+      initialLocation: mobileOverviewPath,
+      routes: [
+        GoRoute(
+          path: mobileOverviewPath,
+          builder:
+              (_, __) => const Scaffold(body: MobileOverviewSkeletonPage()),
+        ),
+        GoRoute(
+          path: '$mobileMoviesPath/:movieNumber',
+          builder:
+              (_, state) => Scaffold(
                 body: Text(
                   'movie:${state.pathParameters['movieNumber']}',
                   textDirection: TextDirection.ltr,
                 ),
-              );
-            },
-          ),
-        ],
-      );
-      addTearDown(router.dispose);
-
-      await tester.pumpWidget(
-        _buildRouterApp(
-          sessionStore: sessionStore,
-          bundle: bundle,
-          router: router,
+              ),
         ),
-      );
-      await tester.pumpAndSettle();
+      ],
+    );
+    addTearDown(router.dispose);
 
-      await tester.tap(find.text('热评'));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      _buildRouterApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('hot-review-card-101')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.text('热评'));
+    await tester.pumpAndSettle();
 
-      expect(find.text('movie:ABP-001'), findsOneWidget);
-      expect(movieDetailExtra, mobileOverviewPath);
-      expect(router.canPop(), isTrue);
-    },
-  );
+    await tester.tap(find.byKey(const Key('hot-review-card-101')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('movie:ABP-001'), findsOneWidget);
+    expect(router.canPop(), isTrue);
+  });
 
   testWidgets('mobile overview follow tab shows error and supports retry', (
     WidgetTester tester,
@@ -748,7 +889,6 @@ void main() {
     );
     _enqueueOverviewResponses(bundle);
 
-    Object? movieDetailExtra;
     final router = GoRouter(
       initialLocation: mobileOverviewPath,
       routes: [
@@ -759,15 +899,13 @@ void main() {
         ),
         GoRoute(
           path: '$mobileMoviesPath/:movieNumber',
-          builder: (_, state) {
-            movieDetailExtra = state.extra;
-            return Scaffold(
-              body: Text(
-                'movie:${state.pathParameters['movieNumber']}',
-                textDirection: TextDirection.ltr,
+          builder:
+              (_, state) => Scaffold(
+                body: Text(
+                  'movie:${state.pathParameters['movieNumber']}',
+                  textDirection: TextDirection.ltr,
+                ),
               ),
-            );
-          },
         ),
       ],
     );
@@ -787,7 +925,7 @@ void main() {
     await tester.tap(find.byKey(const Key('mobile-follow-movie-card-ABP-300')));
     await tester.pumpAndSettle();
     expect(find.text('movie:ABP-300'), findsOneWidget);
-    expect(movieDetailExtra, mobileOverviewPath);
+    expect(router.canPop(), isTrue);
   });
 
   testWidgets('mobile overview follow tab toggles movie subscription', (
@@ -892,7 +1030,15 @@ Widget _buildTestApp({
     providers: [
       ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
       Provider<ApiClient>.value(value: bundle.apiClient),
+      Provider<AccountApi>.value(value: bundle.accountApi),
       Provider<ActorsApi>.value(value: bundle.actorsApi),
+      Provider<AuthApi>.value(value: bundle.authApi),
+      Provider<CollectionNumberFeaturesApi>.value(
+        value: bundle.collectionNumberFeaturesApi,
+      ),
+      Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
+      Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
+      Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
       Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
@@ -908,15 +1054,26 @@ Widget _buildRouterApp({
   required SessionStore sessionStore,
   required TestApiBundle bundle,
   required GoRouter router,
+  ImageSearchDraftStore? imageSearchDraftStore,
 }) {
+  final draftStore = imageSearchDraftStore ?? ImageSearchDraftStore();
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
       Provider<ApiClient>.value(value: bundle.apiClient),
+      Provider<AccountApi>.value(value: bundle.accountApi),
       Provider<ActorsApi>.value(value: bundle.actorsApi),
+      Provider<AuthApi>.value(value: bundle.authApi),
+      Provider<CollectionNumberFeaturesApi>.value(
+        value: bundle.collectionNumberFeaturesApi,
+      ),
+      Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
+      Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
+      Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
       Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
+      Provider<ImageSearchDraftStore>.value(value: draftStore),
       Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
     ],
     child: OKToast(
@@ -1009,6 +1166,32 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
     path: '/hot-reviews',
     statusCode: 200,
     body: _hotReviewsPageJson(),
+  );
+}
+
+void _enqueueMobileConfigurationResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/media-libraries',
+    statusCode: 200,
+    body: const <Map<String, Object?>>[
+      {
+        'id': 1,
+        'name': 'Main Library',
+        'root_path': '/media/library/main',
+        'created_at': '2026-03-08T09:30:00Z',
+        'updated_at': '2026-03-08T09:30:00Z',
+      },
+    ],
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/collection-number-features',
+    statusCode: 200,
+    body: const <String, Object?>{
+      'features': <String>['CJOB', 'DVAJ'],
+      'sync_stats': null,
+    },
   );
 }
 

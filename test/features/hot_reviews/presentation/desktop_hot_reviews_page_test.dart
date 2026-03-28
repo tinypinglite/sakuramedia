@@ -242,6 +242,10 @@ void main() {
       );
       expect(contentText.style?.color, appColors.textPrimary);
       expect(
+        contentText.style?.fontSize,
+        sakuraThemeData.textTheme.bodyMedium?.fontSize,
+      );
+      expect(
         find.byKey(const Key('hot-review-card-meta-row-101')),
         findsOneWidget,
       );
@@ -301,7 +305,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('movie-detail-destination')), findsOneWidget);
-      expect(receivedExtra, desktopHotReviewsPath);
+      expect(receivedExtra, isNull);
     },
   );
 

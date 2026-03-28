@@ -11,7 +11,7 @@ import 'package:sakuramedia/features/search/presentation/catalog_search_controll
 import 'package:sakuramedia/features/search/presentation/catalog_search_page_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_search_route_state.dart';
+import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/widgets/search/catalog_search_content.dart';
 
 class MobileCatalogSearchPage extends StatefulWidget {
@@ -126,18 +126,12 @@ class _MobileCatalogSearchPageState extends State<MobileCatalogSearchPage>
             _controller.setActiveKind(_kindForIndex(index));
           },
           onMovieTap: (movie) {
-            final fallbackPath = GoRouterState.of(context).uri.path;
-            context.push(
-              buildMobileMovieDetailRoutePath(movie.movieNumber),
-              extra: fallbackPath,
+            MobileMovieDetailRouteData(movieNumber: movie.movieNumber).push(
+              context,
             );
           },
           onActorTap: (actor) {
-            final fallbackPath = GoRouterState.of(context).uri.path;
-            context.push(
-              buildMobileActorDetailRoutePath(actor.id),
-              extra: fallbackPath,
-            );
+            MobileActorDetailRouteData(actorId: actor.id).push(context);
           },
           onMovieSubscriptionTap:
               (movie) => _toggleMovieSubscription(movie.movieNumber),
@@ -166,14 +160,17 @@ class _MobileCatalogSearchPageState extends State<MobileCatalogSearchPage>
   void _submitSearch() {
     final submittedQuery = _textController.text;
     final trimmedQuery = submittedQuery.trim();
-    final routePath = buildMobileSearchRoutePath(submittedQuery);
-    final currentPath = GoRouterState.of(context).uri.path;
+    final routeLocation = _routeLocationFor(
+      query: submittedQuery,
+      useOnlineSearch: _pageState.useOnlineSearch,
+    );
+    final currentLocation = _currentRouteLocationOr(routeLocation);
 
-    if (trimmedQuery.isEmpty && currentPath == mobileSearchPath) {
+    if (trimmedQuery.isEmpty && currentLocation == mobileSearchPath) {
       return;
     }
 
-    if (routePath == currentPath &&
+    if (routeLocation == currentLocation &&
         widget.initialUseOnlineSearch == _pageState.useOnlineSearch) {
       unawaited(
         _controller.submit(
@@ -184,13 +181,16 @@ class _MobileCatalogSearchPageState extends State<MobileCatalogSearchPage>
       return;
     }
 
-    context.push(
-      routePath,
-      extra: DesktopSearchRouteState(
-        fallbackPath: mobileOverviewPath,
+    if (trimmedQuery.isEmpty) {
+      MobileSearchRouteData(
         useOnlineSearch: _pageState.useOnlineSearch,
-      ),
-    );
+      ).push(context);
+      return;
+    }
+    MobileSearchQueryRouteData(
+      query: trimmedQuery,
+      useOnlineSearch: _pageState.useOnlineSearch,
+    ).push(context);
   }
 
   Future<void> _toggleMovieSubscription(String movieNumber) async {
@@ -212,14 +212,33 @@ class _MobileCatalogSearchPageState extends State<MobileCatalogSearchPage>
   }
 
   String _resolveCachePath() {
-    return _currentRoutePathOr(buildMobileSearchRoutePath(widget.initialQuery));
+    return _currentRouteLocationOr(
+      _routeLocationFor(
+        query: widget.initialQuery,
+        useOnlineSearch: widget.initialUseOnlineSearch,
+      ),
+    );
   }
 
-  String _currentRoutePathOr(String fallbackPath) {
+  String _currentRouteLocationOr(String fallbackLocation) {
     try {
-      return GoRouterState.of(context).uri.path;
+      return GoRouterState.of(context).uri.toString();
     } catch (_) {
-      return fallbackPath;
+      return fallbackLocation;
     }
+  }
+
+  String _routeLocationFor({
+    required String query,
+    required bool useOnlineSearch,
+  }) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      return MobileSearchRouteData(useOnlineSearch: useOnlineSearch).location;
+    }
+    return MobileSearchQueryRouteData(
+      query: trimmed,
+      useOnlineSearch: useOnlineSearch,
+    ).location;
   }
 }

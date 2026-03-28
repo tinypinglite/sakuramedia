@@ -276,12 +276,7 @@ void main() {
       ],
     );
 
-    Object? movieDetailExtra;
-    final router = _buildRouter(
-      onMovieDetailBuild: (_, state) {
-        movieDetailExtra = state.extra;
-      },
-    );
+    final router = _buildRouter();
     await _pumpPage(tester, bundle: bundle, router: router);
     router.go('/mobile/search/abp123');
     await tester.pumpAndSettle();
@@ -290,7 +285,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('movie-detail:ABP-123'), findsOneWidget);
-    expect(movieDetailExtra, '/mobile/search/abp123');
+    expect(router.canPop(), isTrue);
   });
 
   testWidgets('mobile catalog search actor tap navigates to actor detail', (
@@ -306,27 +301,16 @@ void main() {
         'reason': 'not_a_movie_number',
       },
     );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/actors/search/local',
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 1,
-          'javdb_id': 'ActorA1',
-          'name': '三上悠亚',
-          'alias_name': '三上悠亚 / 鬼头桃菜',
-          'profile_image': null,
-          'is_subscribed': true,
-        },
+    bundle.adapter.enqueueSse(
+      method: 'POST',
+      path: '/actors/search/javdb/stream',
+      chunks: <String>[
+        'event: completed\n'
+            'data: {"success":true,"actors":[{"id":1,"javdb_id":"ActorA1","name":"三上悠亚","alias_name":"三上悠亚 / 鬼头桃菜","profile_image":null,"is_subscribed":true}]}\n\n',
       ],
     );
 
-    Object? actorDetailExtra;
-    final router = _buildRouter(
-      onActorDetailBuild: (_, state) {
-        actorDetailExtra = state.extra;
-      },
-    );
+    final router = _buildRouter();
     await _pumpPage(tester, bundle: bundle, router: router);
     router.go('/mobile/search/yua');
     await tester.pumpAndSettle();
@@ -335,7 +319,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('actor-detail:1'), findsOneWidget);
-    expect(actorDetailExtra, '/mobile/search/yua');
+    expect(router.canPop(), isTrue);
   });
 }
 

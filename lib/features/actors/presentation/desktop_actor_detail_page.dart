@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_detail_controller.dart';
 import 'package:sakuramedia/features/actors/presentation/paged_actor_summary_controller.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
@@ -203,6 +204,15 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
                         fallbackPath:
                             '/desktop/library/actors/${widget.actorId}',
                       ),
+                  onMovieMenuRequest: (movie, globalPosition) {
+                    unawaited(
+                      showMovieCollectionFeatureActionMenu(
+                        context: context,
+                        movieNumber: movie.movieNumber,
+                        globalPosition: globalPosition,
+                      ),
+                    );
+                  },
                   onMovieSubscriptionTap:
                       (movie) => _toggleMovieSubscription(movie.movieNumber),
                   isMovieSubscriptionUpdating:

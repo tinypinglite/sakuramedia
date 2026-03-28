@@ -15,6 +15,7 @@ class MoviePlayerSurface extends StatefulWidget {
     this.initialPosition,
     this.onPositionChanged,
     this.onPlayingChanged,
+    this.useTouchOptimizedControls = false,
   });
 
   final String resolvedUrl;
@@ -22,6 +23,7 @@ class MoviePlayerSurface extends StatefulWidget {
   final Duration? initialPosition;
   final ValueChanged<Duration>? onPositionChanged;
   final ValueChanged<bool>? onPlayingChanged;
+  final bool useTouchOptimizedControls;
 
   @override
   State<MoviePlayerSurface> createState() => _MoviePlayerSurfaceState();
@@ -92,6 +94,42 @@ class MoviePlayerSurfaceOpenCoordinator {
     debugPrint('[player-debug] surface_open_step=ready');
     markReady();
   }
+}
+
+@visibleForTesting
+VideoControlsBuilder resolveMoviePlayerVideoControlsBuilder({
+  required bool useTouchOptimizedControls,
+}) {
+  if (useTouchOptimizedControls) {
+    // The mobile custom controls are removed. Keep using media_kit defaults.
+  }
+  return AdaptiveVideoControls;
+}
+
+@visibleForTesting
+MaterialVideoControlsThemeData buildMoviePlayerMaterialControlsThemeData({
+  required ThemeData theme,
+  required List<Widget> controls,
+  required bool useTouchOptimizedControls,
+}) {
+  if (useTouchOptimizedControls) {
+    // Touch-specific seek bar overrides are removed with custom mobile controls.
+  }
+  return MaterialVideoControlsThemeData(
+    horizontalGestureSensitivity: 3000,
+    seekOnDoubleTap: true,
+    seekBarMargin: const EdgeInsets.fromLTRB(30, 0, 30, 75),
+    seekGesture: true,
+    volumeGesture: true,
+    speedUpOnLongPress: true,
+    brightnessGesture: true,
+    seekBarThumbColor: theme.colorScheme.primary,
+    seekBarPositionColor: theme.colorScheme.primary,
+    seekBarHeight: 6,
+    seekBarThumbSize: 14,
+    displaySeekBar: true,
+    bottomButtonBar: controls,
+  );
 }
 
 class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
@@ -266,8 +304,8 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     final backgroundColor = context.appColors.movieDetailHeroBackgroundStart;
 
     return MaterialVideoControlsTheme(
-      normal: _materialControlsTheme(context, controls),
-      fullscreen: _materialControlsTheme(context, controls),
+      normal: _materialControlsTheme(theme, controls),
+      fullscreen: _materialControlsTheme(theme, controls),
       child: MaterialDesktopVideoControlsTheme(
         normal: _desktopControlsTheme(theme, controls),
         fullscreen: _desktopControlsTheme(theme, controls),
@@ -286,6 +324,9 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
             fit: BoxFit.fitWidth,
             fill: backgroundColor,
             filterQuality: FilterQuality.none,
+            controls: resolveMoviePlayerVideoControlsBuilder(
+              useTouchOptimizedControls: widget.useTouchOptimizedControls,
+            ),
             onEnterFullscreen: () async {
               if (!_player.state.playing) {
                 await _player.play();
@@ -312,24 +353,13 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   }
 
   MaterialVideoControlsThemeData _materialControlsTheme(
-    BuildContext context,
+    ThemeData theme,
     List<Widget> controls,
   ) {
-    final theme = Theme.of(context);
-    return MaterialVideoControlsThemeData(
-      horizontalGestureSensitivity: 3000,
-      seekOnDoubleTap: true,
-      seekBarMargin: const EdgeInsets.fromLTRB(30, 0, 30, 75),
-      seekGesture: true,
-      volumeGesture: true,
-      speedUpOnLongPress: true,
-      brightnessGesture: true,
-      seekBarThumbColor: theme.colorScheme.primary,
-      seekBarPositionColor: theme.colorScheme.primary,
-      seekBarHeight: 6,
-      seekBarThumbSize: 14,
-      displaySeekBar: true,
-      bottomButtonBar: controls,
+    return buildMoviePlayerMaterialControlsThemeData(
+      theme: theme,
+      controls: controls,
+      useTouchOptimizedControls: widget.useTouchOptimizedControls,
     );
   }
 }
