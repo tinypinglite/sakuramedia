@@ -97,7 +97,7 @@ class MoviePlayerSurfaceOpenCoordinator {
 }
 
 @visibleForTesting
-VideoControlsBuilder resolveMoviePlayerVideoControlsBuilder({
+Widget Function(VideoState state) resolveMoviePlayerVideoControlsBuilder({
   required bool useTouchOptimizedControls,
 }) {
   if (useTouchOptimizedControls) {
