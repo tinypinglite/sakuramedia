@@ -569,6 +569,7 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, '重试'));
       await tester.pump();
       await tester.pumpAndSettle();
+      await _scrollToBottom(tester);
 
       expect(bundle.adapter.hitCount('GET', '/system/notifications'), 3);
       expect(find.byKey(const Key('activity-notification-30')), findsOneWidget);
@@ -637,6 +638,7 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, '重试'));
       await tester.pump();
       await tester.pumpAndSettle();
+      await _scrollToBottom(tester);
 
       expect(bundle.adapter.hitCount('GET', '/system/task-runs'), 3);
       expect(find.byKey(const Key('activity-task-30')), findsOneWidget);
@@ -689,6 +691,39 @@ void main() {
     expect(find.byKey(const Key('activity-notification-102')), findsOneWidget);
   });
 
+  testWidgets('notifications lazily build far items only after scroll', (
+    WidgetTester tester,
+  ) async {
+    _setDesktopViewport(tester, size: const Size(1440, 720));
+    final sessionStore = await _createSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+
+    _enqueueActivityState(
+      bundle,
+      notifications: List<Map<String, dynamic>>.generate(
+        200,
+        (index) => _notificationJson(
+          id: index + 1,
+          title: '通知 ${index + 1}',
+          content: '通知内容 ${index + 1}',
+          isRead: true,
+        ),
+      ),
+      notificationTotal: 200,
+    );
+
+    await _pumpActivityPage(tester, bundle: bundle);
+
+    expect(find.byKey(const Key('activity-notification-1')), findsOneWidget);
+    expect(find.byKey(const Key('activity-notification-200')), findsNothing);
+
+    await _scrollToBottom(tester);
+
+    expect(find.byKey(const Key('activity-notification-200')), findsOneWidget);
+  });
+
   testWidgets(
     'notification cards share the same visual style for read and unread items',
     (WidgetTester tester) async {
@@ -726,46 +761,40 @@ void main() {
     },
   );
 
-  testWidgets(
-    'notification auto marks as read silently after staying visible',
-    (WidgetTester tester) async {
-      _setDesktopViewport(tester);
-      final sessionStore = await _createSessionStore();
-      final bundle = await createTestApiBundle(sessionStore);
-      addTearDown(bundle.dispose);
-      addTearDown(sessionStore.dispose);
+  testWidgets('notification does not auto mark as read after staying visible', (
+    WidgetTester tester,
+  ) async {
+    _setDesktopViewport(tester);
+    final sessionStore = await _createSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
 
-      _enqueueActivityState(
-        bundle,
-        notifications: <Map<String, dynamic>>[
-          _notificationJson(
-            id: 101,
-            title: '有新的影片可以播放了',
-            content: '本次后台处理新增可播放影片 1 部：SSIS-123',
-            isRead: false,
-          ),
-        ],
-        unreadCount: 1,
-      );
-      bundle.adapter.enqueueJson(
-        method: 'PATCH',
-        path: '/system/notifications/101/read',
-        body: <String, dynamic>{'id': 101, 'is_read': true},
-      );
+    _enqueueActivityState(
+      bundle,
+      notifications: <Map<String, dynamic>>[
+        _notificationJson(
+          id: 101,
+          title: '有新的影片可以播放了',
+          content: '本次后台处理新增可播放影片 1 部：SSIS-123',
+          isRead: false,
+        ),
+      ],
+      unreadCount: 1,
+    );
 
-      await _pumpActivityPage(tester, bundle: bundle);
+    await _pumpActivityPage(tester, bundle: bundle);
 
-      await tester.pump(const Duration(milliseconds: 850));
-      await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 850));
+    await tester.pumpAndSettle();
 
-      expect(
-        bundle.adapter.hitCount('PATCH', '/system/notifications/101/read'),
-        1,
-      );
-      expect(find.text('已读'), findsNothing);
-      expect(find.text('未读'), findsNothing);
-    },
-  );
+    expect(
+      bundle.adapter.hitCount('PATCH', '/system/notifications/101/read'),
+      0,
+    );
+    expect(find.text('已读'), findsNothing);
+    expect(find.text('未读'), findsNothing);
+  });
 }
 
 Future<SessionStore> _createSessionStore() async {

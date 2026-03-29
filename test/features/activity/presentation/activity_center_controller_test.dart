@@ -304,6 +304,41 @@ void main() {
       expect(bundle.adapter.hitCount('GET', '/system/events/stream'), 1);
     },
   );
+
+  test('heartbeat keeps live state without redundant notifications', () async {
+    _enqueueInitialActivityState(bundle);
+    bundle.adapter.enqueueSse(
+      method: 'GET',
+      path: '/system/events/stream',
+      chunkInterval: const Duration(milliseconds: 20),
+      chunks: const <String>[
+        'id: 1\n'
+            'event: heartbeat\n'
+            'data: {}\n\n',
+        'id: 2\n'
+            'event: heartbeat\n'
+            'data: {}\n\n',
+      ],
+      keepOpen: true,
+    );
+
+    final controller = ActivityCenterController(
+      activityApi: bundle.activityApi,
+    );
+    addTearDown(controller.dispose);
+
+    await controller.initialize();
+    var listenerCallCount = 0;
+    controller.addListener(() {
+      listenerCallCount += 1;
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 70));
+
+    expect(controller.connectionState, ActivityConnectionState.live);
+    expect(controller.connectionMessage, '实时连接中');
+    expect(listenerCallCount, 0);
+  });
 }
 
 void _enqueueInitialActivityState(

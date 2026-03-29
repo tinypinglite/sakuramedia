@@ -442,9 +442,15 @@ class ActivityCenterController extends ChangeNotifier {
     }
 
     if (event.isHeartbeat) {
+      const liveMessage = '实时连接中';
+      final hasStateChanged =
+          _connectionState != ActivityConnectionState.live ||
+          _connectionMessage != liveMessage;
       _connectionState = ActivityConnectionState.live;
-      _connectionMessage = '实时连接中';
-      _notifySafely();
+      _connectionMessage = liveMessage;
+      if (hasStateChanged) {
+        _notifySafely();
+      }
       return;
     }
 

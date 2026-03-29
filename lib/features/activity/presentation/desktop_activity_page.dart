@@ -16,7 +16,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/app_shell/app_page_frame.dart';
 import 'package:sakuramedia/widgets/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
 
@@ -30,18 +29,11 @@ class DesktopActivityPage extends StatefulWidget {
 class _DesktopActivityPageState extends State<DesktopActivityPage>
     with SingleTickerProviderStateMixin {
   static const double _loadMoreTriggerOffset = 300;
-  static const double _autoReadVisibilityThreshold = 0.5;
-  static const Duration _autoReadDelay = Duration(milliseconds: 800);
 
   late final ActivityCenterController _controller;
   late final TabController _tabController;
   late final ScrollController _pageScrollController;
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm');
-  final Map<int, GlobalKey> _notificationVisibilityKeys = <int, GlobalKey>{};
-  final Map<int, Timer> _autoReadTimers = <int, Timer>{};
-  final Set<int> _visibleNotificationIds = <int>{};
-  final Set<int> _autoReadInFlightIds = <int>{};
-  final Set<int> _autoReadFailedWhileVisibleIds = <int>{};
   bool _isViewportWorkScheduled = false;
 
   @override
@@ -71,10 +63,6 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
     _tabController
       ..removeListener(_handleTabChanged)
       ..dispose();
-    for (final timer in _autoReadTimers.values) {
-      timer.cancel();
-    }
-    _autoReadTimers.clear();
     _pageScrollController
       ..removeListener(_handlePageScroll)
       ..dispose();
@@ -99,7 +87,6 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
 
   void _handlePageScroll() {
     _maybeAutoLoadMore();
-    _updateAutoReadCandidates();
   }
 
   void _scheduleViewportWork() {
@@ -113,7 +100,6 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
         return;
       }
       _maybeAutoLoadMore();
-      _updateAutoReadCandidates();
     });
   }
 
@@ -153,153 +139,233 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
     return position.pixels >= position.maxScrollExtent - _loadMoreTriggerOffset;
   }
 
-  GlobalKey _notificationVisibilityKey(int notificationId) {
-    return _notificationVisibilityKeys.putIfAbsent(
-      notificationId,
-      () => GlobalKey(
-        debugLabel: 'activity-notification-visibility-$notificationId',
+  List<Widget> _buildTabSlivers(BuildContext context) {
+    if (_controller.isInitialLoading) {
+      return const <Widget>[SliverToBoxAdapter(child: _InitialLoadingState())];
+    }
+    if (_controller.initialErrorMessage != null) {
+      return <Widget>[
+        SliverToBoxAdapter(
+          child: _InitialErrorState(
+            message: _controller.initialErrorMessage!,
+            onRetry: _controller.reloadAll,
+          ),
+        ),
+      ];
+    }
+    return switch (_controller.activeTab) {
+      ActivityTab.notifications => _buildNotificationSlivers(context),
+      ActivityTab.tasks => _buildTaskSlivers(context),
+    };
+  }
+
+  List<Widget> _buildNotificationSlivers(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleSmall;
+    final slivers = <Widget>[
+      SliverToBoxAdapter(
+        child: Column(
+          key: const Key('activity-notifications-tab'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ActivitySection(
+              title: '通知中心',
+              titleStyle: titleStyle,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _NotificationFilterBar(controller: _controller),
+                  if (_controller.notificationRefreshErrorMessage != null) ...[
+                    SizedBox(height: context.appSpacing.md),
+                    AppPagedLoadMoreFooter(
+                      isLoading: false,
+                      errorMessage: _controller.notificationRefreshErrorMessage,
+                      onRetry: _controller.refreshNotifications,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            SizedBox(height: context.appSpacing.lg),
+          ],
+        ),
+      ),
+    ];
+
+    if (_controller.notifications.isEmpty) {
+      slivers.add(
+        const SliverToBoxAdapter(child: AppEmptyState(message: '当前筛选下暂无通知')),
+      );
+      return slivers;
+    }
+
+    slivers.add(
+      SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final item = _controller.notifications[index];
+          final isLast = index == _controller.notifications.length - 1;
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: isLast ? 0 : context.appSpacing.md,
+            ),
+            child: RepaintBoundary(
+              child: _NotificationCard(
+                notification: item,
+                dateFormat: _dateFormat,
+                onArchive:
+                    item.archived
+                        ? null
+                        : () async {
+                          try {
+                            await _controller.archiveNotification(item.id);
+                          } catch (error) {
+                            if (context.mounted) {
+                              showToast(
+                                apiErrorMessage(
+                                  error,
+                                  fallback: '归档通知失败，请稍后重试',
+                                ),
+                              );
+                            }
+                          }
+                        },
+                onViewTask:
+                    item.relatedTaskRunId == null
+                        ? null
+                        : () => _controller.setActiveTab(
+                          ActivityTab.tasks,
+                          highlightTaskRunId: item.relatedTaskRunId,
+                        ),
+                onViewMovie:
+                    item.canOpenMovie
+                        ? () => context.goPrimaryRoute(desktopMoviesPath)
+                        : null,
+              ),
+            ),
+          );
+        }, childCount: _controller.notifications.length),
       ),
     );
+    slivers.add(
+      SliverToBoxAdapter(
+        child: Column(
+          children: [
+            SizedBox(height: context.appSpacing.lg),
+            AppPagedLoadMoreFooter(
+              isLoading: _controller.isLoadingMoreNotifications,
+              errorMessage: _controller.notificationLoadMoreErrorMessage,
+              onRetry: _controller.loadMoreNotifications,
+            ),
+            SizedBox(height: context.appSpacing.xl),
+          ],
+        ),
+      ),
+    );
+    return slivers;
   }
 
-  void _updateAutoReadCandidates() {
-    final notificationIds =
-        _controller.notifications.map((item) => item.id).toSet();
-    _notificationVisibilityKeys.removeWhere(
-      (notificationId, _) => !notificationIds.contains(notificationId),
-    );
+  List<Widget> _buildTaskSlivers(BuildContext context) {
+    final titleStyle = Theme.of(context).textTheme.titleSmall;
+    final slivers = <Widget>[
+      SliverToBoxAdapter(
+        child: Column(
+          key: const Key('activity-tasks-tab'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_controller.activeTaskRuns.isNotEmpty) ...[
+              _ActivitySection(
+                title: '活动任务',
+                titleStyle: titleStyle,
+                child: Column(
+                  children: [
+                    for (
+                      var index = 0;
+                      index < _controller.activeTaskRuns.length;
+                      index++
+                    ) ...[
+                      RepaintBoundary(
+                        child: _TaskRunCard(
+                          taskRun: _controller.activeTaskRuns[index],
+                          dateFormat: _dateFormat,
+                          highlighted:
+                              _controller.highlightedTaskRunId ==
+                              _controller.activeTaskRuns[index].id,
+                        ),
+                      ),
+                      if (index != _controller.activeTaskRuns.length - 1)
+                        SizedBox(height: context.appSpacing.md),
+                    ],
+                  ],
+                ),
+              ),
+              SizedBox(height: context.appSpacing.xl),
+            ],
+            _ActivitySection(
+              title: '任务历史',
+              titleStyle: titleStyle,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _TaskFilterBar(controller: _controller),
+                  if (_controller.taskRefreshErrorMessage != null) ...[
+                    SizedBox(height: context.appSpacing.md),
+                    AppPagedLoadMoreFooter(
+                      isLoading: false,
+                      errorMessage: _controller.taskRefreshErrorMessage,
+                      onRetry: _controller.refreshTaskHistory,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            SizedBox(height: context.appSpacing.lg),
+          ],
+        ),
+      ),
+    ];
 
-    if (_controller.activeTab != ActivityTab.notifications ||
-        !_pageScrollController.hasClients) {
-      _clearAutoReadState();
-      return;
-    }
-
-    final eligibleIds = <int>{};
-    for (final notification in _controller.notifications) {
-      if (notification.isRead || notification.archived) {
-        continue;
-      }
-      if (_visibleFractionForNotification(notification.id) <
-          _autoReadVisibilityThreshold) {
-        continue;
-      }
-      eligibleIds.add(notification.id);
-    }
-
-    for (final notificationId in _visibleNotificationIds.difference(
-      eligibleIds,
-    )) {
-      _cancelAutoReadTimer(notificationId);
-      _autoReadFailedWhileVisibleIds.remove(notificationId);
-    }
-
-    _autoReadInFlightIds.removeWhere((id) => !notificationIds.contains(id));
-    _autoReadFailedWhileVisibleIds.removeWhere(
-      (id) => !eligibleIds.contains(id),
-    );
-
-    for (final notificationId in eligibleIds) {
-      final isNewlyVisible = !_visibleNotificationIds.contains(notificationId);
-      if (!isNewlyVisible ||
-          _autoReadInFlightIds.contains(notificationId) ||
-          _autoReadFailedWhileVisibleIds.contains(notificationId) ||
-          _autoReadTimers.containsKey(notificationId)) {
-        continue;
-      }
-      _autoReadTimers[notificationId] = Timer(
-        _autoReadDelay,
-        () => _handleAutoReadTimer(notificationId),
+    if (_controller.taskRuns.isEmpty) {
+      slivers.add(
+        const SliverToBoxAdapter(child: AppEmptyState(message: '当前筛选下暂无任务记录')),
       );
+      return slivers;
     }
 
-    _visibleNotificationIds
-      ..clear()
-      ..addAll(eligibleIds);
-  }
-
-  Future<void> _handleAutoReadTimer(int notificationId) async {
-    _autoReadTimers.remove(notificationId);
-    if (!mounted ||
-        _autoReadInFlightIds.contains(notificationId) ||
-        !_visibleNotificationIds.contains(notificationId) ||
-        !_isNotificationEligibleForAutoRead(notificationId)) {
-      return;
-    }
-
-    _autoReadInFlightIds.add(notificationId);
-    try {
-      await _controller.markNotificationRead(notificationId);
-    } catch (_) {
-      if (mounted && _visibleNotificationIds.contains(notificationId)) {
-        _autoReadFailedWhileVisibleIds.add(notificationId);
-      }
-    } finally {
-      _autoReadInFlightIds.remove(notificationId);
-    }
-  }
-
-  bool _isNotificationEligibleForAutoRead(int notificationId) {
-    ActivityNotificationDto? notification;
-    for (final item in _controller.notifications) {
-      if (item.id == notificationId) {
-        notification = item;
-        break;
-      }
-    }
-    if (notification == null || notification.isRead || notification.archived) {
-      return false;
-    }
-    return _visibleFractionForNotification(notificationId) >=
-        _autoReadVisibilityThreshold;
-  }
-
-  double _visibleFractionForNotification(int notificationId) {
-    final key = _notificationVisibilityKeys[notificationId];
-    final context = key?.currentContext;
-    if (context == null) {
-      return 0;
-    }
-    final itemRenderObject = context.findRenderObject();
-    final viewportRenderObject =
-        _pageScrollController.position.context.notificationContext
-            ?.findRenderObject();
-    if (itemRenderObject is! RenderBox ||
-        viewportRenderObject is! RenderBox ||
-        !itemRenderObject.hasSize ||
-        !viewportRenderObject.hasSize ||
-        !itemRenderObject.attached ||
-        !viewportRenderObject.attached) {
-      return 0;
-    }
-    final itemRect =
-        itemRenderObject.localToGlobal(Offset.zero) & itemRenderObject.size;
-    final viewportRect =
-        viewportRenderObject.localToGlobal(Offset.zero) &
-        viewportRenderObject.size;
-    final visibleRect = itemRect.intersect(viewportRect);
-    if (visibleRect.isEmpty) {
-      return 0;
-    }
-    final itemArea = itemRect.width * itemRect.height;
-    if (itemArea <= 0) {
-      return 0;
-    }
-    return ((visibleRect.width * visibleRect.height) / itemArea).clamp(0, 1);
-  }
-
-  void _clearAutoReadState() {
-    for (final timer in _autoReadTimers.values) {
-      timer.cancel();
-    }
-    _autoReadTimers.clear();
-    _visibleNotificationIds.clear();
-    _autoReadFailedWhileVisibleIds.clear();
-    _autoReadInFlightIds.clear();
-  }
-
-  void _cancelAutoReadTimer(int notificationId) {
-    _autoReadTimers.remove(notificationId)?.cancel();
+    slivers.add(
+      SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final item = _controller.taskRuns[index];
+          final isLast = index == _controller.taskRuns.length - 1;
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: isLast ? 0 : context.appSpacing.md,
+            ),
+            child: RepaintBoundary(
+              child: _TaskRunCard(
+                taskRun: item,
+                dateFormat: _dateFormat,
+                highlighted: _controller.highlightedTaskRunId == item.id,
+              ),
+            ),
+          );
+        }, childCount: _controller.taskRuns.length),
+      ),
+    );
+    slivers.add(
+      SliverToBoxAdapter(
+        child: Column(
+          children: [
+            SizedBox(height: context.appSpacing.lg),
+            AppPagedLoadMoreFooter(
+              isLoading: _controller.isLoadingMoreTasks,
+              errorMessage: _controller.taskLoadMoreErrorMessage,
+              onRetry: _controller.loadMoreTasks,
+            ),
+            SizedBox(height: context.appSpacing.xl),
+          ],
+        ),
+      ),
+    );
+    return slivers;
   }
 
   @override
@@ -307,48 +373,32 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        return AppPageFrame(
-          title: '',
-          scrollController: _pageScrollController,
-          child: Column(
-            key: const Key('desktop-activity-page'),
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppTabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(key: Key('activity-tab-notifications'), text: '通知'),
-                  Tab(key: Key('activity-tab-tasks'), text: '任务'),
+        return CustomScrollView(
+          controller: _pageScrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                key: const Key('desktop-activity-page'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppTabBar(
+                    controller: _tabController,
+                    tabs: const [
+                      Tab(key: Key('activity-tab-notifications'), text: '通知'),
+                      Tab(key: Key('activity-tab-tasks'), text: '任务'),
+                    ],
+                  ),
+                  SizedBox(height: context.appSpacing.lg),
+                  _ConnectionBanner(
+                    state: _controller.connectionState,
+                    message: _controller.connectionMessage,
+                  ),
+                  SizedBox(height: context.appSpacing.xl),
                 ],
               ),
-              SizedBox(height: context.appSpacing.lg),
-              _ConnectionBanner(
-                state: _controller.connectionState,
-                message: _controller.connectionMessage,
-              ),
-              SizedBox(height: context.appSpacing.xl),
-              if (_controller.isInitialLoading)
-                const _InitialLoadingState()
-              else if (_controller.initialErrorMessage != null)
-                _InitialErrorState(
-                  message: _controller.initialErrorMessage!,
-                  onRetry: _controller.reloadAll,
-                )
-              else
-                switch (_controller.activeTab) {
-                  ActivityTab.notifications => _NotificationsTab(
-                    controller: _controller,
-                    dateFormat: _dateFormat,
-                    notificationVisibilityKeyBuilder:
-                        _notificationVisibilityKey,
-                  ),
-                  ActivityTab.tasks => _TasksTab(
-                    controller: _controller,
-                    dateFormat: _dateFormat,
-                  ),
-                },
-            ],
-          ),
+            ),
+            ..._buildTabSlivers(context),
+          ],
         );
       },
     );
@@ -489,182 +539,6 @@ class _ConnectionBanner extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _NotificationsTab extends StatelessWidget {
-  const _NotificationsTab({
-    required this.controller,
-    required this.dateFormat,
-    required this.notificationVisibilityKeyBuilder,
-  });
-
-  final ActivityCenterController controller;
-  final DateFormat dateFormat;
-  final GlobalKey Function(int notificationId) notificationVisibilityKeyBuilder;
-
-  @override
-  Widget build(BuildContext context) {
-    final titleStyle = Theme.of(context).textTheme.titleSmall;
-    return Column(
-      key: const Key('activity-notifications-tab'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _ActivitySection(
-          title: '通知中心',
-          titleStyle: titleStyle,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _NotificationFilterBar(controller: controller),
-              if (controller.notificationRefreshErrorMessage != null) ...[
-                SizedBox(height: context.appSpacing.md),
-                AppPagedLoadMoreFooter(
-                  isLoading: false,
-                  errorMessage: controller.notificationRefreshErrorMessage,
-                  onRetry: controller.refreshNotifications,
-                ),
-              ],
-              SizedBox(height: context.appSpacing.lg),
-              if (controller.notifications.isEmpty)
-                const AppEmptyState(message: '当前筛选下暂无通知')
-              else
-                Column(
-                  children: [
-                    for (final item in controller.notifications) ...[
-                      _NotificationCard(
-                        visibilityKey: notificationVisibilityKeyBuilder(
-                          item.id,
-                        ),
-                        notification: item,
-                        dateFormat: dateFormat,
-                        onArchive:
-                            item.archived
-                                ? null
-                                : () async {
-                                  try {
-                                    await controller.archiveNotification(
-                                      item.id,
-                                    );
-                                  } catch (error) {
-                                    if (context.mounted) {
-                                      showToast(
-                                        apiErrorMessage(
-                                          error,
-                                          fallback: '归档通知失败，请稍后重试',
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                        onViewTask:
-                            item.relatedTaskRunId == null
-                                ? null
-                                : () => controller.setActiveTab(
-                                  ActivityTab.tasks,
-                                  highlightTaskRunId: item.relatedTaskRunId,
-                                ),
-                        onViewMovie:
-                            item.canOpenMovie
-                                ? () =>
-                                    context.goPrimaryRoute(desktopMoviesPath)
-                                : null,
-                      ),
-                      if (item != controller.notifications.last)
-                        SizedBox(height: context.appSpacing.md),
-                    ],
-                    SizedBox(height: context.appSpacing.lg),
-                    AppPagedLoadMoreFooter(
-                      isLoading: controller.isLoadingMoreNotifications,
-                      errorMessage: controller.notificationLoadMoreErrorMessage,
-                      onRetry: controller.loadMoreNotifications,
-                    ),
-                  ],
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TasksTab extends StatelessWidget {
-  const _TasksTab({required this.controller, required this.dateFormat});
-
-  final ActivityCenterController controller;
-  final DateFormat dateFormat;
-
-  @override
-  Widget build(BuildContext context) {
-    final titleStyle = Theme.of(context).textTheme.titleSmall;
-    return Column(
-      key: const Key('activity-tasks-tab'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (controller.activeTaskRuns.isNotEmpty) ...[
-          _ActivitySection(
-            title: '活动任务',
-            titleStyle: titleStyle,
-            child: Column(
-              children: [
-                for (final item in controller.activeTaskRuns) ...[
-                  _TaskRunCard(
-                    taskRun: item,
-                    dateFormat: dateFormat,
-                    highlighted: controller.highlightedTaskRunId == item.id,
-                  ),
-                  if (item != controller.activeTaskRuns.last)
-                    SizedBox(height: context.appSpacing.md),
-                ],
-              ],
-            ),
-          ),
-          SizedBox(height: context.appSpacing.xl),
-        ],
-        _ActivitySection(
-          title: '任务历史',
-          titleStyle: titleStyle,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _TaskFilterBar(controller: controller),
-              if (controller.taskRefreshErrorMessage != null) ...[
-                SizedBox(height: context.appSpacing.md),
-                AppPagedLoadMoreFooter(
-                  isLoading: false,
-                  errorMessage: controller.taskRefreshErrorMessage,
-                  onRetry: controller.refreshTaskHistory,
-                ),
-              ],
-              SizedBox(height: context.appSpacing.lg),
-              if (controller.taskRuns.isEmpty)
-                const AppEmptyState(message: '当前筛选下暂无任务记录')
-              else
-                Column(
-                  children: [
-                    for (final item in controller.taskRuns) ...[
-                      _TaskRunCard(
-                        taskRun: item,
-                        dateFormat: dateFormat,
-                        highlighted: controller.highlightedTaskRunId == item.id,
-                      ),
-                      if (item != controller.taskRuns.last)
-                        SizedBox(height: context.appSpacing.md),
-                    ],
-                    SizedBox(height: context.appSpacing.lg),
-                    AppPagedLoadMoreFooter(
-                      isLoading: controller.isLoadingMoreTasks,
-                      errorMessage: controller.taskLoadMoreErrorMessage,
-                      onRetry: controller.loadMoreTasks,
-                    ),
-                  ],
-                ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
@@ -941,7 +815,6 @@ class _FilterRefreshIndicator extends StatelessWidget {
 
 class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
-    required this.visibilityKey,
     required this.notification,
     required this.dateFormat,
     this.onArchive,
@@ -949,7 +822,6 @@ class _NotificationCard extends StatelessWidget {
     this.onViewMovie,
   });
 
-  final GlobalKey visibilityKey;
   final ActivityNotificationDto notification;
   final DateFormat dateFormat;
   final Future<void> Function()? onArchive;
@@ -961,7 +833,6 @@ class _NotificationCard extends StatelessWidget {
     final colors = context.appColors;
     final theme = Theme.of(context);
     return SizedBox(
-      key: visibilityKey,
       width: double.infinity,
       child: Container(
         key: Key('activity-notification-${notification.id}'),
