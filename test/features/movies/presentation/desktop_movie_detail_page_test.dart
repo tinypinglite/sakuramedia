@@ -26,6 +26,7 @@ import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_actor_wrap.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_hero_card.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -1858,8 +1859,8 @@ void main() {
                   state.uri.queryParameters['currentMovieScope'] ??
                   state.uri.queryParameters['current-movie-scope'] ??
                   ImageSearchCurrentMovieScope.all.name;
-              final currentMovieScope =
-                  ImageSearchCurrentMovieScope.values.firstWhere(
+              final currentMovieScope = ImageSearchCurrentMovieScope.values
+                  .firstWhere(
                     (scope) => scope.name == currentMovieScopeRaw,
                     orElse: () => ImageSearchCurrentMovieScope.all,
                   );
@@ -2162,6 +2163,86 @@ void main() {
     },
   );
 
+  testWidgets(
+    'movie detail page prioritizes female actors and keeps intra-group order',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(
+          actors: <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 1,
+              'javdb_id': 'ActorA1',
+              'name': '非女优A',
+              'alias_name': '非女优A',
+              'gender': 0,
+              'is_subscribed': false,
+              'profile_image': null,
+            },
+            <String, dynamic>{
+              'id': 2,
+              'javdb_id': 'ActorA2',
+              'name': '女优A',
+              'alias_name': '女优A',
+              'gender': 1,
+              'is_subscribed': false,
+              'profile_image': null,
+            },
+            <String, dynamic>{
+              'id': 3,
+              'javdb_id': 'ActorA3',
+              'name': '女优B',
+              'alias_name': '女优B',
+              'gender': 1,
+              'is_subscribed': false,
+              'profile_image': null,
+            },
+            <String, dynamic>{
+              'id': 4,
+              'javdb_id': 'ActorA4',
+              'name': '非女优B',
+              'alias_name': '非女优B',
+              'gender': 2,
+              'is_subscribed': false,
+              'profile_image': null,
+            },
+          ],
+        ),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      final actorElements = find
+          .descendant(
+            of: find.byType(MovieActorWrap),
+            matching: find.byWidgetPredicate(
+              (widget) =>
+                  widget.key is ValueKey<String> &&
+                  (widget.key! as ValueKey<String>).value.startsWith(
+                    'movie-actor-',
+                  ),
+            ),
+          )
+          .evaluate()
+          .toList(growable: false);
+      final actorKeys = actorElements
+          .map((element) => (element.widget.key! as ValueKey<String>).value)
+          .toList(growable: false);
+
+      expect(
+        actorKeys,
+        equals(const <String>[
+          'movie-actor-2',
+          'movie-actor-3',
+          'movie-actor-1',
+          'movie-actor-4',
+        ]),
+      );
+    },
+  );
+
   testWidgets('movie detail page opens actor detail from actor avatar', (
     WidgetTester tester,
   ) async {
@@ -2338,6 +2419,7 @@ Map<String, dynamic> _movieDetailJson({
             'javdb_id': 'ActorA1',
             'name': '三上悠亚',
             'alias_name': '三上悠亚 / 鬼头桃菜',
+            'gender': 1,
             'is_subscribed': false,
             'profile_image': null,
           },

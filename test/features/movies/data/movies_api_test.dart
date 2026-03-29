@@ -532,6 +532,7 @@ void main() {
             'javdb_id': 'ActorA1',
             'name': '三上悠亚',
             'alias_name': '三上悠亚 / 鬼头桃菜',
+            'gender': 1,
             'is_subscribed': false,
             'profile_image': <String, dynamic>{
               'id': 11,
@@ -611,6 +612,8 @@ void main() {
     expect(detail.thinCoverImage?.bestAvailableUrl, 'thin-large.jpg');
     expect(detail.plotImages.single.bestAvailableUrl, 'plot-large.jpg');
     expect(detail.actors.single.aliasName, '三上悠亚 / 鬼头桃菜');
+    expect(detail.actors.single.gender, 1);
+    expect(detail.actors.single.isFemale, isTrue);
     expect(detail.tags.single.name, '剧情');
     expect(
       detail.mediaItems.single.playUrl,
@@ -624,6 +627,41 @@ void main() {
     expect(detail.playlists.first.isSystem, isTrue);
     expect(detail.playlists.last.kind, 'custom');
   });
+
+  test(
+    'getMovieDetail defaults actor gender to unknown when missing',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-003',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'javdb_id': 'MovieA3',
+          'movie_number': 'ABC-003',
+          'title': 'Movie 3',
+          'actors': [
+            <String, dynamic>{
+              'id': 3,
+              'javdb_id': 'ActorA3',
+              'name': '未知演员',
+              'alias_name': '',
+              'is_subscribed': false,
+              'profile_image': null,
+            },
+          ],
+          'tags': const <Map<String, dynamic>>[],
+          'plot_images': const <Map<String, dynamic>>[],
+          'media_items': const <Map<String, dynamic>>[],
+          'playlists': const <Map<String, dynamic>>[],
+        },
+      );
+
+      final detail = await moviesApi.getMovieDetail(movieNumber: 'ABC-003');
+
+      expect(detail.actors.single.gender, 0);
+      expect(detail.actors.single.isFemale, isFalse);
+    },
+  );
 
   test('getMovieDetail handles nullable detail sections', () async {
     adapter.enqueueJson(

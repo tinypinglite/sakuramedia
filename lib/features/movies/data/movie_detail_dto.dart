@@ -124,16 +124,21 @@ class MovieActorDto {
     required this.javdbId,
     required this.name,
     required this.aliasName,
+    required this.gender,
     required this.isSubscribed,
     required this.profileImage,
   });
+
+  static const int femaleGender = 1;
 
   final int id;
   final String javdbId;
   final String name;
   final String aliasName;
+  final int gender;
   final bool isSubscribed;
   final MovieImageDto? profileImage;
+  bool get isFemale => gender == femaleGender;
 
   factory MovieActorDto.fromJson(Map<String, dynamic> json) {
     return MovieActorDto(
@@ -141,6 +146,7 @@ class MovieActorDto {
       javdbId: json['javdb_id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       aliasName: json['alias_name'] as String? ?? '',
+      gender: (json['gender'] as num?)?.toInt() ?? 0,
       isSubscribed: json['is_subscribed'] as bool? ?? false,
       profileImage: _movieImageFromJson(json['profile_image']),
     );

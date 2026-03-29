@@ -128,6 +128,10 @@ class MovieDetailPageContent extends StatelessWidget {
     required BuildContext context,
     required double heroHeight,
   }) {
+    final orderedActors = <MovieActorDto>[
+      ...movie.actors.where((actor) => actor.isFemale),
+      ...movie.actors.where((actor) => !actor.isFemale),
+    ];
     final playlistTrigger = AppIconButton(
       key: const Key('movie-detail-playlist-trigger'),
       onPressed: onPlaylistTap,
@@ -207,7 +211,7 @@ class MovieDetailPageContent extends StatelessWidget {
         MovieDetailSection(
           title: '演员',
           titleBottomSpacing: context.appSpacing.xs,
-          child: MovieActorWrap(actors: movie.actors, onActorTap: onActorTap),
+          child: MovieActorWrap(actors: orderedActors, onActorTap: onActorTap),
         ),
         if (movie.mediaItems.isNotEmpty)
           MovieDetailSection(
