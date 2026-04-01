@@ -222,10 +222,10 @@ void main() {
       final notificationRequests = bundle.adapter.requests
           .where((request) => request.path == '/system/notifications')
           .toList(growable: false);
-      expect(notificationRequests, hasLength(3));
-      expect(notificationRequests[1].uri.queryParameters['category'], 'result');
+      expect(notificationRequests, hasLength(2));
+      expect(notificationRequests[0].uri.queryParameters['category'], 'result');
       expect(
-        notificationRequests[2].uri.queryParameters.containsKey('category'),
+        notificationRequests[1].uri.queryParameters.containsKey('category'),
         isFalse,
       );
       expect(
@@ -417,35 +417,18 @@ void main() {
 
       bundle.adapter.enqueueResponder(
         method: 'GET',
-        path: '/system/notifications',
+        path: '/system/activity/bootstrap',
         responder: (_, __) async {
           await Future<void>.delayed(const Duration(milliseconds: 200));
-          return _jsonResponseBody(<String, dynamic>{
-            'items': <Map<String, dynamic>>[],
-            'page': 1,
-            'page_size': 20,
-            'total': 0,
-          });
-        },
-      );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/notifications/unread-count',
-        body: <String, dynamic>{'unread_count': 0},
-      );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/task-runs/active',
-        body: const <Map<String, dynamic>>[],
-      );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/task-runs',
-        body: <String, dynamic>{
-          'items': const <Map<String, dynamic>>[],
-          'page': 1,
-          'page_size': 20,
-          'total': 0,
+          return _jsonResponseBody(
+            _bootstrapBody(
+              latestEventId: 120,
+              notifications: const <Map<String, dynamic>>[],
+              unreadCount: 0,
+              activeTasks: const <Map<String, dynamic>>[],
+              taskRuns: const <Map<String, dynamic>>[],
+            ),
+          );
         },
       );
       bundle.adapter.enqueueSse(
@@ -480,28 +463,8 @@ void main() {
 
     bundle.adapter.enqueueResponder(
       method: 'GET',
-      path: '/system/notifications',
+      path: '/system/activity/bootstrap',
       responder: (_, __) async => throw Exception('load failed'),
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/notifications/unread-count',
-      body: <String, dynamic>{'unread_count': 0},
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/task-runs/active',
-      body: const <Map<String, dynamic>>[],
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/task-runs',
-      body: <String, dynamic>{
-        'items': const <Map<String, dynamic>>[],
-        'page': 1,
-        'page_size': 20,
-        'total': 0,
-      },
     );
 
     await _pumpActivityPage(tester, bundle: bundle);
@@ -571,7 +534,7 @@ void main() {
       await tester.pumpAndSettle();
       await _scrollToBottom(tester);
 
-      expect(bundle.adapter.hitCount('GET', '/system/notifications'), 3);
+      expect(bundle.adapter.hitCount('GET', '/system/notifications'), 2);
       expect(find.byKey(const Key('activity-notification-30')), findsOneWidget);
       expect(find.text('加载更多通知失败，请点击重试'), findsNothing);
     },
@@ -640,7 +603,7 @@ void main() {
       await tester.pumpAndSettle();
       await _scrollToBottom(tester);
 
-      expect(bundle.adapter.hitCount('GET', '/system/task-runs'), 3);
+      expect(bundle.adapter.hitCount('GET', '/system/task-runs'), 2);
       expect(find.byKey(const Key('activity-task-30')), findsOneWidget);
       expect(find.text('加载更多任务失败，请点击重试'), findsNothing);
     },
@@ -687,7 +650,7 @@ void main() {
 
     await _pumpActivityPage(tester, bundle: bundle);
 
-    expect(bundle.adapter.hitCount('GET', '/system/notifications'), 2);
+    expect(bundle.adapter.hitCount('GET', '/system/notifications'), 1);
     expect(find.byKey(const Key('activity-notification-102')), findsOneWidget);
   });
 
@@ -863,6 +826,7 @@ double _pageMaxScrollExtent(WidgetTester tester) {
 
 void _enqueueActivityState(
   TestApiBundle bundle, {
+  int latestEventId = 120,
   List<Map<String, dynamic>> notifications = const <Map<String, dynamic>>[],
   int? notificationTotal,
   int unreadCount = 0,
@@ -872,33 +836,16 @@ void _enqueueActivityState(
 }) {
   bundle.adapter.enqueueJson(
     method: 'GET',
-    path: '/system/notifications',
-    body: <String, dynamic>{
-      'items': notifications,
-      'page': 1,
-      'page_size': 20,
-      'total': notificationTotal ?? notifications.length,
-    },
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/system/notifications/unread-count',
-    body: <String, dynamic>{'unread_count': unreadCount},
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/system/task-runs/active',
-    body: activeTasks,
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/system/task-runs',
-    body: <String, dynamic>{
-      'items': taskRuns,
-      'page': 1,
-      'page_size': 20,
-      'total': taskRunTotal ?? taskRuns.length,
-    },
+    path: '/system/activity/bootstrap',
+    body: _bootstrapBody(
+      latestEventId: latestEventId,
+      notifications: notifications,
+      notificationTotal: notificationTotal,
+      unreadCount: unreadCount,
+      activeTasks: activeTasks,
+      taskRuns: taskRuns,
+      taskRunTotal: taskRunTotal,
+    ),
   );
   bundle.adapter.enqueueSse(
     method: 'GET',
@@ -909,6 +856,34 @@ void _enqueueActivityState(
           'data: {}\n\n',
     ],
   );
+}
+
+Map<String, dynamic> _bootstrapBody({
+  required int latestEventId,
+  List<Map<String, dynamic>> notifications = const <Map<String, dynamic>>[],
+  int? notificationTotal,
+  int unreadCount = 0,
+  List<Map<String, dynamic>> activeTasks = const <Map<String, dynamic>>[],
+  List<Map<String, dynamic>> taskRuns = const <Map<String, dynamic>>[],
+  int? taskRunTotal,
+}) {
+  return <String, dynamic>{
+    'latest_event_id': latestEventId,
+    'notifications': <String, dynamic>{
+      'items': notifications,
+      'page': 1,
+      'page_size': 20,
+      'total': notificationTotal ?? notifications.length,
+    },
+    'unread_count': unreadCount,
+    'active_task_runs': activeTasks,
+    'task_runs': <String, dynamic>{
+      'items': taskRuns,
+      'page': 1,
+      'page_size': 20,
+      'total': taskRunTotal ?? taskRuns.length,
+    },
+  };
 }
 
 Map<String, dynamic> _notificationJson({

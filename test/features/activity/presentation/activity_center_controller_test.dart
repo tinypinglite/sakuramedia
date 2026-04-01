@@ -30,14 +30,14 @@ void main() {
   });
 
   test(
-    'initialize loads initial state and applies notification stream events',
+    'initialize loads bootstrap state and connects stream from latest_event_id',
     () async {
-      _enqueueInitialActivityState(bundle);
+      _enqueueInitialActivityState(bundle, latestEventId: 120);
       bundle.adapter.enqueueSse(
         method: 'GET',
         path: '/system/events/stream',
         chunks: const <String>[
-          'id: 1\n'
+          'id: 121\n'
               'event: notification_created\n'
               'data: {"id":101,"category":"reminder","level":"info","title":"有新的影片可以播放了","content":"本次后台处理新增可播放影片 1 部：SSIS-123","is_read":false,"archived":false,"related_task_run_id":88}\n\n',
         ],
@@ -56,6 +56,16 @@ void main() {
       expect(controller.notifications.single.id, 101);
       expect(controller.unreadCount, 1);
       expect(controller.connectionState, ActivityConnectionState.live);
+      expect(bundle.adapter.hitCount('GET', '/system/activity/bootstrap'), 1);
+      expect(bundle.adapter.hitCount('GET', '/system/events/stream'), 1);
+      expect(
+        bundle.adapter.requests
+            .where((request) => request.path == '/system/events/stream')
+            .single
+            .uri
+            .queryParameters['after_event_id'],
+        '120',
+      );
     },
   );
 
@@ -113,7 +123,7 @@ void main() {
         method: 'GET',
         path: '/system/events/stream',
         chunks: const <String>[
-          'id: 2\n'
+          'id: 122\n'
               'event: task_run_updated\n'
               'data: {"id":88,"task_key":"download_task_import","task_name":"下载任务导入 SSIS-123","trigger_type":"manual","state":"completed","progress_current":3,"progress_total":3,"progress_text":"导入完成","result_text":"新增影片 1 部","created_at":"2026-03-26T09:10:00Z","updated_at":"2026-03-26T09:20:00Z","started_at":"2026-03-26T09:10:00Z","finished_at":"2026-03-26T09:20:00Z"}\n\n',
         ],
@@ -178,6 +188,7 @@ void main() {
       expect(controller.notifications.single.id, 202);
       expect(controller.activeTaskRuns.single.id, 88);
       expect(controller.taskRuns.single.id, 201);
+      expect(bundle.adapter.hitCount('GET', '/system/activity/bootstrap'), 1);
       expect(bundle.adapter.hitCount('GET', '/system/events/stream'), 1);
       expect(
         bundle.adapter.requests
@@ -232,6 +243,7 @@ void main() {
       expect(controller.notifications.single.id, 101);
       expect(controller.activeTaskRuns.single.id, 88);
       expect(controller.taskRuns.single.id, 301);
+      expect(bundle.adapter.hitCount('GET', '/system/activity/bootstrap'), 1);
       expect(bundle.adapter.hitCount('GET', '/system/events/stream'), 1);
       expect(
         bundle.adapter.requests
@@ -312,10 +324,10 @@ void main() {
       path: '/system/events/stream',
       chunkInterval: const Duration(milliseconds: 20),
       chunks: const <String>[
-        'id: 1\n'
+        'id: 121\n'
             'event: heartbeat\n'
             'data: {}\n\n',
-        'id: 2\n'
+        'id: 122\n'
             'event: heartbeat\n'
             'data: {}\n\n',
       ],
@@ -343,6 +355,7 @@ void main() {
 
 void _enqueueInitialActivityState(
   TestApiBundle bundle, {
+  int latestEventId = 120,
   List<Map<String, dynamic>> notifications = const <Map<String, dynamic>>[],
   int unreadCount = 0,
   List<Map<String, dynamic>> activeTasks = const <Map<String, dynamic>>[],
@@ -350,32 +363,23 @@ void _enqueueInitialActivityState(
 }) {
   bundle.adapter.enqueueJson(
     method: 'GET',
-    path: '/system/notifications',
+    path: '/system/activity/bootstrap',
     body: <String, dynamic>{
-      'items': notifications,
-      'page': 1,
-      'page_size': 20,
-      'total': notifications.length,
-    },
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/system/notifications/unread-count',
-    body: <String, dynamic>{'unread_count': unreadCount},
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/system/task-runs/active',
-    body: activeTasks,
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/system/task-runs',
-    body: <String, dynamic>{
-      'items': taskRuns,
-      'page': 1,
-      'page_size': 20,
-      'total': taskRuns.length,
+      'latest_event_id': latestEventId,
+      'notifications': <String, dynamic>{
+        'items': notifications,
+        'page': 1,
+        'page_size': 20,
+        'total': notifications.length,
+      },
+      'unread_count': unreadCount,
+      'active_task_runs': activeTasks,
+      'task_runs': <String, dynamic>{
+        'items': taskRuns,
+        'page': 1,
+        'page_size': 20,
+        'total': taskRuns.length,
+      },
     },
   );
 }

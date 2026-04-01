@@ -3,8 +3,8 @@ import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
+import 'package:sakuramedia/features/activity/data/activity_bootstrap_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_stream_event.dart';
@@ -68,6 +68,9 @@ class ActivityCenterController extends ChangeNotifier {
   int _reconnectAttempt = 0;
   int _notificationRefreshRequestId = 0;
   int _taskRefreshRequestId = 0;
+  final List<ActivityStreamEvent> _pendingStreamEvents =
+      <ActivityStreamEvent>[];
+  bool _isStreamFlushScheduled = false;
   bool _disposed = false;
 
   bool get initialized => _initialized;
@@ -125,6 +128,7 @@ class ActivityCenterController extends ChangeNotifier {
     _cancelPollingTimer();
     await _eventSubscription?.cancel();
     _eventSubscription = null;
+    _resetPendingStreamEvents();
 
     _isInitialLoading = true;
     _isRefreshingNotifications = false;
@@ -137,7 +141,7 @@ class ActivityCenterController extends ChangeNotifier {
     _notifySafely();
 
     try {
-      await _loadFirstPageState();
+      await _loadBootstrapState();
       _initialized = true;
       _isInitialLoading = false;
       _initialErrorMessage = null;
@@ -287,7 +291,7 @@ class ActivityCenterController extends ChangeNotifier {
       _notificationNextPage = response.page + 1;
       _hasMoreNotifications = _notifications.length < response.total;
       _notificationLoadMoreErrorMessage = null;
-    } catch (error) {
+    } catch (_) {
       _notificationLoadMoreErrorMessage = '加载更多通知失败，请点击重试';
     } finally {
       _isLoadingMoreNotifications = false;
@@ -316,7 +320,7 @@ class ActivityCenterController extends ChangeNotifier {
       _taskNextPage = response.page + 1;
       _hasMoreTasks = _taskRuns.length < response.total;
       _taskLoadMoreErrorMessage = null;
-    } catch (error) {
+    } catch (_) {
       _taskLoadMoreErrorMessage = '加载更多任务失败，请点击重试';
     } finally {
       _isLoadingMoreTasks = false;
@@ -331,8 +335,7 @@ class ActivityCenterController extends ChangeNotifier {
     }
 
     await _activityApi.markNotificationRead(notificationId: notificationId);
-    _unreadCount = (_unreadCount - 1).clamp(0, 1 << 31);
-    _upsertNotification(current.copyWith(isRead: true));
+    _applyNotificationSnapshot(current.copyWith(isRead: true));
     _notifySafely();
   }
 
@@ -343,10 +346,7 @@ class ActivityCenterController extends ChangeNotifier {
     }
 
     await _activityApi.archiveNotification(notificationId: notificationId);
-    if (!current.isRead) {
-      _unreadCount = (_unreadCount - 1).clamp(0, 1 << 31);
-    }
-    _upsertNotification(current.copyWith(archived: true));
+    _applyNotificationSnapshot(current.copyWith(archived: true));
     _notifySafely();
   }
 
@@ -356,53 +356,38 @@ class ActivityCenterController extends ChangeNotifier {
     _cancelReconnectTimer();
     _cancelPollingTimer();
     _eventSubscription?.cancel();
+    _resetPendingStreamEvents();
     super.dispose();
   }
 
-  Future<void> _loadFirstPageState() async {
-    final notificationFuture = _activityApi.getNotifications(
-      page: 1,
-      pageSize: _pageSize,
-      category: _notificationFilter.category,
-      level: _notificationFilter.level,
-      archived: _notificationFilter.archivedFilter.apiValue,
-    );
-    final unreadFuture = _activityApi.getUnreadCount();
-    final activeTasksFuture = _activityApi.getActiveTaskRuns();
-    final taskRunsFuture = _activityApi.getTaskRuns(
-      page: 1,
-      pageSize: _pageSize,
-      state: _taskFilter.state,
+  Future<void> _loadBootstrapState() async {
+    final response = await _activityApi.getBootstrap(
+      notificationCategory: _notificationFilter.category,
+      notificationLevel: _notificationFilter.level,
+      notificationArchived: _notificationFilter.archivedFilter.apiValue,
+      taskState: _taskFilter.state,
       taskKey: _taskFilter.taskKey,
-      triggerType: _taskFilter.triggerType,
-      sort: _taskFilter.sort.apiValue,
+      taskTriggerType: _taskFilter.triggerType,
+      taskSort: _taskFilter.sort.apiValue,
     );
+    _applyBootstrapState(response);
+  }
 
-    final results = await Future.wait<Object>(<Future<Object>>[
-      notificationFuture,
-      unreadFuture,
-      activeTasksFuture,
-      taskRunsFuture,
-    ]);
-
-    final notificationResponse =
-        results[0] as PaginatedResponseDto<ActivityNotificationDto>;
-    final unreadCount = results[1] as int;
-    final activeItems = results[2] as List<TaskRunDto>;
-    final taskResponse = results[3] as PaginatedResponseDto<TaskRunDto>;
-
-    _notifications = notificationResponse.items;
-    _unreadCount = unreadCount;
-    _activeTaskRuns = _sortActiveTasks(activeItems);
-    _taskRuns = _sortHistoryTasks(taskResponse.items);
-    _notificationNextPage = notificationResponse.page + 1;
-    _taskNextPage = taskResponse.page + 1;
-    _hasMoreNotifications = _notifications.length < notificationResponse.total;
-    _hasMoreTasks = _taskRuns.length < taskResponse.total;
+  void _applyBootstrapState(ActivityBootstrapDto response) {
+    _notifications = response.notifications.items;
+    _unreadCount = response.unreadCount;
+    _activeTaskRuns = response.activeTaskRuns;
+    _taskRuns = response.taskRuns.items;
+    _notificationNextPage = response.notifications.page + 1;
+    _taskNextPage = response.taskRuns.page + 1;
+    _hasMoreNotifications =
+        _notifications.length < response.notifications.total;
+    _hasMoreTasks = _taskRuns.length < response.taskRuns.total;
     _notificationLoadMoreErrorMessage = null;
     _taskLoadMoreErrorMessage = null;
     _notificationRefreshErrorMessage = null;
     _taskRefreshErrorMessage = null;
+    _lastEventId = response.latestEventId;
   }
 
   Future<void> _connectStream() async {
@@ -416,9 +401,10 @@ class ActivityCenterController extends ChangeNotifier {
         DateTime.now().difference(_disconnectStartedAt!) >
             _longDisconnectThreshold) {
       try {
-        await _loadFirstPageState();
+        await _loadBootstrapState();
+        _notifySafely();
       } catch (_) {
-        // Ignore REST recovery failures here and continue reconnecting.
+        // Ignore bootstrap recovery failures here and continue reconnecting.
       }
     }
 
@@ -440,54 +426,12 @@ class ActivityCenterController extends ChangeNotifier {
     if (event.id != null && event.id! > _lastEventId) {
       _lastEventId = event.id!;
     }
-
-    if (event.isHeartbeat) {
-      const liveMessage = '实时连接中';
-      final hasStateChanged =
-          _connectionState != ActivityConnectionState.live ||
-          _connectionMessage != liveMessage;
-      _connectionState = ActivityConnectionState.live;
-      _connectionMessage = liveMessage;
-      if (hasStateChanged) {
-        _notifySafely();
-      }
+    _pendingStreamEvents.add(event);
+    if (_isStreamFlushScheduled) {
       return;
     }
-
-    if (event.isNotificationCreated && event.notification != null) {
-      final notification = event.notification!;
-      if (!notification.archived && !notification.isRead) {
-        _unreadCount += 1;
-      }
-      _upsertNotification(notification, insertAtFront: true);
-      _notifySafely();
-      return;
-    }
-
-    if (event.isNotificationUpdated && event.notification != null) {
-      final incoming = event.notification!;
-      final previous = _findNotification(incoming.id);
-      if (previous != null &&
-          !previous.archived &&
-          !previous.isRead &&
-          (incoming.archived || incoming.isRead)) {
-        _unreadCount = (_unreadCount - 1).clamp(0, 1 << 31);
-      }
-      _upsertNotification(incoming);
-      _notifySafely();
-      return;
-    }
-
-    if (event.isTaskRunCreated && event.taskRun != null) {
-      _upsertTaskRun(event.taskRun!, insertAtFront: true);
-      _notifySafely();
-      return;
-    }
-
-    if (event.isTaskRunUpdated && event.taskRun != null) {
-      _upsertTaskRun(event.taskRun!);
-      _notifySafely();
-    }
+    _isStreamFlushScheduled = true;
+    scheduleMicrotask(_flushPendingStreamEvents);
   }
 
   void _handleStreamError(Object error, StackTrace stackTrace) {
@@ -542,6 +486,7 @@ class ActivityCenterController extends ChangeNotifier {
   }
 
   void _startPollingFallback() {
+    _resetPendingStreamEvents();
     _cancelReconnectTimer();
     _connectionState = ActivityConnectionState.polling;
     _connectionMessage = '当前浏览器不支持实时连接，已切换为 30 秒轮询';
@@ -552,12 +497,87 @@ class ActivityCenterController extends ChangeNotifier {
         return;
       }
       try {
-        await _loadFirstPageState();
+        await _loadBootstrapState();
         _notifySafely();
       } catch (_) {
-        // Keep the last known state during polling fallback failures.
+        // 保留最近一次成功状态，轮询失败时不清空页面。
       }
     });
+  }
+
+  // 批量合并一批 SSE，避免一条事件触发一次整页重建。
+  void _flushPendingStreamEvents() {
+    _isStreamFlushScheduled = false;
+    if (_disposed || _pendingStreamEvents.isEmpty) {
+      return;
+    }
+
+    final events = List<ActivityStreamEvent>.from(_pendingStreamEvents);
+    _pendingStreamEvents.clear();
+
+    var hasChanges = false;
+    for (final event in events) {
+      if (event.isHeartbeat) {
+        const liveMessage = '实时连接中';
+        final hasStateChanged =
+            _connectionState != ActivityConnectionState.live ||
+            _connectionMessage != liveMessage;
+        _connectionState = ActivityConnectionState.live;
+        _connectionMessage = liveMessage;
+        hasChanges = hasChanges || hasStateChanged;
+        continue;
+      }
+
+      if (event.isNotificationCreated && event.notification != null) {
+        _applyNotificationSnapshot(
+          event.notification!,
+          insertAtFrontIfMissing: true,
+        );
+        hasChanges = true;
+        continue;
+      }
+
+      if (event.isNotificationUpdated && event.notification != null) {
+        _applyNotificationSnapshot(event.notification!);
+        hasChanges = true;
+        continue;
+      }
+
+      if (event.taskRun != null &&
+          (event.isTaskRunCreated || event.isTaskRunUpdated)) {
+        _upsertTaskRun(event.taskRun!, insertAtFront: event.isTaskRunCreated);
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      _notifySafely();
+    }
+  }
+
+  // 未读数按最终状态幂等更新，避免重复创建事件把计数加爆。
+  void _applyNotificationSnapshot(
+    ActivityNotificationDto notification, {
+    bool insertAtFrontIfMissing = false,
+  }) {
+    final previous = _findNotification(notification.id);
+    final wasUnread = previous != null && _isUnreadNotification(previous);
+    final isUnread = _isUnreadNotification(notification);
+
+    if (!wasUnread && isUnread) {
+      _unreadCount += 1;
+    } else if (wasUnread && !isUnread) {
+      _unreadCount = (_unreadCount - 1).clamp(0, 1 << 31);
+    }
+
+    _upsertNotification(
+      notification,
+      insertAtFront: previous == null && insertAtFrontIfMissing,
+    );
+  }
+
+  bool _isUnreadNotification(ActivityNotificationDto notification) {
+    return !notification.archived && !notification.isRead;
   }
 
   void _upsertNotification(
@@ -741,6 +761,11 @@ class ActivityCenterController extends ChangeNotifier {
   void _cancelPollingTimer() {
     _pollingTimer?.cancel();
     _pollingTimer = null;
+  }
+
+  void _resetPendingStreamEvents() {
+    _pendingStreamEvents.clear();
+    _isStreamFlushScheduled = false;
   }
 
   void _notifySafely() {

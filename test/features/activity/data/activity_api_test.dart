@@ -25,6 +25,95 @@ void main() {
     sessionStore.dispose();
   });
 
+  test(
+    'getBootstrap maps snapshot payload and bootstrap query names',
+    () async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/activity/bootstrap',
+        body: <String, dynamic>{
+          'latest_event_id': 321,
+          'notifications': <String, dynamic>{
+            'items': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'id': 101,
+                'category': 'reminder',
+                'level': 'info',
+                'title': '有新的影片可以播放了',
+                'content': '本次后台处理新增可播放影片 1 部：SSIS-123',
+                'is_read': false,
+                'archived': false,
+                'created_at': '2026-03-26T09:10:00Z',
+                'updated_at': '2026-03-26T09:10:00Z',
+              },
+            ],
+            'page': 1,
+            'page_size': 20,
+            'total': 24,
+          },
+          'unread_count': 3,
+          'active_task_runs': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 88,
+              'task_key': 'download_task_import',
+              'task_name': '下载任务导入 SSIS-123',
+              'trigger_type': 'manual',
+              'state': 'running',
+              'progress_current': 1,
+              'progress_total': 3,
+              'progress_text': '正在导入影片文件 SSIS-123',
+              'created_at': '2026-03-26T09:10:00Z',
+              'updated_at': '2026-03-26T09:11:00Z',
+            },
+          ],
+          'task_runs': <String, dynamic>{
+            'items': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'id': 201,
+                'task_key': 'download_task_import',
+                'task_name': '下载任务导入 201',
+                'trigger_type': 'manual',
+                'state': 'completed',
+                'progress_current': 3,
+                'progress_total': 3,
+                'progress_text': '导入完成',
+                'created_at': '2026-03-26T09:10:00Z',
+                'updated_at': '2026-03-26T09:20:00Z',
+              },
+            ],
+            'page': 1,
+            'page_size': 20,
+            'total': 1,
+          },
+        },
+      );
+
+      final response = await bundle.activityApi.getBootstrap(
+        notificationCategory: 'reminder',
+        notificationLevel: 'info',
+        notificationArchived: false,
+        taskState: 'running',
+        taskKey: 'download_task_import',
+        taskTriggerType: 'manual',
+        taskSort: 'started_at:desc',
+      );
+
+      expect(response.latestEventId, 321);
+      expect(response.notifications.items.single.id, 101);
+      expect(response.unreadCount, 3);
+      expect(response.activeTaskRuns.single.id, 88);
+      expect(response.taskRuns.items.single.id, 201);
+      final request = bundle.adapter.requests.single;
+      expect(request.uri.queryParameters['notification_category'], 'reminder');
+      expect(request.uri.queryParameters['notification_level'], 'info');
+      expect(request.uri.queryParameters['notification_archived'], 'false');
+      expect(request.uri.queryParameters['task_state'], 'running');
+      expect(request.uri.queryParameters['task_key'], 'download_task_import');
+      expect(request.uri.queryParameters['task_trigger_type'], 'manual');
+      expect(request.uri.queryParameters['task_sort'], 'started_at:desc');
+    },
+  );
+
   test('getNotifications maps filters and pagination', () async {
     bundle.adapter.enqueueJson(
       method: 'GET',

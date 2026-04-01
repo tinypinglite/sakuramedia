@@ -2671,62 +2671,32 @@ Future<void> _pumpRouterApp(
 void _enqueueActivityResponses(TestApiBundle bundle) {
   bundle.adapter.enqueueJson(
     method: 'GET',
-    path: '/system/notifications',
+    path: '/system/activity/bootstrap',
     body: <String, dynamic>{
-      'items': <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 101,
-          'category': 'reminder',
-          'level': 'info',
-          'title': '有新的影片可以播放了',
-          'content': '本次后台处理新增可播放影片 1 部：SSIS-123',
-          'is_read': false,
-          'archived': false,
-          'created_at': '2026-03-26T09:10:00Z',
-          'updated_at': '2026-03-26T09:10:00Z',
-          'related_task_run_id': 88,
-          'related_resource_type': 'movie',
-          'related_resource_id': 123,
-        },
-      ],
-      'page': 1,
-      'page_size': 20,
-      'total': 1,
-    },
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/system/notifications/unread-count',
-    body: <String, dynamic>{'unread_count': 1},
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/system/task-runs/active',
-    body: <Map<String, dynamic>>[
-      <String, dynamic>{
-        'id': 88,
-        'task_key': 'download_task_import',
-        'task_name': '下载任务导入 SSIS-123',
-        'trigger_type': 'manual',
-        'state': 'running',
-        'progress_current': 1,
-        'progress_total': 3,
-        'progress_text': '正在导入影片文件 SSIS-123',
-        'result_text': null,
-        'result_summary': <String, dynamic>{'imported_count': 1},
-        'error_message': null,
-        'started_at': '2026-03-26T09:10:00Z',
-        'finished_at': null,
-        'created_at': '2026-03-26T09:10:00Z',
-        'updated_at': '2026-03-26T09:11:00Z',
+      'latest_event_id': 120,
+      'notifications': <String, dynamic>{
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 101,
+            'category': 'reminder',
+            'level': 'info',
+            'title': '有新的影片可以播放了',
+            'content': '本次后台处理新增可播放影片 1 部：SSIS-123',
+            'is_read': false,
+            'archived': false,
+            'created_at': '2026-03-26T09:10:00Z',
+            'updated_at': '2026-03-26T09:10:00Z',
+            'related_task_run_id': 88,
+            'related_resource_type': 'movie',
+            'related_resource_id': 123,
+          },
+        ],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
       },
-    ],
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/system/task-runs',
-    body: <String, dynamic>{
-      'items': <Map<String, dynamic>>[
+      'unread_count': 1,
+      'active_task_runs': <Map<String, dynamic>>[
         <String, dynamic>{
           'id': 88,
           'task_key': 'download_task_import',
@@ -2745,9 +2715,30 @@ void _enqueueActivityResponses(TestApiBundle bundle) {
           'updated_at': '2026-03-26T09:11:00Z',
         },
       ],
-      'page': 1,
-      'page_size': 20,
-      'total': 1,
+      'task_runs': <String, dynamic>{
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 88,
+            'task_key': 'download_task_import',
+            'task_name': '下载任务导入 SSIS-123',
+            'trigger_type': 'manual',
+            'state': 'running',
+            'progress_current': 1,
+            'progress_total': 3,
+            'progress_text': '正在导入影片文件 SSIS-123',
+            'result_text': null,
+            'result_summary': <String, dynamic>{'imported_count': 1},
+            'error_message': null,
+            'started_at': '2026-03-26T09:10:00Z',
+            'finished_at': null,
+            'created_at': '2026-03-26T09:10:00Z',
+            'updated_at': '2026-03-26T09:11:00Z',
+          },
+        ],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
     },
   );
   bundle.adapter.enqueueSse(

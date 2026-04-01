@@ -1,6 +1,7 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
+import 'package:sakuramedia/features/activity/data/activity_bootstrap_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_stream_event.dart';
@@ -15,6 +16,37 @@ class ActivityApi {
 
   final ApiClient _apiClient;
   final ActivityEventStreamClient _streamClient;
+
+  Future<ActivityBootstrapDto> getBootstrap({
+    String? notificationCategory,
+    String? notificationLevel,
+    bool? notificationArchived,
+    String? taskState,
+    String? taskKey,
+    String? taskTriggerType,
+    String? taskSort,
+  }) async {
+    final response = await _apiClient.get(
+      '/system/activity/bootstrap',
+      queryParameters: <String, dynamic>{
+        if (notificationCategory != null &&
+            notificationCategory.trim().isNotEmpty)
+          'notification_category': notificationCategory,
+        if (notificationLevel != null && notificationLevel.trim().isNotEmpty)
+          'notification_level': notificationLevel,
+        if (notificationArchived != null)
+          'notification_archived': notificationArchived,
+        if (taskState != null && taskState.trim().isNotEmpty)
+          'task_state': taskState,
+        if (taskKey != null && taskKey.trim().isNotEmpty) 'task_key': taskKey,
+        if (taskTriggerType != null && taskTriggerType.trim().isNotEmpty)
+          'task_trigger_type': taskTriggerType,
+        if (taskSort != null && taskSort.trim().isNotEmpty)
+          'task_sort': taskSort,
+      },
+    );
+    return ActivityBootstrapDto.fromJson(response);
+  }
 
   Future<PaginatedResponseDto<ActivityNotificationDto>> getNotifications({
     int page = 1,
