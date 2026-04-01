@@ -9,7 +9,8 @@ import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_actor_wrap.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_bottom_info_bar.dart';
-import 'package:sakuramedia/widgets/movie_detail/movie_detail_header.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_detail_number_bar.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_detail_title.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_hero_card.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_section.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_stat_row.dart';
@@ -147,12 +148,9 @@ class MovieDetailPageContent extends StatelessWidget {
       key: const Key('movie-detail-page'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        MovieDetailHeader(
-          movieNumber: movie.movieNumber,
+        MovieDetailTitle(
           title: movie.title,
-          summary: movie.summary,
-          showNumberRow: false,
-          showSummary: false,
+          movieNumber: movie.movieNumber,
         ),
         MovieDetailHeroCard(
           height: heroHeight,
@@ -173,11 +171,9 @@ class MovieDetailPageContent extends StatelessWidget {
           onOpenPreview: onOpenPlotPreview,
         ),
         SizedBox(height: context.appComponentTokens.movieDetailSectionGap),
-        MovieDetailHeader(
+        MovieDetailNumberBar(
           movieNumber: movie.movieNumber,
-          title: movie.title,
           summary: movie.summary,
-          showTitle: false,
           trailing: playlistTrigger,
         ),
         MovieDetailSection(title: '标签', child: MovieTagWrap(tags: movie.tags)),

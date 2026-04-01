@@ -29,7 +29,7 @@ void main() {
     );
 
     expect(find.text('我的收藏'), findsOneWidget);
-    expect(find.byType(ImageFiltered), findsOneWidget);
+    expect(find.byType(ImageFiltered), findsNWidgets(2));
     expect(find.byType(BackdropFilter), findsNothing);
   });
 
