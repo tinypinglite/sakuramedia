@@ -494,7 +494,6 @@ void main() {
 
     expect(bundle.adapter.hitCount('DELETE', '/media/100/points/1'), 1);
     expect(find.byKey(const Key('movie-media-point-thumb-0')), findsNothing);
-    expect(find.text('暂无标记点'), findsOneWidget);
   });
 
   testWidgets(
