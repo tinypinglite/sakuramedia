@@ -66,7 +66,7 @@ class MovieMediaItemList extends StatelessWidget {
             ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
           ),
         ],
-        if (selectedItem != null) ...[
+        if (selectedItem != null && selectedItem.points.isNotEmpty) ...[
           SizedBox(height: context.appSpacing.sm),
           MovieMediaPointGallery(
             points: selectedItem.points,

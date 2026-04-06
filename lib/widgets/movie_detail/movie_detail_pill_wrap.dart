@@ -53,10 +53,28 @@ class _MovieDetailPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final isInteractive = item.onTap != null;
+    final backgroundColor =
+        isInteractive
+            ? (item.isSelected
+                ? theme.colorScheme.primary
+                : context.appColors.surfaceMuted)
+            : theme.colorScheme.primary;
+    final foregroundColor =
+        isInteractive
+            ? (item.isSelected
+                ? context.appColors.textOnMedia
+                : context.appColors.textPrimary)
+            : context.appColors.textOnMedia;
+    final borderColor =
+        isInteractive
+            ? (item.isSelected
+                ? theme.colorScheme.primary
+                : context.appColors.borderSubtle)
+            : Colors.transparent;
     final radius = context.appRadius.xsBorder;
     final tokens = context.appComponentTokens;
-    final colors = context.appColors;
     final content = Padding(
       padding: EdgeInsets.symmetric(
         horizontal: tokens.movieDetailPillHorizontalPadding,
@@ -64,25 +82,31 @@ class _MovieDetailPill extends StatelessWidget {
       ),
       child: Text(
         item.label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: colors.textOnMedia,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: foregroundColor,
           height: 1.2,
           fontWeight: item.isSelected ? FontWeight.w600 : FontWeight.w500,
         ),
       ),
     );
 
-    if (item.onTap == null) {
-      return DecoratedBox(
-        decoration: BoxDecoration(color: backgroundColor, borderRadius: radius),
-        child: content,
-      );
+    final decoration = BoxDecoration(
+      color: backgroundColor,
+      borderRadius: radius,
+      border: Border.all(color: borderColor),
+    );
+
+    if (!isInteractive) {
+      return DecoratedBox(decoration: decoration, child: content);
     }
 
     return Material(
-      color: backgroundColor,
+      color: Colors.transparent,
       borderRadius: radius,
-      child: InkWell(borderRadius: radius, onTap: item.onTap, child: content),
+      child: DecoratedBox(
+        decoration: decoration,
+        child: InkWell(borderRadius: radius, onTap: item.onTap, child: content),
+      ),
     );
   }
 }
