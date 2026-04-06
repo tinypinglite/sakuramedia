@@ -31,6 +31,9 @@ class MovieDetailPageContent extends StatelessWidget {
     required this.onInspectorTap,
     required this.onPlaylistTap,
     required this.onMediaSelect,
+    this.mediaItemsOverride,
+    this.onOpenMediaPointPreview,
+    this.onRequestMediaPointMenu,
     this.onPlayTap,
     this.onSubscriptionTap,
     this.onActorTap,
@@ -41,6 +44,7 @@ class MovieDetailPageContent extends StatelessWidget {
   });
 
   final MovieDetailDto movie;
+  final List<MovieMediaItemDto>? mediaItemsOverride;
   final String selectedPreviewKey;
   final String? selectedPreviewUrl;
   final bool isSubscribed;
@@ -50,6 +54,15 @@ class MovieDetailPageContent extends StatelessWidget {
   final VoidCallback onInspectorTap;
   final VoidCallback onPlaylistTap;
   final ValueChanged<MovieMediaItemDto> onMediaSelect;
+  final void Function(MovieMediaItemDto mediaItem, MovieMediaPointDto point)?
+  onOpenMediaPointPreview;
+  final Future<void> Function(
+    BuildContext context,
+    MovieMediaItemDto mediaItem,
+    MovieMediaPointDto point,
+    Offset globalPosition,
+  )?
+  onRequestMediaPointMenu;
   final VoidCallback? onPlayTap;
   final VoidCallback? onSubscriptionTap;
   final ValueChanged<MovieActorDto>? onActorTap;
@@ -129,6 +142,7 @@ class MovieDetailPageContent extends StatelessWidget {
     required BuildContext context,
     required double heroHeight,
   }) {
+    final mediaItems = mediaItemsOverride ?? movie.mediaItems;
     final orderedActors = <MovieActorDto>[
       ...movie.actors.where((actor) => actor.isFemale),
       ...movie.actors.where((actor) => !actor.isFemale),
@@ -148,10 +162,7 @@ class MovieDetailPageContent extends StatelessWidget {
       key: const Key('movie-detail-page'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        MovieDetailTitle(
-          title: movie.title,
-          movieNumber: movie.movieNumber,
-        ),
+        MovieDetailTitle(title: movie.title, movieNumber: movie.movieNumber),
         MovieDetailHeroCard(
           height: heroHeight,
           mainImageKey: selectedPreviewKey,
@@ -209,13 +220,15 @@ class MovieDetailPageContent extends StatelessWidget {
           titleBottomSpacing: context.appSpacing.xs,
           child: MovieActorWrap(actors: orderedActors, onActorTap: onActorTap),
         ),
-        if (movie.mediaItems.isNotEmpty)
+        if (mediaItems.isNotEmpty)
           MovieDetailSection(
             title: '媒体源',
             child: MovieMediaItemList(
-              mediaItems: movie.mediaItems,
+              mediaItems: mediaItems,
               selectedMediaId: selectedMediaId,
               onSelect: onMediaSelect,
+              onOpenPointPreview: onOpenMediaPointPreview,
+              onRequestPointMenu: onRequestMediaPointMenu,
             ),
           ),
       ],

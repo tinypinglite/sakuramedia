@@ -166,8 +166,20 @@ void main() {
       path: '/movies/ABC-001',
       body: _movieDetailJson(
         mediaItems: <Map<String, dynamic>>[
-          _mediaItemJson(mediaId: 100, specialTags: '普通'),
-          _mediaItemJson(mediaId: 101, specialTags: '预告'),
+          _mediaItemJson(
+            mediaId: 100,
+            specialTags: '普通',
+            points: <Map<String, dynamic>>[
+              _mediaPointJson(pointId: 1, thumbnailId: 66, offsetSeconds: 120),
+            ],
+          ),
+          _mediaItemJson(
+            mediaId: 101,
+            specialTags: '预告',
+            points: <Map<String, dynamic>>[
+              _mediaPointJson(pointId: 2, thumbnailId: 77, offsetSeconds: 240),
+            ],
+          ),
         ],
       ),
     );
@@ -196,10 +208,28 @@ void main() {
     expect(find.text('紋℃'), findsOneWidget);
     expect(find.text('演员'), findsOneWidget);
     expect(find.text('媒体源'), findsOneWidget);
+    expect(find.text('H.264 · 22.8 Mbps · 29.97 fps'), findsOneWidget);
+    expect(
+      find.byKey(const Key('movie-media-point-timecode-0')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('movie-media-point-timecode-0')))
+          .data,
+      '02:00',
+    );
 
     await tester.ensureVisible(find.text('预告 1.0 GB'));
     await tester.tap(find.text('预告 1.0 GB'));
     await tester.pumpAndSettle();
+    expect(find.text('H.265 · 6.5 Mbps · 24 fps'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('movie-media-point-timecode-0')))
+          .data,
+      '04:00',
+    );
     await tester.tap(find.byKey(const Key('movie-detail-fixed-info-bar')));
     await tester.pumpAndSettle();
 
@@ -229,6 +259,61 @@ void main() {
       0,
     );
   });
+
+  testWidgets(
+    'mobile movie detail page opens media point preview bottom sheet',
+    (WidgetTester tester) async {
+      final pointJson = _mediaPointJson(
+        pointId: 1,
+        thumbnailId: 66,
+        offsetSeconds: 120,
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(
+          mediaItems: <Map<String, dynamic>>[
+            _mediaItemJson(points: <Map<String, dynamic>>[pointJson]),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/points',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'point_id': 1,
+            'media_id': 100,
+            'thumbnail_id': 66,
+            'offset_seconds': 120,
+            'image': pointJson['image'],
+            'created_at': '2026-03-12T10:00:00Z',
+          },
+        ],
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const Key('movie-media-point-thumb-0')),
+      );
+      await tester.tap(find.byKey(const Key('movie-media-point-thumb-0')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('image-search-result-preview-hero')),
+        findsOneWidget,
+      );
+      expect(find.text('影片详情'), findsNothing);
+      expect(find.text('删除标记'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'mobile movie detail page hides maker and director sections when empty',
@@ -1055,7 +1140,9 @@ Map<String, dynamic> _playlistJson({
 Map<String, dynamic> _mediaItemJson({
   int mediaId = 100,
   String specialTags = '普通',
+  List<Map<String, dynamic>>? points,
 }) {
+  final isPreview = mediaId == 101;
   return <String, dynamic>{
     'media_id': mediaId,
     'library_id': 1,
@@ -1072,7 +1159,54 @@ Map<String, dynamic> _mediaItemJson({
       'last_position_seconds': 600,
       'last_watched_at': '2026-03-08T09:30:00',
     },
-    'points': const <Map<String, dynamic>>[],
+    'video_info': <String, dynamic>{
+      'container': <String, dynamic>{
+        'format_name': isPreview ? 'mp4' : 'mpegts',
+        'duration_seconds': 7200,
+        'bit_rate': isPreview ? 8000000 : 22793091,
+        'size_bytes': 1073741824,
+      },
+      'video': <String, dynamic>{
+        'codec_name': isPreview ? 'hevc' : 'h264',
+        'codec_long_name': isPreview ? 'H.265 / HEVC' : 'H.264 / AVC',
+        'profile': isPreview ? 'Main' : 'High',
+        'bit_rate': isPreview ? 6500000 : null,
+        'width': isPreview ? 1280 : 1920,
+        'height': isPreview ? 720 : 1080,
+        'frame_rate': isPreview ? 24.0 : 29.97,
+        'pixel_format': 'yuv420p',
+      },
+      'audio': <String, dynamic>{
+        'codec_name': 'aac',
+        'codec_long_name': 'AAC',
+        'profile': 'LC',
+        'bit_rate': 192000,
+        'sample_rate': 48000,
+        'channels': 2,
+        'channel_layout': 'stereo',
+      },
+      'subtitles': const <Map<String, dynamic>>[],
+    },
+    'points': points ?? const <Map<String, dynamic>>[],
+  };
+}
+
+Map<String, dynamic> _mediaPointJson({
+  required int pointId,
+  required int thumbnailId,
+  required int offsetSeconds,
+}) {
+  return <String, dynamic>{
+    'point_id': pointId,
+    'thumbnail_id': thumbnailId,
+    'offset_seconds': offsetSeconds,
+    'image': <String, dynamic>{
+      'id': 300 + pointId,
+      'origin': '/files/points/$thumbnailId.webp',
+      'small': '/files/points/$thumbnailId-small.webp',
+      'medium': '/files/points/$thumbnailId-medium.webp',
+      'large': '/files/points/$thumbnailId-large.webp',
+    },
   };
 }
 

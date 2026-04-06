@@ -1,5 +1,5 @@
 class AppImageConfig {
-  static bool enableBlur = false;
+  static bool enableBlur = true;
   static double blurSigma = 30;
 
   @Deprecated('Use enableBlur instead.')

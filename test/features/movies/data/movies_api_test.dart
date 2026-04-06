@@ -593,8 +593,54 @@ void main() {
               'last_position_seconds': 600,
               'last_watched_at': '2026-03-08T09:30:00',
             },
+            'video_info': <String, dynamic>{
+              'container': <String, dynamic>{
+                'format_name': 'mpegts',
+                'duration_seconds': 7200,
+                'bit_rate': 22793091,
+                'size_bytes': 1073741824,
+              },
+              'video': <String, dynamic>{
+                'codec_name': 'h264',
+                'codec_long_name': 'H.264 / AVC',
+                'profile': 'High',
+                'bit_rate': null,
+                'width': 1920,
+                'height': 1080,
+                'frame_rate': 29.97,
+                'pixel_format': 'yuv420p',
+              },
+              'audio': <String, dynamic>{
+                'codec_name': 'aac',
+                'codec_long_name': 'AAC',
+                'profile': 'LC',
+                'bit_rate': 192000,
+                'sample_rate': 48000,
+                'channels': 2,
+                'channel_layout': 'stereo',
+              },
+              'subtitles': [
+                <String, dynamic>{
+                  'codec_name': 'ass',
+                  'codec_long_name': 'Advanced SubStation Alpha',
+                  'language': 'zh',
+                  'title': 'Chinese',
+                },
+              ],
+            },
             'points': [
-              <String, dynamic>{'point_id': 1, 'offset_seconds': 120},
+              <String, dynamic>{
+                'point_id': 1,
+                'thumbnail_id': 66,
+                'offset_seconds': 120,
+                'image': <String, dynamic>{
+                  'id': 9100,
+                  'origin': 'point-origin.webp',
+                  'small': 'point-small.webp',
+                  'medium': 'point-medium.webp',
+                  'large': 'point-large.webp',
+                },
+              },
             ],
           },
         ],
@@ -621,7 +667,17 @@ void main() {
     );
     expect(detail.mediaItems.single.hasPlayableUrl, isTrue);
     expect(detail.mediaItems.single.progress?.lastPositionSeconds, 600);
+    expect(detail.mediaItems.single.videoInfo?.video?.codecName, 'h264');
+    expect(detail.mediaItems.single.videoInfo?.video?.bitRate, isNull);
+    expect(detail.mediaItems.single.videoInfo?.container?.bitRate, 22793091);
+    expect(detail.mediaItems.single.videoInfo?.audio?.channels, 2);
+    expect(detail.mediaItems.single.videoInfo?.subtitles.single.language, 'zh');
+    expect(detail.mediaItems.single.points.single.thumbnailId, 66);
     expect(detail.mediaItems.single.points.single.offsetSeconds, 120);
+    expect(
+      detail.mediaItems.single.points.single.image?.bestAvailableUrl,
+      'point-large.webp',
+    );
     expect(detail.playlists, hasLength(2));
     expect(detail.playlists.first.name, '最近播放');
     expect(detail.playlists.first.isSystem, isTrue);
@@ -704,6 +760,50 @@ void main() {
     expect(detail.thinCoverImage, isNull);
     expect(detail.plotImages, isEmpty);
     expect(detail.mediaItems, isEmpty);
+  });
+
+  test('getMovieDetail handles missing video info sections', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-010',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'javdb_id': 'MovieA10',
+        'movie_number': 'ABC-010',
+        'title': 'Movie 10',
+        'actors': const <Map<String, dynamic>>[],
+        'tags': const <Map<String, dynamic>>[],
+        'plot_images': const <Map<String, dynamic>>[],
+        'playlists': const <Map<String, dynamic>>[],
+        'media_items': [
+          <String, dynamic>{
+            'media_id': 100,
+            'library_id': 1,
+            'play_url': '/files/media/movies/ABC-010/video.mp4',
+            'path': '/library/main/ABC-010/video.mp4',
+            'storage_mode': 'hardlink',
+            'resolution': '1920x1080',
+            'file_size_bytes': 1073741824,
+            'duration_seconds': 7200,
+            'special_tags': '普通',
+            'valid': true,
+            'video_info': <String, dynamic>{
+              'container': <String, dynamic>{'format_name': 'mp4'},
+              'video': <String, dynamic>{'codec_name': 'h264'},
+            },
+            'points': const <Map<String, dynamic>>[],
+          },
+        ],
+      },
+    );
+
+    final detail = await moviesApi.getMovieDetail(movieNumber: 'ABC-010');
+
+    expect(detail.mediaItems.single.videoInfo, isNotNull);
+    expect(detail.mediaItems.single.videoInfo?.container?.formatName, 'mp4');
+    expect(detail.mediaItems.single.videoInfo?.video?.codecName, 'h264');
+    expect(detail.mediaItems.single.videoInfo?.audio, isNull);
+    expect(detail.mediaItems.single.videoInfo?.subtitles, isEmpty);
   });
 
   test('getMovieDetail converts movie not found to ApiException', () async {

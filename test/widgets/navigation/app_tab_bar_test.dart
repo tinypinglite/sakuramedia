@@ -52,6 +52,32 @@ void main() {
     expect(tester.getSize(find.byType(Tab).first).height, 40);
   });
 
+  testWidgets('desktop app tab bar uses labelMedium font size', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: DefaultTabController(
+          length: 2,
+          child: const Material(
+            child: AppTabBar(tabs: [Tab(text: '基础信息'), Tab(text: '下载器')]),
+          ),
+        ),
+      ),
+    );
+
+    final tabBar = tester.widget<TabBar>(find.byType(TabBar));
+    final labelStyle = tabBar.labelStyle as TextStyle;
+    final unselectedLabelStyle = tabBar.unselectedLabelStyle as TextStyle;
+
+    expect(labelStyle.fontSize, sakuraThemeData.textTheme.labelMedium!.fontSize);
+    expect(
+      unselectedLabelStyle.fontSize,
+      sakuraThemeData.textTheme.labelMedium!.fontSize,
+    );
+  });
+
   test('compact app tab bar reports compact preferred height', () {
     const widget = AppTabBar(
       variant: AppTabBarVariant.compact,

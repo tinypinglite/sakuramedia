@@ -131,10 +131,370 @@ void main() {
     expect(find.text('紋℃'), findsOneWidget);
     expect(find.text('演员'), findsOneWidget);
     expect(find.text('媒体源'), findsOneWidget);
+    expect(find.text('H.264 · 22.8 Mbps · 29.97 fps'), findsOneWidget);
     expect(
       find.byKey(const Key('movie-detail-fixed-info-bar')),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+    'movie detail page shows selected media points and updates when switching media',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(
+          mediaItems: <Map<String, dynamic>>[
+            _mediaItemJson(
+              mediaId: 100,
+              specialTags: '普通',
+              points: <Map<String, dynamic>>[
+                _mediaPointJson(
+                  pointId: 1,
+                  thumbnailId: 66,
+                  offsetSeconds: 120,
+                ),
+              ],
+            ),
+            _mediaItemJson(
+              mediaId: 101,
+              specialTags: '预告',
+              points: <Map<String, dynamic>>[
+                _mediaPointJson(
+                  pointId: 2,
+                  thumbnailId: 77,
+                  offsetSeconds: 240,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('movie-media-point-timecode-0')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('movie-media-point-timecode-0')))
+            .data,
+        '02:00',
+      );
+
+      await tester.tap(find.text('预告 500.0 MB'));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('movie-media-point-timecode-0')))
+            .data,
+        '04:00',
+      );
+    },
+  );
+
+  testWidgets(
+    'movie detail page opens point preview dialog without movie detail action',
+    (WidgetTester tester) async {
+      final pointJson = _mediaPointJson(
+        pointId: 1,
+        thumbnailId: 66,
+        offsetSeconds: 120,
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(
+          mediaItems: <Map<String, dynamic>>[
+            _mediaItemJson(points: <Map<String, dynamic>>[pointJson]),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/points',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'point_id': 1,
+            'media_id': 100,
+            'thumbnail_id': 66,
+            'offset_seconds': 120,
+            'image': pointJson['image'],
+            'created_at': '2026-03-12T10:00:00Z',
+          },
+        ],
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('movie-media-point-thumb-0')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('image-search-result-preview-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('影片详情'), findsNothing);
+      expect(find.text('删除标记'), findsOneWidget);
+    },
+  );
+
+  testWidgets('movie detail page point action menu appears on secondary tap', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: _movieDetailJson(
+        mediaItems: <Map<String, dynamic>>[
+          _mediaItemJson(
+            points: <Map<String, dynamic>>[
+              _mediaPointJson(pointId: 1, thumbnailId: 66, offsetSeconds: 120),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(
+      find.byKey(const Key('movie-media-point-thumb-0')),
+    );
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const Key('movie-media-point-thumb-0'))),
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('相似图片'), findsOneWidget);
+    expect(find.text('保存到本地'), findsOneWidget);
+    expect(find.text('删除标记'), findsOneWidget);
+    expect(find.text('播放'), findsOneWidget);
+    expect(find.text('影片详情'), findsNothing);
+  });
+
+  testWidgets('movie detail page point play action opens player route', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: _movieDetailJson(
+        mediaItems: <Map<String, dynamic>>[
+          _mediaItemJson(
+            points: <Map<String, dynamic>>[
+              _mediaPointJson(pointId: 1, thumbnailId: 66, offsetSeconds: 120),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/desktop/library/movies/:movieNumber/player',
+          builder:
+              (context, state) => Text(
+                'player:${state.uri.toString()}',
+                textDirection: TextDirection.ltr,
+              ),
+        ),
+        GoRoute(
+          path: '/desktop/library/movies/:movieNumber',
+          builder:
+              (context, state) => DesktopMovieDetailPage(
+                movieNumber: state.pathParameters['movieNumber']!,
+              ),
+        ),
+      ],
+      initialLocation: '/desktop/library/movies/ABC-001',
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          Provider<ApiClient>.value(value: bundle.apiClient),
+          Provider<MediaApi>.value(
+            value: MediaApi(apiClient: bundle.apiClient),
+          ),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<DownloadsApi>.value(value: bundle.downloadsApi),
+          Provider<ImageSearchDraftStore>(
+            create: (_) => ImageSearchDraftStore(),
+          ),
+        ],
+        child: MaterialApp.router(
+          theme: sakuraThemeData,
+          routerConfig: router,
+          builder: (context, child) => OKToast(child: child!),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(
+      find.byKey(const Key('movie-media-point-thumb-0')),
+    );
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const Key('movie-media-point-thumb-0'))),
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('播放'));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/desktop/library/movies/ABC-001/player?mediaId=100&positionSeconds=120',
+    );
+  });
+
+  testWidgets(
+    'movie detail page point similar-image action opens image search route',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(
+          mediaItems: <Map<String, dynamic>>[
+            _mediaItemJson(
+              points: <Map<String, dynamic>>[
+                _mediaPointJson(
+                  pointId: 1,
+                  thumbnailId: 66,
+                  offsetSeconds: 120,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueBytes(
+        method: 'GET',
+        path: '/files/points/66.webp',
+        body: Uint8List.fromList(const <int>[1, 2, 3]),
+      );
+
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: desktopImageSearchPath,
+            builder:
+                (context, state) => const Text(
+                  'image-search',
+                  textDirection: TextDirection.ltr,
+                ),
+          ),
+          GoRoute(
+            path: '/desktop/library/movies/:movieNumber',
+            builder:
+                (context, state) => DesktopMovieDetailPage(
+                  movieNumber: state.pathParameters['movieNumber']!,
+                ),
+          ),
+        ],
+        initialLocation: '/desktop/library/movies/ABC-001',
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+            Provider<ApiClient>.value(value: bundle.apiClient),
+            Provider<MediaApi>.value(
+              value: MediaApi(apiClient: bundle.apiClient),
+            ),
+            Provider<MoviesApi>.value(value: bundle.moviesApi),
+            Provider<DownloadsApi>.value(value: bundle.downloadsApi),
+            Provider<ImageSearchDraftStore>(
+              create: (_) => ImageSearchDraftStore(),
+            ),
+          ],
+          child: MaterialApp.router(
+            theme: sakuraThemeData,
+            routerConfig: router,
+            builder: (context, child) => OKToast(child: child!),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const Key('movie-media-point-thumb-0')),
+      );
+      await tester.tapAt(
+        tester.getCenter(find.byKey(const Key('movie-media-point-thumb-0'))),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('相似图片'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('image-search'), findsOneWidget);
+      expect(bundle.adapter.hitCount('GET', '/files/points/66.webp'), 1);
+    },
+  );
+
+  testWidgets('movie detail page point delete action updates visible gallery', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: _movieDetailJson(
+        mediaItems: <Map<String, dynamic>>[
+          _mediaItemJson(
+            points: <Map<String, dynamic>>[
+              _mediaPointJson(pointId: 1, thumbnailId: 66, offsetSeconds: 120),
+            ],
+          ),
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/media/100/points/1',
+      statusCode: 204,
+    );
+
+    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('movie-media-point-thumb-0')), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const Key('movie-media-point-thumb-0')),
+    );
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const Key('movie-media-point-thumb-0'))),
+      buttons: kSecondaryMouseButton,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除标记'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    expect(bundle.adapter.hitCount('DELETE', '/media/100/points/1'), 1);
+    expect(find.byKey(const Key('movie-media-point-thumb-0')), findsNothing);
+    expect(find.text('暂无标记点'), findsOneWidget);
   });
 
   testWidgets(
@@ -2455,29 +2815,81 @@ Map<String, dynamic> _movieDetailJson({
             'large': '/files/images/movies/ABC-001/plots/1-large.jpg',
           },
         ],
-    'media_items':
-        mediaItems ??
-        <Map<String, dynamic>>[
-          <String, dynamic>{
-            'media_id': 100,
-            'library_id': 1,
-            'play_url':
-                '/files/media/movies/ABC-001/video.mp4?expires=1700000900&signature=abc',
-            'path': '/library/main/ABC-001/video.mp4',
-            'storage_mode': 'hardlink',
-            'resolution': '1920x1080',
-            'file_size_bytes': 1073741824,
-            'duration_seconds': 7200,
-            'special_tags': '普通',
-            'valid': true,
-            'progress': <String, dynamic>{
-              'last_position_seconds': 600,
-              'last_watched_at': '2026-03-08T09:30:00',
-            },
-            'points': const <Map<String, dynamic>>[],
-          },
-        ],
+    'media_items': mediaItems ?? <Map<String, dynamic>>[_mediaItemJson()],
     'playlists': playlists ?? const <Map<String, dynamic>>[],
+  };
+}
+
+Map<String, dynamic> _mediaItemJson({
+  int mediaId = 100,
+  String specialTags = '普通',
+  List<Map<String, dynamic>>? points,
+}) {
+  final isPreview = mediaId == 101;
+  return <String, dynamic>{
+    'media_id': mediaId,
+    'library_id': 1,
+    'play_url':
+        '/files/media/movies/ABC-001/video.mp4?expires=1700000900&signature=abc',
+    'path': '/library/main/ABC-001/video.mp4',
+    'storage_mode': 'hardlink',
+    'resolution': isPreview ? '1280x720' : '1920x1080',
+    'file_size_bytes': isPreview ? 524288000 : 1073741824,
+    'duration_seconds': 7200,
+    'special_tags': specialTags,
+    'valid': true,
+    'progress': <String, dynamic>{
+      'last_position_seconds': 600,
+      'last_watched_at': '2026-03-08T09:30:00',
+    },
+    'video_info': <String, dynamic>{
+      'container': <String, dynamic>{
+        'format_name': isPreview ? 'mp4' : 'mpegts',
+        'duration_seconds': 7200,
+        'bit_rate': isPreview ? 8000000 : 22793091,
+        'size_bytes': isPreview ? 524288000 : 1073741824,
+      },
+      'video': <String, dynamic>{
+        'codec_name': isPreview ? 'hevc' : 'h264',
+        'codec_long_name': isPreview ? 'H.265 / HEVC' : 'H.264 / AVC',
+        'profile': isPreview ? 'Main' : 'High',
+        'bit_rate': isPreview ? 6500000 : null,
+        'width': isPreview ? 1280 : 1920,
+        'height': isPreview ? 720 : 1080,
+        'frame_rate': isPreview ? 24.0 : 29.97,
+        'pixel_format': 'yuv420p',
+      },
+      'audio': <String, dynamic>{
+        'codec_name': 'aac',
+        'codec_long_name': 'AAC',
+        'profile': 'LC',
+        'bit_rate': 192000,
+        'sample_rate': 48000,
+        'channels': 2,
+        'channel_layout': 'stereo',
+      },
+      'subtitles': const <Map<String, dynamic>>[],
+    },
+    'points': points ?? const <Map<String, dynamic>>[],
+  };
+}
+
+Map<String, dynamic> _mediaPointJson({
+  required int pointId,
+  required int thumbnailId,
+  required int offsetSeconds,
+}) {
+  return <String, dynamic>{
+    'point_id': pointId,
+    'thumbnail_id': thumbnailId,
+    'offset_seconds': offsetSeconds,
+    'image': <String, dynamic>{
+      'id': 300 + pointId,
+      'origin': '/files/points/$thumbnailId.webp',
+      'small': '/files/points/$thumbnailId-small.webp',
+      'medium': '/files/points/$thumbnailId-medium.webp',
+      'large': '/files/points/$thumbnailId-large.webp',
+    },
   };
 }
 

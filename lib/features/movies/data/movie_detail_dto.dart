@@ -181,6 +181,7 @@ class MovieMediaItemDto {
     required this.valid,
     required this.progress,
     required this.points,
+    this.videoInfo,
   });
 
   final int mediaId;
@@ -195,6 +196,7 @@ class MovieMediaItemDto {
   final bool valid;
   final MovieMediaProgressDto? progress;
   final List<MovieMediaPointDto> points;
+  final MovieMediaVideoInfoDto? videoInfo;
 
   bool get hasPlayableUrl => playUrl.trim().isNotEmpty;
 
@@ -215,6 +217,146 @@ class MovieMediaItemDto {
         json['points'],
         (item) => MovieMediaPointDto.fromJson(item),
       ),
+      videoInfo: _videoInfoFromJson(json['video_info']),
+    );
+  }
+}
+
+class MovieMediaVideoInfoDto {
+  const MovieMediaVideoInfoDto({
+    required this.container,
+    required this.video,
+    required this.audio,
+    required this.subtitles,
+  });
+
+  final MovieMediaContainerInfoDto? container;
+  final MovieMediaVideoStreamInfoDto? video;
+  final MovieMediaAudioStreamInfoDto? audio;
+  final List<MovieMediaSubtitleInfoDto> subtitles;
+
+  factory MovieMediaVideoInfoDto.fromJson(Map<String, dynamic> json) {
+    return MovieMediaVideoInfoDto(
+      container: _containerInfoFromJson(json['container']),
+      video: _videoStreamInfoFromJson(json['video']),
+      audio: _audioStreamInfoFromJson(json['audio']),
+      subtitles: _listFromJson(
+        json['subtitles'],
+        (item) => MovieMediaSubtitleInfoDto.fromJson(item),
+      ),
+    );
+  }
+}
+
+class MovieMediaContainerInfoDto {
+  const MovieMediaContainerInfoDto({
+    required this.formatName,
+    required this.durationSeconds,
+    required this.bitRate,
+    required this.sizeBytes,
+  });
+
+  final String formatName;
+  final int? durationSeconds;
+  final int? bitRate;
+  final int? sizeBytes;
+
+  factory MovieMediaContainerInfoDto.fromJson(Map<String, dynamic> json) {
+    return MovieMediaContainerInfoDto(
+      formatName: json['format_name'] as String? ?? '',
+      durationSeconds: (json['duration_seconds'] as num?)?.toInt(),
+      bitRate: (json['bit_rate'] as num?)?.toInt(),
+      sizeBytes: (json['size_bytes'] as num?)?.toInt(),
+    );
+  }
+}
+
+class MovieMediaVideoStreamInfoDto {
+  const MovieMediaVideoStreamInfoDto({
+    required this.codecName,
+    required this.codecLongName,
+    required this.profile,
+    required this.bitRate,
+    required this.width,
+    required this.height,
+    required this.frameRate,
+    required this.pixelFormat,
+  });
+
+  final String codecName;
+  final String codecLongName;
+  final String? profile;
+  final int? bitRate;
+  final int? width;
+  final int? height;
+  final double? frameRate;
+  final String pixelFormat;
+
+  factory MovieMediaVideoStreamInfoDto.fromJson(Map<String, dynamic> json) {
+    return MovieMediaVideoStreamInfoDto(
+      codecName: json['codec_name'] as String? ?? '',
+      codecLongName: json['codec_long_name'] as String? ?? '',
+      profile: json['profile'] as String?,
+      bitRate: (json['bit_rate'] as num?)?.toInt(),
+      width: (json['width'] as num?)?.toInt(),
+      height: (json['height'] as num?)?.toInt(),
+      frameRate: (json['frame_rate'] as num?)?.toDouble(),
+      pixelFormat: json['pixel_format'] as String? ?? '',
+    );
+  }
+}
+
+class MovieMediaAudioStreamInfoDto {
+  const MovieMediaAudioStreamInfoDto({
+    required this.codecName,
+    required this.codecLongName,
+    required this.profile,
+    required this.bitRate,
+    required this.sampleRate,
+    required this.channels,
+    required this.channelLayout,
+  });
+
+  final String codecName;
+  final String codecLongName;
+  final String? profile;
+  final int? bitRate;
+  final int? sampleRate;
+  final int? channels;
+  final String channelLayout;
+
+  factory MovieMediaAudioStreamInfoDto.fromJson(Map<String, dynamic> json) {
+    return MovieMediaAudioStreamInfoDto(
+      codecName: json['codec_name'] as String? ?? '',
+      codecLongName: json['codec_long_name'] as String? ?? '',
+      profile: json['profile'] as String?,
+      bitRate: (json['bit_rate'] as num?)?.toInt(),
+      sampleRate: (json['sample_rate'] as num?)?.toInt(),
+      channels: (json['channels'] as num?)?.toInt(),
+      channelLayout: json['channel_layout'] as String? ?? '',
+    );
+  }
+}
+
+class MovieMediaSubtitleInfoDto {
+  const MovieMediaSubtitleInfoDto({
+    required this.codecName,
+    required this.codecLongName,
+    required this.language,
+    required this.title,
+  });
+
+  final String codecName;
+  final String codecLongName;
+  final String language;
+  final String title;
+
+  factory MovieMediaSubtitleInfoDto.fromJson(Map<String, dynamic> json) {
+    return MovieMediaSubtitleInfoDto(
+      codecName: json['codec_name'] as String? ?? '',
+      codecLongName: json['codec_long_name'] as String? ?? '',
+      language: json['language'] as String? ?? '',
+      title: json['title'] as String? ?? '',
     );
   }
 }
@@ -239,16 +381,22 @@ class MovieMediaProgressDto {
 class MovieMediaPointDto {
   const MovieMediaPointDto({
     required this.pointId,
+    required this.thumbnailId,
     required this.offsetSeconds,
+    required this.image,
   });
 
   final int pointId;
+  final int thumbnailId;
   final int offsetSeconds;
+  final MovieImageDto? image;
 
   factory MovieMediaPointDto.fromJson(Map<String, dynamic> json) {
     return MovieMediaPointDto(
       pointId: json['point_id'] as int? ?? 0,
+      thumbnailId: json['thumbnail_id'] as int? ?? 0,
       offsetSeconds: json['offset_seconds'] as int? ?? 0,
+      image: _movieImageFromJson(json['image']),
     );
   }
 }
@@ -271,6 +419,54 @@ MovieMediaProgressDto? _progressFromJson(dynamic value) {
   }
   if (value is Map) {
     return MovieMediaProgressDto.fromJson(
+      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
+    );
+  }
+  return null;
+}
+
+MovieMediaVideoInfoDto? _videoInfoFromJson(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return MovieMediaVideoInfoDto.fromJson(value);
+  }
+  if (value is Map) {
+    return MovieMediaVideoInfoDto.fromJson(
+      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
+    );
+  }
+  return null;
+}
+
+MovieMediaContainerInfoDto? _containerInfoFromJson(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return MovieMediaContainerInfoDto.fromJson(value);
+  }
+  if (value is Map) {
+    return MovieMediaContainerInfoDto.fromJson(
+      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
+    );
+  }
+  return null;
+}
+
+MovieMediaVideoStreamInfoDto? _videoStreamInfoFromJson(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return MovieMediaVideoStreamInfoDto.fromJson(value);
+  }
+  if (value is Map) {
+    return MovieMediaVideoStreamInfoDto.fromJson(
+      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
+    );
+  }
+  return null;
+}
+
+MovieMediaAudioStreamInfoDto? _audioStreamInfoFromJson(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return MovieMediaAudioStreamInfoDto.fromJson(value);
+  }
+  if (value is Map) {
+    return MovieMediaAudioStreamInfoDto.fromJson(
       value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
     );
   }

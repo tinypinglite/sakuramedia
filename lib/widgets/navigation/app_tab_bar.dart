@@ -54,11 +54,11 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
         return _AppTabBarStyleSpec(
           visualTabHeight: 40,
           labelPadding: const EdgeInsets.only(right: 10),
-          labelStyle: textTheme.labelLarge!.copyWith(
+          labelStyle: textTheme.labelMedium!.copyWith(
             fontWeight: FontWeight.w700,
             color: colors.textPrimary,
           ),
-          unselectedLabelStyle: textTheme.labelLarge!.copyWith(
+          unselectedLabelStyle: textTheme.labelMedium!.copyWith(
             fontWeight: FontWeight.w500,
             color: colors.textSecondary,
           ),

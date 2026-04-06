@@ -255,6 +255,7 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
         MediaPreviewActionItem(
           label: '影片详情',
           icon: Icons.info_outline_rounded,
+          visible: widget.onOpenMovieDetail != null,
           onTap:
               widget.onOpenMovieDetail == null ? null : _handleOpenMovieDetail,
         ),
