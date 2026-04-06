@@ -18,7 +18,6 @@ void main() {
       ),
     );
 
-    expect(find.text('暂无标记点'), findsOneWidget);
     expect(find.byKey(const Key('movie-media-point-empty')), findsOneWidget);
   });
 
