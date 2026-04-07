@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit_video/media_kit_video_controls/media_kit_video_controls.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_readiness.dart';
 
@@ -199,7 +200,8 @@ void main() {
       () {
         final themeData = buildMoviePlayerMaterialControlsThemeData(
           theme: ThemeData.light(),
-          controls: const <Widget>[],
+          topControls: const <Widget>[],
+          bottomControls: const <Widget>[],
           useTouchOptimizedControls: true,
         );
 
@@ -218,13 +220,45 @@ void main() {
     test('default material controls theme keeps desktop seek sizing', () {
       final themeData = buildMoviePlayerMaterialControlsThemeData(
         theme: ThemeData.light(),
-        controls: const <Widget>[],
+        topControls: const <Widget>[],
+        bottomControls: const <Widget>[],
         useTouchOptimizedControls: false,
       );
 
       expect(themeData.seekGesture, isTrue);
       expect(themeData.seekBarThumbSize, 14);
       expect(themeData.seekBarMargin, const EdgeInsets.fromLTRB(30, 0, 30, 75));
+    });
+
+    test('material controls theme supports top and bottom button bars', () {
+      final top = MoviePlayerBackButton(onPressed: () {});
+      final bottom = const MaterialPlayOrPauseButton();
+      final themeData = buildMoviePlayerMaterialControlsThemeData(
+        theme: ThemeData.light(),
+        topControls: <Widget>[top],
+        bottomControls: <Widget>[bottom],
+        useTouchOptimizedControls: false,
+      );
+
+      expect(themeData.topButtonBar, hasLength(1));
+      expect(themeData.topButtonBar.first, same(top));
+      expect(themeData.bottomButtonBar, hasLength(1));
+      expect(themeData.bottomButtonBar.first, same(bottom));
+    });
+
+    test('desktop controls theme supports top and bottom button bars', () {
+      final top = MoviePlayerBackButton(onPressed: () {});
+      final bottom = const MaterialDesktopFullscreenButton();
+      final themeData = buildMoviePlayerDesktopControlsThemeData(
+        theme: ThemeData.light(),
+        topControls: <Widget>[top],
+        bottomControls: <Widget>[bottom],
+      );
+
+      expect(themeData.topButtonBar, hasLength(1));
+      expect(themeData.topButtonBar.first, same(top));
+      expect(themeData.bottomButtonBar, hasLength(1));
+      expect(themeData.bottomButtonBar.first, same(bottom));
     });
   });
 }

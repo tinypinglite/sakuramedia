@@ -46,8 +46,8 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     milliseconds: 180,
   );
   static const int _visibleRowBuffer = 1;
-  static const double _decodeSizeSafetyFactor = 1.15;
-  static const int _decodeSizeUpperBound = 2048;
+  static const double _decodeDevicePixelRatioCap = 2.0;
+  static const int _decodeSizeUpperBound = 1024;
 
   late final ScrollController _scrollController;
   Timer? _scrollIdleTimer;
@@ -412,14 +412,16 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     }
 
     final dpr = MediaQuery.devicePixelRatioOf(context);
+    final effectiveDevicePixelRatio =
+        dpr.clamp(1.0, _decodeDevicePixelRatioCap) as double;
     final cacheWidth =
-        ((constraints.maxWidth * dpr * _decodeSizeSafetyFactor).round()).clamp(
+        ((constraints.maxWidth * effectiveDevicePixelRatio).round()).clamp(
               1,
               _decodeSizeUpperBound,
             )
             as int;
     final cacheHeight =
-        ((constraints.maxHeight * dpr * _decodeSizeSafetyFactor).round()).clamp(
+        ((constraints.maxHeight * effectiveDevicePixelRatio).round()).clamp(
               1,
               _decodeSizeUpperBound,
             )

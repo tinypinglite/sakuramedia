@@ -185,36 +185,15 @@ class MovieDetailPageContent extends StatelessWidget {
         MovieDetailNumberBar(
           movieNumber: movie.movieNumber,
           summary: movie.summary,
+          wantWatchCount: movie.wantWatchCount,
+          watchedCount: movie.watchedCount,
+          score: movie.score,
+          commentCount: movie.commentCount,
+          scoreNumber: movie.scoreNumber,
           trailing: playlistTrigger,
         ),
+        ..._buildInlineMetaItems(context, movie),
         MovieDetailSection(title: '标签', child: MovieTagWrap(tags: movie.tags)),
-        movie.seriesName.trim().isNotEmpty
-            ? MovieDetailSection(
-              title: '系列',
-              child: Text(
-                movie.seriesName.trim(),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            )
-            : const SizedBox(),
-        movie.makerName.trim().isNotEmpty
-            ? MovieDetailSection(
-              title: '厂商',
-              child: Text(
-                movie.makerName.trim(),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            )
-            : const SizedBox(),
-        movie.directorName.trim().isNotEmpty
-            ? MovieDetailSection(
-              title: '导演',
-              child: Text(
-                movie.directorName.trim(),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            )
-            : const SizedBox(),
         MovieDetailSection(
           title: '演员',
           titleBottomSpacing: context.appSpacing.xs,
@@ -234,6 +213,29 @@ class MovieDetailPageContent extends StatelessWidget {
       ],
     );
   }
+}
+
+List<Widget> _buildInlineMetaItems(BuildContext context, MovieDetailDto movie) {
+  final items = <MapEntry<String, String>>[
+    MapEntry('系列', movie.seriesName.trim()),
+    MapEntry('厂商', movie.makerName.trim()),
+    MapEntry('导演', movie.directorName.trim()),
+  ];
+
+  return items
+      .where((item) => item.value.isNotEmpty)
+      .map(
+        (item) => Padding(
+          padding: EdgeInsets.only(
+            bottom: context.appComponentTokens.movieDetailSectionGap,
+          ),
+          child: Text(
+            '${item.key} · ${item.value}',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      )
+      .toList(growable: false);
 }
 
 class MovieDetailLoadingSkeleton extends StatelessWidget {
@@ -273,7 +275,9 @@ class MovieDetailLoadingSkeleton extends StatelessWidget {
                     height: context.appComponentTokens.movieDetailSectionGap,
                   ),
                   _SkeletonBlock(height: 18, width: movieNumberWidth),
-                  SizedBox(height: context.appSpacing.md),
+                  SizedBox(height: context.appSpacing.xs),
+                  _SkeletonBlock(height: 16, width: summaryWidth),
+                  SizedBox(height: context.appSpacing.xs),
                   _SkeletonBlock(height: 18, width: summaryWidth),
                   SizedBox(height: context.appSpacing.xxl),
                   _SkeletonBlock(height: 18, width: labelWidth),

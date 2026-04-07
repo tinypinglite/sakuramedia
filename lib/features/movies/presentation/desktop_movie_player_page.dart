@@ -17,7 +17,6 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
-import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_controller.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_thumbnail_panel.dart';
@@ -30,6 +29,7 @@ typedef MoviePlayerSurfaceBuilder =
       Duration? initialPosition,
       ValueChanged<Duration>? onPositionChanged,
       ValueChanged<bool>? onPlayingChanged,
+      VoidCallback onBackPressed,
       bool useTouchOptimizedControls,
     );
 
@@ -106,42 +106,33 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
           color: colors.movieDetailHeroBackgroundStart.withValues(alpha: 0.92),
           borderRadius: context.appRadius.lgBorder,
         ),
-        child: Stack(
-          children: [
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                if (_controller.isLoading) {
-                  return const _MoviePlayerLoadingState();
-                }
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            if (_controller.isLoading) {
+              return const _MoviePlayerLoadingState();
+            }
 
-                if (_controller.errorMessage != null) {
-                  return _MoviePlayerErrorState(
-                    message: _controller.errorMessage!,
-                    onRetry: _controller.load,
-                  );
-                }
+            if (_controller.errorMessage != null) {
+              return _MoviePlayerErrorState(
+                message: _controller.errorMessage!,
+                onRetry: _controller.load,
+              );
+            }
 
-                final resolvedUrl = _controller.resolvedPlayUrl;
-                return _MoviePlayerSplitLayout(
-                  controller: _splitController,
-                  leftChild:
-                      resolvedUrl == null
-                          ? const _MoviePlayerEmptyState()
-                          : _buildPlayerSurface(context, resolvedUrl),
-                  rightChild:
-                      _controller.selectedMedia == null
-                          ? const SizedBox.expand()
-                          : _buildThumbnailPanel(),
-                );
-              },
-            ),
-            Positioned(
-              left: 0,
-              top: 0,
-              child: MoviePlayerBackOverlay(onPressed: _handleBack),
-            ),
-          ],
+            final resolvedUrl = _controller.resolvedPlayUrl;
+            return _MoviePlayerSplitLayout(
+              controller: _splitController,
+              leftChild:
+                  resolvedUrl == null
+                      ? const _MoviePlayerEmptyState()
+                      : _buildPlayerSurface(context, resolvedUrl),
+              rightChild:
+                  _controller.selectedMedia == null
+                      ? const SizedBox.expand()
+                      : _buildThumbnailPanel(),
+            );
+          },
         ),
       ),
     );
@@ -156,6 +147,7 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
         _controller.initialPlaybackPosition,
         _controller.handlePlaybackPosition,
         _controller.handlePlaybackPlayingChanged,
+        _handleBack,
         widget.useTouchOptimizedControls,
       );
     }
@@ -165,6 +157,7 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
       initialPosition: _controller.initialPlaybackPosition,
       onPositionChanged: _controller.handlePlaybackPosition,
       onPlayingChanged: _controller.handlePlaybackPlayingChanged,
+      onBackPressed: _handleBack,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
     );
   }
