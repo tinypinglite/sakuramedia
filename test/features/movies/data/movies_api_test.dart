@@ -52,6 +52,7 @@ void main() {
             'cover_image': null,
             'release_date': '2024-01-02',
             'duration_minutes': 120,
+            'heat': 9,
             'is_subscribed': true,
             'can_play': true,
           },
@@ -78,6 +79,7 @@ void main() {
     expect(request.uri.queryParameters['page'], '1');
     expect(request.uri.queryParameters['page_size'], '24');
     expect(page.items.single.movieNumber, 'ABC-001');
+    expect(page.items.single.heat, 9);
   });
 
   test('getMovies sends actor_id when actor filter is provided', () async {
@@ -515,6 +517,7 @@ void main() {
         'release_date': '2024-01-02',
         'duration_minutes': 120,
         'score': 4.5,
+        'heat': 27,
         'watched_count': 12,
         'want_watch_count': 23,
         'comment_count': 34,
@@ -651,6 +654,7 @@ void main() {
 
     expect(detail, isA<MovieDetailDto>());
     expect(detail.movieNumber, 'ABC-001');
+    expect(detail.heat, 27);
     expect(detail.seriesName, 'Series 1');
     expect(detail.makerName, 'S1 NO.1 STYLE');
     expect(detail.directorName, '紋℃');
@@ -732,6 +736,7 @@ void main() {
         'release_date': null,
         'duration_minutes': 0,
         'score': 0.0,
+        'heat': 0,
         'watched_count': 0,
         'want_watch_count': 0,
         'comment_count': 0,

@@ -38,6 +38,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.movieDetailScoreIcon,
     required this.movieDetailScoreCountIcon,
     required this.movieDetailCommentCountIcon,
+    required this.movieDetailHeatIcon,
     required this.movieDetailWantWatchCountIcon,
   });
 
@@ -77,6 +78,7 @@ class AppColors extends ThemeExtension<AppColors> {
       movieDetailScoreIcon = const Color(0xFFD29B18),
       movieDetailScoreCountIcon = const Color(0xFF3A6FB0),
       movieDetailCommentCountIcon = const Color(0xFF7A55B0),
+      movieDetailHeatIcon = const Color(0xFFD84C57),
       movieDetailWantWatchCountIcon = const Color(0xFFC65A74);
 
   final Color surfacePage;
@@ -114,6 +116,7 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color movieDetailScoreIcon;
   final Color movieDetailScoreCountIcon;
   final Color movieDetailCommentCountIcon;
+  final Color movieDetailHeatIcon;
   final Color movieDetailWantWatchCountIcon;
 
   @override
@@ -153,6 +156,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? movieDetailScoreIcon,
     Color? movieDetailScoreCountIcon,
     Color? movieDetailCommentCountIcon,
+    Color? movieDetailHeatIcon,
     Color? movieDetailWantWatchCountIcon,
   }) {
     return AppColors(
@@ -215,6 +219,7 @@ class AppColors extends ThemeExtension<AppColors> {
           movieDetailScoreCountIcon ?? this.movieDetailScoreCountIcon,
       movieDetailCommentCountIcon:
           movieDetailCommentCountIcon ?? this.movieDetailCommentCountIcon,
+      movieDetailHeatIcon: movieDetailHeatIcon ?? this.movieDetailHeatIcon,
       movieDetailWantWatchCountIcon:
           movieDetailWantWatchCountIcon ?? this.movieDetailWantWatchCountIcon,
     );
@@ -353,6 +358,8 @@ class AppColors extends ThemeExtension<AppColors> {
             other.movieDetailCommentCountIcon,
             t,
           )!,
+      movieDetailHeatIcon:
+          Color.lerp(movieDetailHeatIcon, other.movieDetailHeatIcon, t)!,
       movieDetailWantWatchCountIcon:
           Color.lerp(
             movieDetailWantWatchCountIcon,

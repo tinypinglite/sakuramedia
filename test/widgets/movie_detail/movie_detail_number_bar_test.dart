@@ -18,6 +18,7 @@ void main() {
             watchedCount: 12,
             score: 4.50,
             commentCount: 34,
+            heat: 56,
             scoreNumber: 45,
           ),
         ),
@@ -34,8 +35,10 @@ void main() {
     expect(find.text('想看人数 23'), findsOneWidget);
     expect(find.text('看过人数 12'), findsOneWidget);
     expect(find.text('评分人数 45'), findsOneWidget);
+    expect(find.text('56'), findsOneWidget);
     expect(find.byIcon(Icons.star_outline_rounded), findsOneWidget);
     expect(find.byIcon(Icons.chat_bubble_outline_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.local_fire_department_rounded), findsOneWidget);
     expect(find.text('4.5'), findsOneWidget);
     expect(find.text('34'), findsOneWidget);
 
@@ -66,6 +69,7 @@ void main() {
             watchedCount: 0,
             score: 0,
             commentCount: 0,
+            heat: 0,
             scoreNumber: 0,
           ),
         ),
@@ -75,6 +79,10 @@ void main() {
     expect(find.text('想看人数 0'), findsOneWidget);
     expect(find.text('看过人数 0'), findsOneWidget);
     expect(find.text('评分人数 0'), findsOneWidget);
+    expect(
+      find.byKey(const Key('movie-detail-interaction-heat-text')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const Key('movie-detail-interaction-score-text')),
       findsOneWidget,
@@ -102,6 +110,7 @@ void main() {
               watchedCount: 3185,
               score: 4.51,
               commentCount: 96,
+              heat: 131,
               scoreNumber: 13141,
             ),
           ),

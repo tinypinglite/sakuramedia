@@ -24,6 +24,7 @@ void main() {
       releaseDate: DateTime.parse('2026-03-08'),
       durationMinutes: 120,
       score: 4.5,
+      heat: 18,
       watchedCount: 12,
       wantWatchCount: 23,
       commentCount: 34,

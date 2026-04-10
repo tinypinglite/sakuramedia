@@ -91,6 +91,7 @@ void main() {
       coverImage: null,
       releaseDate: null,
       durationMinutes: 0,
+      heat: 0,
       canPlay: false,
       isSubscribed: false,
     );

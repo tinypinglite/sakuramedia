@@ -55,6 +55,7 @@ class HotReviewListItemDto {
       coverImage: null,
       releaseDate: null,
       durationMinutes: 0,
+      heat: 0,
       isSubscribed: false,
       canPlay: false,
     );

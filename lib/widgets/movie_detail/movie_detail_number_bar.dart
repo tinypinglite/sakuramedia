@@ -10,6 +10,7 @@ class MovieDetailNumberBar extends StatelessWidget {
     required this.watchedCount,
     required this.score,
     required this.commentCount,
+    required this.heat,
     required this.scoreNumber,
     this.trailing,
   });
@@ -20,6 +21,7 @@ class MovieDetailNumberBar extends StatelessWidget {
   final int watchedCount;
   final double score;
   final int commentCount;
+  final int heat;
   final int scoreNumber;
   final Widget? trailing;
 
@@ -99,6 +101,23 @@ class MovieDetailNumberBar extends StatelessWidget {
                   Text(
                     '$commentCount',
                     key: const Key('movie-detail-interaction-comment-text'),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              Row(
+                key: const Key('movie-detail-interaction-heat-item'),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.local_fire_department_rounded,
+                    size: context.appComponentTokens.iconSizeXs,
+                    color: context.appColors.movieDetailHeatIcon,
+                  ),
+                  SizedBox(width: context.appSpacing.xs),
+                  Text(
+                    '$heat',
+                    key: const Key('movie-detail-interaction-heat-text'),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
