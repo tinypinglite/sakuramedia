@@ -62,15 +62,11 @@ SakuraMedia 使用 Flutter 构建，当前以桌面端体验为主，同时覆�
 Wiki 文档：
 [SakuraMedia Wiki](https://tinypinglite.github.io/sakuramedia/)
 
-后端部署文档：
-[SakuraMediaBE Docker 部署文档](https://github.com/tinypinglite/sakuramediabe/blob/main/docs/deployment/docker.md)
-
 ## 项目入口
 
 - 前端仓库：[tinypinglite/sakuramedia](https://github.com/tinypinglite/sakuramedia)
 - 后端仓库：[tinypinglite/sakuramediabe](https://github.com/tinypinglite/sakuramediabe)
 - Wiki 文档：[tinypinglite.github.io/sakuramedia](https://tinypinglite.github.io/sakuramedia/)
-- UI 实现基线文档：[docs/ui-spec.md](./docs/ui-spec.md)
 
 ## 风险与声明
 
