@@ -163,6 +163,48 @@ void main() {
     },
   );
 
+  test(
+    'createSession normalizes empty and whitespace next_cursor to null',
+    () async {
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/image-search/sessions',
+        body: <String, dynamic>{
+          'session_id': 'session-empty-cursor',
+          'status': 'ready',
+          'page_size': 20,
+          'next_cursor': '',
+          'expires_at': '2026-03-08T10:10:00Z',
+          'items': const <Map<String, dynamic>>[],
+        },
+      );
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/image-search/sessions',
+        body: <String, dynamic>{
+          'session_id': 'session-blank-cursor',
+          'status': 'ready',
+          'page_size': 20,
+          'next_cursor': '   ',
+          'expires_at': '2026-03-08T10:10:00Z',
+          'items': const <Map<String, dynamic>>[],
+        },
+      );
+
+      final emptyCursorSession = await imageSearchApi.createSession(
+        fileBytes: Uint8List.fromList(const <int>[1, 2]),
+        fileName: 'query-empty.png',
+      );
+      final blankCursorSession = await imageSearchApi.createSession(
+        fileBytes: Uint8List.fromList(const <int>[3, 4]),
+        fileName: 'query-blank.png',
+      );
+
+      expect(emptyCursorSession.nextCursor, isNull);
+      expect(blankCursorSession.nextCursor, isNull);
+    },
+  );
+
   test('createSession converts backend error to ApiException', () async {
     adapter.enqueueJson(
       method: 'POST',
