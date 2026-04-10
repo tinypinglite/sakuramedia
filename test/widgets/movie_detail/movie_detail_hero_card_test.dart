@@ -66,6 +66,7 @@ void main() {
                 mainImageKey: 'cover',
                 mainImageUrl: '/covers/main.jpg',
                 thinCoverUrl: '/covers/thin.jpg',
+                heat: 24,
                 canPlay: true,
                 isSubscribed: true,
                 isCollection: false,
@@ -107,6 +108,7 @@ void main() {
                   mainImageKey: 'cover',
                   mainImageUrl: '/covers/main.jpg',
                   thinCoverUrl: '/covers/thin.jpg',
+                  heat: 24,
                   canPlay: true,
                   isSubscribed: false,
                   isCollection: false,
@@ -154,6 +156,7 @@ void main() {
                 mainImageKey: 'cover',
                 mainImageUrl: '/covers/main.jpg',
                 thinCoverUrl: '/covers/thin.jpg',
+                heat: 24,
                 canPlay: true,
                 isSubscribed: false,
                 isCollection: false,
@@ -190,6 +193,7 @@ void main() {
                 mainImageKey: 'cover',
                 mainImageUrl: '/covers/main.jpg',
                 thinCoverUrl: '/covers/thin.jpg',
+                heat: 24,
                 canPlay: true,
                 isSubscribed: false,
                 isCollection: false,
@@ -218,6 +222,33 @@ void main() {
       expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
     },
   );
+
+  testWidgets('movie detail hero card shows heat badge in top right', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(_buildApp(sessionStore: sessionStore));
+
+    expect(
+      find.byKey(const Key('movie-detail-hero-heat-badge')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-detail-hero-heat-text')),
+      findsOneWidget,
+    );
+    expect(find.text('24'), findsOneWidget);
+
+    final icon = tester.widget<Icon>(
+      find.byIcon(Icons.local_fire_department_rounded),
+    );
+    expect(icon.color, AppColors.defaults().movieDetailHeatIcon);
+
+    final badge = tester.widget<Container>(
+      find.byKey(const Key('movie-detail-hero-heat-badge')),
+    );
+    final decoration = badge.decoration as BoxDecoration;
+    expect(decoration.color, AppColors.defaults().mediaOverlayStrong);
+  });
 }
 
 Widget _buildApp({required SessionStore sessionStore}) {
@@ -233,6 +264,7 @@ Widget _buildApp({required SessionStore sessionStore}) {
             mainImageKey: 'cover',
             mainImageUrl: '/covers/main.jpg',
             thinCoverUrl: '/covers/thin.jpg',
+            heat: 24,
             canPlay: true,
             isSubscribed: false,
             isCollection: false,

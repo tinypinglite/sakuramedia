@@ -90,6 +90,7 @@ void main() {
             'cover_image': null,
             'release_date': '2024-10-01',
             'duration_minutes': 120,
+            'heat': 1777,
             'is_subscribed': true,
             'can_play': true,
           },
@@ -114,6 +115,7 @@ void main() {
     expect(request.uri.queryParameters['page_size'], '24');
     expect(page.items.single.rank, 1);
     expect(page.items.single.movieNumber, 'ABP-001');
+    expect(page.items.single.heat, 1777);
     expect(page.page, 2);
     expect(page.total, 30);
   });

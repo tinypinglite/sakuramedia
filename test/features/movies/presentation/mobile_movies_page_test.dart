@@ -85,7 +85,13 @@ void main() {
     bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/movies',
-      body: _moviesJson(total: 2),
+      body: _moviesJson(
+        total: 2,
+        items: <Map<String, dynamic>>[
+          _movieItem(heat: 19),
+          _movieItem(movieNumber: 'ABC-002', isSubscribed: false, heat: 4),
+        ],
+      ),
     );
 
     await _pumpMoviesPage(tester, sessionStore: sessionStore, bundle: bundle);
@@ -95,6 +101,11 @@ void main() {
     expect(find.text('2 部'), findsOneWidget);
     expect(find.byType(MovieSummaryCard), findsNWidgets(2));
     expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
+    expect(
+      find.byKey(const Key('movie-summary-card-heat-ABC-001')),
+      findsOneWidget,
+    );
+    expect(find.text('19'), findsOneWidget);
   });
 
   testWidgets('mobile movies page shows empty state', (
@@ -563,6 +574,7 @@ Map<String, dynamic> _movieItem({
   String movieNumber = 'ABC-001',
   bool isSubscribed = true,
   bool canPlay = true,
+  int heat = 0,
 }) {
   return <String, dynamic>{
     'javdb_id': 'Movie$movieNumber',
@@ -571,6 +583,7 @@ Map<String, dynamic> _movieItem({
     'cover_image': null,
     'release_date': '2024-01-02',
     'duration_minutes': 120,
+    'heat': heat,
     'is_subscribed': isSubscribed,
     'can_play': canPlay,
   };

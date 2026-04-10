@@ -9,6 +9,7 @@ class MovieDetailHeroCard extends StatelessWidget {
     required this.mainImageKey,
     required this.mainImageUrl,
     required this.thinCoverUrl,
+    required this.heat,
     required this.canPlay,
     required this.isSubscribed,
     required this.isCollection,
@@ -21,6 +22,7 @@ class MovieDetailHeroCard extends StatelessWidget {
   final String mainImageKey;
   final String? mainImageUrl;
   final String? thinCoverUrl;
+  final int heat;
   final bool canPlay;
   final bool isSubscribed;
   final bool isCollection;
@@ -99,6 +101,43 @@ class MovieDetailHeroCard extends StatelessWidget {
                   ),
                 if (isCollection) const _HeroBadge(label: '合集'),
               ],
+            ),
+          ),
+          Positioned(
+            top: spacing.lg,
+            right: spacing.lg,
+            child: Container(
+              key: const Key('movie-detail-hero-heat-badge'),
+              padding: EdgeInsets.symmetric(
+                horizontal: spacing.sm,
+                vertical: spacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: colors.mediaOverlayStrong,
+                borderRadius: context.appRadius.pillBorder,
+                border: Border.all(
+                  color: colors.borderSubtle.withValues(alpha: 0.42),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.local_fire_department_rounded,
+                    size: tokens.iconSizeXs,
+                    color: colors.movieDetailHeatIcon,
+                  ),
+                  SizedBox(width: spacing.xs),
+                  Text(
+                    '$heat',
+                    key: const Key('movie-detail-hero-heat-text'),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colors.textOnMedia,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           if (onPlayTap != null)

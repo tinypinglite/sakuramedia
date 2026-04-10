@@ -52,15 +52,29 @@ class MovieSummaryCard extends StatelessWidget {
               left: context.appSpacing.md,
               right: context.appSpacing.md,
               bottom: context.appSpacing.md,
-              child: Text(
-                movie.movieNumber,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: colors.textOnMedia,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
-                ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Text(
+                      movie.movieNumber,
+                      key: Key(
+                        'movie-summary-card-number-${movie.movieNumber}',
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: colors.textOnMedia,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ),
+                  if (rank != null) ...[
+                    SizedBox(width: spacing.sm),
+                    _RankBadge(rank: rank!, movieNumber: movie.movieNumber),
+                  ],
+                ],
               ),
             ),
           ],
@@ -95,12 +109,43 @@ class MovieSummaryCard extends StatelessWidget {
     return Stack(
       children: [
         interactiveCard,
-        if (rank != null)
-          Positioned(
-            top: spacing.sm,
-            right: spacing.sm,
-            child: _RankBadge(rank: rank!, movieNumber: movie.movieNumber),
+        Positioned(
+          top: spacing.sm,
+          right: spacing.sm,
+          child: Container(
+            key: Key('movie-summary-card-heat-${movie.movieNumber}'),
+            padding: EdgeInsets.symmetric(
+              horizontal: spacing.sm,
+              vertical: spacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: colors.mediaOverlayStrong,
+              borderRadius: context.appRadius.pillBorder,
+              border: Border.all(
+                color: colors.borderSubtle.withValues(alpha: 0.42),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.local_fire_department_rounded,
+                  size: componentTokens.iconSizeXs,
+                  color: colors.movieDetailHeatIcon,
+                ),
+                SizedBox(width: spacing.xs),
+                Text(
+                  '${movie.heat}',
+                  key: Key('movie-summary-card-heat-text-${movie.movieNumber}'),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: colors.textOnMedia,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
+        ),
         Positioned(
           top: spacing.sm,
           left: spacing.sm,

@@ -45,6 +45,7 @@ class MovieListItemDto {
     required this.coverImage,
     required this.releaseDate,
     required this.durationMinutes,
+    required this.heat,
     required this.isSubscribed,
     required this.canPlay,
   });
@@ -55,6 +56,7 @@ class MovieListItemDto {
   final MovieImageDto? coverImage;
   final DateTime? releaseDate;
   final int durationMinutes;
+  final int heat;
   final bool isSubscribed;
   final bool canPlay;
 
@@ -65,6 +67,7 @@ class MovieListItemDto {
     MovieImageDto? coverImage,
     DateTime? releaseDate,
     int? durationMinutes,
+    int? heat,
     bool? isSubscribed,
     bool? canPlay,
   }) {
@@ -75,6 +78,7 @@ class MovieListItemDto {
       coverImage: coverImage ?? this.coverImage,
       releaseDate: releaseDate ?? this.releaseDate,
       durationMinutes: durationMinutes ?? this.durationMinutes,
+      heat: heat ?? this.heat,
       isSubscribed: isSubscribed ?? this.isSubscribed,
       canPlay: canPlay ?? this.canPlay,
     );
@@ -88,6 +92,7 @@ class MovieListItemDto {
       coverImage: _movieImageFromJson(json['cover_image']),
       releaseDate: _dateFromJson(json['release_date']),
       durationMinutes: json['duration_minutes'] as int? ?? 0,
+      heat: json['heat'] as int? ?? 0,
       isSubscribed: json['is_subscribed'] as bool? ?? false,
       canPlay: json['can_play'] as bool? ?? false,
     );

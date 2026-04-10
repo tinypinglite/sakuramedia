@@ -319,6 +319,7 @@ List<MovieListItemDto> _movies(int start, int count) {
       coverImage: null,
       releaseDate: null,
       durationMinutes: 120,
+      heat: start + index,
       canPlay: true,
       isSubscribed: index.isEven,
     ),
@@ -334,6 +335,7 @@ MovieListItemDto _movie(int index, {required bool isSubscribed}) {
     coverImage: null,
     releaseDate: null,
     durationMinutes: 120,
+    heat: index,
     canPlay: true,
     isSubscribed: isSubscribed,
   );

@@ -40,6 +40,7 @@ void main() {
     expect(colors.movieDetailPlayableBadgeBackground, const Color(0xFF1677FF));
     expect(colors.movieDetailHeroBackgroundStart, const Color(0xFF000000));
     expect(colors.movieDetailHeroBackgroundEnd, const Color(0xFF000000));
+    expect(colors.movieDetailHeatIcon, const Color(0xFFD84C57));
     expect(colors.desktopSidebarGlassTint, const Color(0x4CEFEFEF));
     expect(colors.desktopSidebarGlassHover, const Color(0x80FFFFFF));
     expect(colors.desktopSidebarGlassActive, const Color(0x99FFFFFF));

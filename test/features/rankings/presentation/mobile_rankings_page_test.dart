@@ -91,7 +91,18 @@ void main() {
     bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/ranking-sources/javdb/boards/censored/items',
-      body: _rankingItemsJson(total: 2),
+      body: _rankingItemsJson(
+        total: 2,
+        items: <Map<String, dynamic>>[
+          _rankingItem(
+            rank: 1,
+            movieNumber: 'ABC-001',
+            isSubscribed: true,
+            heat: 1777,
+          ),
+          _rankingItem(rank: 2, movieNumber: 'ABC-002', heat: 888),
+        ],
+      ),
     );
 
     await _pumpRankingsPage(tester, sessionStore: sessionStore, bundle: bundle);
@@ -103,6 +114,14 @@ void main() {
     expect(
       find.byKey(const Key('movie-summary-card-rank-ABC-001')),
       findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const Key('movie-summary-card-heat-text-ABC-001')),
+          )
+          .data,
+      '1777',
     );
   });
 
@@ -428,6 +447,7 @@ Map<String, dynamic> _rankingItem({
   required String movieNumber,
   bool isSubscribed = false,
   bool canPlay = true,
+  int heat = 0,
 }) {
   return <String, dynamic>{
     'rank': rank,
@@ -446,6 +466,7 @@ Map<String, dynamic> _rankingItem({
             : null,
     'release_date': '2024-01-0${(rank % 9) + 1}',
     'duration_minutes': 120 + rank,
+    'heat': heat,
     'is_subscribed': isSubscribed,
     'can_play': canPlay,
   };

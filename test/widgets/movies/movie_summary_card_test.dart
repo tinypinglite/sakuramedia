@@ -69,6 +69,7 @@ void main() {
                   ),
                   releaseDate: DateTime(2024, 1, 1),
                   durationMinutes: 120,
+                  heat: 42,
                   isSubscribed: true,
                   canPlay: true,
                 ),
@@ -89,6 +90,15 @@ void main() {
       find.byKey(const Key('movie-summary-card-subscription-ABC-001')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const Key('movie-summary-card-heat-ABC-001')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-summary-card-heat-text-ABC-001')),
+      findsOneWidget,
+    );
+    expect(find.text('42'), findsOneWidget);
     expect(find.text('Movie 1'), findsNothing);
     expect(find.text('2024-01-01'), findsNothing);
     expect(find.text('120 分钟'), findsNothing);
@@ -123,6 +133,16 @@ void main() {
         icons.where((icon) => icon.icon == Icons.favorite_rounded).single;
     expect(subscriptionIcon.color, AppColors.defaults().subscriptionHeartIcon);
     expect(subscriptionIcon.size, AppComponentTokens.defaults().iconSizeXl);
+    final heatIcon =
+        icons
+            .where((icon) => icon.icon == Icons.local_fire_department_rounded)
+            .single;
+    expect(heatIcon.color, AppColors.defaults().movieDetailHeatIcon);
+    final heatBadgeContainer = tester.widget<Container>(
+      find.byKey(const Key('movie-summary-card-heat-ABC-001')),
+    );
+    final heatBadgeDecoration = heatBadgeContainer.decoration as BoxDecoration;
+    expect(heatBadgeDecoration.color, AppColors.defaults().mediaOverlayStrong);
   });
 
   testWidgets(
@@ -149,6 +169,7 @@ void main() {
                     coverImage: null,
                     releaseDate: null,
                     durationMinutes: 0,
+                    heat: 0,
                     isSubscribed: false,
                     canPlay: false,
                   ),
@@ -171,6 +192,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
     },
   );
 
@@ -198,6 +220,7 @@ void main() {
                     coverImage: null,
                     releaseDate: null,
                     durationMinutes: 0,
+                    heat: 0,
                     isSubscribed: true,
                     canPlay: false,
                   ),
@@ -244,6 +267,7 @@ void main() {
                   coverImage: null,
                   releaseDate: null,
                   durationMinutes: 0,
+                  heat: 7,
                   isSubscribed: false,
                   canPlay: false,
                 ),
@@ -263,6 +287,81 @@ void main() {
 
     expect(menuPosition, equals(center));
   });
+
+  testWidgets(
+    'movie summary card keeps rank in bottom row and heat at top right',
+    (WidgetTester tester) async {
+      final sessionStore = SessionStore.inMemory();
+      await sessionStore.saveBaseUrl('https://api.example.com');
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          ],
+          child: MaterialApp(
+            theme: sakuraThemeData,
+            home: Scaffold(
+              body: SizedBox(
+                width: 220,
+                child: MovieSummaryCard(
+                  movie: const MovieListItemDto(
+                    javdbId: 'MovieA4-rank',
+                    movieNumber: 'OFJE-777',
+                    title: 'Movie Rank',
+                    coverImage: null,
+                    releaseDate: null,
+                    durationMinutes: 0,
+                    heat: 99,
+                    isSubscribed: false,
+                    canPlay: false,
+                  ),
+                  rank: 3,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('movie-summary-card-rank-OFJE-777')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('movie-summary-card-heat-OFJE-777')),
+        findsOneWidget,
+      );
+
+      final heatBottom =
+          tester
+              .getBottomLeft(
+                find.byKey(const Key('movie-summary-card-heat-OFJE-777')),
+              )
+              .dy;
+      final rankTop =
+          tester
+              .getTopLeft(
+                find.byKey(const Key('movie-summary-card-rank-OFJE-777')),
+              )
+              .dy;
+      expect(heatBottom, lessThan(rankTop));
+
+      final numberCenter =
+          tester
+              .getCenter(
+                find.byKey(const Key('movie-summary-card-number-OFJE-777')),
+              )
+              .dy;
+      final rankCenter =
+          tester
+              .getCenter(
+                find.byKey(const Key('movie-summary-card-rank-OFJE-777')),
+              )
+              .dy;
+      expect((rankCenter - numberCenter).abs(), lessThanOrEqualTo(8));
+    },
+  );
 
   testWidgets('movie summary card forwards long press menu position', (
     WidgetTester tester,
@@ -289,6 +388,7 @@ void main() {
                   coverImage: null,
                   releaseDate: null,
                   durationMinutes: 0,
+                  heat: 0,
                   isSubscribed: false,
                   canPlay: false,
                 ),

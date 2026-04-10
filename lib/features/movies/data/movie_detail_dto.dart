@@ -12,6 +12,7 @@ class MovieDetailDto {
     required this.releaseDate,
     required this.durationMinutes,
     required this.score,
+    required this.heat,
     required this.watchedCount,
     required this.wantWatchCount,
     required this.commentCount,
@@ -38,6 +39,7 @@ class MovieDetailDto {
   final DateTime? releaseDate;
   final int durationMinutes;
   final double score;
+  final int heat;
   final int watchedCount;
   final int wantWatchCount;
   final int commentCount;
@@ -65,6 +67,7 @@ class MovieDetailDto {
       releaseDate: _dateFromJson(json['release_date']),
       durationMinutes: json['duration_minutes'] as int? ?? 0,
       score: (json['score'] as num?)?.toDouble() ?? 0,
+      heat: json['heat'] as int? ?? 0,
       watchedCount: json['watched_count'] as int? ?? 0,
       wantWatchCount: json['want_watch_count'] as int? ?? 0,
       commentCount: json['comment_count'] as int? ?? 0,

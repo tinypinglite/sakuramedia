@@ -113,7 +113,7 @@ void main() {
     bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/movies/ABC-001',
-      body: _movieDetailJson(),
+      body: _movieDetailJson(heat: 31),
     );
 
     await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
@@ -133,8 +133,31 @@ void main() {
     expect(find.text('想看人数 23'), findsOneWidget);
     expect(find.text('看过人数 12'), findsOneWidget);
     expect(find.text('评分人数 45'), findsOneWidget);
+    expect(
+      find.byKey(const Key('movie-detail-hero-heat-text')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-detail-interaction-heat-text')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('movie-detail-hero-heat-text')))
+          .data,
+      '31',
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const Key('movie-detail-interaction-heat-text')),
+          )
+          .data,
+      '31',
+    );
     expect(find.byIcon(Icons.star_outline_rounded), findsWidgets);
     expect(find.byIcon(Icons.chat_bubble_outline_rounded), findsWidgets);
+    expect(find.byIcon(Icons.local_fire_department_rounded), findsWidgets);
     expect(find.text('演员'), findsOneWidget);
     expect(find.text('媒体源'), findsOneWidget);
     expect(find.text('H.264 · 22.8 Mbps · 29.97 fps'), findsOneWidget);
@@ -2751,6 +2774,7 @@ Map<String, dynamic> _movieDetailJson({
   String summary = '',
   String makerName = 'S1 NO.1 STYLE',
   String directorName = '紋℃',
+  int heat = 0,
   List<Map<String, dynamic>>? tags,
   List<Map<String, dynamic>>? actors,
   List<Map<String, dynamic>>? plotImages,
@@ -2771,6 +2795,7 @@ Map<String, dynamic> _movieDetailJson({
     'release_date': '2026-03-08',
     'duration_minutes': 120,
     'score': 4.5,
+    'heat': heat,
     'watched_count': 12,
     'want_watch_count': 23,
     'comment_count': 34,
