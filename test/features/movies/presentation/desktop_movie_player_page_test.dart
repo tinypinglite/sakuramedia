@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_controller.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_readiness.dart';
 
@@ -497,6 +498,7 @@ void main() {
           initialPosition,
           onPositionChanged,
           onPlayingChanged,
+          onBackPressed,
           useTouchOptimizedControls,
         ) {
           surfaceBuildCount += 1;
@@ -549,6 +551,7 @@ void main() {
           initialPosition,
           onPositionChanged,
           onPlayingChanged,
+          onBackPressed,
           useTouchOptimizedControls,
         ) {
           emitPosition = onPositionChanged;
@@ -597,6 +600,7 @@ void main() {
           initialPosition,
           onPositionChanged,
           onPlayingChanged,
+          onBackPressed,
           useTouchOptimizedControls,
         ) {
           emitPosition = onPositionChanged;
@@ -779,6 +783,7 @@ void main() {
             initialPosition,
             onPositionChanged,
             onPlayingChanged,
+            onBackPressed,
             useTouchOptimizedControls,
           ) => _TestMoviePlayerSurface(
             resolvedUrl: resolvedUrl,
@@ -788,6 +793,7 @@ void main() {
             initialPositions: initialPositions,
             onPositionChanged: onPositionChanged,
             onPlayingChanged: onPlayingChanged,
+            onBackPressed: onBackPressed,
             emitPositionOnBuild: const Duration(seconds: 25),
           ),
     );
@@ -884,6 +890,7 @@ MoviePlayerSurfaceBuilder _testSurfaceBuilder(
     Duration? initialPosition,
     ValueChanged<Duration>? onPositionChanged,
     ValueChanged<bool>? onPlayingChanged,
+    VoidCallback onBackPressed,
     bool useTouchOptimizedControls,
   ) {
     return _TestMoviePlayerSurface(
@@ -894,6 +901,7 @@ MoviePlayerSurfaceBuilder _testSurfaceBuilder(
       initialPositions: initialPositions,
       onPositionChanged: onPositionChanged,
       onPlayingChanged: onPlayingChanged,
+      onBackPressed: onBackPressed,
       readiness: readiness,
     );
   };
@@ -912,6 +920,7 @@ Future<void> _pumpPage(
     Duration? initialPosition,
     ValueChanged<Duration>? onPositionChanged,
     ValueChanged<bool>? onPlayingChanged,
+    VoidCallback onBackPressed,
     bool useTouchOptimizedControls,
   )?
   surfaceBuilder,
@@ -1048,6 +1057,7 @@ class _TestMoviePlayerSurface extends StatefulWidget {
     required this.initialPositions,
     required this.onPositionChanged,
     required this.onPlayingChanged,
+    required this.onBackPressed,
     this.readiness,
     this.emitPositionOnBuild,
   });
@@ -1059,6 +1069,7 @@ class _TestMoviePlayerSurface extends StatefulWidget {
   final List<Duration?> initialPositions;
   final ValueChanged<Duration>? onPositionChanged;
   final ValueChanged<bool>? onPlayingChanged;
+  final VoidCallback onBackPressed;
   final ValueNotifier<bool>? readiness;
   final Duration? emitPositionOnBuild;
 
@@ -1098,15 +1109,25 @@ class _TestMoviePlayerSurfaceState extends State<_TestMoviePlayerSurface> {
   Widget build(BuildContext context) {
     final content = Text('surface:${widget.resolvedUrl}');
     final readiness = widget.readiness;
-    if (readiness == null) {
-      return content;
-    }
-    return ValueListenableBuilder<bool>(
-      valueListenable: readiness,
-      builder: (context, isReady, child) {
-        return MoviePlayerSurfaceFrame(isReady: isReady, child: child!);
-      },
-      child: content,
+    final surface =
+        readiness == null
+            ? content
+            : ValueListenableBuilder<bool>(
+              valueListenable: readiness,
+              builder: (context, isReady, child) {
+                return MoviePlayerSurfaceFrame(isReady: isReady, child: child!);
+              },
+              child: content,
+            );
+    return Stack(
+      children: [
+        surface,
+        Positioned(
+          left: 0,
+          top: 0,
+          child: MoviePlayerBackOverlay(onPressed: widget.onBackPressed),
+        ),
+      ],
     );
   }
 }

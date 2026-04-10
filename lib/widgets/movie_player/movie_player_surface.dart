@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_controller.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_readiness.dart';
 
@@ -15,6 +16,7 @@ class MoviePlayerSurface extends StatefulWidget {
     this.initialPosition,
     this.onPositionChanged,
     this.onPlayingChanged,
+    this.onBackPressed,
     this.useTouchOptimizedControls = false,
   });
 
@@ -23,6 +25,7 @@ class MoviePlayerSurface extends StatefulWidget {
   final Duration? initialPosition;
   final ValueChanged<Duration>? onPositionChanged;
   final ValueChanged<bool>? onPlayingChanged;
+  final VoidCallback? onBackPressed;
   final bool useTouchOptimizedControls;
 
   @override
@@ -109,7 +112,8 @@ Widget Function(VideoState state) resolveMoviePlayerVideoControlsBuilder({
 @visibleForTesting
 MaterialVideoControlsThemeData buildMoviePlayerMaterialControlsThemeData({
   required ThemeData theme,
-  required List<Widget> controls,
+  required List<Widget> topControls,
+  required List<Widget> bottomControls,
   required bool useTouchOptimizedControls,
 }) {
   if (useTouchOptimizedControls) {
@@ -128,7 +132,27 @@ MaterialVideoControlsThemeData buildMoviePlayerMaterialControlsThemeData({
     seekBarHeight: 6,
     seekBarThumbSize: 14,
     displaySeekBar: true,
-    bottomButtonBar: controls,
+    topButtonBar: topControls,
+    topButtonBarMargin: const EdgeInsets.fromLTRB(12, 18, 12, 0),
+    bottomButtonBar: bottomControls,
+  );
+}
+
+@visibleForTesting
+MaterialDesktopVideoControlsThemeData buildMoviePlayerDesktopControlsThemeData({
+  required ThemeData theme,
+  required List<Widget> topControls,
+  required List<Widget> bottomControls,
+}) {
+  return MaterialDesktopVideoControlsThemeData(
+    seekBarThumbColor: theme.colorScheme.primary,
+    seekBarPositionColor: theme.colorScheme.primary,
+    seekBarHeight: 6,
+    seekBarThumbSize: 14,
+    displaySeekBar: true,
+    topButtonBar: topControls,
+    topButtonBarMargin: const EdgeInsets.fromLTRB(12, 18, 12, 0),
+    bottomButtonBar: bottomControls,
   );
 }
 
@@ -294,7 +318,11 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final controls = <Widget>[
+    final topControls =
+        widget.onBackPressed == null
+            ? const <Widget>[]
+            : <Widget>[MoviePlayerBackButton(onPressed: widget.onBackPressed!)];
+    final bottomControls = <Widget>[
       const MaterialPlayOrPauseButton(),
       const MaterialDesktopVolumeButton(),
       const MaterialPositionIndicator(),
@@ -304,11 +332,11 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     final backgroundColor = context.appColors.movieDetailHeroBackgroundStart;
 
     return MaterialVideoControlsTheme(
-      normal: _materialControlsTheme(theme, controls),
-      fullscreen: _materialControlsTheme(theme, controls),
+      normal: _materialControlsTheme(theme, topControls, bottomControls),
+      fullscreen: _materialControlsTheme(theme, topControls, bottomControls),
       child: MaterialDesktopVideoControlsTheme(
-        normal: _desktopControlsTheme(theme, controls),
-        fullscreen: _desktopControlsTheme(theme, controls),
+        normal: _desktopControlsTheme(theme, topControls, bottomControls),
+        fullscreen: _desktopControlsTheme(theme, topControls, bottomControls),
         child: ListenableBuilder(
           listenable: _readiness,
           builder: (context, child) {
@@ -340,25 +368,25 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
 
   MaterialDesktopVideoControlsThemeData _desktopControlsTheme(
     ThemeData theme,
-    List<Widget> controls,
+    List<Widget> topControls,
+    List<Widget> bottomControls,
   ) {
-    return MaterialDesktopVideoControlsThemeData(
-      seekBarThumbColor: theme.colorScheme.primary,
-      seekBarPositionColor: theme.colorScheme.primary,
-      seekBarHeight: 6,
-      seekBarThumbSize: 14,
-      displaySeekBar: true,
-      bottomButtonBar: controls,
+    return buildMoviePlayerDesktopControlsThemeData(
+      theme: theme,
+      topControls: topControls,
+      bottomControls: bottomControls,
     );
   }
 
   MaterialVideoControlsThemeData _materialControlsTheme(
     ThemeData theme,
-    List<Widget> controls,
+    List<Widget> topControls,
+    List<Widget> bottomControls,
   ) {
     return buildMoviePlayerMaterialControlsThemeData(
       theme: theme,
-      controls: controls,
+      topControls: topControls,
+      bottomControls: bottomControls,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
     );
   }

@@ -201,11 +201,19 @@ void main() {
       find.byKey(const Key('mobile-movie-detail-page-surface')),
     );
     expect(loadedSurface.color, sakuraThemeData.appColors.surfaceCard);
+    expect(find.text('系列 · Attackers'), findsOneWidget);
+    expect(find.text('厂商 · S1 NO.1 STYLE'), findsOneWidget);
+    expect(find.text('导演 · 紋℃'), findsOneWidget);
     expect(find.text('标签'), findsOneWidget);
-    expect(find.text('厂商'), findsOneWidget);
-    expect(find.text('S1 NO.1 STYLE'), findsOneWidget);
-    expect(find.text('导演'), findsOneWidget);
-    expect(find.text('紋℃'), findsOneWidget);
+    expect(
+      find.byKey(const Key('movie-detail-interaction-row')),
+      findsOneWidget,
+    );
+    expect(find.text('想看人数 23'), findsOneWidget);
+    expect(find.text('看过人数 12'), findsOneWidget);
+    expect(find.text('评分人数 45'), findsOneWidget);
+    expect(find.byIcon(Icons.star_outline_rounded), findsWidgets);
+    expect(find.byIcon(Icons.chat_bubble_outline_rounded), findsWidgets);
     expect(find.text('演员'), findsOneWidget);
     expect(find.text('媒体源'), findsOneWidget);
     expect(find.text('H.264 · 22.8 Mbps · 29.97 fps'), findsOneWidget);
@@ -327,10 +335,8 @@ void main() {
       await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
       await tester.pumpAndSettle();
 
-      expect(find.text('厂商'), findsNothing);
-      expect(find.text('导演'), findsNothing);
-      expect(find.text('S1 NO.1 STYLE'), findsNothing);
-      expect(find.text('紋℃'), findsNothing);
+      expect(find.text('厂商 · S1 NO.1 STYLE'), findsNothing);
+      expect(find.text('导演 · 紋℃'), findsNothing);
     },
   );
 
@@ -424,11 +430,16 @@ void main() {
       final heroTop = tester.getTopLeft(find.byType(MovieDetailHeroCard)).dy;
       final movieNumberBottom =
           tester.getBottomLeft(find.byKey(const Key('movie-detail-number'))).dy;
+      final interactionTop =
+          tester
+              .getTopLeft(find.byKey(const Key('movie-detail-interaction-row')))
+              .dy;
       final summaryTop =
           tester.getTopLeft(find.byKey(const Key('movie-detail-summary'))).dy;
 
       expect(titleBottom, lessThan(heroTop));
-      expect(movieNumberBottom, lessThan(summaryTop));
+      expect(movieNumberBottom, lessThan(interactionTop));
+      expect(interactionTop, lessThan(summaryTop));
     },
   );
 

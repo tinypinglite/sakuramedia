@@ -47,6 +47,11 @@ app.*.map.json
 android/key.properties
 android/keystore/
 
+# Wiki (VitePress)
+wiki/node_modules/
+wiki/.vitepress/dist/
+wiki/.vitepress/cache/
+
 # Python helper scripts
 __pycache__/
 

@@ -6,11 +6,21 @@ class MovieDetailNumberBar extends StatelessWidget {
     super.key,
     required this.movieNumber,
     required this.summary,
+    required this.wantWatchCount,
+    required this.watchedCount,
+    required this.score,
+    required this.commentCount,
+    required this.scoreNumber,
     this.trailing,
   });
 
   final String movieNumber;
   final String summary;
+  final int wantWatchCount;
+  final int watchedCount;
+  final double score;
+  final int commentCount;
+  final int scoreNumber;
   final Widget? trailing;
 
   @override
@@ -18,6 +28,7 @@ class MovieDetailNumberBar extends StatelessWidget {
     final resolvedMovieNumber = movieNumber.trim();
     final resolvedSummary = summary.trim();
     final shouldShowSummary = resolvedSummary.isNotEmpty;
+    final scoreLabel = _formatScore(score);
 
     return Padding(
       padding: EdgeInsets.only(
@@ -41,6 +52,64 @@ class MovieDetailNumberBar extends StatelessWidget {
               ],
             ],
           ),
+          SizedBox(height: context.appSpacing.xs),
+          Wrap(
+            key: const Key('movie-detail-interaction-row'),
+            spacing: context.appSpacing.sm,
+            runSpacing: context.appSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                '想看人数 $wantWatchCount',
+                key: const Key('movie-detail-interaction-want-watch-text'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              Text(
+                '看过人数 $watchedCount',
+                key: const Key('movie-detail-interaction-watched-text'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              Row(
+                key: const Key('movie-detail-interaction-score-item'),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.star_outline_rounded,
+                    size: context.appComponentTokens.iconSizeXs,
+                    color: context.appColors.movieDetailScoreIcon,
+                  ),
+                  SizedBox(width: context.appSpacing.xs),
+                  Text(
+                    scoreLabel,
+                    key: const Key('movie-detail-interaction-score-text'),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              Row(
+                key: const Key('movie-detail-interaction-comment-item'),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: context.appComponentTokens.iconSizeXs,
+                    color: context.appColors.movieDetailCommentCountIcon,
+                  ),
+                  SizedBox(width: context.appSpacing.xs),
+                  Text(
+                    '$commentCount',
+                    key: const Key('movie-detail-interaction-comment-text'),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              Text(
+                '评分人数 $scoreNumber',
+                key: const Key('movie-detail-interaction-score-number-text'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
           if (shouldShowSummary) ...[
             SizedBox(height: context.appSpacing.xs),
             Text(
@@ -55,4 +124,9 @@ class MovieDetailNumberBar extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatScore(double score) {
+  final fixed = score.toStringAsFixed(2);
+  return fixed.replaceFirst(RegExp(r'\.?0+$'), '');
 }

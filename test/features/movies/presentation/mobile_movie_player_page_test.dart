@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_pa
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 
 import '../../../support/test_api_bundle.dart';
 
@@ -155,7 +156,22 @@ void main() {
     bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/movies/ABC-001',
-      body: _movieDetailJson(mediaItems: const <Map<String, dynamic>>[]),
+      body: _movieDetailJson(
+        mediaItems: const <Map<String, dynamic>>[
+          <String, dynamic>{
+            'media_id': 100,
+            'play_url': '/files/media/movies/ABC-001/video.mp4',
+            'path': '/library/main/ABC-001/video.mp4',
+            'duration_seconds': 7200,
+            'progress': null,
+          },
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/100/thumbnails',
+      body: const <String, dynamic>{'items': <Map<String, dynamic>>[]},
     );
 
     final router = GoRouter(
@@ -180,6 +196,21 @@ void main() {
                 initialPositionSeconds: int.tryParse(
                   state.uri.queryParameters['positionSeconds'] ?? '',
                 ),
+                surfaceBuilder: (
+                  BuildContext context,
+                  String resolvedUrl,
+                  surfaceController,
+                  Duration? initialPosition,
+                  ValueChanged<Duration>? onPositionChanged,
+                  ValueChanged<bool>? onPlayingChanged,
+                  VoidCallback onBackPressed,
+                  bool useTouchOptimizedControls,
+                ) {
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: MoviePlayerBackOverlay(onPressed: onBackPressed),
+                  );
+                },
               ),
         ),
       ],
@@ -247,6 +278,7 @@ void main() {
                 Duration? initialPosition,
                 ValueChanged<Duration>? onPositionChanged,
                 ValueChanged<bool>? onPlayingChanged,
+                VoidCallback onBackPressed,
                 bool useTouchOptimizedControls,
               ) {
                 capturedUseTouchOptimizedControls = useTouchOptimizedControls;

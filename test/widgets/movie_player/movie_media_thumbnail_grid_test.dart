@@ -65,6 +65,73 @@ void main() {
     await _pumpGrid(tester, thumbnails: _thumbnails());
     await tester.pump();
 
+    final maskedImageFinder = find.descendant(
+      of: find.byKey(const Key('movie-media-thumb-0')),
+      matching: find.byType(MaskedImage),
+    );
+    final maskedImage = tester.widget<MaskedImage>(maskedImageFinder);
+    final renderedSize = tester.getSize(maskedImageFinder);
+
+    expect(
+      maskedImage.memCacheWidth,
+      _expectedDecodeDimension(extent: renderedSize.width, devicePixelRatio: 2),
+    );
+    expect(
+      maskedImage.memCacheHeight,
+      _expectedDecodeDimension(
+        extent: renderedSize.height,
+        devicePixelRatio: 2,
+      ),
+    );
+  });
+
+  testWidgets('thumbnail grid caps decode hints at 2x device pixel ratio', (
+    WidgetTester tester,
+  ) async {
+    tester.view.devicePixelRatio = 3.5;
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _pumpGrid(tester, thumbnails: _thumbnails());
+    await tester.pump();
+
+    final maskedImageFinder = find.descendant(
+      of: find.byKey(const Key('movie-media-thumb-0')),
+      matching: find.byType(MaskedImage),
+    );
+    final maskedImage = tester.widget<MaskedImage>(maskedImageFinder);
+    final renderedSize = tester.getSize(maskedImageFinder);
+
+    expect(
+      maskedImage.memCacheWidth,
+      _expectedDecodeDimension(
+        extent: renderedSize.width,
+        devicePixelRatio: 3.5,
+      ),
+    );
+    expect(
+      maskedImage.memCacheHeight,
+      _expectedDecodeDimension(
+        extent: renderedSize.height,
+        devicePixelRatio: 3.5,
+      ),
+    );
+  });
+
+  testWidgets('thumbnail grid caps decode hints to 1024 upper bound', (
+    WidgetTester tester,
+  ) async {
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _pumpGrid(
+      tester,
+      thumbnails: _thumbnails(),
+      columns: 1,
+      width: 2200,
+      height: 1400,
+    );
+    await tester.pump();
+
     final maskedImage = tester.widget<MaskedImage>(
       find.descendant(
         of: find.byKey(const Key('movie-media-thumb-0')),
@@ -72,10 +139,8 @@ void main() {
       ),
     );
 
-    expect(maskedImage.memCacheWidth, isNotNull);
-    expect(maskedImage.memCacheHeight, isNotNull);
-    expect(maskedImage.memCacheWidth, greaterThan(0));
-    expect(maskedImage.memCacheHeight, greaterThan(0));
+    expect(maskedImage.memCacheWidth, 1024);
+    expect(maskedImage.memCacheHeight, 1024);
   });
 
   testWidgets('thumbnail grid shows retry action when loading fails', (
@@ -472,6 +537,8 @@ Future<void> _pumpGrid(
   required List<MovieMediaThumbnailDto> thumbnails,
   int columns = 3,
   int? activeIndex = 0,
+  double width = 360,
+  double height = 720,
   bool isScrollLocked = true,
   String? errorMessage,
   VoidCallback? onRetry,
@@ -487,8 +554,8 @@ Future<void> _pumpGrid(
         theme: sakuraThemeData,
         home: Scaffold(
           body: SizedBox(
-            width: 360,
-            height: 720,
+            width: width,
+            height: height,
             child: MovieMediaThumbnailGrid(
               thumbnails: thumbnails,
               isLoading: false,
@@ -561,4 +628,12 @@ List<MovieMediaThumbnailDto> _manyThumbnails(
 double _scrollOffset(WidgetTester tester, Finder scrollableFinder) {
   final state = tester.state<ScrollableState>(scrollableFinder);
   return state.position.pixels;
+}
+
+int _expectedDecodeDimension({
+  required double extent,
+  required double devicePixelRatio,
+}) {
+  final effectivePixelRatio = devicePixelRatio > 2 ? 2.0 : devicePixelRatio;
+  return (extent * effectivePixelRatio).round().clamp(1, 1024) as int;
 }
