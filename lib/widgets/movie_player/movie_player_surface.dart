@@ -1,10 +1,17 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:oktoast/oktoast.dart';
+import 'package:provider/provider.dart';
+import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_subtitle_button.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_controller.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_readiness.dart';
 
@@ -16,6 +23,9 @@ class MoviePlayerSurface extends StatefulWidget {
     this.initialPosition,
     this.onPositionChanged,
     this.onPlayingChanged,
+    this.subtitleState = MoviePlayerSubtitleState.empty,
+    this.onSubtitleSelectionChanged,
+    this.onSubtitleReloadRequested,
     this.onBackPressed,
     this.useTouchOptimizedControls = false,
   });
@@ -25,6 +35,9 @@ class MoviePlayerSurface extends StatefulWidget {
   final Duration? initialPosition;
   final ValueChanged<Duration>? onPositionChanged;
   final ValueChanged<bool>? onPlayingChanged;
+  final MoviePlayerSubtitleState subtitleState;
+  final ValueChanged<int?>? onSubtitleSelectionChanged;
+  final Future<void> Function()? onSubtitleReloadRequested;
   final VoidCallback? onBackPressed;
   final bool useTouchOptimizedControls;
 
@@ -44,6 +57,59 @@ abstract class MoviePlayerSurfacePlaybackDriver {
   Future<void> play();
 
   Future<void> waitUntilFirstFrameRendered();
+
+  Future<void> setSubtitleTrack(SubtitleTrack track);
+}
+
+typedef MoviePlayerSurfaceSubtitleTextLoader =
+    Future<String> Function(MoviePlayerSubtitleOption option);
+
+class MoviePlayerSurfaceSubtitleCoordinator {
+  const MoviePlayerSurfaceSubtitleCoordinator();
+
+  Future<int?> applySelection({
+    required MoviePlayerSurfacePlaybackDriver driver,
+    required MoviePlayerSubtitleOption? selectedOption,
+    required MoviePlayerSurfaceSubtitleTextLoader loadSubtitleText,
+    required VoidCallback onError,
+  }) async {
+    try {
+      if (selectedOption == null) {
+        debugPrint('[player-debug] subtitle_apply_begin mode=off');
+        await driver.setSubtitleTrack(SubtitleTrack.no());
+        debugPrint('[player-debug] subtitle_apply_success mode=off');
+        return null;
+      }
+      debugPrint(
+        '[player-debug] subtitle_apply_begin mode=select subtitleId=${selectedOption.subtitleId} url=${selectedOption.resolvedUrl} title=${selectedOption.title}',
+      );
+      final subtitleText = await loadSubtitleText(selectedOption);
+      debugPrint(
+        '[player-debug] subtitle_apply_loaded subtitleId=${selectedOption.subtitleId} textLength=${subtitleText.length}',
+      );
+      await driver.setSubtitleTrack(
+        SubtitleTrack.data(
+          subtitleText,
+          title: selectedOption.title,
+          language: selectedOption.language,
+        ),
+      );
+      debugPrint(
+        '[player-debug] subtitle_apply_success mode=select subtitleId=${selectedOption.subtitleId}',
+      );
+      return selectedOption.subtitleId;
+    } catch (error) {
+      debugPrint('[player-debug] subtitle_apply_error error=$error');
+      try {
+        await driver.setSubtitleTrack(SubtitleTrack.no());
+        debugPrint('[player-debug] subtitle_apply_fallback mode=off');
+      } catch (_) {
+        // Keep the original failure as the user-visible signal.
+      }
+      onError();
+      return null;
+    }
+  }
 }
 
 class MoviePlayerSurfaceOpenCoordinator {
@@ -161,11 +227,14 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   late final VideoController _controller;
   late final MoviePlayerSurfaceReadiness _readiness;
   late final MoviePlayerSurfacePlaybackDriver _playbackDriver;
+  late final ValueNotifier<MoviePlayerSubtitleState> _subtitleStateNotifier;
+  late final ValueNotifier<bool> _isApplyingSubtitleNotifier;
   StreamSubscription<Duration>? _seekSubscription;
   StreamSubscription<void>? _playSubscription;
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<bool>? _playingSubscription;
   int _openRequestId = 0;
+  bool _isApplyingSubtitle = false;
   Duration? _startupSeekTarget;
   DateTime? _startupSeekStartedAt;
   bool _startupSeekSettled = true;
@@ -173,6 +242,8 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   int _startupSeekNearTargetSamples = 0;
   static const MoviePlayerSurfaceOpenCoordinator _openCoordinator =
       MoviePlayerSurfaceOpenCoordinator();
+  static const MoviePlayerSurfaceSubtitleCoordinator _subtitleCoordinator =
+      MoviePlayerSurfaceSubtitleCoordinator();
   static const int _startupSeekToleranceSeconds = 2;
   static const int _startupSeekRetryDelayMs = 800;
   static const int _startupSeekMaxWindowMs = 8000;
@@ -182,13 +253,17 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   @override
   void initState() {
     super.initState();
-    _player = Player();
+    _player = Player(configuration: buildMoviePlayerConfiguration());
     _controller = VideoController(_player);
     _readiness = MoviePlayerSurfaceReadiness();
     _playbackDriver = _MediaKitMoviePlayerSurfacePlaybackDriver(
       player: _player,
       controller: _controller,
     );
+    _subtitleStateNotifier = ValueNotifier<MoviePlayerSubtitleState>(
+      widget.subtitleState,
+    );
+    _isApplyingSubtitleNotifier = ValueNotifier<bool>(_isApplyingSubtitle);
     _seekSubscription = widget.surfaceController.seekStream.listen(
       _player.seek,
     );
@@ -208,6 +283,9 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   @override
   void didUpdateWidget(covariant MoviePlayerSurface oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.subtitleState, widget.subtitleState)) {
+      _subtitleStateNotifier.value = widget.subtitleState;
+    }
     if (oldWidget.surfaceController != widget.surfaceController) {
       _seekSubscription?.cancel();
       _seekSubscription = widget.surfaceController.seekStream.listen(
@@ -229,6 +307,8 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     _playSubscription?.cancel();
     _positionSubscription?.cancel();
     _playingSubscription?.cancel();
+    _subtitleStateNotifier.dispose();
+    _isApplyingSubtitleNotifier.dispose();
     _readiness.dispose();
     _player.dispose();
     super.dispose();
@@ -315,6 +395,87 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     unawaited(_player.seek(target));
   }
 
+  Future<void> _handleSubtitleSelected(int? subtitleId) async {
+    if (_isApplyingSubtitle) {
+      debugPrint(
+        '[player-debug] subtitle_selection_ignored reason=already_applying requestedSubtitleId=$subtitleId',
+      );
+      return;
+    }
+
+    MoviePlayerSubtitleOption? selectedOption;
+    if (subtitleId != null) {
+      for (final option in widget.subtitleState.options) {
+        if (option.subtitleId == subtitleId) {
+          selectedOption = option;
+          break;
+        }
+      }
+      if (selectedOption == null) {
+        debugPrint(
+          '[player-debug] subtitle_selection_ignored reason=option_not_found requestedSubtitleId=$subtitleId',
+        );
+        return;
+      }
+    }
+
+    debugPrint(
+      '[player-debug] subtitle_selection_requested requestedSubtitleId=$subtitleId currentSelected=${widget.subtitleState.selectedSubtitleId}',
+    );
+
+    setState(() {
+      _isApplyingSubtitle = true;
+      _isApplyingSubtitleNotifier.value = true;
+    });
+
+    try {
+      final nextSubtitleId = await _subtitleCoordinator.applySelection(
+        driver: _playbackDriver,
+        selectedOption: selectedOption,
+        loadSubtitleText: _loadSubtitleText,
+        onError: () {
+          if (mounted) {
+            showToast('加载字幕失败，请稍后重试');
+          }
+        },
+      );
+      debugPrint(
+        '[player-debug] subtitle_selection_result requestedSubtitleId=$subtitleId nextSubtitleId=$nextSubtitleId',
+      );
+      widget.onSubtitleSelectionChanged?.call(nextSubtitleId);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isApplyingSubtitle = false;
+          _isApplyingSubtitleNotifier.value = false;
+        });
+      }
+    }
+  }
+
+  Future<String> _loadSubtitleText(MoviePlayerSubtitleOption option) async {
+    final apiClient = context.read<ApiClient>();
+    debugPrint(
+      '[player-debug] subtitle_text_load_begin subtitleId=${option.subtitleId} url=${option.resolvedUrl}',
+    );
+    final bytes = await apiClient.getBytes(option.resolvedUrl);
+    debugPrint(
+      '[player-debug] subtitle_text_load_bytes subtitleId=${option.subtitleId} byteLength=${bytes.length}',
+    );
+    final text = utf8.decode(bytes);
+    debugPrint(
+      '[player-debug] subtitle_text_load_decoded subtitleId=${option.subtitleId} textLength=${text.length}',
+    );
+    return text;
+  }
+
+  Future<void> _handleSubtitleReloadRequested() async {
+    if (_isApplyingSubtitle) {
+      return;
+    }
+    await widget.onSubtitleReloadRequested?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -327,6 +488,12 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       const MaterialDesktopVolumeButton(),
       const MaterialPositionIndicator(),
       const Spacer(),
+      MoviePlayerSubtitleButton(
+        subtitleStateListenable: _subtitleStateNotifier,
+        isApplyingListenable: _isApplyingSubtitleNotifier,
+        onSubtitleSelected: _handleSubtitleSelected,
+        onReloadRequested: _handleSubtitleReloadRequested,
+      ),
       const MaterialFullscreenButton(),
     ];
     final backgroundColor = context.appColors.movieDetailHeroBackgroundStart;
@@ -392,6 +559,27 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   }
 }
 
+@visibleForTesting
+PlayerConfiguration buildMoviePlayerConfiguration({
+  bool isWeb = kIsWeb,
+  TargetPlatform? platform,
+}) {
+  if (isWeb) {
+    return const PlayerConfiguration();
+  }
+
+  switch (platform ?? defaultTargetPlatform) {
+    case TargetPlatform.macOS:
+    case TargetPlatform.windows:
+    case TargetPlatform.linux:
+      return const PlayerConfiguration(libass: true);
+    case TargetPlatform.android:
+    case TargetPlatform.iOS:
+    case TargetPlatform.fuchsia:
+      return const PlayerConfiguration();
+  }
+}
+
 class _MediaKitMoviePlayerSurfacePlaybackDriver
     implements MoviePlayerSurfacePlaybackDriver {
   _MediaKitMoviePlayerSurfacePlaybackDriver({
@@ -425,5 +613,10 @@ class _MediaKitMoviePlayerSurfacePlaybackDriver
   @override
   Future<void> waitUntilFirstFrameRendered() {
     return _controller.waitUntilFirstFrameRendered;
+  }
+
+  @override
+  Future<void> setSubtitleTrack(SubtitleTrack track) {
+    return _player.setSubtitleTrack(track);
   }
 }

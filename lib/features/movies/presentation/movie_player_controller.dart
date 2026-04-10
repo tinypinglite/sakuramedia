@@ -5,6 +5,8 @@ import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_subtitle_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
 
 class MoviePlayerController extends ChangeNotifier {
   MoviePlayerController({
@@ -12,6 +14,7 @@ class MoviePlayerController extends ChangeNotifier {
     required this.baseUrl,
     required this.fetchMovieDetail,
     required this.fetchMediaThumbnails,
+    required this.fetchMovieSubtitles,
     required this.updateMediaProgress,
     this.initialMediaId,
     this.initialPositionSeconds,
@@ -27,6 +30,8 @@ class MoviePlayerController extends ChangeNotifier {
   fetchMovieDetail;
   final Future<List<MovieMediaThumbnailDto>> Function({required int mediaId})
   fetchMediaThumbnails;
+  final Future<MovieSubtitleListDto> Function({required String movieNumber})
+  fetchMovieSubtitles;
   final Future<MovieMediaProgressDto> Function({
     required int mediaId,
     required int positionSeconds,
@@ -38,6 +43,7 @@ class MoviePlayerController extends ChangeNotifier {
   List<MovieMediaThumbnailDto> _thumbnails = const <MovieMediaThumbnailDto>[];
   bool _isLoading = true;
   bool _isThumbnailLoading = false;
+  bool _isSubtitleLoading = false;
   bool _isPlaying = false;
   bool _isThumbnailScrollLocked = true;
   int? _thumbnailColumns;
@@ -50,6 +56,11 @@ class MoviePlayerController extends ChangeNotifier {
   Duration? _startupPlaybackPosition;
   String? _errorMessage;
   String? _thumbnailErrorMessage;
+  String? _subtitleErrorMessage;
+  String _subtitleFetchStatus = 'pending';
+  List<MoviePlayerSubtitleOption> _subtitleOptions =
+      const <MoviePlayerSubtitleOption>[];
+  int? _selectedSubtitleId;
   Timer? _progressTimer;
 
   MovieDetailDto? get movie => _movie;
@@ -57,15 +68,28 @@ class MoviePlayerController extends ChangeNotifier {
   List<MovieMediaThumbnailDto> get thumbnails => _thumbnails;
   bool get isLoading => _isLoading;
   bool get isThumbnailLoading => _isThumbnailLoading;
+  bool get isSubtitleLoading => _isSubtitleLoading;
   String? get errorMessage => _errorMessage;
   String? get thumbnailErrorMessage => _thumbnailErrorMessage;
+  String? get subtitleErrorMessage => _subtitleErrorMessage;
+  String get subtitleFetchStatus => _subtitleFetchStatus;
   bool get isThumbnailScrollLocked => _isThumbnailScrollLocked;
   bool get usesAutoThumbnailColumns => !_hasManualThumbnailColumnOverride;
   int? get thumbnailColumns => _thumbnailColumns;
   int get currentPlaybackSeconds => _currentPlaybackSeconds;
   int? get activeThumbnailIndex => _activeThumbnailIndexNotifier.value;
+  List<MoviePlayerSubtitleOption> get subtitleOptions => _subtitleOptions;
+  int? get selectedSubtitleId => _selectedSubtitleId;
   ValueListenable<int?> get activeThumbnailIndexListenable =>
       _activeThumbnailIndexNotifier;
+
+  MoviePlayerSubtitleState get subtitleState => MoviePlayerSubtitleState(
+    options: _subtitleOptions,
+    selectedSubtitleId: _selectedSubtitleId,
+    isLoading: _isSubtitleLoading,
+    fetchStatus: _subtitleFetchStatus,
+    errorMessage: _subtitleErrorMessage,
+  );
 
   String? get resolvedPlayUrl =>
       resolveMediaUrl(rawUrl: _selectedMedia?.playUrl, baseUrl: baseUrl);
@@ -88,6 +112,7 @@ class MoviePlayerController extends ChangeNotifier {
       _thumbnails = const <MovieMediaThumbnailDto>[];
       _thumbnailErrorMessage = null;
       _isThumbnailLoading = false;
+      _resetSubtitleState();
       _startupPlaybackPosition = _resolveStartupPlaybackPosition(
         _selectedMedia,
       );
@@ -97,9 +122,10 @@ class MoviePlayerController extends ChangeNotifier {
       _currentPlaybackSeconds = _startupPlaybackPosition?.inSeconds ?? 0;
       _lastReportedPositionSeconds = _startupPlaybackPosition?.inSeconds;
       _setActiveThumbnailIndex(null);
-      if (_selectedMedia != null) {
-        await loadThumbnails();
-      }
+      await Future.wait<void>(<Future<void>>[
+        if (_selectedMedia != null) loadThumbnails(),
+        loadSubtitles(),
+      ]);
       _errorMessage = null;
     } catch (error) {
       debugPrint(
@@ -110,6 +136,7 @@ class MoviePlayerController extends ChangeNotifier {
       _thumbnails = const <MovieMediaThumbnailDto>[];
       _thumbnailErrorMessage = null;
       _isThumbnailLoading = false;
+      _resetSubtitleState();
       _startupPlaybackPosition = null;
       _setActiveThumbnailIndex(null);
       _errorMessage = _messageForError(error);
@@ -146,6 +173,49 @@ class MoviePlayerController extends ChangeNotifier {
     }
   }
 
+  Future<void> loadSubtitles() async {
+    final previousSelectedSubtitleId = _selectedSubtitleId;
+    debugPrint(
+      '[player-debug] subtitle_state_load_begin movie=$movieNumber previousSelected=$previousSelectedSubtitleId',
+    );
+    _isSubtitleLoading = true;
+    _subtitleErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await fetchMovieSubtitles(movieNumber: movieNumber);
+      _subtitleFetchStatus =
+          result.fetchStatus.trim().isEmpty
+              ? 'pending'
+              : result.fetchStatus.trim();
+      _subtitleOptions = result.items
+          .map(_buildSubtitleOption)
+          .whereType<MoviePlayerSubtitleOption>()
+          .toList(growable: false);
+      _selectedSubtitleId =
+          _subtitleOptions.any(
+                (item) => item.subtitleId == previousSelectedSubtitleId,
+              )
+              ? previousSelectedSubtitleId
+              : null;
+      _subtitleErrorMessage = _subtitleErrorMessageFromResult(result);
+      debugPrint(
+        '[player-debug] subtitle_state_load_success movie=$movieNumber fetchStatus=$_subtitleFetchStatus selected=$_selectedSubtitleId error=$_subtitleErrorMessage options=${_subtitleOptions.map((item) => "${item.subtitleId}:${item.label}").join("|")}',
+      );
+    } catch (_) {
+      _subtitleFetchStatus = 'failed';
+      _subtitleOptions = const <MoviePlayerSubtitleOption>[];
+      _selectedSubtitleId = null;
+      _subtitleErrorMessage = '请稍后重试。';
+      debugPrint(
+        '[player-debug] subtitle_state_load_error movie=$movieNumber selected=$_selectedSubtitleId',
+      );
+    } finally {
+      _isSubtitleLoading = false;
+      notifyListeners();
+    }
+  }
+
   void applyAutoThumbnailColumns(int count) {
     if (_hasManualThumbnailColumnOverride || _thumbnailColumns == count) {
       return;
@@ -165,6 +235,27 @@ class MoviePlayerController extends ChangeNotifier {
 
   void toggleThumbnailScrollLock() {
     _isThumbnailScrollLocked = !_isThumbnailScrollLocked;
+    notifyListeners();
+  }
+
+  void setSelectedSubtitleId(int? subtitleId) {
+    if (subtitleId != null &&
+        !_subtitleOptions.any((item) => item.subtitleId == subtitleId)) {
+      debugPrint(
+        '[player-debug] subtitle_state_set_ignored reason=unknown_id requested=$subtitleId options=${_subtitleOptions.map((item) => item.subtitleId).join(",")}',
+      );
+      return;
+    }
+    if (_selectedSubtitleId == subtitleId) {
+      debugPrint(
+        '[player-debug] subtitle_state_set_ignored reason=unchanged requested=$subtitleId',
+      );
+      return;
+    }
+    debugPrint(
+      '[player-debug] subtitle_state_set from=$_selectedSubtitleId to=$subtitleId',
+    );
+    _selectedSubtitleId = subtitleId;
     notifyListeners();
   }
 
@@ -240,6 +331,42 @@ class MoviePlayerController extends ChangeNotifier {
       '[player-debug] startup_position_source=none mediaId=${media?.mediaId}',
     );
     return null;
+  }
+
+  MoviePlayerSubtitleOption? _buildSubtitleOption(MovieSubtitleItemDto item) {
+    final resolvedUrl = resolveMediaUrl(rawUrl: item.url, baseUrl: baseUrl);
+    if (resolvedUrl == null || resolvedUrl.isEmpty) {
+      return null;
+    }
+    final label =
+        item.fileName.trim().isNotEmpty
+            ? item.fileName.trim()
+            : '字幕 ${item.subtitleId}';
+    return MoviePlayerSubtitleOption(
+      subtitleId: item.subtitleId,
+      label: label,
+      resolvedUrl: resolvedUrl,
+      title: label,
+    );
+  }
+
+  String? _subtitleErrorMessageFromResult(MovieSubtitleListDto result) {
+    final lastError = result.lastError?.trim();
+    if (lastError != null && lastError.isNotEmpty) {
+      return lastError;
+    }
+    if (result.fetchStatus == 'failed') {
+      return '字幕抓取失败';
+    }
+    return null;
+  }
+
+  void _resetSubtitleState() {
+    _isSubtitleLoading = false;
+    _subtitleErrorMessage = null;
+    _subtitleFetchStatus = 'pending';
+    _subtitleOptions = const <MoviePlayerSubtitleOption>[];
+    _selectedSubtitleId = null;
   }
 
   void _startProgressTimer() {

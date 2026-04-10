@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_search_stream_update.dart';
+import 'package:sakuramedia/features/movies/data/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/data/parsed_movie_number_dto.dart';
 import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
@@ -98,6 +99,13 @@ class MoviesApi {
       },
     );
     return response.map(MovieReviewDto.fromJson).toList(growable: false);
+  }
+
+  Future<MovieSubtitleListDto> getMovieSubtitles({
+    required String movieNumber,
+  }) async {
+    final response = await _apiClient.get('/movies/$movieNumber/subtitles');
+    return MovieSubtitleListDto.fromJson(response);
   }
 
   Future<List<MovieMediaThumbnailDto>> getMediaThumbnails({

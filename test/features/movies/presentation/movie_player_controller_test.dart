@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_player_controller.dart';
 
 void main() {
@@ -103,6 +104,33 @@ void main() {
     ];
   }
 
+  MovieSubtitleListDto buildSubtitleList({
+    String fetchStatus = 'succeeded',
+    String? lastError,
+    List<MovieSubtitleItemDto>? items,
+  }) {
+    return MovieSubtitleListDto(
+      movieNumber: 'ABC-001',
+      fetchStatus: fetchStatus,
+      lastAttemptedAt: DateTime.parse('2026-04-10T09:00:00'),
+      lastSucceededAt:
+          fetchStatus == 'succeeded'
+              ? DateTime.parse('2026-04-10T09:01:00')
+              : null,
+      lastError: lastError,
+      items:
+          items ??
+          const <MovieSubtitleItemDto>[
+            MovieSubtitleItemDto(
+              subtitleId: 501,
+              fileName: 'ABC-001.zh.srt',
+              createdAt: null,
+              url: '/files/subtitles/501?expires=1700000900&signature=subtitle',
+            ),
+          ],
+    );
+  }
+
   setUp(() {
     progressReports = <Map<String, Object?>>[];
     thumbnailRequests = <int>[];
@@ -117,6 +145,8 @@ void main() {
         thumbnailRequests.add(mediaId);
         return buildThumbnails();
       },
+      fetchMovieSubtitles:
+          ({required movieNumber}) async => buildSubtitleList(),
       updateMediaProgress: ({
         required mediaId,
         required positionSeconds,
@@ -183,6 +213,8 @@ void main() {
               ],
             ),
         fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles:
+            ({required movieNumber}) async => buildSubtitleList(),
         updateMediaProgress: ({
           required mediaId,
           required positionSeconds,
@@ -209,6 +241,8 @@ void main() {
       fetchMediaThumbnails: ({required mediaId}) async {
         throw Exception('boom');
       },
+      fetchMovieSubtitles:
+          ({required movieNumber}) async => buildSubtitleList(),
       updateMediaProgress: ({
         required mediaId,
         required positionSeconds,
@@ -232,6 +266,105 @@ void main() {
   });
 
   test(
+    'load resolves subtitle options and keeps subtitle disabled by default',
+    () async {
+      final controller = MoviePlayerController(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles:
+            ({required movieNumber}) async => buildSubtitleList(),
+        updateMediaProgress: ({
+          required mediaId,
+          required positionSeconds,
+        }) async {
+          return MovieMediaProgressDto(
+            lastPositionSeconds: positionSeconds,
+            lastWatchedAt: null,
+          );
+        },
+      );
+      addTearDown(controller.dispose);
+
+      await controller.load();
+
+      expect(controller.subtitleFetchStatus, 'succeeded');
+      expect(controller.selectedSubtitleId, isNull);
+      expect(controller.subtitleOptions, hasLength(1));
+      expect(controller.subtitleOptions.single.subtitleId, 501);
+      expect(
+        controller.subtitleOptions.single.resolvedUrl,
+        'https://api.example.com/files/subtitles/501?expires=1700000900&signature=subtitle',
+      );
+    },
+  );
+
+  test('subtitle load failure does not block resolved playback url', () async {
+    final controller = MoviePlayerController(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles: ({required movieNumber}) async {
+        throw Exception('subtitle boom');
+      },
+      updateMediaProgress: ({
+        required mediaId,
+        required positionSeconds,
+      }) async {
+        return MovieMediaProgressDto(
+          lastPositionSeconds: positionSeconds,
+          lastWatchedAt: null,
+        );
+      },
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+
+    expect(
+      controller.resolvedPlayUrl,
+      'https://api.example.com/files/media/movies/ABC-001/video.mp4',
+    );
+    expect(controller.subtitleFetchStatus, 'failed');
+    expect(controller.subtitleErrorMessage, '请稍后重试。');
+    expect(controller.subtitleOptions, isEmpty);
+  });
+
+  test('setSelectedSubtitleId only accepts known subtitle ids', () async {
+    final controller = MoviePlayerController(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles:
+          ({required movieNumber}) async => buildSubtitleList(),
+      updateMediaProgress: ({
+        required mediaId,
+        required positionSeconds,
+      }) async {
+        return MovieMediaProgressDto(
+          lastPositionSeconds: positionSeconds,
+          lastWatchedAt: null,
+        );
+      },
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+
+    controller.setSelectedSubtitleId(999);
+    expect(controller.selectedSubtitleId, isNull);
+
+    controller.setSelectedSubtitleId(501);
+    expect(controller.selectedSubtitleId, 501);
+
+    controller.setSelectedSubtitleId(null);
+    expect(controller.selectedSubtitleId, isNull);
+  });
+
+  test(
     'thumbnail columns use auto value until user overrides manually',
     () async {
       final controller = MoviePlayerController(
@@ -239,6 +372,8 @@ void main() {
         baseUrl: 'https://api.example.com',
         fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
         fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles:
+            ({required movieNumber}) async => buildSubtitleList(),
         updateMediaProgress: ({
           required mediaId,
           required positionSeconds,
@@ -272,6 +407,8 @@ void main() {
         baseUrl: 'https://api.example.com',
         fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
         fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles:
+            ({required movieNumber}) async => buildSubtitleList(),
         updateMediaProgress: ({
           required mediaId,
           required positionSeconds,
@@ -306,6 +443,8 @@ void main() {
       baseUrl: 'https://api.example.com',
       fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
       fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles:
+          ({required movieNumber}) async => buildSubtitleList(),
       updateMediaProgress: ({
         required mediaId,
         required positionSeconds,
@@ -334,6 +473,8 @@ void main() {
         baseUrl: 'https://api.example.com',
         fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
         fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles:
+            ({required movieNumber}) async => buildSubtitleList(),
         updateMediaProgress: ({
           required mediaId,
           required positionSeconds,
@@ -368,6 +509,8 @@ void main() {
         baseUrl: 'https://api.example.com',
         fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
         fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles:
+            ({required movieNumber}) async => buildSubtitleList(),
         updateMediaProgress: ({
           required mediaId,
           required positionSeconds,
@@ -400,6 +543,8 @@ void main() {
       baseUrl: 'https://api.example.com',
       fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
       fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles:
+          ({required movieNumber}) async => buildSubtitleList(),
       updateMediaProgress: ({
         required mediaId,
         required positionSeconds,
@@ -434,6 +579,8 @@ void main() {
         baseUrl: 'https://api.example.com',
         fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
         fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles:
+            ({required movieNumber}) async => buildSubtitleList(),
         updateMediaProgress: ({
           required mediaId,
           required positionSeconds,
@@ -464,6 +611,8 @@ void main() {
         baseUrl: 'https://api.example.com',
         fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
         fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles:
+            ({required movieNumber}) async => buildSubtitleList(),
         updateMediaProgress: ({
           required mediaId,
           required positionSeconds,
@@ -500,6 +649,8 @@ void main() {
       baseUrl: 'https://api.example.com',
       fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
       fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles:
+          ({required movieNumber}) async => buildSubtitleList(),
       updateMediaProgress: ({
         required mediaId,
         required positionSeconds,
@@ -533,6 +684,8 @@ void main() {
       baseUrl: 'https://api.example.com',
       fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
       fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles:
+          ({required movieNumber}) async => buildSubtitleList(),
       updateMediaProgress: ({
         required mediaId,
         required positionSeconds,

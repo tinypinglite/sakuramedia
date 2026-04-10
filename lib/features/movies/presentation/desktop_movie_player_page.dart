@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_player_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
@@ -29,6 +30,9 @@ typedef MoviePlayerSurfaceBuilder =
       Duration? initialPosition,
       ValueChanged<Duration>? onPositionChanged,
       ValueChanged<bool>? onPlayingChanged,
+      MoviePlayerSubtitleState subtitleState,
+      ValueChanged<int?> onSubtitleSelectionChanged,
+      Future<void> Function() onSubtitleReloadRequested,
       VoidCallback onBackPressed,
       bool useTouchOptimizedControls,
     );
@@ -77,6 +81,7 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
       baseUrl: context.read<SessionStore>().baseUrl,
       fetchMovieDetail: context.read<MoviesApi>().getMovieDetail,
       fetchMediaThumbnails: context.read<MoviesApi>().getMediaThumbnails,
+      fetchMovieSubtitles: context.read<MoviesApi>().getMovieSubtitles,
       updateMediaProgress: context.read<MoviesApi>().updateMediaProgress,
     )..load();
     _splitController = MultiSplitViewController(
@@ -147,6 +152,9 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
         _controller.initialPlaybackPosition,
         _controller.handlePlaybackPosition,
         _controller.handlePlaybackPlayingChanged,
+        _controller.subtitleState,
+        _controller.setSelectedSubtitleId,
+        _controller.loadSubtitles,
         _handleBack,
         widget.useTouchOptimizedControls,
       );
@@ -157,6 +165,9 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
       initialPosition: _controller.initialPlaybackPosition,
       onPositionChanged: _controller.handlePlaybackPosition,
       onPlayingChanged: _controller.handlePlaybackPlayingChanged,
+      subtitleState: _controller.subtitleState,
+      onSubtitleSelectionChanged: _controller.setSelectedSubtitleId,
+      onSubtitleReloadRequested: _controller.loadSubtitles,
       onBackPressed: _handleBack,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
     );

@@ -12,6 +12,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_controller.dart';
@@ -202,6 +203,55 @@ void main() {
       );
     },
   );
+
+  testWidgets('movie player page passes subtitle state to player surface', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: _movieDetailJson(),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/100/thumbnails',
+      body: _mediaThumbnailsJson(),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/subtitles',
+      body: _movieSubtitlesJson(),
+    );
+
+    MoviePlayerSubtitleState? capturedSubtitleState;
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      surfaceBuilder: (
+        context,
+        resolvedUrl,
+        surfaceController,
+        initialPosition,
+        onPositionChanged,
+        onPlayingChanged,
+        subtitleState,
+        onSubtitleSelectionChanged,
+        onSubtitleReloadRequested,
+        onBackPressed,
+        useTouchOptimizedControls,
+      ) {
+        capturedSubtitleState = subtitleState;
+        return Text('surface:$resolvedUrl');
+      },
+    );
+    await tester.pumpAndSettle();
+
+    expect(capturedSubtitleState, isNotNull);
+    expect(capturedSubtitleState?.selectedSubtitleId, isNull);
+    expect(capturedSubtitleState?.options, hasLength(1));
+    expect(capturedSubtitleState?.options.single.subtitleId, 501);
+  });
 
   testWidgets('movie player page falls back to first playable media', (
     WidgetTester tester,
@@ -498,6 +548,9 @@ void main() {
           initialPosition,
           onPositionChanged,
           onPlayingChanged,
+          subtitleState,
+          onSubtitleSelectionChanged,
+          onSubtitleReloadRequested,
           onBackPressed,
           useTouchOptimizedControls,
         ) {
@@ -551,6 +604,9 @@ void main() {
           initialPosition,
           onPositionChanged,
           onPlayingChanged,
+          subtitleState,
+          onSubtitleSelectionChanged,
+          onSubtitleReloadRequested,
           onBackPressed,
           useTouchOptimizedControls,
         ) {
@@ -600,6 +656,9 @@ void main() {
           initialPosition,
           onPositionChanged,
           onPlayingChanged,
+          subtitleState,
+          onSubtitleSelectionChanged,
+          onSubtitleReloadRequested,
           onBackPressed,
           useTouchOptimizedControls,
         ) {
@@ -783,6 +842,9 @@ void main() {
             initialPosition,
             onPositionChanged,
             onPlayingChanged,
+            subtitleState,
+            onSubtitleSelectionChanged,
+            onSubtitleReloadRequested,
             onBackPressed,
             useTouchOptimizedControls,
           ) => _TestMoviePlayerSurface(
@@ -793,6 +855,7 @@ void main() {
             initialPositions: initialPositions,
             onPositionChanged: onPositionChanged,
             onPlayingChanged: onPlayingChanged,
+            subtitleState: subtitleState,
             onBackPressed: onBackPressed,
             emitPositionOnBuild: const Duration(seconds: 25),
           ),
@@ -890,6 +953,9 @@ MoviePlayerSurfaceBuilder _testSurfaceBuilder(
     Duration? initialPosition,
     ValueChanged<Duration>? onPositionChanged,
     ValueChanged<bool>? onPlayingChanged,
+    MoviePlayerSubtitleState subtitleState,
+    ValueChanged<int?> onSubtitleSelectionChanged,
+    Future<void> Function() onSubtitleReloadRequested,
     VoidCallback onBackPressed,
     bool useTouchOptimizedControls,
   ) {
@@ -901,6 +967,7 @@ MoviePlayerSurfaceBuilder _testSurfaceBuilder(
       initialPositions: initialPositions,
       onPositionChanged: onPositionChanged,
       onPlayingChanged: onPlayingChanged,
+      subtitleState: subtitleState,
       onBackPressed: onBackPressed,
       readiness: readiness,
     );
@@ -920,6 +987,9 @@ Future<void> _pumpPage(
     Duration? initialPosition,
     ValueChanged<Duration>? onPositionChanged,
     ValueChanged<bool>? onPlayingChanged,
+    MoviePlayerSubtitleState subtitleState,
+    ValueChanged<int?> onSubtitleSelectionChanged,
+    Future<void> Function() onSubtitleReloadRequested,
     VoidCallback onBackPressed,
     bool useTouchOptimizedControls,
   )?
@@ -1048,6 +1118,31 @@ List<Map<String, dynamic>> _manyMediaThumbnailsJson(
   });
 }
 
+Map<String, dynamic> _movieSubtitlesJson({
+  String fetchStatus = 'succeeded',
+  List<Map<String, dynamic>>? items,
+  String? lastError,
+}) {
+  return <String, dynamic>{
+    'movie_number': 'ABC-001',
+    'fetch_status': fetchStatus,
+    'last_attempted_at': '2026-04-10T09:00:00',
+    'last_succeeded_at':
+        fetchStatus == 'succeeded' ? '2026-04-10T09:01:00' : null,
+    'last_error': lastError,
+    'items':
+        items ??
+        const <Map<String, dynamic>>[
+          <String, dynamic>{
+            'subtitle_id': 501,
+            'file_name': 'ABC-001.zh.srt',
+            'created_at': '2026-04-10T09:01:00',
+            'url': '/files/subtitles/501?expires=1700000900&signature=subtitle',
+          },
+        ],
+  };
+}
+
 class _TestMoviePlayerSurface extends StatefulWidget {
   const _TestMoviePlayerSurface({
     required this.resolvedUrl,
@@ -1057,6 +1152,7 @@ class _TestMoviePlayerSurface extends StatefulWidget {
     required this.initialPositions,
     required this.onPositionChanged,
     required this.onPlayingChanged,
+    required this.subtitleState,
     required this.onBackPressed,
     this.readiness,
     this.emitPositionOnBuild,
@@ -1069,6 +1165,7 @@ class _TestMoviePlayerSurface extends StatefulWidget {
   final List<Duration?> initialPositions;
   final ValueChanged<Duration>? onPositionChanged;
   final ValueChanged<bool>? onPlayingChanged;
+  final MoviePlayerSubtitleState subtitleState;
   final VoidCallback onBackPressed;
   final ValueNotifier<bool>? readiness;
   final Duration? emitPositionOnBuild;

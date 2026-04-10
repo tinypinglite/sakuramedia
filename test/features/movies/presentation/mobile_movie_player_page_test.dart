@@ -203,6 +203,9 @@ void main() {
                   Duration? initialPosition,
                   ValueChanged<Duration>? onPositionChanged,
                   ValueChanged<bool>? onPlayingChanged,
+                  subtitleState,
+                  onSubtitleSelectionChanged,
+                  onSubtitleReloadRequested,
                   VoidCallback onBackPressed,
                   bool useTouchOptimizedControls,
                 ) {
@@ -278,6 +281,9 @@ void main() {
                 Duration? initialPosition,
                 ValueChanged<Duration>? onPositionChanged,
                 ValueChanged<bool>? onPlayingChanged,
+                subtitleState,
+                onSubtitleSelectionChanged,
+                onSubtitleReloadRequested,
                 VoidCallback onBackPressed,
                 bool useTouchOptimizedControls,
               ) {

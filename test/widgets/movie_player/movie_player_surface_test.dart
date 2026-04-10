@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video_controls/media_kit_video_controls.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
@@ -181,6 +183,107 @@ void main() {
     );
   });
 
+  group('MoviePlayerSurfaceSubtitleCoordinator', () {
+    test('applies external subtitle data and returns the selected id', () async {
+      final driver = _FakeMoviePlayerSurfacePlaybackDriver();
+      const subtitleText = '1\n00:00:01,000 --> 00:00:02,000\nhello\n';
+
+      final result = await const MoviePlayerSurfaceSubtitleCoordinator()
+          .applySelection(
+            driver: driver,
+            selectedOption: const MoviePlayerSubtitleOption(
+              subtitleId: 501,
+              label: 'ABC-001.zh.srt',
+              resolvedUrl: 'https://example.com/subtitles/501.srt',
+              title: 'ABC-001.zh.srt',
+            ),
+            loadSubtitleText: (_) async => subtitleText,
+            onError: () {},
+          );
+
+      expect(result, 501);
+      expect(
+        driver.operations,
+        contains(
+          'subtitle:$subtitleText:title=ABC-001.zh.srt:language=null:uri=false:data=true',
+        ),
+      );
+    });
+
+    test('disables subtitles when null is selected', () async {
+      final driver = _FakeMoviePlayerSurfacePlaybackDriver();
+
+      final result = await const MoviePlayerSurfaceSubtitleCoordinator()
+          .applySelection(
+            driver: driver,
+            selectedOption: null,
+            loadSubtitleText: (_) async => throw UnimplementedError(),
+            onError: () {},
+          );
+
+      expect(result, isNull);
+      expect(driver.operations, <String>[
+        'subtitle:no:title=null:language=null:uri=false:data=false',
+      ]);
+    });
+
+    test(
+      'falls back to no subtitle and emits error when subtitle load fails',
+      () async {
+        final driver =
+            _FakeMoviePlayerSurfacePlaybackDriver()
+              ..failNextSubtitleSelection = true;
+        var didError = false;
+
+        final result = await const MoviePlayerSurfaceSubtitleCoordinator()
+            .applySelection(
+              driver: driver,
+              selectedOption: const MoviePlayerSubtitleOption(
+                subtitleId: 501,
+                label: 'ABC-001.zh.srt',
+                resolvedUrl: 'https://example.com/subtitles/501.srt',
+              ),
+              loadSubtitleText:
+                  (_) async => '1\n00:00:01,000 --> 00:00:02,000\nhello\n',
+              onError: () => didError = true,
+            );
+
+        expect(result, isNull);
+        expect(didError, isTrue);
+        expect(driver.operations, <String>[
+          'subtitle:1\n00:00:01,000 --> 00:00:02,000\nhello\n:title=null:language=null:uri=false:data=true',
+          'subtitle:no:title=null:language=null:uri=false:data=false',
+        ]);
+      },
+    );
+
+    test(
+      'falls back to no subtitle and emits error when subtitle text load fails',
+      () async {
+        final driver = _FakeMoviePlayerSurfacePlaybackDriver();
+        var didError = false;
+
+        final result = await const MoviePlayerSurfaceSubtitleCoordinator()
+            .applySelection(
+              driver: driver,
+              selectedOption: const MoviePlayerSubtitleOption(
+                subtitleId: 501,
+                label: 'ABC-001.zh.srt',
+                resolvedUrl: 'https://example.com/subtitles/501.srt',
+              ),
+              loadSubtitleText: (_) async => throw const FormatException('bad'),
+              onError: () => didError = true,
+            );
+
+        expect(result, isNull);
+        expect(didError, isTrue);
+        expect(driver.operations, <String>[
+          'subtitle:no:title=null:language=null:uri=false:data=false',
+        ]);
+      },
+    );
+  });
+
   group('Touch Optimized Controls', () {
     test('controls builder always resolves to adaptive controls', () {
       expect(
@@ -261,6 +364,56 @@ void main() {
       expect(themeData.bottomButtonBar.first, same(bottom));
     });
   });
+
+  group('Movie player configuration', () {
+    test('desktop configuration enables libass subtitles', () {
+      expect(
+        buildMoviePlayerConfiguration(
+          isWeb: false,
+          platform: TargetPlatform.macOS,
+        ).libass,
+        isTrue,
+      );
+      expect(
+        buildMoviePlayerConfiguration(
+          isWeb: false,
+          platform: TargetPlatform.windows,
+        ).libass,
+        isTrue,
+      );
+      expect(
+        buildMoviePlayerConfiguration(
+          isWeb: false,
+          platform: TargetPlatform.linux,
+        ).libass,
+        isTrue,
+      );
+    });
+
+    test('mobile and web configuration keep libass disabled', () {
+      expect(
+        buildMoviePlayerConfiguration(
+          isWeb: false,
+          platform: TargetPlatform.android,
+        ).libass,
+        isFalse,
+      );
+      expect(
+        buildMoviePlayerConfiguration(
+          isWeb: false,
+          platform: TargetPlatform.iOS,
+        ).libass,
+        isFalse,
+      );
+      expect(
+        buildMoviePlayerConfiguration(
+          isWeb: true,
+          platform: TargetPlatform.macOS,
+        ).libass,
+        isFalse,
+      );
+    });
+  });
 }
 
 class _FakeMoviePlayerSurfacePlaybackDriver
@@ -268,6 +421,7 @@ class _FakeMoviePlayerSurfacePlaybackDriver
   final List<String> operations = <String>[];
   VoidCallback? onAfterOpen;
   VoidCallback? onAfterWaitUntilFirstFrameRendered;
+  bool failNextSubtitleSelection = false;
 
   @override
   Future<void> open(
@@ -293,5 +447,16 @@ class _FakeMoviePlayerSurfacePlaybackDriver
   Future<void> waitUntilFirstFrameRendered() async {
     operations.add('waitUntilFirstFrameRendered');
     onAfterWaitUntilFirstFrameRendered?.call();
+  }
+
+  @override
+  Future<void> setSubtitleTrack(SubtitleTrack track) async {
+    operations.add(
+      'subtitle:${track.id}:title=${track.title}:language=${track.language}:uri=${track.uri}:data=${track.data}',
+    );
+    if (failNextSubtitleSelection && (track.uri || track.data)) {
+      failNextSubtitleSelection = false;
+      throw StateError('subtitle failure');
+    }
   }
 }
