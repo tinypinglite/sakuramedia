@@ -1751,6 +1751,172 @@ void main() {
   );
 
   testWidgets(
+    'image search page stops auto load after two consecutive pages with no visible growth',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/image-search/sessions',
+        body: _imageSearchSessionJson(
+          sessionId: 'session-1',
+          nextCursor: 'cursor-1',
+          items: <Map<String, dynamic>>[
+            _imageSearchResultJson(
+              thumbnailId: 101,
+              mediaId: 201,
+              movieId: 301,
+              movieNumber: 'DEF-001',
+              offsetSeconds: 10,
+              score: 0.8,
+              imageId: 401,
+              imagePath: '/def-001.webp',
+            ),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/image-search/sessions/session-1/results',
+        body: _imageSearchSessionJson(
+          sessionId: 'session-1',
+          nextCursor: 'cursor-2',
+          items: <Map<String, dynamic>>[
+            _imageSearchResultJson(
+              thumbnailId: 102,
+              mediaId: 202,
+              movieId: 302,
+              movieNumber: 'DEF-002',
+              offsetSeconds: 20,
+              score: 0.8,
+              imageId: 402,
+              imagePath: '/def-002.webp',
+            ),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/image-search/sessions/session-1/results',
+        body: _imageSearchSessionJson(
+          sessionId: 'session-1',
+          nextCursor: 'cursor-3',
+          items: <Map<String, dynamic>>[
+            _imageSearchResultJson(
+              thumbnailId: 103,
+              mediaId: 203,
+              movieId: 303,
+              movieNumber: 'DEF-003',
+              offsetSeconds: 30,
+              score: 0.8,
+              imageId: 403,
+              imagePath: '/def-003.webp',
+            ),
+          ],
+        ),
+      );
+
+      await _pumpImageSearchApp(
+        tester,
+        bundle: bundle,
+        sessionStore: sessionStore,
+        initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+        initialFileName: 'query.png',
+        currentMovieNumber: 'ABC-001',
+        initialCurrentMovieScope: ImageSearchCurrentMovieScope.onlyCurrent,
+        surfaceSize: const Size(1440, 1600),
+      );
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+
+      expect(
+        bundle.adapter.hitCount(
+          'GET',
+          '/image-search/sessions/session-1/results',
+        ),
+        2,
+      );
+    },
+  );
+
+  testWidgets(
+    'image search page limits auto load to five pages even when viewport stays unfilled',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/image-search/sessions',
+        body: _imageSearchSessionJson(
+          sessionId: 'session-1',
+          nextCursor: 'cursor-1',
+          items: <Map<String, dynamic>>[
+            _imageSearchResultJson(
+              thumbnailId: 200,
+              mediaId: 300,
+              movieId: 400,
+              movieNumber: 'ABC-200',
+              offsetSeconds: 10,
+              score: 0.8,
+              imageId: 500,
+              imagePath: '/abc-200.webp',
+            ),
+          ],
+        ),
+      );
+
+      for (var page = 1; page <= 5; page += 1) {
+        final nextPageCursor = 'cursor-${page + 1}';
+        final index = 200 + page;
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/image-search/sessions/session-1/results',
+          body: _imageSearchSessionJson(
+            sessionId: 'session-1',
+            nextCursor: nextPageCursor,
+            items: <Map<String, dynamic>>[
+              _imageSearchResultJson(
+                thumbnailId: index,
+                mediaId: 300 + page,
+                movieId: 400 + page,
+                movieNumber: 'ABC-$index',
+                offsetSeconds: 10 + page,
+                score: 0.8,
+                imageId: 500 + page,
+                imagePath: '/abc-$index.webp',
+              ),
+            ],
+          ),
+        );
+      }
+
+      await _pumpImageSearchApp(
+        tester,
+        bundle: bundle,
+        sessionStore: sessionStore,
+        initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+        initialFileName: 'query.png',
+        surfaceSize: const Size(1440, 4000),
+      );
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+
+      expect(
+        bundle.adapter.hitCount(
+          'GET',
+          '/image-search/sessions/session-1/results',
+        ),
+        5,
+      );
+      expect(
+        find.byKey(
+          const Key('image-search-result-card-205'),
+          skipOffstage: false,
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'image search page changes image and automatically searches again',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(

@@ -77,9 +77,15 @@ class DesktopImageSearchPage extends StatefulWidget {
 }
 
 class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
+  static const int _maxAutoLoadAttempts = 5;
+  static const int _maxAutoLoadNoGrowthStreak = 2;
+
   late final ImageSearchPageStateEntry _pageState;
   late final bool _ownsPageState;
   bool _isViewportFillCheckScheduled = false;
+  int _autoLoadAttempts = 0;
+  int _autoLoadNoGrowthStreak = 0;
+  bool _autoLoadHalted = false;
 
   ImageSearchController get _controller => _pageState.controller;
   ImageSearchFilterState get _filterState => _pageState.filterState;
@@ -473,10 +479,17 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   }
 
   Future<void> _runSearch() {
+    _resetAutoLoadState();
     return _controller.search(
       filter: _filterState,
       currentMovieNumber: widget.currentMovieNumber,
     );
+  }
+
+  void _resetAutoLoadState() {
+    _autoLoadAttempts = 0;
+    _autoLoadNoGrowthStreak = 0;
+    _autoLoadHalted = false;
   }
 
   bool get _hasLoadMoreError =>
@@ -497,7 +510,7 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
       if (!mounted || !_shouldAutoLoadMoreForViewport()) {
         return;
       }
-      unawaited(_controller.loadMore());
+      _autoLoadMoreForViewport();
     });
   }
 
@@ -526,6 +539,8 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     if (!_controller.hasMore ||
         _controller.isSearching ||
         _controller.isLoadingMore ||
+        _autoLoadHalted ||
+        _autoLoadAttempts >= _maxAutoLoadAttempts ||
         _hasLoadMoreError ||
         !_controller.scrollController.hasClients) {
       return false;
@@ -546,6 +561,29 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     }
     return position.pixels >=
         position.maxScrollExtent - _controller.loadMoreTriggerOffset;
+  }
+
+  void _autoLoadMoreForViewport() {
+    final baselineItemCount = _controller.items.length;
+    _autoLoadAttempts += 1;
+    unawaited(
+      _controller.loadMore().whenComplete(() {
+        if (!mounted) {
+          return;
+        }
+        final hasVisibleGrowth = _controller.items.length > baselineItemCount;
+        if (hasVisibleGrowth) {
+          _autoLoadNoGrowthStreak = 0;
+        } else {
+          _autoLoadNoGrowthStreak += 1;
+        }
+        if (_autoLoadAttempts >= _maxAutoLoadAttempts ||
+            _autoLoadNoGrowthStreak >= _maxAutoLoadNoGrowthStreak) {
+          _autoLoadHalted = true;
+        }
+        _scheduleViewportFillCheck();
+      }),
+    );
   }
 
   Future<void> _openActorSelectorDialog() async {

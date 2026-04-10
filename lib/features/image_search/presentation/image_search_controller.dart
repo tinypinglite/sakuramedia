@@ -199,6 +199,7 @@ class ImageSearchController extends ChangeNotifier {
       return;
     }
 
+    final requestedCursor = _nextCursor!;
     _isLoadingMore = true;
     _errorMessage = null;
     _safeNotifyListeners();
@@ -206,9 +207,13 @@ class ImageSearchController extends ChangeNotifier {
     try {
       final session = await _imageSearchApi.getNextResults(
         sessionId: _sessionId!,
-        cursor: _nextCursor!,
+        cursor: requestedCursor,
       );
-      _applySession(session, replaceItems: false);
+      _applySession(
+        session,
+        replaceItems: false,
+        requestedCursor: requestedCursor,
+      );
     } catch (_) {
       _errorMessage = '加载更多失败，请稍后重试';
     } finally {
@@ -220,9 +225,11 @@ class ImageSearchController extends ChangeNotifier {
   void _applySession(
     ImageSearchSessionDto session, {
     required bool replaceItems,
+    String? requestedCursor,
   }) {
     _sessionId = session.sessionId;
-    _nextCursor = session.nextCursor;
+    final nextCursor = session.nextCursor;
+    _nextCursor = nextCursor == requestedCursor ? null : nextCursor;
     _expiresAt = session.expiresAt;
     final filteredItems = session.items
         .where(_matchesCurrentMovieFilter)

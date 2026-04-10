@@ -77,4 +77,53 @@ void main() {
     expect(controller.items.map((item) => item.thumbnailId), contains(123));
     expect(controller.nextCursor, 'cursor-1');
   });
+
+  test(
+    'loadMore stops pagination when backend returns repeated next cursor',
+    () async {
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/image-search/sessions',
+        body: <String, dynamic>{
+          'session_id': 'session-1',
+          'status': 'ready',
+          'page_size': 20,
+          'next_cursor': 'cursor-1',
+          'expires_at': '2026-03-08T10:10:00Z',
+          'items': const <Map<String, dynamic>>[],
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/image-search/sessions/session-1/results',
+        body: <String, dynamic>{
+          'session_id': 'session-1',
+          'status': 'ready',
+          'page_size': 20,
+          'next_cursor': 'cursor-1',
+          'expires_at': '2026-03-08T10:10:00Z',
+          'items': const <Map<String, dynamic>>[],
+        },
+      );
+
+      controller.setSource(
+        fileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+        fileName: 'query.png',
+        mimeType: 'image/png',
+      );
+      await controller.search();
+      await controller.loadMore();
+      await controller.loadMore();
+
+      expect(
+        bundle.adapter.hitCount(
+          'GET',
+          '/image-search/sessions/session-1/results',
+        ),
+        1,
+      );
+      expect(controller.nextCursor, isNull);
+      expect(controller.hasMore, isFalse);
+    },
+  );
 }
