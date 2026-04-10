@@ -5,6 +5,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/data/parsed_movie_number_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
@@ -901,6 +902,69 @@ void main() {
       ),
     );
   });
+
+  test('getMovieSubtitles parses subtitle list response', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/subtitles',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'movie_number': 'ABC-001',
+        'fetch_status': 'succeeded',
+        'last_attempted_at': '2026-04-10T09:00:00',
+        'last_succeeded_at': '2026-04-10T09:01:00',
+        'last_error': null,
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'subtitle_id': 501,
+            'file_name': 'ABC-001.zh.srt',
+            'created_at': '2026-04-10T09:01:00',
+            'url': '/files/subtitles/501?expires=1700000900&signature=subtitle',
+          },
+        ],
+      },
+    );
+
+    final subtitles = await moviesApi.getMovieSubtitles(movieNumber: 'ABC-001');
+
+    expect(subtitles, isA<MovieSubtitleListDto>());
+    expect(subtitles.movieNumber, 'ABC-001');
+    expect(subtitles.fetchStatus, 'succeeded');
+    expect(subtitles.items, hasLength(1));
+    expect(subtitles.items.single.subtitleId, 501);
+    expect(subtitles.items.single.fileName, 'ABC-001.zh.srt');
+    expect(
+      subtitles.items.single.url,
+      '/files/subtitles/501?expires=1700000900&signature=subtitle',
+    );
+  });
+
+  test(
+    'getMovieSubtitles handles empty items and failed fetch state',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-002/subtitles',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'movie_number': 'ABC-002',
+          'fetch_status': 'failed',
+          'last_attempted_at': '2026-04-10T09:00:00',
+          'last_succeeded_at': null,
+          'last_error': '字幕抓取失败',
+          'items': const <Map<String, dynamic>>[],
+        },
+      );
+
+      final subtitles = await moviesApi.getMovieSubtitles(
+        movieNumber: 'ABC-002',
+      );
+
+      expect(subtitles.fetchStatus, 'failed');
+      expect(subtitles.lastError, '字幕抓取失败');
+      expect(subtitles.items, isEmpty);
+    },
+  );
 
   test('getMediaThumbnails parses thumbnail list response', () async {
     adapter.enqueueJson(
