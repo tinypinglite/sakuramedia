@@ -23,7 +23,7 @@ class ImageSearchSessionDto {
       sessionId: json['session_id'] as String? ?? '',
       status: json['status'] as String? ?? '',
       pageSize: json['page_size'] as int? ?? 0,
-      nextCursor: json['next_cursor'] as String?,
+      nextCursor: _cursorFromJson(json['next_cursor']),
       expiresAt: _dateTimeFromJson(json['expires_at']),
       items:
           itemsValue is List
@@ -43,6 +43,17 @@ class ImageSearchSessionDto {
       return null;
     }
     return DateTime.tryParse(value);
+  }
+
+  static String? _cursorFromJson(dynamic value) {
+    if (value is! String) {
+      return null;
+    }
+    final normalized = value.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    return normalized;
   }
 
   static Map<String, dynamic> _toMap(Object? value) {
