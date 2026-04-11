@@ -56,6 +56,32 @@ void main() {
     expect(find.byType(MovieSummaryCard), findsOneWidget);
   });
 
+  testWidgets(
+    'playlist detail page keeps pull to refresh disabled on desktop',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/playlists/8',
+        body: _playlistJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/playlists/8/movies',
+        body: _moviesJson(total: 1),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RefreshIndicator), findsNothing);
+      expect(find.text('1 部影片'), findsOneWidget);
+      expect(
+        find.byKey(const Key('movie-summary-card-ABC-001')),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('playlist detail page opens movie detail route on tap', (
     WidgetTester tester,
   ) async {
@@ -174,7 +200,7 @@ Future<void> _pumpRouterPage(
   );
 }
 
-Map<String, dynamic> _playlistJson() {
+Map<String, dynamic> _playlistJson({int movieCount = 1}) {
   return <String, dynamic>{
     'id': 8,
     'name': '我的收藏',
@@ -183,19 +209,23 @@ Map<String, dynamic> _playlistJson() {
     'is_system': false,
     'is_mutable': true,
     'is_deletable': true,
-    'movie_count': 1,
+    'movie_count': movieCount,
     'created_at': '2026-03-12T10:10:00Z',
     'updated_at': '2026-03-12T11:20:00Z',
   };
 }
 
-Map<String, dynamic> _moviesJson({required int total}) {
+Map<String, dynamic> _moviesJson({
+  required int total,
+  String movieNumber = 'ABC-001',
+  String title = 'Movie 1',
+}) {
   return <String, dynamic>{
     'items': [
       <String, dynamic>{
         'javdb_id': 'MovieA1',
-        'movie_number': 'ABC-001',
-        'title': 'Movie 1',
+        'movie_number': movieNumber,
+        'title': title,
         'cover_image': null,
         'release_date': '2024-01-02',
         'duration_minutes': 120,

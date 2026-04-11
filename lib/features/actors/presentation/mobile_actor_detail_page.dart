@@ -13,7 +13,9 @@ import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
@@ -171,66 +173,88 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
 
         return ColoredBox(
           color: context.appColors.surfaceCard,
-          child: SingleChildScrollView(
-            controller: _moviesController.scrollController,
-            child: Column(
-              key: const Key('mobile-actor-detail-page'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _MobileActorDetailHeader(
-                  actor: actor,
-                  total: _moviesController.total,
-                  isSubscribed: isActorSubscribed,
-                  isSubscriptionUpdating: _isActorSubscriptionUpdating,
-                  onSubscriptionTap:
-                      _isActorSubscriptionUpdating
-                          ? null
-                          : () => _toggleActorSubscription(
-                            isSubscribed: isActorSubscribed,
-                          ),
-                ),
-                SizedBox(height: context.appSpacing.md),
-                MovieFilterToolbar(
-                  filterState: _filterState,
-                  onChanged: _applyFilter,
-                  onReset: _resetFilters,
-                ),
-                SizedBox(height: context.appSpacing.md),
-                MovieSummaryGrid(
-                  items: _moviesController.items,
-                  isLoading: _moviesController.isInitialLoading,
-                  errorMessage: _moviesController.initialErrorMessage,
-                  onMovieTap:
-                      (movie) => MobileMovieDetailRouteData(
-                        movieNumber: movie.movieNumber,
-                      ).push(context),
-                  onMovieMenuRequest: (movie, globalPosition) {
-                    unawaited(
-                      showMovieCollectionFeatureActionMenu(
-                        context: context,
-                        movieNumber: movie.movieNumber,
-                        globalPosition: globalPosition,
-                      ),
-                    );
-                  },
-                  onMovieSubscriptionTap:
-                      (movie) => _toggleMovieSubscription(movie.movieNumber),
-                  isMovieSubscriptionUpdating:
-                      (movie) => _moviesController.isSubscriptionUpdating(
-                        movie.movieNumber,
-                      ),
-                  emptyMessage: '暂无影片数据',
-                ),
-                if (footer != null) ...[
+          child: AppPullToRefresh(
+            onRefresh: _handleRefresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              controller: _moviesController.scrollController,
+              child: Column(
+                key: const Key('mobile-actor-detail-page'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _MobileActorDetailHeader(
+                    actor: actor,
+                    total: _moviesController.total,
+                    isSubscribed: isActorSubscribed,
+                    isSubscriptionUpdating: _isActorSubscriptionUpdating,
+                    onSubscriptionTap:
+                        _isActorSubscriptionUpdating
+                            ? null
+                            : () => _toggleActorSubscription(
+                              isSubscribed: isActorSubscribed,
+                            ),
+                  ),
                   SizedBox(height: context.appSpacing.md),
-                  footer,
+                  MovieFilterToolbar(
+                    filterState: _filterState,
+                    onChanged: _applyFilter,
+                    onReset: _resetFilters,
+                  ),
+                  SizedBox(height: context.appSpacing.md),
+                  MovieSummaryGrid(
+                    items: _moviesController.items,
+                    isLoading: _moviesController.isInitialLoading,
+                    errorMessage: _moviesController.initialErrorMessage,
+                    onMovieTap:
+                        (movie) => MobileMovieDetailRouteData(
+                          movieNumber: movie.movieNumber,
+                        ).push(context),
+                    onMovieMenuRequest: (movie, globalPosition) {
+                      unawaited(
+                        showMovieCollectionFeatureActionMenu(
+                          context: context,
+                          movieNumber: movie.movieNumber,
+                          globalPosition: globalPosition,
+                        ),
+                      );
+                    },
+                    onMovieSubscriptionTap:
+                        (movie) => _toggleMovieSubscription(movie.movieNumber),
+                    isMovieSubscriptionUpdating:
+                        (movie) => _moviesController.isSubscriptionUpdating(
+                          movie.movieNumber,
+                        ),
+                    emptyMessage: '暂无影片数据',
+                  ),
+                  if (footer != null) ...[
+                    SizedBox(height: context.appSpacing.md),
+                    footer,
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         );
       },
     );
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      await Future.wait<void>([
+        _actorController.refresh(),
+        _moviesController.refresh(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _isActorSubscribedOverride = null;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        showToast('刷新失败');
+      }
+    }
   }
 
   Widget? _buildLoadMoreFooter(BuildContext context) {

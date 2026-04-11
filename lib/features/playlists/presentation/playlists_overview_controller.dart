@@ -32,6 +32,17 @@ class PlaylistsOverviewController extends ChangeNotifier {
 
   String? coverUrlFor(int playlistId) => _coverUrls[playlistId];
 
+  Future<void> refresh() async {
+    final playlists = await fetchPlaylists(includeSystem: true);
+    final coverUrls = await _fetchCoverUrls(playlists);
+    _playlists = playlists;
+    _coverUrls
+      ..clear()
+      ..addAll(coverUrls);
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   Future<void> load() async {
     _isLoading = true;
     _errorMessage = null;
@@ -92,5 +103,21 @@ class PlaylistsOverviewController extends ChangeNotifier {
       }
       notifyListeners();
     }
+  }
+
+  Future<Map<int, String?>> _fetchCoverUrls(List<PlaylistDto> playlists) async {
+    final coverUrls = <int, String?>{};
+    for (final playlist in playlists) {
+      if (playlist.movieCount <= 0) {
+        coverUrls[playlist.id] = null;
+        continue;
+      }
+      try {
+        coverUrls[playlist.id] = await fetchPlaylistCoverUrl(playlist.id);
+      } catch (_) {
+        coverUrls[playlist.id] = null;
+      }
+    }
+    return coverUrls;
   }
 }

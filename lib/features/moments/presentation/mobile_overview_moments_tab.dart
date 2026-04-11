@@ -11,6 +11,7 @@ import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/moments/moment_grid.dart';
@@ -53,47 +54,61 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: context.appColors.surfaceCard,
-      child: SingleChildScrollView(
-        controller: _controller.scrollController,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            final showFooter =
-                _controller.items.isNotEmpty &&
-                (_controller.isLoadingMore ||
-                    _controller.loadMoreErrorMessage != null);
-            return Column(
-              key: const Key('mobile-overview-moments-tab'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: context.appSpacing.sm),
-                MomentSortHeader(
-                  total: _controller.total,
-                  sortOrder: _controller.sortOrder,
-                  variant: MomentSortHeaderVariant.mobileTagCompact,
-                  latestSortKey: const Key('mobile-moments-sort-latest'),
-                  earliestSortKey: const Key('mobile-moments-sort-earliest'),
-                  totalKey: const Key('mobile-moments-page-total'),
-                  onSortChanged:
-                      (nextOrder) =>
-                          unawaited(_controller.setSortOrder(nextOrder)),
-                ),
-                SizedBox(height: context.appSpacing.md),
-                _buildBody(context),
-                if (showFooter) ...[
-                  SizedBox(height: context.appSpacing.md),
-                  AppPagedLoadMoreFooter(
-                    isLoading: _controller.isLoadingMore,
-                    errorMessage: _controller.loadMoreErrorMessage,
-                    onRetry: _controller.loadMore,
+      child: AppPullToRefresh(
+        onRefresh: _handleRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          controller: _controller.scrollController,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              final showFooter =
+                  _controller.items.isNotEmpty &&
+                  (_controller.isLoadingMore ||
+                      _controller.loadMoreErrorMessage != null);
+              return Column(
+                key: const Key('mobile-overview-moments-tab'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: context.appSpacing.sm),
+                  MomentSortHeader(
+                    total: _controller.total,
+                    sortOrder: _controller.sortOrder,
+                    variant: MomentSortHeaderVariant.mobileTagCompact,
+                    latestSortKey: const Key('mobile-moments-sort-latest'),
+                    earliestSortKey: const Key('mobile-moments-sort-earliest'),
+                    totalKey: const Key('mobile-moments-page-total'),
+                    onSortChanged:
+                        (nextOrder) =>
+                            unawaited(_controller.setSortOrder(nextOrder)),
                   ),
+                  SizedBox(height: context.appSpacing.md),
+                  _buildBody(context),
+                  if (showFooter) ...[
+                    SizedBox(height: context.appSpacing.md),
+                    AppPagedLoadMoreFooter(
+                      isLoading: _controller.isLoadingMore,
+                      errorMessage: _controller.loadMoreErrorMessage,
+                      onRetry: _controller.loadMore,
+                    ),
+                  ],
                 ],
-              ],
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      await _controller.refresh();
+    } catch (_) {
+      if (mounted) {
+        showToast('刷新失败');
+      }
+    }
   }
 
   Widget _buildBody(BuildContext context) {

@@ -55,6 +55,7 @@ void main() {
     expect(find.text('1 部影片'), findsOneWidget);
     expect(find.byKey(const Key('playlist-banner-card-8')), findsOneWidget);
     expect(find.byType(MovieSummaryCard), findsOneWidget);
+    expect(find.byType(RefreshIndicator), findsOneWidget);
   });
 
   testWidgets(

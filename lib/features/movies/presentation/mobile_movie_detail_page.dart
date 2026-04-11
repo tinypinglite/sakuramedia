@@ -20,6 +20,7 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/media/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_inspector_dialog.dart';
@@ -86,109 +87,131 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
                   .firstOrNull ??
               (mediaItems.isNotEmpty ? mediaItems.first : null);
 
-          return MovieDetailPageContent(
-            movie: movie,
-            mediaItemsOverride: mediaItems,
-            selectedPreviewKey: _controller.selectedPreviewKey,
-            selectedPreviewUrl: _controller.selectedPreviewUrl,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: context.appSpacing.sm,
-            ),
-            bottomInfoBarVariant:
-                MovieDetailBottomInfoBarVariant.mobileFullWidth,
-            isSubscribed: isSubscribed,
-            isSubscriptionUpdating: _isSubscriptionUpdating,
-            selectedMediaId: selectedMedia?.mediaId,
-            statItems: buildMovieDetailStatItems(context, movie),
-            onSubscriptionTap:
-                _isSubscriptionUpdating
-                    ? null
-                    : () =>
-                        _toggleMovieSubscription(isSubscribed: isSubscribed),
-            onPlayTap:
-                selectedMedia != null && selectedMedia.hasPlayableUrl
-                    ? () => _openMoviePlayer(mediaId: selectedMedia.mediaId)
-                    : null,
-            onPlaylistTap:
-                () => showMoviePlaylistPickerDialog(
-                  context,
-                  movieNumber: widget.movieNumber,
-                  initialPlaylists: movie.playlists,
-                  presentation: MoviePlaylistPickerPresentation.bottomDrawer,
-                ),
-            onMediaSelect:
-                (item) => setState(() {
-                  _selectedMediaId = item.mediaId;
-                }),
-            onOpenMediaPointPreview: _openMediaPointPreview,
-            onRequestMediaPointMenu: _showMediaPointActions,
-            onActorTap:
-                (actor) =>
-                    MobileActorDetailRouteData(actorId: actor.id).push(context),
-            onRequestPlotImageMenu:
-                (menuContext, index, globalPosition) =>
-                    showMoviePlotImageActionMenu(
-                      context: menuContext,
-                      hostContext: context,
-                      plotImages: movie.plotImages,
-                      movieNumber: widget.movieNumber,
-                      index: index,
-                      globalPosition: globalPosition,
-                      onSearchSimilar:
-                          (hostContext, imageUrl, fileName) =>
-                              _openImageSearchFromUrl(
-                                imageUrl: imageUrl,
-                                fileName: fileName,
-                              ),
-                    ),
-            onOpenPlotPreview:
-                (index) => showMoviePlotPreviewOverlay(
-                  context: context,
-                  plotImages: movie.plotImages,
-                  initialIndex: index,
-                  presentation: MoviePlotPreviewPresentation.bottomDrawer,
-                  onRequestImageMenu:
-                      (menuContext, previewIndex, globalPosition) =>
-                          showMoviePlotImageActionMenu(
-                            context: menuContext,
-                            hostContext: context,
-                            plotImages: movie.plotImages,
-                            movieNumber: widget.movieNumber,
-                            index: previewIndex,
-                            globalPosition: globalPosition,
-                            closeCurrentRouteOnSearch: true,
-                            onSearchSimilar:
-                                (hostContext, imageUrl, fileName) =>
-                                    _openImageSearchFromUrl(
-                                      imageUrl: imageUrl,
-                                      fileName: fileName,
-                                    ),
-                          ),
-                ),
-            onInspectorTap:
-                () => showMobileMovieDetailInspectorBottomSheet(
-                  context: context,
-                  movieNumber: movie.movieNumber,
-                  selectedMedia: selectedMedia,
-                  onSearchSimilar: (thumbnail, imageUrl, fileName) {
-                    return _openImageSearchFromUrl(
-                      imageUrl: imageUrl,
-                      fileName: fileName,
-                    );
-                  },
-                  onPlay:
-                      (thumbnail) => _openMoviePlayer(
-                        mediaId:
-                            thumbnail.mediaId > 0
-                                ? thumbnail.mediaId
-                                : selectedMedia?.mediaId,
-                        positionSeconds: thumbnail.offsetSeconds,
+          return AppPullToRefresh(
+            onRefresh: _handleRefresh,
+            child: MovieDetailPageContent(
+              movie: movie,
+              mediaItemsOverride: mediaItems,
+              selectedPreviewKey: _controller.selectedPreviewKey,
+              selectedPreviewUrl: _controller.selectedPreviewUrl,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: context.appSpacing.sm,
+              ),
+              bottomInfoBarVariant:
+                  MovieDetailBottomInfoBarVariant.mobileFullWidth,
+              isSubscribed: isSubscribed,
+              isSubscriptionUpdating: _isSubscriptionUpdating,
+              selectedMediaId: selectedMedia?.mediaId,
+              statItems: buildMovieDetailStatItems(context, movie),
+              scrollPhysics: const AlwaysScrollableScrollPhysics(),
+              onSubscriptionTap:
+                  _isSubscriptionUpdating
+                      ? null
+                      : () =>
+                          _toggleMovieSubscription(isSubscribed: isSubscribed),
+              onPlayTap:
+                  selectedMedia != null && selectedMedia.hasPlayableUrl
+                      ? () => _openMoviePlayer(mediaId: selectedMedia.mediaId)
+                      : null,
+              onPlaylistTap:
+                  () => showMoviePlaylistPickerDialog(
+                    context,
+                    movieNumber: widget.movieNumber,
+                    initialPlaylists: movie.playlists,
+                    presentation: MoviePlaylistPickerPresentation.bottomDrawer,
+                  ),
+              onMediaSelect:
+                  (item) => setState(() {
+                    _selectedMediaId = item.mediaId;
+                  }),
+              onOpenMediaPointPreview: _openMediaPointPreview,
+              onRequestMediaPointMenu: _showMediaPointActions,
+              onActorTap:
+                  (actor) => MobileActorDetailRouteData(
+                    actorId: actor.id,
+                  ).push(context),
+              onRequestPlotImageMenu:
+                  (menuContext, index, globalPosition) =>
+                      showMoviePlotImageActionMenu(
+                        context: menuContext,
+                        hostContext: context,
+                        plotImages: movie.plotImages,
+                        movieNumber: widget.movieNumber,
+                        index: index,
+                        globalPosition: globalPosition,
+                        onSearchSimilar:
+                            (hostContext, imageUrl, fileName) =>
+                                _openImageSearchFromUrl(
+                                  imageUrl: imageUrl,
+                                  fileName: fileName,
+                                ),
                       ),
-                ),
+              onOpenPlotPreview:
+                  (index) => showMoviePlotPreviewOverlay(
+                    context: context,
+                    plotImages: movie.plotImages,
+                    initialIndex: index,
+                    presentation: MoviePlotPreviewPresentation.bottomDrawer,
+                    onRequestImageMenu:
+                        (menuContext, previewIndex, globalPosition) =>
+                            showMoviePlotImageActionMenu(
+                              context: menuContext,
+                              hostContext: context,
+                              plotImages: movie.plotImages,
+                              movieNumber: widget.movieNumber,
+                              index: previewIndex,
+                              globalPosition: globalPosition,
+                              closeCurrentRouteOnSearch: true,
+                              onSearchSimilar:
+                                  (hostContext, imageUrl, fileName) =>
+                                      _openImageSearchFromUrl(
+                                        imageUrl: imageUrl,
+                                        fileName: fileName,
+                                      ),
+                            ),
+                  ),
+              onInspectorTap:
+                  () => showMobileMovieDetailInspectorBottomSheet(
+                    context: context,
+                    movieNumber: movie.movieNumber,
+                    selectedMedia: selectedMedia,
+                    onSearchSimilar: (thumbnail, imageUrl, fileName) {
+                      return _openImageSearchFromUrl(
+                        imageUrl: imageUrl,
+                        fileName: fileName,
+                      );
+                    },
+                    onPlay:
+                        (thumbnail) => _openMoviePlayer(
+                          mediaId:
+                              thumbnail.mediaId > 0
+                                  ? thumbnail.mediaId
+                                  : selectedMedia?.mediaId,
+                          positionSeconds: thumbnail.offsetSeconds,
+                        ),
+                  ),
+            ),
           );
         },
       ),
     );
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      await _controller.refresh();
+      if (mounted) {
+        setState(() {
+          _pointOverrides.clear();
+          _selectedMediaId = null;
+          _isSubscribedOverride = null;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        showToast('刷新失败');
+      }
+    }
   }
 
   List<MovieMediaItemDto> _resolveMediaItems(MovieDetailDto movie) {

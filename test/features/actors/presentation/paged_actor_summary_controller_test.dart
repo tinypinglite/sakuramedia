@@ -117,6 +117,81 @@ void main() {
     );
 
     test(
+      'refresh replaces first page actors without resetting state first',
+      () async {
+        var cycle = 0;
+        final controller = PagedActorSummaryController(
+          pageSize: 2,
+          subscribeActor: ({required actorId}) async {},
+          unsubscribeActor: ({required actorId}) async {},
+          fetchPage: (page, pageSize) async {
+            cycle += 1;
+            if (cycle == 1) {
+              return PaginatedResponseDto<ActorListItemDto>(
+                items: _actors(1, 2),
+                page: 1,
+                pageSize: 2,
+                total: 4,
+              );
+            }
+            return PaginatedResponseDto<ActorListItemDto>(
+              items: _actors(201, 1),
+              page: 1,
+              pageSize: 2,
+              total: 1,
+            );
+          },
+        );
+
+        await controller.initialize();
+        await controller.refresh();
+
+        expect(controller.items.single.id, 201);
+        expect(controller.currentPage, 1);
+        expect(controller.total, 1);
+        expect(controller.hasMore, isFalse);
+        expect(controller.initialErrorMessage, isNull);
+        expect(controller.loadMoreErrorMessage, isNull);
+
+        controller.dispose();
+      },
+    );
+
+    test('refresh rethrows and keeps existing actors on failure', () async {
+      var cycle = 0;
+      final controller = PagedActorSummaryController(
+        pageSize: 2,
+        subscribeActor: ({required actorId}) async {},
+        unsubscribeActor: ({required actorId}) async {},
+        fetchPage: (page, pageSize) async {
+          cycle += 1;
+          if (cycle == 1) {
+            return PaginatedResponseDto<ActorListItemDto>(
+              items: _actors(1, 2),
+              page: 1,
+              pageSize: 2,
+              total: 4,
+            );
+          }
+          throw Exception('refresh failed');
+        },
+      );
+
+      await controller.initialize();
+
+      await expectLater(controller.refresh(), throwsException);
+
+      expect(controller.items, hasLength(2));
+      expect(controller.items.first.id, 1);
+      expect(controller.currentPage, 1);
+      expect(controller.total, 4);
+      expect(controller.initialErrorMessage, isNull);
+      expect(controller.loadMoreErrorMessage, isNull);
+
+      controller.dispose();
+    });
+
+    test(
       'toggleSubscription unsubscribes actor and updates item in place',
       () async {
         final controller = PagedActorSummaryController(

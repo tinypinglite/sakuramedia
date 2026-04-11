@@ -153,6 +153,26 @@ class PagedMovieSummaryController extends ChangeNotifier {
     await _loadPage(reset: true);
   }
 
+  Future<void> refresh() async {
+    if (_isInitialLoading || _isLoadingMore) {
+      return;
+    }
+    final response = await fetchPage(initialPage, pageSize);
+    if (_isDisposed) {
+      return;
+    }
+    _items
+      ..clear()
+      ..addAll(response.items);
+    _currentPage = response.page;
+    _total = response.total;
+    _hasMore = _items.length < _total;
+    _hasLoadedOnce = true;
+    _initialErrorMessage = null;
+    _loadMoreErrorMessage = null;
+    _safeNotifyListeners();
+  }
+
   Future<void> loadMore() async {
     if (_isInitialLoading || _isLoadingMore || !_hasMore) {
       return;

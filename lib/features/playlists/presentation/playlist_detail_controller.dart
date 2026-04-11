@@ -20,6 +20,15 @@ class PlaylistDetailController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  Future<void> refresh() async {
+    if (_isLoading) {
+      return;
+    }
+    _playlist = await fetchPlaylistDetail(playlistId: playlistId);
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   Future<void> load() async {
     _isLoading = true;
     _errorMessage = null;

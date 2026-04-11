@@ -15,6 +15,7 @@ class MobilePlaylistDetailPage extends StatelessWidget {
       color: context.appColors.surfaceCard,
       child: PlaylistDetailContent(
         playlistId: playlistId,
+        enablePullToRefresh: true,
         onMovieTap:
             (movie) => MobileMovieDetailRouteData(
               movieNumber: movie.movieNumber,

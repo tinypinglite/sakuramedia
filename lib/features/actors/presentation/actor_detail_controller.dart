@@ -20,6 +20,15 @@ class ActorDetailController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  Future<void> refresh() async {
+    if (_isLoading) {
+      return;
+    }
+    _actor = await fetchActorDetail(actorId: actorId);
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   Future<void> load() async {
     _isLoading = true;
     _errorMessage = null;

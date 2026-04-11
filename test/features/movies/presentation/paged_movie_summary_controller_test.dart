@@ -234,6 +234,83 @@ void main() {
     );
 
     test(
+      'refresh replaces first page items without resetting state first',
+      () async {
+        var cycle = 0;
+        final controller = PagedMovieSummaryController(
+          pageSize: 2,
+          subscribeMovie: ({required movieNumber}) async {},
+          unsubscribeMovie:
+              ({required movieNumber, deleteMedia = false}) async {},
+          fetchPage: (page, pageSize) async {
+            cycle += 1;
+            if (cycle == 1) {
+              return PaginatedResponseDto<MovieListItemDto>(
+                items: _movies(1, 2),
+                page: 1,
+                pageSize: 2,
+                total: 4,
+              );
+            }
+            return PaginatedResponseDto<MovieListItemDto>(
+              items: _movies(201, 1),
+              page: 1,
+              pageSize: 2,
+              total: 1,
+            );
+          },
+        );
+
+        await controller.initialize();
+        await controller.refresh();
+
+        expect(controller.items.single.movieNumber, 'ABC-201');
+        expect(controller.currentPage, 1);
+        expect(controller.total, 1);
+        expect(controller.hasMore, isFalse);
+        expect(controller.initialErrorMessage, isNull);
+        expect(controller.loadMoreErrorMessage, isNull);
+
+        controller.dispose();
+      },
+    );
+
+    test('refresh rethrows and keeps existing items on failure', () async {
+      var cycle = 0;
+      final controller = PagedMovieSummaryController(
+        pageSize: 2,
+        subscribeMovie: ({required movieNumber}) async {},
+        unsubscribeMovie:
+            ({required movieNumber, deleteMedia = false}) async {},
+        fetchPage: (page, pageSize) async {
+          cycle += 1;
+          if (cycle == 1) {
+            return PaginatedResponseDto<MovieListItemDto>(
+              items: _movies(1, 2),
+              page: 1,
+              pageSize: 2,
+              total: 4,
+            );
+          }
+          throw Exception('refresh failed');
+        },
+      );
+
+      await controller.initialize();
+
+      await expectLater(controller.refresh(), throwsException);
+
+      expect(controller.items, hasLength(2));
+      expect(controller.items.first.movieNumber, 'ABC-001');
+      expect(controller.currentPage, 1);
+      expect(controller.total, 4);
+      expect(controller.initialErrorMessage, isNull);
+      expect(controller.loadMoreErrorMessage, isNull);
+
+      controller.dispose();
+    });
+
+    test(
       'toggleSubscription subscribes movie and updates item in place',
       () async {
         final controller = PagedMovieSummaryController(
