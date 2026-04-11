@@ -24,6 +24,17 @@ class MovieDetailController extends ChangeNotifier {
   String? get selectedPreviewUrl => _selectedPreview.url;
   String get selectedPreviewKey => _selectedPreview.key;
 
+  Future<void> refresh() async {
+    if (_isLoading) {
+      return;
+    }
+    final movie = await fetchMovieDetail(movieNumber: movieNumber);
+    _movie = movie;
+    _selectedPreview = _defaultPreviewFor(movie);
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   Future<void> load() async {
     _isLoading = true;
     _errorMessage = null;

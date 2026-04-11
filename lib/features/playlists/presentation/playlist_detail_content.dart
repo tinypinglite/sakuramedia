@@ -6,7 +6,9 @@ import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_con
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/playlist_detail_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/playlists/playlist_banner_card.dart';
@@ -16,10 +18,12 @@ class PlaylistDetailContent extends StatefulWidget {
     super.key,
     required this.playlistId,
     required this.onMovieTap,
+    this.enablePullToRefresh = false,
   });
 
   final int playlistId;
   final ValueChanged<MovieListItemDto> onMovieTap;
+  final bool enablePullToRefresh;
 
   @override
   State<PlaylistDetailContent> createState() => _PlaylistDetailContentState();
@@ -85,8 +89,11 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
         }
 
         final playlist = _detailController.playlist!;
-
-        return SingleChildScrollView(
+        final scrollView = SingleChildScrollView(
+          physics:
+              widget.enablePullToRefresh
+                  ? const AlwaysScrollableScrollPhysics()
+                  : null,
           controller: _moviesController.scrollController,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,8 +136,27 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
             ],
           ),
         );
+
+        if (!widget.enablePullToRefresh) {
+          return scrollView;
+        }
+
+        return AppPullToRefresh(onRefresh: _handleRefresh, child: scrollView);
       },
     );
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      await Future.wait<void>([
+        _detailController.refresh(),
+        _moviesController.refresh(),
+      ]);
+    } catch (_) {
+      if (mounted) {
+        showToast('刷新失败');
+      }
+    }
   }
 
   Future<void> _toggleMovieSubscription(String movieNumber) async {

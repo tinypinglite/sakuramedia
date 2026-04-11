@@ -41,6 +41,7 @@ class MovieDetailPageContent extends StatelessWidget {
     this.onOpenPlotPreview,
     this.contentPadding = EdgeInsets.zero,
     this.bottomInfoBarVariant = MovieDetailBottomInfoBarVariant.desktopCard,
+    this.scrollPhysics,
   });
 
   final MovieDetailDto movie;
@@ -75,6 +76,7 @@ class MovieDetailPageContent extends StatelessWidget {
   final ValueChanged<int>? onOpenPlotPreview;
   final EdgeInsetsGeometry contentPadding;
   final MovieDetailBottomInfoBarVariant bottomInfoBarVariant;
+  final ScrollPhysics? scrollPhysics;
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +94,7 @@ class MovieDetailPageContent extends StatelessWidget {
                       context.appSpacing.sm;
 
           final scrollableContent = SingleChildScrollView(
+            physics: scrollPhysics,
             child: Padding(
               padding: EdgeInsets.only(bottom: scrollBottomPadding),
               child: Padding(

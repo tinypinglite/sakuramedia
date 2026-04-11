@@ -133,6 +133,22 @@ void main() {
     expect(find.text('暂无影片数据'), findsOneWidget);
   });
 
+  testWidgets('desktop movies page does not expose pull to refresh', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(total: 1, items: <Map<String, dynamic>>[_movieItem()]),
+    );
+
+    await _pumpMoviesPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RefreshIndicator), findsNothing);
+    expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
+  });
+
   testWidgets('desktop movies page shows error state', (
     WidgetTester tester,
   ) async {
@@ -702,6 +718,7 @@ Map<String, dynamic> _moviesJson({
 
 Map<String, dynamic> _movieItem({
   String movieNumber = 'ABC-001',
+  String? title,
   bool isSubscribed = true,
   bool canPlay = true,
   int heat = 0,
@@ -709,7 +726,7 @@ Map<String, dynamic> _movieItem({
   return <String, dynamic>{
     'javdb_id': 'Movie$movieNumber',
     'movie_number': movieNumber,
-    'title': 'Movie $movieNumber',
+    'title': title ?? 'Movie $movieNumber',
     'cover_image': null,
     'release_date': '2024-01-02',
     'duration_minutes': 120,

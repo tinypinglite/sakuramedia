@@ -243,7 +243,9 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
   }
 
   Future<void> _toggleMovieSubscription(String movieNumber) async {
-    final result = await _controller.toggleSubscription(movieNumber: movieNumber);
+    final result = await _controller.toggleSubscription(
+      movieNumber: movieNumber,
+    );
     if (!mounted) {
       return;
     }
@@ -277,8 +279,7 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
                     isLoading: _isFilterLoading,
                     onSourceChanged: (value) => unawaited(_selectSource(value)),
                     onBoardChanged: (value) => unawaited(_selectBoard(value)),
-                    onPeriodChanged:
-                        (value) => unawaited(_selectPeriod(value)),
+                    onPeriodChanged: (value) => unawaited(_selectPeriod(value)),
                   ),
                   totalText: '${_controller.total} 部',
                   totalKey: const Key('desktop-rankings-page-total'),
@@ -312,8 +313,9 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
                     onMovieSubscriptionTap:
                         (movie) => _toggleMovieSubscription(movie.movieNumber),
                     isMovieSubscriptionUpdating:
-                        (movie) =>
-                            _controller.isSubscriptionUpdating(movie.movieNumber),
+                        (movie) => _controller.isSubscriptionUpdating(
+                          movie.movieNumber,
+                        ),
                     emptyMessage: '暂无榜单数据',
                   ),
                 if (showFooter) ...[

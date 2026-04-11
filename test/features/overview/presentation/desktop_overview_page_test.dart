@@ -395,6 +395,20 @@ void main() {
     expect(find.text('最新入库影片加载失败，请稍后重试'), findsOneWidget);
   });
 
+  testWidgets('desktop overview does not expose pull to refresh', (
+    WidgetTester tester,
+  ) async {
+    _enqueueStatusSuccess(bundle);
+    _enqueueImageSearchStatusSuccess(bundle);
+    _enqueueLatestMoviesSuccess(bundle, count: 1, total: 1);
+
+    await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RefreshIndicator), findsNothing);
+    expect(find.text('ABC-001'), findsOneWidget);
+  });
+
   testWidgets(
     'desktop overview loads the next page when scrolled near the bottom',
     (WidgetTester tester) async {

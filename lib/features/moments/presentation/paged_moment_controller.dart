@@ -102,6 +102,43 @@ class PagedMomentController extends ChangeNotifier {
     await _loadPage(reset: true);
   }
 
+  Future<void> refresh() async {
+    if (_isInitialLoading || _isLoadingMore) {
+      return;
+    }
+    final response = await fetchPage(
+      initialPage,
+      pageSize,
+      _sortOrder.apiValue,
+    );
+    if (_isDisposed) {
+      return;
+    }
+    final hydratedItems = response.items
+        .map(
+          (item) => MomentListItem(
+            pointId: item.pointId,
+            mediaId: item.mediaId,
+            movieNumber: item.movieNumber,
+            thumbnailId: item.thumbnailId,
+            offsetSeconds: item.offsetSeconds,
+            createdAt: item.createdAt,
+            image: item.image,
+          ),
+        )
+        .toList(growable: false);
+    _items
+      ..clear()
+      ..addAll(hydratedItems);
+    _currentPage = response.page;
+    _total = response.total;
+    _hasMore = _items.length < _total;
+    _hasLoadedOnce = true;
+    _initialErrorMessage = null;
+    _loadMoreErrorMessage = null;
+    _safeNotifyListeners();
+  }
+
   Future<void> setSortOrder(MomentSortOrder nextOrder) async {
     if (_sortOrder == nextOrder) {
       return;

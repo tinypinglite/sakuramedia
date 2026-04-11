@@ -11,7 +11,9 @@ import 'package:sakuramedia/features/hot_reviews/presentation/paged_hot_review_c
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
@@ -28,6 +30,8 @@ class DesktopHotReviewsPage extends StatefulWidget {
     this.minColumns = 2,
     this.maxColumns = 4,
     this.targetCardWidth = 420,
+    this.enablePullToRefresh = false,
+    this.scrollPhysics,
   }) : assert(minColumns >= 1),
        assert(maxColumns >= minColumns),
        assert(targetCardWidth > 0);
@@ -36,6 +40,8 @@ class DesktopHotReviewsPage extends StatefulWidget {
   final int minColumns;
   final int maxColumns;
   final double targetCardWidth;
+  final bool enablePullToRefresh;
+  final ScrollPhysics? scrollPhysics;
 
   @override
   State<DesktopHotReviewsPage> createState() => _DesktopHotReviewsPageState();
@@ -67,60 +73,79 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: SingleChildScrollView(
-        key: const Key('desktop-hot-reviews-scroll-view'),
-        controller: _controller.scrollController,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            final showFooter =
-                _controller.items.isNotEmpty &&
-                (_controller.isLoadingMore ||
-                    _controller.loadMoreErrorMessage != null);
-            return Column(
-              key: const Key('desktop-hot-reviews-page'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppFilterTotalHeader(
-                  leading: Wrap(
-                    spacing: context.appSpacing.xs,
-                    runSpacing: context.appSpacing.xs,
-                    children: [
-                      for (final period in HotReviewPeriod.values)
-                        AppButton(
-                          key: Key(
-                            'desktop-hot-reviews-period-${period.apiValue}',
-                          ),
-                          label: period.label,
-                          size: AppButtonSize.small,
-                          variant: AppButtonVariant.secondary,
-                          isSelected: _controller.period == period,
-                          onPressed:
-                              () => unawaited(_controller.setPeriod(period)),
+    final scrollView = SingleChildScrollView(
+      key: const Key('desktop-hot-reviews-scroll-view'),
+      physics:
+          widget.enablePullToRefresh
+              ? widget.scrollPhysics ?? const AlwaysScrollableScrollPhysics()
+              : widget.scrollPhysics,
+      controller: _controller.scrollController,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          final showFooter =
+              _controller.items.isNotEmpty &&
+              (_controller.isLoadingMore ||
+                  _controller.loadMoreErrorMessage != null);
+          return Column(
+            key: const Key('desktop-hot-reviews-page'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppFilterTotalHeader(
+                leading: Wrap(
+                  spacing: context.appSpacing.xs,
+                  runSpacing: context.appSpacing.xs,
+                  children: [
+                    for (final period in HotReviewPeriod.values)
+                      AppButton(
+                        key: Key(
+                          'desktop-hot-reviews-period-${period.apiValue}',
                         ),
-                    ],
-                  ),
-                  totalText: '${_controller.total} 条',
-                  totalKey: const Key('desktop-hot-reviews-page-total'),
+                        label: period.label,
+                        size: AppButtonSize.small,
+                        variant: AppButtonVariant.secondary,
+                        isSelected: _controller.period == period,
+                        onPressed:
+                            () => unawaited(_controller.setPeriod(period)),
+                      ),
+                  ],
                 ),
-                SizedBox(height: context.appSpacing.lg),
-                _buildBody(context),
-                if (showFooter) ...[
-                  SizedBox(height: context.appSpacing.md),
-                  AppPagedLoadMoreFooter(
-                    isLoading: _controller.isLoadingMore,
-                    errorMessage: _controller.loadMoreErrorMessage,
-                    onRetry: _controller.loadMore,
-                  ),
-                ],
+                totalText: '${_controller.total} 条',
+                totalKey: const Key('desktop-hot-reviews-page-total'),
+              ),
+              SizedBox(height: context.appSpacing.lg),
+              _buildBody(context),
+              if (showFooter) ...[
+                SizedBox(height: context.appSpacing.md),
+                AppPagedLoadMoreFooter(
+                  isLoading: _controller.isLoadingMore,
+                  errorMessage: _controller.loadMoreErrorMessage,
+                  onRetry: _controller.loadMore,
+                ),
               ],
-            );
-          },
-        ),
+            ],
+          );
+        },
       ),
     );
+
+    return ColoredBox(
+      color: context.appColors.surfaceElevated,
+      child:
+          widget.enablePullToRefresh
+              ? AppPullToRefresh(onRefresh: _handleRefresh, child: scrollView)
+              : scrollView,
+    );
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      await _controller.refresh();
+    } catch (_) {
+      if (mounted) {
+        showToast('刷新失败');
+      }
+    }
   }
 
   Widget _buildBody(BuildContext context) {

@@ -230,6 +230,28 @@ void main() {
     },
   );
 
+  testWidgets('movie detail page keeps pull to refresh disabled on desktop', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: _movieDetailJson(
+        mediaItems: <Map<String, dynamic>>[
+          _mediaItemJson(mediaId: 100, specialTags: '普通'),
+          _mediaItemJson(mediaId: 101, specialTags: '预告'),
+        ],
+      ),
+    );
+    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RefreshIndicator), findsNothing);
+    await tester.tap(find.text('预告 500.0 MB'));
+    await tester.pumpAndSettle();
+    expect(find.text('H.265 · 6.5 Mbps · 24 fps'), findsOneWidget);
+  });
+
   testWidgets(
     'movie detail page opens point preview dialog without movie detail action',
     (WidgetTester tester) async {

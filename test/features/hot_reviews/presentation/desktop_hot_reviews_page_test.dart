@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_reviews_page.dart';
+import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
@@ -119,6 +120,58 @@ void main() {
       expect(reviewRequests[1].uri.queryParameters['period'], 'monthly');
     },
   );
+
+  testWidgets(
+    'desktop hot reviews page keeps pull to refresh disabled by default',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/hot-reviews',
+        body: _hotReviewsJson(total: 1),
+      );
+
+      await _pumpHotReviewsPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RefreshIndicator), findsNothing);
+    },
+  );
+
+  testWidgets('mobile hot reviews tab enables pull to refresh', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/hot-reviews',
+      body: _hotReviewsJson(total: 1),
+    );
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
+        ],
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: const OKToast(
+            child: Scaffold(body: MobileOverviewHotReviewsTab()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RefreshIndicator), findsOneWidget);
+    expect(
+      find.byKey(const Key('mobile-overview-hot-reviews-tab')),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('desktop hot reviews grid resolves 2 to 4 columns adaptively', (
     WidgetTester tester,

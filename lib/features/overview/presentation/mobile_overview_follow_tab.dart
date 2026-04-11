@@ -9,7 +9,9 @@ import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_con
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movies/mobile_follow_movie_card.dart';
 
@@ -128,84 +130,117 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: context.appColors.surfaceCard,
-      child: AnimatedBuilder(
-        animation: _moviesController,
-        builder: (context, _) {
-          if (_moviesController.isInitialLoading &&
-              _moviesController.items.isEmpty) {
-            return const _FollowTabLoadingState();
-          }
+      child: AppPullToRefresh(
+        onRefresh: _handleRefresh,
+        child: AnimatedBuilder(
+          animation: _moviesController,
+          builder: (context, _) {
+            if (_moviesController.isInitialLoading &&
+                _moviesController.items.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [_FollowTabLoadingState()],
+              );
+            }
 
-          if (_moviesController.initialErrorMessage != null &&
-              _moviesController.items.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+            if (_moviesController.initialErrorMessage != null &&
+                _moviesController.items.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  AppEmptyState(
-                    message: _moviesController.initialErrorMessage!,
-                  ),
-                  SizedBox(height: context.appSpacing.xs),
-                  TextButton(
-                    onPressed: _moviesController.reload,
-                    child: const Text('重试'),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AppEmptyState(
+                          message: _moviesController.initialErrorMessage!,
+                        ),
+                        SizedBox(height: context.appSpacing.xs),
+                        TextButton(
+                          onPressed: _moviesController.reload,
+                          child: const Text('重试'),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
-              ),
-            );
-          }
-
-          if (_moviesController.items.isEmpty) {
-            return const Center(child: AppEmptyState(message: '暂无关注影片'));
-          }
-
-          final showFooter =
-              _moviesController.isLoadingMore ||
-              _moviesController.loadMoreErrorMessage != null;
-          return ListView.separated(
-            key: const Key('mobile-overview-follow-list'),
-            controller: _moviesController.scrollController,
-            padding: EdgeInsets.only(
-              top: context.appSpacing.sm,
-              bottom: context.appSpacing.md,
-            ),
-            itemCount: _moviesController.items.length + (showFooter ? 1 : 0),
-            separatorBuilder:
-                (_, __) => SizedBox(height: context.appSpacing.sm),
-            itemBuilder: (context, index) {
-              if (index >= _moviesController.items.length) {
-                return AppPagedLoadMoreFooter(
-                  isLoading: _moviesController.isLoadingMore,
-                  errorMessage: _moviesController.loadMoreErrorMessage,
-                  onRetry: _moviesController.loadMore,
-                );
-              }
-
-              final movie = _moviesController.items[index];
-              final detailState = _movieDetailStates[movie.movieNumber];
-              return MobileFollowMovieCard(
-                movie: movie,
-                onTap:
-                    () => MobileMovieDetailRouteData(
-                      movieNumber: movie.movieNumber,
-                    ).push(context),
-                onSubscriptionTap:
-                    () => _toggleMovieSubscription(movie.movieNumber),
-                isSubscriptionUpdating: _moviesController
-                    .isSubscriptionUpdating(movie.movieNumber),
-                isDetailLoading:
-                    detailState == null ||
-                    detailState.status == _FollowMovieDetailStatus.loading,
-                detailStillImageUrls: detailState?.stillImageUrls ?? const [],
-                detailSummary: detailState?.summary,
-                detailThinCoverUrl: detailState?.thinCoverUrl,
-                onVisible: () => _ensureMovieDetailLoaded(movie.movieNumber),
               );
-            },
-          );
-        },
+            }
+
+            if (_moviesController.items.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                  const Center(child: AppEmptyState(message: '暂无关注影片')),
+                ],
+              );
+            }
+
+            final showFooter =
+                _moviesController.isLoadingMore ||
+                _moviesController.loadMoreErrorMessage != null;
+            return ListView.separated(
+              key: const Key('mobile-overview-follow-list'),
+              physics: const AlwaysScrollableScrollPhysics(),
+              controller: _moviesController.scrollController,
+              padding: EdgeInsets.only(
+                top: context.appSpacing.sm,
+                bottom: context.appSpacing.md,
+              ),
+              itemCount: _moviesController.items.length + (showFooter ? 1 : 0),
+              separatorBuilder:
+                  (_, __) => SizedBox(height: context.appSpacing.sm),
+              itemBuilder: (context, index) {
+                if (index >= _moviesController.items.length) {
+                  return AppPagedLoadMoreFooter(
+                    isLoading: _moviesController.isLoadingMore,
+                    errorMessage: _moviesController.loadMoreErrorMessage,
+                    onRetry: _moviesController.loadMore,
+                  );
+                }
+
+                final movie = _moviesController.items[index];
+                final detailState = _movieDetailStates[movie.movieNumber];
+                return MobileFollowMovieCard(
+                  movie: movie,
+                  onTap:
+                      () => MobileMovieDetailRouteData(
+                        movieNumber: movie.movieNumber,
+                      ).push(context),
+                  onSubscriptionTap:
+                      () => _toggleMovieSubscription(movie.movieNumber),
+                  isSubscriptionUpdating: _moviesController
+                      .isSubscriptionUpdating(movie.movieNumber),
+                  isDetailLoading:
+                      detailState == null ||
+                      detailState.status == _FollowMovieDetailStatus.loading,
+                  detailStillImageUrls: detailState?.stillImageUrls ?? const [],
+                  detailSummary: detailState?.summary,
+                  detailThinCoverUrl: detailState?.thinCoverUrl,
+                  onVisible: () => _ensureMovieDetailLoaded(movie.movieNumber),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      _movieDetailStates.clear();
+      _detailQueue.clear();
+      _queuedMovieNumbers.clear();
+      _activeDetailRequests = 0;
+      await _moviesController.refresh();
+    } catch (_) {
+      if (mounted) {
+        showToast('刷新失败');
+      }
+    }
   }
 }
 
@@ -267,22 +302,28 @@ class _FollowTabLoadingState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    return ListView.separated(
+    return Padding(
       padding: EdgeInsets.only(
         top: context.appSpacing.sm,
         bottom: context.appSpacing.md,
       ),
-      itemCount: 4,
-      separatorBuilder: (_, __) => SizedBox(height: context.appSpacing.sm),
-      itemBuilder:
-          (_, index) => Container(
-            key: Key('mobile-overview-follow-skeleton-$index'),
-            height: 216,
-            decoration: BoxDecoration(
-              color: colors.surfaceMuted,
-              borderRadius: context.appRadius.mdBorder,
+      child: Column(
+        children: List<Widget>.generate(4, (index) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: index == 3 ? 0 : context.appSpacing.sm,
             ),
-          ),
+            child: Container(
+              key: Key('mobile-overview-follow-skeleton-$index'),
+              height: 216,
+              decoration: BoxDecoration(
+                color: colors.surfaceMuted,
+                borderRadius: context.appRadius.mdBorder,
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 }

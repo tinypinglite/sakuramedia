@@ -13,7 +13,9 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/movies/movie_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 
@@ -93,68 +95,82 @@ class _MobileMoviesPageState extends State<MobileMoviesPage> {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: context.appColors.surfaceCard,
-      child: SingleChildScrollView(
-        controller: _moviesController.scrollController,
-        child: AnimatedBuilder(
-          animation: _moviesController,
-          builder: (context, _) {
-            final showFooter =
-                _moviesController.items.isNotEmpty &&
-                (_moviesController.isLoadingMore ||
-                    _moviesController.loadMoreErrorMessage != null);
+      child: AppPullToRefresh(
+        onRefresh: _handleRefresh,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          controller: _moviesController.scrollController,
+          child: AnimatedBuilder(
+            animation: _moviesController,
+            builder: (context, _) {
+              final showFooter =
+                  _moviesController.items.isNotEmpty &&
+                  (_moviesController.isLoadingMore ||
+                      _moviesController.loadMoreErrorMessage != null);
 
-            return Column(
-              key: const Key('mobile-movies-page'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppFilterTotalHeader(
-                  leading: MovieFilterToolbar(
-                    filterState: _filterState,
-                    onChanged: _applyFilter,
-                    onReset: _resetFilters,
+              return Column(
+                key: const Key('mobile-movies-page'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppFilterTotalHeader(
+                    leading: MovieFilterToolbar(
+                      filterState: _filterState,
+                      onChanged: _applyFilter,
+                      onReset: _resetFilters,
+                    ),
+                    totalText: '${_moviesController.total} 部',
+                    totalKey: const Key('mobile-movies-page-total'),
                   ),
-                  totalText: '${_moviesController.total} 部',
-                  totalKey: const Key('mobile-movies-page-total'),
-                ),
-                SizedBox(height: context.appSpacing.md),
-                MovieSummaryGrid(
-                  items: _moviesController.items,
-                  isLoading: _moviesController.isInitialLoading,
-                  errorMessage: _moviesController.initialErrorMessage,
-                  onMovieTap:
-                      (movie) => MobileMovieDetailRouteData(
-                        movieNumber: movie.movieNumber,
-                      ).push(context),
-                  onMovieMenuRequest: (movie, globalPosition) {
-                    unawaited(
-                      showMovieCollectionFeatureActionMenu(
-                        context: context,
-                        movieNumber: movie.movieNumber,
-                        globalPosition: globalPosition,
-                      ),
-                    );
-                  },
-                  onMovieSubscriptionTap:
-                      (movie) => _toggleMovieSubscription(movie.movieNumber),
-                  isMovieSubscriptionUpdating:
-                      (movie) => _moviesController.isSubscriptionUpdating(
-                        movie.movieNumber,
-                      ),
-                  emptyMessage: '暂无影片数据',
-                ),
-                if (showFooter) ...[
                   SizedBox(height: context.appSpacing.md),
-                  AppPagedLoadMoreFooter(
-                    isLoading: _moviesController.isLoadingMore,
-                    errorMessage: _moviesController.loadMoreErrorMessage,
-                    onRetry: _moviesController.loadMore,
+                  MovieSummaryGrid(
+                    items: _moviesController.items,
+                    isLoading: _moviesController.isInitialLoading,
+                    errorMessage: _moviesController.initialErrorMessage,
+                    onMovieTap:
+                        (movie) => MobileMovieDetailRouteData(
+                          movieNumber: movie.movieNumber,
+                        ).push(context),
+                    onMovieMenuRequest: (movie, globalPosition) {
+                      unawaited(
+                        showMovieCollectionFeatureActionMenu(
+                          context: context,
+                          movieNumber: movie.movieNumber,
+                          globalPosition: globalPosition,
+                        ),
+                      );
+                    },
+                    onMovieSubscriptionTap:
+                        (movie) => _toggleMovieSubscription(movie.movieNumber),
+                    isMovieSubscriptionUpdating:
+                        (movie) => _moviesController.isSubscriptionUpdating(
+                          movie.movieNumber,
+                        ),
+                    emptyMessage: '暂无影片数据',
                   ),
+                  if (showFooter) ...[
+                    SizedBox(height: context.appSpacing.md),
+                    AppPagedLoadMoreFooter(
+                      isLoading: _moviesController.isLoadingMore,
+                      errorMessage: _moviesController.loadMoreErrorMessage,
+                      onRetry: _moviesController.loadMore,
+                    ),
+                  ],
                 ],
-              ],
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      await _moviesController.refresh();
+    } catch (_) {
+      if (mounted) {
+        showToast('刷新失败');
+      }
+    }
   }
 }

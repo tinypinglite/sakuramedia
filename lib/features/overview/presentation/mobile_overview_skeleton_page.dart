@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
@@ -185,34 +186,67 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(height: spacing.sm),
-          CatalogSearchField(
-            key: const Key('mobile-overview-my-search-field'),
-            fieldKey: const Key('mobile-overview-my-search-input'),
-            searchButtonKey: const Key('mobile-overview-my-search-submit'),
-            imageSearchButtonKey: const Key('mobile-overview-my-search-image'),
-            controller: _searchController,
-            hintText: '找影片',
-            showImageSearchButton: true,
-            onSearchTap: _submitSearch,
-            onSubmitted: (_) => _submitSearch(),
-            onImageSearchTap: _openImageSearch,
-          ),
-          SizedBox(height: spacing.sm),
-          Text('最近添加', style: Theme.of(context).textTheme.bodyMedium),
-          SizedBox(height: spacing.xs),
-          _buildLatestMoviesSection(),
-          SizedBox(height: spacing.sm),
-          Text('播放列表', style: Theme.of(context).textTheme.bodyMedium),
-          SizedBox(height: spacing.xs),
-          _buildPlaylistsSection(),
-        ],
+    return AppPullToRefresh(
+      onRefresh: _handleRefresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: spacing.sm),
+            CatalogSearchField(
+              key: const Key('mobile-overview-my-search-field'),
+              fieldKey: const Key('mobile-overview-my-search-input'),
+              searchButtonKey: const Key('mobile-overview-my-search-submit'),
+              imageSearchButtonKey: const Key(
+                'mobile-overview-my-search-image',
+              ),
+              controller: _searchController,
+              hintText: '找影片',
+              showImageSearchButton: true,
+              onSearchTap: _submitSearch,
+              onSubmitted: (_) => _submitSearch(),
+              onImageSearchTap: _openImageSearch,
+            ),
+            SizedBox(height: spacing.sm),
+            Text('最近添加', style: Theme.of(context).textTheme.bodyMedium),
+            SizedBox(height: spacing.xs),
+            _buildLatestMoviesSection(),
+            SizedBox(height: spacing.sm),
+            Text('播放列表', style: Theme.of(context).textTheme.bodyMedium),
+            SizedBox(height: spacing.xs),
+            _buildPlaylistsSection(),
+          ],
+        ),
       ),
     );
+  }
+
+  Future<void> _handleRefresh() async {
+    try {
+      await Future.wait<void>([
+        _refreshLatestMovies(),
+        _playlistsController.refresh(),
+      ]);
+    } catch (_) {
+      if (mounted) {
+        showToast('刷新失败');
+      }
+    }
+  }
+
+  Future<void> _refreshLatestMovies() async {
+    final response = await context.read<MoviesApi>().getLatestMovies(
+      page: 1,
+      pageSize: _latestMoviePageSize,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _latestMovies = response.items;
+      _latestMoviesErrorMessage = null;
+    });
   }
 
   Widget _buildLatestMoviesSection() {

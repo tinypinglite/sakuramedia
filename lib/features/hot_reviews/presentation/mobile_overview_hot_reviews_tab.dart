@@ -13,14 +13,14 @@ class MobileOverviewHotReviewsTab extends StatelessWidget {
         minColumns: 1,
         maxColumns: 2,
         targetCardWidth: 360,
+        enablePullToRefresh: true,
+        scrollPhysics: const AlwaysScrollableScrollPhysics(),
         onOpenMovieDetail: (context, item) {
           final movieNumber = item.movie.movieNumber.trim();
           if (movieNumber.isEmpty) {
             return;
           }
-          context.pushMobileMovieDetail(
-            movieNumber: movieNumber,
-          );
+          context.pushMobileMovieDetail(movieNumber: movieNumber);
         },
       ),
     );
