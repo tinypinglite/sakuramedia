@@ -160,6 +160,7 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
       );
     }
     return MoviePlayerSurface(
+      movieNumber: widget.movieNumber,
       resolvedUrl: resolvedUrl,
       surfaceController: _surfaceController,
       initialPosition: _controller.initialPlaybackPosition,

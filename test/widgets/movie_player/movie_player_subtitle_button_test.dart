@@ -406,7 +406,7 @@ void main() {
       expect(find.byKey(const Key('movie-player-subtitle-menu')), findsNothing);
     });
 
-    testWidgets('shows empty menu when no subtitles are available', (
+    testWidgets('shows "无可用字幕" option when no subtitles are available', (
       WidgetTester tester,
     ) async {
       final subtitleStateNotifier = ValueNotifier<MoviePlayerSubtitleState>(
@@ -440,6 +440,15 @@ void main() {
         find.byKey(const Key('movie-player-subtitle-menu-item-501')),
         findsNothing,
       );
+      expect(
+        find.byKey(const Key('movie-player-subtitle-menu-empty')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('movie-player-subtitle-menu-empty-label')),
+        findsOneWidget,
+      );
+      expect(find.text('无可用字幕'), findsOneWidget);
       expect(
         find.byKey(const Key('movie-player-subtitle-menu-status')),
         findsNothing,

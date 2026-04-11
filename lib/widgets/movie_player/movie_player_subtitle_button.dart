@@ -12,6 +12,7 @@ const double _subtitleMenuVerticalPadding = 6;
 const double _subtitleMenuGap = 6;
 const double _subtitleMenuHoverTolerance = _subtitleMenuItemHeight;
 const Duration _subtitleMenuCloseDelay = Duration(milliseconds: 80);
+const String _noAvailableSubtitleLabel = '无可用字幕';
 
 class MoviePlayerSubtitleButton extends StatefulWidget {
   const MoviePlayerSubtitleButton({
@@ -51,8 +52,10 @@ class _MoviePlayerSubtitleButtonState extends State<MoviePlayerSubtitleButton> {
   late bool _isApplying;
 
   double get _menuHeight =>
-      (_subtitleState.options.length * _subtitleMenuItemHeight) +
+      (_effectiveMenuItemCount * _subtitleMenuItemHeight) +
       (_subtitleMenuVerticalPadding * 2);
+  int get _effectiveMenuItemCount =>
+      _subtitleState.options.isEmpty ? 1 : _subtitleState.options.length;
 
   bool get _canInteract => !_isSelectingSubtitle && !_isApplying;
 
@@ -394,6 +397,7 @@ class _MoviePlayerSubtitleMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final hasOptions = options.isNotEmpty;
 
     return Container(
       key: const Key('movie-player-subtitle-menu'),
@@ -415,20 +419,52 @@ class _MoviePlayerSubtitleMenu extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: options
-            .map(
-              (option) => _MoviePlayerSubtitleMenuItem(
-                subtitleId: option.subtitleId,
-                label: option.label,
-                selected: selectedSubtitleId == option.subtitleId,
-                hovered: hoveredSubtitleId == option.subtitleId,
-                onHoverChanged: (hovered) {
-                  onHoveredSubtitleChanged(hovered ? option.subtitleId : null);
-                },
-                onTap: () => onSubtitleSelected(option.subtitleId),
-              ),
-            )
-            .toList(growable: false),
+        children:
+            hasOptions
+                ? options
+                    .map(
+                      (option) => _MoviePlayerSubtitleMenuItem(
+                        subtitleId: option.subtitleId,
+                        label: option.label,
+                        selected: selectedSubtitleId == option.subtitleId,
+                        hovered: hoveredSubtitleId == option.subtitleId,
+                        onHoverChanged: (hovered) {
+                          onHoveredSubtitleChanged(
+                            hovered ? option.subtitleId : null,
+                          );
+                        },
+                        onTap: () => onSubtitleSelected(option.subtitleId),
+                      ),
+                    )
+                    .toList(growable: false)
+                : const <Widget>[_MoviePlayerSubtitleEmptyItem()],
+      ),
+    );
+  }
+}
+
+class _MoviePlayerSubtitleEmptyItem extends StatelessWidget {
+  const _MoviePlayerSubtitleEmptyItem();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      key: const Key('movie-player-subtitle-menu-empty'),
+      height: _subtitleMenuItemHeight,
+      child: Center(
+        child: Text(
+          _noAvailableSubtitleLabel,
+          key: const Key('movie-player-subtitle-menu-empty-label'),
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: Colors.white.withValues(alpha: 0.62),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1.0,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
     );
   }

@@ -19,6 +19,7 @@ import 'package:sakuramedia/widgets/movie_player/movie_player_surface_readiness.
 class MoviePlayerSurface extends StatefulWidget {
   const MoviePlayerSurface({
     super.key,
+    required this.movieNumber,
     required this.resolvedUrl,
     required this.surfaceController,
     this.initialPosition,
@@ -31,6 +32,7 @@ class MoviePlayerSurface extends StatefulWidget {
     this.useTouchOptimizedControls = false,
   });
 
+  final String movieNumber;
   final String resolvedUrl;
   final MoviePlayerSurfaceController surfaceController;
   final Duration? initialPosition;
@@ -563,10 +565,10 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final topControls =
-        widget.onBackPressed == null
-            ? const <Widget>[]
-            : <Widget>[MoviePlayerBackButton(onPressed: widget.onBackPressed!)];
+    final topControls = buildMoviePlayerTopControls(
+      movieNumber: widget.movieNumber,
+      onBackPressed: widget.onBackPressed,
+    );
     final mobileBottomControls = buildMoviePlayerMobileBottomControls();
     final desktopBottomControls = buildMoviePlayerDesktopBottomControls(
       currentRate: _currentPlaybackRate,
@@ -649,6 +651,23 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       bottomControls: bottomControls,
     );
   }
+}
+
+@visibleForTesting
+List<Widget> buildMoviePlayerTopControls({
+  required String movieNumber,
+  required VoidCallback? onBackPressed,
+}) {
+  if (onBackPressed == null) {
+    return const <Widget>[];
+  }
+
+  return <Widget>[
+    MoviePlayerBackWithNumberControl(
+      onPressed: onBackPressed,
+      movieNumber: movieNumber,
+    ),
+  ];
 }
 
 @visibleForTesting

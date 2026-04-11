@@ -31,6 +31,64 @@ class MoviePlayerBackButton extends StatelessWidget {
   }
 }
 
+class MoviePlayerCurrentNumberBadge extends StatelessWidget {
+  const MoviePlayerCurrentNumberBadge({super.key, required this.movieNumber});
+
+  final String movieNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final resolvedMovieNumber = movieNumber.trim();
+
+    return Material(
+      color: context.appColors.mediaOverlayStrong,
+      borderRadius: context.appRadius.pillBorder,
+      child: Container(
+        key: const Key('movie-player-current-number'),
+        constraints: const BoxConstraints(minHeight: 44, maxWidth: 280),
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Text(
+          resolvedMovieNumber,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: Colors.white.withValues(alpha: 0.94),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1.0,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+        ),
+      ),
+    );
+  }
+}
+
+class MoviePlayerBackWithNumberControl extends StatelessWidget {
+  const MoviePlayerBackWithNumberControl({
+    super.key,
+    required this.onPressed,
+    required this.movieNumber,
+  });
+
+  final VoidCallback onPressed;
+  final String movieNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        MoviePlayerBackButton(onPressed: onPressed),
+        const SizedBox(width: 2),
+        MoviePlayerCurrentNumberBadge(movieNumber: movieNumber),
+      ],
+    );
+  }
+}
+
 class MoviePlayerBackOverlay extends StatelessWidget {
   const MoviePlayerBackOverlay({super.key, required this.onPressed});
 

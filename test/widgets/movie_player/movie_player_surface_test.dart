@@ -320,6 +320,29 @@ void main() {
       expect(themeData.seekOnDoubleTap, isTrue);
     });
 
+    test('top controls render back button then current movie number', () {
+      final controls = buildMoviePlayerTopControls(
+        movieNumber: 'ABP-123',
+        onBackPressed: () {},
+      );
+
+      expect(controls, hasLength(1));
+      expect(controls[0], isA<MoviePlayerBackWithNumberControl>());
+      expect(
+        (controls[0] as MoviePlayerBackWithNumberControl).movieNumber,
+        'ABP-123',
+      );
+    });
+
+    test('top controls stay empty without a back callback', () {
+      final controls = buildMoviePlayerTopControls(
+        movieNumber: 'ABP-123',
+        onBackPressed: null,
+      );
+
+      expect(controls, isEmpty);
+    });
+
     test('mobile controls theme supports top and bottom button bars', () {
       final top = MoviePlayerBackButton(onPressed: () {});
       final bottom = const MaterialPlayOrPauseButton();
