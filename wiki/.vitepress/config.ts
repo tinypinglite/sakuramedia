@@ -2,11 +2,12 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'SakuraMedia',
-  description: '一站式Jav媒体管理系统',
+  description: '桌面优先的 SakuraMedia 媒体管理工作台',
   base: '/sakuramedia/',
   lang: 'zh-CN',
 
   themeConfig: {
+    logo: '/brand/sakuramedia-logo.png',
     nav: [
       { text: '指南', link: '/guide/quick-start' },
       { text: 'FAQ', link: '/faq' },
@@ -45,7 +46,7 @@ export default defineConfig({
     },
 
     footer: {
-      message: 'Released under the MIT License.',
+      message: 'Released under the GNU GPL v3 License.',
       copyright: 'Copyright © 2024-present SakuraMedia',
     },
   },
