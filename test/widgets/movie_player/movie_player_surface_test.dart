@@ -7,6 +7,8 @@ import 'package:media_kit_video/media_kit_video_controls/media_kit_video_control
 import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_speed_button.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_subtitle_button.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_readiness.dart';
 
@@ -285,68 +287,61 @@ void main() {
   });
 
   group('Touch Optimized Controls', () {
-    test('controls builder always resolves to adaptive controls', () {
-      expect(
-        resolveMoviePlayerVideoControlsBuilder(useTouchOptimizedControls: true),
-        AdaptiveVideoControls,
-      );
-      expect(
-        resolveMoviePlayerVideoControlsBuilder(
-          useTouchOptimizedControls: false,
-        ),
-        AdaptiveVideoControls,
-      );
-    });
-
     test(
-      'material controls theme keeps default seek sizing for touch flag',
+      'controls builder resolves to mobile or desktop media_kit controls',
       () {
-        final themeData = buildMoviePlayerMaterialControlsThemeData(
-          theme: ThemeData.light(),
-          topControls: const <Widget>[],
-          bottomControls: const <Widget>[],
-          useTouchOptimizedControls: true,
-        );
-
-        expect(themeData.seekGesture, isTrue);
-        expect(themeData.seekBarThumbSize, 14);
         expect(
-          themeData.seekBarMargin,
-          const EdgeInsets.fromLTRB(30, 0, 30, 75),
+          resolveMoviePlayerVideoControlsBuilder(
+            useTouchOptimizedControls: true,
+          ),
+          buildMoviePlayerMobileVideoControls,
         );
-        expect(themeData.volumeGesture, isTrue);
-        expect(themeData.brightnessGesture, isTrue);
-        expect(themeData.seekOnDoubleTap, isTrue);
+        expect(
+          resolveMoviePlayerVideoControlsBuilder(
+            useTouchOptimizedControls: false,
+          ),
+          buildMoviePlayerDesktopVideoControls,
+        );
       },
     );
 
-    test('default material controls theme keeps desktop seek sizing', () {
-      final themeData = buildMoviePlayerMaterialControlsThemeData(
+    test('mobile controls theme keeps expected seek sizing and gestures', () {
+      final themeData = buildMoviePlayerMobileControlsThemeData(
         theme: ThemeData.light(),
         topControls: const <Widget>[],
         bottomControls: const <Widget>[],
-        useTouchOptimizedControls: false,
       );
 
       expect(themeData.seekGesture, isTrue);
       expect(themeData.seekBarThumbSize, 14);
       expect(themeData.seekBarMargin, const EdgeInsets.fromLTRB(30, 0, 30, 75));
+      expect(themeData.volumeGesture, isTrue);
+      expect(themeData.brightnessGesture, isTrue);
+      expect(themeData.seekOnDoubleTap, isTrue);
     });
 
-    test('material controls theme supports top and bottom button bars', () {
+    test('mobile controls theme supports top and bottom button bars', () {
       final top = MoviePlayerBackButton(onPressed: () {});
       final bottom = const MaterialPlayOrPauseButton();
-      final themeData = buildMoviePlayerMaterialControlsThemeData(
+      final themeData = buildMoviePlayerMobileControlsThemeData(
         theme: ThemeData.light(),
         topControls: <Widget>[top],
         bottomControls: <Widget>[bottom],
-        useTouchOptimizedControls: false,
       );
 
       expect(themeData.topButtonBar, hasLength(1));
       expect(themeData.topButtonBar.first, same(top));
       expect(themeData.bottomButtonBar, hasLength(1));
       expect(themeData.bottomButtonBar.first, same(bottom));
+    });
+
+    test('mobile bottom controls omit subtitle and speed buttons', () {
+      final controls = buildMoviePlayerMobileBottomControls();
+
+      expect(controls, hasLength(5));
+      expect(controls.whereType<MoviePlayerSpeedButton>(), isEmpty);
+      expect(controls.whereType<MoviePlayerSubtitleButton>(), isEmpty);
+      expect(controls.last, isA<MaterialFullscreenButton>());
     });
 
     test('desktop controls theme supports top and bottom button bars', () {
@@ -362,6 +357,32 @@ void main() {
       expect(themeData.topButtonBar.first, same(top));
       expect(themeData.bottomButtonBar, hasLength(1));
       expect(themeData.bottomButtonBar.first, same(bottom));
+    });
+
+    test('desktop bottom controls place speed before subtitle button', () {
+      final subtitleState = ValueNotifier<MoviePlayerSubtitleState>(
+        MoviePlayerSubtitleState.empty,
+      );
+      final isApplying = ValueNotifier<bool>(false);
+      addTearDown(subtitleState.dispose);
+      addTearDown(isApplying.dispose);
+
+      final controls = buildMoviePlayerDesktopBottomControls(
+        currentRate: 1.0,
+        hasExplicitSelection: false,
+        onRateSelected: (_) async {},
+        subtitleStateListenable: subtitleState,
+        isApplyingListenable: isApplying,
+        onSubtitleSelected: (_) async {},
+        onSubtitleReloadRequested: () async {},
+      );
+
+      expect(controls, hasLength(7));
+      final speedButton = controls[4] as MoviePlayerSpeedButton;
+      expect(speedButton, isA<MoviePlayerSpeedButton>());
+      expect(speedButton.hasExplicitSelection, isFalse);
+      expect(controls[5], isA<MoviePlayerSubtitleButton>());
+      expect(controls[6], isA<MaterialFullscreenButton>());
     });
   });
 

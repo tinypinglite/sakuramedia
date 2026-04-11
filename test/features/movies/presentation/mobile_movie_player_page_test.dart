@@ -237,7 +237,7 @@ void main() {
     expect(find.text('detail:ABC-001'), findsOneWidget);
   });
 
-  testWidgets('mobile movie player uses default adaptive controls', (
+  testWidgets('mobile movie player uses mobile media_kit controls', (
     WidgetTester tester,
   ) async {
     bundle.adapter.enqueueJson(
@@ -297,7 +297,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(capturedUseTouchOptimizedControls, isFalse);
+    expect(capturedUseTouchOptimizedControls, isTrue);
     final desktopPlayer = tester.widget<DesktopMoviePlayerPage>(
       find.byType(DesktopMoviePlayerPage),
     );

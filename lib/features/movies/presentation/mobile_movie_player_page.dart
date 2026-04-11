@@ -98,7 +98,7 @@ class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage> {
       fallbackPath: buildMobileMovieDetailRoutePath(widget.movieNumber),
       enableThumbnailActionMenu: true,
       imageSearchRoutePath: mobileImageSearchPath,
-      useTouchOptimizedControls: false,
+      useTouchOptimizedControls: true,
       surfaceBuilder: widget.surfaceBuilder,
     );
   }

@@ -11,6 +11,7 @@ import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_speed_button.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_subtitle_button.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_controller.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_readiness.dart';
@@ -166,25 +167,30 @@ class MoviePlayerSurfaceOpenCoordinator {
 }
 
 @visibleForTesting
-Widget Function(VideoState state) resolveMoviePlayerVideoControlsBuilder({
-  required bool useTouchOptimizedControls,
-}) {
-  if (useTouchOptimizedControls) {
-    // The mobile custom controls are removed. Keep using media_kit defaults.
-  }
-  return AdaptiveVideoControls;
+Widget buildMoviePlayerMobileVideoControls(VideoState state) {
+  return MaterialVideoControls(state);
 }
 
 @visibleForTesting
-MaterialVideoControlsThemeData buildMoviePlayerMaterialControlsThemeData({
+Widget buildMoviePlayerDesktopVideoControls(VideoState state) {
+  return MaterialDesktopVideoControls(state);
+}
+
+@visibleForTesting
+Widget Function(VideoState state) resolveMoviePlayerVideoControlsBuilder({
+  required bool useTouchOptimizedControls,
+}) {
+  return useTouchOptimizedControls
+      ? buildMoviePlayerMobileVideoControls
+      : buildMoviePlayerDesktopVideoControls;
+}
+
+@visibleForTesting
+MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
   required ThemeData theme,
   required List<Widget> topControls,
   required List<Widget> bottomControls,
-  required bool useTouchOptimizedControls,
 }) {
-  if (useTouchOptimizedControls) {
-    // Touch-specific seek bar overrides are removed with custom mobile controls.
-  }
   return MaterialVideoControlsThemeData(
     horizontalGestureSensitivity: 3000,
     seekOnDoubleTap: true,
@@ -233,8 +239,12 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   StreamSubscription<void>? _playSubscription;
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<bool>? _playingSubscription;
+  StreamSubscription<double>? _rateSubscription;
   int _openRequestId = 0;
   bool _isApplyingSubtitle = false;
+  double _currentPlaybackRate = 1.0;
+  bool _hasExplicitPlaybackRateSelection = false;
+  double? _pendingPlaybackRate;
   Duration? _startupSeekTarget;
   DateTime? _startupSeekStartedAt;
   bool _startupSeekSettled = true;
@@ -255,6 +265,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     super.initState();
     _player = Player(configuration: buildMoviePlayerConfiguration());
     _controller = VideoController(_player);
+    _currentPlaybackRate = _player.state.rate;
     _readiness = MoviePlayerSurfaceReadiness();
     _playbackDriver = _MediaKitMoviePlayerSurfacePlaybackDriver(
       player: _player,
@@ -276,6 +287,31 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     });
     _playingSubscription = _player.stream.playing.listen((playing) {
       widget.onPlayingChanged?.call(playing);
+    });
+    _rateSubscription = _player.stream.rate.listen((rate) {
+      debugPrint(
+        '[player-debug] playback_rate_stream rate=$rate pending=$_pendingPlaybackRate current=$_currentPlaybackRate',
+      );
+      final pendingRate = _pendingPlaybackRate;
+      if (pendingRate != null && (pendingRate - rate).abs() >= 0.001) {
+        debugPrint(
+          '[player-debug] playback_rate_stream_ignored rate=$rate pending=$pendingRate',
+        );
+        return;
+      }
+      if (pendingRate != null && (pendingRate - rate).abs() < 0.001) {
+        _pendingPlaybackRate = null;
+      }
+      if ((_currentPlaybackRate - rate).abs() < 0.001) {
+        return;
+      }
+      if (!mounted) {
+        _currentPlaybackRate = rate;
+        return;
+      }
+      setState(() {
+        _currentPlaybackRate = rate;
+      });
     });
     unawaited(_openMedia());
   }
@@ -307,6 +343,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     _playSubscription?.cancel();
     _positionSubscription?.cancel();
     _playingSubscription?.cancel();
+    _rateSubscription?.cancel();
     _subtitleStateNotifier.dispose();
     _isApplyingSubtitleNotifier.dispose();
     _readiness.dispose();
@@ -476,6 +513,53 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     await widget.onSubtitleReloadRequested?.call();
   }
 
+  Future<void> _handlePlaybackRateSelected(double rate) async {
+    debugPrint(
+      '[player-debug] playback_rate_selected rate=$rate current=$_currentPlaybackRate explicit=$_hasExplicitPlaybackRateSelection',
+    );
+    final previousRate = _currentPlaybackRate;
+    final previousSelection = _hasExplicitPlaybackRateSelection;
+    _pendingPlaybackRate = rate;
+    if (mounted) {
+      setState(() {
+        _currentPlaybackRate = rate;
+        _hasExplicitPlaybackRateSelection = true;
+      });
+    } else {
+      _currentPlaybackRate = rate;
+      _hasExplicitPlaybackRateSelection = true;
+    }
+    try {
+      await _player.setRate(rate);
+      final appliedRate = _player.state.rate;
+      _pendingPlaybackRate = null;
+      debugPrint(
+        '[player-debug] playback_rate_applied requested=$rate state=$appliedRate',
+      );
+      if (!mounted) {
+        _currentPlaybackRate = appliedRate;
+        return;
+      }
+      setState(() {
+        _currentPlaybackRate = appliedRate;
+      });
+    } catch (error) {
+      _pendingPlaybackRate = null;
+      debugPrint(
+        '[player-debug] playback_rate_select_error rate=$rate error=$error',
+      );
+      if (!mounted) {
+        _currentPlaybackRate = previousRate;
+        _hasExplicitPlaybackRateSelection = previousSelection;
+        return;
+      }
+      setState(() {
+        _currentPlaybackRate = previousRate;
+        _hasExplicitPlaybackRateSelection = previousSelection;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -483,27 +567,36 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
         widget.onBackPressed == null
             ? const <Widget>[]
             : <Widget>[MoviePlayerBackButton(onPressed: widget.onBackPressed!)];
-    final bottomControls = <Widget>[
-      const MaterialPlayOrPauseButton(),
-      const MaterialDesktopVolumeButton(),
-      const MaterialPositionIndicator(),
-      const Spacer(),
-      MoviePlayerSubtitleButton(
-        subtitleStateListenable: _subtitleStateNotifier,
-        isApplyingListenable: _isApplyingSubtitleNotifier,
-        onSubtitleSelected: _handleSubtitleSelected,
-        onReloadRequested: _handleSubtitleReloadRequested,
-      ),
-      const MaterialFullscreenButton(),
-    ];
+    final mobileBottomControls = buildMoviePlayerMobileBottomControls();
+    final desktopBottomControls = buildMoviePlayerDesktopBottomControls(
+      currentRate: _currentPlaybackRate,
+      hasExplicitSelection: _hasExplicitPlaybackRateSelection,
+      onRateSelected: _handlePlaybackRateSelected,
+      subtitleStateListenable: _subtitleStateNotifier,
+      isApplyingListenable: _isApplyingSubtitleNotifier,
+      onSubtitleSelected: _handleSubtitleSelected,
+      onSubtitleReloadRequested: _handleSubtitleReloadRequested,
+    );
     final backgroundColor = context.appColors.movieDetailHeroBackgroundStart;
 
     return MaterialVideoControlsTheme(
-      normal: _materialControlsTheme(theme, topControls, bottomControls),
-      fullscreen: _materialControlsTheme(theme, topControls, bottomControls),
+      normal: _mobileControlsTheme(theme, topControls, mobileBottomControls),
+      fullscreen: _mobileControlsTheme(
+        theme,
+        topControls,
+        mobileBottomControls,
+      ),
       child: MaterialDesktopVideoControlsTheme(
-        normal: _desktopControlsTheme(theme, topControls, bottomControls),
-        fullscreen: _desktopControlsTheme(theme, topControls, bottomControls),
+        normal: _desktopControlsTheme(
+          theme,
+          topControls,
+          desktopBottomControls,
+        ),
+        fullscreen: _desktopControlsTheme(
+          theme,
+          topControls,
+          desktopBottomControls,
+        ),
         child: ListenableBuilder(
           listenable: _readiness,
           builder: (context, child) {
@@ -545,18 +638,58 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     );
   }
 
-  MaterialVideoControlsThemeData _materialControlsTheme(
+  MaterialVideoControlsThemeData _mobileControlsTheme(
     ThemeData theme,
     List<Widget> topControls,
     List<Widget> bottomControls,
   ) {
-    return buildMoviePlayerMaterialControlsThemeData(
+    return buildMoviePlayerMobileControlsThemeData(
       theme: theme,
       topControls: topControls,
       bottomControls: bottomControls,
-      useTouchOptimizedControls: widget.useTouchOptimizedControls,
     );
   }
+}
+
+@visibleForTesting
+List<Widget> buildMoviePlayerMobileBottomControls() {
+  return <Widget>[
+    const MaterialPlayOrPauseButton(),
+    const MaterialDesktopVolumeButton(),
+    const MaterialPositionIndicator(),
+    const Spacer(),
+    const MaterialFullscreenButton(),
+  ];
+}
+
+@visibleForTesting
+List<Widget> buildMoviePlayerDesktopBottomControls({
+  required double currentRate,
+  required bool hasExplicitSelection,
+  required Future<void> Function(double rate) onRateSelected,
+  required ValueListenable<MoviePlayerSubtitleState> subtitleStateListenable,
+  required ValueListenable<bool> isApplyingListenable,
+  required Future<void> Function(int? subtitleId) onSubtitleSelected,
+  required Future<void> Function() onSubtitleReloadRequested,
+}) {
+  return <Widget>[
+    const MaterialPlayOrPauseButton(),
+    const MaterialDesktopVolumeButton(),
+    const MaterialPositionIndicator(),
+    const Spacer(),
+    MoviePlayerSpeedButton(
+      currentRate: currentRate,
+      hasExplicitSelection: hasExplicitSelection,
+      onRateSelected: onRateSelected,
+    ),
+    MoviePlayerSubtitleButton(
+      subtitleStateListenable: subtitleStateListenable,
+      isApplyingListenable: isApplyingListenable,
+      onSubtitleSelected: onSubtitleSelected,
+      onReloadRequested: onSubtitleReloadRequested,
+    ),
+    const MaterialFullscreenButton(),
+  ];
 }
 
 @visibleForTesting
