@@ -354,7 +354,7 @@ volumes:
     restart: unless-stopped
     environment:
       JOYTAG_INFER_BACKEND: "openvino"
-      JOYTAG_INFER_OPENVINO_DEVICE_TYPE: "AUTO"
+      JOYTAG_INFER_OPENVINO_DEVICE_TYPE: "GPU"
       JOYTAG_INFER_MODEL_PATH: "/data/lib/joytag/model_vit_768.onnx"
       JOYTAG_INFER_API_KEY: ""
     volumes:
@@ -369,14 +369,16 @@ volumes:
 
 - `CPU`
   最稳，最适合先验证 OpenVINO 是否正常
-- `AUTO`
-  适合想先让系统自动决定 CPU / GPU 的情况
+- `GPU`
+  适合已配置好 Intel 核显直通并希望优先使用 GPU 推理
+
+注意：当前容器只支持 `CPU` 或 `GPU`，不要设置为 `AUTO`。
 
 建议顺序：
 
 1. 先用 CPU 版把整套服务跑通
 2. 再切到 `openvino + CPU`
-3. 最后再尝试 `openvino + AUTO`
+3. 最后再尝试 `openvino + GPU`
 
 ## 部署后如何检查是否正常
 
