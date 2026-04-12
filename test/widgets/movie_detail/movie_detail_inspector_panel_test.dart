@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +12,7 @@ import 'package:sakuramedia/features/movies/data/missav_thumbnail_stream_update.
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_inspector_panel.dart';
 
 void main() {
@@ -85,6 +87,142 @@ void main() {
         tester.widget<ListView>(find.byType(ListView)).semanticChildCount,
         expectedCount,
       );
+    },
+  );
+
+  testWidgets(
+    'movie detail inspector clears content and shows cupertino spinner while switching review sort',
+    (WidgetTester tester) async {
+      final pendingRecently = Completer<List<MovieReviewDto>>();
+      var requestCount = 0;
+      addTearDown(() {
+        if (!pendingRecently.isCompleted) {
+          pendingRecently.complete(const <MovieReviewDto>[]);
+        }
+      });
+
+      await _pumpInspectorPanel(
+        tester,
+        panelHeight: 480,
+        platform: TargetPlatform.macOS,
+        fetchMovieReviews: ({
+          required String movieNumber,
+          required int page,
+          required int pageSize,
+          required MovieReviewSort sort,
+        }) {
+          requestCount += 1;
+          if (requestCount == 1) {
+            return Future<List<MovieReviewDto>>.value(<MovieReviewDto>[
+              _buildReview(prefix: 'hot'),
+            ]);
+          }
+          return pendingRecently.future;
+        },
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('movie-detail-review-sort-recently')),
+      );
+      await tester.pump();
+
+      expect(find.text('hot-review-1'), findsNothing);
+      expect(
+        find.byKey(
+          const Key('movie-detail-review-sort-switch-loading-indicator'),
+        ),
+        findsOneWidget,
+      );
+      final spinner = tester.widget<CupertinoActivityIndicator>(
+        find.byKey(
+          const Key('movie-detail-review-sort-switch-loading-spinner'),
+        ),
+      );
+      expect(spinner, isNotNull);
+
+      final hotButton = tester.widget<AppButton>(
+        find.byKey(const Key('movie-detail-review-sort-hotly')),
+      );
+      final recentButton = tester.widget<AppButton>(
+        find.byKey(const Key('movie-detail-review-sort-recently')),
+      );
+      expect(hotButton.onPressed, isNull);
+      expect(recentButton.onPressed, isNull);
+
+      pendingRecently.complete(<MovieReviewDto>[
+        _buildReview(prefix: 'recent'),
+      ]);
+      await tester.pumpAndSettle();
+
+      expect(find.text('recent-review-1'), findsOneWidget);
+      expect(
+        find.byKey(
+          const Key('movie-detail-review-sort-switch-loading-indicator'),
+        ),
+        findsNothing,
+      );
+      final hotButtonAfter = tester.widget<AppButton>(
+        find.byKey(const Key('movie-detail-review-sort-hotly')),
+      );
+      final recentButtonAfter = tester.widget<AppButton>(
+        find.byKey(const Key('movie-detail-review-sort-recently')),
+      );
+      expect(hotButtonAfter.onPressed, isNotNull);
+      expect(recentButtonAfter.onPressed, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'movie detail inspector shows material spinner while switching review sort on android',
+    (WidgetTester tester) async {
+      final pendingRecently = Completer<List<MovieReviewDto>>();
+      var requestCount = 0;
+      addTearDown(() {
+        if (!pendingRecently.isCompleted) {
+          pendingRecently.complete(const <MovieReviewDto>[]);
+        }
+      });
+
+      await _pumpInspectorPanel(
+        tester,
+        panelHeight: 480,
+        platform: TargetPlatform.android,
+        fetchMovieReviews: ({
+          required String movieNumber,
+          required int page,
+          required int pageSize,
+          required MovieReviewSort sort,
+        }) {
+          requestCount += 1;
+          if (requestCount == 1) {
+            return Future<List<MovieReviewDto>>.value(<MovieReviewDto>[
+              _buildReview(prefix: 'hot'),
+            ]);
+          }
+          return pendingRecently.future;
+        },
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('movie-detail-review-sort-recently')),
+      );
+      await tester.pump();
+
+      expect(find.text('hot-review-1'), findsNothing);
+      expect(
+        find.byKey(
+          const Key('movie-detail-review-sort-switch-loading-indicator'),
+        ),
+        findsOneWidget,
+      );
+      final spinner = tester.widget<CircularProgressIndicator>(
+        find.byKey(
+          const Key('movie-detail-review-sort-switch-loading-spinner'),
+        ),
+      );
+      expect(spinner, isNotNull);
     },
   );
 
@@ -326,6 +464,7 @@ void main() {
 Future<void> _pumpInspectorPanel(
   WidgetTester tester, {
   required double panelHeight,
+  TargetPlatform? platform,
   required Future<List<MovieReviewDto>> Function({
     required String movieNumber,
     required int page,
@@ -344,7 +483,10 @@ Future<void> _pumpInspectorPanel(
     ChangeNotifierProvider<SessionStore>.value(
       value: sessionStore,
       child: MaterialApp(
-        theme: sakuraThemeData,
+        theme:
+            platform == null
+                ? sakuraThemeData
+                : sakuraThemeData.copyWith(platform: platform),
         home: Scaffold(
           body: Center(
             child: SizedBox(
@@ -414,6 +556,18 @@ int _expectedSkeletonCount(double availableHeight) {
   final estimatedCount =
       ((availableHeight + spacingSm) / (itemHeight + spacingSm)).ceil();
   return estimatedCount < 3 ? 3 : estimatedCount;
+}
+
+MovieReviewDto _buildReview({required String prefix}) {
+  return MovieReviewDto(
+    id: 1,
+    score: 5,
+    content: '$prefix-review-1',
+    createdAt: DateTime.parse('2026-03-10T08:00:00Z'),
+    username: '$prefix-user-1',
+    likeCount: 11,
+    watchCount: 21,
+  );
 }
 
 Finder _reviewSkeletonFinder() {

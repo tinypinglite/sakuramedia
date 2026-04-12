@@ -1542,7 +1542,7 @@ class _MediaLibraryCard extends StatelessWidget {
     return Container(
       key: Key('media-library-card-${library.id}'),
       width: double.infinity,
-      padding: EdgeInsets.all(context.appSpacing.lg),
+      padding: EdgeInsets.all(context.appSpacing.md),
       decoration: BoxDecoration(
         color: colors.surfaceCard,
         borderRadius: context.appRadius.lgBorder,
@@ -1571,7 +1571,10 @@ class _MediaLibraryCard extends StatelessWidget {
               children: [
                 Text(
                   library.name,
-                  style: Theme.of(context).textTheme.titleSmall,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
                 ),
                 SizedBox(height: context.appSpacing.xs),
                 Text(

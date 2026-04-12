@@ -4,6 +4,30 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 
 void main() {
+  group('MoviePlayerBackButton', () {
+    testWidgets('uses transparent material without elevation', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(body: MoviePlayerBackButton(onPressed: () {})),
+        ),
+      );
+
+      final material = tester.widget<Material>(
+        find.descendant(
+          of: find.byType(MoviePlayerBackButton),
+          matching: find.byType(Material),
+        ),
+      );
+
+      expect(material.type, MaterialType.transparency);
+      expect(material.elevation, 0);
+      expect(material.color, isNull);
+    });
+  });
+
   group('MoviePlayerCurrentNumberBadge', () {
     testWidgets('renders trimmed movie number with a stable key', (
       WidgetTester tester,
@@ -42,6 +66,30 @@ void main() {
       expect(numberText.maxLines, 1);
       expect(numberText.overflow, TextOverflow.ellipsis);
       expect(numberText.softWrap, isFalse);
+    });
+
+    testWidgets('uses transparent material without elevation', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: const Scaffold(
+            body: MoviePlayerCurrentNumberBadge(movieNumber: 'ABP-123'),
+          ),
+        ),
+      );
+
+      final material = tester.widget<Material>(
+        find.descendant(
+          of: find.byType(MoviePlayerCurrentNumberBadge),
+          matching: find.byType(Material),
+        ),
+      );
+
+      expect(material.type, MaterialType.transparency);
+      expect(material.elevation, 0);
+      expect(material.color, isNull);
     });
   });
 

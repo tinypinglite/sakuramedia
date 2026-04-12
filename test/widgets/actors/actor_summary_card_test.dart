@@ -80,6 +80,17 @@ void main() {
       findsOneWidget,
     );
 
+    final cardRect = tester.getRect(
+      find.byKey(const Key('actor-summary-card-1')),
+    );
+    final subscriptionRect = tester.getRect(
+      find.byKey(const Key('actor-summary-card-subscription-1')),
+    );
+    final edgeInset = AppSpacing.defaults().xs;
+
+    expect(subscriptionRect.top - cardRect.top, closeTo(edgeInset, 0.1));
+    expect(subscriptionRect.left - cardRect.left, closeTo(edgeInset, 0.1));
+
     final bookmarkIcon = tester.widget<Icon>(
       find.byIcon(Icons.favorite_rounded),
     );

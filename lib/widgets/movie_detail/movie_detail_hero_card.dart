@@ -83,8 +83,8 @@ class MovieDetailHeroCard extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: spacing.lg,
-            left: spacing.lg,
+            top: spacing.sm,
+            left: spacing.sm,
             child: Wrap(
               spacing: spacing.xs,
               runSpacing: spacing.xs,
@@ -104,8 +104,8 @@ class MovieDetailHeroCard extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: spacing.lg,
-            right: spacing.lg,
+            top: spacing.sm,
+            right: spacing.sm,
             child: Container(
               key: const Key('movie-detail-hero-heat-badge'),
               padding: EdgeInsets.symmetric(

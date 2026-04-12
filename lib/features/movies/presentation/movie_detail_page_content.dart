@@ -24,12 +24,15 @@ class MovieDetailPageContent extends StatelessWidget {
     required this.movie,
     required this.selectedPreviewKey,
     required this.selectedPreviewUrl,
+    required this.isCollection,
     required this.isSubscribed,
+    required this.isCollectionUpdating,
     required this.isSubscriptionUpdating,
     required this.selectedMediaId,
     required this.statItems,
     required this.onInspectorTap,
     required this.onPlaylistTap,
+    required this.onCollectionToggle,
     required this.onMediaSelect,
     this.mediaItemsOverride,
     this.onOpenMediaPointPreview,
@@ -48,12 +51,15 @@ class MovieDetailPageContent extends StatelessWidget {
   final List<MovieMediaItemDto>? mediaItemsOverride;
   final String selectedPreviewKey;
   final String? selectedPreviewUrl;
+  final bool isCollection;
   final bool isSubscribed;
+  final bool isCollectionUpdating;
   final bool isSubscriptionUpdating;
   final int? selectedMediaId;
   final List<MovieDetailStatItem> statItems;
   final VoidCallback onInspectorTap;
   final VoidCallback onPlaylistTap;
+  final VoidCallback? onCollectionToggle;
   final ValueChanged<MovieMediaItemDto> onMediaSelect;
   final void Function(MovieMediaItemDto mediaItem, MovieMediaPointDto point)?
   onOpenMediaPointPreview;
@@ -160,6 +166,36 @@ class MovieDetailPageContent extends StatelessWidget {
       ),
       tooltip: '加入播放列表',
     );
+    final collectionTrigger = TextButton(
+      key: const Key('movie-detail-collection-trigger'),
+      onPressed: isCollectionUpdating ? null : onCollectionToggle,
+      style: ButtonStyle(
+        minimumSize: WidgetStateProperty.all(Size.zero),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        foregroundColor: WidgetStateProperty.all(
+          Theme.of(context).colorScheme.primary,
+        ),
+        padding: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.hovered)) {
+            return EdgeInsets.symmetric(
+              horizontal: context.appSpacing.sm,
+              vertical: context.appSpacing.md,
+            );
+          }
+          return EdgeInsets.symmetric(
+            horizontal: context.appSpacing.xs,
+            vertical: 0,
+          );
+        }),
+      ),
+      child: Text(
+        isCollection ? '标记单体' : '标记合集',
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
 
     return Column(
       key: const Key('movie-detail-page'),
@@ -174,7 +210,7 @@ class MovieDetailPageContent extends StatelessWidget {
           heat: movie.heat,
           canPlay: movie.canPlay,
           isSubscribed: isSubscribed,
-          isCollection: movie.isCollection,
+          isCollection: isCollection,
           onSubscriptionTap: onSubscriptionTap,
           isSubscriptionUpdating: isSubscriptionUpdating,
           onPlayTap: onPlayTap,
@@ -195,7 +231,14 @@ class MovieDetailPageContent extends StatelessWidget {
           commentCount: movie.commentCount,
           heat: movie.heat,
           scoreNumber: movie.scoreNumber,
-          trailing: playlistTrigger,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              collectionTrigger,
+              SizedBox(width: context.appSpacing.xs),
+              playlistTrigger,
+            ],
+          ),
         ),
         ..._buildInlineMetaItems(context, movie),
         MovieDetailSection(title: '标签', child: MovieTagWrap(tags: movie.tags)),

@@ -2,13 +2,16 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/playlists/data/playlist_order_store.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlist_detail_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlists_page.dart';
@@ -23,6 +26,7 @@ void main() {
   late TestApiBundle bundle;
 
   setUp(() async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
     sessionStore = SessionStore.inMemory();
     await sessionStore.saveBaseUrl('https://api.example.com');
     await sessionStore.saveTokens(
@@ -191,12 +195,92 @@ void main() {
 
     expect(find.text('稍后再看'), findsOneWidget);
   });
+
+  testWidgets('playlists page applies locally stored order', (
+    WidgetTester tester,
+  ) async {
+    final orderStore = InMemoryPlaylistOrderStore();
+    await orderStore.savePlaylistOrder(
+      scopeKey: 'https://api.example.com',
+      playlistIds: <int>[2, 1],
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists',
+      body: _playlistsJson(),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/1/movies',
+      body: _playlistMoviesJson(movieNumber: 'ABC-001'),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/2/movies',
+      body: _playlistMoviesJson(movieNumber: 'SSNI-002'),
+    );
+
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      playlistOrderStore: orderStore,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey<int>(2))).dy,
+      lessThan(tester.getTopLeft(find.byKey(const ValueKey<int>(1))).dy),
+    );
+  });
+
+  testWidgets('desktop playlists reorder handle is visible only on hover', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists',
+      body: _playlistsJson(),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/1/movies',
+      body: _playlistMoviesJson(movieNumber: 'ABC-001'),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/2/movies',
+      body: _playlistMoviesJson(movieNumber: 'SSNI-002'),
+    );
+
+    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.unfold_more_rounded), findsNothing);
+    expect(find.byKey(const Key('playlist-reorder-handle-1')), findsNothing);
+    expect(find.byKey(const Key('playlist-reorder-handle-2')), findsNothing);
+
+    final mouseGesture = await tester.createGesture(
+      kind: PointerDeviceKind.mouse,
+    );
+    addTearDown(mouseGesture.removePointer);
+    await mouseGesture.addPointer(location: Offset.zero);
+    await mouseGesture.moveTo(
+      tester.getCenter(find.byKey(const Key('playlist-banner-card-2'))),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.unfold_more_rounded), findsOneWidget);
+    expect(find.byKey(const Key('playlist-reorder-handle-1')), findsNothing);
+    expect(find.byKey(const Key('playlist-reorder-handle-2')), findsOneWidget);
+  });
 }
 
 Future<void> _pumpPage(
   WidgetTester tester, {
   required SessionStore sessionStore,
   required TestApiBundle bundle,
+  PlaylistOrderStore? playlistOrderStore,
 }) {
   return tester.pumpWidget(
     MultiProvider(
@@ -207,7 +291,15 @@ Future<void> _pumpPage(
       ],
       child: MaterialApp(
         theme: sakuraThemeData,
-        home: const OKToast(child: Scaffold(body: DesktopPlaylistsPage())),
+        home: OKToast(
+          child: Scaffold(
+            body: DesktopPlaylistsPage(
+              playlistOrderStore:
+                  playlistOrderStore ??
+                  const SharedPreferencesPlaylistOrderStore(),
+            ),
+          ),
+        ),
       ),
     ),
   );

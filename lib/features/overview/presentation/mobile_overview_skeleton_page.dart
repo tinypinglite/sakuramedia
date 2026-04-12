@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_follow_tab.dart';
@@ -9,6 +13,7 @@ import 'package:sakuramedia/features/moments/presentation/mobile_overview_moment
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
+import 'package:sakuramedia/features/playlists/data/playlist_order_store.dart';
 import 'package:sakuramedia/features/playlists/presentation/playlists_overview_controller.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
@@ -21,7 +26,12 @@ import 'package:sakuramedia/widgets/playlists/playlist_banner_card.dart';
 import 'package:sakuramedia/widgets/search/catalog_search_field.dart';
 
 class MobileOverviewSkeletonPage extends StatelessWidget {
-  const MobileOverviewSkeletonPage({super.key});
+  const MobileOverviewSkeletonPage({
+    super.key,
+    this.playlistOrderStore = const SharedPreferencesPlaylistOrderStore(),
+  });
+
+  final PlaylistOrderStore playlistOrderStore;
 
   @override
   Widget build(BuildContext context) {
@@ -39,12 +49,12 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
             Expanded(
               child: TabBarView(
                 key: const Key('mobile-overview-tab-view'),
-                children: const [
-                  _MobileOverviewMyTab(),
-                  MobileOverviewFollowTab(),
-                  _MobileOverviewDiscoverTab(),
-                  MobileOverviewMomentsTab(),
-                  MobileOverviewHotReviewsTab(),
+                children: [
+                  _MobileOverviewMyTab(playlistOrderStore: playlistOrderStore),
+                  const MobileOverviewFollowTab(),
+                  const _MobileOverviewDiscoverTab(),
+                  const MobileOverviewMomentsTab(),
+                  const MobileOverviewHotReviewsTab(),
                 ],
               ),
             ),
@@ -108,7 +118,9 @@ class _MobileOverviewHeader extends StatelessWidget {
 }
 
 class _MobileOverviewMyTab extends StatefulWidget {
-  const _MobileOverviewMyTab();
+  const _MobileOverviewMyTab({required this.playlistOrderStore});
+
+  final PlaylistOrderStore playlistOrderStore;
 
   @override
   State<_MobileOverviewMyTab> createState() => _MobileOverviewMyTabState();
@@ -138,6 +150,8 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
         return page.items.firstOrNull?.coverImage?.bestAvailableUrl;
       },
       createPlaylist: playlistsApi.createPlaylist,
+      playlistOrderStore: widget.playlistOrderStore,
+      orderScopeKey: context.read<SessionStore>().baseUrl,
     )..load();
     _loadLatestMovies();
   }
@@ -180,6 +194,14 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
         setState(() => _isLoadingLatestMovies = false);
       }
     }
+  }
+
+  void _handlePlaylistReorderStart(int _) {
+    unawaited(
+      HapticFeedback.mediumImpact().catchError((Object _) {
+        return;
+      }),
+    );
   }
 
   @override
@@ -334,26 +356,55 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
           return const AppEmptyState(message: '暂无播放列表');
         }
 
-        return Column(
-          key: const Key('mobile-overview-playlists-list'),
-          children: _playlistsController.playlists
-              .map(
-                (playlist) => Padding(
-                  padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-                  child: PlaylistBannerCard(
-                    key: Key('mobile-overview-playlist-${playlist.id}'),
-                    title: playlist.name,
-                    coverImageUrl: _playlistsController.coverUrlFor(
-                      playlist.id,
-                    ),
-                    onTap:
-                        () => MobilePlaylistDetailRouteData(
-                          playlistId: playlist.id,
-                        ).push(context),
-                  ),
+        final playlists = _playlistsController.playlists;
+        if (playlists.length < 2) {
+          final playlist = playlists.single;
+          return Column(
+            key: const Key('mobile-overview-playlists-list'),
+            children: [
+              Padding(
+                padding: EdgeInsets.only(bottom: context.appSpacing.sm),
+                child: PlaylistBannerCard(
+                  key: Key('mobile-overview-playlist-${playlist.id}'),
+                  title: playlist.name,
+                  coverImageUrl: _playlistsController.coverUrlFor(playlist.id),
+                  onTap:
+                      () => MobilePlaylistDetailRouteData(
+                        playlistId: playlist.id,
+                      ).push(context),
                 ),
-              )
-              .toList(growable: false),
+              ),
+            ],
+          );
+        }
+
+        return ReorderableListView.builder(
+          key: const Key('mobile-overview-playlists-list'),
+          shrinkWrap: true,
+          buildDefaultDragHandles: false,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: playlists.length,
+          onReorder: _playlistsController.reorderPlaylists,
+          onReorderStart: _handlePlaylistReorderStart,
+          itemBuilder: (context, index) {
+            final playlist = playlists[index];
+            return ReorderableDelayedDragStartListener(
+              key: ValueKey<int>(playlist.id),
+              index: index,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: context.appSpacing.sm),
+                child: PlaylistBannerCard(
+                  key: Key('mobile-overview-playlist-${playlist.id}'),
+                  title: playlist.name,
+                  coverImageUrl: _playlistsController.coverUrlFor(playlist.id),
+                  onTap:
+                      () => MobilePlaylistDetailRouteData(
+                        playlistId: playlist.id,
+                      ).push(context),
+                ),
+              ),
+            );
+          },
         );
       },
     );

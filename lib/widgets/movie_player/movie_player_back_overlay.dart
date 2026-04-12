@@ -11,7 +11,7 @@ class MoviePlayerBackButton extends StatelessWidget {
     final componentTokens = context.appComponentTokens;
 
     return Material(
-      color: context.appColors.mediaOverlayStrong,
+      type: MaterialType.transparency,
       borderRadius: context.appRadius.pillBorder,
       child: InkWell(
         key: const Key('movie-player-back-button'),
@@ -42,7 +42,7 @@ class MoviePlayerCurrentNumberBadge extends StatelessWidget {
     final resolvedMovieNumber = movieNumber.trim();
 
     return Material(
-      color: context.appColors.mediaOverlayStrong,
+      type: MaterialType.transparency,
       borderRadius: context.appRadius.pillBorder,
       child: Container(
         key: const Key('movie-player-current-number'),

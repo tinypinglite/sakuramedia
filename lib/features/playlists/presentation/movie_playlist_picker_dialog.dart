@@ -66,6 +66,9 @@ class MoviePlaylistPickerDialog extends StatefulWidget {
 }
 
 class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
+  static const double _playlistItemFontSizeDelta = 4;
+  static const double _playlistCheckboxScale = 0.85;
+
   List<PlaylistDto> _playlists = const <PlaylistDto>[];
   late Set<int> _selectedPlaylistIds;
   final Set<int> _updatingPlaylistIds = <int>{};
@@ -106,6 +109,7 @@ class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final textTheme = Theme.of(context).textTheme;
     final isAnyUpdating = _updatingPlaylistIds.isNotEmpty;
     final isBottomDrawer =
         widget.presentation == MoviePlaylistPickerPresentation.bottomDrawer;
@@ -135,23 +139,27 @@ class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
             ),
             child: Row(
               children: [
-                Checkbox(
-                  key: Key('movie-playlist-checkbox-${playlist.id}'),
-                  value: selected,
-                  onChanged:
-                      isAnyUpdating ? null : (_) => _togglePlaylist(playlist),
+                Transform.scale(
+                  key: Key('movie-playlist-checkbox-scale-${playlist.id}'),
+                  scale: _playlistCheckboxScale,
+                  child: Checkbox(
+                    key: Key('movie-playlist-checkbox-${playlist.id}'),
+                    value: selected,
+                    onChanged:
+                        isAnyUpdating ? null : (_) => _togglePlaylist(playlist),
+                  ),
                 ),
                 SizedBox(width: spacing.sm),
                 Expanded(
                   child: Text(
                     playlist.name,
-                    style: Theme.of(context).textTheme.bodyLarge,
+                    style: _reduceFontSize(textTheme.bodyLarge),
                   ),
                 ),
                 if (playlist.movieCount > 0)
                   Text(
                     '${playlist.movieCount}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: _reduceFontSize(textTheme.bodySmall),
                   ),
               ],
             ),
@@ -307,5 +315,14 @@ class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
       _playlists = <PlaylistDto>[playlist, ..._playlists];
     });
     await _togglePlaylist(playlist);
+  }
+
+  TextStyle? _reduceFontSize(TextStyle? style) {
+    final fontSize = style?.fontSize;
+    if (style == null || fontSize == null) {
+      return style;
+    }
+    final reduced = fontSize - _playlistItemFontSizeDelta;
+    return style.copyWith(fontSize: reduced > 0 ? reduced : fontSize);
   }
 }

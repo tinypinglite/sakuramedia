@@ -230,6 +230,38 @@ MaterialDesktopVideoControlsThemeData buildMoviePlayerDesktopControlsThemeData({
   );
 }
 
+enum MoviePlayerMobileDrawerType { speed, subtitle }
+
+@visibleForTesting
+class MoviePlayerMobileSpeedDisplayState {
+  const MoviePlayerMobileSpeedDisplayState({
+    required this.rate,
+    required this.hasExplicitSelection,
+  });
+
+  final double rate;
+  final bool hasExplicitSelection;
+
+  MoviePlayerMobileSpeedDisplayState copyWith({
+    double? rate,
+    bool? hasExplicitSelection,
+  }) {
+    return MoviePlayerMobileSpeedDisplayState(
+      rate: rate ?? this.rate,
+      hasExplicitSelection: hasExplicitSelection ?? this.hasExplicitSelection,
+    );
+  }
+}
+
+const Duration _moviePlayerMobileDrawerAnimationDuration = Duration(
+  milliseconds: 220,
+);
+const double _moviePlayerMobileDrawerWidth = 196;
+const double _moviePlayerMobileDrawerHorizontalInset = 10;
+const double _moviePlayerMobileDrawerItemHeight = 40;
+const double _moviePlayerMobileDrawerVerticalPadding = 8;
+const String _moviePlayerMobileNoSubtitleLabel = '无可用字幕';
+
 class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   late final Player _player;
   late final VideoController _controller;
@@ -237,6 +269,8 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   late final MoviePlayerSurfacePlaybackDriver _playbackDriver;
   late final ValueNotifier<MoviePlayerSubtitleState> _subtitleStateNotifier;
   late final ValueNotifier<bool> _isApplyingSubtitleNotifier;
+  late final ValueNotifier<MoviePlayerMobileSpeedDisplayState>
+  _mobileSpeedDisplayNotifier;
   StreamSubscription<Duration>? _seekSubscription;
   StreamSubscription<void>? _playSubscription;
   StreamSubscription<Duration>? _positionSubscription;
@@ -247,6 +281,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   double _currentPlaybackRate = 1.0;
   bool _hasExplicitPlaybackRateSelection = false;
   double? _pendingPlaybackRate;
+  MoviePlayerMobileDrawerType? _activeMobileDrawer;
   Duration? _startupSeekTarget;
   DateTime? _startupSeekStartedAt;
   bool _startupSeekSettled = true;
@@ -277,6 +312,13 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       widget.subtitleState,
     );
     _isApplyingSubtitleNotifier = ValueNotifier<bool>(_isApplyingSubtitle);
+    _mobileSpeedDisplayNotifier =
+        ValueNotifier<MoviePlayerMobileSpeedDisplayState>(
+          MoviePlayerMobileSpeedDisplayState(
+            rate: _currentPlaybackRate,
+            hasExplicitSelection: false,
+          ),
+        );
     _seekSubscription = widget.surfaceController.seekStream.listen(
       _player.seek,
     );
@@ -303,6 +345,12 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       }
       if (pendingRate != null && (pendingRate - rate).abs() < 0.001) {
         _pendingPlaybackRate = null;
+      }
+      final mobileSpeedDisplay = _mobileSpeedDisplayNotifier.value;
+      if ((mobileSpeedDisplay.rate - rate).abs() >= 0.001) {
+        _mobileSpeedDisplayNotifier.value = mobileSpeedDisplay.copyWith(
+          rate: rate,
+        );
       }
       if ((_currentPlaybackRate - rate).abs() < 0.001) {
         return;
@@ -335,7 +383,16 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       });
     }
     if (oldWidget.resolvedUrl != widget.resolvedUrl) {
+      _mobileSpeedDisplayNotifier.value = MoviePlayerMobileSpeedDisplayState(
+        rate: _player.state.rate,
+        hasExplicitSelection: false,
+      );
+      _closeMobileDrawer(notify: false);
       unawaited(_openMedia());
+    }
+    if (oldWidget.useTouchOptimizedControls &&
+        !widget.useTouchOptimizedControls) {
+      _closeMobileDrawer();
     }
   }
 
@@ -348,6 +405,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     _rateSubscription?.cancel();
     _subtitleStateNotifier.dispose();
     _isApplyingSubtitleNotifier.dispose();
+    _mobileSpeedDisplayNotifier.dispose();
     _readiness.dispose();
     _player.dispose();
     super.dispose();
@@ -562,6 +620,44 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     }
   }
 
+  void _toggleMobileDrawer(MoviePlayerMobileDrawerType drawerType) {
+    if (!widget.useTouchOptimizedControls) {
+      return;
+    }
+    setState(() {
+      _activeMobileDrawer =
+          _activeMobileDrawer == drawerType ? null : drawerType;
+    });
+  }
+
+  void _closeMobileDrawer({bool notify = true}) {
+    if (_activeMobileDrawer == null) {
+      return;
+    }
+    _activeMobileDrawer = null;
+    if (notify && mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _handleMobilePlaybackRateSelected(double rate) async {
+    _mobileSpeedDisplayNotifier.value = MoviePlayerMobileSpeedDisplayState(
+      rate: rate,
+      hasExplicitSelection: true,
+    );
+    _closeMobileDrawer();
+    await _handlePlaybackRateSelected(rate);
+    _mobileSpeedDisplayNotifier.value = MoviePlayerMobileSpeedDisplayState(
+      rate: _currentPlaybackRate,
+      hasExplicitSelection: _hasExplicitPlaybackRateSelection,
+    );
+  }
+
+  Future<void> _handleMobileSubtitleSelected(int subtitleId) async {
+    _closeMobileDrawer();
+    await _handleSubtitleSelected(subtitleId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -569,7 +665,14 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       movieNumber: widget.movieNumber,
       onBackPressed: widget.onBackPressed,
     );
-    final mobileBottomControls = buildMoviePlayerMobileBottomControls();
+    final mobileBottomControls = buildMoviePlayerMobileBottomControls(
+      activeDrawer: _activeMobileDrawer,
+      speedDisplayListenable: _mobileSpeedDisplayNotifier,
+      onSpeedButtonPressed:
+          () => _toggleMobileDrawer(MoviePlayerMobileDrawerType.speed),
+      onSubtitleButtonPressed:
+          () => _toggleMobileDrawer(MoviePlayerMobileDrawerType.subtitle),
+    );
     final desktopBottomControls = buildMoviePlayerDesktopBottomControls(
       currentRate: _currentPlaybackRate,
       hasExplicitSelection: _hasExplicitPlaybackRateSelection,
@@ -580,6 +683,40 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       onSubtitleReloadRequested: _handleSubtitleReloadRequested,
     );
     final backgroundColor = context.appColors.movieDetailHeroBackgroundStart;
+    final videoSurface = Video(
+      controller: _controller,
+      width: double.infinity,
+      height: double.infinity,
+      fit: BoxFit.fitWidth,
+      fill: backgroundColor,
+      filterQuality: FilterQuality.none,
+      controls: resolveMoviePlayerVideoControlsBuilder(
+        useTouchOptimizedControls: widget.useTouchOptimizedControls,
+      ),
+      onEnterFullscreen: () async {
+        if (!_player.state.playing) {
+          await _player.play();
+        }
+      },
+    );
+    final playerContent =
+        widget.useTouchOptimizedControls
+            ? Stack(
+              fit: StackFit.expand,
+              children: [
+                videoSurface,
+                buildMoviePlayerMobileDrawerOverlay(
+                  activeDrawer: _activeMobileDrawer,
+                  subtitleState: widget.subtitleState,
+                  currentRate: _mobileSpeedDisplayNotifier.value.rate,
+                  isApplyingSubtitle: _isApplyingSubtitle,
+                  onDismiss: _closeMobileDrawer,
+                  onRateSelected: _handleMobilePlaybackRateSelected,
+                  onSubtitleSelected: _handleMobileSubtitleSelected,
+                ),
+              ],
+            )
+            : videoSurface;
 
     return MaterialVideoControlsTheme(
       normal: _mobileControlsTheme(theme, topControls, mobileBottomControls),
@@ -607,22 +744,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
               child: child!,
             );
           },
-          child: Video(
-            controller: _controller,
-            width: double.infinity,
-            height: double.infinity,
-            fit: BoxFit.fitWidth,
-            fill: backgroundColor,
-            filterQuality: FilterQuality.none,
-            controls: resolveMoviePlayerVideoControlsBuilder(
-              useTouchOptimizedControls: widget.useTouchOptimizedControls,
-            ),
-            onEnterFullscreen: () async {
-              if (!_player.state.playing) {
-                await _player.play();
-              }
-            },
-          ),
+          child: playerContent,
         ),
       ),
     );
@@ -671,14 +793,117 @@ List<Widget> buildMoviePlayerTopControls({
 }
 
 @visibleForTesting
-List<Widget> buildMoviePlayerMobileBottomControls() {
+List<Widget> buildMoviePlayerMobileBottomControls({
+  required MoviePlayerMobileDrawerType? activeDrawer,
+  required ValueListenable<MoviePlayerMobileSpeedDisplayState>
+  speedDisplayListenable,
+  required VoidCallback onSpeedButtonPressed,
+  required VoidCallback onSubtitleButtonPressed,
+}) {
   return <Widget>[
     const MaterialPlayOrPauseButton(),
     const MaterialDesktopVolumeButton(),
     const MaterialPositionIndicator(),
     const Spacer(),
+    ...buildMoviePlayerMobileDrawerToggleButtons(
+      activeDrawer: activeDrawer,
+      speedDisplayListenable: speedDisplayListenable,
+      onSpeedButtonPressed: onSpeedButtonPressed,
+      onSubtitleButtonPressed: onSubtitleButtonPressed,
+    ),
     const MaterialFullscreenButton(),
   ];
+}
+
+@visibleForTesting
+List<Widget> buildMoviePlayerMobileDrawerToggleButtons({
+  required MoviePlayerMobileDrawerType? activeDrawer,
+  required ValueListenable<MoviePlayerMobileSpeedDisplayState>
+  speedDisplayListenable,
+  required VoidCallback onSpeedButtonPressed,
+  required VoidCallback onSubtitleButtonPressed,
+}) {
+  return <Widget>[
+    _MoviePlayerMobileSpeedDrawerToggleButton(
+      buttonKey: const Key('movie-player-mobile-speed-button'),
+      speedDisplayListenable: speedDisplayListenable,
+      active: activeDrawer == MoviePlayerMobileDrawerType.speed,
+      onTap: onSpeedButtonPressed,
+    ),
+    _MoviePlayerMobileDrawerToggleButton(
+      key: const Key('movie-player-mobile-subtitle-button'),
+      label: '字幕',
+      active: activeDrawer == MoviePlayerMobileDrawerType.subtitle,
+      onTap: onSubtitleButtonPressed,
+    ),
+  ];
+}
+
+@visibleForTesting
+Widget buildMoviePlayerMobileDrawerOverlay({
+  required MoviePlayerMobileDrawerType? activeDrawer,
+  required MoviePlayerSubtitleState subtitleState,
+  required double currentRate,
+  required bool isApplyingSubtitle,
+  required VoidCallback onDismiss,
+  required Future<void> Function(double rate) onRateSelected,
+  required Future<void> Function(int subtitleId) onSubtitleSelected,
+}) {
+  return IgnorePointer(
+    key: const Key('movie-player-mobile-drawer-layer'),
+    ignoring: activeDrawer == null,
+    child: GestureDetector(
+      key: const Key('movie-player-mobile-drawer-dismiss-area'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onDismiss,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: _moviePlayerMobileDrawerHorizontalInset,
+          ),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {},
+            child: AnimatedSwitcher(
+              duration: _moviePlayerMobileDrawerAnimationDuration,
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final offsetAnimation = Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return SlideTransition(position: offsetAnimation, child: child);
+              },
+              child: switch (activeDrawer) {
+                MoviePlayerMobileDrawerType.speed =>
+                  _MoviePlayerMobileSpeedDrawer(
+                    key: const ValueKey<String>(
+                      'movie-player-mobile-speed-drawer',
+                    ),
+                    currentRate: currentRate,
+                    onRateSelected: onRateSelected,
+                  ),
+                MoviePlayerMobileDrawerType.subtitle =>
+                  _MoviePlayerMobileSubtitleDrawer(
+                    key: const ValueKey<String>(
+                      'movie-player-mobile-subtitle-drawer',
+                    ),
+                    subtitleState: subtitleState,
+                    isApplyingSubtitle: isApplyingSubtitle,
+                    onSubtitleSelected: onSubtitleSelected,
+                  ),
+                null => const SizedBox.shrink(
+                  key: ValueKey<String>('movie-player-mobile-drawer-closed'),
+                ),
+              },
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 @visibleForTesting
@@ -709,6 +934,341 @@ List<Widget> buildMoviePlayerDesktopBottomControls({
     ),
     const MaterialFullscreenButton(),
   ];
+}
+
+@visibleForTesting
+String formatMoviePlayerPlaybackRateLabel(double rate) {
+  final hundredths = (rate * 100).round();
+  if (hundredths % 100 == 0 || hundredths % 50 == 0) {
+    return '${rate.toStringAsFixed(1)}x';
+  }
+  return '${rate.toStringAsFixed(2)}x';
+}
+
+class _MoviePlayerMobileDrawerToggleButton extends StatelessWidget {
+  const _MoviePlayerMobileDrawerToggleButton({
+    super.key,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final activeColor = theme.colorScheme.primary;
+    final textColor =
+        active ? activeColor : Colors.white.withValues(alpha: 0.94);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 34),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: textColor,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            height: 1.0,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoviePlayerMobileSpeedDrawerToggleButton extends StatelessWidget {
+  const _MoviePlayerMobileSpeedDrawerToggleButton({
+    required this.buttonKey,
+    required this.speedDisplayListenable,
+    required this.active,
+    required this.onTap,
+  });
+
+  final Key buttonKey;
+  final ValueListenable<MoviePlayerMobileSpeedDisplayState>
+  speedDisplayListenable;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<MoviePlayerMobileSpeedDisplayState>(
+      valueListenable: speedDisplayListenable,
+      builder: (context, speedDisplay, child) {
+        final showsRateLabel =
+            speedDisplay.hasExplicitSelection ||
+            (speedDisplay.rate - 1.0).abs() >= 0.001;
+        final label =
+            showsRateLabel
+                ? formatMoviePlayerPlaybackRateLabel(speedDisplay.rate)
+                : '倍速';
+        return _MoviePlayerMobileDrawerToggleButton(
+          key: buttonKey,
+          label: label,
+          active: active,
+          onTap: onTap,
+        );
+      },
+    );
+  }
+}
+
+class _MoviePlayerMobileDrawerSurface extends StatelessWidget {
+  const _MoviePlayerMobileDrawerSurface({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Container(
+      width: _moviePlayerMobileDrawerWidth,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: colors.movieDetailHeroBackgroundStart.withValues(alpha: 0.9),
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(18)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _MoviePlayerMobileSpeedDrawer extends StatelessWidget {
+  const _MoviePlayerMobileSpeedDrawer({
+    super.key,
+    required this.currentRate,
+    required this.onRateSelected,
+  });
+
+  final double currentRate;
+  final Future<void> Function(double rate) onRateSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedColor = Theme.of(context).colorScheme.primary;
+    return _MoviePlayerMobileDrawerSurface(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: _moviePlayerMobileDrawerVerticalPadding,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: kMoviePlayerPlaybackRates
+              .map((rate) {
+                final selected = (currentRate - rate).abs() < 0.001;
+                return GestureDetector(
+                  key: Key(
+                    'movie-player-mobile-speed-drawer-item-${rate.toString().replaceAll('.', '_')}',
+                  ),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => unawaited(onRateSelected(rate)),
+                  child: SizedBox(
+                    height: _moviePlayerMobileDrawerItemHeight,
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 18),
+                        const SizedBox(width: 18),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              formatMoviePlayerPlaybackRateLabel(rate),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelLarge?.copyWith(
+                                color:
+                                    selected
+                                        ? selectedColor
+                                        : Colors.white.withValues(alpha: 0.92),
+                                fontSize: 14,
+                                fontWeight:
+                                    selected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                height: 1.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 28,
+                          child: Center(
+                            child:
+                                selected
+                                    ? Icon(
+                                      Icons.check_rounded,
+                                      key: Key(
+                                        'movie-player-mobile-speed-drawer-item-check-${rate.toString().replaceAll('.', '_')}',
+                                      ),
+                                      size: 18,
+                                      color: selectedColor,
+                                    )
+                                    : SizedBox(
+                                      key: Key(
+                                        'movie-player-mobile-speed-drawer-item-check-slot-${rate.toString().replaceAll('.', '_')}',
+                                      ),
+                                      width: 18,
+                                      height: 18,
+                                    ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                      ],
+                    ),
+                  ),
+                );
+              })
+              .toList(growable: false),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
+  const _MoviePlayerMobileSubtitleDrawer({
+    super.key,
+    required this.subtitleState,
+    required this.isApplyingSubtitle,
+    required this.onSubtitleSelected,
+  });
+
+  final MoviePlayerSubtitleState subtitleState;
+  final bool isApplyingSubtitle;
+  final Future<void> Function(int subtitleId) onSubtitleSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = subtitleState.options;
+    final selectedColor = Theme.of(context).colorScheme.primary;
+    return _MoviePlayerMobileDrawerSurface(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: _moviePlayerMobileDrawerVerticalPadding,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children:
+              options.isEmpty
+                  ? <Widget>[
+                    SizedBox(
+                      key: const Key(
+                        'movie-player-mobile-subtitle-drawer-empty',
+                      ),
+                      height: _moviePlayerMobileDrawerItemHeight,
+                      child: Center(
+                        child: Text(
+                          _moviePlayerMobileNoSubtitleLabel,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelLarge?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.62),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            height: 1.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ]
+                  : options
+                      .map((option) {
+                        final selected =
+                            subtitleState.selectedSubtitleId ==
+                            option.subtitleId;
+                        return GestureDetector(
+                          key: Key(
+                            'movie-player-mobile-subtitle-drawer-item-${option.subtitleId}',
+                          ),
+                          behavior: HitTestBehavior.opaque,
+                          onTap:
+                              isApplyingSubtitle
+                                  ? null
+                                  : () => unawaited(
+                                    onSubtitleSelected(option.subtitleId),
+                                  ),
+                          child: SizedBox(
+                            height: _moviePlayerMobileDrawerItemHeight,
+                            child: Row(
+                              children: [
+                                const SizedBox(width: 18),
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  child: Center(
+                                    child: Text(
+                                      option.label,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelLarge?.copyWith(
+                                        color:
+                                            selected
+                                                ? selectedColor
+                                                : Colors.white.withValues(
+                                                  alpha: 0.92,
+                                                ),
+                                        fontSize: 14,
+                                        fontWeight:
+                                            selected
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
+                                        height: 1.0,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 28,
+                                  child: Center(
+                                    child:
+                                        selected
+                                            ? Icon(
+                                              Icons.check_rounded,
+                                              key: Key(
+                                                'movie-player-mobile-subtitle-drawer-item-check-${option.subtitleId}',
+                                              ),
+                                              size: 18,
+                                              color: selectedColor,
+                                            )
+                                            : SizedBox(
+                                              key: Key(
+                                                'movie-player-mobile-subtitle-drawer-item-check-slot-${option.subtitleId}',
+                                              ),
+                                              width: 18,
+                                              height: 18,
+                                            ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                              ],
+                            ),
+                          ),
+                        );
+                      })
+                      .toList(growable: false),
+        ),
+      ),
+    );
+  }
 }
 
 @visibleForTesting

@@ -1,10 +1,13 @@
 import 'dart:typed_data';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
@@ -18,6 +21,7 @@ import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_skeleton_page.dart';
+import 'package:sakuramedia/features/playlists/data/playlist_order_store.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
@@ -36,6 +40,7 @@ void main() {
   late TestApiBundle bundle;
 
   setUp(() async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
     sessionStore = SessionStore.inMemory();
     await sessionStore.saveBaseUrl('https://api.example.com');
     await sessionStore.saveTokens(
@@ -590,6 +595,160 @@ void main() {
   );
 
   testWidgets(
+    'mobile overview playlists support long-press reorder and local persistence',
+    (WidgetTester tester) async {
+      final orderStore = InMemoryPlaylistOrderStore();
+      final playlists = <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'name': '最近观看',
+          'kind': 'recently_watched',
+          'description': '',
+          'is_system': true,
+          'is_mutable': false,
+          'is_deletable': false,
+          'movie_count': 0,
+          'created_at': null,
+          'updated_at': null,
+        },
+        <String, dynamic>{
+          'id': 2,
+          'name': '收藏夹',
+          'kind': 'custom',
+          'description': '',
+          'is_system': false,
+          'is_mutable': true,
+          'is_deletable': true,
+          'movie_count': 0,
+          'created_at': null,
+          'updated_at': null,
+        },
+      ];
+      _enqueueOverviewResponses(bundle, playlists: playlists);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          child: MobileOverviewSkeletonPage(playlistOrderStore: orderStore),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final firstCard = find.byKey(const ValueKey<int>(1));
+      final secondCard = find.byKey(const ValueKey<int>(2));
+      expect(firstCard, findsOneWidget);
+      expect(secondCard, findsOneWidget);
+
+      final dragGesture = await tester.startGesture(
+        tester.getCenter(firstCard),
+      );
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+      await dragGesture.moveBy(const Offset(0, 240));
+      await tester.pump(const Duration(milliseconds: 300));
+      await dragGesture.up();
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(firstCard).dy,
+        greaterThan(tester.getTopLeft(secondCard).dy),
+      );
+      expect(
+        await orderStore.readPlaylistOrder(scopeKey: 'https://api.example.com'),
+        <int>[2, 1],
+      );
+
+      _enqueueOverviewResponses(bundle, playlists: playlists);
+      await tester.pumpWidget(
+        _buildTestApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          child: MobileOverviewSkeletonPage(playlistOrderStore: orderStore),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey<int>(2))).dy,
+        lessThan(tester.getTopLeft(find.byKey(const ValueKey<int>(1))).dy),
+      );
+    },
+  );
+
+  testWidgets('mobile overview reorder start triggers medium haptic feedback', (
+    WidgetTester tester,
+  ) async {
+    final methodCalls = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (MethodCall call) async {
+        methodCalls.add(call);
+        return null;
+      },
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+
+    final playlists = <Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 1,
+        'name': '最近观看',
+        'kind': 'recently_watched',
+        'description': '',
+        'is_system': true,
+        'is_mutable': false,
+        'is_deletable': false,
+        'movie_count': 0,
+        'created_at': null,
+        'updated_at': null,
+      },
+      <String, dynamic>{
+        'id': 2,
+        'name': '收藏夹',
+        'kind': 'custom',
+        'description': '',
+        'is_system': false,
+        'is_mutable': true,
+        'is_deletable': true,
+        'movie_count': 0,
+        'created_at': null,
+        'updated_at': null,
+      },
+    ];
+    _enqueueOverviewResponses(bundle, playlists: playlists);
+
+    await tester.pumpWidget(
+      _buildTestApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        child: const MobileOverviewSkeletonPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final firstCard = find.byKey(const ValueKey<int>(1));
+    final dragGesture = await tester.startGesture(tester.getCenter(firstCard));
+    await tester.pump(kLongPressTimeout + const Duration(milliseconds: 100));
+    await dragGesture.moveBy(const Offset(0, 240));
+    await tester.pump(const Duration(milliseconds: 300));
+    await dragGesture.up();
+    await tester.pumpAndSettle();
+
+    expect(
+      methodCalls.any(
+        (call) =>
+            call.method == 'HapticFeedback.vibrate' &&
+            call.arguments == 'HapticFeedbackType.mediumImpact',
+      ),
+      isTrue,
+    );
+  });
+
+  testWidgets(
     'mobile overview image search keeps page when picker is cancelled',
     (WidgetTester tester) async {
       _enqueueOverviewResponses(bundle);
@@ -1082,7 +1241,10 @@ Widget _buildRouterApp({
   );
 }
 
-void _enqueueOverviewResponses(TestApiBundle bundle) {
+void _enqueueOverviewResponses(
+  TestApiBundle bundle, {
+  List<Map<String, dynamic>>? playlists,
+}) {
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/movies/latest',
@@ -1119,20 +1281,22 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
     method: 'GET',
     path: '/playlists',
     statusCode: 200,
-    body: [
-      <String, dynamic>{
-        'id': 1,
-        'name': '最近观看',
-        'kind': 'recently_watched',
-        'description': '',
-        'is_system': true,
-        'is_mutable': false,
-        'is_deletable': false,
-        'movie_count': 0,
-        'created_at': null,
-        'updated_at': null,
-      },
-    ],
+    body:
+        playlists ??
+        <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 1,
+            'name': '最近观看',
+            'kind': 'recently_watched',
+            'description': '',
+            'is_system': true,
+            'is_mutable': false,
+            'is_deletable': false,
+            'movie_count': 0,
+            'created_at': null,
+            'updated_at': null,
+          },
+        ],
   );
   bundle.adapter.enqueueJson(
     method: 'GET',

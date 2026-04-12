@@ -332,6 +332,26 @@ void main() {
         find.byKey(const Key('movie-summary-card-heat-OFJE-777')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const Key('movie-summary-card-subscription-OFJE-777')),
+        findsOneWidget,
+      );
+
+      final cardRect = tester.getRect(
+        find.byKey(const Key('movie-summary-card-OFJE-777')),
+      );
+      final heatRect = tester.getRect(
+        find.byKey(const Key('movie-summary-card-heat-OFJE-777')),
+      );
+      final subscriptionRect = tester.getRect(
+        find.byKey(const Key('movie-summary-card-subscription-OFJE-777')),
+      );
+      final edgeInset = AppSpacing.defaults().xs;
+
+      expect(heatRect.top - cardRect.top, closeTo(edgeInset, 0.1));
+      expect(cardRect.right - heatRect.right, closeTo(edgeInset, 0.1));
+      expect(subscriptionRect.top - cardRect.top, closeTo(edgeInset, 0.1));
+      expect(subscriptionRect.left - cardRect.left, closeTo(edgeInset, 0.1));
 
       final heatBottom =
           tester

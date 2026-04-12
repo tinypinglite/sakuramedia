@@ -118,7 +118,7 @@ void main() {
             find.byKey(const Key('movie-summary-card-heat-text-ABC-001')),
           )
           .data,
-      '1777',
+      '1.8k',
     );
   });
 

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
@@ -276,6 +277,105 @@ void main() {
       ),
     );
   });
+
+  test('getMovieCollectionStatus sends request and parses response', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABP-123/collection-status',
+      statusCode: 200,
+      body: <String, dynamic>{'movie_number': 'ABP-123', 'is_collection': true},
+    );
+
+    final status = await moviesApi.getMovieCollectionStatus(
+      movieNumber: 'ABP-123',
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'GET');
+    expect(request.path, '/movies/ABP-123/collection-status');
+    expect(status.movieNumber, 'ABP-123');
+    expect(status.isCollection, isTrue);
+  });
+
+  test(
+    'getMovieCollectionStatus converts backend error to ApiException',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABP-404/collection-status',
+        statusCode: 404,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{
+            'code': 'movie_not_found',
+            'message': '影片不存在',
+          },
+        },
+      );
+
+      expect(
+        () => moviesApi.getMovieCollectionStatus(movieNumber: 'ABP-404'),
+        throwsA(
+          isA<ApiException>().having(
+            (ApiException error) => error.error?.code,
+            'error.code',
+            'movie_not_found',
+          ),
+        ),
+      );
+    },
+  );
+
+  test('updateMovieCollectionType sends payload and parses response', () async {
+    adapter.enqueueJson(
+      method: 'PATCH',
+      path: '/movies/collection-type',
+      statusCode: 200,
+      body: <String, dynamic>{'requested_count': 2, 'updated_count': 1},
+    );
+
+    final result = await moviesApi.updateMovieCollectionType(
+      movieNumbers: const <String>['ABP-123', 'ABP-404'],
+      collectionType: MovieCollectionType.single,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'PATCH');
+    expect(request.path, '/movies/collection-type');
+    expect(request.body, <String, dynamic>{
+      'movie_numbers': <String>['ABP-123', 'ABP-404'],
+      'collection_type': 'single',
+    });
+    expect(result.requestedCount, 2);
+    expect(result.updatedCount, 1);
+  });
+
+  test(
+    'updateMovieCollectionType converts backend error to ApiException',
+    () async {
+      adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/movies/collection-type',
+        statusCode: 500,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+        },
+      );
+
+      expect(
+        () => moviesApi.updateMovieCollectionType(
+          movieNumbers: const <String>['ABP-123'],
+          collectionType: MovieCollectionType.collection,
+        ),
+        throwsA(
+          isA<ApiException>().having(
+            (ApiException error) => error.error?.code,
+            'error.code',
+            'server_error',
+          ),
+        ),
+      );
+    },
+  );
 
   test('searchOnlineMoviesStream parses completed SSE result', () async {
     adapter.enqueueSse(

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/playlists/data/playlist_dto.dart';
+import 'package:sakuramedia/features/playlists/data/playlist_order_store.dart';
 
 typedef PlaylistListFetcher =
     Future<List<PlaylistDto>> Function({bool includeSystem});
@@ -13,11 +16,15 @@ class PlaylistsOverviewController extends ChangeNotifier {
     required this.fetchPlaylists,
     required this.fetchPlaylistCoverUrl,
     required this.createPlaylist,
+    this.playlistOrderStore,
+    this.orderScopeKey,
   });
 
   final PlaylistListFetcher fetchPlaylists;
   final PlaylistCoverFetcher fetchPlaylistCoverUrl;
   final PlaylistCreator createPlaylist;
+  final PlaylistOrderStore? playlistOrderStore;
+  final String? orderScopeKey;
 
   List<PlaylistDto> _playlists = const <PlaylistDto>[];
   final Map<int, String?> _coverUrls = <int, String?>{};
@@ -32,8 +39,32 @@ class PlaylistsOverviewController extends ChangeNotifier {
 
   String? coverUrlFor(int playlistId) => _coverUrls[playlistId];
 
+  void reorderPlaylists(int oldIndex, int newIndex) {
+    if (oldIndex < 0 ||
+        oldIndex >= _playlists.length ||
+        newIndex < 0 ||
+        newIndex > _playlists.length) {
+      return;
+    }
+
+    var targetIndex = newIndex;
+    if (targetIndex > oldIndex) {
+      targetIndex -= 1;
+    }
+    if (targetIndex == oldIndex) {
+      return;
+    }
+
+    final updated = List<PlaylistDto>.from(_playlists);
+    final moved = updated.removeAt(oldIndex);
+    updated.insert(targetIndex, moved);
+    _playlists = updated;
+    notifyListeners();
+    unawaited(_savePlaylistOrder(updated));
+  }
+
   Future<void> refresh() async {
-    final playlists = await fetchPlaylists(includeSystem: true);
+    final playlists = await _loadAndApplyPlaylists();
     final coverUrls = await _fetchCoverUrls(playlists);
     _playlists = playlists;
     _coverUrls
@@ -49,7 +80,7 @@ class PlaylistsOverviewController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final playlists = await fetchPlaylists(includeSystem: true);
+      final playlists = await _loadAndApplyPlaylists();
       _playlists = playlists;
       _errorMessage = null;
       notifyListeners();
@@ -77,6 +108,7 @@ class PlaylistsOverviewController extends ChangeNotifier {
       _playlists = <PlaylistDto>[playlist, ..._playlists];
       _coverUrls[playlist.id] = null;
       notifyListeners();
+      unawaited(_savePlaylistOrder(_playlists));
       return playlist;
     } finally {
       _isCreating = false;
@@ -88,6 +120,87 @@ class PlaylistsOverviewController extends ChangeNotifier {
     _playlists = <PlaylistDto>[playlist, ..._playlists];
     _coverUrls[playlist.id] = null;
     notifyListeners();
+    unawaited(_savePlaylistOrder(_playlists));
+  }
+
+  Future<List<PlaylistDto>> _loadAndApplyPlaylists() async {
+    final playlists = await fetchPlaylists(includeSystem: true);
+    return _applyStoredOrder(playlists);
+  }
+
+  Future<List<PlaylistDto>> _applyStoredOrder(
+    List<PlaylistDto> playlists,
+  ) async {
+    final scopeKey = _normalizedScopeKey;
+    final orderStore = playlistOrderStore;
+    if (orderStore == null || scopeKey == null) {
+      return playlists;
+    }
+
+    try {
+      final storedOrder = await orderStore.readPlaylistOrder(
+        scopeKey: scopeKey,
+      );
+      if (storedOrder.isEmpty) {
+        return playlists;
+      }
+
+      final byId = <int, PlaylistDto>{
+        for (final playlist in playlists) playlist.id: playlist,
+      };
+      final ordered = <PlaylistDto>[];
+      final seen = <int>{};
+
+      for (final id in storedOrder) {
+        final playlist = byId[id];
+        if (playlist == null || !seen.add(id)) {
+          continue;
+        }
+        ordered.add(playlist);
+      }
+
+      for (final playlist in playlists) {
+        if (!seen.add(playlist.id)) {
+          continue;
+        }
+        ordered.add(playlist);
+      }
+
+      final normalizedOrder = ordered.map((playlist) => playlist.id).toList();
+      if (!listEquals(storedOrder, normalizedOrder)) {
+        await orderStore.savePlaylistOrder(
+          scopeKey: scopeKey,
+          playlistIds: normalizedOrder,
+        );
+      }
+      return ordered;
+    } catch (_) {
+      return playlists;
+    }
+  }
+
+  Future<void> _savePlaylistOrder(List<PlaylistDto> playlists) async {
+    final scopeKey = _normalizedScopeKey;
+    final orderStore = playlistOrderStore;
+    if (orderStore == null || scopeKey == null) {
+      return;
+    }
+    try {
+      await orderStore.savePlaylistOrder(
+        scopeKey: scopeKey,
+        playlistIds: playlists.map((playlist) => playlist.id).toList(),
+      );
+    } catch (_) {
+      // Ignore persistence failures so in-memory interactions stay available.
+    }
+  }
+
+  String? get _normalizedScopeKey {
+    final raw = orderScopeKey?.trim();
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+    return raw;
   }
 
   Future<void> _loadCoverUrls(List<PlaylistDto> playlists) async {

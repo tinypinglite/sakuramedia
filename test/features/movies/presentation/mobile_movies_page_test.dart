@@ -88,7 +88,7 @@ void main() {
       body: _moviesJson(
         total: 2,
         items: <Map<String, dynamic>>[
-          _movieItem(heat: 19),
+          _movieItem(heat: 1777),
           _movieItem(movieNumber: 'ABC-002', isSubscribed: false, heat: 4),
         ],
       ),
@@ -105,7 +105,8 @@ void main() {
       find.byKey(const Key('movie-summary-card-heat-ABC-001')),
       findsOneWidget,
     );
-    expect(find.text('19'), findsOneWidget);
+    expect(find.text('1.8k'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
   });
 
   testWidgets('mobile movies page shows empty state', (
@@ -156,6 +157,14 @@ void main() {
     );
     bundle.adapter.enqueueJson(
       method: 'GET',
+      path: '/movies/OFJE-888/collection-status',
+      body: <String, dynamic>{
+        'movie_number': 'OFJE-888',
+        'is_collection': false,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
       path: '/collection-number-features',
       body: <String, dynamic>{
         'features': <String>['CJOB-'],
@@ -188,6 +197,7 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
+    expect(find.text('标记为合集'), findsOneWidget);
     expect(find.text('将"OFJE-"加入合集特征'), findsOneWidget);
 
     await tester.tap(
@@ -203,7 +213,69 @@ void main() {
     );
     expect(patchRequest.body['features'], <String>['CJOB-', 'OFJE-']);
     expect(patchRequest.uri.queryParameters['apply_now'], 'true');
+    expect(
+      bundle.adapter.hitCount('GET', '/movies/OFJE-888/collection-status'),
+      1,
+    );
     expect(find.text('已将 OFJE- 加入合集特征，并重新统计合集影片'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('mobile movies page toggles collection type from long press', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _movieItem(movieNumber: 'OFJE-888', isSubscribed: false),
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/OFJE-888/collection-status',
+      body: <String, dynamic>{
+        'movie_number': 'OFJE-888',
+        'is_collection': true,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'PATCH',
+      path: '/movies/collection-type',
+      body: <String, dynamic>{'requested_count': 1, 'updated_count': 1},
+    );
+
+    await _pumpMoviesPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(
+      find.byKey(const Key('movie-summary-card-OFJE-888')),
+    );
+    final gesture = await tester.startGesture(center);
+    await tester.pump(kLongPressTimeout);
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(find.text('标记为单体'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('movie-collection-feature-menu-toggle-item')),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    final patchRequest = bundle.adapter.requests.singleWhere(
+      (request) =>
+          request.method == 'PATCH' &&
+          request.path == '/movies/collection-type',
+    );
+    expect(patchRequest.body, <String, dynamic>{
+      'movie_numbers': <String>['OFJE-888'],
+      'collection_type': 'single',
+    });
+    expect(find.text('已将 OFJE-888 标记为单体'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
   });
 

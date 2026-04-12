@@ -75,8 +75,8 @@ class ActorSummaryCard extends StatelessWidget {
       children: [
         tappableCard,
         Positioned(
-          top: spacing.sm,
-          left: spacing.sm,
+          top: spacing.xs,
+          left: spacing.xs,
           child: _SubscriptionBadge(
             key: Key('actor-summary-card-subscription-${actor.id}'),
             loadingKey: Key(

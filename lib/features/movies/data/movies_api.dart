@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart'
 import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_search_stream_update.dart';
 import 'package:sakuramedia/features/movies/data/movie_subtitle_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/parsed_movie_number_dto.dart';
 import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
@@ -156,6 +157,30 @@ class MoviesApi {
       queryParameters: <String, dynamic>{'movie_number': movieNumber},
     );
     return response.map(MovieListItemDto.fromJson).toList(growable: false);
+  }
+
+  Future<MovieCollectionStatusDto> getMovieCollectionStatus({
+    required String movieNumber,
+  }) async {
+    final response = await _apiClient.get(
+      '/movies/$movieNumber/collection-status',
+    );
+    return MovieCollectionStatusDto.fromJson(response);
+  }
+
+  Future<UpdateMovieCollectionTypeResultDto> updateMovieCollectionType({
+    required List<String> movieNumbers,
+    required MovieCollectionType collectionType,
+  }) async {
+    final response = await _apiClient.patch(
+      '/movies/collection-type',
+      data:
+          UpdateMovieCollectionTypePayload(
+            movieNumbers: movieNumbers,
+            collectionType: collectionType,
+          ).toJson(),
+    );
+    return UpdateMovieCollectionTypeResultDto.fromJson(response);
   }
 
   Stream<MovieSearchStreamUpdate> searchOnlineMoviesStream({

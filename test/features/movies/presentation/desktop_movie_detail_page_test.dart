@@ -651,7 +651,7 @@ void main() {
             'is_system': false,
             'is_mutable': true,
             'is_deletable': true,
-            'movie_count': 0,
+            'movie_count': 3,
             'created_at': '2026-03-12T10:10:00Z',
             'updated_at': '2026-03-12T10:10:00Z',
           },
@@ -681,6 +681,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('我的收藏'), findsOneWidget);
+      expect(find.text('3'), findsOneWidget);
       expect(find.text('最近播放'), findsNothing);
       expect(find.text('关闭'), findsNothing);
       expect(
@@ -690,8 +691,89 @@ void main() {
         ),
         findsOneWidget,
       );
+
+      final playlistNameText = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(const Key('movie-playlist-option-2')),
+          matching: find.text('我的收藏'),
+        ),
+      );
+      expect(
+        playlistNameText.style?.fontSize,
+        sakuraThemeData.textTheme.bodyLarge!.fontSize! - 4,
+      );
+
+      final playlistCountText = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(const Key('movie-playlist-option-2')),
+          matching: find.text('3'),
+        ),
+      );
+      expect(
+        playlistCountText.style?.fontSize,
+        sakuraThemeData.textTheme.bodySmall!.fontSize! - 4,
+      );
+
+      final checkboxScale = tester.widget<Transform>(
+        find.byKey(const Key('movie-playlist-checkbox-scale-2')),
+      );
+      expect(checkboxScale.transform.storage[0], closeTo(0.85, 0.001));
+      expect(checkboxScale.transform.storage[5], closeTo(0.85, 0.001));
     },
   );
+
+  testWidgets('movie detail page toggles collection type near movie number', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: _movieDetailJson(),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/collection-status',
+      body: <String, dynamic>{
+        'movie_number': 'ABC-001',
+        'is_collection': false,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'PATCH',
+      path: '/movies/collection-type',
+      body: <String, dynamic>{'requested_count': 1, 'updated_count': 1},
+    );
+
+    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('movie-detail-collection-trigger')),
+      findsOneWidget,
+    );
+    expect(find.text('标记合集'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('movie-detail-collection-trigger')));
+    await tester.pumpAndSettle();
+
+    final patchRequest = bundle.adapter.requests.singleWhere(
+      (request) =>
+          request.method == 'PATCH' &&
+          request.path == '/movies/collection-type',
+    );
+    expect(patchRequest.body, <String, dynamic>{
+      'movie_numbers': <String>['ABC-001'],
+      'collection_type': 'collection',
+    });
+    expect(
+      bundle.adapter.hitCount('GET', '/movies/ABC-001/collection-status'),
+      1,
+    );
+    expect(find.text('已标记为合集'), findsOneWidget);
+    expect(find.text('标记单体'), findsOneWidget);
+    expect(find.text('合集'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
 
   testWidgets('movie detail playlist picker toggles membership immediately', (
     WidgetTester tester,

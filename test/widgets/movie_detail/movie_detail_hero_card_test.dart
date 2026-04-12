@@ -233,10 +233,28 @@ void main() {
       findsOneWidget,
     );
     expect(
+      find.byKey(const Key('movie-detail-hero-subscription-icon')),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const Key('movie-detail-hero-heat-text')),
       findsOneWidget,
     );
     expect(find.text('24'), findsOneWidget);
+
+    final heroRect = tester.getRect(find.byType(MovieDetailHeroCard));
+    final heatRect = tester.getRect(
+      find.byKey(const Key('movie-detail-hero-heat-badge')),
+    );
+    final subscriptionRect = tester.getRect(
+      find.byKey(const Key('movie-detail-hero-subscription-icon')),
+    );
+    final edgeInset = AppSpacing.defaults().sm;
+
+    expect(heatRect.top - heroRect.top, closeTo(edgeInset, 0.1));
+    expect(heroRect.right - heatRect.right, closeTo(edgeInset, 0.1));
+    expect(subscriptionRect.top - heroRect.top, closeTo(edgeInset, 0.1));
+    expect(subscriptionRect.left - heroRect.left, closeTo(edgeInset, 0.1));
 
     final icon = tester.widget<Icon>(
       find.byIcon(Icons.local_fire_department_rounded),

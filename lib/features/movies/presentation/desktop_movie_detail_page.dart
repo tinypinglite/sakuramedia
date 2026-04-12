@@ -8,6 +8,7 @@ import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_launcher.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
@@ -38,7 +39,9 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
       <int, List<MovieMediaPointDto>>{};
   int? _selectedMediaId;
   bool? _isSubscribedOverride;
+  bool? _isCollectionOverride;
   bool _isSubscriptionUpdating = false;
+  bool _isCollectionUpdating = false;
 
   @override
   void initState() {
@@ -47,6 +50,7 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
       movieNumber: widget.movieNumber,
       fetchMovieDetail: context.read<MoviesApi>().getMovieDetail,
     )..load();
+    _loadMovieCollectionStatus();
   }
 
   @override
@@ -74,6 +78,7 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
         final movie = _controller.movie!;
         final mediaItems = _resolveMediaItems(movie);
         final isSubscribed = _isSubscribedOverride ?? movie.isSubscribed;
+        final isCollection = _isCollectionOverride ?? movie.isCollection;
         final selectedMedia =
             mediaItems
                 .where((item) => item.mediaId == _selectedMediaId)
@@ -84,7 +89,9 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
           mediaItemsOverride: mediaItems,
           selectedPreviewKey: _controller.selectedPreviewKey,
           selectedPreviewUrl: _controller.selectedPreviewUrl,
+          isCollection: isCollection,
           isSubscribed: isSubscribed,
+          isCollectionUpdating: _isCollectionUpdating,
           isSubscriptionUpdating: _isSubscriptionUpdating,
           selectedMediaId: selectedMedia?.mediaId,
           statItems: buildMovieDetailStatItems(context, movie),
@@ -109,6 +116,11 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
                 initialPlaylists: movie.playlists,
                 presentation: MoviePlaylistPickerPresentation.dialog,
               ),
+          onCollectionToggle:
+              _isCollectionUpdating
+                  ? null
+                  : () =>
+                      _toggleMovieCollectionType(isCollection: isCollection),
           onMediaSelect:
               (item) => setState(() {
                 _selectedMediaId = item.mediaId;
@@ -158,6 +170,65 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
         );
       },
     );
+  }
+
+  Future<void> _loadMovieCollectionStatus() async {
+    try {
+      final status = await context.read<MoviesApi>().getMovieCollectionStatus(
+        movieNumber: widget.movieNumber,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isCollectionOverride = status.isCollection;
+      });
+    } catch (_) {
+      // Fall back to detail payload value when status lookup fails.
+    }
+  }
+
+  Future<void> _toggleMovieCollectionType({required bool isCollection}) async {
+    if (_isCollectionUpdating) {
+      return;
+    }
+    setState(() {
+      _isCollectionUpdating = true;
+    });
+
+    final targetType =
+        isCollection
+            ? MovieCollectionType.single
+            : MovieCollectionType.collection;
+    try {
+      final result = await context.read<MoviesApi>().updateMovieCollectionType(
+        movieNumbers: <String>[widget.movieNumber],
+        collectionType: targetType,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (result.updatedCount <= 0) {
+        showToast('未匹配到影片，未更新合集状态');
+        return;
+      }
+      setState(() {
+        _isCollectionOverride = !isCollection;
+      });
+      showToast(
+        targetType == MovieCollectionType.collection ? '已标记为合集' : '已标记为单体',
+      );
+    } catch (error) {
+      if (mounted) {
+        showToast(apiErrorMessage(error, fallback: '更新合集状态失败'));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCollectionUpdating = false;
+        });
+      }
+    }
   }
 
   List<MovieMediaItemDto> _resolveMediaItems(MovieDetailDto movie) {

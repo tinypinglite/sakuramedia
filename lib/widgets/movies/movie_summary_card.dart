@@ -110,8 +110,8 @@ class MovieSummaryCard extends StatelessWidget {
       children: [
         interactiveCard,
         Positioned(
-          top: spacing.sm,
-          right: spacing.sm,
+          top: spacing.xs,
+          right: spacing.xs,
           child: Container(
             key: Key('movie-summary-card-heat-${movie.movieNumber}'),
             padding: EdgeInsets.symmetric(
@@ -135,7 +135,7 @@ class MovieSummaryCard extends StatelessWidget {
                 ),
                 SizedBox(width: spacing.xs),
                 Text(
-                  '${movie.heat}',
+                  _formatMovieHeat(movie.heat),
                   key: Key('movie-summary-card-heat-text-${movie.movieNumber}'),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: colors.textOnMedia,
@@ -147,8 +147,8 @@ class MovieSummaryCard extends StatelessWidget {
           ),
         ),
         Positioned(
-          top: spacing.sm,
-          left: spacing.sm,
+          top: spacing.xs,
+          left: spacing.xs,
           child: Wrap(
             spacing: spacing.xs,
             runSpacing: spacing.xs,
@@ -179,6 +179,18 @@ class MovieSummaryCard extends StatelessWidget {
       ],
     );
   }
+}
+
+String _formatMovieHeat(int heat) {
+  if (heat < 1000) {
+    return '$heat';
+  }
+
+  final valueInK = heat / 1000;
+  final fixed = valueInK.toStringAsFixed(1);
+  final trimmed =
+      fixed.endsWith('.0') ? fixed.substring(0, fixed.length - 2) : fixed;
+  return '${trimmed}k';
 }
 
 class _RankBadge extends StatelessWidget {

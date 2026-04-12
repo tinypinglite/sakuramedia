@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_state.dart';
@@ -43,6 +44,10 @@ import 'package:sakuramedia/theme.dart';
 import '../support/test_api_bundle.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+  });
+
   test('desktop navigation tree contains moments entry', () {
     expect(desktopNavGroups.length, 10);
     expect(desktopNavGroups.map((group) => group.label), [

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oktoast/oktoast.dart';
@@ -381,6 +382,7 @@ class _MovieDetailReviewTabState extends State<_MovieDetailReviewTab> {
   static const double _loadMoreExtentAfterThreshold = 200;
   late final ScrollController _scrollController;
   int _lastAutoLoadTriggerItemCount = -1;
+  bool _isSortSwitchLoading = false;
 
   @override
   void initState() {
@@ -413,11 +415,27 @@ class _MovieDetailReviewTabState extends State<_MovieDetailReviewTab> {
   }
 
   Future<void> _handleSortChange(MovieReviewSort sort) async {
+    if (_isSortSwitchLoading ||
+        widget.controller.isInitialLoading ||
+        widget.controller.sort == sort) {
+      return;
+    }
     if (_scrollController.hasClients) {
       _scrollController.jumpTo(0);
     }
     _lastAutoLoadTriggerItemCount = -1;
-    await widget.controller.setSort(sort);
+    setState(() {
+      _isSortSwitchLoading = true;
+    });
+    try {
+      await widget.controller.setSort(sort);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSortSwitchLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -444,7 +462,10 @@ class _MovieDetailReviewTabState extends State<_MovieDetailReviewTab> {
                   size: AppButtonSize.xSmall,
                   variant: AppButtonVariant.secondary,
                   isSelected: controller.sort == sort,
-                  onPressed: () => _handleSortChange(sort),
+                  onPressed:
+                      _isSortSwitchLoading
+                          ? null
+                          : () => _handleSortChange(sort),
                 ),
             ],
           ),
@@ -456,6 +477,10 @@ class _MovieDetailReviewTabState extends State<_MovieDetailReviewTab> {
   }
 
   Widget _buildContent(BuildContext context) {
+    if (_isSortSwitchLoading) {
+      return const Center(child: _ReviewSortSwitchLoadingIndicator());
+    }
+
     final controller = widget.controller;
     if (controller.isInitialLoading && controller.items.isEmpty) {
       return const _MovieDetailReviewLoadingList();
@@ -500,6 +525,37 @@ class _MovieDetailReviewTabState extends State<_MovieDetailReviewTab> {
         }
         return _MovieDetailReviewFooter(controller: controller);
       },
+    );
+  }
+}
+
+class _ReviewSortSwitchLoadingIndicator extends StatelessWidget {
+  const _ReviewSortSwitchLoadingIndicator();
+
+  @override
+  Widget build(BuildContext context) {
+    final platform = Theme.of(context).platform;
+    final useCupertino = switch (platform) {
+      TargetPlatform.iOS || TargetPlatform.macOS => true,
+      TargetPlatform.android ||
+      TargetPlatform.fuchsia ||
+      TargetPlatform.linux ||
+      TargetPlatform.windows => false,
+    };
+
+    return SizedBox(
+      key: const Key('movie-detail-review-sort-switch-loading-indicator'),
+      width: context.appComponentTokens.iconSizeLg,
+      height: context.appComponentTokens.iconSizeLg,
+      child:
+          useCupertino
+              ? const CupertinoActivityIndicator(
+                key: Key('movie-detail-review-sort-switch-loading-spinner'),
+              )
+              : const CircularProgressIndicator(
+                key: Key('movie-detail-review-sort-switch-loading-spinner'),
+                strokeWidth: 2,
+              ),
     );
   }
 }
