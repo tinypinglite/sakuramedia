@@ -109,7 +109,7 @@ void main() {
       expect(bundle.adapter.requests[2].body.containsKey('password'), isFalse);
     });
 
-    test('media libraries api maps list response', () async {
+    test('media libraries api maps CRUD endpoints and payloads', () async {
       final sessionStore = await _buildLoggedInSessionStore();
       final bundle = await createTestApiBundle(sessionStore);
       addTearDown(bundle.dispose);
@@ -150,6 +150,11 @@ void main() {
           'updated_at': '2026-03-10T09:30:00Z',
         },
       );
+      bundle.adapter.enqueueJson(
+        method: 'DELETE',
+        path: '/media-libraries/2',
+        statusCode: 204,
+      );
 
       final libraries = await bundle.mediaLibrariesApi.getLibraries();
       final created = await bundle.mediaLibrariesApi.createLibrary(
@@ -165,6 +170,7 @@ void main() {
           rootPath: '/media/library/archive-new',
         ),
       );
+      await bundle.mediaLibrariesApi.deleteLibrary(2);
 
       expect(libraries.single.name, 'Main Library');
       expect(libraries.single.rootPath, '/media/library/main');
@@ -175,6 +181,7 @@ void main() {
         bundle.adapter.requests[2].body['root_path'],
         '/media/library/archive-new',
       );
+      expect(bundle.adapter.hitCount('DELETE', '/media-libraries/2'), 1);
     });
 
     test('collection number features api maps singleton resource', () async {

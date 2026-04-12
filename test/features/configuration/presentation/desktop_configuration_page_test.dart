@@ -683,6 +683,85 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
     });
 
+    testWidgets('deletes a media library and refreshes the list', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'DELETE',
+        path: '/media-libraries/1',
+        statusCode: 204,
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media-libraries',
+        body: const <Map<String, Object?>>[],
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('media-library-delete-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('删除').last);
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('DELETE', '/media-libraries/1'), 1);
+      expect(find.text('Main Library'), findsNothing);
+      expect(find.text('还没有媒体库'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets(
+      'does not call delete api when media library deletion canceled',
+      (WidgetTester tester) async {
+        _enqueueMediaLibraries(bundle);
+
+        await _pumpPage(tester, bundle, sessionStore: sessionStore);
+        await tester.tap(find.byKey(const Key('media-library-delete-1')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('取消').last);
+        await tester.pumpAndSettle();
+
+        expect(bundle.adapter.hitCount('DELETE', '/media-libraries/1'), 0);
+        expect(find.byKey(const Key('media-library-card-1')), findsOneWidget);
+        expect(find.text('Main Library'), findsOneWidget);
+      },
+    );
+
+    testWidgets('shows backend error when deleting a media library fails', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueResponder(
+        method: 'DELETE',
+        path: '/media-libraries/1',
+        responder: (options, requestBody) async {
+          return ResponseBody.fromString(
+            jsonEncode({
+              'error': {
+                'code': 'media_library_in_use',
+                'message': '媒体库仍被业务数据引用，无法删除',
+              },
+            }),
+            409,
+            headers: const {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('media-library-delete-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('删除').last);
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('DELETE', '/media-libraries/1'), 1);
+      expect(find.byKey(const Key('media-library-card-1')), findsOneWidget);
+      expect(find.text('媒体库仍被业务数据引用，无法删除'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
     testWidgets('prevents creating a media library with a relative root path', (
       WidgetTester tester,
     ) async {

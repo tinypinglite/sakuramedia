@@ -285,6 +285,61 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
     }
   }
 
+  Future<void> _deleteLibrary(MediaLibraryDto library) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (dialogContext) => AppDesktopDialog(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '删除媒体库',
+                  style: Theme.of(dialogContext).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                SizedBox(height: dialogContext.appSpacing.lg),
+                Text('确认删除媒体库“${library.name}”？该操作不可恢复。'),
+                SizedBox(height: dialogContext.appSpacing.xl),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        label: '取消',
+                      ),
+                    ),
+                    SizedBox(width: dialogContext.appSpacing.md),
+                    Expanded(
+                      child: AppButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        label: '删除',
+                        variant: AppButtonVariant.danger,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+    );
+
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    try {
+      await context.read<MediaLibrariesApi>().deleteLibrary(library.id);
+      showToast('媒体库已删除');
+      widget.onLibrariesChanged();
+      await _loadLibraries();
+    } catch (error) {
+      showToast(_apiMessage(error, fallback: '删除媒体库失败'));
+    }
+  }
+
   void _applyCollectionFeatures(CollectionNumberFeaturesDto settings) {
     _collectionNumberFeaturesController.text = settings.features.join('\n');
     _collectionSyncStats = settings.syncStats;
@@ -397,6 +452,7 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
                   (library) => _MediaLibraryCard(
                     library: library,
                     onEdit: () => _editLibrary(library),
+                    onDelete: () => _deleteLibrary(library),
                   ),
                 )
                 .toList(growable: false),
@@ -1530,10 +1586,15 @@ class _PlaylistDialogState extends State<_PlaylistDialog> {
 }
 
 class _MediaLibraryCard extends StatelessWidget {
-  const _MediaLibraryCard({required this.library, required this.onEdit});
+  const _MediaLibraryCard({
+    required this.library,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   final MediaLibraryDto library;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -1601,10 +1662,21 @@ class _MediaLibraryCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: context.appSpacing.md),
-          _IndexerActionButton(
-            key: Key('media-library-edit-${library.id}'),
-            icon: Icons.edit_outlined,
-            onTap: onEdit,
+          Wrap(
+            spacing: context.appSpacing.xs,
+            runSpacing: context.appSpacing.xs,
+            children: [
+              _IndexerActionButton(
+                key: Key('media-library-edit-${library.id}'),
+                icon: Icons.edit_outlined,
+                onTap: onEdit,
+              ),
+              _IndexerActionButton(
+                key: Key('media-library-delete-${library.id}'),
+                icon: Icons.delete_outline,
+                onTap: onDelete,
+              ),
+            ],
           ),
         ],
       ),

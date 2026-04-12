@@ -32,4 +32,8 @@ class MediaLibrariesApi {
     );
     return MediaLibraryDto.fromJson(response);
   }
+
+  Future<void> deleteLibrary(int libraryId) {
+    return _apiClient.deleteNoContent('/media-libraries/$libraryId');
+  }
 }
