@@ -5,6 +5,7 @@ import 'package:media_kit_video/media_kit_video_controls/media_kit_video_control
 import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_playback_info.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_speed_button.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_subtitle_button.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
@@ -341,6 +342,33 @@ void main() {
       expect(controls, isEmpty);
     });
 
+    test(
+      'top controls include right info button when callback is provided',
+      () {
+        final controls = buildMoviePlayerTopControls(
+          movieNumber: 'ABP-123',
+          onBackPressed: () {},
+          onInfoPressed: () {},
+        );
+
+        expect(controls, hasLength(3));
+        expect(controls[0], isA<MoviePlayerBackWithNumberControl>());
+        expect(controls[1], isA<Spacer>());
+        expect(controls[2], isA<MoviePlayerInfoButton>());
+      },
+    );
+
+    test('top controls can render info button without back callback', () {
+      final controls = buildMoviePlayerTopControls(
+        movieNumber: 'ABP-123',
+        onBackPressed: null,
+        onInfoPressed: () {},
+      );
+
+      expect(controls, hasLength(1));
+      expect(controls[0], isA<MoviePlayerInfoButton>());
+    });
+
     test('mobile controls theme supports top and bottom button bars', () {
       final top = MoviePlayerBackButton(onPressed: () {});
       final bottom = const MaterialPlayOrPauseButton();
@@ -578,6 +606,97 @@ void main() {
       expect(drawerRect.bottom, equals(anchorRect.bottom));
     });
 
+    testWidgets('info button toggles right-side info drawer', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(const _MoviePlayerInfoDrawerHarness());
+
+      expect(
+        find.byKey(const Key('movie-player-info-side-drawer')),
+        findsNothing,
+      );
+      await tester.tap(find.byKey(const Key('movie-player-info-button')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('movie-player-info-side-drawer')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('movie-player-info-button')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('movie-player-info-side-drawer')),
+        findsNothing,
+      );
+    });
+
+    testWidgets(
+      'info drawer closes on dismiss area tap and stays on inner tap',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(const _MoviePlayerInfoDrawerHarness());
+
+        await tester.tap(find.byKey(const Key('movie-player-info-button')));
+        await tester.pumpAndSettle();
+
+        final drawerFinder = find.byKey(
+          const Key('movie-player-info-side-drawer'),
+        );
+        expect(drawerFinder, findsOneWidget);
+
+        await tester.tap(drawerFinder);
+        await tester.pumpAndSettle();
+        expect(drawerFinder, findsOneWidget);
+
+        await tester.tapAt(const Offset(8, 8));
+        await tester.pumpAndSettle();
+        expect(drawerFinder, findsNothing);
+      },
+    );
+
+    testWidgets(
+      'mobile speed and subtitle drawers are mutually exclusive with info drawer',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(const _MoviePlayerInfoDrawerHarness());
+
+        await tester.tap(
+          find.byKey(const Key('movie-player-mobile-speed-button')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('movie-player-mobile-speed-drawer')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('movie-player-info-side-drawer')),
+          findsNothing,
+        );
+
+        await tester.tap(find.byKey(const Key('movie-player-info-button')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('movie-player-mobile-speed-drawer')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const Key('movie-player-info-side-drawer')),
+          findsOneWidget,
+        );
+
+        await tester.tap(
+          find.byKey(const Key('movie-player-mobile-subtitle-button')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('movie-player-mobile-subtitle-drawer')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('movie-player-info-side-drawer')),
+          findsNothing,
+        );
+      },
+    );
+
     test('desktop controls theme supports top and bottom button bars', () {
       final top = MoviePlayerBackButton(onPressed: () {});
       final bottom = const MaterialDesktopFullscreenButton();
@@ -779,6 +898,153 @@ class _MoviePlayerMobileDrawerHarnessState
                                       ? null
                                       : MoviePlayerMobileDrawerType.subtitle;
                             }),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoviePlayerInfoDrawerHarness extends StatefulWidget {
+  const _MoviePlayerInfoDrawerHarness();
+
+  @override
+  State<_MoviePlayerInfoDrawerHarness> createState() =>
+      _MoviePlayerInfoDrawerHarnessState();
+}
+
+class _MoviePlayerInfoDrawerHarnessState
+    extends State<_MoviePlayerInfoDrawerHarness> {
+  MoviePlayerMobileDrawerType? _activeDrawer;
+  bool _isInfoDrawerOpen = false;
+  int? _selectedSubtitleId;
+  final ValueNotifier<MoviePlayerPlaybackInfoSnapshot> _infoNotifier =
+      ValueNotifier<MoviePlayerPlaybackInfoSnapshot>(
+        MoviePlayerPlaybackInfoSnapshot.empty,
+      );
+  final ValueNotifier<MoviePlayerMobileSpeedDisplayState>
+  _speedDisplayNotifier = ValueNotifier<MoviePlayerMobileSpeedDisplayState>(
+    const MoviePlayerMobileSpeedDisplayState(
+      rate: 1.0,
+      hasExplicitSelection: false,
+    ),
+  );
+
+  final MoviePlayerSubtitleState _subtitleState =
+      const MoviePlayerSubtitleState(
+        options: <MoviePlayerSubtitleOption>[
+          MoviePlayerSubtitleOption(
+            subtitleId: 501,
+            label: 'ABC-001.zh.srt',
+            resolvedUrl: 'https://example.com/subtitles/501.srt',
+          ),
+        ],
+        selectedSubtitleId: null,
+        isLoading: false,
+        fetchStatus: 'succeeded',
+        errorMessage: null,
+      );
+
+  @override
+  void dispose() {
+    _infoNotifier.dispose();
+    _speedDisplayNotifier.dispose();
+    super.dispose();
+  }
+
+  void _toggleInfoDrawer() {
+    setState(() {
+      _activeDrawer = null;
+      _isInfoDrawerOpen = !_isInfoDrawerOpen;
+    });
+  }
+
+  void _toggleMobileDrawer(MoviePlayerMobileDrawerType drawerType) {
+    setState(() {
+      _isInfoDrawerOpen = false;
+      _activeDrawer = _activeDrawer == drawerType ? null : drawerType;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitleState = MoviePlayerSubtitleState(
+      options: _subtitleState.options,
+      selectedSubtitleId: _selectedSubtitleId,
+      isLoading: false,
+      fetchStatus: 'succeeded',
+      errorMessage: null,
+    );
+    final topControls = buildMoviePlayerTopControls(
+      movieNumber: 'ABP-123',
+      onBackPressed: () {},
+      onInfoPressed: _toggleInfoDrawer,
+    );
+    return MaterialApp(
+      theme: sakuraThemeData,
+      home: Scaffold(
+        body: SizedBox.expand(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const ColoredBox(color: Colors.black),
+              buildMoviePlayerMobileDrawerOverlay(
+                activeDrawer: _activeDrawer,
+                subtitleState: subtitleState,
+                currentRate: _speedDisplayNotifier.value.rate,
+                isApplyingSubtitle: false,
+                onDismiss: () => setState(() => _activeDrawer = null),
+                onRateSelected: (rate) async {
+                  setState(() => _activeDrawer = null);
+                  _speedDisplayNotifier
+                      .value = MoviePlayerMobileSpeedDisplayState(
+                    rate: rate,
+                    hasExplicitSelection: true,
+                  );
+                },
+                onSubtitleSelected: (subtitleId) async {
+                  setState(() {
+                    _selectedSubtitleId = subtitleId;
+                    _activeDrawer = null;
+                  });
+                },
+              ),
+              buildMoviePlayerInfoSideDrawerOverlay(
+                isOpen: _isInfoDrawerOpen,
+                onDismiss: () => setState(() => _isInfoDrawerOpen = false),
+                infoListenable: _infoNotifier,
+              ),
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 18, 12, 0),
+                  child: Row(children: topControls),
+                ),
+              ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: SizedBox(
+                    width: 420,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: buildMoviePlayerMobileDrawerToggleButtons(
+                        activeDrawer: _activeDrawer,
+                        speedDisplayListenable: _speedDisplayNotifier,
+                        onSpeedButtonPressed:
+                            () => _toggleMobileDrawer(
+                              MoviePlayerMobileDrawerType.speed,
+                            ),
+                        onSubtitleButtonPressed:
+                            () => _toggleMobileDrawer(
+                              MoviePlayerMobileDrawerType.subtitle,
+                            ),
                       ),
                     ),
                   ),

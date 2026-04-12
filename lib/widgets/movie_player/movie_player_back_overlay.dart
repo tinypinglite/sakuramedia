@@ -31,6 +31,38 @@ class MoviePlayerBackButton extends StatelessWidget {
   }
 }
 
+class MoviePlayerInfoButton extends StatelessWidget {
+  const MoviePlayerInfoButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final componentTokens = context.appComponentTokens;
+    return Tooltip(
+      message: '播放信息',
+      child: Material(
+        type: MaterialType.transparency,
+        borderRadius: context.appRadius.pillBorder,
+        child: InkWell(
+          key: const Key('movie-player-info-button'),
+          borderRadius: context.appRadius.pillBorder,
+          onTap: onPressed,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Icon(
+              Icons.info_outline_rounded,
+              size: componentTokens.iconSizeSm,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class MoviePlayerCurrentNumberBadge extends StatelessWidget {
   const MoviePlayerCurrentNumberBadge({super.key, required this.movieNumber});
 

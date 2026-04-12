@@ -12,6 +12,7 @@ import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_page_content.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_plot_image_actions.dart';
@@ -253,6 +254,10 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
       setState(() {
         _isCollectionOverride = !isCollection;
       });
+      context.read<MovieCollectionTypeChangeNotifier>().reportChange(
+        movieNumber: widget.movieNumber,
+        targetType: targetType,
+      );
       showToast(
         targetType == MovieCollectionType.collection ? '已标记为合集' : '已标记为单体',
       );

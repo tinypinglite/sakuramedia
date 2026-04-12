@@ -30,6 +30,7 @@ import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
@@ -1555,6 +1556,9 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -1584,6 +1588,9 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -1611,6 +1618,9 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -1640,6 +1650,9 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
           Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
@@ -1843,6 +1856,9 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -1886,6 +1902,9 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -1952,6 +1971,9 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -2098,6 +2120,9 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -2137,6 +2162,9 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -2180,6 +2208,9 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -2611,6 +2642,9 @@ void main() {
           ChangeNotifierProvider(create: (_) => AppShellController()),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -2651,6 +2685,9 @@ Future<void> _pumpRouterApp(
     ),
     Provider<StatusApi>.value(value: bundle.statusApi),
     Provider<MoviesApi>.value(value: bundle.moviesApi),
+    ChangeNotifierProvider(
+      create: (_) => MovieCollectionTypeChangeNotifier(),
+    ),
     Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
     Provider<RankingsApi>.value(value: bundle.rankingsApi),
     Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),

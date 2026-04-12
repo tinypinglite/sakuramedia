@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movies_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
@@ -568,6 +569,9 @@ void main() {
             value: bundle.collectionNumberFeaturesApi,
           ),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          ChangeNotifierProvider(
+            create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -601,6 +605,9 @@ Future<void> _pumpMoviesPage(
           value: bundle.collectionNumberFeaturesApi,
         ),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
       ],
       child: MaterialApp(
         theme: sakuraThemeData,

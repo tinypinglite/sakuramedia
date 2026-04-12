@@ -3,8 +3,10 @@ import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
@@ -27,6 +29,7 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
   static const int _detailConcurrentLimit = 3;
 
   late final PagedMovieSummaryController _moviesController;
+  late final MovieCollectionTypeChangeNotifier _collectionChangeNotifier;
   final Map<String, _FollowMovieDetailState> _movieDetailStates =
       <String, _FollowMovieDetailState>{};
   final Queue<String> _detailQueue = Queue<String>();
@@ -36,6 +39,10 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
   @override
   void initState() {
     super.initState();
+    _collectionChangeNotifier =
+        context.read<MovieCollectionTypeChangeNotifier>();
+    _collectionChangeNotifier.addListener(_onCollectionTypeChanged);
+
     _moviesController = PagedMovieSummaryController(
       fetchPage:
           (page, pageSize) => context
@@ -54,8 +61,20 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
 
   @override
   void dispose() {
+    _collectionChangeNotifier.removeListener(_onCollectionTypeChanged);
     _moviesController.dispose();
     super.dispose();
+  }
+
+  void _onCollectionTypeChanged() {
+    final change = _collectionChangeNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    if (change.targetType == MovieCollectionType.collection) {
+      _movieDetailStates.remove(change.movieNumber);
+      _moviesController.removeItem(change.movieNumber);
+    }
   }
 
   Future<void> _toggleMovieSubscription(String movieNumber) async {

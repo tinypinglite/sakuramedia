@@ -173,6 +173,16 @@ class PagedMovieSummaryController extends ChangeNotifier {
     _safeNotifyListeners();
   }
 
+  void removeItem(String movieNumber) {
+    final index = _items.indexWhere((item) => item.movieNumber == movieNumber);
+    if (index == -1) {
+      return;
+    }
+    _items.removeAt(index);
+    _total = (_total - 1).clamp(0, _total);
+    _safeNotifyListeners();
+  }
+
   Future<void> loadMore() async {
     if (_isInitialLoading || _isLoadingMore || !_hasMore) {
       return;

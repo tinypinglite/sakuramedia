@@ -9,6 +9,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/desktop_follow_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
@@ -310,6 +311,9 @@ Future<void> _pumpFollowPage(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
       ],
       child: MaterialApp(
         theme: sakuraThemeData,
@@ -335,6 +339,9 @@ Future<void> _pumpFollowRouter(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
       ],
       child: OKToast(
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),

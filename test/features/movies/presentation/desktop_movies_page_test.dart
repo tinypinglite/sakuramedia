@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
@@ -718,6 +719,9 @@ Future<void> _pumpMoviesPage(
           value: bundle.collectionNumberFeaturesApi,
         ),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
       ],
       child: MaterialApp(
         theme: sakuraThemeData,
@@ -763,6 +767,9 @@ Future<GoRouter> _pumpMoviesRouter(
           value: bundle.collectionNumberFeaturesApi,
         ),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
       ],
       child: OKToast(
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),

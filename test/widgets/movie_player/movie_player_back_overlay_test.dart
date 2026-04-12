@@ -28,6 +28,53 @@ void main() {
     });
   });
 
+  group('MoviePlayerInfoButton', () {
+    testWidgets('renders stable key and triggers callback', (
+      WidgetTester tester,
+    ) async {
+      var tapped = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: MoviePlayerInfoButton(
+              onPressed: () {
+                tapped += 1;
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('movie-player-info-button')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('movie-player-info-button')));
+      await tester.pump();
+      expect(tapped, 1);
+    });
+
+    testWidgets('uses transparent material without elevation', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(body: MoviePlayerInfoButton(onPressed: () {})),
+        ),
+      );
+
+      final material = tester.widget<Material>(
+        find.descendant(
+          of: find.byType(MoviePlayerInfoButton),
+          matching: find.byType(Material),
+        ),
+      );
+
+      expect(material.type, MaterialType.transparency);
+      expect(material.elevation, 0);
+      expect(material.color, isNull);
+    });
+  });
+
   group('MoviePlayerCurrentNumberBadge', () {
     testWidgets('renders trimmed movie number with a stable key', (
       WidgetTester tester,

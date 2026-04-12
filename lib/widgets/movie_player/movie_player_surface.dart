@@ -11,6 +11,7 @@ import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_playback_info.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_speed_button.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_subtitle_button.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_controller.dart';
@@ -257,6 +258,7 @@ const Duration _moviePlayerMobileDrawerAnimationDuration = Duration(
   milliseconds: 220,
 );
 const double _moviePlayerMobileDrawerWidth = 196;
+const double _moviePlayerInfoDrawerWidth = 360;
 const double _moviePlayerMobileDrawerHorizontalInset = 10;
 const double _moviePlayerMobileDrawerItemHeight = 40;
 const double _moviePlayerMobileDrawerVerticalPadding = 8;
@@ -267,6 +269,8 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   late final VideoController _controller;
   late final MoviePlayerSurfaceReadiness _readiness;
   late final MoviePlayerSurfacePlaybackDriver _playbackDriver;
+  late final ValueNotifier<MoviePlayerPlaybackInfoSnapshot>
+  _playbackInfoNotifier;
   late final ValueNotifier<MoviePlayerSubtitleState> _subtitleStateNotifier;
   late final ValueNotifier<bool> _isApplyingSubtitleNotifier;
   late final ValueNotifier<MoviePlayerMobileSpeedDisplayState>
@@ -276,11 +280,38 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<bool>? _playingSubscription;
   StreamSubscription<double>? _rateSubscription;
+  StreamSubscription<Track>? _trackSubscription;
+  StreamSubscription<VideoParams>? _videoParamsSubscription;
+  StreamSubscription<AudioParams>? _audioParamsSubscription;
+  StreamSubscription<double?>? _audioBitrateSubscription;
+  Timer? _nativePlaybackInfoTimer;
   int _openRequestId = 0;
   bool _isApplyingSubtitle = false;
+  bool _isRefreshingNativePlaybackInfo = false;
+  bool _isInfoSideDrawerOpen = false;
   double _currentPlaybackRate = 1.0;
   bool _hasExplicitPlaybackRateSelection = false;
   double? _pendingPlaybackRate;
+  Track _currentTrack = const Track();
+  VideoParams _currentVideoParams = const VideoParams();
+  AudioParams _currentAudioParams = const AudioParams();
+  double? _currentAudioBitrate;
+  double? _currentVideoBitrate;
+  double? _currentEstimatedVfFps;
+  String? _currentHwdecCurrent;
+  double? _currentFrameDropCount;
+  double? _currentDecoderFrameDropCount;
+  double? _currentVoDelayedFrameCount;
+  double? _currentMistimedFrameCount;
+  double? _frameDropPerSecond;
+  double? _decoderFrameDropPerSecond;
+  double? _voDelayedFramePerSecond;
+  double? _mistimedFramePerSecond;
+  DateTime? _previousPlaybackCounterSampleAt;
+  double? _previousFrameDropCount;
+  double? _previousDecoderFrameDropCount;
+  double? _previousVoDelayedFrameCount;
+  double? _previousMistimedFrameCount;
   MoviePlayerMobileDrawerType? _activeMobileDrawer;
   Duration? _startupSeekTarget;
   DateTime? _startupSeekStartedAt;
@@ -308,6 +339,9 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       player: _player,
       controller: _controller,
     );
+    _playbackInfoNotifier = ValueNotifier<MoviePlayerPlaybackInfoSnapshot>(
+      MoviePlayerPlaybackInfoSnapshot.empty,
+    );
     _subtitleStateNotifier = ValueNotifier<MoviePlayerSubtitleState>(
       widget.subtitleState,
     );
@@ -331,6 +365,22 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     });
     _playingSubscription = _player.stream.playing.listen((playing) {
       widget.onPlayingChanged?.call(playing);
+    });
+    _trackSubscription = _player.stream.track.listen((track) {
+      _currentTrack = track;
+      _refreshPlaybackInfoSnapshot();
+    });
+    _videoParamsSubscription = _player.stream.videoParams.listen((params) {
+      _currentVideoParams = params;
+      _refreshPlaybackInfoSnapshot();
+    });
+    _audioParamsSubscription = _player.stream.audioParams.listen((params) {
+      _currentAudioParams = params;
+      _refreshPlaybackInfoSnapshot();
+    });
+    _audioBitrateSubscription = _player.stream.audioBitrate.listen((bitrate) {
+      _currentAudioBitrate = bitrate;
+      _refreshPlaybackInfoSnapshot();
     });
     _rateSubscription = _player.stream.rate.listen((rate) {
       debugPrint(
@@ -363,6 +413,11 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
         _currentPlaybackRate = rate;
       });
     });
+    _refreshPlaybackInfoSnapshot();
+    _nativePlaybackInfoTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      unawaited(_refreshNativePlaybackInfo());
+    });
+    unawaited(_refreshNativePlaybackInfo());
     unawaited(_openMedia());
   }
 
@@ -387,7 +442,9 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
         rate: _player.state.rate,
         hasExplicitSelection: false,
       );
+      _resetPlaybackInfoState();
       _closeMobileDrawer(notify: false);
+      _isInfoSideDrawerOpen = false;
       unawaited(_openMedia());
     }
     if (oldWidget.useTouchOptimizedControls &&
@@ -403,6 +460,12 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     _positionSubscription?.cancel();
     _playingSubscription?.cancel();
     _rateSubscription?.cancel();
+    _trackSubscription?.cancel();
+    _videoParamsSubscription?.cancel();
+    _audioParamsSubscription?.cancel();
+    _audioBitrateSubscription?.cancel();
+    _nativePlaybackInfoTimer?.cancel();
+    _playbackInfoNotifier.dispose();
     _subtitleStateNotifier.dispose();
     _isApplyingSubtitleNotifier.dispose();
     _mobileSpeedDisplayNotifier.dispose();
@@ -413,6 +476,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
 
   Future<void> _openMedia() async {
     final requestId = ++_openRequestId;
+    _resetPlaybackInfoState();
     _startupSeekTarget =
         widget.initialPosition != null &&
                 widget.initialPosition! > Duration.zero
@@ -433,6 +497,183 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       shouldContinue: () => mounted && requestId == _openRequestId,
       markReady: _readiness.markReady,
     );
+    unawaited(_refreshNativePlaybackInfo());
+  }
+
+  void _resetPlaybackInfoState() {
+    _currentVideoBitrate = null;
+    _currentEstimatedVfFps = null;
+    _currentHwdecCurrent = null;
+    _currentFrameDropCount = null;
+    _currentDecoderFrameDropCount = null;
+    _currentVoDelayedFrameCount = null;
+    _currentMistimedFrameCount = null;
+    _frameDropPerSecond = null;
+    _decoderFrameDropPerSecond = null;
+    _voDelayedFramePerSecond = null;
+    _mistimedFramePerSecond = null;
+    _previousPlaybackCounterSampleAt = null;
+    _previousFrameDropCount = null;
+    _previousDecoderFrameDropCount = null;
+    _previousVoDelayedFrameCount = null;
+    _previousMistimedFrameCount = null;
+    _refreshPlaybackInfoSnapshot();
+  }
+
+  void _refreshPlaybackInfoSnapshot() {
+    final snapshot = buildMoviePlayerPlaybackInfoSnapshot(
+      track: _currentTrack,
+      videoParams: _currentVideoParams,
+      audioParams: _currentAudioParams,
+      audioBitrate: _currentAudioBitrate,
+      videoBitrate: _currentVideoBitrate,
+      estimatedVfFps: _currentEstimatedVfFps,
+      hwdecCurrent: _currentHwdecCurrent,
+      renderDropFrameCount: _currentFrameDropCount,
+      decoderDropFrameCount: _currentDecoderFrameDropCount,
+      delayedFrameCount: _currentVoDelayedFrameCount,
+      mistimedFrameCount: _currentMistimedFrameCount,
+      renderDropFramePerSecond: _frameDropPerSecond,
+      decoderDropFramePerSecond: _decoderFrameDropPerSecond,
+      delayedFramePerSecond: _voDelayedFramePerSecond,
+      mistimedFramePerSecond: _mistimedFramePerSecond,
+    );
+    if (_playbackInfoNotifier.value == snapshot) {
+      return;
+    }
+    _playbackInfoNotifier.value = snapshot;
+  }
+
+  Future<void> _refreshNativePlaybackInfo() async {
+    if (_isRefreshingNativePlaybackInfo || kIsWeb) {
+      return;
+    }
+    _isRefreshingNativePlaybackInfo = true;
+    try {
+      final results = await Future.wait<String?>([
+        _getNativePlayerProperty('hwdec-current'),
+        _getNativePlayerProperty('video-bitrate'),
+        _getNativePlayerProperty('estimated-vf-fps'),
+        _getNativePlayerProperty('frame-drop-count'),
+        _getNativePlayerProperty('decoder-frame-drop-count'),
+        _getNativePlayerProperty('vo-delayed-frame-count'),
+        _getNativePlayerProperty('mistimed-frame-count'),
+      ]);
+      if (!mounted) {
+        return;
+      }
+      final now = DateTime.now();
+      final frameDropCount = _parseNativeCounter(results[3]);
+      final decoderFrameDropCount = _parseNativeCounter(results[4]);
+      final voDelayedFrameCount = _parseNativeCounter(results[5]);
+      final mistimedFrameCount = _parseNativeCounter(results[6]);
+      final previousSampleAt = _previousPlaybackCounterSampleAt;
+      final elapsedSeconds =
+          previousSampleAt == null
+              ? null
+              : now.difference(previousSampleAt).inMilliseconds / 1000;
+
+      _currentHwdecCurrent = results[0];
+      _currentVideoBitrate = _parseNativeDouble(results[1]);
+      _currentEstimatedVfFps = _parseNativeDouble(results[2]);
+      _currentFrameDropCount = frameDropCount;
+      _currentDecoderFrameDropCount = decoderFrameDropCount;
+      _currentVoDelayedFrameCount = voDelayedFrameCount;
+      _currentMistimedFrameCount = mistimedFrameCount;
+      _frameDropPerSecond = _computeCounterDeltaPerSecond(
+        currentValue: frameDropCount,
+        previousValue: _previousFrameDropCount,
+        elapsedSeconds: elapsedSeconds,
+      );
+      _decoderFrameDropPerSecond = _computeCounterDeltaPerSecond(
+        currentValue: decoderFrameDropCount,
+        previousValue: _previousDecoderFrameDropCount,
+        elapsedSeconds: elapsedSeconds,
+      );
+      _voDelayedFramePerSecond = _computeCounterDeltaPerSecond(
+        currentValue: voDelayedFrameCount,
+        previousValue: _previousVoDelayedFrameCount,
+        elapsedSeconds: elapsedSeconds,
+      );
+      _mistimedFramePerSecond = _computeCounterDeltaPerSecond(
+        currentValue: mistimedFrameCount,
+        previousValue: _previousMistimedFrameCount,
+        elapsedSeconds: elapsedSeconds,
+      );
+      _previousPlaybackCounterSampleAt = now;
+      _previousFrameDropCount = frameDropCount;
+      _previousDecoderFrameDropCount = decoderFrameDropCount;
+      _previousVoDelayedFrameCount = voDelayedFrameCount;
+      _previousMistimedFrameCount = mistimedFrameCount;
+      _refreshPlaybackInfoSnapshot();
+    } finally {
+      _isRefreshingNativePlaybackInfo = false;
+    }
+  }
+
+  Future<String?> _getNativePlayerProperty(String property) async {
+    final platformPlayer = _player.platform;
+    if (platformPlayer == null) {
+      return null;
+    }
+    final dynamic nativePlayer = platformPlayer;
+    try {
+      final raw = await nativePlayer.getProperty(property);
+      if (raw is! String) {
+        return null;
+      }
+      final normalized = raw.trim();
+      if (normalized.isEmpty) {
+        return null;
+      }
+      return normalized;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  double? _parseNativeDouble(String? value) {
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    final parsed = double.tryParse(value);
+    if (parsed == null || !parsed.isFinite || parsed <= 0) {
+      return null;
+    }
+    return parsed;
+  }
+
+  double? _parseNativeCounter(String? value) {
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    final parsed = double.tryParse(value);
+    if (parsed == null || !parsed.isFinite || parsed < 0) {
+      return null;
+    }
+    return parsed;
+  }
+
+  double? _computeCounterDeltaPerSecond({
+    required double? currentValue,
+    required double? previousValue,
+    required double? elapsedSeconds,
+  }) {
+    if (currentValue == null ||
+        previousValue == null ||
+        elapsedSeconds == null ||
+        elapsedSeconds <= 0) {
+      return null;
+    }
+    final delta = currentValue - previousValue;
+    if (!delta.isFinite || delta < 0) {
+      return null;
+    }
+    final value = delta / elapsedSeconds;
+    if (!value.isFinite || value < 0) {
+      return null;
+    }
+    return value;
   }
 
   void _maybeRetryStartupSeek(Duration currentPosition) {
@@ -625,6 +866,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       return;
     }
     setState(() {
+      _isInfoSideDrawerOpen = false;
       _activeMobileDrawer =
           _activeMobileDrawer == drawerType ? null : drawerType;
     });
@@ -658,12 +900,37 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     await _handleSubtitleSelected(subtitleId);
   }
 
+  Future<void> _toggleInfoSideDrawer() async {
+    if (_isInfoSideDrawerOpen) {
+      _dismissInfoSideDrawer();
+      return;
+    }
+    _closeMobileDrawer(notify: false);
+    await _refreshNativePlaybackInfo();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isInfoSideDrawerOpen = true;
+    });
+  }
+
+  void _dismissInfoSideDrawer() {
+    if (!_isInfoSideDrawerOpen) {
+      return;
+    }
+    setState(() {
+      _isInfoSideDrawerOpen = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final topControls = buildMoviePlayerTopControls(
       movieNumber: widget.movieNumber,
       onBackPressed: widget.onBackPressed,
+      onInfoPressed: _toggleInfoSideDrawer,
     );
     final mobileBottomControls = buildMoviePlayerMobileBottomControls(
       activeDrawer: _activeMobileDrawer,
@@ -699,24 +966,27 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
         }
       },
     );
-    final playerContent =
-        widget.useTouchOptimizedControls
-            ? Stack(
-              fit: StackFit.expand,
-              children: [
-                videoSurface,
-                buildMoviePlayerMobileDrawerOverlay(
-                  activeDrawer: _activeMobileDrawer,
-                  subtitleState: widget.subtitleState,
-                  currentRate: _mobileSpeedDisplayNotifier.value.rate,
-                  isApplyingSubtitle: _isApplyingSubtitle,
-                  onDismiss: _closeMobileDrawer,
-                  onRateSelected: _handleMobilePlaybackRateSelected,
-                  onSubtitleSelected: _handleMobileSubtitleSelected,
-                ),
-              ],
-            )
-            : videoSurface;
+    final playerContent = Stack(
+      fit: StackFit.expand,
+      children: [
+        videoSurface,
+        if (widget.useTouchOptimizedControls)
+          buildMoviePlayerMobileDrawerOverlay(
+            activeDrawer: _activeMobileDrawer,
+            subtitleState: widget.subtitleState,
+            currentRate: _mobileSpeedDisplayNotifier.value.rate,
+            isApplyingSubtitle: _isApplyingSubtitle,
+            onDismiss: _closeMobileDrawer,
+            onRateSelected: _handleMobilePlaybackRateSelected,
+            onSubtitleSelected: _handleMobileSubtitleSelected,
+          ),
+        buildMoviePlayerInfoSideDrawerOverlay(
+          isOpen: _isInfoSideDrawerOpen,
+          onDismiss: _dismissInfoSideDrawer,
+          infoListenable: _playbackInfoNotifier,
+        ),
+      ],
+    );
 
     return MaterialVideoControlsTheme(
       normal: _mobileControlsTheme(theme, topControls, mobileBottomControls),
@@ -779,17 +1049,27 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
 List<Widget> buildMoviePlayerTopControls({
   required String movieNumber,
   required VoidCallback? onBackPressed,
+  VoidCallback? onInfoPressed,
 }) {
-  if (onBackPressed == null) {
+  if (onBackPressed == null && onInfoPressed == null) {
     return const <Widget>[];
   }
-
-  return <Widget>[
-    MoviePlayerBackWithNumberControl(
-      onPressed: onBackPressed,
-      movieNumber: movieNumber,
-    ),
-  ];
+  final controls = <Widget>[];
+  if (onBackPressed != null) {
+    controls.add(
+      MoviePlayerBackWithNumberControl(
+        onPressed: onBackPressed,
+        movieNumber: movieNumber,
+      ),
+    );
+  }
+  if (onInfoPressed != null) {
+    if (controls.isNotEmpty) {
+      controls.add(const Spacer());
+    }
+    controls.add(MoviePlayerInfoButton(onPressed: onInfoPressed));
+  }
+  return controls;
 }
 
 @visibleForTesting
@@ -898,6 +1178,60 @@ Widget buildMoviePlayerMobileDrawerOverlay({
                   key: ValueKey<String>('movie-player-mobile-drawer-closed'),
                 ),
               },
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildMoviePlayerInfoSideDrawerOverlay({
+  required bool isOpen,
+  required VoidCallback onDismiss,
+  required ValueListenable<MoviePlayerPlaybackInfoSnapshot> infoListenable,
+}) {
+  return IgnorePointer(
+    key: const Key('movie-player-info-side-drawer-layer'),
+    ignoring: !isOpen,
+    child: GestureDetector(
+      key: const Key('movie-player-info-side-drawer-dismiss-area'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onDismiss,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: _moviePlayerMobileDrawerHorizontalInset,
+          ),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {},
+            child: AnimatedSwitcher(
+              duration: _moviePlayerMobileDrawerAnimationDuration,
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, animation) {
+                final offsetAnimation = Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(animation);
+                return SlideTransition(position: offsetAnimation, child: child);
+              },
+              child:
+                  isOpen
+                      ? _MoviePlayerInfoSideDrawer(
+                        key: const ValueKey<String>(
+                          'movie-player-info-side-drawer',
+                        ),
+                        infoListenable: infoListenable,
+                      )
+                      : const SizedBox.shrink(
+                        key: ValueKey<String>(
+                          'movie-player-info-side-drawer-closed',
+                        ),
+                      ),
             ),
           ),
         ),
@@ -1023,15 +1357,19 @@ class _MoviePlayerMobileSpeedDrawerToggleButton extends StatelessWidget {
 }
 
 class _MoviePlayerMobileDrawerSurface extends StatelessWidget {
-  const _MoviePlayerMobileDrawerSurface({required this.child});
+  const _MoviePlayerMobileDrawerSurface({
+    required this.child,
+    this.width = _moviePlayerMobileDrawerWidth,
+  });
 
   final Widget child;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     return Container(
-      width: _moviePlayerMobileDrawerWidth,
+      width: width,
       height: double.infinity,
       decoration: BoxDecoration(
         color: colors.movieDetailHeroBackgroundStart.withValues(alpha: 0.9),
@@ -1137,6 +1475,37 @@ class _MoviePlayerMobileSpeedDrawer extends StatelessWidget {
               })
               .toList(growable: false),
         ),
+      ),
+    );
+  }
+}
+
+class _MoviePlayerInfoSideDrawer extends StatelessWidget {
+  const _MoviePlayerInfoSideDrawer({super.key, required this.infoListenable});
+
+  final ValueListenable<MoviePlayerPlaybackInfoSnapshot> infoListenable;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Container(
+      width: _moviePlayerInfoDrawerWidth,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: colors.surfaceMuted.withValues(alpha: 0.34),
+        borderRadius: const BorderRadius.horizontal(left: Radius.circular(18)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(context.appSpacing.md),
+        child: MoviePlayerPlaybackInfoPanel(infoListenable: infoListenable),
       ),
     );
   }

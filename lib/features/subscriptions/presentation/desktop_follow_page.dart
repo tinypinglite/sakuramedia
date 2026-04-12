@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -22,10 +24,15 @@ class DesktopFollowPage extends StatefulWidget {
 
 class _DesktopFollowPageState extends State<DesktopFollowPage> {
   late final PagedMovieSummaryController _moviesController;
+  late final MovieCollectionTypeChangeNotifier _collectionChangeNotifier;
 
   @override
   void initState() {
     super.initState();
+    _collectionChangeNotifier =
+        context.read<MovieCollectionTypeChangeNotifier>();
+    _collectionChangeNotifier.addListener(_onCollectionTypeChanged);
+
     _moviesController = PagedMovieSummaryController(
       fetchPage:
           (page, pageSize) => context
@@ -44,8 +51,19 @@ class _DesktopFollowPageState extends State<DesktopFollowPage> {
 
   @override
   void dispose() {
+    _collectionChangeNotifier.removeListener(_onCollectionTypeChanged);
     _moviesController.dispose();
     super.dispose();
+  }
+
+  void _onCollectionTypeChanged() {
+    final change = _collectionChangeNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    if (change.targetType == MovieCollectionType.collection) {
+      _moviesController.removeItem(change.movieNumber);
+    }
   }
 
   Future<void> _toggleMovieSubscription(String movieNumber) async {

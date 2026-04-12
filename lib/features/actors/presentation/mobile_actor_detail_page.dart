@@ -8,7 +8,9 @@ import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_detail_controller.dart';
 import 'package:sakuramedia/features/actors/presentation/paged_actor_summary_controller.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
@@ -34,6 +36,7 @@ class MobileActorDetailPage extends StatefulWidget {
 class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
   late final ActorDetailController _actorController;
   late final PagedMovieSummaryController _moviesController;
+  late final MovieCollectionTypeChangeNotifier _collectionChangeNotifier;
 
   MovieFilterState _filterState = MovieFilterState.initial;
   bool? _isActorSubscribedOverride;
@@ -45,6 +48,10 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
   @override
   void initState() {
     super.initState();
+    _collectionChangeNotifier =
+        context.read<MovieCollectionTypeChangeNotifier>();
+    _collectionChangeNotifier.addListener(_onCollectionTypeChanged);
+
     _actorController = ActorDetailController(
       actorId: widget.actorId,
       fetchActorDetail: context.read<ActorsApi>().getActorDetail,
@@ -72,9 +79,21 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
 
   @override
   void dispose() {
+    _collectionChangeNotifier.removeListener(_onCollectionTypeChanged);
     _actorController.dispose();
     _moviesController.dispose();
     super.dispose();
+  }
+
+  void _onCollectionTypeChanged() {
+    final change = _collectionChangeNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    if (change.targetType == MovieCollectionType.collection &&
+        _filterState.collectionType == MovieCollectionTypeFilter.single) {
+      _moviesController.removeItem(change.movieNumber);
+    }
   }
 
   void _applyFilter(MovieFilterState nextState) {

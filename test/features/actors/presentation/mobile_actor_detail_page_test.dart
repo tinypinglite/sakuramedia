@@ -11,6 +11,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/actors/presentation/mobile_actor_detail_page.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
@@ -512,6 +513,9 @@ Future<void> _pumpPage(
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         Provider<ActorsApi>.value(value: bundle.actorsApi),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
       ],
       child: MaterialApp(
         theme: sakuraThemeData,
@@ -535,6 +539,9 @@ Future<void> _pumpRouterPage(
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         Provider<ActorsApi>.value(value: bundle.actorsApi),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
       ],
       child: OKToast(
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),

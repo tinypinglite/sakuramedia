@@ -5,7 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_list_page_state.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
@@ -28,6 +30,7 @@ class DesktopMoviesPage extends StatefulWidget {
 class _DesktopMoviesPageState extends State<DesktopMoviesPage> {
   late final MovieListPageStateEntry _pageState;
   late final bool _ownsPageState;
+  late final MovieCollectionTypeChangeNotifier _collectionChangeNotifier;
 
   PagedMovieSummaryController get _moviesController => _pageState.controller;
   MovieFilterState get _filterState => _pageState.filterState;
@@ -35,6 +38,10 @@ class _DesktopMoviesPageState extends State<DesktopMoviesPage> {
   @override
   void initState() {
     super.initState();
+    _collectionChangeNotifier =
+        context.read<MovieCollectionTypeChangeNotifier>();
+    _collectionChangeNotifier.addListener(_onCollectionTypeChanged);
+
     final cache = maybeReadAppPageStateCache(context);
     if (cache == null) {
       _ownsPageState = true;
@@ -54,10 +61,22 @@ class _DesktopMoviesPageState extends State<DesktopMoviesPage> {
 
   @override
   void dispose() {
+    _collectionChangeNotifier.removeListener(_onCollectionTypeChanged);
     if (_ownsPageState) {
       _pageState.dispose();
     }
     super.dispose();
+  }
+
+  void _onCollectionTypeChanged() {
+    final change = _collectionChangeNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    if (change.targetType == MovieCollectionType.collection &&
+        _filterState.collectionType == MovieCollectionTypeFilter.single) {
+      _moviesController.removeItem(change.movieNumber);
+    }
   }
 
   void _applyFilter(MovieFilterState nextState) {

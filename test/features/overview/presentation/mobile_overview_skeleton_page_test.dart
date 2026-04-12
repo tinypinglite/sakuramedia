@@ -20,6 +20,7 @@ import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_skeleton_page.dart';
 import 'package:sakuramedia/features/playlists/data/playlist_order_store.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
@@ -1199,6 +1200,9 @@ Widget _buildTestApp({
       Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
       Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
+      ChangeNotifierProvider(
+        create: (_) => MovieCollectionTypeChangeNotifier(),
+      ),
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
       Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
       Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
@@ -1230,6 +1234,9 @@ Widget _buildRouterApp({
       Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
       Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
+      ChangeNotifierProvider(
+        create: (_) => MovieCollectionTypeChangeNotifier(),
+      ),
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
       Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
       Provider<ImageSearchDraftStore>.value(value: draftStore),

@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/configuration/data/collection_number_featur
 import 'package:sakuramedia/features/configuration/data/collection_number_features_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/theme.dart';
 
 enum _MovieCollectionFeatureMenuAction { toggleCollectionType, addFeature }
@@ -161,6 +162,10 @@ Future<void> _handleCollectionTypeToggleAction({
       showToast('未匹配到影片，未更新合集状态');
       return;
     }
+    context.read<MovieCollectionTypeChangeNotifier>().reportChange(
+      movieNumber: displayMovieNumber,
+      targetType: targetCollectionType,
+    );
     showToast(
       targetCollectionType == MovieCollectionType.collection
           ? '已将 $displayMovieNumber 标记为合集'

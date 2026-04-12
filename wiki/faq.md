@@ -133,6 +133,37 @@ outline: [2, 3]
 - [进阶部署](/guide/docker) 里的路径规划
 - [常用命令](/guide/commands) 里的日志和手动任务命令
 
+## 字幕抓取
+
+### 为什么有些影片会抓字幕，有些不会？字幕是从哪里抓的？
+
+结论：当前版本只会对“已订阅 + 有有效媒体 + 状态待抓取/失败 + 还没有可用字幕”的影片抓字幕，来源是 `subtitlecat.com`。
+
+说明：
+
+- 触发时机有两种：
+- 定时任务 `movie_subtitle_fetch`（默认 `movie_subtitle_fetch_cron = "30 */6 * * *"`，也就是每 6 小时的第 30 分钟）
+- 手动命令 `aps fetch-movie-subtitles`
+- 远端来源是 `SubtitlecatProvider`，当前实现会到 `https://subtitlecat.com` 按影片番号检索
+- 检索结果里只保留“番号匹配”的页面，再从详情页下载 `download_zh-cn` 对应的中文字幕
+- 真正进入抓取候选的影片，需要同时满足：
+1. `is_subscribed = true`
+2. 至少有一条 `valid = true` 的媒体记录
+3. `subtitle_fetch_status` 是 `pending` 或 `failed`
+- 每次远端抓取前，都会先同步本地侧挂 `.srt`，如果已经检测到可用字幕就会跳过该影片
+
+所以常见“没被抓取”的情况是：
+
+- 影片未订阅
+- 影片没有有效媒体记录
+- 影片字幕状态不在 `pending/failed`（例如已经是 `succeeded`）
+- 已经检测到可用本地字幕，不再重复远端抓取
+
+想进一步看任务频率和手动触发方式，可以看：
+
+- [后台任务](/guide/tasks)
+- [常用命令](/guide/commands)
+
 ## 活动中心
 
 ### 通知中心和任务中心分别看什么？
