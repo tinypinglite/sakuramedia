@@ -633,10 +633,6 @@ class MobileMovieDetailRouteData extends _MobileSubpageRouteData
   String get defaultLocation => mobileMoviesPath;
 
   @override
-  EdgeInsetsGeometry get bodyPadding =>
-      const EdgeInsets.only(top: AppPageInsets.compact);
-
-  @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobileMovieDetailPage(movieNumber: movieNumber);
   }
@@ -659,10 +655,6 @@ class MobileActorDetailRouteData extends _MobileSubpageRouteData
 
   @override
   String get defaultLocation => mobileActorsPath;
-
-  @override
-  EdgeInsetsGeometry get bodyPadding =>
-      const EdgeInsets.only(top: AppPageInsets.compact);
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
