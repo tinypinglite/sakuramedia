@@ -1022,9 +1022,12 @@ void main() {
       find.byKey(const Key('movie-detail-fixed-info-bar')),
     );
     final appSize = tester.getSize(find.byType(MaterialApp).first);
-    expect(infoBarRect.left, 0);
-    expect(infoBarRect.right, appSize.width);
-    expect(infoBarRect.bottom, closeTo(appSize.height, 0.1));
+    expect(infoBarRect.left, AppPageInsets.compact);
+    expect(infoBarRect.right, appSize.width - AppPageInsets.compact);
+    expect(
+      infoBarRect.bottom,
+      closeTo(appSize.height - AppPageInsets.compact, 0.1),
+    );
   });
 
   testWidgets('mobile actor detail route uses subpage shell', (
