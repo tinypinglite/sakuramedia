@@ -40,7 +40,9 @@ void main() {
       expect(find.byKey(const Key('movie-player-speed-menu')), findsNothing);
     });
 
-    testWidgets('closes menu when tapping outside', (WidgetTester tester) async {
+    testWidgets('closes menu when tapping outside', (
+      WidgetTester tester,
+    ) async {
       await _pumpHarness(tester);
 
       await tester.tap(find.byKey(const Key('movie-player-speed-button')));
@@ -185,6 +187,28 @@ void main() {
 
       expect(find.text('1.0x'), findsOneWidget);
       expect(find.text('倍速'), findsNothing);
+    });
+
+    testWidgets('uses overlay tokens for menu width and label font size', (
+      WidgetTester tester,
+    ) async {
+      await _pumpHarness(tester);
+
+      await tester.tap(find.byKey(const Key('movie-player-speed-button')));
+      await tester.pumpAndSettle();
+
+      final menuRect = tester.getRect(
+        find.byKey(const Key('movie-player-speed-menu')),
+      );
+      final label = tester.widget<Text>(
+        find.byKey(const Key('movie-player-speed-menu-item-label-1_0')),
+      );
+
+      expect(menuRect.width, sakuraThemeData.appOverlayTokens.menuWidthSm);
+      expect(
+        label.style?.fontSize,
+        sakuraThemeData.appOverlayTokens.controlLabelFontSize,
+      );
     });
   });
 }

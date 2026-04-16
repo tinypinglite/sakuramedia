@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/core/network/api_exception.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
@@ -21,6 +21,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
 import 'package:sakuramedia/widgets/app_shell/app_page_frame.dart';
@@ -290,7 +291,7 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
       context: context,
       builder:
           (dialogContext) => AppDesktopDialog(
-            width: 420,
+            width: dialogContext.appLayoutTokens.dialogWidthSm,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -964,7 +965,7 @@ class _DownloadClientsTabState extends State<_DownloadClientsTab> {
       context: context,
       builder:
           (dialogContext) => AppDesktopDialog(
-            width: 420,
+            width: dialogContext.appLayoutTokens.dialogWidthSm,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1277,7 +1278,7 @@ class _PlaylistsTabState extends State<_PlaylistsTab> {
       context: context,
       builder:
           (dialogContext) => AppDesktopDialog(
-            width: 420,
+            width: dialogContext.appLayoutTokens.dialogWidthSm,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1599,6 +1600,7 @@ class _MediaLibraryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final layoutTokens = context.appLayoutTokens;
 
     return Container(
       key: Key('media-library-card-${library.id}'),
@@ -1612,8 +1614,8 @@ class _MediaLibraryCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: layoutTokens.panelIconContainerSize,
+            height: layoutTokens.panelIconContainerSize,
             decoration: BoxDecoration(
               color: colors.surfaceMuted,
               borderRadius: context.appRadius.mdBorder,
@@ -1745,8 +1747,11 @@ class _MediaLibraryDialogState extends State<_MediaLibraryDialog> {
 
     return AppDesktopDialog(
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      width: 520,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: context.appLayoutTokens.dialogInsetPadding,
+        vertical: context.appLayoutTokens.dialogInsetPadding,
+      ),
+      width: context.appLayoutTokens.dialogWidthMd,
       child: Form(
         key: _formKey,
         child: Column(
@@ -2333,8 +2338,11 @@ class _DownloadClientDialogState extends State<_DownloadClientDialog> {
 
     return AppDesktopDialog(
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      width: 520,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: context.appLayoutTokens.dialogInsetPadding,
+        vertical: context.appLayoutTokens.dialogInsetPadding,
+      ),
+      width: context.appLayoutTokens.dialogWidthMd,
       child: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -2577,8 +2585,11 @@ class _IndexerEntryDialogState extends State<_IndexerEntryDialog> {
 
     return AppDesktopDialog(
       backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      width: 520,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: context.appLayoutTokens.dialogInsetPadding,
+        vertical: context.appLayoutTokens.dialogInsetPadding,
+      ),
+      width: context.appLayoutTokens.dialogWidthMd,
       child: Form(
         key: _formKey,
         child: Column(
@@ -2723,16 +2734,20 @@ class _IndexerSourceAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final layoutTokens = context.appLayoutTokens;
     final backgroundColor =
-        kind == 'bt' ? const Color(0xFFEAF3FF) : const Color(0xFFFFF1EF);
+        kind == 'bt' ? colors.selectionSurface : colors.errorSurface;
     final foregroundColor =
-        kind == 'bt' ? const Color(0xFF1677FF) : const Color(0xFFF04438);
+        kind == 'bt'
+            ? colors.selectionForeground
+            : colors.errorAccentForeground;
     final icon =
         kind == 'bt' ? Icons.language_rounded : Icons.cloud_download_outlined;
 
     return Container(
-      width: 48,
-      height: 48,
+      width: layoutTokens.panelIconContainerSize,
+      height: layoutTokens.panelIconContainerSize,
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: context.appRadius.mdBorder,
@@ -2754,25 +2769,10 @@ class _IndexerKindBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isBt = kind == 'bt';
-    final backgroundColor =
-        isBt ? const Color(0xFFEAF3FF) : const Color(0xFFFFF1EF);
-    final foregroundColor =
-        isBt ? const Color(0xFF1677FF) : const Color(0xFFF04438);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: context.appRadius.pillBorder,
-      ),
-      child: Text(
-        isBt ? 'BT' : 'PT',
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: foregroundColor,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+    return AppBadge(
+      label: kind == 'bt' ? 'BT' : 'PT',
+      tone: kind == 'bt' ? AppBadgeTone.primary : AppBadgeTone.error,
+      size: AppBadgeSize.compact,
     );
   }
 }
@@ -2796,6 +2796,7 @@ class _IndexerActionButtonState extends State<_IndexerActionButton> {
 
   @override
   Widget build(BuildContext context) {
+    final layoutTokens = context.appLayoutTokens;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
@@ -2804,8 +2805,8 @@ class _IndexerActionButtonState extends State<_IndexerActionButton> {
         onTap: widget.onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
-          width: 32,
-          height: 32,
+          width: layoutTokens.inlineActionButtonSize,
+          height: layoutTokens.inlineActionButtonSize,
           decoration: BoxDecoration(
             color:
                 _hovered ? context.appColors.surfaceMuted : Colors.transparent,
@@ -2892,19 +2893,20 @@ class _KindOptionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final layoutTokens = context.appLayoutTokens;
     final backgroundColor =
-        selected ? const Color(0xFFEAF3FF) : context.appColors.surfaceMuted;
-    final borderColor =
-        selected ? const Color(0xFF1677FF) : context.appColors.borderSubtle;
+        selected ? colors.selectionSurface : colors.surfaceMuted;
+    final borderColor = selected ? colors.selectionBorder : colors.borderSubtle;
     final foregroundColor =
-        selected ? const Color(0xFF1677FF) : context.appColors.textSecondary;
+        selected ? colors.selectionForeground : colors.textSecondary;
 
     return InkWell(
       onTap: onTap,
       borderRadius: context.appRadius.mdBorder,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 120),
-        height: 42,
+        height: layoutTokens.segmentedControlHeight,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: backgroundColor,
@@ -3056,10 +3058,7 @@ String _formatUpdatedAt(DateTime? value) {
 }
 
 String _apiMessage(Object error, {required String fallback}) {
-  if (error is ApiException) {
-    return error.error?.message ?? error.message;
-  }
-  return fallback;
+  return apiErrorMessage(error, fallback: fallback);
 }
 
 bool _isValidHttpUrl(String value) {

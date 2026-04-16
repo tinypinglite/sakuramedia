@@ -194,10 +194,16 @@ MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
   required List<Widget> topControls,
   required List<Widget> bottomControls,
 }) {
+  final overlayTokens = theme.appOverlayTokens;
   return MaterialVideoControlsThemeData(
     horizontalGestureSensitivity: 3000,
     seekOnDoubleTap: true,
-    seekBarMargin: const EdgeInsets.fromLTRB(30, 0, 30, 75),
+    seekBarMargin: EdgeInsets.fromLTRB(
+      overlayTokens.playerSeekBarHorizontalInset,
+      0,
+      overlayTokens.playerSeekBarHorizontalInset,
+      overlayTokens.playerSeekBarBottomInset,
+    ),
     seekGesture: true,
     volumeGesture: true,
     speedUpOnLongPress: true,
@@ -208,7 +214,12 @@ MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
     seekBarThumbSize: 14,
     displaySeekBar: true,
     topButtonBar: topControls,
-    topButtonBarMargin: const EdgeInsets.fromLTRB(12, 18, 12, 0),
+    topButtonBarMargin: EdgeInsets.fromLTRB(
+      overlayTokens.playerControlBarHorizontalInset,
+      overlayTokens.playerControlBarTopInset,
+      overlayTokens.playerControlBarHorizontalInset,
+      0,
+    ),
     bottomButtonBar: bottomControls,
   );
 }
@@ -219,6 +230,7 @@ MaterialDesktopVideoControlsThemeData buildMoviePlayerDesktopControlsThemeData({
   required List<Widget> topControls,
   required List<Widget> bottomControls,
 }) {
+  final overlayTokens = theme.appOverlayTokens;
   return MaterialDesktopVideoControlsThemeData(
     seekBarThumbColor: theme.colorScheme.primary,
     seekBarPositionColor: theme.colorScheme.primary,
@@ -226,7 +238,12 @@ MaterialDesktopVideoControlsThemeData buildMoviePlayerDesktopControlsThemeData({
     seekBarThumbSize: 14,
     displaySeekBar: true,
     topButtonBar: topControls,
-    topButtonBarMargin: const EdgeInsets.fromLTRB(12, 18, 12, 0),
+    topButtonBarMargin: EdgeInsets.fromLTRB(
+      overlayTokens.playerControlBarHorizontalInset,
+      overlayTokens.playerControlBarTopInset,
+      overlayTokens.playerControlBarHorizontalInset,
+      0,
+    ),
     bottomButtonBar: bottomControls,
   );
 }
@@ -257,11 +274,6 @@ class MoviePlayerMobileSpeedDisplayState {
 const Duration _moviePlayerMobileDrawerAnimationDuration = Duration(
   milliseconds: 220,
 );
-const double _moviePlayerMobileDrawerWidth = 196;
-const double _moviePlayerInfoDrawerWidth = 360;
-const double _moviePlayerMobileDrawerHorizontalInset = 10;
-const double _moviePlayerMobileDrawerItemHeight = 40;
-const double _moviePlayerMobileDrawerVerticalPadding = 8;
 const String _moviePlayerMobileNoSubtitleLabel = '无可用字幕';
 
 class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
@@ -334,9 +346,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     _player = Player(configuration: buildMoviePlayerConfiguration());
     _controller = VideoController(
       _player,
-      configuration: const VideoControllerConfiguration(
-        hwdec: 'auto',
-      ),
+      configuration: const VideoControllerConfiguration(hwdec: 'auto'),
     );
     _currentPlaybackRate = _player.state.rate;
     _readiness = MoviePlayerSurfaceReadiness();
@@ -977,6 +987,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
         videoSurface,
         if (widget.useTouchOptimizedControls)
           buildMoviePlayerMobileDrawerOverlay(
+            context: context,
             activeDrawer: _activeMobileDrawer,
             subtitleState: widget.subtitleState,
             currentRate: _mobileSpeedDisplayNotifier.value.rate,
@@ -986,6 +997,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
             onSubtitleSelected: _handleMobileSubtitleSelected,
           ),
         buildMoviePlayerInfoSideDrawerOverlay(
+          context: context,
           isOpen: _isInfoSideDrawerOpen,
           onDismiss: _dismissInfoSideDrawer,
           infoListenable: _playbackInfoNotifier,
@@ -1126,6 +1138,7 @@ List<Widget> buildMoviePlayerMobileDrawerToggleButtons({
 
 @visibleForTesting
 Widget buildMoviePlayerMobileDrawerOverlay({
+  required BuildContext context,
   required MoviePlayerMobileDrawerType? activeDrawer,
   required MoviePlayerSubtitleState subtitleState,
   required double currentRate,
@@ -1134,6 +1147,7 @@ Widget buildMoviePlayerMobileDrawerOverlay({
   required Future<void> Function(double rate) onRateSelected,
   required Future<void> Function(int subtitleId) onSubtitleSelected,
 }) {
+  final overlayTokens = context.appOverlayTokens;
   return IgnorePointer(
     key: const Key('movie-player-mobile-drawer-layer'),
     ignoring: activeDrawer == null,
@@ -1144,8 +1158,8 @@ Widget buildMoviePlayerMobileDrawerOverlay({
       child: Align(
         alignment: Alignment.centerRight,
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: _moviePlayerMobileDrawerHorizontalInset,
+          padding: EdgeInsets.symmetric(
+            horizontal: overlayTokens.playerDrawerHorizontalInset,
           ),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -1193,10 +1207,12 @@ Widget buildMoviePlayerMobileDrawerOverlay({
 
 @visibleForTesting
 Widget buildMoviePlayerInfoSideDrawerOverlay({
+  required BuildContext context,
   required bool isOpen,
   required VoidCallback onDismiss,
   required ValueListenable<MoviePlayerPlaybackInfoSnapshot> infoListenable,
 }) {
+  final overlayTokens = context.appOverlayTokens;
   return IgnorePointer(
     key: const Key('movie-player-info-side-drawer-layer'),
     ignoring: !isOpen,
@@ -1207,8 +1223,8 @@ Widget buildMoviePlayerInfoSideDrawerOverlay({
       child: Align(
         alignment: Alignment.centerRight,
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: _moviePlayerMobileDrawerHorizontalInset,
+          padding: EdgeInsets.symmetric(
+            horizontal: overlayTokens.playerDrawerHorizontalInset,
           ),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -1299,24 +1315,36 @@ class _MoviePlayerMobileDrawerToggleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final overlayTokens = context.appOverlayTokens;
     final activeColor = theme.colorScheme.primary;
     final textColor =
-        active ? activeColor : Colors.white.withValues(alpha: 0.94);
+        active
+            ? activeColor
+            : colors.textOnMedia.withValues(
+              alpha: overlayTokens.primaryLabelAlpha,
+            );
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        constraints: const BoxConstraints(minWidth: 48, minHeight: 34),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+        constraints: BoxConstraints(
+          minWidth: overlayTokens.controlMinWidth,
+          minHeight: overlayTokens.controlMinHeight,
+        ),
+        padding: EdgeInsets.symmetric(
+          horizontal: overlayTokens.controlHorizontalPadding,
+          vertical: overlayTokens.controlVerticalPadding,
+        ),
         alignment: Alignment.center,
         child: Text(
           label,
           style: theme.textTheme.labelLarge?.copyWith(
             color: textColor,
-            fontSize: 14,
+            fontSize: overlayTokens.controlLabelFontSize,
             fontWeight: FontWeight.w500,
-            height: 1.0,
+            height: overlayTokens.controlLabelHeight,
           ),
         ),
       ),
@@ -1362,29 +1390,37 @@ class _MoviePlayerMobileSpeedDrawerToggleButton extends StatelessWidget {
 }
 
 class _MoviePlayerMobileDrawerSurface extends StatelessWidget {
-  const _MoviePlayerMobileDrawerSurface({
-    required this.child,
-    this.width = _moviePlayerMobileDrawerWidth,
-  });
+  const _MoviePlayerMobileDrawerSurface({required this.child, this.width});
 
   final Widget child;
-  final double width;
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final overlayTokens = context.appOverlayTokens;
     return Container(
-      width: width,
+      width: width ?? overlayTokens.playerDrawerWidth,
       height: double.infinity,
       decoration: BoxDecoration(
-        color: colors.movieDetailHeroBackgroundStart.withValues(alpha: 0.9),
-        borderRadius: const BorderRadius.horizontal(left: Radius.circular(18)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        color: colors.movieDetailHeroBackgroundStart.withValues(
+          alpha: overlayTokens.drawerSurfaceAlpha,
+        ),
+        borderRadius: BorderRadius.horizontal(
+          left: Radius.circular(overlayTokens.surfaceRadius),
+        ),
+        border: Border.all(
+          color: colors.textOnMedia.withValues(
+            alpha: overlayTokens.surfaceBorderAlpha,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(
+              alpha: overlayTokens.surfaceShadowAlpha,
+            ),
+            blurRadius: overlayTokens.surfaceShadowBlur,
+            offset: Offset(0, overlayTokens.surfaceShadowOffsetY),
           ),
         ],
       ),
@@ -1405,11 +1441,12 @@ class _MoviePlayerMobileSpeedDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final overlayTokens = context.appOverlayTokens;
     final selectedColor = Theme.of(context).colorScheme.primary;
     return _MoviePlayerMobileDrawerSurface(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: _moviePlayerMobileDrawerVerticalPadding,
+        padding: EdgeInsets.symmetric(
+          vertical: overlayTokens.drawerVerticalPadding,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1424,11 +1461,11 @@ class _MoviePlayerMobileSpeedDrawer extends StatelessWidget {
                   behavior: HitTestBehavior.opaque,
                   onTap: () => unawaited(onRateSelected(rate)),
                   child: SizedBox(
-                    height: _moviePlayerMobileDrawerItemHeight,
+                    height: overlayTokens.menuItemHeight,
                     child: Row(
                       children: [
-                        const SizedBox(width: 18),
-                        const SizedBox(width: 18),
+                        SizedBox(width: overlayTokens.controlSideGap),
+                        SizedBox(width: overlayTokens.controlSideGap),
                         Expanded(
                           child: Center(
                             child: Text(
@@ -1439,19 +1476,24 @@ class _MoviePlayerMobileSpeedDrawer extends StatelessWidget {
                                 color:
                                     selected
                                         ? selectedColor
-                                        : Colors.white.withValues(alpha: 0.92),
-                                fontSize: 14,
+                                        : context.appColors.textOnMedia
+                                            .withValues(
+                                              alpha:
+                                                  overlayTokens
+                                                      .primaryLabelAlpha,
+                                            ),
+                                fontSize: overlayTokens.controlLabelFontSize,
                                 fontWeight:
                                     selected
                                         ? FontWeight.w700
                                         : FontWeight.w500,
-                                height: 1.0,
+                                height: overlayTokens.controlLabelHeight,
                               ),
                             ),
                           ),
                         ),
                         SizedBox(
-                          width: 28,
+                          width: overlayTokens.controlCheckSlotWidth,
                           child: Center(
                             child:
                                 selected
@@ -1460,19 +1502,20 @@ class _MoviePlayerMobileSpeedDrawer extends StatelessWidget {
                                       key: Key(
                                         'movie-player-mobile-speed-drawer-item-check-${rate.toString().replaceAll('.', '_')}',
                                       ),
-                                      size: 18,
+                                      size: overlayTokens.controlCheckIconSize,
                                       color: selectedColor,
                                     )
                                     : SizedBox(
                                       key: Key(
                                         'movie-player-mobile-speed-drawer-item-check-slot-${rate.toString().replaceAll('.', '_')}',
                                       ),
-                                      width: 18,
-                                      height: 18,
+                                      width: overlayTokens.controlCheckIconSize,
+                                      height:
+                                          overlayTokens.controlCheckIconSize,
                                     ),
                           ),
                         ),
-                        const SizedBox(width: 14),
+                        SizedBox(width: overlayTokens.controlTrailingGap),
                       ],
                     ),
                   ),
@@ -1493,18 +1536,29 @@ class _MoviePlayerInfoSideDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final overlayTokens = context.appOverlayTokens;
     return Container(
-      width: _moviePlayerInfoDrawerWidth,
+      width: overlayTokens.playerInfoDrawerWidth,
       height: double.infinity,
       decoration: BoxDecoration(
-        color: colors.surfaceMuted.withValues(alpha: 0.34),
-        borderRadius: const BorderRadius.horizontal(left: Radius.circular(18)),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+        color: colors.surfaceMuted.withValues(
+          alpha: overlayTokens.infoDrawerSurfaceAlpha,
+        ),
+        borderRadius: BorderRadius.horizontal(
+          left: Radius.circular(overlayTokens.surfaceRadius),
+        ),
+        border: Border.all(
+          color: colors.textOnMedia.withValues(
+            alpha: overlayTokens.infoDrawerSurfaceAlpha / 2,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(
+              alpha: overlayTokens.surfaceShadowAlpha,
+            ),
+            blurRadius: overlayTokens.surfaceShadowBlur,
+            offset: Offset(0, overlayTokens.surfaceShadowOffsetY),
           ),
         ],
       ),
@@ -1531,11 +1585,12 @@ class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final options = subtitleState.options;
+    final overlayTokens = context.appOverlayTokens;
     final selectedColor = Theme.of(context).colorScheme.primary;
     return _MoviePlayerMobileDrawerSurface(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: _moviePlayerMobileDrawerVerticalPadding,
+        padding: EdgeInsets.symmetric(
+          vertical: overlayTokens.drawerVerticalPadding,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1547,17 +1602,19 @@ class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
                       key: const Key(
                         'movie-player-mobile-subtitle-drawer-empty',
                       ),
-                      height: _moviePlayerMobileDrawerItemHeight,
+                      height: overlayTokens.menuItemHeight,
                       child: Center(
                         child: Text(
                           _moviePlayerMobileNoSubtitleLabel,
                           style: Theme.of(
                             context,
                           ).textTheme.labelLarge?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.62),
-                            fontSize: 14,
+                            color: context.appColors.textOnMedia.withValues(
+                              alpha: overlayTokens.mutedLabelAlpha,
+                            ),
+                            fontSize: overlayTokens.controlLabelFontSize,
                             fontWeight: FontWeight.w500,
-                            height: 1.0,
+                            height: overlayTokens.controlLabelHeight,
                           ),
                         ),
                       ),
@@ -1580,11 +1637,11 @@ class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
                                     onSubtitleSelected(option.subtitleId),
                                   ),
                           child: SizedBox(
-                            height: _moviePlayerMobileDrawerItemHeight,
+                            height: overlayTokens.menuItemHeight,
                             child: Row(
                               children: [
-                                const SizedBox(width: 18),
-                                const SizedBox(width: 18),
+                                SizedBox(width: overlayTokens.controlSideGap),
+                                SizedBox(width: overlayTokens.controlSideGap),
                                 Expanded(
                                   child: Center(
                                     child: Text(
@@ -1595,15 +1652,20 @@ class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
                                         color:
                                             selected
                                                 ? selectedColor
-                                                : Colors.white.withValues(
-                                                  alpha: 0.92,
-                                                ),
-                                        fontSize: 14,
+                                                : context.appColors.textOnMedia
+                                                    .withValues(
+                                                      alpha:
+                                                          overlayTokens
+                                                              .primaryLabelAlpha,
+                                                    ),
+                                        fontSize:
+                                            overlayTokens.controlLabelFontSize,
                                         fontWeight:
                                             selected
                                                 ? FontWeight.w700
                                                 : FontWeight.w500,
-                                        height: 1.0,
+                                        height:
+                                            overlayTokens.controlLabelHeight,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,
@@ -1611,7 +1673,7 @@ class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
                                   ),
                                 ),
                                 SizedBox(
-                                  width: 28,
+                                  width: overlayTokens.controlCheckSlotWidth,
                                   child: Center(
                                     child:
                                         selected
@@ -1620,19 +1682,27 @@ class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
                                               key: Key(
                                                 'movie-player-mobile-subtitle-drawer-item-check-${option.subtitleId}',
                                               ),
-                                              size: 18,
+                                              size:
+                                                  overlayTokens
+                                                      .controlCheckIconSize,
                                               color: selectedColor,
                                             )
                                             : SizedBox(
                                               key: Key(
                                                 'movie-player-mobile-subtitle-drawer-item-check-slot-${option.subtitleId}',
                                               ),
-                                              width: 18,
-                                              height: 18,
+                                              width:
+                                                  overlayTokens
+                                                      .controlCheckIconSize,
+                                              height:
+                                                  overlayTokens
+                                                      .controlCheckIconSize,
                                             ),
                                   ),
                                 ),
-                                const SizedBox(width: 14),
+                                SizedBox(
+                                  width: overlayTokens.controlTrailingGap,
+                                ),
                               ],
                             ),
                           ),

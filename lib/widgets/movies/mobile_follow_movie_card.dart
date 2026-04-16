@@ -251,7 +251,9 @@ class _FollowThinCover extends StatelessWidget {
             child:
                 isSubscriptionUpdating
                     ? Padding(
-                      padding: const EdgeInsets.all(5),
+                      padding: EdgeInsets.all(
+                        context.appLayoutTokens.inlineIconPadding,
+                      ),
                       child: CircularProgressIndicator(
                         key: Key(
                           'mobile-follow-movie-card-subscription-loading-$movieNumber',

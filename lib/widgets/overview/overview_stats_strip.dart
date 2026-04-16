@@ -93,8 +93,7 @@ class _OverviewStatTile extends StatelessWidget {
         children: [
           Text(
             item.label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontSize: 10,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: context.appColors.textMuted,
             ),
           ),

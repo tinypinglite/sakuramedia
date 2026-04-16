@@ -3,11 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
 
-const double _kAppSelectItemHeight = 40;
-const double _kAppSelectMenuGap = 4;
-const double _kAppSelectMenuMaxHeight = 240;
-const double _kAppSelectTriggerCompactHeight = 36;
-
 enum AppSelectFieldSize { regular, compact }
 
 class AppSelectField<T> extends StatelessWidget {
@@ -130,18 +125,19 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
     final spaceAbove = triggerOffset.dy;
     final view = View.of(context);
     final viewportHeight = view.physicalSize.height / view.devicePixelRatio;
+    final formTokens = context.appFormTokens;
     final spaceBelow = viewportHeight - triggerBottom;
     final idealMenuHeight = math.min(
-      widget.items.length * _kAppSelectItemHeight,
-      _kAppSelectMenuMaxHeight,
+      widget.items.length * formTokens.menuItemHeight,
+      formTokens.menuMaxHeight,
     );
     final opensUpward =
-        triggerBottom + idealMenuHeight + _kAppSelectMenuGap > viewportHeight &&
-        spaceAbove > _kAppSelectItemHeight;
+        triggerBottom + idealMenuHeight + formTokens.menuGap > viewportHeight &&
+        spaceAbove > formTokens.menuItemHeight;
     final availableSpace =
-        (opensUpward ? spaceAbove : spaceBelow) - _kAppSelectMenuGap;
+        (opensUpward ? spaceAbove : spaceBelow) - formTokens.menuGap;
     final constrainedHeight = math.max(
-      _kAppSelectItemHeight,
+      formTokens.menuItemHeight,
       math.min(idealMenuHeight, availableSpace),
     );
 
@@ -170,8 +166,8 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
               offset: Offset(
                 0,
                 _placement == _AppSelectMenuPlacement.down
-                    ? _triggerHeight + _kAppSelectMenuGap
-                    : -(_menuHeight + _kAppSelectMenuGap),
+                    ? _triggerHeight + formTokens.menuGap
+                    : -(_menuHeight + formTokens.menuGap),
               ),
               child: Material(
                 color: Colors.transparent,
@@ -232,6 +228,7 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
     final fontWeight = selectedItem == null ? FontWeight.w500 : FontWeight.w600;
     final isCompact = widget.size == AppSelectFieldSize.compact;
     final baseTextStyle = widget.textStyle ?? theme.textTheme.bodyMedium!;
+    final formTokens = context.appFormTokens;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +241,7 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(height: context.appSpacing.sm),
+          SizedBox(height: formTokens.labelGap),
         ],
         MouseRegion(
           cursor:
@@ -259,10 +256,10 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
                 key: _triggerKey,
                 duration: const Duration(milliseconds: 120),
                 width: double.infinity,
-                height: isCompact ? _kAppSelectTriggerCompactHeight : null,
+                height: isCompact ? formTokens.compactFieldHeight : null,
                 padding: EdgeInsets.symmetric(
-                  horizontal: context.appSpacing.lg,
-                  vertical: isCompact ? 0 : 14,
+                  horizontal: formTokens.fieldHorizontalPadding,
+                  vertical: isCompact ? 0 : formTokens.fieldVerticalPadding,
                 ),
                 decoration: BoxDecoration(
                   color: colors.surfaceMuted,
@@ -332,6 +329,7 @@ class _AppSelectMenu<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final overlayTokens = context.appOverlayTokens;
 
     return Container(
       width: width,
@@ -342,9 +340,11 @@ class _AppSelectMenu<T> extends StatelessWidget {
         border: Border.all(color: colors.borderSubtle),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: colors.textPrimary.withValues(
+              alpha: overlayTokens.hoverAlpha,
+            ),
+            blurRadius: overlayTokens.surfaceShadowBlur,
+            offset: Offset(0, overlayTokens.surfaceShadowOffsetY),
           ),
         ],
       ),
@@ -397,6 +397,7 @@ class _AppSelectMenuItemState<T> extends State<_AppSelectMenuItem<T>> {
     final colors = context.appColors;
     final theme = Theme.of(context);
     final baseTextStyle = widget.textStyle ?? theme.textTheme.bodyMedium!;
+    final formTokens = context.appFormTokens;
     final backgroundColor =
         widget.selected
             ? colors.surfaceMuted
@@ -411,8 +412,10 @@ class _AppSelectMenuItemState<T> extends State<_AppSelectMenuItem<T>> {
         behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
         child: Container(
-          height: _kAppSelectItemHeight,
-          padding: EdgeInsets.symmetric(horizontal: context.appSpacing.lg),
+          height: formTokens.menuItemHeight,
+          padding: EdgeInsets.symmetric(
+            horizontal: formTokens.fieldHorizontalPadding,
+          ),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(color: backgroundColor),
           child: DefaultTextStyle(

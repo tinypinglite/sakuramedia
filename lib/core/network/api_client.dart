@@ -355,6 +355,14 @@ class ApiClient {
     }
 
     final statusCode = error.response?.statusCode;
+    final transportFailureKind = _transportFailureKind(error);
+    if (statusCode == null && transportFailureKind != null) {
+      return ApiException(
+        message: _transportFailureMessage(transportFailureKind),
+        transportFailureKind: transportFailureKind,
+        baseUrl: _normalizedBaseUrl,
+      );
+    }
     final parsedData = _decodeResponseData(error.response?.data);
     final errorPayload = _extractError(parsedData);
 
@@ -363,6 +371,41 @@ class ApiClient {
       message: errorPayload?.message ?? error.message ?? 'Request failed',
       error: errorPayload,
     );
+  }
+
+  ApiTransportFailureKind? _transportFailureKind(DioException error) {
+    switch (error.type) {
+      case DioExceptionType.connectionError:
+        return ApiTransportFailureKind.connection;
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return ApiTransportFailureKind.timeout;
+      case DioExceptionType.unknown:
+        if (error.response == null) {
+          return ApiTransportFailureKind.connection;
+        }
+        return null;
+      case DioExceptionType.badCertificate:
+      case DioExceptionType.badResponse:
+      case DioExceptionType.cancel:
+        return null;
+    }
+  }
+
+  String _transportFailureMessage(ApiTransportFailureKind kind) {
+    return switch (kind) {
+      ApiTransportFailureKind.connection => 'Connection failed',
+      ApiTransportFailureKind.timeout => 'Request timed out',
+    };
+  }
+
+  String? get _normalizedBaseUrl {
+    final baseUrl = _sessionStore.baseUrl.trim();
+    if (baseUrl.isEmpty) {
+      return null;
+    }
+    return baseUrl;
   }
 
   Map<String, dynamic> _asJsonMap(dynamic data) {

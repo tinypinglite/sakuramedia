@@ -14,10 +14,6 @@ const List<double> kMoviePlayerPlaybackRates = <double>[
   0.5,
 ];
 
-const double _moviePlayerSpeedMenuWidth = 144;
-const double _moviePlayerSpeedMenuItemHeight = 40;
-const double _moviePlayerSpeedMenuVerticalPadding = 6;
-const double _moviePlayerSpeedMenuGap = 6;
 const Duration _moviePlayerSpeedMenuCloseDelay = Duration(milliseconds: 80);
 
 class MoviePlayerSpeedButton extends StatefulWidget {
@@ -55,8 +51,9 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
   bool get _isMenuOpen => _overlayEntry != null;
 
   double get _menuHeight =>
-      (kMoviePlayerPlaybackRates.length * _moviePlayerSpeedMenuItemHeight) +
-      (_moviePlayerSpeedMenuVerticalPadding * 2);
+      (kMoviePlayerPlaybackRates.length *
+          context.appOverlayTokens.menuItemHeight) +
+      (context.appOverlayTokens.menuVerticalPadding * 2);
 
   @override
   void initState() {
@@ -152,11 +149,12 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
     );
     _buttonWidth = buttonBox.size.width;
     _buttonRect = buttonTopLeft & buttonBox.size;
+    final overlayTokens = context.appOverlayTokens;
     _menuRect = Rect.fromLTWH(
-      buttonTopLeft.dx + ((_buttonWidth - _moviePlayerSpeedMenuWidth) / 2),
-      buttonTopLeft.dy - (_menuHeight + _moviePlayerSpeedMenuGap),
-      _moviePlayerSpeedMenuWidth,
-      _menuHeight + _moviePlayerSpeedMenuGap,
+      buttonTopLeft.dx + ((_buttonWidth - overlayTokens.menuWidthSm) / 2),
+      buttonTopLeft.dy - (_menuHeight + overlayTokens.menuGap),
+      overlayTokens.menuWidthSm,
+      _menuHeight + overlayTokens.menuGap,
     );
     _overlayEntry = OverlayEntry(builder: _buildOverlay);
     overlay.insert(_overlayEntry!);
@@ -237,6 +235,7 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
   }
 
   Widget _buildOverlay(BuildContext context) {
+    final overlayTokens = context.appOverlayTokens;
     return Stack(
       children: [
         Positioned.fill(
@@ -252,8 +251,8 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
                     link: _layerLink,
                     showWhenUnlinked: false,
                     offset: Offset(
-                      (_buttonWidth - _moviePlayerSpeedMenuWidth) / 2,
-                      -(_menuHeight + _moviePlayerSpeedMenuGap),
+                      (_buttonWidth - overlayTokens.menuWidthSm) / 2,
+                      -(_menuHeight + overlayTokens.menuGap),
                     ),
                     child: MouseRegion(
                       onEnter: _handleMenuEnter,
@@ -273,9 +272,9 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
                             },
                             onRateSelected: _handleRateSelected,
                           ),
-                          const SizedBox(
-                            width: _moviePlayerSpeedMenuWidth,
-                            height: _moviePlayerSpeedMenuGap,
+                          SizedBox(
+                            width: overlayTokens.menuWidthSm,
+                            height: overlayTokens.menuGap,
                           ),
                         ],
                       ),
@@ -293,6 +292,8 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final overlayTokens = context.appOverlayTokens;
     final label =
         _displayHasExplicitSelection ? _formatRateLabel(_displayRate) : '倍速';
 
@@ -306,17 +307,25 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
           link: _layerLink,
           child: Container(
             key: _buttonKey,
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 34),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            constraints: BoxConstraints(
+              minWidth: overlayTokens.controlMinWidth,
+              minHeight: overlayTokens.controlMinHeight,
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: overlayTokens.controlHorizontalPadding,
+              vertical: overlayTokens.controlVerticalPadding,
+            ),
             alignment: Alignment.center,
             child: Text(
               label,
               key: const Key('movie-player-speed-button'),
               style: theme.textTheme.labelLarge?.copyWith(
-                color: Colors.white.withValues(alpha: 0.94),
-                fontSize: 14,
+                color: colors.textOnMedia.withValues(
+                  alpha: overlayTokens.primaryLabelAlpha,
+                ),
+                fontSize: overlayTokens.controlLabelFontSize,
                 fontWeight: FontWeight.w500,
-                height: 1.0,
+                height: overlayTokens.controlLabelHeight,
               ),
             ),
           ),
@@ -342,22 +351,31 @@ class _MoviePlayerSpeedMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final overlayTokens = context.appOverlayTokens;
 
     return Container(
       key: const Key('movie-player-speed-menu'),
-      width: _moviePlayerSpeedMenuWidth,
-      padding: const EdgeInsets.symmetric(
-        vertical: _moviePlayerSpeedMenuVerticalPadding,
+      width: overlayTokens.menuWidthSm,
+      padding: EdgeInsets.symmetric(
+        vertical: overlayTokens.menuVerticalPadding,
       ),
       decoration: BoxDecoration(
-        color: colors.movieDetailHeroBackgroundStart.withValues(alpha: 0.84),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        color: colors.movieDetailHeroBackgroundStart.withValues(
+          alpha: overlayTokens.darkSurfaceAlpha,
+        ),
+        borderRadius: overlayTokens.surfaceBorderRadius,
+        border: Border.all(
+          color: colors.textOnMedia.withValues(
+            alpha: overlayTokens.surfaceBorderAlpha,
+          ),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.22),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(
+              alpha: overlayTokens.surfaceShadowAlpha,
+            ),
+            blurRadius: overlayTokens.surfaceShadowBlur,
+            offset: Offset(0, overlayTokens.surfaceShadowOffsetY),
           ),
         ],
       ),
@@ -402,12 +420,20 @@ class _MoviePlayerSpeedMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final overlayTokens = context.appOverlayTokens;
     final label = _formatRateLabel(rate);
     final selectedColor = theme.colorScheme.primary;
     final textColor =
-        selected ? selectedColor : Colors.white.withValues(alpha: 0.92);
+        selected
+            ? selectedColor
+            : colors.textOnMedia.withValues(
+              alpha: overlayTokens.primaryLabelAlpha,
+            );
     final backgroundColor =
-        hovered ? Colors.white.withValues(alpha: 0.08) : Colors.transparent;
+        hovered
+            ? colors.textOnMedia.withValues(alpha: overlayTokens.hoverAlpha)
+            : Colors.transparent;
 
     return MouseRegion(
       onEnter: (_) => onHoverChanged(true),
@@ -417,12 +443,12 @@ class _MoviePlayerSpeedMenuItem extends StatelessWidget {
         onTap: onTap,
         child: Container(
           key: Key('movie-player-speed-menu-item-${_rateKey(rate)}'),
-          height: _moviePlayerSpeedMenuItemHeight,
+          height: overlayTokens.menuItemHeight,
           decoration: BoxDecoration(color: backgroundColor),
           child: Row(
             children: [
-              const SizedBox(width: 18),
-              const SizedBox(width: 18),
+              SizedBox(width: overlayTokens.controlSideGap),
+              SizedBox(width: overlayTokens.controlSideGap),
               Expanded(
                 child: Center(
                   child: Text(
@@ -432,15 +458,15 @@ class _MoviePlayerSpeedMenuItem extends StatelessWidget {
                     ),
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: textColor,
-                      fontSize: 14,
+                      fontSize: overlayTokens.controlLabelFontSize,
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      height: 1.0,
+                      height: overlayTokens.controlLabelHeight,
                     ),
                   ),
                 ),
               ),
               SizedBox(
-                width: 28,
+                width: overlayTokens.controlCheckSlotWidth,
                 child: Center(
                   child:
                       selected
@@ -449,19 +475,19 @@ class _MoviePlayerSpeedMenuItem extends StatelessWidget {
                             key: Key(
                               'movie-player-speed-menu-item-check-${_rateKey(rate)}',
                             ),
-                            size: 18,
+                            size: overlayTokens.controlCheckIconSize,
                             color: selectedColor,
                           )
                           : SizedBox(
                             key: Key(
                               'movie-player-speed-menu-item-check-slot-${_rateKey(rate)}',
                             ),
-                            width: 18,
-                            height: 18,
+                            width: overlayTokens.controlCheckIconSize,
+                            height: overlayTokens.controlCheckIconSize,
                           ),
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: overlayTokens.controlTrailingGap),
             ],
           ),
         ),

@@ -49,7 +49,10 @@ void main() {
       ),
     );
 
-    expect(tester.getSize(find.byType(Tab).first).height, 40);
+    expect(
+      tester.getSize(find.byType(Tab).first).height,
+      sakuraThemeData.appNavigationTokens.desktopTabHeight,
+    );
   });
 
   testWidgets('desktop app tab bar uses labelMedium font size', (
@@ -71,7 +74,10 @@ void main() {
     final labelStyle = tabBar.labelStyle as TextStyle;
     final unselectedLabelStyle = tabBar.unselectedLabelStyle as TextStyle;
 
-    expect(labelStyle.fontSize, sakuraThemeData.textTheme.labelMedium!.fontSize);
+    expect(
+      labelStyle.fontSize,
+      sakuraThemeData.textTheme.labelMedium!.fontSize,
+    );
     expect(
       unselectedLabelStyle.fontSize,
       sakuraThemeData.textTheme.labelMedium!.fontSize,
@@ -84,7 +90,10 @@ void main() {
       tabs: [Tab(text: 'A')],
     );
 
-    expect(widget.preferredSize.height, 32);
+    expect(
+      widget.preferredSize.height,
+      AppNavigationTokens.defaults().compactTabHeight,
+    );
   });
 
   test('mobileTop app tab bar reports mobile preferred height', () {
@@ -93,7 +102,10 @@ void main() {
       tabs: [Tab(text: 'A')],
     );
 
-    expect(widget.preferredSize.height, 48);
+    expect(
+      widget.preferredSize.height,
+      AppNavigationTokens.defaults().mobileTopTabHeight,
+    );
   });
 
   testWidgets('mobileTop app tab bar centers tabs and allows scroll layout', (

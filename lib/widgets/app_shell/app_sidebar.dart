@@ -368,10 +368,10 @@ class _AppSidebarItemState extends State<AppSidebarItem> {
                     Expanded(
                       child: Text(
                         widget.label,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        style: Theme.of(
+                          context,
+                        ).textTheme.labelMedium?.copyWith(
                           color: foregroundColor,
-                          fontSize:
-                              Theme.of(context).textTheme.labelMedium?.fontSize,
                           fontWeight:
                               widget.selected
                                   ? FontWeight.w700

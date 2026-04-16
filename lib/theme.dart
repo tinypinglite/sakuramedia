@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme/app_component_tokens.dart';
 import 'package:sakuramedia/theme/app_colors.dart';
+import 'package:sakuramedia/theme/app_form_tokens.dart';
+import 'package:sakuramedia/theme/app_layout_tokens.dart';
+import 'package:sakuramedia/theme/app_navigation_tokens.dart';
+import 'package:sakuramedia/theme/app_overlay_tokens.dart';
 import 'package:sakuramedia/theme/app_radius.dart';
 import 'package:sakuramedia/theme/app_shadows.dart';
 import 'package:sakuramedia/theme/app_sidebar_tokens.dart';
@@ -8,6 +12,10 @@ import 'package:sakuramedia/theme/app_spacing.dart';
 
 export 'package:sakuramedia/theme/app_component_tokens.dart';
 export 'package:sakuramedia/theme/app_colors.dart';
+export 'package:sakuramedia/theme/app_form_tokens.dart';
+export 'package:sakuramedia/theme/app_layout_tokens.dart';
+export 'package:sakuramedia/theme/app_navigation_tokens.dart';
+export 'package:sakuramedia/theme/app_overlay_tokens.dart';
 export 'package:sakuramedia/theme/app_page_insets.dart';
 export 'package:sakuramedia/theme/app_radius.dart';
 export 'package:sakuramedia/theme/app_shadows.dart';
@@ -90,6 +98,10 @@ final sakuraThemeData = ThemeData.light(useMaterial3: true).copyWith(
   extensions: const <ThemeExtension<dynamic>>[
     AppColors.defaults(),
     AppComponentTokens.defaults(),
+    AppFormTokens.defaults(),
+    AppLayoutTokens.defaults(),
+    AppNavigationTokens.defaults(),
+    AppOverlayTokens.defaults(),
     AppSpacing.defaults(),
     AppRadius.defaults(),
     AppSidebarTokens.defaults(),

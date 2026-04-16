@@ -165,6 +165,38 @@ void main() {
     expect(find.text('用户名或密码错误'), findsOneWidget);
   });
 
+  testWidgets('shows clear server connection message after transport failure', (
+    WidgetTester tester,
+  ) async {
+    adapter.enqueueResponder(
+      method: 'POST',
+      path: '/auth/tokens',
+      responder: (RequestOptions options, dynamic _) async {
+        throw DioException(
+          requestOptions: options,
+          type: DioExceptionType.connectionError,
+          message:
+              'The connection errored: The XMLHttpRequest onError callback was called.',
+        );
+      },
+    );
+
+    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi);
+    await _fillValidLoginForm(tester);
+
+    await tester.tap(find.byKey(const Key('login-submit-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('login-error-message')), findsOneWidget);
+    expect(
+      find.text(
+        '无法连接到服务器：https://api.example.com。请检查后端地址是否正确、服务是否已启动，或网络是否可达。',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('XMLHttpRequest onError'), findsNothing);
+  });
+
   testWidgets('centers login card vertically on desktop viewport', (
     WidgetTester tester,
   ) async {

@@ -50,6 +50,7 @@ class AppTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = context.appColors;
+    final formTokens = context.appFormTokens;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,7 +63,7 @@ class AppTextField extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(height: context.appSpacing.sm),
+          SizedBox(height: formTokens.labelGap),
         ],
         TextFormField(
           key: fieldKey,
@@ -91,6 +92,7 @@ class AppTextField extends StatelessWidget {
   InputDecoration _buildDecoration(BuildContext context) {
     final theme = Theme.of(context);
     final colors = context.appColors;
+    final formTokens = context.appFormTokens;
 
     OutlineInputBorder border(Color color) => OutlineInputBorder(
       borderRadius: context.appRadius.smBorder,
@@ -112,8 +114,8 @@ class AppTextField extends StatelessWidget {
       filled: true,
       fillColor: colors.surfaceMuted,
       contentPadding: EdgeInsets.symmetric(
-        horizontal: context.appSpacing.lg,
-        vertical: 14,
+        horizontal: formTokens.fieldHorizontalPadding,
+        vertical: formTokens.fieldVerticalPadding,
       ),
       prefixIcon:
           prefix == null

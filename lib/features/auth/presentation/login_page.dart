@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
@@ -92,10 +93,7 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
       setState(() {
-        _submitError =
-            error.error?.message.isNotEmpty == true
-                ? error.error!.message
-                : (error.message.isNotEmpty ? error.message : '登录失败，请稍后重试');
+        _submitError = apiErrorMessage(error, fallback: '登录失败，请稍后重试');
       });
     } catch (_) {
       if (!mounted) {

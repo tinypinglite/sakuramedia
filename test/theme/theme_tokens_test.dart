@@ -9,6 +9,10 @@ void main() {
   ) async {
     late AppColors colors;
     late AppComponentTokens componentTokens;
+    late AppFormTokens formTokens;
+    late AppLayoutTokens layoutTokens;
+    late AppNavigationTokens navigationTokens;
+    late AppOverlayTokens overlayTokens;
     late AppSpacing spacing;
     late AppRadius radius;
     late AppSidebarTokens sidebarTokens;
@@ -21,6 +25,10 @@ void main() {
           builder: (context) {
             colors = context.appColors;
             componentTokens = context.appComponentTokens;
+            formTokens = context.appFormTokens;
+            layoutTokens = context.appLayoutTokens;
+            navigationTokens = context.appNavigationTokens;
+            overlayTokens = context.appOverlayTokens;
             spacing = context.appSpacing;
             radius = context.appRadius;
             sidebarTokens = context.appSidebarTokens;
@@ -44,6 +52,11 @@ void main() {
     expect(colors.desktopSidebarGlassTint, const Color(0x4CEFEFEF));
     expect(colors.desktopSidebarGlassHover, const Color(0x80FFFFFF));
     expect(colors.desktopSidebarGlassActive, const Color(0x99FFFFFF));
+    expect(colors.selectionSurface, const Color(0xFFEAF3FF));
+    expect(colors.infoForeground, const Color(0xFF175CD3));
+    expect(colors.warningForeground, const Color(0xFFB54708));
+    expect(colors.errorAccentForeground, const Color(0xFFF04438));
+    expect(colors.successForeground, const Color(0xFF027A48));
     expect(spacing.xl, 24);
     expect(radius.lg, 16);
     expect(componentTokens.overviewStatTileMinWidth, 150);
@@ -78,6 +91,22 @@ void main() {
     expect(componentTokens.mobileFollowMovieCardHeight, 150);
     expect(componentTokens.mobileFollowMovieThinCoverWidth, 96);
     expect(componentTokens.mobileFollowMovieStillWidth, 86);
+    expect(formTokens.labelGap, 8);
+    expect(formTokens.compactFieldHeight, 36);
+    expect(formTokens.menuItemHeight, 40);
+    expect(formTokens.menuMaxHeight, 240);
+    expect(layoutTokens.dialogWidthSm, 420);
+    expect(layoutTokens.dialogWidthMd, 520);
+    expect(layoutTokens.emptySectionVerticalPadding, 48);
+    expect(navigationTokens.desktopTabHeight, 40);
+    expect(navigationTokens.compactTabHeight, 32);
+    expect(navigationTokens.mobileIndicatorThickness, 5);
+    expect(overlayTokens.menuWidthSm, 144);
+    expect(overlayTokens.menuWidthMd, 188);
+    expect(overlayTokens.playerDrawerWidth, 196);
+    expect(overlayTokens.playerInfoDrawerWidth, 360);
+    expect(overlayTokens.controlLabelFontSize, 14);
+    expect(overlayTokens.playerSeekBarBottomInset, 75);
     expect(
       componentTokens.moviePlayerThumbnailAspectRatio,
       closeTo(16 / 9, 0.0001),

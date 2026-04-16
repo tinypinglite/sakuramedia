@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:sakuramedia/theme.dart';
 import 'package:window_manager/window_manager.dart';
 
 Future<void> bootstrapDesktopWindow() async {
@@ -9,7 +10,8 @@ Future<void> bootstrapDesktopWindow() async {
     size: const Size(1440, 800),
     minimumSize: const Size(1440, 800),
     center: true,
-    backgroundColor: isMacOS ? Colors.transparent : const Color(0xFFFFFFFF),
+    backgroundColor:
+        isMacOS ? Colors.transparent : const AppColors.defaults().surfaceCard,
     skipTaskbar: false,
     titleBarStyle: isMacOS ? TitleBarStyle.hidden : TitleBarStyle.normal,
     windowButtonVisibility: true,

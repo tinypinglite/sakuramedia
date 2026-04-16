@@ -157,7 +157,6 @@ class MediaPreviewActionTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: textColor,
               ),

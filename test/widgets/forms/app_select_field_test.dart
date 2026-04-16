@@ -125,7 +125,13 @@ void main() {
     );
 
     final triggerRect = tester.getRect(findTriggerSurface());
-    expect(triggerRect.height, moreOrLessEquals(36, epsilon: 0.1));
+    expect(
+      triggerRect.height,
+      moreOrLessEquals(
+        sakuraThemeData.appFormTokens.compactFieldHeight,
+        epsilon: 0.1,
+      ),
+    );
   });
 
   testWidgets('applies custom text style to trigger and menu items', (

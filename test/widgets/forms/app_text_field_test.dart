@@ -95,4 +95,40 @@ void main() {
     expect(errorBorder.borderSide.color, sakuraThemeData.colorScheme.error);
     expect(find.text('请输入内容'), findsOneWidget);
   });
+
+  testWidgets('uses form tokens for label gap and content padding', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const Material(
+          child: AppTextField(
+            fieldKey: Key('sized-field'),
+            label: '名称',
+            hintText: '请输入名称',
+          ),
+        ),
+      ),
+    );
+
+    final sizedBox = tester.widget<SizedBox>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is SizedBox &&
+            widget.height == sakuraThemeData.appFormTokens.labelGap,
+      ),
+    );
+    final decoration =
+        tester.widget<InputDecorator>(find.byType(InputDecorator)).decoration;
+
+    expect(sizedBox.height, sakuraThemeData.appFormTokens.labelGap);
+    expect(
+      decoration.contentPadding,
+      EdgeInsets.symmetric(
+        horizontal: sakuraThemeData.appFormTokens.fieldHorizontalPadding,
+        vertical: sakuraThemeData.appFormTokens.fieldVerticalPadding,
+      ),
+    );
+  });
 }

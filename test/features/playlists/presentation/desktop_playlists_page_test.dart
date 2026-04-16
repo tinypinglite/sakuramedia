@@ -196,6 +196,34 @@ void main() {
     expect(find.text('稍后再看'), findsOneWidget);
   });
 
+  testWidgets('playlists page shows clear server connection message', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueResponder(
+      method: 'GET',
+      path: '/playlists',
+      responder: (RequestOptions options, dynamic _) async {
+        throw DioException(
+          requestOptions: options,
+          type: DioExceptionType.connectionError,
+          message:
+              'The connection errored: The XMLHttpRequest onError callback was called.',
+        );
+      },
+    );
+
+    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(
+        '无法连接到服务器：https://api.example.com。请检查后端地址是否正确、服务是否已启动，或网络是否可达。',
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('XMLHttpRequest onError'), findsNothing);
+  });
+
   testWidgets('playlists page applies locally stored order', (
     WidgetTester tester,
   ) async {

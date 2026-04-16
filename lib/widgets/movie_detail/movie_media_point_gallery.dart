@@ -60,7 +60,7 @@ class MovieMediaPointGallery extends StatelessWidget {
                   child: Padding(
                     padding: EdgeInsets.symmetric(
                       horizontal: spacing.xs,
-                      vertical: 2,
+                      vertical: spacing.xs / 2,
                     ),
                     child: Text(
                       formatMediaTimecode(point.offsetSeconds),

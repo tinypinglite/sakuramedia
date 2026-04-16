@@ -653,8 +653,8 @@ class _MovieDetailReviewFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (controller.isLoadingMore) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: context.appSpacing.sm),
         child: Center(
           child: CircularProgressIndicator.adaptive(
             key: Key('movie-detail-review-load-more-progress'),

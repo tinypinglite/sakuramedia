@@ -48,12 +48,15 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
   _AppTabBarStyleSpec _spec(BuildContext context) {
     final colors = context.appColors;
     final textTheme = Theme.of(context).textTheme;
+    final navigationTokens = context.appNavigationTokens;
 
     switch (variant) {
       case AppTabBarVariant.desktop:
         return _AppTabBarStyleSpec(
-          visualTabHeight: 40,
-          labelPadding: const EdgeInsets.only(right: 10),
+          visualTabHeight: navigationTokens.desktopTabHeight,
+          labelPadding: EdgeInsets.only(
+            right: navigationTokens.desktopTabLabelTrailingPadding,
+          ),
           labelStyle: textTheme.labelMedium!.copyWith(
             fontWeight: FontWeight.w700,
             color: colors.textPrimary,
@@ -66,11 +69,11 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
           tabAlignment: TabAlignment.start,
           dividerColor: colors.divider,
           dividerHeight: 0.5,
-          indicatorThickness: 3,
+          indicatorThickness: navigationTokens.desktopIndicatorThickness,
         );
       case AppTabBarVariant.compact:
         return _AppTabBarStyleSpec(
-          visualTabHeight: 32,
+          visualTabHeight: navigationTokens.compactTabHeight,
           labelPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.sm),
           labelStyle: textTheme.labelMedium!.copyWith(
             fontWeight: FontWeight.w700,
@@ -84,12 +87,12 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
           tabAlignment: TabAlignment.start,
           dividerColor: Colors.transparent,
           dividerHeight: 0,
-          indicatorThickness: 3,
+          indicatorThickness: navigationTokens.compactIndicatorThickness,
         );
       case AppTabBarVariant.mobileTop:
         return _AppTabBarStyleSpec(
           dividerHeight: 0,
-          visualTabHeight: context.appComponentTokens.mobileTopTabHeight,
+          visualTabHeight: navigationTokens.mobileTopTabHeight,
           labelPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.sm),
           labelStyle: textTheme.titleSmall!.copyWith(
             fontWeight: FontWeight.w700,
@@ -102,7 +105,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
           isScrollable: true,
           tabAlignment: TabAlignment.center,
           dividerColor: colors.divider,
-          indicatorThickness: 5,
+          indicatorThickness: navigationTokens.mobileIndicatorThickness,
         );
     }
   }
@@ -156,13 +159,14 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   double _specFallbackHeight(AppTabBarVariant value) {
+    final navigationTokens = const AppNavigationTokens.defaults();
     switch (value) {
       case AppTabBarVariant.desktop:
-        return 40;
+        return navigationTokens.desktopTabHeight;
       case AppTabBarVariant.compact:
-        return 32;
+        return navigationTokens.compactTabHeight;
       case AppTabBarVariant.mobileTop:
-        return 48;
+        return navigationTokens.mobileTopTabHeight;
     }
   }
 }

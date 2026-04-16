@@ -358,9 +358,11 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
 
   Widget _buildResultSection(BuildContext context) {
     if (_controller.isSearching && _controller.items.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 48),
+          padding: EdgeInsets.symmetric(
+            vertical: context.appLayoutTokens.emptySectionVerticalPadding,
+          ),
           child: CircularProgressIndicator(
             key: Key('desktop-image-search-loading-indicator'),
           ),

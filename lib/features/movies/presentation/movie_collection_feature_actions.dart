@@ -246,7 +246,6 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
                   : (isCollection ? '标记为单体' : '标记为合集'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: colors.textPrimary,
-                fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -281,7 +280,6 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
                 '将"$feature"加入合集特征',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colors.textPrimary,
-                  fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               ),

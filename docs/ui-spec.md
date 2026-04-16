@@ -75,10 +75,21 @@
 - `AppRadius`
 - `AppShadows`
 - `AppComponentTokens`
+- `AppFormTokens`
+- `AppNavigationTokens`
+- `AppOverlayTokens`
+- `AppLayoutTokens`
 - `AppSidebarTokens`
 - `AppPageInsets`
 
 业务页面和共享组件应通过 `context.appColors`、`context.appSpacing` 等扩展读取，不直接散落裸值。
+
+当前仓库已经增加源码守卫测试，非 `lib/theme/**` 文件禁止新增以下视觉字面量：
+
+- `Color(...)`
+- `fontSize: <number>`
+- 带数字字面量的 `EdgeInsets.*(...)`
+- `BorderRadius.circular(<number>)` / `Radius.circular(<number>)`
 
 ### 4.2 颜色基线
 
@@ -102,6 +113,17 @@
 - `borderSubtle`: `#E5E5E5`
 - `borderStrong`: `#D6D6D6`
 - `divider`: `#E8E8E8`
+- `selectionSurface`: `#EAF3FF`
+- `selectionForeground`: `#1677FF`
+- `infoSurface`: `#EFF6FF`
+- `infoForeground`: `#175CD3`
+- `warningSurface`: `#FFF4E5`
+- `warningForeground`: `#B54708`
+- `errorSurface`: `#FFF1EF`
+- `errorForeground`: `#B42318`
+- `errorAccentForeground`: `#F04438`
+- `successSurface`: `#ECFDF3`
+- `successForeground`: `#027A48`
 - `subscriptionHeartIcon`: `#D44B5C`
 - `movieCardSubscribedBadgeBackground`: `#F97316`
 - `movieCardPlayableBadgeBackground`: `#1677FF`
@@ -131,11 +153,11 @@
 - `bodyLarge`: 16 / 常规
 - `bodyMedium`: 14 / 常规
 - `bodySmall`: 12 / 常规
-- `labelLarge`: 16 / 600
-- `labelMedium`: 14 / 500
-- `labelSmall`: 12 / 500
+- `labelLarge`: 14 / 500
+- `labelMedium`: 13 / 300
+- `labelSmall`: 10 / 100
 
-页面标题、区块标题、正文、辅助文案都应优先复用这些层级。
+页面标题、区块标题、正文、辅助文案都应优先复用这些层级。播放器浮层标签、Badge 文案、Tab 高度和表单触发高度等不再在页面里单独写字面量，统一由 `AppOverlayTokens`、`AppNavigationTokens`、`AppFormTokens` 提供。
 
 ### 4.4 间距、圆角、阴影
 
@@ -167,6 +189,15 @@
 - `AppPageInsets.desktopStandard = 24`
 - `AppPageInsets.compactStandard = 8`
 
+表单与导航补充 token：
+
+- `AppFormTokens.labelGap = 8`
+- `AppFormTokens.compactFieldHeight = 36`
+- `AppFormTokens.menuItemHeight = 40`
+- `AppNavigationTokens.desktopTabHeight = 40`
+- `AppNavigationTokens.compactTabHeight = 32`
+- `AppNavigationTokens.mobileTopTabHeight = 48`
+
 ### 4.5 结构尺寸 token
 
 当前几个关键尺寸：
@@ -196,8 +227,12 @@
 - 移动端关注影片卡高度：`150`
 - 移动端关注影片窄封面宽度：`96`
 - 移动端关注影片剧照缩略图宽度：`86`
+- 通用小弹窗宽度：`420`
+- 通用中弹窗宽度：`520`
+- 索引器/活动页筛选宽度档位：`160 / 180 / 200 / 220`
+- 通用浮层菜单宽度档位：`144 / 188`
 
-新增会影响复用和视觉稳定性的尺寸时，应进入 `AppComponentTokens` 或 `AppSidebarTokens`。
+新增会影响复用和视觉稳定性的尺寸时，应优先进入 `AppComponentTokens`、`AppFormTokens`、`AppNavigationTokens`、`AppOverlayTokens` 或 `AppLayoutTokens`，不要以页面名新增私有常量。
 
 ### 4.6 Icon Size 基线
 

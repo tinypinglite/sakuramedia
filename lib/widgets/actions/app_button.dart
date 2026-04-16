@@ -69,7 +69,7 @@ class AppButton extends StatelessWidget {
       AppButtonVariant.secondary =>
         isSecondarySelected ? theme.colorScheme.primary : colors.textPrimary,
       AppButtonVariant.ghost => theme.colorScheme.primary,
-      AppButtonVariant.danger => const Color(0xFFB42318),
+      AppButtonVariant.danger => colors.errorForeground,
     };
 
     final backgroundColor = switch (variant) {
@@ -82,7 +82,7 @@ class AppButton extends StatelessWidget {
         isGhostSelected
             ? theme.colorScheme.primary.withValues(alpha: 0.08)
             : Colors.transparent,
-      AppButtonVariant.danger => const Color(0xFFFEECEB),
+      AppButtonVariant.danger => colors.errorSurface,
     };
 
     final borderColor = switch (variant) {
@@ -91,7 +91,7 @@ class AppButton extends StatelessWidget {
         isSecondarySelected ? theme.colorScheme.primary : colors.borderStrong,
       AppButtonVariant.ghost =>
         isGhostSelected ? theme.colorScheme.primary : Colors.transparent,
-      AppButtonVariant.danger => const Color(0xFFF6C7C4),
+      AppButtonVariant.danger => colors.errorForeground.withValues(alpha: 0.2),
     };
 
     final disabledColor = colors.borderSubtle;

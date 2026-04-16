@@ -113,9 +113,11 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
 
   Widget _buildBody(BuildContext context) {
     if (_controller.isInitialLoading) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 48),
+          padding: EdgeInsets.symmetric(
+            vertical: context.appLayoutTokens.emptySectionVerticalPadding,
+          ),
           child: CircularProgressIndicator(),
         ),
       );

@@ -9,6 +9,7 @@ class MoviePlayerBackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final componentTokens = context.appComponentTokens;
+    final overlayTokens = context.appOverlayTokens;
 
     return Material(
       type: MaterialType.transparency,
@@ -18,12 +19,12 @@ class MoviePlayerBackButton extends StatelessWidget {
         borderRadius: context.appRadius.pillBorder,
         onTap: onPressed,
         child: SizedBox(
-          width: 44,
-          height: 44,
+          width: overlayTokens.playerBackBadgeMinHeight,
+          height: overlayTokens.playerBackBadgeMinHeight,
           child: Icon(
             Icons.arrow_back_ios_new_rounded,
             size: componentTokens.iconSizeSm,
-            color: Colors.white,
+            color: context.appColors.textOnMedia,
           ),
         ),
       ),
@@ -39,6 +40,7 @@ class MoviePlayerInfoButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final componentTokens = context.appComponentTokens;
+    final overlayTokens = context.appOverlayTokens;
     return Tooltip(
       message: '播放信息',
       child: Material(
@@ -49,12 +51,12 @@ class MoviePlayerInfoButton extends StatelessWidget {
           borderRadius: context.appRadius.pillBorder,
           onTap: onPressed,
           child: SizedBox(
-            width: 44,
-            height: 44,
+            width: overlayTokens.playerBackBadgeMinHeight,
+            height: overlayTokens.playerBackBadgeMinHeight,
             child: Icon(
               Icons.info_outline_rounded,
               size: componentTokens.iconSizeSm,
-              color: Colors.white,
+              color: context.appColors.textOnMedia,
             ),
           ),
         ),
@@ -71,6 +73,8 @@ class MoviePlayerCurrentNumberBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = context.appColors;
+    final overlayTokens = context.appOverlayTokens;
     final resolvedMovieNumber = movieNumber.trim();
 
     return Material(
@@ -78,16 +82,23 @@ class MoviePlayerCurrentNumberBadge extends StatelessWidget {
       borderRadius: context.appRadius.pillBorder,
       child: Container(
         key: const Key('movie-player-current-number'),
-        constraints: const BoxConstraints(minHeight: 44, maxWidth: 280),
+        constraints: BoxConstraints(
+          minHeight: overlayTokens.playerBackBadgeMinHeight,
+          maxWidth: overlayTokens.playerBackBadgeMaxWidth,
+        ),
         alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        padding: EdgeInsets.symmetric(
+          horizontal: overlayTokens.controlTrailingGap,
+        ),
         child: Text(
           resolvedMovieNumber,
           style: theme.textTheme.labelLarge?.copyWith(
-            color: Colors.white.withValues(alpha: 0.94),
-            fontSize: 14,
+            color: colors.textOnMedia.withValues(
+              alpha: overlayTokens.primaryLabelAlpha,
+            ),
+            fontSize: overlayTokens.controlLabelFontSize,
             fontWeight: FontWeight.w500,
-            height: 1.0,
+            height: overlayTokens.controlLabelHeight,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -114,7 +125,7 @@ class MoviePlayerBackWithNumberControl extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         MoviePlayerBackButton(onPressed: onPressed),
-        const SizedBox(width: 2),
+        SizedBox(width: context.appSpacing.xs / 2),
         MoviePlayerCurrentNumberBadge(movieNumber: movieNumber),
       ],
     );
@@ -128,9 +139,13 @@ class MoviePlayerBackOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final overlayTokens = context.appOverlayTokens;
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.only(left: 12, top: 24),
+        padding: EdgeInsets.only(
+          left: overlayTokens.playerBackOverlayLeft,
+          top: overlayTokens.playerBackOverlayTop,
+        ),
         child: MoviePlayerBackButton(onPressed: onPressed),
       ),
     );

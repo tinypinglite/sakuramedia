@@ -15,6 +15,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
@@ -491,14 +492,14 @@ class _ConnectionBanner extends StatelessWidget {
         context,
       ).colorScheme.primary.withValues(alpha: 0.08),
       ActivityConnectionState.connecting => colors.surfaceMuted,
-      ActivityConnectionState.reconnecting => const Color(0xFFFFF4E5),
-      ActivityConnectionState.polling => const Color(0xFFEFF6FF),
+      ActivityConnectionState.reconnecting => colors.warningSurface,
+      ActivityConnectionState.polling => colors.infoSurface,
     };
     final foregroundColor = switch (state) {
       ActivityConnectionState.live => Theme.of(context).colorScheme.primary,
       ActivityConnectionState.connecting => colors.textSecondary,
-      ActivityConnectionState.reconnecting => const Color(0xFFB54708),
-      ActivityConnectionState.polling => const Color(0xFF175CD3),
+      ActivityConnectionState.reconnecting => colors.warningForeground,
+      ActivityConnectionState.polling => colors.infoForeground,
     };
     final icon = switch (state) {
       ActivityConnectionState.live => Icons.bolt_rounded,
@@ -557,6 +558,7 @@ class _NotificationFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final layoutTokens = context.appLayoutTokens;
     final filterTextStyle = Theme.of(context).textTheme.labelMedium;
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -564,7 +566,7 @@ class _NotificationFilterBar extends StatelessWidget {
       runSpacing: context.appSpacing.md,
       children: [
         SizedBox(
-          width: 180,
+          width: layoutTokens.filterFieldWidthMd,
           child: AppSelectField<String?>(
             key: const Key('activity-notification-category-filter'),
             value: controller.notificationFilter.category,
@@ -588,7 +590,7 @@ class _NotificationFilterBar extends StatelessWidget {
           ),
         ),
         SizedBox(
-          width: 180,
+          width: layoutTokens.filterFieldWidthMd,
           child: AppSelectField<String?>(
             key: const Key('activity-notification-level-filter'),
             value: controller.notificationFilter.level,
@@ -612,7 +614,7 @@ class _NotificationFilterBar extends StatelessWidget {
           ),
         ),
         SizedBox(
-          width: 160,
+          width: layoutTokens.filterFieldWidthSm,
           child: AppSelectField<ActivityNotificationArchivedFilter>(
             key: const Key('activity-notification-archived-filter'),
             value: controller.notificationFilter.archivedFilter,
@@ -666,6 +668,7 @@ class _TaskFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final layoutTokens = context.appLayoutTokens;
     final filterTextStyle = Theme.of(context).textTheme.labelMedium;
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -673,7 +676,7 @@ class _TaskFilterBar extends StatelessWidget {
       runSpacing: context.appSpacing.md,
       children: [
         SizedBox(
-          width: 180,
+          width: layoutTokens.filterFieldWidthMd,
           child: AppSelectField<String?>(
             key: const Key('activity-task-state-filter'),
             value: controller.taskFilter.state,
@@ -697,7 +700,7 @@ class _TaskFilterBar extends StatelessWidget {
           ),
         ),
         SizedBox(
-          width: 200,
+          width: layoutTokens.filterFieldWidthLg,
           child: AppSelectField<String?>(
             key: const Key('activity-task-key-filter'),
             value: controller.taskFilter.taskKey,
@@ -722,7 +725,7 @@ class _TaskFilterBar extends StatelessWidget {
           ),
         ),
         SizedBox(
-          width: 180,
+          width: layoutTokens.filterFieldWidthMd,
           child: AppSelectField<String?>(
             key: const Key('activity-task-trigger-filter'),
             value: controller.taskFilter.triggerType,
@@ -749,7 +752,7 @@ class _TaskFilterBar extends StatelessWidget {
           ),
         ),
         SizedBox(
-          width: 220,
+          width: layoutTokens.filterFieldWidthXl,
           child: AppSelectField<ActivityTaskSort>(
             key: const Key('activity-task-sort-filter'),
             value: controller.taskFilter.sort,
@@ -874,16 +877,9 @@ class _NotificationCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: context.appSpacing.md),
-                _Badge(
+                AppBadge(
                   label: _labelForNotificationLevel(notification.level),
-                  foregroundColor: _notificationLevelColor(
-                    context,
-                    notification.level,
-                  ),
-                  backgroundColor: _notificationLevelColor(
-                    context,
-                    notification.level,
-                  ).withValues(alpha: 0.10),
+                  tone: _notificationLevelTone(notification.level),
                 ),
               ],
             ),
@@ -893,10 +889,9 @@ class _NotificationCard extends StatelessWidget {
               runSpacing: context.appSpacing.sm,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                _Badge(
+                AppBadge(
                   label: _labelForNotificationCategory(notification.category),
-                  foregroundColor: colors.textSecondary,
-                  backgroundColor: colors.surfaceMuted,
+                  tone: AppBadgeTone.neutral,
                 ),
                 Text(
                   _formatDate(notification.createdAt, dateFormat),
@@ -1001,13 +996,9 @@ class _TaskRunCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: context.appSpacing.md),
-              _Badge(
+              AppBadge(
                 label: _labelForTaskState(taskRun.state),
-                foregroundColor: _taskStateColor(context, taskRun.state),
-                backgroundColor: _taskStateColor(
-                  context,
-                  taskRun.state,
-                ).withValues(alpha: 0.10),
+                tone: _taskStateTone(taskRun.state),
               ),
             ],
           ),
@@ -1027,10 +1018,9 @@ class _TaskRunCard extends StatelessWidget {
             spacing: context.appSpacing.sm,
             runSpacing: context.appSpacing.sm,
             children: [
-              _Badge(
+              AppBadge(
                 label: _labelForTriggerType(taskRun.triggerType),
-                foregroundColor: colors.textSecondary,
-                backgroundColor: colors.surfaceMuted,
+                tone: AppBadgeTone.neutral,
               ),
               Text(
                 _taskTimeSummary(taskRun, dateFormat),
@@ -1055,39 +1045,6 @@ class _TaskRunCard extends StatelessWidget {
   }
 }
 
-class _Badge extends StatelessWidget {
-  const _Badge({
-    required this.label,
-    required this.foregroundColor,
-    required this.backgroundColor,
-  });
-
-  final String label;
-  final Color foregroundColor;
-  final Color backgroundColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: context.appSpacing.sm,
-        vertical: context.appSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: context.appRadius.pillBorder,
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: foregroundColor,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
 String _formatDate(DateTime? value, DateFormat formatter) {
   if (value == null) {
     return '时间未知';
@@ -1105,21 +1062,21 @@ String _taskTimeSummary(TaskRunDto item, DateFormat formatter) {
   return '创建于 ${_formatDate(item.createdAt, formatter)}';
 }
 
-Color _notificationLevelColor(BuildContext context, String level) {
+AppBadgeTone _notificationLevelTone(String level) {
   return switch (level) {
-    'error' => const Color(0xFFB42318),
-    'warning' => const Color(0xFFB54708),
-    _ => Theme.of(context).colorScheme.primary,
+    'error' => AppBadgeTone.error,
+    'warning' => AppBadgeTone.warning,
+    _ => AppBadgeTone.primary,
   };
 }
 
-Color _taskStateColor(BuildContext context, String state) {
+AppBadgeTone _taskStateTone(String state) {
   return switch (state) {
-    'failed' => const Color(0xFFB42318),
-    'completed' => const Color(0xFF027A48),
-    'running' => Theme.of(context).colorScheme.primary,
-    'pending' => const Color(0xFFB54708),
-    _ => context.appColors.textSecondary,
+    'failed' => AppBadgeTone.error,
+    'completed' => AppBadgeTone.success,
+    'running' => AppBadgeTone.primary,
+    'pending' => AppBadgeTone.warning,
+    _ => AppBadgeTone.neutral,
   };
 }
 
