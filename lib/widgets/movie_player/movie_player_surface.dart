@@ -332,7 +332,12 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   void initState() {
     super.initState();
     _player = Player(configuration: buildMoviePlayerConfiguration());
-    _controller = VideoController(_player);
+    _controller = VideoController(
+      _player,
+      configuration: const VideoControllerConfiguration(
+        hwdec: 'auto',
+      ),
+    );
     _currentPlaybackRate = _player.state.rate;
     _readiness = MoviePlayerSurfaceReadiness();
     _playbackDriver = _MediaKitMoviePlayerSurfacePlaybackDriver(
