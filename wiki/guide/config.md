@@ -38,6 +38,7 @@
 - `database`
 - `auth`
 - `metadata`
+- `movie_desc_translation`（如果你准备启用简介翻译）
 - `image_search`
 - `scheduler`
 
@@ -52,6 +53,7 @@
 - `[auth]`
 - `[media]`
 - `[metadata]`
+- `[movie_desc_translation]`
 - `[scheduler]`
 - `[logging]`
 - `[indexer_settings]`
@@ -238,6 +240,7 @@ max_thumbnail_process_count = 4
 [metadata]
 javdb_host = "apidd.btyjscl.com"
 proxy = ""
+dmm_proxy = ""
 gfriends_filetree_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends/Filetree.json"
 gfriends_cdn_base_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends"
 gfriends_filetree_cache_path = "/data/cache/gfriends/gfriends-filetree.json"
@@ -251,6 +254,7 @@ import_metadata_max_workers = 3
 |---|---|
 | `javdb_host` | JavDB API 域名，不带协议头 |
 | `proxy` | GFriends 使用的 HTTP 代理地址 |
+| `dmm_proxy` | DMM 描述抓取使用的 HTTP 代理地址 |
 | `gfriends_filetree_url` | GFriends 文件树索引地址 |
 | `gfriends_cdn_base_url` | GFriends CDN 根地址 |
 | `gfriends_filetree_cache_path` | GFriends 文件树本地缓存路径 |
@@ -260,8 +264,41 @@ import_metadata_max_workers = 3
 建议：
 
 - 大多数场景只会关心 `proxy`
+- `dmm_proxy` 只用于 DMM 描述抓取链路，应该配置可访问 DMM 的日本 IP 代理
+- 如果 `dmm_proxy` 不是日本 IP，影片原文描述抓取可能失败或结果不稳定
 - 如果头像下载正常，`proxy` 可以保持空
 - `javdb_host`、GFriends 相关地址通常不建议随便改
+
+## `[movie_desc_translation]`
+
+这一组控制影片简介翻译任务连接的外部 OpenAI 兼容大模型接口。
+
+```toml
+[movie_desc_translation]
+enabled = false
+base_url = "http://localhost:8000"
+api_key = ""
+model = "gpt-4o-mini"
+timeout_seconds = 300
+connect_timeout_seconds = 3
+```
+
+字段说明：
+
+| 字段 | 作用 |
+|---|---|
+| `enabled` | 是否启用影片简介翻译任务 |
+| `base_url` | OpenAI 兼容大模型接口地址 |
+| `api_key` | 大模型接口 API Key |
+| `model` | 翻译使用的模型名称 |
+| `timeout_seconds` | 翻译请求总超时秒数 |
+| `connect_timeout_seconds` | 翻译请求建连超时秒数 |
+
+建议：
+
+- 如果你暂时不需要中文简介，可以保持 `enabled = false`
+- 真正启用前，先用 [常用命令](/guide/commands) 里的 `test-trans` 验证这个 OpenAI 格式接口是否可用
+- 这组配置只影响简介翻译，不影响影片原文描述抓取
 
 ## `[scheduler]`
 
@@ -277,9 +314,12 @@ download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "*/3 * * * *"
 movie_collection_sync_cron = "0 1 * * *"
 movie_heat_cron = "15 0 * * *"
+movie_interaction_sync_cron = "0 5 * * *"
 ranking_sync_cron = "45 1 * * *"
 hot_review_sync_cron = "20 1 * * *"
 media_file_scan_cron = "0 */6 * * *"
+movie_desc_sync_cron = "0 4 * * *"
+movie_desc_translation_cron = "15 4 * * *"
 movie_subtitle_fetch_cron = "30 */6 * * *"
 media_thumbnail_cron = "*/5 * * * *"
 image_search_index_cron = "0 0 * * *"
@@ -298,9 +338,12 @@ image_search_optimize_cron = "0 3 * * *"
 | `download_task_auto_import_cron` | 已完成下载自动导入频率 |
 | `movie_collection_sync_cron` | 合集影片同步频率 |
 | `movie_heat_cron` | 影片热度重算频率 |
+| `movie_interaction_sync_cron` | 影片互动数同步频率 |
 | `ranking_sync_cron` | 排行榜同步频率 |
 | `hot_review_sync_cron` | JavDB 热评同步频率 |
 | `media_file_scan_cron` | 媒体文件巡检频率 |
+| `movie_desc_sync_cron` | 影片原文描述回填频率 |
+| `movie_desc_translation_cron` | 影片中文简介翻译频率 |
 | `movie_subtitle_fetch_cron` | 字幕抓取频率 |
 | `media_thumbnail_cron` | 缩略图生成频率 |
 | `image_search_index_cron` | 图片搜索索引生成频率 |
@@ -466,13 +509,13 @@ scalar_index_columns = ["movie_id"]
 
 ## 完整配置示例
 
-下面这份示例整理自后端仓库里的 `config.example.full.toml`，适合拿来做完整参考模板。
+下面这份示例按当前后端代码默认值整理，适合拿来做完整参考模板。
 
 ```toml
 # !!!! 注意配置文件中所有涉及到路径的配置项都应该是用容器内的实际路径，不是宿主机的路径 !!!!
 
 # 是否启 Swagger / ReDoc 文档页面。
-enable_docs = true
+enable_docs = false
 
 [database]
 # 数据库类型，可选值：sqlite、mysql、postgres。
@@ -558,10 +601,12 @@ max_thumbnail_process_count = 4
 
 [metadata]
 # JavDB API 域名，不带协议头。
-javdb_host = "jdforrepam.com"
+javdb_host = "apidd.btyjscl.com"
 # 仅 GFriends 使用的代理地址；JavDB 固定直连。不需要代理时留空。
 # 示例：http://192.168.1.1:7890
 proxy = ""
+# DMM 页面抓取代理地址。不需要代理时留空；这里应配置可访问 DMM 的日本 IP 代理。
+dmm_proxy = ""
 # GFriends 文件树索引地址。
 gfriends_filetree_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends/Filetree.json"
 # GFriends CDN 根地址，用于拼接演员图片资源链接。
@@ -579,27 +624,51 @@ enabled = true
 # 定时任务日志目录。
 log_dir = "/data/logs"
 # 订阅女优影片同步任务 cron 表达式。
-actor_subscription_sync_cron = "0 1 * * *"
+actor_subscription_sync_cron = "0 2 * * *"
+# 已订阅缺失影片自动下载 cron 表达式。
+subscribed_movie_auto_download_cron = "30 2 * * *"
 # 下载任务状态同步 cron 表达式。
-download_task_sync_cron = "*/15 * * * *"
+download_task_sync_cron = "* * * * *"
 # 已完成下载自动导入 cron 表达式。
-download_task_auto_import_cron = "*/10 * * * *"
+download_task_auto_import_cron = "*/3 * * * *"
+# 合集影片同步 cron 表达式。
+movie_collection_sync_cron = "0 1 * * *"
 # 影片热度重算 cron 表达式。
 movie_heat_cron = "15 0 * * *"
+# 影片互动数同步 cron 表达式。
+movie_interaction_sync_cron = "0 5 * * *"
 # 榜单同步 cron 表达式。
 ranking_sync_cron = "45 1 * * *"
 # JavDB 热评同步 cron 表达式。
 hot_review_sync_cron = "20 1 * * *"
-# 标记合集影片。
-movie_collection_sync_cron = "0 3 * * *"
 # 巡检 media 记录对应文件并补视频信息。
 media_file_scan_cron = "0 */6 * * *"
+# 回填历史影片 DMM 原文描述。
+movie_desc_sync_cron = "0 4 * * *"
+# 翻译影片简介为中文。
+movie_desc_translation_cron = "15 4 * * *"
 # 抓取已订阅影片字幕。
 movie_subtitle_fetch_cron = "30 */6 * * *"
 # 生成媒体资源缩略图。
-media_thumbnail_cron = "*/10 * * * *"
+media_thumbnail_cron = "*/5 * * * *"
 # 生成以图搜图缩略图向量。
-image_search_index_cron = "*/10 * * * *"
+image_search_index_cron = "0 0 * * *"
+# 优化以图搜图索引。
+image_search_optimize_cron = "0 3 * * *"
+
+[movie_desc_translation]
+# 是否启用影片简介翻译任务。
+enabled = false
+# OpenAI 兼容服务地址。
+base_url = "http://localhost:8000"
+# OpenAI 兼容服务 API Key；未启用时可留空。
+api_key = ""
+# 翻译使用的模型名称。
+model = "gpt-4o-mini"
+# 翻译请求总超时秒数。
+timeout_seconds = 300
+# 翻译请求建连超时秒数。
+connect_timeout_seconds = 3
 
 [image_search]
 # JoyTag 独立推理服务地址。

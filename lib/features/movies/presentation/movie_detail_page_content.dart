@@ -10,7 +10,6 @@ import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_actor_wrap.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_bottom_info_bar.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_number_bar.dart';
-import 'package:sakuramedia/widgets/movie_detail/movie_detail_title.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_hero_card.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_section.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_stat_row.dart';
@@ -201,7 +200,6 @@ class MovieDetailPageContent extends StatelessWidget {
       key: const Key('movie-detail-page'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        MovieDetailTitle(title: movie.title, movieNumber: movie.movieNumber),
         MovieDetailHeroCard(
           height: heroHeight,
           mainImageKey: selectedPreviewKey,
@@ -224,7 +222,7 @@ class MovieDetailPageContent extends StatelessWidget {
         SizedBox(height: context.appComponentTokens.movieDetailSectionGap),
         MovieDetailNumberBar(
           movieNumber: movie.movieNumber,
-          summary: movie.summary,
+          summary: movie.preferredDescription,
           wantWatchCount: movie.wantWatchCount,
           watchedCount: movie.watchedCount,
           score: movie.score,
@@ -414,8 +412,6 @@ List<MovieDetailStatItem> buildMovieDetailStatItems(
   final durationLabel =
       movie.durationMinutes > 0 ? '${movie.durationMinutes} 分钟' : '--';
   final scoreLabel = movie.score > 0 ? movie.score.toStringAsFixed(1) : '--';
-  final scoreNumberLabel =
-      movie.scoreNumber > 0 ? '${movie.scoreNumber}' : '--';
   final commentCountLabel =
       movie.commentCount > 0 ? '${movie.commentCount}' : '--';
   final wantWatchCountLabel =

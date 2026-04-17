@@ -21,6 +21,8 @@ class MovieDetailDto {
     required this.isSubscribed,
     required this.canPlay,
     required this.summary,
+    required this.descZh,
+    required this.desc,
     required this.thinCoverImage,
     required this.plotImages,
     required this.actors,
@@ -48,12 +50,24 @@ class MovieDetailDto {
   final bool isSubscribed;
   final bool canPlay;
   final String summary;
+  final String descZh;
+  final String desc;
   final MovieImageDto? thinCoverImage;
   final List<MovieImageDto> plotImages;
   final List<MovieActorDto> actors;
   final List<MovieTagDto> tags;
   final List<MovieMediaItemDto> mediaItems;
   final List<MoviePlaylistSummaryDto> playlists;
+
+  String get preferredDescription {
+    for (final candidate in <String>[descZh, summary, desc]) {
+      final resolved = candidate.trim();
+      if (resolved.isNotEmpty) {
+        return resolved;
+      }
+    }
+    return '';
+  }
 
   factory MovieDetailDto.fromJson(Map<String, dynamic> json) {
     return MovieDetailDto(
@@ -76,6 +90,8 @@ class MovieDetailDto {
       isSubscribed: json['is_subscribed'] as bool? ?? false,
       canPlay: json['can_play'] as bool? ?? false,
       summary: json['summary'] as String? ?? '',
+      descZh: json['desc_zh'] as String? ?? '',
+      desc: json['desc'] as String? ?? '',
       thinCoverImage: _movieImageFromJson(json['thin_cover_image']),
       plotImages: _listFromJson(
         json['plot_images'],

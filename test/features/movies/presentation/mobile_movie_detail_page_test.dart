@@ -434,24 +434,27 @@ void main() {
   );
 
   testWidgets(
-    'mobile movie detail page shows title above hero and summary below movie number',
+    'mobile movie detail page shows preferred description below movie number without title',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
         method: 'GET',
         path: '/movies/ABC-001',
-        body: _movieDetailJson(title: 'ABC-001 4K 中文字幕', summary: '这是影片简介'),
+        body: _movieDetailJson(
+          title: 'ABC-001 4K 中文字幕',
+          summary: '这是影片简介',
+          descZh: '这是中文简介',
+          desc: 'これは日本語紹介です',
+        ),
       );
 
       await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('movie-detail-title')), findsOneWidget);
+      expect(find.byKey(const Key('movie-detail-title')), findsNothing);
       expect(find.byKey(const Key('movie-detail-summary')), findsOneWidget);
-      expect(find.text('ABC-001 4K 中文字幕'), findsOneWidget);
-      expect(find.text('这是影片简介'), findsOneWidget);
+      expect(find.text('ABC-001 4K 中文字幕'), findsNothing);
+      expect(find.text('这是中文简介'), findsOneWidget);
 
-      final titleBottom =
-          tester.getBottomLeft(find.byKey(const Key('movie-detail-title'))).dy;
       final heroTop = tester.getTopLeft(find.byType(MovieDetailHeroCard)).dy;
       final movieNumberBottom =
           tester.getBottomLeft(find.byKey(const Key('movie-detail-number'))).dy;
@@ -462,19 +465,24 @@ void main() {
       final summaryTop =
           tester.getTopLeft(find.byKey(const Key('movie-detail-summary'))).dy;
 
-      expect(titleBottom, lessThan(heroTop));
+      expect(heroTop, lessThan(movieNumberBottom));
       expect(movieNumberBottom, lessThan(interactionTop));
       expect(interactionTop, lessThan(summaryTop));
     },
   );
 
   testWidgets(
-    'mobile movie detail page hides duplicate title and empty summary',
+    'mobile movie detail page hides description when desc_zh summary and desc are empty',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
         method: 'GET',
         path: '/movies/ABC-001',
-        body: _movieDetailJson(title: 'ABC-001', summary: ''),
+        body: _movieDetailJson(
+          title: 'ABC-001',
+          summary: '',
+          descZh: ' ',
+          desc: '',
+        ),
       );
 
       await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
@@ -483,6 +491,43 @@ void main() {
       expect(find.byKey(const Key('movie-detail-title')), findsNothing);
       expect(find.byKey(const Key('movie-detail-summary')), findsNothing);
       expect(find.byKey(const Key('movie-detail-number')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail page falls back to summary for description when desc_zh is blank',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(
+          summary: '这是摘要',
+          descZh: ' ',
+          desc: 'これは日本語紹介です',
+        ),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      expect(find.text('这是摘要'), findsOneWidget);
+      expect(find.text('これは日本語紹介です'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail page falls back to desc for description when desc_zh and summary are blank',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(summary: ' ', descZh: '', desc: 'これは日本語紹介です'),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      expect(find.text('これは日本語紹介です'), findsOneWidget);
     },
   );
 
@@ -1175,6 +1220,8 @@ Future<void> _pumpRouterPage(
 Map<String, dynamic> _movieDetailJson({
   String title = 'Movie 1',
   String summary = '',
+  String descZh = '',
+  String desc = '',
   String makerName = 'S1 NO.1 STYLE',
   String directorName = '紋℃',
   int heat = 0,
@@ -1206,6 +1253,8 @@ Map<String, dynamic> _movieDetailJson({
     'maker_name': makerName,
     'director_name': directorName,
     'summary': summary,
+    'desc_zh': descZh,
+    'desc': desc,
     'actors': <Map<String, dynamic>>[
       <String, dynamic>{
         'id': 1,

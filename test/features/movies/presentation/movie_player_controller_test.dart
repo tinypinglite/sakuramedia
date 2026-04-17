@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
@@ -34,6 +32,8 @@ void main() {
       isSubscribed: true,
       canPlay: true,
       summary: '',
+      descZh: '',
+      desc: '',
       thinCoverImage: null,
       plotImages: const <MovieImageDto>[],
       actors: const <MovieActorDto>[],

@@ -211,6 +211,18 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands aps upda
 - 你刚导入了一批影片
 - 想立刻刷新排行榜、热门排序等依赖热度值的内容
 
+### 同步影片互动数
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands aps sync-movie-interactions
+```
+
+适合场景：
+
+- 想立刻回刷影片评分、想看数、评论数等互动统计
+- 不想等第二天清晨的自动同步
+- 想让依赖互动统计的热度更快更新
+
 ### 同步排行榜
 
 ```bash
@@ -256,6 +268,30 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands aps fetc
 - 想立刻为已订阅影片抓取字幕
 - 不想等字幕任务的下一次定时执行
 
+### 回填影片描述
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands aps sync-movie-desc
+```
+
+适合场景：
+
+- 历史影片已经入库，但详情页里还缺原文描述
+- 你刚补好了 DMM 代理，想立刻重跑一次描述回填
+- 不想等每天清晨的描述回填任务
+
+### 翻译影片简介
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands aps translate-movie-desc
+```
+
+适合场景：
+
+- 原文描述已经补齐，但还没有中文简介
+- 你刚配置好 OpenAI 格式的大模型接口，想立刻验证整批翻译链路
+- 不想等每天清晨的自动翻译任务
+
 ### 生成以图搜图索引
 
 ```bash
@@ -288,6 +324,49 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands aps scan
 ```
 
 这条命令和前面的普通 `scan-media-files` 作用相近，但它会以“后台任务”的形式运行，更方便在活动中心里看进度和结果。
+
+## 外部服务测试命令
+
+这一组命令更适合联调和排障。
+
+- 不会初始化数据库
+- 不会写任务记录
+- 传入 `--json` 后更适合脚本集成或自动化检查
+
+### 测试翻译模型接口
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands test-trans --text "これはテストです"
+```
+
+补充：
+
+- 想从文件读取待翻译文本时，可以改用 `--text-file`
+- 想拿稳定结构化输出时，可以加 `--json`
+- 这个命令本质上是在测试你配置的 OpenAI 兼容大模型接口是否能正常响应
+
+### 测试 JavDB
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands test-javdb --movie-number ABP-123
+```
+
+补充：
+
+- 想输出 JSON 时，可以加 `--json`
+- 如果你要强制走 metadata 代理，可以补 `--use-metadata-proxy`
+
+### 测试 DMM
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands test-dmm --movie-number ABP-123
+```
+
+补充：
+
+- 想输出 JSON 时，可以加 `--json`
+- 实际是否可用强依赖 `metadata.dmm_proxy` 指向可用的日本 IP 代理
+- 如果代理不是日本 IP，DMM 描述抓取通常会失败或结果不稳定
 
 ## 相关页面
 
