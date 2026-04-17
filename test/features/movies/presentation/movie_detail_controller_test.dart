@@ -88,6 +88,8 @@ MovieDetailDto _movieDetail({
     isSubscribed: false,
     canPlay: true,
     summary: '',
+    descZh: '',
+    desc: '',
     thinCoverImage: null,
     plotImages: const <MovieImageDto>[],
     actors: const <MovieActorDto>[],
