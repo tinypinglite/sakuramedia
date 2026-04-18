@@ -22,6 +22,9 @@ class MaskedImage extends StatelessWidget {
              (visibleWidthFactor > 0 && visibleWidthFactor <= 1),
        );
 
+  static const double _decodeDevicePixelRatioCap = 2.0;
+  static const int _decodeSizeUpperBound = 1024;
+
   final String url;
   final BoxFit fit;
   final double? visibleWidthFactor;
@@ -40,39 +43,43 @@ class MaskedImage extends StatelessWidget {
       return const _MaskedImagePlaceholder(icon: Icons.image_outlined);
     }
 
-    final image = CachedNetworkImage(
-      imageUrl: resolvedUrl,
-      fit: fit,
-      memCacheWidth: memCacheWidth,
-      memCacheHeight: memCacheHeight,
-      fadeInDuration: const Duration(milliseconds: 250),
-      fadeOutDuration: const Duration(milliseconds: 150),
-      placeholder: (context, url) {
-        return const _MaskedImagePlaceholder(icon: Icons.image_outlined);
-      },
-      errorWidget: (context, url, error) {
-        return const _MaskedImagePlaceholder(icon: Icons.broken_image_outlined);
-      },
-    );
-
-    Widget imageContent = image;
-
-    if (AppImageConfig.enableBlur && AppImageConfig.blurSigma > 0) {
-      imageContent = ImageFiltered(
-        imageFilter: ImageFilter.blur(
-          sigmaX: AppImageConfig.blurSigma,
-          sigmaY: AppImageConfig.blurSigma,
-        ),
-        child: imageContent,
-      );
-    }
-
-    if (visibleWidthFactor == null) {
-      return imageContent;
-    }
-
     return LayoutBuilder(
       builder: (context, constraints) {
+        final decodeHint = _resolveDecodeHint(context, constraints);
+
+        final image = CachedNetworkImage(
+          imageUrl: resolvedUrl,
+          fit: fit,
+          memCacheWidth: memCacheWidth ?? decodeHint.width,
+          memCacheHeight: memCacheHeight ?? decodeHint.height,
+          fadeInDuration: const Duration(milliseconds: 250),
+          fadeOutDuration: const Duration(milliseconds: 150),
+          placeholder: (context, url) {
+            return const _MaskedImagePlaceholder(icon: Icons.image_outlined);
+          },
+          errorWidget: (context, url, error) {
+            return const _MaskedImagePlaceholder(
+              icon: Icons.broken_image_outlined,
+            );
+          },
+        );
+
+        Widget imageContent = image;
+
+        if (AppImageConfig.enableBlur && AppImageConfig.blurSigma > 0) {
+          imageContent = ImageFiltered(
+            imageFilter: ImageFilter.blur(
+              sigmaX: AppImageConfig.blurSigma,
+              sigmaY: AppImageConfig.blurSigma,
+            ),
+            child: imageContent,
+          );
+        }
+
+        if (visibleWidthFactor == null) {
+          return imageContent;
+        }
+
         if (!constraints.hasBoundedWidth || !constraints.maxWidth.isFinite) {
           return imageContent;
         }
@@ -99,6 +106,44 @@ class MaskedImage extends StatelessWidget {
         );
       },
     );
+  }
+
+  ({int? width, int? height}) _resolveDecodeHint(
+    BuildContext context,
+    BoxConstraints constraints,
+  ) {
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final effectiveDpr =
+        dpr.clamp(1.0, _decodeDevicePixelRatioCap) as double;
+
+    int? cacheWidth;
+    if (constraints.hasBoundedWidth &&
+        constraints.maxWidth.isFinite &&
+        constraints.maxWidth > 0) {
+      final factor = visibleWidthFactor;
+      final widthMultiplier =
+          (factor != null && factor > 0 && factor <= 1) ? 1 / factor : 1.0;
+      cacheWidth =
+          ((constraints.maxWidth * widthMultiplier * effectiveDpr).round())
+                  .clamp(1, _decodeSizeUpperBound)
+              as int;
+    }
+
+    int? cacheHeight;
+    if (constraints.hasBoundedHeight &&
+        constraints.maxHeight.isFinite &&
+        constraints.maxHeight > 0) {
+      cacheHeight =
+          ((constraints.maxHeight * effectiveDpr).round())
+                  .clamp(1, _decodeSizeUpperBound)
+              as int;
+    }
+
+    if (cacheWidth != null && cacheHeight != null) {
+      return (width: cacheWidth, height: null);
+    }
+
+    return (width: cacheWidth, height: cacheHeight);
   }
 }
 

@@ -26,7 +26,8 @@ class MobileOverviewFollowTab extends StatefulWidget {
 }
 
 class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
-  static const int _detailConcurrentLimit = 3;
+  static const int _detailConcurrentLimit = 1;
+  static const int _detailStillImageLimit = 8;
 
   late final PagedMovieSummaryController _moviesController;
   late final MovieCollectionTypeChangeNotifier _collectionChangeNotifier;
@@ -116,6 +117,7 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
       setState(() {
         _movieDetailStates[movieNumber] = _FollowMovieDetailState.success(
           detail: detail,
+          stillImageLimit: _detailStillImageLimit,
         );
       });
     } catch (_) {
@@ -289,11 +291,14 @@ class _FollowMovieDetailState {
         stillImageUrls: const <String>[],
       );
 
-  factory _FollowMovieDetailState.success({required MovieDetailDto detail}) {
+  factory _FollowMovieDetailState.success({
+    required MovieDetailDto detail,
+    required int stillImageLimit,
+  }) {
     final stillImageUrls = detail.plotImages
         .map((image) => image.bestAvailableUrl.trim())
         .where((url) => url.isNotEmpty)
-        .take(24)
+        .take(stillImageLimit)
         .toList(growable: false);
     final summary =
         detail.summary.trim().isEmpty ? detail.title : detail.summary;
