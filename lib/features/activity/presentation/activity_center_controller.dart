@@ -11,7 +11,7 @@ import 'package:sakuramedia/features/activity/data/activity_stream_event.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 
-enum ActivityTab { notifications, tasks }
+enum ActivityTab { notifications, tasks, resourceTasks }
 
 enum ActivityConnectionState { connecting, live, reconnecting, polling }
 

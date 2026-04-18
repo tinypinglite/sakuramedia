@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/app/app_page_state_cache.dart';
+import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_list_page_state.dart';
@@ -23,8 +23,9 @@ class DesktopActorsPage extends StatefulWidget {
 }
 
 class _DesktopActorsPageState extends State<DesktopActorsPage> {
-  late final ActorListPageStateEntry _pageState;
-  late final bool _ownsPageState;
+  late final CachedPageStateHandle<ActorListPageStateEntry> _pageStateHandle;
+
+  ActorListPageStateEntry get _pageState => _pageStateHandle.value;
 
   PagedActorSummaryController get _actorsController => _pageState.controller;
   ActorFilterState get _filterState => _pageState.filterState;
@@ -32,17 +33,8 @@ class _DesktopActorsPageState extends State<DesktopActorsPage> {
   @override
   void initState() {
     super.initState();
-    final cache = maybeReadAppPageStateCache(context);
-    if (cache == null) {
-      _ownsPageState = true;
-      _pageState = ActorListPageStateEntry(
-        actorsApi: context.read<ActorsApi>(),
-      );
-      return;
-    }
-
-    _ownsPageState = false;
-    _pageState = cache.obtain<ActorListPageStateEntry>(
+    _pageStateHandle = obtainCachedPageState<ActorListPageStateEntry>(
+      context,
       key: desktopActorsPageStateKey(),
       create:
           () => ActorListPageStateEntry(actorsApi: context.read<ActorsApi>()),
@@ -51,9 +43,7 @@ class _DesktopActorsPageState extends State<DesktopActorsPage> {
 
   @override
   void dispose() {
-    if (_ownsPageState) {
-      _pageState.dispose();
-    }
+    _pageStateHandle.dispose();
     super.dispose();
   }
 

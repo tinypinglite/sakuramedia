@@ -1,25 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/actors/data/actor_list_item_dto.dart';
-import 'package:sakuramedia/features/actors/data/actors_api.dart';
-import 'package:sakuramedia/features/actors/presentation/actor_detail_controller.dart';
-import 'package:sakuramedia/features/actors/presentation/paged_actor_summary_controller.dart';
-import 'package:sakuramedia/features/movies/data/movies_api.dart';
-import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
+import 'package:sakuramedia/features/actors/presentation/actor_detail_content.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
-import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/actors/actor_avatar.dart';
-import 'package:sakuramedia/widgets/movies/movie_filter_toolbar.dart';
-import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 
 class DesktopActorDetailPage extends StatefulWidget {
   const DesktopActorDetailPage({super.key, required this.actorId});
@@ -31,229 +17,49 @@ class DesktopActorDetailPage extends StatefulWidget {
 }
 
 class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
-  late final ActorDetailController _actorController;
-  late final PagedMovieSummaryController _moviesController;
-  late final MovieCollectionTypeChangeNotifier _collectionChangeNotifier;
-  MovieFilterState _filterState = MovieFilterState.initial;
-  bool? _isActorSubscribedOverride;
-  bool _isActorSubscriptionUpdating = false;
-
-  Listenable get _pageListenable =>
-      Listenable.merge(<Listenable>[_actorController, _moviesController]);
-
-  @override
-  void initState() {
-    super.initState();
-    _collectionChangeNotifier =
-        context.read<MovieCollectionTypeChangeNotifier>();
-    _collectionChangeNotifier.addListener(_onCollectionTypeChanged);
-
-    _actorController = ActorDetailController(
-      actorId: widget.actorId,
-      fetchActorDetail: context.read<ActorsApi>().getActorDetail,
-    )..load();
-    _moviesController = PagedMovieSummaryController(
-      fetchPage:
-          (page, pageSize) => context.read<MoviesApi>().getMovies(
-            actorId: widget.actorId,
-            page: page,
-            pageSize: pageSize,
-            status: _filterState.status,
-            collectionType: _filterState.collectionType,
-            sort: _filterState.sortExpression,
-          ),
-      subscribeMovie: context.read<MoviesApi>().subscribeMovie,
-      unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
-      pageSize: 24,
-      loadMoreTriggerOffset: 300,
-      initialLoadErrorText: '影片列表加载失败，请稍后重试',
-      loadMoreErrorText: '加载更多失败，请点击重试',
-    );
-    _moviesController.attachScrollListener();
-    _moviesController.initialize();
-  }
-
-  @override
-  void dispose() {
-    _collectionChangeNotifier.removeListener(_onCollectionTypeChanged);
-    _actorController.dispose();
-    _moviesController.dispose();
-    super.dispose();
-  }
-
-  void _onCollectionTypeChanged() {
-    final change = _collectionChangeNotifier.lastChange;
-    if (change == null) {
-      return;
-    }
-    if (change.targetType == MovieCollectionType.collection &&
-        _filterState.collectionType == MovieCollectionTypeFilter.single) {
-      _moviesController.removeItem(change.movieNumber);
-    }
-  }
-
-  void _applyFilter(MovieFilterState nextState) {
-    if (nextState.status == _filterState.status &&
-        nextState.collectionType == _filterState.collectionType &&
-        nextState.sortField == _filterState.sortField &&
-        nextState.sortDirection == _filterState.sortDirection) {
-      return;
-    }
-    setState(() {
-      _filterState = nextState;
-    });
-    if (_moviesController.scrollController.hasClients) {
-      _moviesController.scrollController.jumpTo(0);
-    }
-    unawaited(_moviesController.reload());
-  }
-
-  void _resetFilters() {
-    _applyFilter(MovieFilterState.initial);
-  }
-
-  Future<void> _toggleMovieSubscription(String movieNumber) async {
-    final result = await _moviesController.toggleSubscription(
-      movieNumber: movieNumber,
-    );
-    if (!mounted) {
-      return;
-    }
-    showMovieSubscriptionFeedback(result);
-  }
-
-  Future<void> _toggleActorSubscription({required bool isSubscribed}) async {
-    if (_isActorSubscriptionUpdating) {
-      return;
-    }
-
-    setState(() {
-      _isActorSubscriptionUpdating = true;
-    });
-
-    ActorSubscriptionToggleResult result;
-
-    try {
-      if (isSubscribed) {
-        await context.read<ActorsApi>().unsubscribeActor(
-          actorId: widget.actorId,
-        );
-        result = const ActorSubscriptionToggleResult.unsubscribed();
-        _isActorSubscribedOverride = false;
-      } else {
-        await context.read<ActorsApi>().subscribeActor(actorId: widget.actorId);
-        result = const ActorSubscriptionToggleResult.subscribed();
-        _isActorSubscribedOverride = true;
-      }
-    } catch (error) {
-      result = ActorSubscriptionToggleResult.failed(
-        message: apiErrorMessage(
-          error,
-          fallback: isSubscribed ? '取消订阅女优失败' : '订阅女优失败',
-        ),
-      );
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _isActorSubscriptionUpdating = false;
-    });
-    showActorSubscriptionFeedback(result);
-  }
-
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _pageListenable,
-      builder: (context, _) {
-        if (_actorController.isLoading && _actorController.actor == null) {
-          return const _ActorDetailLoadingSkeleton();
-        }
-
-        if (_actorController.errorMessage != null ||
-            _actorController.actor == null) {
-          return _ActorDetailErrorState(
-            message: _actorController.errorMessage ?? '女优详情暂时无法加载，请稍后重试',
-            onRetry: _actorController.load,
-          );
-        }
-
-        final actor = _actorController.actor!;
-        final isActorSubscribed =
-            _isActorSubscribedOverride ?? actor.isSubscribed;
-        final footer = _buildLoadMoreFooter(context);
-
-        return ColoredBox(
-          color: context.appColors.surfaceElevated,
-          child: SingleChildScrollView(
-            controller: _moviesController.scrollController,
-            child: Column(
-              key: const Key('actor-detail-page'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _ActorDetailHeader(
-                  actor: actor,
-                  total: _moviesController.total,
-                  isSubscribed: isActorSubscribed,
-                  isSubscriptionUpdating: _isActorSubscriptionUpdating,
-                  onSubscriptionTap:
-                      _isActorSubscriptionUpdating
-                          ? null
-                          : () => _toggleActorSubscription(
-                            isSubscribed: isActorSubscribed,
-                          ),
-                ),
-                SizedBox(height: context.appSpacing.lg),
-                MovieFilterToolbar(
-                  filterState: _filterState,
-                  onChanged: _applyFilter,
-                  onReset: _resetFilters,
-                ),
-                SizedBox(height: context.appSpacing.lg),
-                MovieSummaryGrid(
-                  items: _moviesController.items,
-                  isLoading: _moviesController.isInitialLoading,
-                  errorMessage: _moviesController.initialErrorMessage,
-                  onMovieTap:
-                      (movie) => context.pushDesktopMovieDetail(
-                        movieNumber: movie.movieNumber,
-                        fallbackPath:
-                            '/desktop/library/actors/${widget.actorId}',
-                      ),
-                  onMovieMenuRequest: (movie, globalPosition) {
-                    unawaited(
-                      showMovieCollectionFeatureActionMenu(
-                        context: context,
-                        movieNumber: movie.movieNumber,
-                        globalPosition: globalPosition,
-                      ),
-                    );
-                  },
-                  onMovieSubscriptionTap:
-                      (movie) => _toggleMovieSubscription(movie.movieNumber),
-                  isMovieSubscriptionUpdating:
-                      (movie) => _moviesController.isSubscriptionUpdating(
-                        movie.movieNumber,
-                      ),
-                  emptyMessage: '暂无影片数据',
-                ),
-                if (footer != null) ...[
-                  SizedBox(height: context.appSpacing.md),
-                  footer,
-                ],
-              ],
-            ),
+    return ActorDetailContent(
+      actorId: widget.actorId,
+      surfaceColor: context.appColors.surfaceElevated,
+      contentKey: const Key('actor-detail-page'),
+      sectionSpacing: context.appSpacing.lg,
+      onMovieTap:
+          (context, movieNumber) => context.pushDesktopMovieDetail(
+            movieNumber: movieNumber,
+            fallbackPath: '/desktop/library/actors/${widget.actorId}',
           ),
-        );
-      },
+      headerBuilder:
+          (
+            context,
+            actor,
+            total,
+            isSubscribed,
+            isSubscriptionUpdating,
+            onSubscriptionTap,
+          ) => _ActorDetailHeader(
+            actor: actor,
+            total: total,
+            isSubscribed: isSubscribed,
+            isSubscriptionUpdating: isSubscriptionUpdating,
+            onSubscriptionTap: onSubscriptionTap,
+          ),
+      loadingBuilder: (_) => const _ActorDetailLoadingSkeleton(),
+      errorBuilder:
+          (context, message, onRetry) =>
+              _ActorDetailErrorState(message: message, onRetry: onRetry),
+      footerBuilder: _buildLoadMoreFooter,
+      bodyBuilder:
+          (context, scrollController, child, _) =>
+              SingleChildScrollView(controller: scrollController, child: child),
     );
   }
 
-  Widget? _buildLoadMoreFooter(BuildContext context) {
-    if (_moviesController.items.isEmpty) {
+  Widget? _buildLoadMoreFooter(
+    BuildContext context,
+    PagedMovieSummaryController moviesController,
+  ) {
+    if (moviesController.items.isEmpty) {
       return null;
     }
 
@@ -261,7 +67,7 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
     final colors = context.appColors;
     final componentTokens = context.appComponentTokens;
 
-    if (_moviesController.isLoadingMore) {
+    if (moviesController.isLoadingMore) {
       return Center(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: spacing.md),
@@ -276,7 +82,7 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
       );
     }
 
-    if (_moviesController.loadMoreErrorMessage == null) {
+    if (moviesController.loadMoreErrorMessage == null) {
       return null;
     }
 
@@ -301,14 +107,14 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
               ),
               SizedBox(width: spacing.sm),
               Text(
-                _moviesController.loadMoreErrorMessage!,
+                moviesController.loadMoreErrorMessage!,
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
               ),
               SizedBox(width: spacing.sm),
               TextButton(
-                onPressed: _moviesController.loadMore,
+                onPressed: moviesController.loadMore,
                 style: TextButton.styleFrom(
                   foregroundColor: Theme.of(context).colorScheme.primary,
                   padding: EdgeInsets.symmetric(

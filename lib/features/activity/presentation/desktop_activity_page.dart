@@ -10,6 +10,8 @@ import 'package:sakuramedia/features/activity/data/activity_notification_dto.dar
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_center_controller.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
+import 'package:sakuramedia/features/activity/presentation/resource_task_center_controller.dart';
+import 'package:sakuramedia/features/activity/presentation/resource_task_pane.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
@@ -32,6 +34,7 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
   static const double _loadMoreTriggerOffset = 300;
 
   late final ActivityCenterController _controller;
+  late final ResourceTaskCenterController _resourceTaskController;
   late final TabController _tabController;
   late final ScrollController _pageScrollController;
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd HH:mm');
@@ -40,11 +43,15 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
   @override
   void initState() {
     super.initState();
+    final activityApi = context.read<ActivityApi>();
     _controller =
-        ActivityCenterController(activityApi: context.read<ActivityApi>())
+        ActivityCenterController(activityApi: activityApi)
           ..addListener(_syncTabSelection)
           ..addListener(_handleControllerChanged);
-    _tabController = TabController(length: 2, vsync: this)
+    _resourceTaskController =
+        ResourceTaskCenterController(activityApi: activityApi)
+          ..addListener(_handleControllerChanged);
+    _tabController = TabController(length: 3, vsync: this)
       ..addListener(_handleTabChanged);
     _pageScrollController = ScrollController()..addListener(_handlePageScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -61,6 +68,9 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
       ..removeListener(_syncTabSelection)
       ..removeListener(_handleControllerChanged)
       ..dispose();
+    _resourceTaskController
+      ..removeListener(_handleControllerChanged)
+      ..dispose();
     _tabController
       ..removeListener(_handleTabChanged)
       ..dispose();
@@ -72,7 +82,13 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
 
   void _handleTabChanged() {
     if (_tabController.indexIsChanging) {
-      _controller.setActiveTab(ActivityTab.values[_tabController.index]);
+      final nextTab = ActivityTab.values[_tabController.index];
+      _controller.setActiveTab(nextTab);
+      if (nextTab == ActivityTab.resourceTasks &&
+          !_resourceTaskController.initialized &&
+          !_resourceTaskController.isInitialLoading) {
+        unawaited(_resourceTaskController.initialize());
+      }
     }
   }
 
@@ -129,6 +145,13 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
           unawaited(_controller.loadMoreTasks());
         }
         break;
+      case ActivityTab.resourceTasks:
+        if (_resourceTaskController.hasMoreRecords &&
+            !_resourceTaskController.isLoadingMoreRecords &&
+            _resourceTaskController.recordsLoadMoreErrorMessage == null) {
+          unawaited(_resourceTaskController.loadMoreRecords());
+        }
+        break;
     }
   }
 
@@ -157,6 +180,11 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
     return switch (_controller.activeTab) {
       ActivityTab.notifications => _buildNotificationSlivers(context),
       ActivityTab.tasks => _buildTaskSlivers(context),
+      ActivityTab.resourceTasks => buildResourceTaskSlivers(
+        context: context,
+        controller: _resourceTaskController,
+        dateFormat: _dateFormat,
+      ),
     };
   }
 
@@ -372,33 +400,64 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _controller,
+      animation: Listenable.merge(<Listenable>[
+        _controller,
+        _resourceTaskController,
+      ]),
       builder: (context, _) {
-        return CustomScrollView(
-          controller: _pageScrollController,
-          slivers: [
-            SliverToBoxAdapter(
-              child: Column(
-                key: const Key('desktop-activity-page'),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppTabBar(
-                    controller: _tabController,
-                    tabs: const [
-                      Tab(key: Key('activity-tab-notifications'), text: '通知'),
-                      Tab(key: Key('activity-tab-tasks'), text: '任务'),
+        return Stack(
+          children: [
+            CustomScrollView(
+              controller: _pageScrollController,
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    key: const Key('desktop-activity-page'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AppTabBar(
+                        controller: _tabController,
+                        tabs: const [
+                          Tab(
+                            key: Key('activity-tab-notifications'),
+                            text: '通知',
+                          ),
+                          Tab(key: Key('activity-tab-tasks'), text: '任务'),
+                          Tab(
+                            key: Key('activity-tab-resource-tasks'),
+                            text: '资源任务',
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: context.appSpacing.lg),
+                      _ConnectionBanner(
+                        state: _controller.connectionState,
+                        message: _controller.connectionMessage,
+                      ),
+                      SizedBox(height: context.appSpacing.xl),
                     ],
                   ),
-                  SizedBox(height: context.appSpacing.lg),
-                  _ConnectionBanner(
-                    state: _controller.connectionState,
-                    message: _controller.connectionMessage,
-                  ),
-                  SizedBox(height: context.appSpacing.xl),
-                ],
-              ),
+                ),
+                ..._buildTabSlivers(context),
+              ],
             ),
-            ..._buildTabSlivers(context),
+            if (_controller.activeTab == ActivityTab.resourceTasks)
+              Positioned.fill(
+                child: IgnorePointer(
+                  ignoring: !_resourceTaskController.isDetailOpen,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    child:
+                        _resourceTaskController.isDetailOpen
+                            ? buildResourceTaskDetailOverlay(
+                              context: context,
+                              controller: _resourceTaskController,
+                              dateFormat: _dateFormat,
+                            )
+                            : const SizedBox.shrink(),
+                  ),
+                ),
+              ),
           ],
         );
       },

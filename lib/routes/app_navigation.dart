@@ -208,6 +208,27 @@ const List<_NavSeed> _desktopNavSeeds = [
   ),
 ];
 
+final Map<String, WidgetBuilder> _desktopRouteBuilders =
+    <String, WidgetBuilder>{
+      desktopOverviewPath: (_) => const DesktopOverviewPage(),
+      desktopFollowPath: (_) => const DesktopFollowPage(),
+      desktopMoviesPath: (_) => const DesktopMoviesPage(),
+      desktopActorsPath: (_) => const DesktopActorsPage(),
+      desktopMomentsPath: (_) => const DesktopMomentsPage(),
+      desktopPlaylistsPath: (_) => const DesktopPlaylistsPage(),
+      desktopRankingsPath: (_) => const DesktopRankingsPage(),
+      desktopHotReviewsPath: (_) => const DesktopHotReviewsPage(),
+      desktopActivityPath: (_) => const DesktopActivityPage(),
+      desktopConfigurationPath: (_) => const DesktopConfigurationPage(),
+    };
+
+final Map<String, WidgetBuilder> _mobileRouteBuilders = <String, WidgetBuilder>{
+  mobileOverviewPath: (_) => const MobileOverviewSkeletonPage(),
+  mobileMoviesPath: (_) => const MobileMoviesPage(),
+  mobileActorsPath: (_) => const MobileActorsPage(),
+  mobileRankingsPath: (_) => const MobileRankingsPage(),
+};
+
 List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
   final prefix = switch (platform) {
     AppPlatform.desktop => '/desktop',
@@ -259,12 +280,15 @@ List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
 }
 
 List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
-  final useDesktopExperience =
-      platform == AppPlatform.desktop || platform == AppPlatform.web;
   final platformLabel = switch (platform) {
     AppPlatform.desktop => '桌面端',
     AppPlatform.mobile => '移动端',
     AppPlatform.web => 'Web 端',
+  };
+  final routeBuilders = switch (platform) {
+    AppPlatform.desktop => _desktopRouteBuilders,
+    AppPlatform.mobile => _mobileRouteBuilders,
+    AppPlatform.web => _desktopRouteBuilders,
   };
 
   return navGroupsForPlatform(platform)
@@ -278,57 +302,23 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
             description: item.description,
             groupId: group.id,
             layout: AppShellLayout.standard,
-            builder:
-                (context) =>
-                    useDesktopExperience && item.path == desktopOverviewPath
-                        ? const DesktopOverviewPage()
-                        : useDesktopExperience && item.path == desktopFollowPath
-                        ? const DesktopFollowPage()
-                        : platform == AppPlatform.mobile &&
-                            item.path == mobileOverviewPath
-                        ? const MobileOverviewSkeletonPage()
-                        : useDesktopExperience && item.path == desktopMoviesPath
-                        ? const DesktopMoviesPage()
-                        : platform == AppPlatform.mobile &&
-                            item.path == mobileMoviesPath
-                        ? const MobileMoviesPage()
-                        : useDesktopExperience && item.path == desktopActorsPath
-                        ? const DesktopActorsPage()
-                        : platform == AppPlatform.mobile &&
-                            item.path == mobileActorsPath
-                        ? const MobileActorsPage()
-                        : platform == AppPlatform.mobile &&
-                            item.path == mobileRankingsPath
-                        ? const MobileRankingsPage()
-                        : useDesktopExperience &&
-                            item.path == desktopMomentsPath
-                        ? const DesktopMomentsPage()
-                        : useDesktopExperience &&
-                            item.path == desktopPlaylistsPath
-                        ? const DesktopPlaylistsPage()
-                        : useDesktopExperience &&
-                            item.path == desktopRankingsPath
-                        ? const DesktopRankingsPage()
-                        : useDesktopExperience &&
-                            item.path == desktopHotReviewsPath
-                        ? const DesktopHotReviewsPage()
-                        : useDesktopExperience &&
-                            item.path == desktopActivityPath
-                        ? const DesktopActivityPage()
-                        : useDesktopExperience &&
-                            item.path == desktopConfigurationPath
-                        ? const DesktopConfigurationPage()
-                        : WorkbenchPlaceholderPage(
-                          platform: platform,
-                          title: item.label,
-                          description: item.description,
-                          routePath: item.path,
-                          eyebrow:
-                              item.path.endsWith('/overview')
-                                  ? '$platformLabel工作台骨架'
-                                  : platformLabel,
-                          showUiKitShowcase: item.path.endsWith('/ui-kit'),
-                        ),
+            builder: (context) {
+              final builder = routeBuilders[item.path];
+              if (builder != null) {
+                return builder(context);
+              }
+              return WorkbenchPlaceholderPage(
+                platform: platform,
+                title: item.label,
+                description: item.description,
+                routePath: item.path,
+                eyebrow:
+                    item.path.endsWith('/overview')
+                        ? '$platformLabel工作台骨架'
+                        : platformLabel,
+                showUiKitShowcase: item.path.endsWith('/ui-kit'),
+              );
+            },
           ),
         ),
       )

@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
+import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/features/actors/data/actor_list_item_dto.dart';
@@ -80,39 +80,29 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   static const int _maxAutoLoadAttempts = 5;
   static const int _maxAutoLoadNoGrowthStreak = 2;
 
-  late final ImageSearchPageStateEntry _pageState;
-  late final bool _ownsPageState;
+  late final CachedPageStateHandle<ImageSearchPageStateEntry> _pageStateHandle;
   bool _isViewportFillCheckScheduled = false;
   int _autoLoadAttempts = 0;
   int _autoLoadNoGrowthStreak = 0;
   bool _autoLoadHalted = false;
 
+  ImageSearchPageStateEntry get _pageState => _pageStateHandle.value;
   ImageSearchController get _controller => _pageState.controller;
   ImageSearchFilterState get _filterState => _pageState.filterState;
 
   @override
   void initState() {
     super.initState();
-    final cache = maybeReadAppPageStateCache(context);
-    if (cache == null) {
-      _ownsPageState = true;
-      _pageState = ImageSearchPageStateEntry(
-        imageSearchApi: context.read<ImageSearchApi>(),
-        actorsApi: context.read<ActorsApi>(),
-        initialCurrentMovieScope: widget.initialCurrentMovieScope,
-      );
-    } else {
-      _ownsPageState = false;
-      _pageState = cache.obtain<ImageSearchPageStateEntry>(
-        key: _resolveStateKey(),
-        create:
-            () => ImageSearchPageStateEntry(
-              imageSearchApi: context.read<ImageSearchApi>(),
-              actorsApi: context.read<ActorsApi>(),
-              initialCurrentMovieScope: widget.initialCurrentMovieScope,
-            ),
-      );
-    }
+    _pageStateHandle = obtainCachedPageState<ImageSearchPageStateEntry>(
+      context,
+      key: _resolveStateKey(),
+      create:
+          () => ImageSearchPageStateEntry(
+            imageSearchApi: context.read<ImageSearchApi>(),
+            actorsApi: context.read<ActorsApi>(),
+            initialCurrentMovieScope: widget.initialCurrentMovieScope,
+          ),
+    );
     _controller.addListener(_handleControllerChanged);
     _bootstrapInitialSource();
   }
@@ -131,9 +121,7 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   @override
   void dispose() {
     _controller.removeListener(_handleControllerChanged);
-    if (_ownsPageState) {
-      _pageState.dispose();
-    }
+    _pageStateHandle.dispose();
     super.dispose();
   }
 

@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
+import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/rankings/presentation/rankings_list_page_state.dart';
@@ -27,38 +27,28 @@ class MobileRankingsPage extends StatefulWidget {
 }
 
 class _MobileRankingsPageState extends State<MobileRankingsPage> {
-  late final RankingsListPageStateEntry _pageState;
-  late final bool _ownsPageState;
+  late final CachedPageStateHandle<RankingsListPageStateEntry> _pageStateHandle;
+
+  RankingsListPageStateEntry get _pageState => _pageStateHandle.value;
 
   @override
   void initState() {
     super.initState();
-    final cache = maybeReadAppPageStateCache(context);
-    if (cache == null) {
-      _ownsPageState = true;
-      _pageState = RankingsListPageStateEntry(
-        rankingsApi: context.read<RankingsApi>(),
-        moviesApi: context.read<MoviesApi>(),
-      );
-    } else {
-      _ownsPageState = false;
-      _pageState = cache.obtain<RankingsListPageStateEntry>(
-        key: mobileRankingsPageStateKey(),
-        create:
-            () => RankingsListPageStateEntry(
-              rankingsApi: context.read<RankingsApi>(),
-              moviesApi: context.read<MoviesApi>(),
-            ),
-      );
-    }
+    _pageStateHandle = obtainCachedPageState<RankingsListPageStateEntry>(
+      context,
+      key: mobileRankingsPageStateKey(),
+      create:
+          () => RankingsListPageStateEntry(
+            rankingsApi: context.read<RankingsApi>(),
+            moviesApi: context.read<MoviesApi>(),
+          ),
+    );
     unawaited(_pageState.initialize());
   }
 
   @override
   void dispose() {
-    if (_ownsPageState) {
-      _pageState.dispose();
-    }
+    _pageStateHandle.dispose();
     super.dispose();
   }
 

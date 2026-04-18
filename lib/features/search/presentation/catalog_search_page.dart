@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
+import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_controller.dart';
@@ -32,34 +32,26 @@ class CatalogSearchPage extends StatefulWidget {
 
 class _CatalogSearchPageState extends State<CatalogSearchPage>
     with SingleTickerProviderStateMixin {
-  late final CatalogSearchPageStateEntry _pageState;
-  late final bool _ownsPageState;
+  late final CachedPageStateHandle<CatalogSearchPageStateEntry>
+  _pageStateHandle;
   late final TextEditingController _textController;
   late final TabController _tabController;
 
+  CatalogSearchPageStateEntry get _pageState => _pageStateHandle.value;
   CatalogSearchController get _controller => _pageState.controller;
 
   @override
   void initState() {
     super.initState();
-    final cache = maybeReadAppPageStateCache(context);
-    if (cache == null) {
-      _ownsPageState = true;
-      _pageState = CatalogSearchPageStateEntry(
-        moviesApi: context.read<MoviesApi>(),
-        actorsApi: context.read<ActorsApi>(),
-      );
-    } else {
-      _ownsPageState = false;
-      _pageState = cache.obtain<CatalogSearchPageStateEntry>(
-        key: desktopSearchPageStateKey(_resolveCachePath()),
-        create:
-            () => CatalogSearchPageStateEntry(
-              moviesApi: context.read<MoviesApi>(),
-              actorsApi: context.read<ActorsApi>(),
-            ),
-      );
-    }
+    _pageStateHandle = obtainCachedPageState<CatalogSearchPageStateEntry>(
+      context,
+      key: desktopSearchPageStateKey(_resolveCachePath()),
+      create:
+          () => CatalogSearchPageStateEntry(
+            moviesApi: context.read<MoviesApi>(),
+            actorsApi: context.read<ActorsApi>(),
+          ),
+    );
 
     _pageState.bootstrap(
       initialQuery: widget.initialQuery,
@@ -101,9 +93,7 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
   @override
   void dispose() {
     _controller.removeListener(_handleControllerChanged);
-    if (_ownsPageState) {
-      _pageState.dispose();
-    }
+    _pageStateHandle.dispose();
     _textController.removeListener(_handleTextChanged);
     _textController.dispose();
     _tabController.dispose();
@@ -131,9 +121,7 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
                 movieNumber: movie.movieNumber,
               ),
           onActorTap:
-              (actor) => context.pushDesktopActorDetail(
-                actorId: actor.id,
-              ),
+              (actor) => context.pushDesktopActorDetail(actorId: actor.id),
           onMovieSubscriptionTap:
               (movie) => _toggleMovieSubscription(movie.movieNumber),
           onActorSubscriptionTap: (actor) => _toggleActorSubscription(actor.id),
@@ -226,9 +214,7 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
   }) {
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
-      return DesktopSearchRouteData(
-        useOnlineSearch: useOnlineSearch,
-      ).location;
+      return DesktopSearchRouteData(useOnlineSearch: useOnlineSearch).location;
     }
     return DesktopSearchQueryRouteData(
       query: trimmed,

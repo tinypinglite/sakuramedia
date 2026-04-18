@@ -5,6 +5,8 @@ import 'package:sakuramedia/features/activity/data/activity_bootstrap_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_stream_event.dart';
+import 'package:sakuramedia/features/activity/data/resource_task_definition_dto.dart';
+import 'package:sakuramedia/features/activity/data/resource_task_record_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 
 class ActivityApi {
@@ -123,6 +125,40 @@ class ActivityApi {
     return PaginatedResponseDto<TaskRunDto>.fromJson(
       response,
       TaskRunDto.fromJson,
+    );
+  }
+
+  Future<List<ResourceTaskDefinitionDto>> getResourceTaskDefinitions() async {
+    final response = await _apiClient.getList(
+      '/system/resource-task-states/definitions',
+    );
+    return response
+        .map(ResourceTaskDefinitionDto.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<PaginatedResponseDto<ResourceTaskRecordDto>> getResourceTaskRecords({
+    required String taskKey,
+    int page = 1,
+    int pageSize = 20,
+    String? state,
+    String? search,
+    String? sort,
+  }) async {
+    final response = await _apiClient.get(
+      '/system/resource-task-states',
+      queryParameters: <String, dynamic>{
+        'task_key': taskKey,
+        'page': page,
+        'page_size': pageSize,
+        if (state != null && state.trim().isNotEmpty) 'state': state,
+        if (search != null && search.trim().isNotEmpty) 'search': search,
+        if (sort != null && sort.trim().isNotEmpty) 'sort': sort,
+      },
+    );
+    return PaginatedResponseDto<ResourceTaskRecordDto>.fromJson(
+      response,
+      ResourceTaskRecordDto.fromJson,
     );
   }
 

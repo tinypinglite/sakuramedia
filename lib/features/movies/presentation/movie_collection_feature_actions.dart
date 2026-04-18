@@ -49,6 +49,9 @@ Future<void> showMovieCollectionFeatureActionMenu({
     moviesApi: moviesApi,
     movieNumber: movieNumber,
   );
+  if (!context.mounted) {
+    return;
+  }
 
   final action = await _showMovieCollectionFeatureMenu(
     context: context,
@@ -244,7 +247,7 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
               isCollection == null
                   ? '标记为合集/单体'
                   : (isCollection ? '标记为单体' : '标记为合集'),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: colors.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
@@ -278,7 +281,7 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
               SizedBox(width: spacing.sm),
               Text(
                 '将"$feature"加入合集特征',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: colors.textPrimary,
                   fontWeight: FontWeight.w500,
                 ),

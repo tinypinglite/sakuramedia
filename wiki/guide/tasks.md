@@ -17,7 +17,7 @@ outline: [2, 3]
 | 订阅女优影片同步 | 抓取已订阅女优的最新影片 | 每天 02:00 |
 | 已订阅缺失影片自动下载 | 搜索并提交符合条件的影片资源 | 每天 02:30 |
 | 影片热度重算 | 更新影片热度字段 | 每天 00:15 |
-| 影片互动数同步 | 回刷评分、想看、评论等互动统计，并联动热度 | 每天 05:00 |
+| 影片互动数同步 | 回刷评分、想看、评论等互动统计，并联动热度 | 每小时整点 |
 | 排行榜同步 | 同步排行榜数据 | 每天 01:45 |
 | JavDB 热评同步 | 同步热评和关联影片快照 | 每天 01:20 |
 | 合集影片同步 | 同步合集标记 | 每天 01:00 |
@@ -76,7 +76,8 @@ outline: [2, 3]
 
 默认频率：
 
-- 每天 `05:00`
+- 每小时整点
+- 排行榜中的影片：每 `1` 小时判定一次是否需要回刷
 - 已订阅影片：每天同步一次
 - 未订阅但上映时间在最近 `60` 天内：每天同步一次
 - 未订阅且上映时间在 `60` 到 `180` 天内：每 `3` 天同步一次
@@ -231,7 +232,7 @@ download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "*/3 * * * *"
 movie_collection_sync_cron = "0 1 * * *"
 movie_heat_cron = "15 0 * * *"
-movie_interaction_sync_cron = "0 5 * * *"
+movie_interaction_sync_cron = "0 * * * *"
 ranking_sync_cron = "45 1 * * *"
 hot_review_sync_cron = "20 1 * * *"
 media_file_scan_cron = "0 */6 * * *"
@@ -265,7 +266,7 @@ image_search_optimize_cron = "0 3 * * *"
 - `movie_collection_sync_cron`
   保证合集标记持续同步
 - `movie_interaction_sync_cron`
-  保证影片评分、想看、评论等互动统计持续回刷
+  保证影片评分、想看、评论等互动统计持续回刷；排行榜中的影片会按 1 小时窗口优先刷新
 - `ranking_sync_cron`
   保证排行榜数据有更新
 - `hot_review_sync_cron`

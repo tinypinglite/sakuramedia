@@ -2,14 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/core/network/paginated_response_dto.dart';
+import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
+import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
-import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
-import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
-import 'package:sakuramedia/features/rankings/data/ranking_source_dto.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
-import 'package:sakuramedia/features/rankings/presentation/paged_ranked_movie_controller.dart';
+import 'package:sakuramedia/features/rankings/presentation/rankings_list_page_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
@@ -29,221 +26,33 @@ class DesktopRankingsPage extends StatefulWidget {
 }
 
 class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
-  late final RankingsApi _rankingsApi;
-  late final MoviesApi _moviesApi;
-  late final PagedRankedMovieController _controller;
+  late final CachedPageStateHandle<RankingsListPageStateEntry> _pageStateHandle;
 
-  bool _isFilterLoading = true;
-  String? _filterErrorMessage;
-
-  List<RankingSourceDto> _sources = const <RankingSourceDto>[];
-  List<RankingBoardDto> _boards = const <RankingBoardDto>[];
-  RankingSourceDto? _selectedSource;
-  RankingBoardDto? _selectedBoard;
-  String? _selectedPeriod;
+  RankingsListPageStateEntry get _pageState => _pageStateHandle.value;
 
   @override
   void initState() {
     super.initState();
-    _rankingsApi = context.read<RankingsApi>();
-    _moviesApi = context.read<MoviesApi>();
-    _controller = PagedRankedMovieController(
-      fetchPage: _fetchRankingPage,
-      subscribeMovie: _moviesApi.subscribeMovie,
-      unsubscribeMovie: _moviesApi.unsubscribeMovie,
-      pageSize: 24,
-      loadMoreTriggerOffset: 300,
+    _pageStateHandle = obtainCachedPageState<RankingsListPageStateEntry>(
+      context,
+      key: desktopRankingsPageStateKey(),
+      create:
+          () => RankingsListPageStateEntry(
+            rankingsApi: context.read<RankingsApi>(),
+            moviesApi: context.read<MoviesApi>(),
+          ),
     );
-    _controller.attachScrollListener();
-    unawaited(_initializeFiltersAndData());
+    unawaited(_pageState.initialize());
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pageStateHandle.dispose();
     super.dispose();
   }
 
-  Future<PaginatedResponseDto<RankedMovieListItemDto>> _fetchRankingPage(
-    int page,
-    int pageSize,
-  ) {
-    final selectedSource = _selectedSource;
-    final selectedBoard = _selectedBoard;
-    final selectedPeriod = _selectedPeriod;
-
-    if (selectedSource == null ||
-        selectedBoard == null ||
-        selectedPeriod == null) {
-      return Future.value(
-        PaginatedResponseDto<RankedMovieListItemDto>(
-          items: const <RankedMovieListItemDto>[],
-          page: page,
-          pageSize: pageSize,
-          total: 0,
-        ),
-      );
-    }
-
-    return _rankingsApi.getRankingItems(
-      sourceKey: selectedSource.sourceKey,
-      boardKey: selectedBoard.boardKey,
-      period: selectedPeriod,
-      page: page,
-      pageSize: pageSize,
-    );
-  }
-
-  Future<void> _initializeFiltersAndData() async {
-    setState(() {
-      _isFilterLoading = true;
-      _filterErrorMessage = null;
-    });
-
-    try {
-      final sources = await _rankingsApi.getRankingSources();
-      if (!mounted) {
-        return;
-      }
-      if (sources.isEmpty) {
-        setState(() {
-          _sources = const <RankingSourceDto>[];
-          _boards = const <RankingBoardDto>[];
-          _selectedSource = null;
-          _selectedBoard = null;
-          _selectedPeriod = null;
-          _isFilterLoading = false;
-        });
-        await _controller.reload();
-        return;
-      }
-
-      final selectedSource = sources.first;
-      final boards = await _rankingsApi.getRankingBoards(
-        sourceKey: selectedSource.sourceKey,
-      );
-      if (!mounted) {
-        return;
-      }
-
-      final selectedBoard = boards.isNotEmpty ? boards.first : null;
-      final selectedPeriod =
-          selectedBoard == null ? null : _resolveDefaultPeriod(selectedBoard);
-
-      setState(() {
-        _sources = sources;
-        _boards = boards;
-        _selectedSource = selectedSource;
-        _selectedBoard = selectedBoard;
-        _selectedPeriod = selectedPeriod;
-        _isFilterLoading = false;
-      });
-
-      await _controller.reload();
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isFilterLoading = false;
-        _filterErrorMessage = apiErrorMessage(
-          error,
-          fallback: '排行榜筛选加载失败，请稍后重试',
-        );
-      });
-    }
-  }
-
-  Future<void> _selectSource(RankingSourceDto source) async {
-    if (source == _selectedSource || _isFilterLoading) {
-      return;
-    }
-    setState(() {
-      _isFilterLoading = true;
-      _filterErrorMessage = null;
-    });
-    try {
-      final boards = await _rankingsApi.getRankingBoards(
-        sourceKey: source.sourceKey,
-      );
-      if (!mounted) {
-        return;
-      }
-      final nextSelectedBoard = boards.isNotEmpty ? boards.first : null;
-      final nextSelectedPeriod =
-          nextSelectedBoard == null
-              ? null
-              : _resolveDefaultPeriod(nextSelectedBoard);
-
-      setState(() {
-        _selectedSource = source;
-        _boards = boards;
-        _selectedBoard = nextSelectedBoard;
-        _selectedPeriod = nextSelectedPeriod;
-        _isFilterLoading = false;
-      });
-      _resetListScroll();
-      await _controller.reload();
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isFilterLoading = false;
-        _filterErrorMessage = apiErrorMessage(
-          error,
-          fallback: '排行榜筛选加载失败，请稍后重试',
-        );
-      });
-    }
-  }
-
-  Future<void> _selectBoard(RankingBoardDto board) async {
-    if (board == _selectedBoard || _isFilterLoading) {
-      return;
-    }
-    final period = _resolveDefaultPeriod(board);
-    setState(() {
-      _selectedBoard = board;
-      _selectedPeriod = period;
-      _filterErrorMessage = null;
-    });
-    _resetListScroll();
-    await _controller.reload();
-  }
-
-  Future<void> _selectPeriod(String period) async {
-    if (period == _selectedPeriod || _isFilterLoading) {
-      return;
-    }
-    setState(() {
-      _selectedPeriod = period;
-      _filterErrorMessage = null;
-    });
-    _resetListScroll();
-    await _controller.reload();
-  }
-
-  void _resetListScroll() {
-    if (_controller.scrollController.hasClients) {
-      _controller.scrollController.jumpTo(0);
-    }
-  }
-
-  String _resolveDefaultPeriod(RankingBoardDto board) {
-    final defaultPeriod = board.defaultPeriod;
-    if (defaultPeriod != null &&
-        board.supportedPeriods.contains(defaultPeriod)) {
-      return defaultPeriod;
-    }
-    if (board.supportedPeriods.isNotEmpty) {
-      return board.supportedPeriods.first;
-    }
-    return 'daily';
-  }
-
   Future<void> _toggleMovieSubscription(String movieNumber) async {
-    final result = await _controller.toggleSubscription(
+    final result = await _pageState.toggleMovieSubscription(
       movieNumber: movieNumber,
     );
     if (!mounted) {
@@ -257,54 +66,57 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
     return ColoredBox(
       color: context.appColors.surfaceElevated,
       child: SingleChildScrollView(
-        controller: _controller.scrollController,
+        controller: _pageState.controller.scrollController,
         child: AnimatedBuilder(
-          animation: _controller,
+          animation: Listenable.merge([_pageState, _pageState.controller]),
           builder: (context, _) {
             final showFooter =
-                _controller.items.isNotEmpty &&
-                (_controller.isLoadingMore ||
-                    _controller.loadMoreErrorMessage != null);
+                _pageState.controller.items.isNotEmpty &&
+                (_pageState.controller.isLoadingMore ||
+                    _pageState.controller.loadMoreErrorMessage != null);
             return Column(
               key: const Key('desktop-rankings-page'),
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AppFilterTotalHeader(
                   leading: RankingFilterToolbar(
-                    sources: _sources,
-                    selectedSource: _selectedSource,
-                    boards: _boards,
-                    selectedBoard: _selectedBoard,
-                    selectedPeriod: _selectedPeriod,
-                    isLoading: _isFilterLoading,
-                    onSourceChanged: (value) => unawaited(_selectSource(value)),
-                    onBoardChanged: (value) => unawaited(_selectBoard(value)),
-                    onPeriodChanged: (value) => unawaited(_selectPeriod(value)),
+                    sources: _pageState.sources,
+                    selectedSource: _pageState.selectedSource,
+                    boards: _pageState.boards,
+                    selectedBoard: _pageState.selectedBoard,
+                    selectedPeriod: _pageState.selectedPeriod,
+                    isLoading: _pageState.isFilterLoading,
+                    onSourceChanged:
+                        (value) => unawaited(_pageState.selectSource(value)),
+                    onBoardChanged:
+                        (value) => unawaited(_pageState.selectBoard(value)),
+                    onPeriodChanged:
+                        (value) => unawaited(_pageState.selectPeriod(value)),
                   ),
-                  totalText: '${_controller.total} 部',
+                  totalText: '${_pageState.controller.total} 部',
                   totalKey: const Key('desktop-rankings-page-total'),
                 ),
                 SizedBox(height: context.appSpacing.md),
-                if (_filterErrorMessage != null) ...[
+                if (_pageState.filterErrorMessage != null) ...[
                   _FilterErrorBanner(
-                    message: _filterErrorMessage!,
-                    onRetry: _initializeFiltersAndData,
+                    message: _pageState.filterErrorMessage!,
+                    onRetry: _pageState.reloadFiltersAndData,
                   ),
                   SizedBox(height: context.appSpacing.md),
                 ],
                 SizedBox(height: context.appSpacing.sm),
-                if (_sources.isEmpty &&
-                    !_isFilterLoading &&
-                    _filterErrorMessage == null)
+                if (_pageState.sources.isEmpty &&
+                    !_pageState.isFilterLoading &&
+                    _pageState.filterErrorMessage == null)
                   const AppEmptyState(message: '暂无可用排行榜')
                 else
                   RankedMovieSummaryGrid(
-                    items: _controller.items,
+                    items: _pageState.controller.items,
                     isLoading:
-                        _isFilterLoading
-                            ? _controller.items.isEmpty
-                            : _controller.isInitialLoading,
-                    errorMessage: _controller.initialErrorMessage,
+                        _pageState.isFilterLoading
+                            ? _pageState.controller.items.isEmpty
+                            : _pageState.controller.isInitialLoading,
+                    errorMessage: _pageState.controller.initialErrorMessage,
                     onMovieTap:
                         (movie) => context.pushDesktopMovieDetail(
                           movieNumber: movie.movieNumber,
@@ -313,7 +125,7 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
                     onMovieSubscriptionTap:
                         (movie) => _toggleMovieSubscription(movie.movieNumber),
                     isMovieSubscriptionUpdating:
-                        (movie) => _controller.isSubscriptionUpdating(
+                        (movie) => _pageState.controller.isSubscriptionUpdating(
                           movie.movieNumber,
                         ),
                     emptyMessage: '暂无榜单数据',
@@ -321,9 +133,9 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
                 if (showFooter) ...[
                   SizedBox(height: context.appSpacing.md),
                   AppPagedLoadMoreFooter(
-                    isLoading: _controller.isLoadingMore,
-                    errorMessage: _controller.loadMoreErrorMessage,
-                    onRetry: _controller.loadMore,
+                    isLoading: _pageState.controller.isLoadingMore,
+                    errorMessage: _pageState.controller.loadMoreErrorMessage,
+                    onRetry: _pageState.controller.loadMore,
                   ),
                 ],
               ],

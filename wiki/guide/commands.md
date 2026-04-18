@@ -220,7 +220,7 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands aps sync
 适合场景：
 
 - 想立刻回刷影片评分、想看数、评论数等互动统计
-- 不想等第二天清晨的自动同步
+- 不想等下一个整点的自动同步
 - 想让依赖互动统计的热度更快更新
 
 ### 同步排行榜

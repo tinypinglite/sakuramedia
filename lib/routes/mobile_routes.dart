@@ -13,11 +13,11 @@ import 'package:sakuramedia/features/configuration/presentation/desktop_configur
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
-import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/mobile_playlist_detail_page.dart';
 import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_page.dart';
+import 'package:sakuramedia/routes/app_route_helpers.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_shell.dart';
@@ -73,7 +73,7 @@ class MobileSearchRouteData extends _MobileSubpageRouteData
   String get defaultLocation => mobileOverviewPath;
 
   @override
-  String get location => _buildLocation(
+  String get location => buildRouteLocation(
     path: mobileSearchPath,
     queryParameters: <String, String?>{
       if (useOnlineSearch) 'useOnlineSearch': '$useOnlineSearch',
@@ -84,7 +84,7 @@ class MobileSearchRouteData extends _MobileSubpageRouteData
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobileCatalogSearchPage(
       initialQuery: '',
-      initialUseOnlineSearch: _resolveBoolQueryParameter(
+      initialUseOnlineSearch: resolveBoolQueryParameter(
         state,
         names: const <String>['useOnlineSearch', 'use-online-search'],
         fallback: useOnlineSearch,
@@ -117,7 +117,7 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
   String get defaultLocation => mobileOverviewPath;
 
   @override
-  String get location => _buildLocation(
+  String get location => buildRouteLocation(
     path: mobileImageSearchPath,
     queryParameters: <String, String?>{
       if (draftId != null) 'draftId': draftId,
@@ -128,7 +128,7 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
-    final resolvedDraftId = _resolveStringQueryParameter(
+    final resolvedDraftId = resolveStringQueryParameter(
       state,
       names: const <String>['draftId', 'draft-id'],
       fallback: draftId,
@@ -138,13 +138,13 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
       initialFileName: draft?.fileName,
       initialFileBytes: draft?.bytes,
       initialMimeType: draft?.mimeType,
-      currentMovieNumber: _resolveStringQueryParameter(
+      currentMovieNumber: resolveStringQueryParameter(
         state,
         names: const <String>['currentMovieNumber', 'current-movie-number'],
         fallback: currentMovieNumber,
       ),
-      initialCurrentMovieScope: _scopeFromQuery(
-        _resolveStringQueryParameter(
+      initialCurrentMovieScope: parseImageSearchCurrentMovieScope(
+        resolveStringQueryParameter(
               state,
               names: const <String>['currentMovieScope', 'current-movie-scope'],
               fallback: currentMovieScope,
@@ -218,7 +218,7 @@ class MobileSearchQueryRouteData extends _MobileSubpageRouteData
   String get defaultLocation => mobileOverviewPath;
 
   @override
-  String get location => _buildLocation(
+  String get location => buildRouteLocation(
     path: '$mobileSearchPath/${Uri.encodeComponent(query)}',
     queryParameters: <String, String?>{
       if (useOnlineSearch) 'useOnlineSearch': '$useOnlineSearch',
@@ -229,7 +229,7 @@ class MobileSearchQueryRouteData extends _MobileSubpageRouteData
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobileCatalogSearchPage(
       initialQuery: query,
-      initialUseOnlineSearch: _resolveBoolQueryParameter(
+      initialUseOnlineSearch: resolveBoolQueryParameter(
         state,
         names: const <String>['useOnlineSearch', 'use-online-search'],
         fallback: useOnlineSearch,
@@ -277,7 +277,7 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
   String get pageName => 'mobile-movie-player';
 
   @override
-  String get location => _buildLocation(
+  String get location => buildRouteLocation(
     path: '$mobileMoviesPath/${Uri.encodeComponent(movieNumber)}/player',
     queryParameters: <String, String?>{
       if (mediaId != null) 'mediaId': '$mediaId',
@@ -290,12 +290,12 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
     // 兼容 typed route 新参数名与现有 URL 中的旧参数名。
     return MobileMoviePlayerPage(
       movieNumber: movieNumber,
-      initialMediaId: _resolveIntQueryParameter(
+      initialMediaId: resolveIntQueryParameter(
         state,
         names: const <String>['mediaId', 'media-id'],
         fallback: mediaId,
       ),
-      initialPositionSeconds: _resolveIntQueryParameter(
+      initialPositionSeconds: resolveIntQueryParameter(
         state,
         names: const <String>['positionSeconds', 'position-seconds'],
         fallback: positionSeconds,
@@ -522,72 +522,24 @@ class MobileRankingsBranchData extends StatefulShellBranchData {
       mobileRankingsNavigatorKey;
 }
 
-class MobileOverviewRouteData extends _MobilePrimaryRouteData
+class MobileOverviewRouteData extends _MobilePrimarySpecRouteData
     with $MobileOverviewRouteData {
-  const MobileOverviewRouteData();
-
-  @override
-  String get pageName =>
-      mobileRouteSpecs
-          .firstWhere((spec) => spec.path == mobileOverviewPath)
-          .name;
-
-  @override
-  Widget buildPrimary(BuildContext context, GoRouterState state) {
-    return mobileRouteSpecs
-        .firstWhere((spec) => spec.path == mobileOverviewPath)
-        .builder(context);
-  }
+  const MobileOverviewRouteData() : super(mobileOverviewPath);
 }
 
-class MobileMoviesRouteData extends _MobilePrimaryRouteData
+class MobileMoviesRouteData extends _MobilePrimarySpecRouteData
     with $MobileMoviesRouteData {
-  const MobileMoviesRouteData();
-
-  @override
-  String get pageName =>
-      mobileRouteSpecs.firstWhere((spec) => spec.path == mobileMoviesPath).name;
-
-  @override
-  Widget buildPrimary(BuildContext context, GoRouterState state) {
-    return mobileRouteSpecs
-        .firstWhere((spec) => spec.path == mobileMoviesPath)
-        .builder(context);
-  }
+  const MobileMoviesRouteData() : super(mobileMoviesPath);
 }
 
-class MobileActorsRouteData extends _MobilePrimaryRouteData
+class MobileActorsRouteData extends _MobilePrimarySpecRouteData
     with $MobileActorsRouteData {
-  const MobileActorsRouteData();
-
-  @override
-  String get pageName =>
-      mobileRouteSpecs.firstWhere((spec) => spec.path == mobileActorsPath).name;
-
-  @override
-  Widget buildPrimary(BuildContext context, GoRouterState state) {
-    return mobileRouteSpecs
-        .firstWhere((spec) => spec.path == mobileActorsPath)
-        .builder(context);
-  }
+  const MobileActorsRouteData() : super(mobileActorsPath);
 }
 
-class MobileRankingsRouteData extends _MobilePrimaryRouteData
+class MobileRankingsRouteData extends _MobilePrimarySpecRouteData
     with $MobileRankingsRouteData {
-  const MobileRankingsRouteData();
-
-  @override
-  String get pageName =>
-      mobileRouteSpecs
-          .firstWhere((spec) => spec.path == mobileRankingsPath)
-          .name;
-
-  @override
-  Widget buildPrimary(BuildContext context, GoRouterState state) {
-    return mobileRouteSpecs
-        .firstWhere((spec) => spec.path == mobileRankingsPath)
-        .builder(context);
-  }
+  const MobileRankingsRouteData() : super(mobileRankingsPath);
 }
 
 class MobilePlaylistDetailRouteData extends _MobileSubpageRouteData
@@ -735,67 +687,16 @@ abstract class _MobileCupertinoRouteData extends GoRouteData {
   }
 }
 
-ImageSearchCurrentMovieScope _scopeFromQuery(String value) {
-  return ImageSearchCurrentMovieScope.values.firstWhere(
-    (scope) => scope.name == value,
-    orElse: () => ImageSearchCurrentMovieScope.all,
-  );
-}
+abstract class _MobilePrimarySpecRouteData extends _MobilePrimaryRouteData {
+  const _MobilePrimarySpecRouteData(this.path);
 
-String _buildLocation({
-  required String path,
-  required Map<String, String?> queryParameters,
-}) {
-  final effectiveQueryParameters = <String, String>{};
-  for (final entry in queryParameters.entries) {
-    final value = entry.value;
-    if (value == null || value.isEmpty) {
-      continue;
-    }
-    effectiveQueryParameters[entry.key] = value;
-  }
-  return Uri(
-    path: path,
-    queryParameters:
-        effectiveQueryParameters.isEmpty ? null : effectiveQueryParameters,
-  ).toString();
-}
+  final String path;
 
-String? _resolveStringQueryParameter(
-  GoRouterState state, {
-  required List<String> names,
-  String? fallback,
-}) {
-  for (final name in names) {
-    final value = state.uri.queryParameters[name];
-    if (value != null && value.isNotEmpty) {
-      return value;
-    }
-  }
-  return fallback;
-}
+  @override
+  String get pageName => routeSpecNameForPath(mobileRouteSpecs, path);
 
-int? _resolveIntQueryParameter(
-  GoRouterState state, {
-  required List<String> names,
-  int? fallback,
-}) {
-  final value = _resolveStringQueryParameter(state, names: names);
-  return value == null ? fallback : int.tryParse(value) ?? fallback;
-}
-
-bool _resolveBoolQueryParameter(
-  GoRouterState state, {
-  required List<String> names,
-  required bool fallback,
-}) {
-  final value = _resolveStringQueryParameter(state, names: names);
-  switch (value) {
-    case 'true':
-      return true;
-    case 'false':
-      return false;
-    default:
-      return fallback;
+  @override
+  Widget buildPrimary(BuildContext context, GoRouterState state) {
+    return buildRouteSpecContent(mobileRouteSpecs, path, context);
   }
 }

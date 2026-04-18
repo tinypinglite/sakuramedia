@@ -1,11 +1,10 @@
-import 'dart:collection';
-
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
+import 'package:sakuramedia/features/shared/presentation/paged_load_controller.dart';
 
 typedef RankedMoviePageFetcher =
     Future<PaginatedResponseDto<RankedMovieListItemDto>> Function(
@@ -13,55 +12,31 @@ typedef RankedMoviePageFetcher =
       int pageSize,
     );
 
-class PagedRankedMovieController extends ChangeNotifier {
+class PagedRankedMovieController
+    extends PagedLoadController<RankedMovieListItemDto> {
   PagedRankedMovieController({
-    required this.fetchPage,
+    required RankedMoviePageFetcher fetchPage,
     required this.subscribeMovie,
     required this.unsubscribeMovie,
-    this.initialPage = 1,
-    this.pageSize = 24,
-    this.loadMoreTriggerOffset = 300,
-    this.initialLoadErrorText = '排行榜加载失败，请稍后重试',
-    this.loadMoreErrorText = '加载更多失败，请点击重试',
+    int initialPage = 1,
+    int pageSize = 24,
+    double loadMoreTriggerOffset = 300,
+    String initialLoadErrorText = '排行榜加载失败，请稍后重试',
+    String loadMoreErrorText = '加载更多失败，请点击重试',
     ScrollController? scrollController,
-  }) : scrollController = scrollController ?? ScrollController(),
-       _currentPage = initialPage - 1;
+  }) : super(
+         fetchPage: fetchPage,
+         initialPage: initialPage,
+         pageSize: pageSize,
+         loadMoreTriggerOffset: loadMoreTriggerOffset,
+         initialLoadErrorText: initialLoadErrorText,
+         loadMoreErrorText: loadMoreErrorText,
+         scrollController: scrollController,
+       );
 
-  final RankedMoviePageFetcher fetchPage;
   final MovieSubscriptionWriter subscribeMovie;
   final MovieUnsubscriptionWriter unsubscribeMovie;
-  final int initialPage;
-  final int pageSize;
-  final double loadMoreTriggerOffset;
-  final String initialLoadErrorText;
-  final String loadMoreErrorText;
-  final ScrollController scrollController;
-
-  final List<RankedMovieListItemDto> _items = <RankedMovieListItemDto>[];
   final Set<String> _updatingMovieNumbers = <String>{};
-
-  bool _isInitialLoading = false;
-  bool _isLoadingMore = false;
-  bool _hasLoadedOnce = false;
-  bool _hasMore = true;
-  bool _isInitialized = false;
-  bool _isDisposed = false;
-  bool _scrollListenerAttached = false;
-  String? _initialErrorMessage;
-  String? _loadMoreErrorMessage;
-  int _currentPage;
-  int _total = 0;
-
-  List<RankedMovieListItemDto> get items =>
-      UnmodifiableListView<RankedMovieListItemDto>(_items);
-  bool get isInitialLoading => _isInitialLoading;
-  bool get isLoadingMore => _isLoadingMore;
-  bool get hasLoadedOnce => _hasLoadedOnce;
-  bool get hasMore => _hasMore;
-  String? get initialErrorMessage => _initialErrorMessage;
-  String? get loadMoreErrorMessage => _loadMoreErrorMessage;
-  int get currentPage => _currentPage;
-  int get total => _total;
 
   bool isSubscriptionUpdating(String movieNumber) {
     return _updatingMovieNumbers.contains(movieNumber);
@@ -70,24 +45,26 @@ class PagedRankedMovieController extends ChangeNotifier {
   Future<MovieSubscriptionToggleResult> toggleSubscription({
     required String movieNumber,
   }) async {
-    final index = _items.indexWhere((item) => item.movieNumber == movieNumber);
+    final index = mutableItems.indexWhere(
+      (item) => item.movieNumber == movieNumber,
+    );
     if (index == -1 || _updatingMovieNumbers.contains(movieNumber)) {
       return const MovieSubscriptionToggleResult.ignored();
     }
 
-    final movie = _items[index];
+    final movie = mutableItems[index];
     _updatingMovieNumbers.add(movieNumber);
-    _safeNotifyListeners();
+    notifyListenersSafely();
 
     try {
       if (movie.isSubscribed) {
         await unsubscribeMovie(movieNumber: movieNumber, deleteMedia: false);
-        _items[index] = movie.copyWith(isSubscribed: false);
+        mutableItems[index] = movie.copyWith(isSubscribed: false);
         return const MovieSubscriptionToggleResult.unsubscribed();
       }
 
       await subscribeMovie(movieNumber: movieNumber);
-      _items[index] = movie.copyWith(isSubscribed: true);
+      mutableItems[index] = movie.copyWith(isSubscribed: true);
       return const MovieSubscriptionToggleResult.subscribed();
     } catch (error) {
       if (_isBlockedByMedia(error)) {
@@ -101,156 +78,12 @@ class PagedRankedMovieController extends ChangeNotifier {
       );
     } finally {
       _updatingMovieNumbers.remove(movieNumber);
-      _safeNotifyListeners();
+      notifyListenersSafely();
     }
-  }
-
-  Future<void> initialize() async {
-    if (_isInitialized) {
-      return;
-    }
-    _isInitialized = true;
-    await _loadPage(reset: true);
-  }
-
-  Future<void> reload() async {
-    _isInitialized = true;
-    await _loadPage(reset: true);
-  }
-
-  Future<void> refresh() async {
-    if (_isInitialLoading || _isLoadingMore) {
-      return;
-    }
-    final response = await fetchPage(initialPage, pageSize);
-    if (_isDisposed) {
-      return;
-    }
-    _items
-      ..clear()
-      ..addAll(response.items);
-    _currentPage = response.page;
-    _total = response.total;
-    _hasMore = _items.length < _total;
-    _hasLoadedOnce = true;
-    _initialErrorMessage = null;
-    _loadMoreErrorMessage = null;
-    _safeNotifyListeners();
-  }
-
-  Future<void> loadMore() async {
-    if (_isInitialLoading || _isLoadingMore || !_hasMore) {
-      return;
-    }
-    await _loadPage(reset: false);
-  }
-
-  void attachScrollListener() {
-    if (_scrollListenerAttached) {
-      return;
-    }
-    scrollController.addListener(_handleScroll);
-    _scrollListenerAttached = true;
-  }
-
-  void detachScrollListener() {
-    if (!_scrollListenerAttached) {
-      return;
-    }
-    scrollController.removeListener(_handleScroll);
-    _scrollListenerAttached = false;
-  }
-
-  Future<void> _loadPage({required bool reset}) async {
-    final nextPage = reset ? initialPage : _currentPage + 1;
-
-    if (reset) {
-      _isInitialLoading = true;
-      _isLoadingMore = false;
-      _initialErrorMessage = null;
-      _loadMoreErrorMessage = null;
-      _currentPage = initialPage - 1;
-      _total = 0;
-      _hasMore = true;
-      _hasLoadedOnce = false;
-      _items.clear();
-      _safeNotifyListeners();
-    } else {
-      _isLoadingMore = true;
-      _loadMoreErrorMessage = null;
-      _safeNotifyListeners();
-    }
-
-    try {
-      final response = await fetchPage(nextPage, pageSize);
-      if (_isDisposed) {
-        return;
-      }
-
-      if (reset) {
-        _items
-          ..clear()
-          ..addAll(response.items);
-      } else {
-        _items.addAll(response.items);
-      }
-
-      _currentPage = response.page;
-      _total = response.total;
-      _hasLoadedOnce = true;
-      _hasMore = _items.length < _total;
-      _initialErrorMessage = null;
-      _loadMoreErrorMessage = null;
-    } catch (_) {
-      if (_isDisposed) {
-        return;
-      }
-      if (reset) {
-        _initialErrorMessage = initialLoadErrorText;
-        _hasMore = false;
-      } else {
-        _loadMoreErrorMessage = loadMoreErrorText;
-        _hasMore = _items.length < _total;
-      }
-    } finally {
-      if (!_isDisposed) {
-        _isInitialLoading = false;
-        _isLoadingMore = false;
-        _safeNotifyListeners();
-      }
-    }
-  }
-
-  void _handleScroll() {
-    if (!scrollController.hasClients ||
-        _isInitialLoading ||
-        _isLoadingMore ||
-        !_hasMore) {
-      return;
-    }
-    final position = scrollController.position;
-    if (position.pixels >= position.maxScrollExtent - loadMoreTriggerOffset) {
-      loadMore();
-    }
-  }
-
-  void _safeNotifyListeners() {
-    if (_isDisposed) {
-      return;
-    }
-    notifyListeners();
   }
 
   bool _isBlockedByMedia(Object error) {
     return error is ApiException &&
         error.error?.code == 'movie_subscription_has_media';
-  }
-
-  @override
-  void dispose() {
-    _isDisposed = true;
-    detachScrollListener();
-    scrollController.dispose();
-    super.dispose();
   }
 }

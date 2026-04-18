@@ -314,7 +314,7 @@ download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "*/3 * * * *"
 movie_collection_sync_cron = "0 1 * * *"
 movie_heat_cron = "15 0 * * *"
-movie_interaction_sync_cron = "0 5 * * *"
+movie_interaction_sync_cron = "0 * * * *"
 ranking_sync_cron = "45 1 * * *"
 hot_review_sync_cron = "20 1 * * *"
 media_file_scan_cron = "0 */6 * * *"
@@ -338,7 +338,7 @@ image_search_optimize_cron = "0 3 * * *"
 | `download_task_auto_import_cron` | 已完成下载自动导入频率 |
 | `movie_collection_sync_cron` | 合集影片同步频率 |
 | `movie_heat_cron` | 影片热度重算频率 |
-| `movie_interaction_sync_cron` | 影片互动数同步频率 |
+| `movie_interaction_sync_cron` | 影片互动数同步频率；当前默认每小时执行一次，但影片是否真正进入候选仍受分层刷新规则影响 |
 | `ranking_sync_cron` | 排行榜同步频率 |
 | `hot_review_sync_cron` | JavDB 热评同步频率 |
 | `media_file_scan_cron` | 媒体文件巡检频率 |
@@ -636,7 +636,7 @@ movie_collection_sync_cron = "0 1 * * *"
 # 影片热度重算 cron 表达式。
 movie_heat_cron = "15 0 * * *"
 # 影片互动数同步 cron 表达式。
-movie_interaction_sync_cron = "0 5 * * *"
+movie_interaction_sync_cron = "0 * * * *"
 # 榜单同步 cron 表达式。
 ranking_sync_cron = "45 1 * * *"
 # JavDB 热评同步 cron 表达式。

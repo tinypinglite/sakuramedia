@@ -6,10 +6,10 @@ import 'package:sakuramedia/features/actors/presentation/desktop_actor_detail_pa
 import 'package:sakuramedia/features/auth/presentation/login_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
-import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlist_detail_page.dart';
+import 'package:sakuramedia/routes/app_route_helpers.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
@@ -56,7 +56,7 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
   String get pageName => 'desktop-movie-player';
 
   @override
-  String get location => _buildLocation(
+  String get location => buildRouteLocation(
     path: '/desktop/library/movies/${Uri.encodeComponent(movieNumber)}/player',
     queryParameters: <String, String?>{
       if (mediaId != null) 'mediaId': '$mediaId',
@@ -69,12 +69,12 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     // 兼容 typed route 新参数名与现有 URL 中的旧参数名。
     return DesktopMoviePlayerPage(
       movieNumber: movieNumber,
-      initialMediaId: _resolveIntQueryParameter(
+      initialMediaId: resolveIntQueryParameter(
         state,
         names: const <String>['mediaId', 'media-id'],
         fallback: mediaId,
       ),
-      initialPositionSeconds: _resolveIntQueryParameter(
+      initialPositionSeconds: resolveIntQueryParameter(
         state,
         names: const <String>['positionSeconds', 'position-seconds'],
         fallback: positionSeconds,
@@ -98,7 +98,9 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     TypedGoRoute<DesktopSearchRouteData>(path: desktopSearchPath),
     // 以图搜图必须先于 `:query` 声明，避免 `/desktop/search/image` 被吞成普通搜索。
     TypedGoRoute<DesktopImageSearchRouteData>(path: desktopImageSearchPath),
-    TypedGoRoute<DesktopSearchQueryRouteData>(path: '$desktopSearchPath/:query'),
+    TypedGoRoute<DesktopSearchQueryRouteData>(
+      path: '$desktopSearchPath/:query',
+    ),
     TypedGoRoute<DesktopMovieDetailRouteData>(
       path: '/desktop/library/movies/:movieNumber',
     ),
@@ -135,174 +137,54 @@ class DesktopShellRouteData extends ShellRouteData {
   }
 }
 
-class DesktopOverviewRouteData extends _DesktopShellPageRouteData
+class DesktopOverviewRouteData extends _DesktopShellSpecRouteData
     with $DesktopOverviewRouteData {
-  const DesktopOverviewRouteData();
-
-  @override
-  String get pageName => desktopRouteSpecs
-      .firstWhere((spec) => spec.path == desktopOverviewPath)
-      .name;
-
-  @override
-  Widget buildContent(BuildContext context, GoRouterState state) {
-    return desktopRouteSpecs
-        .firstWhere((spec) => spec.path == desktopOverviewPath)
-        .builder(context);
-  }
+  const DesktopOverviewRouteData() : super(desktopOverviewPath);
 }
 
-class DesktopFollowRouteData extends _DesktopShellPageRouteData
+class DesktopFollowRouteData extends _DesktopShellSpecRouteData
     with $DesktopFollowRouteData {
-  const DesktopFollowRouteData();
-
-  @override
-  String get pageName => desktopRouteSpecs
-      .firstWhere((spec) => spec.path == desktopFollowPath)
-      .name;
-
-  @override
-  Widget buildContent(BuildContext context, GoRouterState state) {
-    return desktopRouteSpecs
-        .firstWhere((spec) => spec.path == desktopFollowPath)
-        .builder(context);
-  }
+  const DesktopFollowRouteData() : super(desktopFollowPath);
 }
 
-class DesktopMoviesRouteData extends _DesktopShellPageRouteData
+class DesktopMoviesRouteData extends _DesktopShellSpecRouteData
     with $DesktopMoviesRouteData {
-  const DesktopMoviesRouteData();
-
-  @override
-  String get pageName => desktopRouteSpecs
-      .firstWhere((spec) => spec.path == desktopMoviesPath)
-      .name;
-
-  @override
-  Widget buildContent(BuildContext context, GoRouterState state) {
-    return desktopRouteSpecs
-        .firstWhere((spec) => spec.path == desktopMoviesPath)
-        .builder(context);
-  }
+  const DesktopMoviesRouteData() : super(desktopMoviesPath);
 }
 
-class DesktopActorsRouteData extends _DesktopShellPageRouteData
+class DesktopActorsRouteData extends _DesktopShellSpecRouteData
     with $DesktopActorsRouteData {
-  const DesktopActorsRouteData();
-
-  @override
-  String get pageName => desktopRouteSpecs
-      .firstWhere((spec) => spec.path == desktopActorsPath)
-      .name;
-
-  @override
-  Widget buildContent(BuildContext context, GoRouterState state) {
-    return desktopRouteSpecs
-        .firstWhere((spec) => spec.path == desktopActorsPath)
-        .builder(context);
-  }
+  const DesktopActorsRouteData() : super(desktopActorsPath);
 }
 
-class DesktopMomentsRouteData extends _DesktopShellPageRouteData
+class DesktopMomentsRouteData extends _DesktopShellSpecRouteData
     with $DesktopMomentsRouteData {
-  const DesktopMomentsRouteData();
-
-  @override
-  String get pageName => desktopRouteSpecs
-      .firstWhere((spec) => spec.path == desktopMomentsPath)
-      .name;
-
-  @override
-  Widget buildContent(BuildContext context, GoRouterState state) {
-    return desktopRouteSpecs
-        .firstWhere((spec) => spec.path == desktopMomentsPath)
-        .builder(context);
-  }
+  const DesktopMomentsRouteData() : super(desktopMomentsPath);
 }
 
-class DesktopPlaylistsRouteData extends _DesktopShellPageRouteData
+class DesktopPlaylistsRouteData extends _DesktopShellSpecRouteData
     with $DesktopPlaylistsRouteData {
-  const DesktopPlaylistsRouteData();
-
-  @override
-  String get pageName => desktopRouteSpecs
-      .firstWhere((spec) => spec.path == desktopPlaylistsPath)
-      .name;
-
-  @override
-  Widget buildContent(BuildContext context, GoRouterState state) {
-    return desktopRouteSpecs
-        .firstWhere((spec) => spec.path == desktopPlaylistsPath)
-        .builder(context);
-  }
+  const DesktopPlaylistsRouteData() : super(desktopPlaylistsPath);
 }
 
-class DesktopRankingsRouteData extends _DesktopShellPageRouteData
+class DesktopRankingsRouteData extends _DesktopShellSpecRouteData
     with $DesktopRankingsRouteData {
-  const DesktopRankingsRouteData();
-
-  @override
-  String get pageName => desktopRouteSpecs
-      .firstWhere((spec) => spec.path == desktopRankingsPath)
-      .name;
-
-  @override
-  Widget buildContent(BuildContext context, GoRouterState state) {
-    return desktopRouteSpecs
-        .firstWhere((spec) => spec.path == desktopRankingsPath)
-        .builder(context);
-  }
+  const DesktopRankingsRouteData() : super(desktopRankingsPath);
 }
 
-class DesktopHotReviewsRouteData extends _DesktopShellPageRouteData
+class DesktopHotReviewsRouteData extends _DesktopShellSpecRouteData
     with $DesktopHotReviewsRouteData {
-  const DesktopHotReviewsRouteData();
-
-  @override
-  String get pageName => desktopRouteSpecs
-      .firstWhere((spec) => spec.path == desktopHotReviewsPath)
-      .name;
-
-  @override
-  Widget buildContent(BuildContext context, GoRouterState state) {
-    return desktopRouteSpecs
-        .firstWhere((spec) => spec.path == desktopHotReviewsPath)
-        .builder(context);
-  }
+  const DesktopHotReviewsRouteData() : super(desktopHotReviewsPath);
 }
 
-class DesktopConfigurationRouteData extends _DesktopShellPageRouteData
+class DesktopConfigurationRouteData extends _DesktopShellSpecRouteData
     with $DesktopConfigurationRouteData {
-  const DesktopConfigurationRouteData();
-
-  @override
-  String get pageName => desktopRouteSpecs
-      .firstWhere((spec) => spec.path == desktopConfigurationPath)
-      .name;
-
-  @override
-  Widget buildContent(BuildContext context, GoRouterState state) {
-    return desktopRouteSpecs
-        .firstWhere((spec) => spec.path == desktopConfigurationPath)
-        .builder(context);
-  }
+  const DesktopConfigurationRouteData() : super(desktopConfigurationPath);
 }
 
-class DesktopActivityRouteData extends _DesktopShellPageRouteData
+class DesktopActivityRouteData extends _DesktopShellSpecRouteData
     with $DesktopActivityRouteData {
-  const DesktopActivityRouteData();
-
-  @override
-  String get pageName => desktopRouteSpecs
-      .firstWhere((spec) => spec.path == desktopActivityPath)
-      .name;
-
-  @override
-  Widget buildContent(BuildContext context, GoRouterState state) {
-    return desktopRouteSpecs
-        .firstWhere((spec) => spec.path == desktopActivityPath)
-        .builder(context);
-  }
+  const DesktopActivityRouteData() : super(desktopActivityPath);
 }
 
 class DesktopSearchRouteData extends _DesktopShellPageRouteData
@@ -315,7 +197,7 @@ class DesktopSearchRouteData extends _DesktopShellPageRouteData
   String get pageName => 'desktop-search-empty';
 
   @override
-  String get location => _buildLocation(
+  String get location => buildRouteLocation(
     path: desktopSearchPath,
     queryParameters: <String, String?>{
       if (useOnlineSearch) 'useOnlineSearch': '$useOnlineSearch',
@@ -326,7 +208,7 @@ class DesktopSearchRouteData extends _DesktopShellPageRouteData
   Widget buildContent(BuildContext context, GoRouterState state) {
     return CatalogSearchPage(
       initialQuery: '',
-      initialUseOnlineSearch: _resolveBoolQueryParameter(
+      initialUseOnlineSearch: resolveBoolQueryParameter(
         state,
         names: const <String>['useOnlineSearch', 'use-online-search'],
         fallback: useOnlineSearch,
@@ -349,7 +231,7 @@ class DesktopSearchQueryRouteData extends _DesktopShellPageRouteData
   String get pageName => 'desktop-search';
 
   @override
-  String get location => _buildLocation(
+  String get location => buildRouteLocation(
     path: '$desktopSearchPath/${Uri.encodeComponent(query)}',
     queryParameters: <String, String?>{
       if (useOnlineSearch) 'useOnlineSearch': '$useOnlineSearch',
@@ -360,7 +242,7 @@ class DesktopSearchQueryRouteData extends _DesktopShellPageRouteData
   Widget buildContent(BuildContext context, GoRouterState state) {
     return CatalogSearchPage(
       initialQuery: query,
-      initialUseOnlineSearch: _resolveBoolQueryParameter(
+      initialUseOnlineSearch: resolveBoolQueryParameter(
         state,
         names: const <String>['useOnlineSearch', 'use-online-search'],
         fallback: useOnlineSearch,
@@ -385,7 +267,7 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
   String get pageName => 'desktop-image-search';
 
   @override
-  String get location => _buildLocation(
+  String get location => buildRouteLocation(
     path: desktopImageSearchPath,
     queryParameters: <String, String?>{
       if (draftId != null) 'draftId': draftId,
@@ -396,7 +278,7 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
 
   @override
   Widget buildContent(BuildContext context, GoRouterState state) {
-    final resolvedDraftId = _resolveStringQueryParameter(
+    final resolvedDraftId = resolveStringQueryParameter(
       state,
       names: const <String>['draftId', 'draft-id'],
       fallback: draftId,
@@ -406,18 +288,15 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
       initialFileName: draft?.fileName,
       initialFileBytes: draft?.bytes,
       initialMimeType: draft?.mimeType,
-      currentMovieNumber: _resolveStringQueryParameter(
+      currentMovieNumber: resolveStringQueryParameter(
         state,
         names: const <String>['currentMovieNumber', 'current-movie-number'],
         fallback: currentMovieNumber,
       ),
-      initialCurrentMovieScope: _scopeFromQuery(
-        _resolveStringQueryParameter(
+      initialCurrentMovieScope: parseImageSearchCurrentMovieScope(
+        resolveStringQueryParameter(
               state,
-              names: const <String>[
-                'currentMovieScope',
-                'current-movie-scope',
-              ],
+              names: const <String>['currentMovieScope', 'current-movie-scope'],
               fallback: currentMovieScope,
             ) ??
             currentMovieScope,
@@ -492,71 +371,21 @@ abstract class _DesktopNoTransitionRouteData extends GoRouteData {
   }
 }
 
-abstract class _DesktopShellPageRouteData extends _DesktopNoTransitionRouteData {
+abstract class _DesktopShellPageRouteData
+    extends _DesktopNoTransitionRouteData {
   const _DesktopShellPageRouteData();
 }
 
-ImageSearchCurrentMovieScope _scopeFromQuery(String value) {
-  return ImageSearchCurrentMovieScope.values.firstWhere(
-    (scope) => scope.name == value,
-    orElse: () => ImageSearchCurrentMovieScope.all,
-  );
-}
+abstract class _DesktopShellSpecRouteData extends _DesktopShellPageRouteData {
+  const _DesktopShellSpecRouteData(this.path);
 
-String _buildLocation({
-  required String path,
-  required Map<String, String?> queryParameters,
-}) {
-  final effectiveQueryParameters = <String, String>{};
-  for (final entry in queryParameters.entries) {
-    final value = entry.value;
-    if (value == null || value.isEmpty) {
-      continue;
-    }
-    effectiveQueryParameters[entry.key] = value;
-  }
-  return Uri(
-    path: path,
-    queryParameters:
-        effectiveQueryParameters.isEmpty ? null : effectiveQueryParameters,
-  ).toString();
-}
+  final String path;
 
-String? _resolveStringQueryParameter(
-  GoRouterState state, {
-  required List<String> names,
-  String? fallback,
-}) {
-  for (final name in names) {
-    final value = state.uri.queryParameters[name];
-    if (value != null && value.isNotEmpty) {
-      return value;
-    }
-  }
-  return fallback;
-}
+  @override
+  String get pageName => routeSpecNameForPath(desktopRouteSpecs, path);
 
-int? _resolveIntQueryParameter(
-  GoRouterState state, {
-  required List<String> names,
-  int? fallback,
-}) {
-  final value = _resolveStringQueryParameter(state, names: names);
-  return value == null ? fallback : int.tryParse(value) ?? fallback;
-}
-
-bool _resolveBoolQueryParameter(
-  GoRouterState state, {
-  required List<String> names,
-  required bool fallback,
-}) {
-  final value = _resolveStringQueryParameter(state, names: names);
-  switch (value) {
-    case 'true':
-      return true;
-    case 'false':
-      return false;
-    default:
-      return fallback;
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return buildRouteSpecContent(desktopRouteSpecs, path, context);
   }
 }
