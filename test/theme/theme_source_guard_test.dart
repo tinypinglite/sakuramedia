@@ -8,9 +8,7 @@ void main() {
         Directory('lib')
             .listSync(recursive: true)
             .whereType<File>()
-            .where((file) => file.path.endsWith('.dart'))
-            .where((file) => !file.path.startsWith('lib/theme/'))
-            .where((file) => file.path != 'lib/theme.dart')
+            .where((file) => _isGuardedLibraryFile(file.path))
             .toList()
           ..sort((left, right) => left.path.compareTo(right.path));
 
@@ -39,4 +37,11 @@ void main() {
 
     expect(violations, isEmpty, reason: violations.join('\n'));
   });
+}
+
+bool _isGuardedLibraryFile(String path) {
+  final normalizedPath = path.replaceAll('\\', '/');
+  return normalizedPath.endsWith('.dart') &&
+      !normalizedPath.startsWith('lib/theme/') &&
+      normalizedPath != 'lib/theme.dart';
 }
