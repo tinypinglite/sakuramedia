@@ -40,11 +40,11 @@ List<Widget> buildResourceTaskSlivers({
   }
 
   if (controller.definitions.isEmpty) {
-    return const <Widget>[
+    return <Widget>[
       SliverToBoxAdapter(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 32),
-          child: AppEmptyState(message: '当前没有已注册的资源任务'),
+          padding: EdgeInsets.symmetric(vertical: context.appSpacing.xxl),
+          child: const AppEmptyState(message: '当前没有已注册的资源任务'),
         ),
       ),
     ];
@@ -410,11 +410,10 @@ class _ResourceTaskFilterBarState extends State<_ResourceTaskFilterBar> {
             textStyle: filterTextStyle,
             items: ResourceTaskRecordStateFilter.values
                 .map(
-                  (value) =>
-                      DropdownMenuItem<ResourceTaskRecordStateFilter>(
-                        value: value,
-                        child: Text(value.label),
-                      ),
+                  (value) => DropdownMenuItem<ResourceTaskRecordStateFilter>(
+                    value: value,
+                    child: Text(value.label),
+                  ),
                 )
                 .toList(growable: false),
             onChanged:
@@ -422,8 +421,7 @@ class _ResourceTaskFilterBarState extends State<_ResourceTaskFilterBar> {
                     ? null
                     : (value) => controller.applyFilter(
                       controller.filter.copyWith(
-                        stateFilter:
-                            value ?? ResourceTaskRecordStateFilter.all,
+                        stateFilter: value ?? ResourceTaskRecordStateFilter.all,
                       ),
                     ),
           ),
@@ -597,7 +595,9 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                   ),
                   if ((record.lastTriggerType ?? '').trim().isNotEmpty)
                     AppBadge(
-                      label: _labelForResourceTaskTrigger(record.lastTriggerType!),
+                      label: _labelForResourceTaskTrigger(
+                        record.lastTriggerType!,
+                      ),
                       tone: AppBadgeTone.neutral,
                       size: AppBadgeSize.compact,
                     ),
@@ -622,7 +622,8 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                   ),
                 ],
               ),
-              if (record.isFailed && (record.lastError ?? '').trim().isNotEmpty) ...[
+              if (record.isFailed &&
+                  (record.lastError ?? '').trim().isNotEmpty) ...[
                 SizedBox(height: context.appSpacing.md),
                 Text(
                   record.lastError!,
@@ -664,7 +665,9 @@ class _ResourceTaskDetailDrawer extends StatelessWidget {
           child: GestureDetector(
             onTap: onClose,
             behavior: HitTestBehavior.opaque,
-            child: const ColoredBox(color: Color(0x33000000)),
+            child: ColoredBox(
+              color: colors.mediaOverlayStrong.withValues(alpha: 0.2),
+            ),
           ),
         ),
         Align(
@@ -898,9 +901,7 @@ class _DetailRowTile extends StatelessWidget {
           width: 88,
           child: Text(
             row.label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colors.textMuted,
-            ),
+            style: theme.textTheme.bodySmall?.copyWith(color: colors.textMuted),
           ),
         ),
         Expanded(
