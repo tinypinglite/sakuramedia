@@ -31,6 +31,9 @@ class MoviePlotThumbnail extends StatefulWidget {
 }
 
 class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
+  static const double _decodeDevicePixelRatioCap = 2.0;
+  static const int _decodeSizeUpperBound = 1024;
+
   ImageStream? _imageStream;
   ImageStreamListener? _imageStreamListener;
   ImageProvider<Object>? _resolvedImageProvider;
@@ -46,7 +49,8 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
   void didUpdateWidget(covariant MoviePlotThumbnail oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.url != widget.url ||
-        oldWidget.imageProvider != widget.imageProvider) {
+        oldWidget.imageProvider != widget.imageProvider ||
+        oldWidget.maxHeight != widget.maxHeight) {
       _resolveImageProvider();
     }
   }
@@ -69,6 +73,18 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
   }
 
   ImageProvider<Object>? _buildImageProvider() {
+    final base = _buildBaseImageProvider();
+    if (base == null) {
+      return null;
+    }
+    final decodeHeight = _resolveDecodeHeight();
+    if (decodeHeight == null) {
+      return base;
+    }
+    return ResizeImage(base, height: decodeHeight, allowUpscaling: false);
+  }
+
+  ImageProvider<Object>? _buildBaseImageProvider() {
     if (widget.imageProvider != null) {
       return widget.imageProvider;
     }
@@ -83,6 +99,18 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
     }
 
     return CachedNetworkImageProvider(resolvedUrl);
+  }
+
+  int? _resolveDecodeHeight() {
+    if (!widget.maxHeight.isFinite || widget.maxHeight <= 0) {
+      return null;
+    }
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final effectiveDpr =
+        dpr.clamp(1.0, _decodeDevicePixelRatioCap) as double;
+    return ((widget.maxHeight * effectiveDpr).round())
+            .clamp(1, _decodeSizeUpperBound)
+        as int;
   }
 
   void _listenToImageStream(ImageProvider<Object>? provider) {
