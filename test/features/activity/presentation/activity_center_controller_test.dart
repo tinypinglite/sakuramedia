@@ -69,47 +69,36 @@ void main() {
     },
   );
 
-  test(
-    'markNotificationRead updates unread count and archive removes item',
-    () async {
-      _enqueueInitialActivityState(
-        bundle,
-        notifications: <Map<String, dynamic>>[
-          _notificationJson(id: 101, isRead: false),
-        ],
-        unreadCount: 1,
-      );
-      bundle.adapter.enqueueSse(
-        method: 'GET',
-        path: '/system/events/stream',
-        chunks: const <String>[],
-        keepOpen: true,
-      );
-      bundle.adapter.enqueueJson(
-        method: 'PATCH',
-        path: '/system/notifications/101/read',
-        body: <String, dynamic>{'id': 101, 'is_read': true},
-      );
-      bundle.adapter.enqueueJson(
-        method: 'PATCH',
-        path: '/system/notifications/101/archive',
-        body: <String, dynamic>{'id': 101, 'archived': true},
-      );
+  test('markNotificationRead updates unread count', () async {
+    _enqueueInitialActivityState(
+      bundle,
+      notifications: <Map<String, dynamic>>[
+        _notificationJson(id: 101, isRead: false),
+      ],
+      unreadCount: 1,
+    );
+    bundle.adapter.enqueueSse(
+      method: 'GET',
+      path: '/system/events/stream',
+      chunks: const <String>[],
+      keepOpen: true,
+    );
+    bundle.adapter.enqueueJson(
+      method: 'PATCH',
+      path: '/system/notifications/101/read',
+      body: <String, dynamic>{'id': 101, 'is_read': true},
+    );
 
-      final controller = ActivityCenterController(
-        activityApi: bundle.activityApi,
-      );
-      addTearDown(controller.dispose);
+    final controller = ActivityCenterController(
+      activityApi: bundle.activityApi,
+    );
+    addTearDown(controller.dispose);
 
-      await controller.initialize();
-      await controller.markNotificationRead(101);
-      expect(controller.unreadCount, 0);
-      expect(controller.notifications.single.isRead, isTrue);
-
-      await controller.archiveNotification(101);
-      expect(controller.notifications, isEmpty);
-    },
-  );
+    await controller.initialize();
+    await controller.markNotificationRead(101);
+    expect(controller.unreadCount, 0);
+    expect(controller.notifications.single.isRead, isTrue);
+  });
 
   test(
     'task_run_updated removes completed task from active list and keeps history',

@@ -27,9 +27,6 @@ class ActivityNotificationDto {
   final String? relatedResourceType;
   final int? relatedResourceId;
 
-  bool get canOpenMovie =>
-      relatedResourceType == 'movie' && relatedResourceId != null;
-
   ActivityNotificationDto copyWith({
     String? category,
     String? level,

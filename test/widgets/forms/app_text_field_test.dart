@@ -131,4 +131,34 @@ void main() {
       ),
     );
   });
+
+  testWidgets('uses mobile form tokens and typography under mobile theme', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraMobileThemeData,
+        home: const Material(
+          child: AppTextField(
+            fieldKey: Key('mobile-sized-field'),
+            label: '名称',
+            hintText: '请输入名称',
+          ),
+        ),
+      ),
+    );
+
+    final editableText = tester.widget<EditableText>(find.byType(EditableText));
+    final decoration =
+        tester.widget<InputDecorator>(find.byType(InputDecorator)).decoration;
+
+    expect(editableText.style.fontSize, sakuraMobileThemeData.appTextScale.s14);
+    expect(
+      decoration.contentPadding,
+      EdgeInsets.symmetric(
+        horizontal: sakuraMobileThemeData.appFormTokens.fieldHorizontalPadding,
+        vertical: sakuraMobileThemeData.appFormTokens.fieldVerticalPadding,
+      ),
+    );
+  });
 }

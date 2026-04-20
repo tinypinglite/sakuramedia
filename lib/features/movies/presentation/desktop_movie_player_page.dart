@@ -540,16 +540,26 @@ class _MoviePlayerPanelMessage extends StatelessWidget {
                 SizedBox(height: context.appSpacing.lg),
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: context.appColors.textOnMedia,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s18,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.onMedia,
                   ),
                 ),
                 SizedBox(height: context.appSpacing.sm),
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: context.appColors.textOnMedia.withValues(alpha: 0.8),
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.secondary,
+                  ).copyWith(
+                    color: context.appTextPalette.onMedia.withValues(
+                      alpha: 0.8,
+                    ),
                   ),
                 ),
                 if (actionLabel != null && onAction != null) ...[

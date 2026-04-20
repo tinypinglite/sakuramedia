@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 
 class MovieFilterToolbar extends StatefulWidget {
   const MovieFilterToolbar({
@@ -158,10 +159,9 @@ class _MovieFilterToolbarState extends State<MovieFilterToolbar> {
                     options: MovieStatusFilter.values,
                     selectedValue: widget.filterState.status,
                     labelBuilder: (value) => value.label,
-                    onSelected:
-                        (value) => widget.onChanged(
-                          widget.filterState.copyWith(status: value),
-                        ),
+                    onSelected: (value) => widget.onChanged(
+                      widget.filterState.copyWith(status: value),
+                    ),
                   ),
                   SizedBox(height: context.appSpacing.lg),
                   _FilterSection<MovieCollectionTypeFilter>(
@@ -169,22 +169,19 @@ class _MovieFilterToolbarState extends State<MovieFilterToolbar> {
                     options: MovieCollectionTypeFilter.values,
                     selectedValue: widget.filterState.collectionType,
                     labelBuilder: (value) => value.label,
-                    onSelected:
-                        (value) => widget.onChanged(
-                          widget.filterState.copyWith(collectionType: value),
-                        ),
+                    onSelected: (value) => widget.onChanged(
+                      widget.filterState.copyWith(collectionType: value),
+                    ),
                   ),
                   SizedBox(height: context.appSpacing.lg),
                   _SortSection(
                     filterState: widget.filterState,
-                    onSortFieldChanged:
-                        (value) => widget.onChanged(
-                          widget.filterState.copyWith(sortField: value),
-                        ),
-                    onSortDirectionChanged:
-                        (value) => widget.onChanged(
-                          widget.filterState.copyWith(sortDirection: value),
-                        ),
+                    onSortFieldChanged: (value) => widget.onChanged(
+                      widget.filterState.copyWith(sortField: value),
+                    ),
+                    onSortDirectionChanged: (value) => widget.onChanged(
+                      widget.filterState.copyWith(sortDirection: value),
+                    ),
                   ),
                   SizedBox(height: context.appSpacing.lg),
                   Row(
@@ -192,18 +189,20 @@ class _MovieFilterToolbarState extends State<MovieFilterToolbar> {
                     children: [
                       Text(
                         widget.filterState.isDefault ? '当前使用默认筛选' : '筛选已即时生效',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: context.appColors.textMuted,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s12,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.muted,
                         ),
                       ),
                       AppButton(
                         label: '重置',
                         size: AppButtonSize.xSmall,
                         variant: AppButtonVariant.secondary,
-                        onPressed:
-                            widget.filterState.isDefault
-                                ? null
-                                : widget.onReset,
+                        onPressed: widget.filterState.isDefault
+                            ? null
+                            : widget.onReset,
                       ),
                     ],
                   ),
@@ -218,30 +217,36 @@ class _MovieFilterToolbarState extends State<MovieFilterToolbar> {
 
   @override
   Widget build(BuildContext context) {
+    final isDefaultSelection = widget.filterState.isDefault;
+    final isPresetSelection = MovieFilterPreset.values.any(
+      widget.filterState.matchesPreset,
+    );
+    final isCustomSelection = !isDefaultSelection && !isPresetSelection;
+
     return Wrap(
       spacing: context.appSpacing.sm,
       runSpacing: context.appSpacing.sm,
       children: [
         CompositedTransformTarget(
           link: _layerLink,
-          child: AppButton(
+          child: AppTextButton(
             key: _triggerKey,
             label: widget.filterState.triggerLabel,
             labelKey: const Key('movies-filter-trigger-label'),
             icon: const Icon(Icons.filter_alt_outlined),
             trailingIcon: Icon(_isOpen ? Icons.expand_less : Icons.expand_more),
-            variant: AppButtonVariant.secondary,
-            size: AppButtonSize.small,
-            isSelected: !widget.filterState.isDefault || _isOpen,
+            size: AppTextButtonSize.small,
+            backgroundStyle: AppTextButtonBackgroundStyle.muted,
+            isSelected: isDefaultSelection || isCustomSelection,
             onPressed: _togglePanel,
           ),
         ),
         for (final preset in MovieFilterPreset.values)
-          AppButton(
+          AppTextButton(
             key: Key('movies-filter-preset-${preset.key}'),
             label: preset.label,
-            variant: AppButtonVariant.secondary,
-            size: AppButtonSize.small,
+            size: AppTextButtonSize.small,
+            backgroundStyle: AppTextButtonBackgroundStyle.muted,
             isSelected: widget.filterState.matchesPreset(preset),
             onPressed: () => widget.onChanged(preset.filterState),
           ),
@@ -272,9 +277,11 @@ class _FilterSection<T> extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: context.appColors.textPrimary,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.primary,
           ),
         ),
         SizedBox(height: context.appSpacing.sm),
@@ -283,10 +290,9 @@ class _FilterSection<T> extends StatelessWidget {
           runSpacing: context.appSpacing.sm,
           children: options
               .map(
-                (value) => AppButton(
+                (value) => AppTextButton(
                   label: labelBuilder(value),
-                  size: AppButtonSize.xSmall,
-                  variant: AppButtonVariant.secondary,
+                  size: AppTextButtonSize.xSmall,
                   isSelected: value == selectedValue,
                   onPressed: () => onSelected(value),
                 ),
@@ -316,9 +322,11 @@ class _SortSection extends StatelessWidget {
       children: [
         Text(
           '排序方式',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: context.appColors.textPrimary,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.primary,
           ),
         ),
         SizedBox(height: context.appSpacing.sm),
@@ -327,10 +335,9 @@ class _SortSection extends StatelessWidget {
           runSpacing: context.appSpacing.sm,
           children: MovieSortField.values
               .map(
-                (value) => AppButton(
+                (value) => AppTextButton(
                   label: value.label,
-                  size: AppButtonSize.xSmall,
-                  variant: AppButtonVariant.secondary,
+                  size: AppTextButtonSize.xSmall,
                   isSelected: value == filterState.sortField,
                   onPressed: () => onSortFieldChanged(value),
                 ),
@@ -342,10 +349,9 @@ class _SortSection extends StatelessWidget {
           spacing: context.appSpacing.sm,
           children: SortDirection.values
               .map(
-                (value) => AppButton(
+                (value) => AppTextButton(
                   label: value.label,
-                  size: AppButtonSize.xSmall,
-                  variant: AppButtonVariant.secondary,
+                  size: AppTextButtonSize.xSmall,
                   isSelected: value == filterState.sortDirection,
                   onPressed: () => onSortDirectionChanged(value),
                 ),

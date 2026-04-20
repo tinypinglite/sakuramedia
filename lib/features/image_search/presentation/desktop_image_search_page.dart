@@ -289,7 +289,7 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
                       key: const Key('desktop-image-search-change-image'),
                       tooltip: '更换图片',
                       size: AppIconButtonSize.regular,
-                      iconColor: context.appColors.textPrimary,
+                      iconColor: context.appTextPalette.primary,
                       icon: const Icon(Icons.image_search_outlined),
                       onPressed: _pickAndSearchImage,
                     ),
@@ -423,14 +423,17 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
               Icon(
                 Icons.error_outline_rounded,
                 size: componentTokens.iconSizeXl,
-                color: colors.textSecondary,
+                color: context.appTextPalette.secondary,
               ),
               SizedBox(width: spacing.sm),
               Text(
                 _controller.errorMessage!,
-                style: Theme.of(
+                style: resolveAppTextStyle(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
               SizedBox(width: spacing.sm),
               TextButton(
@@ -651,6 +654,7 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
           maxHeightFactor: 0.7,
           context: context,
           drawerKey: const Key('image-search-result-preview-bottom-sheet'),
+          ignoreTopSafeArea: true,
           builder: (_) => previewDialog,
         ),
     };
@@ -922,7 +926,12 @@ class _ActorSelectorDialogState extends State<_ActorSelectorDialog> {
               Expanded(
                 child: Text(
                   '已选 ${_selectedActorIds.length} 位',
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s18,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.primary,
+                  ),
                 ),
               ),
               TextButton(

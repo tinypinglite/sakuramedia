@@ -78,10 +78,6 @@ class ActivityApi {
     await _apiClient.patch('/system/notifications/$notificationId/read');
   }
 
-  Future<void> archiveNotification({required int notificationId}) async {
-    await _apiClient.patch('/system/notifications/$notificationId/archive');
-  }
-
   Future<int> getUnreadCount() async {
     final response = await _apiClient.get('/system/notifications/unread-count');
     final value = response['unread_count'];

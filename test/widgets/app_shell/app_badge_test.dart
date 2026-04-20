@@ -21,7 +21,7 @@ void main() {
     final text = tester.widget<Text>(find.text('错误'));
 
     expect(decoration.color, sakuraThemeData.appColors.errorSurface);
-    expect(text.style?.color, sakuraThemeData.appColors.errorForeground);
+    expect(text.style?.color, sakuraThemeData.appTextPalette.error);
   });
 
   testWidgets('app badge compact size reduces vertical padding', (
@@ -46,10 +46,16 @@ void main() {
     );
 
     final regular = tester.widget<Container>(
-      find.descendant(of: find.byKey(const Key('regular')), matching: find.byType(Container)),
+      find.descendant(
+        of: find.byKey(const Key('regular')),
+        matching: find.byType(Container),
+      ),
     );
     final compact = tester.widget<Container>(
-      find.descendant(of: find.byKey(const Key('compact')), matching: find.byType(Container)),
+      find.descendant(
+        of: find.byKey(const Key('compact')),
+        matching: find.byType(Container),
+      ),
     );
     final regularPadding = regular.padding! as EdgeInsets;
     final compactPadding = compact.padding! as EdgeInsets;

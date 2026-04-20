@@ -45,7 +45,9 @@ class TaskRunDto {
   }
 
   String? get displaySummary {
-    if (state == 'failed' && errorMessage != null && errorMessage!.trim().isNotEmpty) {
+    if (state == 'failed' &&
+        errorMessage != null &&
+        errorMessage!.trim().isNotEmpty) {
       return errorMessage;
     }
     if (resultText != null && resultText!.trim().isNotEmpty) {

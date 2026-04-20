@@ -24,7 +24,7 @@ class MoviePlayerBackButton extends StatelessWidget {
           child: Icon(
             Icons.arrow_back_ios_new_rounded,
             size: componentTokens.iconSizeSm,
-            color: context.appColors.textOnMedia,
+            color: context.appTextPalette.onMedia,
           ),
         ),
       ),
@@ -56,7 +56,7 @@ class MoviePlayerInfoButton extends StatelessWidget {
             child: Icon(
               Icons.info_outline_rounded,
               size: componentTokens.iconSizeSm,
-              color: context.appColors.textOnMedia,
+              color: context.appTextPalette.onMedia,
             ),
           ),
         ),
@@ -72,8 +72,6 @@ class MoviePlayerCurrentNumberBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = context.appColors;
     final overlayTokens = context.appOverlayTokens;
     final resolvedMovieNumber = movieNumber.trim();
 
@@ -92,13 +90,10 @@ class MoviePlayerCurrentNumberBadge extends StatelessWidget {
         ),
         child: Text(
           resolvedMovieNumber,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: colors.textOnMedia.withValues(
-              alpha: overlayTokens.primaryLabelAlpha,
-            ),
-            fontSize: overlayTokens.controlLabelFontSize,
-            fontWeight: FontWeight.w500,
-            height: overlayTokens.controlLabelHeight,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            tone: AppTextTone.onMedia,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

@@ -11,15 +11,21 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_detail_page_content.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_detail_page.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/app_shell/app_mobile_subpage_shell.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_hero_card.dart';
+import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
 import '../../../support/test_api_bundle.dart';
 
@@ -90,44 +96,39 @@ void main() {
   testWidgets(
     'mobile movie detail loading skeleton does not overflow on narrow widths',
     (WidgetTester tester) async {
-      final completer = Completer<void>();
-      addTearDown(() {
-        if (!completer.isCompleted) {
-          completer.complete();
-        }
-      });
-
-      bundle.adapter.enqueueResponder(
-        method: 'GET',
-        path: '/movies/ABC-001',
-        responder: (options, requestBody) async {
-          await completer.future;
-          return ResponseBody.fromString(
-            jsonEncode(_movieDetailJson()),
-            200,
-            headers: const <String, List<String>>{
-              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
-            },
-          );
-        },
+      final controller = MovieDetailController(
+        movieNumber: 'ABC-001',
+        fetchMovieDetail: ({required movieNumber}) => Future<MovieDetailDto>.value(
+          throw UnimplementedError(),
+        ),
+        fetchSimilarMovies: ({
+          required movieNumber,
+          int limit = 15,
+        }) => Future<List<MovieListItemDto>>.value(const <MovieListItemDto>[]),
       );
+      addTearDown(controller.dispose);
 
-      await _pumpPage(
-        tester,
-        sessionStore: sessionStore,
-        bundle: bundle,
-        physicalSize: const Size(320, 720),
+      tester.view.physicalSize = const Size(320, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: SizedBox.expand(
+              child: MovieDetailLoadingSkeleton(controller: controller),
+            ),
+          ),
+        ),
       );
-      await tester.pump();
 
       expect(
         find.byKey(const Key('movie-detail-loading-skeleton')),
         findsOneWidget,
       );
       expect(tester.takeException(), isNull);
-
-      completer.complete();
-      await tester.pumpAndSettle();
     },
   );
 
@@ -162,6 +163,11 @@ void main() {
   testWidgets('mobile movie detail page renders sections and opens inspector', (
     WidgetTester tester,
   ) async {
+    tester.view.padding = const FakeViewPadding(top: 40, bottom: 24);
+    tester.view.viewPadding = const FakeViewPadding(top: 40, bottom: 24);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+
     bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/movies/ABC-001',
@@ -270,13 +276,20 @@ void main() {
       find.byKey(const Key('movie-detail-inspector-bottom-sheet')),
       findsOneWidget,
     );
-    final drawerContentTopLeft = tester.getTopLeft(
-      find.byKey(const Key('app-bottom-drawer-content')),
+    final drawerRect = tester.getRect(
+      find.byKey(const Key('movie-detail-inspector-bottom-sheet')),
     );
     final panelTopLeft = tester.getTopLeft(
       find.byKey(const Key('movie-detail-inspector-panel')),
     );
-    expect(panelTopLeft.dx - drawerContentTopLeft.dx, 0);
+
+    expect(panelTopLeft.dy - drawerRect.top, 16);
+    expect(panelTopLeft.dx - drawerRect.left, 16);
+    final firstTabRect = tester.getRect(find.byType(Tab).first);
+    final hotSortRect = tester.getRect(
+      find.byKey(const Key('movie-detail-review-sort-hotly')),
+    );
+    expect(firstTabRect.left, hotSortRect.left);
     expect(find.text('评论'), findsOneWidget);
     expect(find.text('磁力搜索'), findsOneWidget);
     expect(find.text('缩略图'), findsOneWidget);
@@ -292,6 +305,236 @@ void main() {
       0,
     );
   });
+
+  testWidgets(
+    'mobile movie detail page opens media delete confirmation drawer',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('movie-media-delete-button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('movie-media-delete-confirm-drawer')),
+        findsOneWidget,
+      );
+      expect(find.text('删除媒体文件'), findsOneWidget);
+      expect(find.byKey(const Key('movie-media-delete-path')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail page deletes selected media and refreshes media section',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(
+          mediaItems: <Map<String, dynamic>>[
+            _mediaItemJson(mediaId: 100, specialTags: '普通'),
+            _mediaItemJson(mediaId: 101, specialTags: '预告'),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'DELETE',
+        path: '/media/100',
+        statusCode: 204,
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(
+          mediaItems: <Map<String, dynamic>>[
+            _mediaItemJson(mediaId: 101, specialTags: '预告'),
+          ],
+        ),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('movie-media-delete-button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('movie-media-delete-confirm')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('DELETE', '/media/100'), 1);
+      expect(bundle.adapter.hitCount('GET', '/movies/ABC-001'), 2);
+      expect(find.text('普通 1.0 GB'), findsNothing);
+      expect(find.text('预告 1.0 GB'), findsOneWidget);
+      expect(find.text('媒体文件已删除'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail page aligns content with mobile subpage shell padding',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+
+      await _pumpSubpage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      final heroRect = tester.getRect(find.byType(MovieDetailHeroCard));
+      final appSize = tester.getSize(find.byType(MaterialApp).first);
+
+      expect(heroRect.left, AppPageInsets.compact);
+      expect(heroRect.right, appSize.width - AppPageInsets.compact);
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail page shows similar movies as an independent section after media section',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(
+          mediaItems: <Map<String, dynamic>>[
+            _mediaItemJson(
+              points: <Map<String, dynamic>>[
+                _mediaPointJson(
+                  pointId: 1,
+                  thumbnailId: 66,
+                  offsetSeconds: 120,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001/similar',
+        body: _similarMoviesJson(count: 4),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('movie-media-points-title')), findsOneWidget);
+      expect(
+        find.byKey(const Key('movie-similar-movies-title')),
+        findsOneWidget,
+      );
+      expect(find.text('媒体源'), findsOneWidget);
+      expect(find.byType(MovieSummaryCard), findsNWidgets(4));
+      expect(
+        find.byKey(const Key('movie-summary-card-SIM-001')),
+        findsOneWidget,
+      );
+      expect(
+        tester.getTopLeft(find.text('媒体源')).dy,
+        lessThan(
+          tester
+              .getTopLeft(find.byKey(const Key('movie-similar-movies-title')))
+              .dy,
+        ),
+      );
+
+      final similarScroller = tester.widget<SingleChildScrollView>(
+        find.byKey(const Key('movie-similar-strip-scroll')),
+      );
+      expect(similarScroller.scrollDirection, Axis.horizontal);
+      expect(
+        _queryValueForPath(bundle, '/movies/ABC-001/similar', 'limit'),
+        '15',
+      );
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail page shows similar movies when there are no media items',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(mediaItems: const <Map<String, dynamic>>[]),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001/similar',
+        body: _similarMoviesJson(count: 2),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      expect(find.text('媒体源'), findsNothing);
+      expect(find.text('暂无媒体源'), findsNothing);
+      expect(
+        find.byKey(const Key('movie-similar-movies-title')),
+        findsOneWidget,
+      );
+      expect(find.byType(MovieSummaryCard), findsNWidgets(2));
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail page similar movie tap pushes detail route',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001/similar',
+        body: _similarMoviesJson(count: 2),
+      );
+
+      final router = GoRouter(
+        initialLocation: '/mobile/library/movies/ABC-001',
+        routes: [
+          GoRoute(
+            path: '/mobile/library/movies/ABC-001',
+            builder:
+                (_, __) => const MobileMovieDetailPage(movieNumber: 'ABC-001'),
+          ),
+          GoRoute(
+            path: '$mobileMoviesPath/:movieNumber',
+            builder:
+                (_, state) => Text(
+                  'movie:${state.pathParameters['movieNumber']}',
+                  textDirection: TextDirection.ltr,
+                ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await _pumpRouterPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        router: router,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const Key('movie-summary-card-SIM-001')),
+      );
+      await tester.tap(find.byKey(const Key('movie-summary-card-SIM-001')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('movie:SIM-001'), findsOneWidget);
+      expect(router.canPop(), isTrue);
+    },
+  );
 
   testWidgets(
     'mobile movie detail page opens media point preview bottom sheet',
@@ -464,10 +707,24 @@ void main() {
               .dy;
       final summaryTop =
           tester.getTopLeft(find.byKey(const Key('movie-detail-summary'))).dy;
+      final numberText = tester.widget<Text>(
+        find.byKey(const Key('movie-detail-number')),
+      );
+      final summaryText = tester.widget<Text>(
+        find.byKey(const Key('movie-detail-summary')),
+      );
 
       expect(heroTop, lessThan(movieNumberBottom));
       expect(movieNumberBottom, lessThan(interactionTop));
       expect(interactionTop, lessThan(summaryTop));
+      expect(
+        numberText.style?.fontSize,
+        sakuraMobileThemeData.appTextScale.s14,
+      );
+      expect(
+        summaryText.style?.fontSize,
+        sakuraMobileThemeData.appTextScale.s14,
+      );
     },
   );
 
@@ -588,7 +845,7 @@ void main() {
       );
       expect(
         playlistNameText.style?.fontSize,
-        sakuraThemeData.textTheme.bodyLarge!.fontSize! - 4,
+        sakuraMobileThemeData.appTextScale.s14,
       );
 
       final playlistCountText = tester.widget<Text>(
@@ -599,7 +856,7 @@ void main() {
       );
       expect(
         playlistCountText.style?.fontSize,
-        sakuraThemeData.textTheme.bodySmall!.fontSize! - 4,
+        sakuraMobileThemeData.appTextScale.s12,
       );
 
       final checkboxScale = tester.widget<Transform>(
@@ -861,7 +1118,7 @@ void main() {
   });
 
   testWidgets(
-    'mobile movie detail inspector supports manual magnet search compact interval selector and thumbnail columns',
+    'mobile movie detail inspector supports manual magnet search local sort compact interval selector and thumbnail columns',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
         method: 'GET',
@@ -876,22 +1133,7 @@ void main() {
       bundle.adapter.enqueueJson(
         method: 'GET',
         path: '/download-candidates',
-        body: <Map<String, dynamic>>[
-          <String, dynamic>{
-            'source': 'jackett',
-            'indexer_name': 'mteam',
-            'indexer_kind': 'bt',
-            'resolved_client_id': 2,
-            'resolved_client_name': 'qb-main',
-            'movie_number': 'ABC-001',
-            'title': 'ABC-001 4K 中文字幕',
-            'size_bytes': 12884901888,
-            'seeders': 18,
-            'magnet_url': 'magnet:?xt=urn:btih:abcdef',
-            'torrent_url': '',
-            'tags': <String>['4K', '中字'],
-          },
-        ],
+        body: _downloadCandidatesJson(),
       );
 
       await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
@@ -910,7 +1152,36 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(bundle.adapter.hitCount('GET', '/download-candidates'), 1);
-      expect(find.text('ABC-001 4K 中文字幕'), findsOneWidget);
+      expect(
+        find.byKey(const Key('movie-detail-magnet-sort-field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('movie-detail-magnet-sort-direction')),
+        findsOneWidget,
+      );
+      expect(
+        _orderedMagnetTitles(tester, _defaultMagnetTitles),
+        _defaultMagnetTitles,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('movie-detail-magnet-sort-direction')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        _orderedMagnetTitles(tester, _defaultMagnetTitles),
+        _sizeAscendingMagnetTitles,
+      );
+
+      await tester.tap(find.text('文件大小'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('做种人数').last);
+      await tester.pumpAndSettle();
+      expect(
+        _orderedMagnetTitles(tester, _defaultMagnetTitles),
+        _seedersAscendingMagnetTitles,
+      );
 
       await tester.tap(find.text('缩略图'));
       await tester.pumpAndSettle();
@@ -946,7 +1217,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final columnButton = tester.widget<AppButton>(
+      final columnButton = tester.widget<AppTextButton>(
         find.byKey(const Key('movie-detail-thumbnail-columns-5')),
       );
       expect(columnButton.isSelected, isTrue);
@@ -1182,9 +1453,47 @@ Future<void> _pumpPage(
         Provider<DownloadsApi>.value(value: bundle.downloadsApi),
       ],
       child: MaterialApp(
-        theme: sakuraThemeData,
+        theme: sakuraMobileThemeData,
         home: const OKToast(
           child: Scaffold(body: MobileMovieDetailPage(movieNumber: 'ABC-001')),
+        ),
+      ),
+    ),
+  );
+}
+
+Future<void> _pumpSubpage(
+  WidgetTester tester, {
+  required SessionStore sessionStore,
+  required TestApiBundle bundle,
+  Size physicalSize = const Size(430, 900),
+}) async {
+  tester.view.physicalSize = physicalSize;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
+  await tester.pumpWidget(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+        Provider<ApiClient>.value(value: bundle.apiClient),
+        Provider<MediaApi>.value(value: MediaApi(apiClient: bundle.apiClient)),
+        Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
+        Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+        Provider<DownloadsApi>.value(value: bundle.downloadsApi),
+      ],
+      child: MaterialApp(
+        theme: sakuraMobileThemeData,
+        home: const OKToast(
+          child: AppMobileSubpageShell(
+            title: '影片详情',
+            defaultLocation: '/mobile/library/movies',
+            child: MobileMovieDetailPage(movieNumber: 'ABC-001'),
+          ),
         ),
       ),
     ),
@@ -1211,7 +1520,10 @@ Future<void> _pumpRouterPage(
         Provider<DownloadsApi>.value(value: bundle.downloadsApi),
       ],
       child: OKToast(
-        child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
+        child: MaterialApp.router(
+          theme: sakuraMobileThemeData,
+          routerConfig: router,
+        ),
       ),
     ),
   );
@@ -1415,6 +1727,100 @@ Finder _reviewSkeletonFinder() {
   });
 }
 
+const List<String> _defaultMagnetTitles = <String>[
+  'ABC-001 高码率收藏版',
+  'ABC-001 4K 中文字幕',
+  'ABC-001 无码流出版',
+];
+
+const List<String> _sizeAscendingMagnetTitles = <String>[
+  'ABC-001 无码流出版',
+  'ABC-001 4K 中文字幕',
+  'ABC-001 高码率收藏版',
+];
+
+const List<String> _seedersAscendingMagnetTitles = <String>[
+  'ABC-001 无码流出版',
+  'ABC-001 高码率收藏版',
+  'ABC-001 4K 中文字幕',
+];
+
+List<String> _orderedMagnetTitles(WidgetTester tester, List<String> titles) {
+  final sorted = List<String>.from(titles);
+  sorted.sort((left, right) {
+    final leftDy = tester.getTopLeft(find.text(left)).dy;
+    final rightDy = tester.getTopLeft(find.text(right)).dy;
+    return leftDy.compareTo(rightDy);
+  });
+  return sorted;
+}
+
+List<Map<String, dynamic>> _downloadCandidatesJson() {
+  return <Map<String, dynamic>>[
+    <String, dynamic>{
+      'source': 'jackett',
+      'indexer_name': 'mteam',
+      'indexer_kind': 'bt',
+      'resolved_client_id': 2,
+      'resolved_client_name': 'qb-main',
+      'movie_number': 'ABC-001',
+      'title': 'ABC-001 高码率收藏版',
+      'size_bytes': 17179869184,
+      'seeders': 20,
+      'magnet_url': 'magnet:?xt=urn:btih:archive',
+      'torrent_url': '',
+      'tags': <String>['收藏', '高码率'],
+    },
+    <String, dynamic>{
+      'source': 'jackett',
+      'indexer_name': 'mteam',
+      'indexer_kind': 'bt',
+      'resolved_client_id': 2,
+      'resolved_client_name': 'qb-main',
+      'movie_number': 'ABC-001',
+      'title': 'ABC-001 4K 中文字幕',
+      'size_bytes': 12884901888,
+      'seeders': 35,
+      'magnet_url': 'magnet:?xt=urn:btih:abcdef',
+      'torrent_url': '',
+      'tags': <String>['4K', '中字'],
+    },
+    <String, dynamic>{
+      'source': 'jackett',
+      'indexer_name': 'nyaa',
+      'indexer_kind': 'bt',
+      'resolved_client_id': 2,
+      'resolved_client_name': 'qb-main',
+      'movie_number': 'ABC-001',
+      'title': 'ABC-001 无码流出版',
+      'size_bytes': 8589934592,
+      'seeders': 12,
+      'magnet_url': 'magnet:?xt=urn:btih:stream',
+      'torrent_url': '',
+      'tags': <String>['无码', '流出'],
+    },
+  ];
+}
+
+List<Map<String, dynamic>> _similarMoviesJson({required int count}) {
+  return List<Map<String, dynamic>>.generate(count, (index) {
+    final seed = index + 1;
+    final movieNumber = 'SIM-${seed.toString().padLeft(3, '0')}';
+    return <String, dynamic>{
+      'javdb_id': 'Similar$seed',
+      'movie_number': movieNumber,
+      'title': 'Similar movie $seed',
+      'cover_image': null,
+      'release_date': '2024-01-02',
+      'duration_minutes': 120,
+      'heat': 10 + seed,
+      'is_subscribed': seed.isEven,
+      'can_play': seed.isOdd,
+      'similarity_score': 0.9 - (index * 0.01),
+    };
+  }, growable: false);
+}
+
 List<Map<String, dynamic>> _mediaThumbnailsJson({
   int mediaId = 100,
   List<int> offsets = const <int>[10],
@@ -1434,4 +1840,11 @@ List<Map<String, dynamic>> _mediaThumbnailsJson({
       },
     };
   }, growable: false);
+}
+
+String? _queryValueForPath(TestApiBundle bundle, String path, String key) {
+  final request = bundle.adapter.requests.firstWhere(
+    (request) => request.path == path,
+  );
+  return request.uri.queryParameters[key];
 }

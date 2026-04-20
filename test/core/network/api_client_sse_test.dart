@@ -86,10 +86,7 @@ void main() {
       adapter.requests.single.headers[Headers.acceptHeader],
       'text/event-stream',
     );
-    expect(
-      adapter.requests.single.uri.queryParameters['after_event_id'],
-      '11',
-    );
+    expect(adapter.requests.single.uri.queryParameters['after_event_id'], '11');
   });
 
   test('postSse uses a one-minute receive timeout override', () async {

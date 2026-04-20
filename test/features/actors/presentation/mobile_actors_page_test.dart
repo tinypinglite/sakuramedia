@@ -116,6 +116,8 @@ void main() {
     await _pumpActorsPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
 
+    expect(_queryValue(bundle, 0, 'gender'), 'all');
+
     await tester.tap(find.byIcon(Icons.filter_alt_outlined));
     await tester.pumpAndSettle();
     await tester.tap(find.text('未订阅'));
@@ -124,7 +126,7 @@ void main() {
 
     expect(find.text('河北彩花'), findsOneWidget);
     expect(_queryValue(bundle, 1, 'subscription_status'), 'unsubscribed');
-    expect(_queryValue(bundle, 1, 'gender'), 'female');
+    expect(_queryValue(bundle, 1, 'gender'), 'all');
   });
 
   testWidgets(

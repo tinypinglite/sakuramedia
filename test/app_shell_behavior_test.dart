@@ -452,7 +452,7 @@ void main() {
     final titleText = tester.widget<Text>(
       find.byKey(const Key('app-topbar-title')),
     );
-    expect(titleText.style?.fontSize, 16);
+    expect(titleText.style?.fontSize, 14);
     expect(
       tester.getSize(find.byKey(const Key('topbar-header'))).height,
       AppComponentTokens.defaults().desktopTitleBarHeight,
@@ -519,15 +519,10 @@ Future<void> _pumpDesktopApp(
         Provider<ImageSearchApi>(
           create: (_) => ImageSearchApi(apiClient: bundle.apiClient),
         ),
-        Provider<ImageSearchDraftStore>(
-          create: (_) => ImageSearchDraftStore(),
-        ),
+        Provider<ImageSearchDraftStore>(create: (_) => ImageSearchDraftStore()),
       ],
       child: OKToast(
-        child: MaterialApp.router(
-          theme: sakuraThemeData,
-          routerConfig: router,
-        ),
+        child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
     ),
   );
@@ -553,15 +548,10 @@ Future<GoRouter> _pumpDesktopAppWithRouter(
         Provider<ImageSearchApi>(
           create: (_) => ImageSearchApi(apiClient: bundle.apiClient),
         ),
-        Provider<ImageSearchDraftStore>(
-          create: (_) => ImageSearchDraftStore(),
-        ),
+        Provider<ImageSearchDraftStore>(create: (_) => ImageSearchDraftStore()),
       ],
       child: OKToast(
-        child: MaterialApp.router(
-          theme: sakuraThemeData,
-          routerConfig: router,
-        ),
+        child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
     ),
   );

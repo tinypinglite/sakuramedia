@@ -545,7 +545,7 @@ class _MovieMediaThumbnailImagePlaceholder extends StatelessWidget {
         child: Icon(
           Icons.image_outlined,
           size: componentTokens.iconSize3xl,
-          color: colors.textMuted,
+          color: context.appTextPalette.muted,
         ),
       ),
     );
@@ -577,13 +577,24 @@ class _MovieMediaThumbnailErrorState extends StatelessWidget {
               color: Theme.of(context).colorScheme.primary,
             ),
             SizedBox(height: context.appSpacing.lg),
-            Text('缩略图加载失败', style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              '缩略图加载失败',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s18,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
+              ),
+            ),
             SizedBox(height: context.appSpacing.sm),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: context.appColors.textSecondary,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
               ),
             ),
             SizedBox(height: context.appSpacing.lg),

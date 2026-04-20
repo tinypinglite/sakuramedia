@@ -12,7 +12,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
@@ -91,28 +91,7 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
             key: const Key('desktop-hot-reviews-page'),
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppFilterTotalHeader(
-                leading: Wrap(
-                  spacing: context.appSpacing.xs,
-                  runSpacing: context.appSpacing.xs,
-                  children: [
-                    for (final period in HotReviewPeriod.values)
-                      AppButton(
-                        key: Key(
-                          'desktop-hot-reviews-period-${period.apiValue}',
-                        ),
-                        label: period.label,
-                        size: AppButtonSize.small,
-                        variant: AppButtonVariant.secondary,
-                        isSelected: _controller.period == period,
-                        onPressed:
-                            () => unawaited(_controller.setPeriod(period)),
-                      ),
-                  ],
-                ),
-                totalText: '${_controller.total} 条',
-                totalKey: const Key('desktop-hot-reviews-page-total'),
-              ),
+              _buildHeader(context),
               SizedBox(height: context.appSpacing.lg),
               _buildBody(context),
               if (showFooter) ...[
@@ -146,6 +125,28 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
         showToast('刷新失败');
       }
     }
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final leading = Wrap(
+      spacing: context.appSpacing.xs,
+      runSpacing: context.appSpacing.xs,
+      children: [
+        for (final period in HotReviewPeriod.values)
+          _HotReviewPeriodButton(
+            actionKey: Key('desktop-hot-reviews-period-${period.apiValue}'),
+            label: period.label,
+            isSelected: _controller.period == period,
+            onPressed: () => unawaited(_controller.setPeriod(period)),
+          ),
+      ],
+    );
+
+    return AppFilterTotalHeader(
+      leading: leading,
+      totalText: '${_controller.total} 条',
+      totalKey: const Key('desktop-hot-reviews-page-total'),
+    );
   }
 
   Widget _buildBody(BuildContext context) {
@@ -265,6 +266,31 @@ class _HotReviewGrid extends StatelessWidget {
   }
 }
 
+class _HotReviewPeriodButton extends StatelessWidget {
+  const _HotReviewPeriodButton({
+    required this.actionKey,
+    required this.label,
+    required this.isSelected,
+    required this.onPressed,
+  });
+
+  final Key actionKey;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppTextButton(
+      key: actionKey,
+      label: label,
+      size: AppTextButtonSize.small,
+      isSelected: isSelected,
+      onPressed: onPressed,
+    );
+  }
+}
+
 class _HotReviewCard extends StatelessWidget {
   const _HotReviewCard({required this.item, this.onTap});
 
@@ -282,9 +308,11 @@ class _HotReviewCard extends StatelessWidget {
             : DateFormat('yy/MM/dd').format(item.createdAt!.toLocal());
     final username = item.username.trim().isEmpty ? '匿名用户' : item.username;
     final content = item.content.trim().isEmpty ? '暂无评论内容' : item.content;
-    final compactTextStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: colors.textSecondary,
-      fontWeight: FontWeight.w600,
+    final compactTextStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s10,
+      weight: AppTextWeight.regular,
+      tone: AppTextTone.secondary,
     );
 
     return Material(
@@ -365,11 +393,14 @@ class _HotReviewCard extends StatelessWidget {
                             key: Key(
                               'hot-review-card-content-scroll-${item.reviewId}',
                             ),
-                            padding: EdgeInsets.all(spacing.sm),
+                            padding: EdgeInsets.zero,
                             child: Text(
                               content,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: colors.textPrimary),
+                              style: resolveAppTextStyle(
+                                context,
+                                size: AppTextSize.s14,
+                                tone: AppTextTone.primary,
+                              ),
                             ),
                           ),
                         ),
@@ -399,12 +430,19 @@ class _MetaStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compactTextStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: context.appColors.textSecondary,
-      fontWeight: FontWeight.w700,
+    final compactTextStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s10,
+      weight: AppTextWeight.regular,
+      tone: AppTextTone.secondary,
     );
     final compactIconSize =
-        (Theme.of(context).textTheme.labelSmall?.fontSize ??
+        (resolveAppTextStyle(
+              context,
+              size: AppTextSize.s10,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ).fontSize ??
             context.appComponentTokens.iconSizeXs) +
         1;
 
@@ -448,7 +486,7 @@ class _HotReviewCardSkeleton extends StatelessWidget {
                   child: Icon(
                     Icons.image_outlined,
                     size: context.appComponentTokens.iconSize2xl,
-                    color: colors.textMuted,
+                    color: context.appTextPalette.muted,
                   ),
                 ),
               ),

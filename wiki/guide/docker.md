@@ -238,7 +238,7 @@ services:
 - `./docker-data/cache/assets:/data/cache/assets`
   缩略图、图片缓存等
 - `./docker-data/cache/subtitles:/data/cache/subtitles`
-  字幕缓存
+  字幕目录（导入时识别到的字幕文件）
 - `./docker-data/image-search-index:/data/indexes`
   图片搜索索引
 - `./docker-data/logs:/data/logs`

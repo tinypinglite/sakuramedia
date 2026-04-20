@@ -830,6 +830,42 @@ void main() {
     },
   );
 
+  test('getSimilarMovies sends limit and parses similarity score', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/similar',
+      statusCode: 200,
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'javdb_id': 'MovieS1',
+          'movie_number': 'SIM-001',
+          'title': 'Similar movie',
+          'cover_image': null,
+          'release_date': '2024-01-02',
+          'duration_minutes': 120,
+          'heat': 18,
+          'is_subscribed': true,
+          'can_play': true,
+          'similarity_score': 0.91,
+        },
+      ],
+    );
+
+    final movies = await moviesApi.getSimilarMovies(
+      movieNumber: 'ABC-001',
+      limit: 15,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'GET');
+    expect(request.path, '/movies/ABC-001/similar');
+    expect(request.uri.queryParameters['limit'], '15');
+    expect(movies.single.movieNumber, 'SIM-001');
+    expect(movies.single.similarityScore, 0.91);
+    expect(movies.single.isSubscribed, isTrue);
+    expect(movies.single.canPlay, isTrue);
+  });
+
   test('getMovieDetail handles nullable detail sections', () async {
     adapter.enqueueJson(
       method: 'GET',

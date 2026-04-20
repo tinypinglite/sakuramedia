@@ -3,7 +3,7 @@ import 'package:sakuramedia/theme.dart';
 
 enum AppButtonVariant { primary, secondary, ghost, danger }
 
-enum AppButtonSize { medium, small, xSmall }
+enum AppButtonSize { medium, small, xSmall, xxSmall, xxxSmall }
 
 class AppButton extends StatelessWidget {
   const AppButton({
@@ -36,41 +36,47 @@ class AppButton extends StatelessWidget {
     final colors = context.appColors;
     final theme = Theme.of(context);
     final componentTokens = context.appComponentTokens;
-    final (height, horizontal, gap, iconSize, textStyle) = switch (size) {
+    final (height, horizontal, gap, iconSize, textSize) = switch (size) {
       AppButtonSize.medium => (
-        36.0,
-        14.0,
-        8.0,
+        componentTokens.buttonHeightMd,
+        componentTokens.buttonHorizontalPaddingMd,
+        componentTokens.buttonGapMd,
         componentTokens.iconSizeSm,
-        theme.textTheme.labelMedium,
+        AppTextSize.s14,
       ),
       AppButtonSize.small => (
-        32.0,
-        10.0,
-        6.0,
+        componentTokens.buttonHeightSm,
+        componentTokens.buttonHorizontalPaddingSm,
+        componentTokens.buttonGapSm,
         componentTokens.iconSizeSm,
-        theme.textTheme.labelMedium,
+        AppTextSize.s14,
       ),
       AppButtonSize.xSmall => (
-        28.0,
-        8.0,
-        4.0,
+        componentTokens.buttonHeightXs,
+        componentTokens.buttonHorizontalPaddingXs,
+        componentTokens.buttonGapXs,
         componentTokens.iconSizeXs,
-        theme.textTheme.labelSmall,
+        AppTextSize.s12,
+      ),
+      AppButtonSize.xxSmall => (
+        componentTokens.buttonHeight2xs,
+        componentTokens.buttonHorizontalPadding2xs,
+        componentTokens.buttonGap2xs,
+        componentTokens.iconSize2xs,
+        AppTextSize.s10,
+      ),
+      AppButtonSize.xxxSmall => (
+        componentTokens.buttonHeight3xs,
+        componentTokens.buttonHorizontalPadding3xs,
+        componentTokens.buttonGap3xs,
+        componentTokens.iconSize3xs,
+        AppTextSize.s10,
       ),
     };
     final borderRadius = context.appRadius.smBorder;
     final isSecondarySelected =
         variant == AppButtonVariant.secondary && isSelected;
     final isGhostSelected = variant == AppButtonVariant.ghost && isSelected;
-
-    final foregroundColor = switch (variant) {
-      AppButtonVariant.primary => Colors.white,
-      AppButtonVariant.secondary =>
-        isSecondarySelected ? theme.colorScheme.primary : colors.textPrimary,
-      AppButtonVariant.ghost => theme.colorScheme.primary,
-      AppButtonVariant.danger => colors.errorForeground,
-    };
 
     final backgroundColor = switch (variant) {
       AppButtonVariant.primary => theme.colorScheme.primary,
@@ -91,10 +97,25 @@ class AppButton extends StatelessWidget {
         isSecondarySelected ? theme.colorScheme.primary : colors.borderStrong,
       AppButtonVariant.ghost =>
         isGhostSelected ? theme.colorScheme.primary : Colors.transparent,
-      AppButtonVariant.danger => colors.errorForeground.withValues(alpha: 0.2),
+      AppButtonVariant.danger => context.appTextPalette.error.withValues(
+        alpha: 0.2,
+      ),
     };
 
     final disabledColor = colors.borderSubtle;
+    final tone = switch (variant) {
+      AppButtonVariant.primary => AppTextTone.onMedia,
+      AppButtonVariant.secondary =>
+        isSecondarySelected ? AppTextTone.accent : AppTextTone.primary,
+      AppButtonVariant.ghost => AppTextTone.accent,
+      AppButtonVariant.danger => AppTextTone.error,
+    };
+    final foregroundColor = resolveAppTextToneColor(context, tone);
+    final labelStyle = resolveAppTextStyle(
+      context,
+      size: textSize,
+      tone: tone,
+    ).copyWith(height: 1, leadingDistribution: TextLeadingDistribution.even);
 
     return MouseRegion(
       cursor: _isEnabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
@@ -121,8 +142,8 @@ class AppButton extends StatelessWidget {
                 children: [
                   if (isLoading)
                     SizedBox(
-                      width: 14,
-                      height: 14,
+                      width: iconSize,
+                      height: iconSize,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(
@@ -144,10 +165,7 @@ class AppButton extends StatelessWidget {
                       key: labelKey,
                       label,
                       overflow: TextOverflow.ellipsis,
-                      style: textStyle?.copyWith(
-                        color: foregroundColor,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: labelStyle,
                     ),
                   ),
                   if (trailingIcon != null) ...[

@@ -99,8 +99,8 @@ class _MobileOverviewHeader extends StatelessWidget {
             SizedBox(width: spacing.xs),
             const Expanded(
               child: AppTabBar(
-                key: Key('mobile-overview-tabs'),
                 variant: AppTabBarVariant.mobileTop,
+                key: Key('mobile-overview-tabs'),
                 tabs: [
                   Tab(text: '我的'),
                   Tab(text: '关注'),
@@ -231,11 +231,27 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
               onImageSearchTap: _openImageSearch,
             ),
             SizedBox(height: spacing.sm),
-            Text('最近添加', style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              '最近添加',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
+              ),
+            ),
             SizedBox(height: spacing.xs),
             _buildLatestMoviesSection(),
             SizedBox(height: spacing.sm),
-            Text('播放列表', style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              '播放列表',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
+              ),
+            ),
             SizedBox(height: spacing.xs),
             _buildPlaylistsSection(),
           ],

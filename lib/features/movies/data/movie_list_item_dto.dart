@@ -48,6 +48,7 @@ class MovieListItemDto {
     required this.heat,
     required this.isSubscribed,
     required this.canPlay,
+    this.similarityScore,
   });
 
   final String javdbId;
@@ -59,6 +60,7 @@ class MovieListItemDto {
   final int heat;
   final bool isSubscribed;
   final bool canPlay;
+  final double? similarityScore;
 
   MovieListItemDto copyWith({
     String? javdbId,
@@ -70,6 +72,7 @@ class MovieListItemDto {
     int? heat,
     bool? isSubscribed,
     bool? canPlay,
+    double? similarityScore,
   }) {
     return MovieListItemDto(
       javdbId: javdbId ?? this.javdbId,
@@ -81,6 +84,7 @@ class MovieListItemDto {
       heat: heat ?? this.heat,
       isSubscribed: isSubscribed ?? this.isSubscribed,
       canPlay: canPlay ?? this.canPlay,
+      similarityScore: similarityScore ?? this.similarityScore,
     );
   }
 
@@ -95,6 +99,7 @@ class MovieListItemDto {
       heat: json['heat'] as int? ?? 0,
       isSubscribed: json['is_subscribed'] as bool? ?? false,
       canPlay: json['can_play'] as bool? ?? false,
+      similarityScore: _doubleFromJson(json['similarity_score']),
     );
   }
 
@@ -117,5 +122,12 @@ class MovieListItemDto {
       return null;
     }
     return DateTime.tryParse(value);
+  }
+
+  static double? _doubleFromJson(dynamic value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    return null;
   }
 }

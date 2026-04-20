@@ -21,6 +21,7 @@ import 'package:sakuramedia/features/playlists/presentation/movie_playlist_picke
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
@@ -47,6 +48,7 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
   bool? _isCollectionOverride;
   bool _isSubscriptionUpdating = false;
   bool _isCollectionUpdating = false;
+  int? _deletingMediaId;
 
   @override
   void initState() {
@@ -54,6 +56,7 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
     _controller = MovieDetailController(
       movieNumber: widget.movieNumber,
       fetchMovieDetail: context.read<MoviesApi>().getMovieDetail,
+      fetchSimilarMovies: context.read<MoviesApi>().getSimilarMovies,
     )..load();
     _loadMovieCollectionStatus();
   }
@@ -101,9 +104,6 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
               selectedPreviewKey: _controller.selectedPreviewKey,
               selectedPreviewUrl: _controller.selectedPreviewUrl,
               isCollection: isCollection,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: context.appSpacing.sm,
-              ),
               bottomInfoBarVariant:
                   MovieDetailBottomInfoBarVariant.mobileFullWidth,
               isSubscribed: isSubscribed,
@@ -111,6 +111,14 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
               isCollectionUpdating: _isCollectionUpdating,
               selectedMediaId: selectedMedia?.mediaId,
               statItems: buildMovieDetailStatItems(context, movie),
+              similarMovies: _controller.similarMovies,
+              isSimilarMoviesLoading: _controller.isSimilarMoviesLoading,
+              similarMoviesErrorMessage: _controller.similarMoviesErrorMessage,
+              onRetrySimilarMovies: _controller.retryLoadSimilarMovies,
+              onSimilarMovieTap:
+                  (similarMovie) => MobileMovieDetailRouteData(
+                    movieNumber: similarMovie.movieNumber,
+                  ).push(context),
               scrollPhysics: const AlwaysScrollableScrollPhysics(),
               onSubscriptionTap:
                   _isSubscriptionUpdating
@@ -138,6 +146,11 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
                   (item) => setState(() {
                     _selectedMediaId = item.mediaId;
                   }),
+              isDeletingSelectedMedia:
+                  selectedMedia != null &&
+                  _deletingMediaId == selectedMedia.mediaId,
+              onDeleteSelectedMedia:
+                  selectedMedia == null ? null : _deleteSelectedMedia,
               onOpenMediaPointPreview: _openMediaPointPreview,
               onRequestMediaPointMenu: _showMediaPointActions,
               onActorTap:
@@ -274,16 +287,101 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
     }
   }
 
+  Future<void> _deleteSelectedMedia(MovieMediaItemDto mediaItem) async {
+    if (_deletingMediaId != null) {
+      return;
+    }
+
+    final confirmed = await _confirmDeleteMedia(mediaItem);
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    setState(() {
+      _deletingMediaId = mediaItem.mediaId;
+    });
+
+    try {
+      await context.read<MediaApi>().deleteMedia(mediaId: mediaItem.mediaId);
+      await _refreshAfterMediaDelete(deletedMediaId: mediaItem.mediaId);
+      if (mounted) {
+        showToast('媒体文件已删除');
+      }
+    } catch (error) {
+      if (mounted) {
+        showToast(apiErrorMessage(error, fallback: '删除媒体文件失败'));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _deletingMediaId = null;
+        });
+      }
+    }
+  }
+
+  Future<bool?> _confirmDeleteMedia(MovieMediaItemDto mediaItem) {
+    return showAppBottomDrawer<bool>(
+      context: context,
+      drawerKey: const Key('movie-media-delete-confirm-drawer'),
+      maxHeightFactor: 0.48,
+      builder:
+          (drawerContext) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '删除媒体文件',
+                style: resolveAppTextStyle(
+                  drawerContext,
+                  size: AppTextSize.s18,
+                ),
+              ),
+              SizedBox(height: drawerContext.appSpacing.lg),
+              Text(
+                '确认删除媒体“${_buildMediaDeleteLabel(mediaItem)}”？该操作会删除本地媒体文件且不可恢复。',
+              ),
+              SizedBox(height: drawerContext.appSpacing.sm),
+              Text(
+                mediaItem.path,
+                key: const Key('movie-media-delete-path'),
+                style: resolveAppTextStyle(
+                  drawerContext,
+                  size: AppTextSize.s12,
+                  tone: AppTextTone.muted,
+                ),
+              ),
+              SizedBox(height: drawerContext.appSpacing.xl),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppButton(
+                      key: const Key('movie-media-delete-cancel'),
+                      onPressed: () => Navigator.of(drawerContext).pop(false),
+                      label: '取消',
+                    ),
+                  ),
+                  SizedBox(width: drawerContext.appSpacing.md),
+                  Expanded(
+                    child: AppButton(
+                      key: const Key('movie-media-delete-confirm'),
+                      onPressed: () => Navigator.of(drawerContext).pop(true),
+                      label: '删除',
+                      variant: AppButtonVariant.danger,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+    );
+  }
+
   Future<void> _handleRefresh() async {
     try {
       await _controller.refresh();
       if (mounted) {
-        setState(() {
-          _pointOverrides.clear();
-          _selectedMediaId = null;
-          _isSubscribedOverride = null;
-          _isCollectionOverride = null;
-        });
+        _resetDetailOverridesAfterRefresh();
       }
       await _loadMovieCollectionStatus();
     } catch (_) {
@@ -291,6 +389,41 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
         showToast('刷新失败');
       }
     }
+  }
+
+  Future<void> _refreshAfterMediaDelete({required int deletedMediaId}) async {
+    try {
+      await _controller.refresh();
+    } catch (_) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    _resetDetailOverridesAfterRefresh(deletedMediaId: deletedMediaId);
+    await _loadMovieCollectionStatus();
+  }
+
+  void _resetDetailOverridesAfterRefresh({int? deletedMediaId}) {
+    final refreshedMediaItems = _controller.movie?.mediaItems ?? const [];
+    final retainedSelectedMediaId =
+        deletedMediaId == null &&
+                _selectedMediaId != null &&
+                refreshedMediaItems.any(
+                  (item) => item.mediaId == _selectedMediaId,
+                )
+            ? _selectedMediaId
+            : null;
+    setState(() {
+      _pointOverrides.clear();
+      _selectedMediaId =
+          retainedSelectedMediaId ??
+          (refreshedMediaItems.isNotEmpty
+              ? refreshedMediaItems.first.mediaId
+              : null);
+      _isSubscribedOverride = null;
+      _isCollectionOverride = null;
+    });
   }
 
   List<MovieMediaItemDto> _resolveMediaItems(MovieDetailDto movie) {
@@ -337,6 +470,7 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
       maxHeightFactor: 0.7,
       context: context,
       drawerKey: const Key('movie-media-point-preview-bottom-sheet'),
+      ignoreTopSafeArea: true,
       builder:
           (_) => MediaPreviewDialog(
             item: _buildMediaPointPreviewItem(mediaItem, point),
@@ -597,6 +731,14 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
     setState(() {
       _pointOverrides[mediaId] = points;
     });
+  }
+
+  String _buildMediaDeleteLabel(MovieMediaItemDto mediaItem) {
+    final label = mediaItem.specialTags.trim();
+    if (label.isNotEmpty) {
+      return label;
+    }
+    return '媒体源 ${mediaItem.mediaId}';
   }
 
   void _openMoviePlayer({int? mediaId, int? positionSeconds}) {

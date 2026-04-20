@@ -20,15 +20,26 @@ class AppBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final theme = Theme.of(context);
     final spacing = context.appSpacing;
     final (backgroundColor, foregroundColor) = switch (tone) {
-      AppBadgeTone.neutral => (colors.surfaceMuted, colors.textSecondary),
-      AppBadgeTone.primary => (colors.selectionSurface, colors.selectionForeground),
-      AppBadgeTone.info => (colors.infoSurface, colors.infoForeground),
-      AppBadgeTone.warning => (colors.warningSurface, colors.warningForeground),
-      AppBadgeTone.error => (colors.errorSurface, colors.errorForeground),
-      AppBadgeTone.success => (colors.successSurface, colors.successForeground),
+      AppBadgeTone.neutral => (
+        colors.surfaceMuted,
+        context.appTextPalette.secondary,
+      ),
+      AppBadgeTone.primary => (
+        colors.selectionSurface,
+        context.appTextPalette.accent,
+      ),
+      AppBadgeTone.info => (colors.infoSurface, context.appTextPalette.info),
+      AppBadgeTone.warning => (
+        colors.warningSurface,
+        context.appTextPalette.warning,
+      ),
+      AppBadgeTone.error => (colors.errorSurface, context.appTextPalette.error),
+      AppBadgeTone.success => (
+        colors.successSurface,
+        context.appTextPalette.success,
+      ),
     };
     final verticalPadding =
         size == AppBadgeSize.compact ? spacing.xs / 2 : spacing.xs;
@@ -44,10 +55,12 @@ class AppBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: foregroundColor,
-          fontWeight: FontWeight.w700,
-        ),
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s10,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.muted,
+        ).copyWith(color: foregroundColor),
       ),
     );
   }

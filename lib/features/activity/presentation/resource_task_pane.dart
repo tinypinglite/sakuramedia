@@ -282,7 +282,6 @@ class _ResourceTaskSubTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final theme = Theme.of(context);
     final counts = definition.stateCounts;
     final badgeTone =
         counts.failed > 0
@@ -310,7 +309,8 @@ class _ResourceTaskSubTab extends StatelessWidget {
           color: isActive ? colors.selectionSurface : colors.surfaceMuted,
           borderRadius: context.appRadius.pillBorder,
           border: Border.all(
-            color: isActive ? colors.selectionForeground : colors.borderSubtle,
+            color:
+                isActive ? context.appTextPalette.accent : colors.borderSubtle,
           ),
         ),
         child: Row(
@@ -320,12 +320,16 @@ class _ResourceTaskSubTab extends StatelessWidget {
               definition.displayName.isEmpty
                   ? definition.taskKey
                   : definition.displayName,
-              style: theme.textTheme.labelMedium?.copyWith(
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.tertiary,
+              ).copyWith(
                 color:
                     isActive
-                        ? colors.selectionForeground
-                        : colors.textSecondary,
-                fontWeight: FontWeight.w700,
+                        ? context.appTextPalette.accent
+                        : context.appTextPalette.secondary,
               ),
             ),
             if (counts.total > 0) ...[
@@ -393,7 +397,12 @@ class _ResourceTaskFilterBarState extends State<_ResourceTaskFilterBar> {
   Widget build(BuildContext context) {
     final controller = widget.controller;
     final layoutTokens = context.appLayoutTokens;
-    final filterTextStyle = Theme.of(context).textTheme.labelMedium;
+    final filterTextStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s12,
+      weight: AppTextWeight.regular,
+      tone: AppTextTone.tertiary,
+    );
     final isLoading = controller.isLoadingRecords;
 
     return Wrap(
@@ -508,7 +517,6 @@ class _ResourceTaskRecordTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final theme = Theme.of(context);
     final resource = record.resource;
     final titleText =
         resource?.movieNumber?.trim().isNotEmpty == true
@@ -541,7 +549,9 @@ class _ResourceTaskRecordTile extends StatelessWidget {
             borderRadius: context.appRadius.mdBorder,
             border: Border.all(
               color:
-                  isSelected ? colors.selectionForeground : colors.borderSubtle,
+                  isSelected
+                      ? context.appTextPalette.accent
+                      : colors.borderSubtle,
             ),
           ),
           child: Column(
@@ -556,8 +566,11 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                       children: [
                         Text(
                           titleText,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s14,
+                            weight: AppTextWeight.regular,
+                            tone: AppTextTone.secondary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -566,8 +579,11 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                           SizedBox(height: context.appSpacing.xs),
                           Text(
                             subtitleText,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: colors.textSecondary,
+                            style: resolveAppTextStyle(
+                              context,
+                              size: AppTextSize.s14,
+                              weight: AppTextWeight.regular,
+                              tone: AppTextTone.secondary,
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
@@ -606,8 +622,11 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                       width: 260,
                       child: Text(
                         resource!.path!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.textMuted,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s12,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.muted,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -616,8 +635,11 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                   ],
                   Text(
                     timeLabel,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.textMuted,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.muted,
                     ),
                   ),
                 ],
@@ -627,8 +649,11 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                 SizedBox(height: context.appSpacing.md),
                 Text(
                   record.lastError!,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.errorForeground,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.error,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -656,7 +681,6 @@ class _ResourceTaskDetailDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final theme = Theme.of(context);
     final resource = record.resource;
 
     return Stack(
@@ -699,8 +723,11 @@ class _ResourceTaskDetailDrawer extends StatelessWidget {
                           Expanded(
                             child: Text(
                               _drawerTitle(record),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
+                              style: resolveAppTextStyle(
+                                context,
+                                size: AppTextSize.s18,
+                                weight: AppTextWeight.semibold,
+                                tone: AppTextTone.primary,
                               ),
                             ),
                           ),
@@ -802,9 +829,11 @@ class _ResourceTaskDetailDrawer extends StatelessWidget {
                               SizedBox(height: context.appSpacing.lg),
                               Text(
                                 '最近错误',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: colors.textSecondary,
+                                style: resolveAppTextStyle(
+                                  context,
+                                  size: AppTextSize.s12,
+                                  weight: AppTextWeight.regular,
+                                  tone: AppTextTone.secondary,
                                 ),
                               ),
                               SizedBox(height: context.appSpacing.sm),
@@ -817,8 +846,11 @@ class _ResourceTaskDetailDrawer extends StatelessWidget {
                                 ),
                                 child: SelectableText(
                                   record.lastError!,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colors.errorForeground,
+                                  style: resolveAppTextStyle(
+                                    context,
+                                    size: AppTextSize.s12,
+                                    weight: AppTextWeight.regular,
+                                    tone: AppTextTone.error,
                                   ),
                                 ),
                               ),
@@ -857,16 +889,16 @@ class _DetailSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = context.appColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: colors.textSecondary,
-            fontWeight: FontWeight.w700,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.secondary,
           ),
         ),
         SizedBox(height: context.appSpacing.sm),
@@ -892,8 +924,6 @@ class _DetailRowTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = context.appColors;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -901,15 +931,22 @@ class _DetailRowTile extends StatelessWidget {
           width: 88,
           child: Text(
             row.label,
-            style: theme.textTheme.bodySmall?.copyWith(color: colors.textMuted),
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
           ),
         ),
         Expanded(
           child: SelectableText(
             row.value,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colors.textPrimary,
-              fontWeight: FontWeight.w600,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.primary,
             ),
           ),
         ),

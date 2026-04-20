@@ -224,7 +224,7 @@ max_thumbnail_process_count = 4
 | `uncensored_prefix` | 识别“无码资源”的番号前缀 |
 | `allowed_min_video_file_size` | 允许导入的视频最小文件大小，单位字节 |
 | `import_image_root_path` | 导入时缓存图片的目录 |
-| `subtitle_root_path` | 字幕文件存储目录 |
+| `subtitle_root_path` | 字幕目录，用于整理导入时从影片资源同级目录识别到的字幕文件 |
 | `max_thumbnail_process_count` | 缩略图生成任务的最大并发数 |
 
 建议：
@@ -320,10 +320,10 @@ hot_review_sync_cron = "20 1 * * *"
 media_file_scan_cron = "0 */6 * * *"
 movie_desc_sync_cron = "0 4 * * *"
 movie_desc_translation_cron = "15 4 * * *"
-movie_subtitle_fetch_cron = "30 */6 * * *"
 media_thumbnail_cron = "*/5 * * * *"
 image_search_index_cron = "0 0 * * *"
 image_search_optimize_cron = "0 3 * * *"
+movie_similarity_recompute_cron = "30 3 * * *"
 ```
 
 字段说明：
@@ -344,10 +344,10 @@ image_search_optimize_cron = "0 3 * * *"
 | `media_file_scan_cron` | 媒体文件巡检频率 |
 | `movie_desc_sync_cron` | 影片原文描述回填频率 |
 | `movie_desc_translation_cron` | 影片中文简介翻译频率 |
-| `movie_subtitle_fetch_cron` | 字幕抓取频率 |
 | `media_thumbnail_cron` | 缩略图生成频率 |
 | `image_search_index_cron` | 图片搜索索引生成频率 |
 | `image_search_optimize_cron` | 图片搜索索引优化频率 |
+| `movie_similarity_recompute_cron` | 影片相似度离线重算频率 |
 
 这组配置已经单独拆成了[后台任务](/guide/tasks)页面。  
 如果你想看“每个任务具体在做什么、哪些最关键、默认多久跑一次”，建议直接去那一页。
@@ -594,7 +594,7 @@ uncensored_prefix = [
 allowed_min_video_file_size = 1073741824
 # 导入时缓存图片的目录。
 import_image_root_path = "/data/cache/assets"
-# 字幕文件存储目录。
+# 字幕目录，用于整理导入时从影片资源同级目录识别到的字幕文件。
 subtitle_root_path = "/data/cache/subtitles"
 # 媒体缩略图生成任务的最大并发数。
 max_thumbnail_process_count = 4
@@ -647,14 +647,14 @@ media_file_scan_cron = "0 */6 * * *"
 movie_desc_sync_cron = "0 4 * * *"
 # 翻译影片简介为中文。
 movie_desc_translation_cron = "15 4 * * *"
-# 抓取已订阅影片字幕。
-movie_subtitle_fetch_cron = "30 */6 * * *"
 # 生成媒体资源缩略图。
 media_thumbnail_cron = "*/5 * * * *"
 # 生成以图搜图缩略图向量。
 image_search_index_cron = "0 0 * * *"
 # 优化以图搜图索引。
 image_search_optimize_cron = "0 3 * * *"
+# 影片相似度离线重算。
+movie_similarity_recompute_cron = "30 3 * * *"
 
 [movie_desc_translation]
 # 是否启用影片简介翻译任务。

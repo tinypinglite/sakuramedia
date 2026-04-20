@@ -24,8 +24,6 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
     required this.controlMinHeight,
     required this.controlHorizontalPadding,
     required this.controlVerticalPadding,
-    required this.controlLabelFontSize,
-    required this.controlLabelHeight,
     required this.controlSideGap,
     required this.controlTrailingGap,
     required this.controlCheckSlotWidth,
@@ -65,8 +63,6 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
       controlMinHeight = 34,
       controlHorizontalPadding = 6,
       controlVerticalPadding = 4,
-      controlLabelFontSize = 14,
-      controlLabelHeight = 1,
       controlSideGap = 18,
       controlTrailingGap = 14,
       controlCheckSlotWidth = 28,
@@ -104,8 +100,6 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
   final double controlMinHeight;
   final double controlHorizontalPadding;
   final double controlVerticalPadding;
-  final double controlLabelFontSize;
-  final double controlLabelHeight;
   final double controlSideGap;
   final double controlTrailingGap;
   final double controlCheckSlotWidth;
@@ -124,8 +118,7 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
   final double playerBackOverlayTop;
   final double playerBackOverlayLeft;
 
-  BorderRadius get surfaceBorderRadius =>
-      BorderRadius.circular(surfaceRadius);
+  BorderRadius get surfaceBorderRadius => BorderRadius.circular(surfaceRadius);
 
   @override
   AppOverlayTokens copyWith({
@@ -148,8 +141,6 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
     double? controlMinHeight,
     double? controlHorizontalPadding,
     double? controlVerticalPadding,
-    double? controlLabelFontSize,
-    double? controlLabelHeight,
     double? controlSideGap,
     double? controlTrailingGap,
     double? controlCheckSlotWidth,
@@ -192,15 +183,11 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
           controlHorizontalPadding ?? this.controlHorizontalPadding,
       controlVerticalPadding:
           controlVerticalPadding ?? this.controlVerticalPadding,
-      controlLabelFontSize:
-          controlLabelFontSize ?? this.controlLabelFontSize,
-      controlLabelHeight: controlLabelHeight ?? this.controlLabelHeight,
       controlSideGap: controlSideGap ?? this.controlSideGap,
       controlTrailingGap: controlTrailingGap ?? this.controlTrailingGap,
       controlCheckSlotWidth:
           controlCheckSlotWidth ?? this.controlCheckSlotWidth,
-      controlCheckIconSize:
-          controlCheckIconSize ?? this.controlCheckIconSize,
+      controlCheckIconSize: controlCheckIconSize ?? this.controlCheckIconSize,
       menuWidthSm: menuWidthSm ?? this.menuWidthSm,
       menuWidthMd: menuWidthMd ?? this.menuWidthMd,
       playerDrawerWidth: playerDrawerWidth ?? this.playerDrawerWidth,
@@ -209,7 +196,8 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
       playerDrawerHorizontalInset:
           playerDrawerHorizontalInset ?? this.playerDrawerHorizontalInset,
       playerControlBarHorizontalInset:
-          playerControlBarHorizontalInset ?? this.playerControlBarHorizontalInset,
+          playerControlBarHorizontalInset ??
+          this.playerControlBarHorizontalInset,
       playerControlBarTopInset:
           playerControlBarTopInset ?? this.playerControlBarTopInset,
       playerSeekBarHorizontalInset:
@@ -246,24 +234,18 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
       drawerSurfaceAlpha:
           lerpDouble(drawerSurfaceAlpha, other.drawerSurfaceAlpha, t)!,
       infoDrawerSurfaceAlpha:
-          lerpDouble(
-            infoDrawerSurfaceAlpha,
-            other.infoDrawerSurfaceAlpha,
-            t,
-          )!,
+          lerpDouble(infoDrawerSurfaceAlpha, other.infoDrawerSurfaceAlpha, t)!,
       hoverAlpha: lerpDouble(hoverAlpha, other.hoverAlpha, t)!,
       primaryLabelAlpha:
           lerpDouble(primaryLabelAlpha, other.primaryLabelAlpha, t)!,
-      mutedLabelAlpha:
-          lerpDouble(mutedLabelAlpha, other.mutedLabelAlpha, t)!,
+      mutedLabelAlpha: lerpDouble(mutedLabelAlpha, other.mutedLabelAlpha, t)!,
       menuVerticalPadding:
           lerpDouble(menuVerticalPadding, other.menuVerticalPadding, t)!,
       drawerVerticalPadding:
           lerpDouble(drawerVerticalPadding, other.drawerVerticalPadding, t)!,
       menuGap: lerpDouble(menuGap, other.menuGap, t)!,
       menuItemHeight: lerpDouble(menuItemHeight, other.menuItemHeight, t)!,
-      controlMinWidth:
-          lerpDouble(controlMinWidth, other.controlMinWidth, t)!,
+      controlMinWidth: lerpDouble(controlMinWidth, other.controlMinWidth, t)!,
       controlMinHeight:
           lerpDouble(controlMinHeight, other.controlMinHeight, t)!,
       controlHorizontalPadding:
@@ -274,10 +256,6 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
           )!,
       controlVerticalPadding:
           lerpDouble(controlVerticalPadding, other.controlVerticalPadding, t)!,
-      controlLabelFontSize:
-          lerpDouble(controlLabelFontSize, other.controlLabelFontSize, t)!,
-      controlLabelHeight:
-          lerpDouble(controlLabelHeight, other.controlLabelHeight, t)!,
       controlSideGap: lerpDouble(controlSideGap, other.controlSideGap, t)!,
       controlTrailingGap:
           lerpDouble(controlTrailingGap, other.controlTrailingGap, t)!,
@@ -322,7 +300,11 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
             t,
           )!,
       playerBackBadgeMaxWidth:
-          lerpDouble(playerBackBadgeMaxWidth, other.playerBackBadgeMaxWidth, t)!,
+          lerpDouble(
+            playerBackBadgeMaxWidth,
+            other.playerBackBadgeMaxWidth,
+            t,
+          )!,
       playerBackBadgeMinHeight:
           lerpDouble(
             playerBackBadgeMinHeight,

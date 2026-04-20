@@ -77,9 +77,11 @@ class PlaylistBannerCard extends StatelessWidget {
               child: Text(
                 title,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: colors.textOnMedia,
-                  fontWeight: FontWeight.w700,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s20,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.onMedia,
                 ),
               ),
             ),

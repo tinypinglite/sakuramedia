@@ -38,9 +38,14 @@ void main() {
     });
   }
 
-  Widget wrapApp(Widget child, {double width = 420, double height = 320}) {
+  Widget wrapApp(
+    Widget child, {
+    ThemeData? theme,
+    double width = 420,
+    double height = 320,
+  }) {
     return MaterialApp(
-      theme: sakuraThemeData,
+      theme: theme ?? sakuraThemeData,
       home: Scaffold(
         body: SizedBox(
           width: width,
@@ -79,7 +84,7 @@ void main() {
           )
           .first,
     );
-    expect(selectedStyle.style.color, sakuraThemeData.appColors.textPrimary);
+    expect(selectedStyle.style.color, sakuraThemeData.appTextPalette.primary);
 
     await tester.pumpWidget(
       wrapApp(
@@ -104,7 +109,7 @@ void main() {
           )
           .first,
     );
-    expect(placeholderStyle.style.color, sakuraThemeData.appColors.textMuted);
+    expect(placeholderStyle.style.color, sakuraThemeData.appTextPalette.muted);
   });
 
   testWidgets('supports compact trigger height for action rows', (
@@ -129,6 +134,107 @@ void main() {
       triggerRect.height,
       moreOrLessEquals(
         sakuraThemeData.appFormTokens.compactFieldHeight,
+        epsilon: 0.1,
+      ),
+    );
+  });
+
+  testWidgets('uses mobile typography and compact height under mobile theme', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            size: AppSelectFieldSize.compact,
+            value: 1,
+            items: const [DropdownMenuItem<int>(value: 1, child: Text('默认'))],
+            onChanged: (_) {},
+          ),
+        ),
+        theme: sakuraMobileThemeData,
+      ),
+    );
+
+    final triggerRect = tester.getRect(findTriggerSurface());
+    final selectedStyle = tester.widget<DefaultTextStyle>(
+      find
+          .ancestor(
+            of: find.text('默认'),
+            matching: find.byType(DefaultTextStyle),
+          )
+          .first,
+    );
+
+    expect(
+      triggerRect.height,
+      moreOrLessEquals(
+        sakuraMobileThemeData.appFormTokens.compactFieldHeight,
+        epsilon: 0.1,
+      ),
+    );
+    expect(
+      selectedStyle.style.fontSize,
+      sakuraMobileThemeData.appTextScale.s14,
+    );
+  });
+
+  testWidgets('supports mini trigger height for dense toolbars', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            size: AppSelectFieldSize.mini,
+            value: 1,
+            items: const [DropdownMenuItem<int>(value: 1, child: Text('默认'))],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final triggerRect = tester.getRect(findTriggerSurface());
+    expect(
+      triggerRect.height,
+      moreOrLessEquals(
+        sakuraThemeData.appFormTokens.miniFieldHeight,
+        epsilon: 0.1,
+      ),
+    );
+  });
+
+  testWidgets('uses shorter menu items for mini size', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            size: AppSelectFieldSize.mini,
+            value: 1,
+            items: const [
+              DropdownMenuItem<int>(value: 1, child: Text('默认')),
+              DropdownMenuItem<int>(value: 2, child: Text('归档')),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('默认'));
+    await tester.pumpAndSettle();
+
+    final menuRect = tester.getRect(findMenuSurface());
+    expect(
+      menuRect.height,
+      moreOrLessEquals(
+        sakuraThemeData.appFormTokens.miniMenuItemHeight * 2,
         epsilon: 0.1,
       ),
     );

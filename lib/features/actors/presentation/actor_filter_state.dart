@@ -33,7 +33,7 @@ extension ActorGenderX on ActorGender {
 class ActorFilterState {
   const ActorFilterState({
     this.subscriptionStatus = ActorSubscriptionStatus.subscribed,
-    this.gender = ActorGender.female,
+    this.gender = ActorGender.all,
   });
 
   final ActorSubscriptionStatus subscriptionStatus;
@@ -43,7 +43,7 @@ class ActorFilterState {
 
   bool get isDefault =>
       subscriptionStatus == ActorSubscriptionStatus.subscribed &&
-      gender == ActorGender.female;
+      gender == ActorGender.all;
 
   ActorFilterState copyWith({
     ActorSubscriptionStatus? subscriptionStatus,

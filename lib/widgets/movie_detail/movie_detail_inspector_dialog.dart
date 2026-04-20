@@ -25,9 +25,9 @@ Future<void> showMovieDetailInspectorDialog({
       final downloadsApi = dialogContext.read<DownloadsApi>();
       return AppDesktopDialog(
         dialogKey: const Key('movie-detail-inspector-dialog'),
+        contentKey: const Key('movie-detail-inspector-dialog-content'),
         width: dialogContext.appComponentTokens.movieDetailDialogWidth,
         height: dialogContext.appComponentTokens.movieDetailDialogMinHeight,
-        contentPadding: EdgeInsets.zero,
         child: MovieDetailInspectorPanel(
           movieNumber: movieNumber,
           selectedMedia: selectedMedia,
@@ -99,9 +99,8 @@ Future<void> showMobileMovieDetailInspectorBottomSheet({
   return showAppBottomDrawer<void>(
     context: context,
     drawerKey: const Key('movie-detail-inspector-bottom-sheet'),
-    // heightFactor: 0.5,
     maxHeightFactor: 0.7,
-    contentPadding: EdgeInsets.zero,
+    ignoreTopSafeArea: true,
     builder: (sheetContext) {
       final moviesApi = sheetContext.read<MoviesApi>();
       final downloadsApi = sheetContext.read<DownloadsApi>();

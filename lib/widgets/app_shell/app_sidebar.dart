@@ -9,6 +9,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/app_shell/app_window_drag_area.dart';
 import 'package:sakuramedia/widgets/search/catalog_search_field.dart';
 
 class AppSidebar extends StatelessWidget {
@@ -59,13 +60,36 @@ class AppSidebar extends StatelessWidget {
               SizedBox(
                 key: const Key('sidebar-header'),
                 height: context.appComponentTokens.desktopTitleBarHeight,
-                child: Center(
-                  child: AppIconButton(
-                    key: const Key('sidebar-toggle-button'),
-                    iconColor: context.appColors.textPrimary,
-                    onPressed: controller.toggleSidebar,
-                    icon: Icon(isCompact ? Icons.menu_open : Icons.menu_open),
-                  ),
+                child: Builder(
+                  builder: (context) {
+                    final toggleButton = AppIconButton(
+                      key: const Key('sidebar-toggle-button'),
+                      iconColor: context.appTextPalette.primary,
+                      onPressed: controller.toggleSidebar,
+                      icon: Icon(isCompact ? Icons.menu_open : Icons.menu_open),
+                    );
+                    if (useMacSidebarGlass) {
+                      return Stack(
+                        children: [
+                          const Positioned.fill(
+                            child: AppWindowDragArea(
+                              child: ColoredBox(color: Colors.transparent),
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                bottom: context.appSpacing.xs,
+                              ),
+                              child: toggleButton,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return Center(child: toggleButton);
+                  },
                 ),
               ),
               Divider(
@@ -315,7 +339,7 @@ class _AppSidebarItemState extends State<AppSidebarItem> {
             ? appColors.sidebarHoverBackground
             : appColors.sidebarBackground;
 
-    const foregroundColor = Colors.black;
+    final foregroundColor = context.appTextPalette.primary;
 
     return Tooltip(
       message: widget.label,
@@ -368,14 +392,11 @@ class _AppSidebarItemState extends State<AppSidebarItem> {
                     Expanded(
                       child: Text(
                         widget.label,
-                        style: Theme.of(
+                        style: resolveAppTextStyle(
                           context,
-                        ).textTheme.labelMedium?.copyWith(
-                          color: foregroundColor,
-                          fontWeight:
-                              widget.selected
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
+                          size: AppTextSize.s14,
+                          weight: AppTextWeight.medium,
+                          tone: AppTextTone.tertiary,
                         ),
                       ),
                     ),

@@ -54,10 +54,7 @@ extension AppNavigationActions on BuildContext {
     DesktopMovieDetailRouteData(movieNumber: movieNumber).push(this);
   }
 
-  void pushDesktopActorDetail({
-    required int actorId,
-    String? fallbackPath,
-  }) {
+  void pushDesktopActorDetail({required int actorId, String? fallbackPath}) {
     GoRouter.optionURLReflectsImperativeAPIs = true;
     DesktopActorDetailRouteData(actorId: actorId).push(this);
   }

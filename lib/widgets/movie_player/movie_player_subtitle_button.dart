@@ -344,8 +344,6 @@ class _MoviePlayerSubtitleButtonState extends State<MoviePlayerSubtitleButton> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = context.appColors;
     final overlayTokens = context.appOverlayTokens;
 
     return MouseRegion(
@@ -370,13 +368,10 @@ class _MoviePlayerSubtitleButtonState extends State<MoviePlayerSubtitleButton> {
             alignment: Alignment.center,
             child: Text(
               '字幕',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: colors.textOnMedia.withValues(
-                  alpha: overlayTokens.primaryLabelAlpha,
-                ),
-                fontSize: overlayTokens.controlLabelFontSize,
-                fontWeight: FontWeight.w500,
-                height: overlayTokens.controlLabelHeight,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                tone: AppTextTone.onMedia,
               ),
             ),
           ),
@@ -419,7 +414,7 @@ class _MoviePlayerSubtitleMenu extends StatelessWidget {
         ),
         borderRadius: overlayTokens.surfaceBorderRadius,
         border: Border.all(
-          color: colors.textOnMedia.withValues(
+          color: context.appTextPalette.onMedia.withValues(
             alpha: overlayTokens.surfaceBorderAlpha,
           ),
         ),
@@ -464,7 +459,6 @@ class _MoviePlayerSubtitleEmptyItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final overlayTokens = context.appOverlayTokens;
     return SizedBox(
       key: const Key('movie-player-subtitle-menu-empty'),
@@ -473,13 +467,10 @@ class _MoviePlayerSubtitleEmptyItem extends StatelessWidget {
         child: Text(
           _noAvailableSubtitleLabel,
           key: const Key('movie-player-subtitle-menu-empty-label'),
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: context.appColors.textOnMedia.withValues(
-              alpha: overlayTokens.mutedLabelAlpha,
-            ),
-            fontSize: overlayTokens.controlLabelFontSize,
-            fontWeight: FontWeight.w500,
-            height: overlayTokens.controlLabelHeight,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            tone: AppTextTone.muted,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -508,19 +499,13 @@ class _MoviePlayerSubtitleMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = context.appColors;
     final overlayTokens = context.appOverlayTokens;
-    final selectedColor = theme.colorScheme.primary;
-    final textColor =
-        selected
-            ? selectedColor
-            : colors.textOnMedia.withValues(
-              alpha: overlayTokens.primaryLabelAlpha,
-            );
+    final selectedColor = resolveAppTextToneColor(context, AppTextTone.accent);
     final backgroundColor =
         hovered
-            ? colors.textOnMedia.withValues(alpha: overlayTokens.hoverAlpha)
+            ? context.appTextPalette.onMedia.withValues(
+              alpha: overlayTokens.hoverAlpha,
+            )
             : Colors.transparent;
 
     return MouseRegion(
@@ -544,11 +529,10 @@ class _MoviePlayerSubtitleMenuItem extends StatelessWidget {
                     key: Key(
                       'movie-player-subtitle-menu-item-label-$subtitleId',
                     ),
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: textColor,
-                      fontSize: overlayTokens.controlLabelFontSize,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      height: overlayTokens.controlLabelHeight,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s14,
+                      tone: selected ? AppTextTone.accent : AppTextTone.onMedia,
                     ),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,

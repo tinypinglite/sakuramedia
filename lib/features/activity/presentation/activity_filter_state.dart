@@ -1,39 +1,20 @@
-enum ActivityNotificationArchivedFilter { active, archived }
-
-extension ActivityNotificationArchivedFilterValue
-    on ActivityNotificationArchivedFilter {
-  String get label => switch (this) {
-    ActivityNotificationArchivedFilter.active => '未归档',
-    ActivityNotificationArchivedFilter.archived => '已归档',
-  };
-
-  bool get apiValue => this == ActivityNotificationArchivedFilter.archived;
-}
-
 class ActivityNotificationFilterState {
-  const ActivityNotificationFilterState({
-    this.category,
-    this.level,
-    this.archivedFilter = ActivityNotificationArchivedFilter.active,
-  });
+  const ActivityNotificationFilterState({this.category, this.level});
 
   static const ActivityNotificationFilterState initial =
       ActivityNotificationFilterState();
 
   final String? category;
   final String? level;
-  final ActivityNotificationArchivedFilter archivedFilter;
 
   ActivityNotificationFilterState copyWith({
     Object? category = _sentinel,
     Object? level = _sentinel,
-    ActivityNotificationArchivedFilter? archivedFilter,
   }) {
     return ActivityNotificationFilterState(
       category:
           identical(category, _sentinel) ? this.category : category as String?,
       level: identical(level, _sentinel) ? this.level : level as String?,
-      archivedFilter: archivedFilter ?? this.archivedFilter,
     );
   }
 
@@ -41,12 +22,11 @@ class ActivityNotificationFilterState {
   bool operator ==(Object other) {
     return other is ActivityNotificationFilterState &&
         other.category == category &&
-        other.level == level &&
-        other.archivedFilter == archivedFilter;
+        other.level == level;
   }
 
   @override
-  int get hashCode => Object.hash(category, level, archivedFilter);
+  int get hashCode => Object.hash(category, level);
 }
 
 enum ActivityTaskSort {

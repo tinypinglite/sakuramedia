@@ -27,58 +27,53 @@ void main() {
     sessionStore.dispose();
   });
 
-  test(
-    'initialize 加载 definitions 并默认选中第一个任务 + 拉取第一页记录',
-    () async {
-      _enqueueDefinitions(bundle);
-      _enqueuePage(
-        bundle,
-        taskKey: 'movie_desc_sync',
-        page: 1,
-        total: 1,
-        items: <Map<String, dynamic>>[_recordJson(id: 1001)],
-      );
+  test('initialize 加载 definitions 并默认选中第一个任务 + 拉取第一页记录', () async {
+    _enqueueDefinitions(bundle);
+    _enqueuePage(
+      bundle,
+      taskKey: 'movie_desc_sync',
+      page: 1,
+      total: 1,
+      items: <Map<String, dynamic>>[_recordJson(id: 1001)],
+    );
 
-      final controller = ResourceTaskCenterController(
-        activityApi: bundle.activityApi,
-      );
-      addTearDown(controller.dispose);
+    final controller = ResourceTaskCenterController(
+      activityApi: bundle.activityApi,
+    );
+    addTearDown(controller.dispose);
 
-      await controller.initialize();
+    await controller.initialize();
 
-      expect(controller.initialized, isTrue);
-      expect(controller.definitions, hasLength(2));
-      expect(controller.activeTaskKey, 'movie_desc_sync');
-      expect(controller.activeDefinition?.displayName, '影片描述回填');
-      expect(controller.activeRecords, hasLength(1));
-      expect(controller.activeRecords.single.resourceId, 1001);
-      expect(controller.hasLoadedActiveRecords, isTrue);
-      expect(controller.isLoadingRecords, isFalse);
-      expect(controller.hasMoreRecords, isFalse);
-      expect(controller.initialErrorMessage, isNull);
-      expect(controller.recordsLoadErrorMessage, isNull);
-      expect(
-        bundle.adapter.hitCount(
-          'GET',
-          '/system/resource-task-states/definitions',
-        ),
-        1,
-      );
-      expect(
-        bundle.adapter.hitCount('GET', '/system/resource-task-states'),
-        1,
-      );
-      final recordRequest = bundle.adapter.requests
-          .where((req) => req.path == '/system/resource-task-states')
-          .single;
-      expect(recordRequest.uri.queryParameters['task_key'], 'movie_desc_sync');
-      expect(recordRequest.uri.queryParameters['page'], '1');
-      expect(recordRequest.uri.queryParameters['page_size'], '20');
-      expect(recordRequest.uri.queryParameters.containsKey('state'), isFalse);
-      expect(recordRequest.uri.queryParameters.containsKey('sort'), isFalse);
-      expect(recordRequest.uri.queryParameters.containsKey('search'), isFalse);
-    },
-  );
+    expect(controller.initialized, isTrue);
+    expect(controller.definitions, hasLength(2));
+    expect(controller.activeTaskKey, 'movie_desc_sync');
+    expect(controller.activeDefinition?.displayName, '影片描述回填');
+    expect(controller.activeRecords, hasLength(1));
+    expect(controller.activeRecords.single.resourceId, 1001);
+    expect(controller.hasLoadedActiveRecords, isTrue);
+    expect(controller.isLoadingRecords, isFalse);
+    expect(controller.hasMoreRecords, isFalse);
+    expect(controller.initialErrorMessage, isNull);
+    expect(controller.recordsLoadErrorMessage, isNull);
+    expect(
+      bundle.adapter.hitCount(
+        'GET',
+        '/system/resource-task-states/definitions',
+      ),
+      1,
+    );
+    expect(bundle.adapter.hitCount('GET', '/system/resource-task-states'), 1);
+    final recordRequest =
+        bundle.adapter.requests
+            .where((req) => req.path == '/system/resource-task-states')
+            .single;
+    expect(recordRequest.uri.queryParameters['task_key'], 'movie_desc_sync');
+    expect(recordRequest.uri.queryParameters['page'], '1');
+    expect(recordRequest.uri.queryParameters['page_size'], '20');
+    expect(recordRequest.uri.queryParameters.containsKey('state'), isFalse);
+    expect(recordRequest.uri.queryParameters.containsKey('sort'), isFalse);
+    expect(recordRequest.uri.queryParameters.containsKey('search'), isFalse);
+  });
 
   test('selectTaskKey 切换到其他任务时触发首次加载并保留原分页', () async {
     _enqueueDefinitions(bundle);
@@ -118,10 +113,7 @@ void main() {
     await controller.selectTaskKey('movie_desc_sync');
     expect(controller.activeTaskKey, 'movie_desc_sync');
     expect(controller.activeRecords, hasLength(1));
-    expect(
-      bundle.adapter.hitCount('GET', '/system/resource-task-states'),
-      2,
-    );
+    expect(bundle.adapter.hitCount('GET', '/system/resource-task-states'), 2);
   });
 
   test('applyFilter 应用 state / search / sort 后触发重新加载', () async {
@@ -160,9 +152,10 @@ void main() {
     expect(controller.activeRecords, hasLength(1));
     expect(controller.activeRecords.single.resourceId, 1002);
 
-    final requests = bundle.adapter.requests
-        .where((req) => req.path == '/system/resource-task-states')
-        .toList();
+    final requests =
+        bundle.adapter.requests
+            .where((req) => req.path == '/system/resource-task-states')
+            .toList();
     expect(requests, hasLength(2));
     final filtered = requests.last;
     expect(filtered.uri.queryParameters['state'], 'failed');
@@ -205,15 +198,17 @@ void main() {
     await controller.loadMoreRecords();
 
     expect(controller.activeRecords, hasLength(3));
-    expect(
-      controller.activeRecords.map((r) => r.resourceId),
-      <int>[1001, 1002, 1003],
-    );
+    expect(controller.activeRecords.map((r) => r.resourceId), <int>[
+      1001,
+      1002,
+      1003,
+    ]);
     expect(controller.hasMoreRecords, isFalse);
     expect(controller.recordsLoadMoreErrorMessage, isNull);
-    final pageRequest = bundle.adapter.requests
-        .where((req) => req.path == '/system/resource-task-states')
-        .last;
+    final pageRequest =
+        bundle.adapter.requests
+            .where((req) => req.path == '/system/resource-task-states')
+            .last;
     expect(pageRequest.uri.queryParameters['page'], '2');
   });
 

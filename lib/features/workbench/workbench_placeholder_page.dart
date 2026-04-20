@@ -49,12 +49,22 @@ class WorkbenchPlaceholderPage extends StatelessWidget {
               children: [
                 Text(
                   '桌面端工作台骨架',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s20,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.primary,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   '当前页面只提供稳定的壳层占位，后续业务模块将直接替换内容区域，不改路由语义和工作台布局。',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.secondary,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Wrap(
@@ -135,7 +145,12 @@ class _InfoChip extends StatelessWidget {
       ),
       child: Text(
         '$label: $value',
-        style: Theme.of(context).textTheme.labelMedium,
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.tertiary,
+        ),
       ),
     );
   }
@@ -162,7 +177,15 @@ class _TokenSwatch extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(label, style: Theme.of(context).textTheme.labelLarge),
+          Text(
+            label,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.primary,
+            ),
+          ),
         ],
       ),
     );

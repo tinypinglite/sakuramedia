@@ -46,7 +46,12 @@ class MovieDetailNumberBar extends StatelessWidget {
               Text(
                 resolvedMovieNumber,
                 key: const Key('movie-detail-number'),
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
               if (trailing != null) ...[
                 SizedBox(width: context.appSpacing.md),
@@ -64,12 +69,22 @@ class MovieDetailNumberBar extends StatelessWidget {
               Text(
                 '想看人数 $wantWatchCount',
                 key: const Key('movie-detail-interaction-want-watch-text'),
-                style: Theme.of(context).textTheme.bodySmall,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.muted,
+                ),
               ),
               Text(
                 '看过人数 $watchedCount',
                 key: const Key('movie-detail-interaction-watched-text'),
-                style: Theme.of(context).textTheme.bodySmall,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.muted,
+                ),
               ),
               Row(
                 key: const Key('movie-detail-interaction-score-item'),
@@ -84,7 +99,12 @@ class MovieDetailNumberBar extends StatelessWidget {
                   Text(
                     scoreLabel,
                     key: const Key('movie-detail-interaction-score-text'),
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.muted,
+                    ),
                   ),
                 ],
               ),
@@ -101,7 +121,12 @@ class MovieDetailNumberBar extends StatelessWidget {
                   Text(
                     '$commentCount',
                     key: const Key('movie-detail-interaction-comment-text'),
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.muted,
+                    ),
                   ),
                 ],
               ),
@@ -118,14 +143,24 @@ class MovieDetailNumberBar extends StatelessWidget {
                   Text(
                     '$heat',
                     key: const Key('movie-detail-interaction-heat-text'),
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.muted,
+                    ),
                   ),
                 ],
               ),
               Text(
                 '评分人数 $scoreNumber',
                 key: const Key('movie-detail-interaction-score-number-text'),
-                style: Theme.of(context).textTheme.bodySmall,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.muted,
+                ),
               ),
             ],
           ),
@@ -134,8 +169,11 @@ class MovieDetailNumberBar extends StatelessWidget {
             Text(
               resolvedSummary,
               key: const Key('movie-detail-summary'),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: context.appColors.textSecondary,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
               ),
             ),
           ],

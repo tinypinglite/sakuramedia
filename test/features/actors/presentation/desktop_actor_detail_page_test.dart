@@ -12,7 +12,7 @@ import 'package:sakuramedia/features/actors/presentation/desktop_actor_detail_pa
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -104,7 +104,7 @@ void main() {
     final nameText = tester.widget<Text>(
       find.byKey(const Key('actor-detail-name')),
     );
-    expect(nameText.style?.fontSize, 16);
+    expect(nameText.style?.fontSize, sakuraThemeData.appTextScale.s18);
     expect(find.byKey(const Key('actor-detail-total')), findsOneWidget);
     expect(find.text('2 部'), findsOneWidget);
     expect(
@@ -157,6 +157,25 @@ void main() {
     await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
 
+    expect(
+      tester
+          .widget<AppTextButton>(
+            find.ancestor(
+              of: find.byKey(const Key('movies-filter-trigger-label')),
+              matching: find.byType(AppTextButton),
+            ),
+          )
+          .isSelected,
+      isTrue,
+    );
+    expect(
+      _buttonBackgroundColor(
+        tester,
+        find.byKey(const Key('movies-filter-trigger-label')),
+      ),
+      sakuraThemeData.colorScheme.primary.withValues(alpha: 0.08),
+    );
+
     await tester.tap(find.byIcon(Icons.filter_alt_outlined));
     await tester.pumpAndSettle();
     await tester.tap(find.text('可播放'));
@@ -168,6 +187,24 @@ void main() {
     expect(_queryValue(bundle, 2, 'status'), 'playable');
     expect(_queryValue(bundle, 2, 'collection_type'), 'single');
     expect(_queryValue(bundle, 2, 'sort'), 'release_date:desc');
+    expect(
+      tester
+          .widget<AppTextButton>(
+            find.ancestor(
+              of: find.byKey(const Key('movies-filter-trigger-label')),
+              matching: find.byType(AppTextButton),
+            ),
+          )
+          .isSelected,
+      isTrue,
+    );
+    expect(
+      _buttonBackgroundColor(
+        tester,
+        find.byKey(const Key('movies-filter-trigger-label')),
+      ),
+      sakuraThemeData.colorScheme.primary.withValues(alpha: 0.08),
+    );
   });
 
   testWidgets(
@@ -207,6 +244,25 @@ void main() {
       await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
       await tester.pumpAndSettle();
 
+      expect(
+        tester
+            .widget<AppTextButton>(
+              find.ancestor(
+                of: find.byKey(const Key('movies-filter-trigger-label')),
+                matching: find.byType(AppTextButton),
+              ),
+            )
+            .isSelected,
+        isTrue,
+      );
+      expect(
+        _buttonBackgroundColor(
+          tester,
+          find.byKey(const Key('movies-filter-trigger-label')),
+        ),
+        sakuraThemeData.colorScheme.primary.withValues(alpha: 0.08),
+      );
+
       await tester.tap(
         find.byKey(const Key('movies-filter-preset-latest-subscribed')),
       );
@@ -219,11 +275,29 @@ void main() {
       expect(_queryValue(bundle, 2, 'sort'), 'subscribed_at:desc');
       expect(
         tester
-            .widget<AppButton>(
+            .widget<AppTextButton>(
               find.byKey(const Key('movies-filter-preset-latest-subscribed')),
             )
             .isSelected,
         isTrue,
+      );
+      expect(
+        tester
+            .widget<AppTextButton>(
+              find.ancestor(
+                of: find.byKey(const Key('movies-filter-trigger-label')),
+                matching: find.byType(AppTextButton),
+              ),
+            )
+            .isSelected,
+        isFalse,
+      );
+      expect(
+        _buttonBackgroundColor(
+          tester,
+          find.byKey(const Key('movies-filter-preset-latest-subscribed')),
+        ),
+        sakuraThemeData.colorScheme.primary.withValues(alpha: 0.08),
       );
 
       await tester.tap(
@@ -238,11 +312,29 @@ void main() {
       expect(_queryValue(bundle, 3, 'sort'), 'added_at:desc');
       expect(
         tester
-            .widget<AppButton>(
+            .widget<AppTextButton>(
               find.byKey(const Key('movies-filter-preset-latest-added')),
             )
             .isSelected,
         isTrue,
+      );
+      expect(
+        tester
+            .widget<AppTextButton>(
+              find.ancestor(
+                of: find.byKey(const Key('movies-filter-trigger-label')),
+                matching: find.byType(AppTextButton),
+              ),
+            )
+            .isSelected,
+        isFalse,
+      );
+      expect(
+        _buttonBackgroundColor(
+          tester,
+          find.byKey(const Key('movies-filter-preset-latest-added')),
+        ),
+        sakuraThemeData.colorScheme.primary.withValues(alpha: 0.08),
       );
     },
   );
@@ -504,6 +596,23 @@ String? _queryValue(TestApiBundle bundle, int requestIndex, String key) {
   return request.uri.queryParameters[key];
 }
 
+Color? _buttonBackgroundColor(WidgetTester tester, Finder finder) {
+  final buttonFinder = find.ancestor(of: finder, matching: find.byType(AppTextButton));
+  final resolvedFinder = buttonFinder.evaluate().isNotEmpty ? buttonFinder : finder;
+  final button = tester.widget<AppTextButton>(resolvedFinder);
+  final context = tester.element(resolvedFinder);
+  if (button.onPressed == null) {
+    return context.appColors.borderSubtle.withValues(alpha: 0.32);
+  }
+  if (button.isSelected) {
+    return Theme.of(context).colorScheme.primary.withValues(alpha: 0.08);
+  }
+  return switch (button.backgroundStyle) {
+    AppTextButtonBackgroundStyle.transparent => Colors.transparent,
+    AppTextButtonBackgroundStyle.muted => context.appColors.surfaceMuted,
+  };
+}
+
 Map<String, dynamic> _actorDetailJson() {
   return <String, dynamic>{
     'id': 1,
@@ -527,8 +636,7 @@ Map<String, dynamic> _moviesJson({
   List<Map<String, dynamic>>? items,
 }) {
   return <String, dynamic>{
-    'items':
-        items ??
+    'items': items ??
         <Map<String, dynamic>>[
           _movieItem(movieNumber: 'ABC-001'),
           _movieItem(movieNumber: 'ABC-002'),

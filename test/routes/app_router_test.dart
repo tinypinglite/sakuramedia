@@ -44,6 +44,35 @@ import 'package:sakuramedia/theme.dart';
 
 import '../support/test_api_bundle.dart';
 
+const List<_MobileSettingsRouteCase> _mobileSettingsRouteCases =
+    <_MobileSettingsRouteCase>[
+  _MobileSettingsRouteCase(
+    path: mobileSettingsMediaLibrariesPath,
+    title: '媒体库',
+    pageKey: Key('mobile-settings-media-libraries'),
+  ),
+  _MobileSettingsRouteCase(
+    path: mobileSettingsDownloadersPath,
+    title: '下载器',
+    pageKey: Key('mobile-settings-downloaders'),
+  ),
+  _MobileSettingsRouteCase(
+    path: mobileSettingsIndexersPath,
+    title: '索引器',
+    pageKey: Key('mobile-settings-indexers'),
+  ),
+  _MobileSettingsRouteCase(
+    path: mobileSettingsPlaylistsPath,
+    title: '播放列表',
+    pageKey: Key('mobile-settings-playlists'),
+  ),
+  _MobileSettingsRouteCase(
+    path: mobileSettingsPasswordPath,
+    title: '修改密码',
+    pageKey: Key('mobile-settings-password'),
+  ),
+];
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -909,33 +938,34 @@ void main() {
     expect(find.byKey(const Key('catalog-search-page-field')), findsOneWidget);
   });
 
-  testWidgets('mobile configuration route uses subpage shell', (
-    WidgetTester tester,
-  ) async {
-    final sessionStore = await _buildLoggedInSessionStore(
-      platform: AppPlatform.mobile,
-    );
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    final router = buildMobileRouter(sessionStore: sessionStore);
-    _enqueueMobileConfigurationResponses(bundle);
+  for (final routeCase in _mobileSettingsRouteCases) {
+    testWidgets('${routeCase.title} route uses subpage shell', (
+      WidgetTester tester,
+    ) async {
+      final sessionStore = await _buildLoggedInSessionStore(
+        platform: AppPlatform.mobile,
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      final router = buildMobileRouter(sessionStore: sessionStore);
 
-    await _pumpRouterApp(
-      tester,
-      router: router,
-      sessionStore: sessionStore,
-      bundle: bundle,
-    );
-    await tester.pumpAndSettle();
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
 
-    router.go(mobileConfigurationPath);
-    await tester.pumpAndSettle();
+      router.go(routeCase.path);
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
-    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
-    expect(find.text('配置管理'), findsOneWidget);
-    expect(find.byKey(const Key('configuration-page')), findsOneWidget);
-  });
+      expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+      expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+      expect(find.text(routeCase.title), findsOneWidget);
+      expect(find.byKey(routeCase.pageKey), findsOneWidget);
+    });
+  }
 
   testWidgets('mobile playlist detail route uses subpage shell', (
     WidgetTester tester,
@@ -1223,8 +1253,7 @@ void main() {
     addTearDown(bundle.dispose);
     addTearDown(() => debugMobileImageSearchFilePicker = null);
     final router = buildMobileRouter(sessionStore: sessionStore);
-    debugMobileImageSearchFilePicker =
-        () async => ImageSearchPickedFile(
+    debugMobileImageSearchFilePicker = () async => ImageSearchPickedFile(
           bytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
           fileName: 'picked.png',
           mimeType: 'image/png',
@@ -1388,10 +1417,7 @@ void main() {
         '456',
       );
       expect(
-        router
-            .routeInformationProvider
-            .value
-            .uri
+        router.routeInformationProvider.value.uri
             .queryParameters['positionSeconds'],
         '120',
       );
@@ -1452,33 +1478,38 @@ void main() {
     expect(router.routeInformationProvider.value.uri.path, mobileOverviewPath);
   });
 
-  testWidgets('mobile configuration deep link back falls back to overview', (
-    WidgetTester tester,
-  ) async {
-    final sessionStore = await _buildLoggedInSessionStore(
-      platform: AppPlatform.mobile,
+  for (final routeCase in _mobileSettingsRouteCases) {
+    testWidgets(
+      '${routeCase.title} deep link back falls back to overview',
+      (WidgetTester tester) async {
+        final sessionStore = await _buildLoggedInSessionStore(
+          platform: AppPlatform.mobile,
+        );
+        final bundle = await createTestApiBundle(sessionStore);
+        addTearDown(bundle.dispose);
+        final router = buildMobileRouter(sessionStore: sessionStore);
+
+        await _pumpRouterApp(
+          tester,
+          router: router,
+          sessionStore: sessionStore,
+          bundle: bundle,
+        );
+        await tester.pumpAndSettle();
+
+        router.go(routeCase.path);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+        await tester.pumpAndSettle();
+
+        expect(
+          router.routeInformationProvider.value.uri.path,
+          mobileOverviewPath,
+        );
+      },
     );
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    final router = buildMobileRouter(sessionStore: sessionStore);
-    _enqueueMobileConfigurationResponses(bundle);
-
-    await _pumpRouterApp(
-      tester,
-      router: router,
-      sessionStore: sessionStore,
-      bundle: bundle,
-    );
-    await tester.pumpAndSettle();
-
-    router.go(mobileConfigurationPath);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
-    await tester.pumpAndSettle();
-
-    expect(router.routeInformationProvider.value.uri.path, mobileOverviewPath);
-  });
+  }
 
   testWidgets('mobile movie detail deep link back falls back to movie list', (
     WidgetTester tester,
@@ -2688,9 +2719,7 @@ Future<void> _pumpRouterApp(
     ),
     Provider<StatusApi>.value(value: bundle.statusApi),
     Provider<MoviesApi>.value(value: bundle.moviesApi),
-    ChangeNotifierProvider(
-      create: (_) => MovieCollectionTypeChangeNotifier(),
-    ),
+    ChangeNotifierProvider(create: (_) => MovieCollectionTypeChangeNotifier()),
     Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
     Provider<RankingsApi>.value(value: bundle.rankingsApi),
     Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
@@ -2967,6 +2996,7 @@ void _enqueueDesktopRankingsResponses(TestApiBundle bundle) {
     path: '/ranking-sources',
     body: <Map<String, dynamic>>[
       <String, dynamic>{'source_key': 'javdb', 'name': 'JavDB'},
+      <String, dynamic>{'source_key': 'missav', 'name': 'MissAV'},
     ],
   );
   bundle.adapter.enqueueJson(
@@ -2977,6 +3007,20 @@ void _enqueueDesktopRankingsResponses(TestApiBundle bundle) {
         'source_key': 'javdb',
         'board_key': 'censored',
         'name': '有码',
+        'supported_periods': <String>['daily', 'weekly', 'monthly'],
+        'default_period': 'daily',
+      },
+      <String, dynamic>{
+        'source_key': 'javdb',
+        'board_key': 'uncensored',
+        'name': '无码',
+        'supported_periods': <String>['daily', 'weekly', 'monthly'],
+        'default_period': 'daily',
+      },
+      <String, dynamic>{
+        'source_key': 'javdb',
+        'board_key': 'fc2',
+        'name': 'FC2',
         'supported_periods': <String>['daily', 'weekly', 'monthly'],
         'default_period': 'daily',
       },
@@ -2995,6 +3039,7 @@ void _enqueueDesktopRankingsResponses(TestApiBundle bundle) {
           'cover_image': null,
           'release_date': '2024-01-02',
           'duration_minutes': 120,
+          'heat': 0,
           'is_subscribed': true,
           'can_play': true,
         },
@@ -3083,30 +3128,6 @@ void _enqueueDesktopPlaylistsOverviewResponses(TestApiBundle bundle) {
   );
 }
 
-void _enqueueMobileConfigurationResponses(TestApiBundle bundle) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/media-libraries',
-    body: const <Map<String, Object?>>[
-      <String, Object?>{
-        'id': 1,
-        'name': 'Main Library',
-        'root_path': '/media/library/main',
-        'created_at': '2026-03-08T09:30:00Z',
-        'updated_at': '2026-03-08T09:30:00Z',
-      },
-    ],
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/collection-number-features',
-    body: const <String, Object?>{
-      'features': <String>['CJOB', 'DVAJ'],
-      'sync_stats': null,
-    },
-  );
-}
-
 void _enqueueMovieDetailResponse(TestApiBundle bundle) {
   bundle.adapter.enqueueJson(
     method: 'GET',
@@ -3173,4 +3194,16 @@ void _enqueueActorMoviesResponse(TestApiBundle bundle) {
       'total': 1,
     },
   );
+}
+
+class _MobileSettingsRouteCase {
+  const _MobileSettingsRouteCase({
+    required this.path,
+    required this.title,
+    required this.pageKey,
+  });
+
+  final String path;
+  final String title;
+  final Key pageKey;
 }

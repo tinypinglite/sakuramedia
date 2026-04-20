@@ -12,7 +12,7 @@ import 'package:sakuramedia/features/movies/data/missav_thumbnail_stream_update.
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_inspector_panel.dart';
 
 void main() {
@@ -141,10 +141,10 @@ void main() {
       );
       expect(spinner, isNotNull);
 
-      final hotButton = tester.widget<AppButton>(
+      final hotButton = tester.widget<AppTextButton>(
         find.byKey(const Key('movie-detail-review-sort-hotly')),
       );
-      final recentButton = tester.widget<AppButton>(
+      final recentButton = tester.widget<AppTextButton>(
         find.byKey(const Key('movie-detail-review-sort-recently')),
       );
       expect(hotButton.onPressed, isNull);
@@ -162,10 +162,10 @@ void main() {
         ),
         findsNothing,
       );
-      final hotButtonAfter = tester.widget<AppButton>(
+      final hotButtonAfter = tester.widget<AppTextButton>(
         find.byKey(const Key('movie-detail-review-sort-hotly')),
       );
-      final recentButtonAfter = tester.widget<AppButton>(
+      final recentButtonAfter = tester.widget<AppTextButton>(
         find.byKey(const Key('movie-detail-review-sort-recently')),
       );
       expect(hotButtonAfter.onPressed, isNotNull);
@@ -223,6 +223,103 @@ void main() {
         ),
       );
       expect(spinner, isNotNull);
+    },
+  );
+
+  testWidgets(
+    'movie detail inspector aligns compact tabs with review toolbar content',
+    (WidgetTester tester) async {
+      await _pumpInspectorPanel(
+        tester,
+        panelHeight: 480,
+        fetchMovieReviews: ({
+          required String movieNumber,
+          required int page,
+          required int pageSize,
+          required MovieReviewSort sort,
+        }) async {
+          return <MovieReviewDto>[_buildReview(prefix: 'hot')];
+        },
+      );
+      await tester.pumpAndSettle();
+
+      final firstTabRect = tester.getRect(find.byType(Tab).first);
+      final hotSortRect = tester.getRect(
+        find.byKey(const Key('movie-detail-review-sort-hotly')),
+      );
+
+      expect(firstTabRect.left, hotSortRect.left);
+    },
+  );
+
+  testWidgets(
+    'movie detail inspector magnet tab shows sort controls and updates direction semantics',
+    (WidgetTester tester) async {
+      await _pumpInspectorPanel(
+        tester,
+        panelHeight: 480,
+        fetchMovieReviews: ({
+          required String movieNumber,
+          required int page,
+          required int pageSize,
+          required MovieReviewSort sort,
+        }) async {
+          return const <MovieReviewDto>[];
+        },
+        searchCandidates: ({
+          required String movieNumber,
+          String? indexerKind,
+        }) async {
+          return const <DownloadCandidateDto>[
+            DownloadCandidateDto(
+              source: 'jackett',
+              indexerName: 'mteam',
+              indexerKind: 'bt',
+              resolvedClientId: 2,
+              resolvedClientName: 'qb-main',
+              movieNumber: 'ABC-001',
+              title: 'ABC-001 4K 中文字幕',
+              sizeBytes: 12884901888,
+              seeders: 35,
+              magnetUrl: 'magnet:?xt=urn:btih:abcdef',
+              torrentUrl: '',
+              tags: <String>['4K', '中字'],
+            ),
+          ];
+        },
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('磁力搜索'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('movie-detail-magnet-search-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('movie-detail-magnet-sort-field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('movie-detail-magnet-sort-direction')),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('当前降序，点击切换为升序'), findsOneWidget);
+      final sortFieldRect = tester.getRect(
+        find.byKey(const Key('movie-detail-magnet-sort-field')),
+      );
+      final searchButtonRect = tester.getRect(
+        find.byKey(const Key('movie-detail-magnet-search-button')),
+      );
+      expect(sortFieldRect.left, lessThan(searchButtonRect.left));
+
+      await tester.tap(
+        find.byKey(const Key('movie-detail-magnet-sort-direction')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('当前升序，点击切换为降序'), findsOneWidget);
     },
   );
 
@@ -477,6 +574,11 @@ Future<void> _pumpInspectorPanel(
     bool refresh,
   })?
   fetchMissavThumbnailsStream,
+  Future<List<DownloadCandidateDto>> Function({
+    required String movieNumber,
+    String? indexerKind,
+  })?
+  searchCandidates,
 }) async {
   final sessionStore = SessionStore.inMemory();
   await tester.pumpWidget(
@@ -503,12 +605,11 @@ Future<void> _pumpInspectorPanel(
                     fetchMissavThumbnailsStream ??
                     ({required String movieNumber, bool refresh = false}) =>
                         const Stream<MissavThumbnailStreamUpdate>.empty(),
-                searchCandidates: ({
-                  required String movieNumber,
-                  String? indexerKind,
-                }) async {
-                  return const <DownloadCandidateDto>[];
-                },
+                searchCandidates:
+                    searchCandidates ??
+                    ({required String movieNumber, String? indexerKind}) async {
+                      return const <DownloadCandidateDto>[];
+                    },
                 createDownloadRequest: ({
                   required String movieNumber,
                   required int clientId,

@@ -17,8 +17,17 @@ class AppNavigationTokens extends ThemeExtension<AppNavigationTokens> {
   const AppNavigationTokens.defaults()
     : desktopTabHeight = 40,
       compactTabHeight = 32,
-      mobileTopTabHeight = 48,
+      mobileTopTabHeight = 52,
       desktopTabLabelTrailingPadding = 10,
+      compactIndicatorThickness = 3,
+      desktopIndicatorThickness = 3,
+      mobileIndicatorThickness = 5;
+
+  const AppNavigationTokens.mobile()
+    : desktopTabHeight = 42,
+      compactTabHeight = 36,
+      mobileTopTabHeight = 36,
+      desktopTabLabelTrailingPadding = 12,
       compactIndicatorThickness = 3,
       desktopIndicatorThickness = 3,
       mobileIndicatorThickness = 5;
@@ -101,8 +110,7 @@ class AppNavigationTokens extends ThemeExtension<AppNavigationTokens> {
 
 extension AppNavigationTokensThemeDataX on ThemeData {
   AppNavigationTokens get appNavigationTokens =>
-      extension<AppNavigationTokens>() ??
-      const AppNavigationTokens.defaults();
+      extension<AppNavigationTokens>() ?? const AppNavigationTokens.defaults();
 }
 
 extension AppNavigationTokensBuildContextX on BuildContext {

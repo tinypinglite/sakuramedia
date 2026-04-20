@@ -128,8 +128,11 @@ class _MobileFollowMovieCardState extends State<MobileFollowMovieCard> {
                     key: Key(
                       'mobile-follow-movie-card-title-${widget.movie.movieNumber}',
                     ),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.textSecondary,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.secondary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -145,14 +148,23 @@ class _MobileFollowMovieCardState extends State<MobileFollowMovieCard> {
                         key: Key(
                           'mobile-follow-movie-card-number-${widget.movie.movieNumber}',
                         ),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s14,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.primary,
+                        ).copyWith(
                           color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
                         _formatReleaseDate(widget.movie.releaseDate),
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s12,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.muted,
+                        ),
                       ),
                       if (widget.movie.canPlay)
                         Row(
@@ -166,9 +178,12 @@ class _MobileFollowMovieCardState extends State<MobileFollowMovieCard> {
                             SizedBox(width: spacing.xs),
                             Text(
                               '可播放',
-                              style: Theme.of(
+                              style: resolveAppTextStyle(
                                 context,
-                              ).textTheme.bodySmall?.copyWith(
+                                size: AppTextSize.s12,
+                                weight: AppTextWeight.regular,
+                                tone: AppTextTone.muted,
+                              ).copyWith(
                                 color: colors.movieCardPlayableBadgeBackground,
                               ),
                             ),
@@ -227,7 +242,7 @@ class _FollowThinCover extends StatelessWidget {
                 child: Icon(
                   Icons.movie_creation_outlined,
                   size: componentTokens.iconSize2xl,
-                  color: colors.textMuted,
+                  color: context.appTextPalette.muted,
                 ),
               )
               : MaskedImage(
@@ -320,9 +335,12 @@ class _StillImagesStrip extends StatelessWidget {
         child: Center(
           child: Text(
             '暂无剧照',
-            style: Theme.of(
+            style: resolveAppTextStyle(
               context,
-            ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
           ),
         ),
       );

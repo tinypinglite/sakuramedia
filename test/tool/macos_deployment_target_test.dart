@@ -10,9 +10,9 @@ void main() {
 
     expect(podfile, contains("platform :osx, '10.15'"));
     expect(
-      RegExp(r'MACOSX_DEPLOYMENT_TARGET = 10\.15;')
-          .allMatches(projectFile)
-          .length,
+      RegExp(
+        r'MACOSX_DEPLOYMENT_TARGET = 10\.15;',
+      ).allMatches(projectFile).length,
       3,
     );
   });

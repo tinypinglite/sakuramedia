@@ -113,8 +113,11 @@ class _MobileActorDetailHeader extends StatelessWidget {
             key: const Key('mobile-actor-detail-name'),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: context.appColors.textPrimary,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.primary,
             ),
           ),
         ),
@@ -129,8 +132,11 @@ class _MobileActorDetailHeader extends StatelessWidget {
         Text(
           '$total 部',
           key: const Key('mobile-actor-detail-total'),
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: context.appColors.textSecondary,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.secondary,
           ),
         ),
       ],

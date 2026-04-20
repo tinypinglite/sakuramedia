@@ -35,6 +35,8 @@ void main() {
     expect(find.byKey(const Key('mobile-subpage-safe-area')), findsOneWidget);
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
     expect(find.text('播放列表详情'), findsOneWidget);
+    final titleText = tester.widget<Text>(find.text('播放列表详情'));
+    expect(titleText.style?.fontSize, sakuraThemeData.appTextScale.s14);
     expect(rootSurface.color, sakuraThemeData.appColors.surfaceCard);
     expect(scaffold.backgroundColor, sakuraThemeData.appColors.surfaceCard);
     expect(appBar.backgroundColor, sakuraThemeData.appColors.surfaceCard);

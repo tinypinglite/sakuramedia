@@ -37,40 +37,44 @@ void main() {
     adapter.enqueueJson(
       method: 'GET',
       path: '/ranking-sources',
-      statusCode: 200,
       body: <Map<String, dynamic>>[
         <String, dynamic>{'source_key': 'javdb', 'name': 'JavDB'},
+        <String, dynamic>{'source_key': 'missav', 'name': 'MissAV'},
       ],
     );
 
     final sources = await rankingsApi.getRankingSources();
 
-    expect(sources.length, 1);
-    expect(sources.single.sourceKey, 'javdb');
-    expect(sources.single.name, 'JavDB');
+    expect(sources.length, 2);
+    expect(sources[0].sourceKey, 'javdb');
+    expect(sources[0].name, 'JavDB');
+    expect(sources[1].sourceKey, 'missav');
+    expect(sources[1].name, 'MissAV');
   });
 
   test('getRankingBoards requests source path and parses boards', () async {
     adapter.enqueueJson(
       method: 'GET',
-      path: '/ranking-sources/javdb/boards',
+      path: '/ranking-sources/missav/boards',
       statusCode: 200,
       body: <Map<String, dynamic>>[
         <String, dynamic>{
-          'source_key': 'javdb',
-          'board_key': 'censored',
-          'name': '有码',
+          'source_key': 'missav',
+          'board_key': 'all',
+          'name': '综合',
           'supported_periods': <String>['daily', 'weekly', 'monthly'],
           'default_period': 'daily',
         },
       ],
     );
 
-    final boards = await rankingsApi.getRankingBoards(sourceKey: 'javdb');
+    final boards = await rankingsApi.getRankingBoards(sourceKey: 'missav');
 
     final request = adapter.requests.single;
-    expect(request.path, '/ranking-sources/javdb/boards');
-    expect(boards.single.boardKey, 'censored');
+    expect(request.path, '/ranking-sources/missav/boards');
+    expect(boards.single.sourceKey, 'missav');
+    expect(boards.single.boardKey, 'all');
+    expect(boards.single.name, '综合');
     expect(boards.single.supportedPeriods, ['daily', 'weekly', 'monthly']);
     expect(boards.single.defaultPeriod, 'daily');
   });

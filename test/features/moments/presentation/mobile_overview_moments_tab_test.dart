@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/moments/presentation/mobile_overview_moment
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 
 import '../../../support/test_api_bundle.dart';
 
@@ -55,7 +56,16 @@ void main() {
         matching: find.text('最新'),
       ),
     );
-    expect(latestSortLabel.style?.fontSize, 10);
+    expect(find.byKey(const Key('mobile-moments-sort-latest')), findsOneWidget);
+    expect(
+      tester
+          .widget<AppTextButton>(
+            find.byKey(const Key('mobile-moments-sort-latest')),
+          )
+          .size,
+      AppTextButtonSize.xSmall,
+    );
+    expect(latestSortLabel.style?.fontSize, 12);
     expect(find.byKey(const Key('mobile-moments-page-total')), findsOneWidget);
     expect(find.text('1 个时刻'), findsOneWidget);
     expect(find.text('ABC-001'), findsOneWidget);

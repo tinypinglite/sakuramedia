@@ -4,18 +4,22 @@ class AppBackDestination {
   const AppBackDestination._();
 
   static String defaultLocationForPath(String path) {
-    if (path.startsWith('/desktop/library/movies/') && path.endsWith('/player')) {
-      final movieNumber = path
-          .substring('/desktop/library/movies/'.length)
-          .split('/player')
-          .first;
+    if (path.startsWith('/desktop/library/movies/') &&
+        path.endsWith('/player')) {
+      final movieNumber =
+          path
+              .substring('/desktop/library/movies/'.length)
+              .split('/player')
+              .first;
       return '$desktopMoviesPath/$movieNumber';
     }
-    if (path.startsWith('/mobile/library/movies/') && path.endsWith('/player')) {
-      final movieNumber = path
-          .substring('/mobile/library/movies/'.length)
-          .split('/player')
-          .first;
+    if (path.startsWith('/mobile/library/movies/') &&
+        path.endsWith('/player')) {
+      final movieNumber =
+          path
+              .substring('/mobile/library/movies/'.length)
+              .split('/player')
+              .first;
       return '$mobileMoviesPath/$movieNumber';
     }
     if (path.startsWith('/desktop/library/movies/')) {
@@ -42,6 +46,8 @@ class AppBackDestination {
     if (path.startsWith('/mobile/search')) {
       return mobileOverviewPath;
     }
-    return path.startsWith('/mobile/') ? mobileOverviewPath : desktopOverviewPath;
+    return path.startsWith('/mobile/')
+        ? mobileOverviewPath
+        : desktopOverviewPath;
   }
 }

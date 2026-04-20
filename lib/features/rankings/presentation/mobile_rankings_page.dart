@@ -108,7 +108,6 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
                     ),
                     SizedBox(height: context.appSpacing.md),
                   ],
-                  SizedBox(height: context.appSpacing.sm),
                   if (_pageState.sources.isEmpty &&
                       !_pageState.isFilterLoading &&
                       _pageState.filterErrorMessage == null)
@@ -182,14 +181,17 @@ class _FilterErrorBanner extends StatelessWidget {
             Icon(
               Icons.error_outline_rounded,
               size: context.appComponentTokens.iconSizeXl,
-              color: context.appColors.textSecondary,
+              color: context.appTextPalette.secondary,
             ),
             SizedBox(width: context.appSpacing.sm),
             Expanded(
               child: Text(
                 message,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: context.appColors.textSecondary,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
                 ),
               ),
             ),

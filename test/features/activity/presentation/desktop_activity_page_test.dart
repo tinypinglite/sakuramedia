@@ -48,6 +48,14 @@ void main() {
       find.byKey(const Key('activity-notification-read-filter')),
       findsNothing,
     );
+    expect(
+      find.byKey(const Key('activity-notification-archived-filter')),
+      findsNothing,
+    );
+    expect(find.text('归档'), findsNothing);
+    expect(find.text('未归档'), findsNothing);
+    expect(find.text('已归档'), findsNothing);
+    expect(find.text('查看任务'), findsNothing);
     expect(find.text('已读'), findsNothing);
     expect(find.text('未读 1 条'), findsNothing);
 
@@ -353,18 +361,18 @@ void main() {
 
       await _pumpActivityPage(tester, bundle: bundle);
 
-      expect(_textStyleOf(tester, find.text('通知中心')).fontSize, 16);
+      expect(_textStyleOf(tester, find.text('通知中心')).fontSize, 18);
       expect(_textStyleOf(tester, find.text('提醒通知标题')).fontSize, 14);
-      expect(_defaultTextStyleOf(tester, find.text('全部分类')).fontSize, 13);
+      expect(_defaultTextStyleOf(tester, find.text('全部分类')).fontSize, 12);
 
       await tester.tap(find.byKey(const Key('activity-tab-tasks')));
       await tester.pumpAndSettle();
 
-      expect(_textStyleOf(tester, find.text('活动任务')).fontSize, 16);
-      expect(_textStyleOf(tester, find.text('任务历史')).fontSize, 16);
+      expect(_textStyleOf(tester, find.text('活动任务')).fontSize, 18);
+      expect(_textStyleOf(tester, find.text('任务历史')).fontSize, 18);
       expect(_textStyleOf(tester, find.text('活动任务标题')).fontSize, 14);
       expect(_textStyleOf(tester, find.text('历史任务标题')).fontSize, 14);
-      expect(_defaultTextStyleOf(tester, find.text('全部状态')).fontSize, 13);
+      expect(_defaultTextStyleOf(tester, find.text('全部状态')).fontSize, 12);
     },
   );
 

@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_review
 import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -173,6 +174,103 @@ void main() {
     );
   });
 
+  testWidgets(
+    'mobile hot reviews tab uses shared text buttons and switches period',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/hot-reviews',
+        body: _hotReviewsJson(total: 1),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/hot-reviews',
+        body: _hotReviewsJson(total: 1),
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+            Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
+          ],
+          child: MaterialApp(
+            theme: sakuraThemeData,
+            home: const OKToast(
+              child: Scaffold(body: MobileOverviewHotReviewsTab()),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final weeklyButtonFinder = find.byKey(
+        const Key('desktop-hot-reviews-period-weekly'),
+      );
+      expect(
+        tester.widget<AppTextButton>(weeklyButtonFinder).size,
+        AppTextButtonSize.small,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('desktop-hot-reviews-period-monthly')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      final reviewRequests = bundle.adapter.requests
+          .where((request) => request.path == '/hot-reviews')
+          .toList(growable: false);
+      expect(reviewRequests, hasLength(2));
+      expect(reviewRequests[1].uri.queryParameters['period'], 'monthly');
+    },
+  );
+
+  testWidgets('mobile hot reviews tab keeps standard header gap below header', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/hot-reviews',
+      body: _hotReviewsJson(total: 1),
+    );
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
+        ],
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: const OKToast(
+            child: Scaffold(body: MobileOverviewHotReviewsTab()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final periodRect = tester.getRect(
+      find.byKey(const Key('desktop-hot-reviews-period-weekly')),
+    );
+    final totalRect = tester.getRect(
+      find.byKey(const Key('desktop-hot-reviews-page-total')),
+    );
+    final firstCardRect = tester.getRect(
+      find.byKey(const Key('hot-review-card-101')),
+    );
+    final headerBottom =
+        periodRect.bottom > totalRect.bottom
+            ? periodRect.bottom
+            : totalRect.bottom;
+
+    expect(
+      firstCardRect.top - headerBottom,
+      moreOrLessEquals(sakuraThemeData.appSpacing.lg, epsilon: 1.0),
+    );
+  });
+
   testWidgets('desktop hot reviews grid resolves 2 to 4 columns adaptively', (
     WidgetTester tester,
   ) async {
@@ -259,7 +357,6 @@ void main() {
         find.byKey(const Key('hot-review-card-content-box-101')),
       );
       final spacing = sakuraThemeData.extension<AppSpacing>()!.sm;
-      final appColors = sakuraThemeData.extension<AppColors>()!;
       final componentTokens = sakuraThemeData.extension<AppComponentTokens>()!;
       final icon = tester.widget<Icon>(find.byIcon(Icons.thumb_up_alt_rounded));
       final contentText = tester.widget<Text>(find.text('这位女主是Riho（宾户里帆）'));
@@ -293,11 +390,8 @@ void main() {
         ),
         isA<SizedBox>(),
       );
-      expect(contentText.style?.color, appColors.textPrimary);
-      expect(
-        contentText.style?.fontSize,
-        sakuraThemeData.textTheme.bodyMedium?.fontSize,
-      );
+      expect(contentText.style?.color, sakuraThemeData.appTextPalette.primary);
+      expect(contentText.style?.fontSize, sakuraThemeData.appTextScale.s14);
       expect(
         find.byKey(const Key('hot-review-card-meta-row-101')),
         findsOneWidget,
@@ -309,6 +403,39 @@ void main() {
       );
     },
   );
+
+  testWidgets('desktop hot reviews content aligns with meta row left edge', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/hot-reviews',
+      body: _hotReviewsJson(
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _hotReviewItem(
+            reviewId: 101,
+            movieNumber: 'ABP-001',
+            content: '这位女主是Riho（宾户里帆）',
+          ),
+        ],
+      ),
+    );
+
+    await _pumpHotReviewsPage(
+      tester,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    final metaRowRect = tester.getRect(
+      find.byKey(const Key('hot-review-card-meta-row-101')),
+    );
+    final contentTextRect = tester.getRect(find.text('这位女主是Riho（宾户里帆）'));
+
+    expect(contentTextRect.left, closeTo(metaRowRect.left, 0.1));
+  });
 
   testWidgets(
     'desktop hot reviews card navigates to movie detail with fallback path',

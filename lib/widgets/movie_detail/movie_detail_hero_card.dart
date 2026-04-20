@@ -131,9 +131,11 @@ class MovieDetailHeroCard extends StatelessWidget {
                   Text(
                     '$heat',
                     key: const Key('movie-detail-hero-heat-text'),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: colors.textOnMedia,
-                      fontWeight: FontWeight.w700,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.onMedia,
                     ),
                   ),
                 ],
@@ -162,7 +164,7 @@ class MovieDetailHeroCard extends StatelessWidget {
                         ),
                         child: Icon(
                           Icons.play_arrow_rounded,
-                          color: colors.textOnMedia,
+                          color: context.appTextPalette.onMedia,
                           size: tokens.iconSize4xl,
                         ),
                       ),
@@ -196,7 +198,7 @@ class _HeroImageFrame extends StatelessWidget {
                 child: Icon(
                   Icons.image_outlined,
                   size: context.appComponentTokens.iconSize3xl,
-                  color: context.appColors.textMuted,
+                  color: context.appTextPalette.muted,
                 ),
               ),
             )
@@ -241,9 +243,11 @@ class _HeroBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: context.appColors.textOnMedia,
-          fontWeight: FontWeight.w600,
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.onMedia,
         ),
       ),
     );

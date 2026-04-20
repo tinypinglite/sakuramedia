@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_filter_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 
 class ActorFilterToolbar extends StatefulWidget {
   const ActorFilterToolbar({
@@ -182,8 +183,11 @@ class _ActorFilterToolbarState extends State<ActorFilterToolbar> {
                     children: [
                       Text(
                         widget.filterState.isDefault ? '当前使用默认筛选' : '筛选已即时生效',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: context.appColors.textMuted,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s12,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.muted,
                         ),
                       ),
                       AppButton(
@@ -210,14 +214,13 @@ class _ActorFilterToolbarState extends State<ActorFilterToolbar> {
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: AppButton(
+      child: AppTextButton(
         key: _triggerKey,
         label: widget.filterState.subscriptionStatus.label,
         labelKey: const Key('actors-filter-trigger-label'),
         icon: const Icon(Icons.filter_alt_outlined),
         trailingIcon: Icon(_isOpen ? Icons.expand_less : Icons.expand_more),
-        variant: AppButtonVariant.secondary,
-        size: AppButtonSize.small,
+        size: AppTextButtonSize.small,
         isSelected: !widget.filterState.isDefault || _isOpen,
         onPressed: _togglePanel,
       ),
@@ -247,9 +250,11 @@ class _FilterSection<T> extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: context.appColors.textPrimary,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.primary,
           ),
         ),
         SizedBox(height: context.appSpacing.sm),
@@ -284,10 +289,9 @@ class _FilterChipButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppButton(
+    return AppTextButton(
       label: label,
-      size: AppButtonSize.xSmall,
-      variant: AppButtonVariant.secondary,
+      size: AppTextButtonSize.xSmall,
       isSelected: selected,
       onPressed: onTap,
     );

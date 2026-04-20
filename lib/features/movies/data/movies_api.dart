@@ -85,6 +85,17 @@ class MoviesApi {
     return MovieDetailDto.fromJson(response);
   }
 
+  Future<List<MovieListItemDto>> getSimilarMovies({
+    required String movieNumber,
+    int limit = 15,
+  }) async {
+    final response = await _apiClient.getList(
+      '/movies/$movieNumber/similar',
+      queryParameters: <String, dynamic>{'limit': limit},
+    );
+    return response.map(MovieListItemDto.fromJson).toList(growable: false);
+  }
+
   Future<List<MovieReviewDto>> getMovieReviews({
     required String movieNumber,
     int page = 1,

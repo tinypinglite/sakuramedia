@@ -179,4 +179,57 @@ void main() {
       expect(find.byType(MaskedImage), findsNothing);
     },
   );
+
+  testWidgets('mobile follow movie card uses mobile typography mapping', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+        ],
+        child: MaterialApp(
+          theme: sakuraMobileThemeData,
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              child: MobileFollowMovieCard(
+                movie: MovieListItemDto(
+                  javdbId: 'movie-font',
+                  movieNumber: 'ABP-102',
+                  title: 'Movie 102',
+                  coverImage: null,
+                  releaseDate: DateTime(2024, 1, 1),
+                  durationMinutes: 120,
+                  heat: 0,
+                  isSubscribed: false,
+                  canPlay: true,
+                ),
+                onTap: () {},
+                onSubscriptionTap: () {},
+                isSubscriptionUpdating: false,
+                isDetailLoading: false,
+                detailStillImageUrls: const <String>[],
+                detailSummary: '摘要文案',
+                detailThinCoverUrl: null,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final titleText = tester.widget<Text>(
+      find.byKey(const Key('mobile-follow-movie-card-title-ABP-102')),
+    );
+    final numberText = tester.widget<Text>(
+      find.byKey(const Key('mobile-follow-movie-card-number-ABP-102')),
+    );
+
+    expect(titleText.style?.fontSize, sakuraMobileThemeData.appTextScale.s12);
+    expect(numberText.style?.fontSize, sakuraMobileThemeData.appTextScale.s14);
+  });
 }

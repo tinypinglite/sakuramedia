@@ -90,4 +90,109 @@ void main() {
     );
     expect(iconTheme.data.size, AppComponentTokens.defaults().iconSizeXs);
   });
+
+  testWidgets('app button xxSmall and xxxSmall use smaller tokens', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: Scaffold(
+          body: Column(
+            children: [
+              AppButton(
+                label: '更小',
+                icon: const Icon(Icons.remove),
+                size: AppButtonSize.xxSmall,
+                onPressed: () {},
+              ),
+              AppButton(
+                label: '最小',
+                icon: const Icon(Icons.close),
+                size: AppButtonSize.xxxSmall,
+                onPressed: () {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final containers = tester.widgetList<AnimatedContainer>(
+      find.byType(AnimatedContainer),
+    );
+    expect(
+      tester.getSize(find.byWidget(containers.first)).height,
+      AppComponentTokens.defaults().buttonHeight2xs,
+    );
+    expect(
+      tester.getSize(find.byWidget(containers.last)).height,
+      AppComponentTokens.defaults().buttonHeight3xs,
+    );
+
+    final xxSmallIconTheme = tester.widget<IconTheme>(
+      find
+          .ancestor(
+            of: find.byIcon(Icons.remove),
+            matching: find.byType(IconTheme),
+          )
+          .first,
+    );
+    expect(
+      xxSmallIconTheme.data.size,
+      AppComponentTokens.defaults().iconSize2xs,
+    );
+
+    final xxxSmallIconTheme = tester.widget<IconTheme>(
+      find
+          .ancestor(
+            of: find.byIcon(Icons.close),
+            matching: find.byType(IconTheme),
+          )
+          .first,
+    );
+    expect(
+      xxxSmallIconTheme.data.size,
+      AppComponentTokens.defaults().iconSize3xs,
+    );
+
+    final labels = tester.widgetList<Text>(find.textContaining('小')).toList();
+    expect(labels.first.style?.fontSize, sakuraThemeData.appTextScale.s10);
+    expect(labels.last.style?.fontSize, sakuraThemeData.appTextScale.s10);
+    expect(labels.first.style?.height, 1);
+    expect(
+      labels.first.style?.leadingDistribution,
+      TextLeadingDistribution.even,
+    );
+    expect(labels.last.style?.height, 1);
+    expect(
+      labels.last.style?.leadingDistribution,
+      TextLeadingDistribution.even,
+    );
+  });
+
+  testWidgets('app button uses mobile typography and size tokens', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraMobileThemeData,
+        home: Scaffold(
+          body: AppButton(
+            label: '保存',
+            size: AppButtonSize.medium,
+            onPressed: () {},
+          ),
+        ),
+      ),
+    );
+
+    final label = tester.widget<Text>(find.text('保存'));
+
+    expect(
+      tester.getSize(find.byType(AnimatedContainer).first).height,
+      sakuraMobileThemeData.appComponentTokens.buttonHeightMd,
+    );
+    expect(label.style?.fontSize, sakuraMobileThemeData.appTextScale.s14);
+  });
 }

@@ -111,8 +111,11 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
               SizedBox(height: context.appSpacing.sm),
               Text(
                 '${playlist.movieCount} 部影片',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: context.appColors.textSecondary,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
                 ),
               ),
               SizedBox(height: context.appSpacing.sm),

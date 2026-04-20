@@ -155,6 +155,7 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
       context: context,
       maxHeightFactor: 0.7,
       drawerKey: const Key('mobile-moments-preview-bottom-sheet'),
+      ignoreTopSafeArea: true,
       builder: (_) => preview,
     );
 

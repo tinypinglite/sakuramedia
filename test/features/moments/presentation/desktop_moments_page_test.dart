@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.d
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -45,6 +46,13 @@ void main() {
 
     expect(find.byKey(const Key('moments-page')), findsOneWidget);
     expect(find.byKey(const Key('moments-page-total')), findsOneWidget);
+    expect(find.byType(AppTextButton), findsNWidgets(2));
+    expect(
+      tester
+          .widget<AppTextButton>(find.byKey(const Key('moments-sort-latest')))
+          .size,
+      AppTextButtonSize.xSmall,
+    );
     expect(find.text('1 个时刻'), findsOneWidget);
     expect(find.text('最新'), findsOneWidget);
     expect(find.text('最早'), findsOneWidget);

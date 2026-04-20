@@ -56,9 +56,11 @@ class ImageSearchResultCard extends StatelessWidget {
                     ),
                     child: Text(
                       scoreText,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s12,
+                        weight: AppTextWeight.regular,
+                        tone: AppTextTone.onMedia,
                       ),
                     ),
                   ),

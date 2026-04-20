@@ -27,9 +27,11 @@ class MovieDetailTitle extends StatelessWidget {
         key: const Key('movie-detail-title'),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: context.appColors.textPrimary,
-          fontWeight: FontWeight.w600,
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s14,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.primary,
         ),
       ),
     );

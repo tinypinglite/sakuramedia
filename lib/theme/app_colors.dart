@@ -13,26 +13,17 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.sidebarBackground,
     required this.sidebarHoverBackground,
     required this.sidebarActiveBackground,
-    required this.textPrimary,
-    required this.textSecondary,
-    required this.textMuted,
-    required this.textOnMedia,
     required this.subscriptionHeartIcon,
     required this.borderSubtle,
     required this.borderStrong,
     required this.divider,
     required this.selectionSurface,
     required this.selectionBorder,
-    required this.selectionForeground,
     required this.infoSurface,
-    required this.infoForeground,
     required this.warningSurface,
-    required this.warningForeground,
     required this.errorSurface,
-    required this.errorForeground,
     required this.errorAccentForeground,
     required this.successSurface,
-    required this.successForeground,
     required this.mediaOverlaySoft,
     required this.mediaOverlayStrong,
     required this.mediaMaskOverlay,
@@ -65,26 +56,17 @@ class AppColors extends ThemeExtension<AppColors> {
       sidebarBackground = const Color(0xFFD7D9D9),
       sidebarHoverBackground = const Color(0xFFC3C5C5),
       sidebarActiveBackground = const Color(0xFFC3C5C5),
-      textPrimary = const Color(0xFF1F1A18),
-      textSecondary = const Color.fromARGB(255, 21, 21, 21),
-      textMuted = const Color(0xFF7A7A7A),
-      textOnMedia = const Color(0xFFFFFFFF),
       subscriptionHeartIcon = const Color(0xFFD44B5C),
       borderSubtle = const Color(0xFFE5E5E5),
       borderStrong = const Color(0xFFD6D6D6),
       divider = const Color(0xFFE8E8E8),
       selectionSurface = const Color(0xFFEAF3FF),
       selectionBorder = const Color(0xFF1677FF),
-      selectionForeground = const Color(0xFF1677FF),
       infoSurface = const Color(0xFFEFF6FF),
-      infoForeground = const Color(0xFF175CD3),
       warningSurface = const Color(0xFFFFF4E5),
-      warningForeground = const Color(0xFFB54708),
       errorSurface = const Color(0xFFFFF1EF),
-      errorForeground = const Color(0xFFB42318),
       errorAccentForeground = const Color(0xFFF04438),
       successSurface = const Color(0xFFECFDF3),
-      successForeground = const Color(0xFF027A48),
       mediaOverlaySoft = const Color(0x14000000),
       mediaOverlayStrong = const Color(0x85000000),
       mediaMaskOverlay = const Color(0xE6000000),
@@ -115,26 +97,17 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color sidebarBackground;
   final Color sidebarHoverBackground;
   final Color sidebarActiveBackground;
-  final Color textPrimary;
-  final Color textSecondary;
-  final Color textMuted;
-  final Color textOnMedia;
   final Color subscriptionHeartIcon;
   final Color borderSubtle;
   final Color borderStrong;
   final Color divider;
   final Color selectionSurface;
   final Color selectionBorder;
-  final Color selectionForeground;
   final Color infoSurface;
-  final Color infoForeground;
   final Color warningSurface;
-  final Color warningForeground;
   final Color errorSurface;
-  final Color errorForeground;
   final Color errorAccentForeground;
   final Color successSurface;
-  final Color successForeground;
   final Color mediaOverlaySoft;
   final Color mediaOverlayStrong;
   final Color mediaMaskOverlay;
@@ -167,26 +140,17 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? sidebarBackground,
     Color? sidebarHoverBackground,
     Color? sidebarActiveBackground,
-    Color? textPrimary,
-    Color? textSecondary,
-    Color? textMuted,
-    Color? textOnMedia,
     Color? subscriptionHeartIcon,
     Color? borderSubtle,
     Color? borderStrong,
     Color? divider,
     Color? selectionSurface,
     Color? selectionBorder,
-    Color? selectionForeground,
     Color? infoSurface,
-    Color? infoForeground,
     Color? warningSurface,
-    Color? warningForeground,
     Color? errorSurface,
-    Color? errorForeground,
     Color? errorAccentForeground,
     Color? successSurface,
-    Color? successForeground,
     Color? mediaOverlaySoft,
     Color? mediaOverlayStrong,
     Color? mediaMaskOverlay,
@@ -223,10 +187,6 @@ class AppColors extends ThemeExtension<AppColors> {
           sidebarHoverBackground ?? this.sidebarHoverBackground,
       sidebarActiveBackground:
           sidebarActiveBackground ?? this.sidebarActiveBackground,
-      textPrimary: textPrimary ?? this.textPrimary,
-      textSecondary: textSecondary ?? this.textSecondary,
-      textMuted: textMuted ?? this.textMuted,
-      textOnMedia: textOnMedia ?? this.textOnMedia,
       subscriptionHeartIcon:
           subscriptionHeartIcon ?? this.subscriptionHeartIcon,
       borderSubtle: borderSubtle ?? this.borderSubtle,
@@ -234,17 +194,12 @@ class AppColors extends ThemeExtension<AppColors> {
       divider: divider ?? this.divider,
       selectionSurface: selectionSurface ?? this.selectionSurface,
       selectionBorder: selectionBorder ?? this.selectionBorder,
-      selectionForeground: selectionForeground ?? this.selectionForeground,
       infoSurface: infoSurface ?? this.infoSurface,
-      infoForeground: infoForeground ?? this.infoForeground,
       warningSurface: warningSurface ?? this.warningSurface,
-      warningForeground: warningForeground ?? this.warningForeground,
       errorSurface: errorSurface ?? this.errorSurface,
-      errorForeground: errorForeground ?? this.errorForeground,
       errorAccentForeground:
           errorAccentForeground ?? this.errorAccentForeground,
       successSurface: successSurface ?? this.successSurface,
-      successForeground: successForeground ?? this.successForeground,
       mediaOverlaySoft: mediaOverlaySoft ?? this.mediaOverlaySoft,
       mediaOverlayStrong: mediaOverlayStrong ?? this.mediaOverlayStrong,
       mediaMaskOverlay: mediaMaskOverlay ?? this.mediaMaskOverlay,
@@ -324,10 +279,6 @@ class AppColors extends ThemeExtension<AppColors> {
             other.sidebarActiveBackground,
             t,
           )!,
-      textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
-      textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
-      textMuted: Color.lerp(textMuted, other.textMuted, t)!,
-      textOnMedia: Color.lerp(textOnMedia, other.textOnMedia, t)!,
       subscriptionHeartIcon:
           Color.lerp(subscriptionHeartIcon, other.subscriptionHeartIcon, t)!,
       borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,
@@ -336,20 +287,12 @@ class AppColors extends ThemeExtension<AppColors> {
       selectionSurface:
           Color.lerp(selectionSurface, other.selectionSurface, t)!,
       selectionBorder: Color.lerp(selectionBorder, other.selectionBorder, t)!,
-      selectionForeground:
-          Color.lerp(selectionForeground, other.selectionForeground, t)!,
       infoSurface: Color.lerp(infoSurface, other.infoSurface, t)!,
-      infoForeground: Color.lerp(infoForeground, other.infoForeground, t)!,
       warningSurface: Color.lerp(warningSurface, other.warningSurface, t)!,
-      warningForeground:
-          Color.lerp(warningForeground, other.warningForeground, t)!,
       errorSurface: Color.lerp(errorSurface, other.errorSurface, t)!,
-      errorForeground: Color.lerp(errorForeground, other.errorForeground, t)!,
       errorAccentForeground:
           Color.lerp(errorAccentForeground, other.errorAccentForeground, t)!,
       successSurface: Color.lerp(successSurface, other.successSurface, t)!,
-      successForeground:
-          Color.lerp(successForeground, other.successForeground, t)!,
       mediaOverlaySoft:
           Color.lerp(mediaOverlaySoft, other.mediaOverlaySoft, t)!,
       mediaOverlayStrong:

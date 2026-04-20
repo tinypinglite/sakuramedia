@@ -185,7 +185,15 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
               errorMessage: _statusError,
             ),
             SizedBox(height: context.appSpacing.xxl),
-            Text('最近添加', style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              '最近添加',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s18,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
+              ),
+            ),
             SizedBox(height: context.appSpacing.md),
             AnimatedBuilder(
               animation: _moviesController,
@@ -299,14 +307,17 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
               Icon(
                 Icons.error_outline_rounded,
                 size: componentTokens.iconSizeXl,
-                color: colors.textSecondary,
+                color: context.appTextPalette.secondary,
               ),
               SizedBox(width: spacing.sm),
               Text(
                 _moviesController.loadMoreErrorMessage!,
-                style: Theme.of(
+                style: resolveAppTextStyle(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
               SizedBox(width: spacing.sm),
               TextButton(

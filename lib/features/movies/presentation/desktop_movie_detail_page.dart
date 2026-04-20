@@ -20,6 +20,9 @@ import 'package:sakuramedia/features/playlists/presentation/movie_playlist_picke
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/media/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_inspector_dialog.dart';
@@ -43,6 +46,7 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
   bool? _isCollectionOverride;
   bool _isSubscriptionUpdating = false;
   bool _isCollectionUpdating = false;
+  int? _deletingMediaId;
 
   @override
   void initState() {
@@ -50,6 +54,7 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
     _controller = MovieDetailController(
       movieNumber: widget.movieNumber,
       fetchMovieDetail: context.read<MoviesApi>().getMovieDetail,
+      fetchSimilarMovies: context.read<MoviesApi>().getSimilarMovies,
     )..load();
     _loadMovieCollectionStatus();
   }
@@ -96,6 +101,17 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
           isSubscriptionUpdating: _isSubscriptionUpdating,
           selectedMediaId: selectedMedia?.mediaId,
           statItems: buildMovieDetailStatItems(context, movie),
+          similarMovies: _controller.similarMovies,
+          isSimilarMoviesLoading: _controller.isSimilarMoviesLoading,
+          similarMoviesErrorMessage: _controller.similarMoviesErrorMessage,
+          onRetrySimilarMovies: _controller.retryLoadSimilarMovies,
+          onSimilarMovieTap:
+              (similarMovie) => context.pushDesktopMovieDetail(
+                movieNumber: similarMovie.movieNumber,
+                fallbackPath: buildDesktopMovieDetailRoutePath(
+                  widget.movieNumber,
+                ),
+              ),
           onSubscriptionTap:
               _isSubscriptionUpdating
                   ? null
@@ -126,6 +142,11 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
               (item) => setState(() {
                 _selectedMediaId = item.mediaId;
               }),
+          isDeletingSelectedMedia:
+              selectedMedia != null &&
+              _deletingMediaId == selectedMedia.mediaId,
+          onDeleteSelectedMedia:
+              selectedMedia == null ? null : _deleteSelectedMedia,
           onOpenMediaPointPreview: _openMediaPointPreview,
           onRequestMediaPointMenu: _showMediaPointActions,
           onActorTap:
@@ -236,6 +257,133 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
     }
   }
 
+  Future<void> _deleteSelectedMedia(MovieMediaItemDto mediaItem) async {
+    if (_deletingMediaId != null) {
+      return;
+    }
+
+    final confirmed = await _confirmDeleteMedia(mediaItem);
+    if (!mounted || confirmed != true) {
+      return;
+    }
+
+    setState(() {
+      _deletingMediaId = mediaItem.mediaId;
+    });
+
+    try {
+      await context.read<MediaApi>().deleteMedia(mediaId: mediaItem.mediaId);
+      await _refreshAfterMediaDelete(deletedMediaId: mediaItem.mediaId);
+      if (mounted) {
+        showToast('媒体文件已删除');
+      }
+    } catch (error) {
+      if (mounted) {
+        showToast(apiErrorMessage(error, fallback: '删除媒体文件失败'));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _deletingMediaId = null;
+        });
+      }
+    }
+  }
+
+  Future<bool?> _confirmDeleteMedia(MovieMediaItemDto mediaItem) {
+    return showDialog<bool>(
+      context: context,
+      builder:
+          (dialogContext) => AppDesktopDialog(
+            dialogKey: const Key('movie-media-delete-confirm-dialog'),
+            width: dialogContext.appLayoutTokens.dialogWidthSm,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '删除媒体文件',
+                  style: resolveAppTextStyle(
+                    dialogContext,
+                    size: AppTextSize.s18,
+                  ),
+                ),
+                SizedBox(height: dialogContext.appSpacing.lg),
+                Text(
+                  '确认删除媒体“${_buildMediaDeleteLabel(mediaItem)}”？该操作会删除本地媒体文件且不可恢复。',
+                ),
+                SizedBox(height: dialogContext.appSpacing.sm),
+                Text(
+                  mediaItem.path,
+                  key: const Key('movie-media-delete-path'),
+                  style: resolveAppTextStyle(
+                    dialogContext,
+                    size: AppTextSize.s12,
+                    tone: AppTextTone.muted,
+                  ),
+                ),
+                SizedBox(height: dialogContext.appSpacing.xl),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        key: const Key('movie-media-delete-cancel'),
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        label: '取消',
+                      ),
+                    ),
+                    SizedBox(width: dialogContext.appSpacing.md),
+                    Expanded(
+                      child: AppButton(
+                        key: const Key('movie-media-delete-confirm'),
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        label: '删除',
+                        variant: AppButtonVariant.danger,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Future<void> _refreshAfterMediaDelete({required int deletedMediaId}) async {
+    try {
+      await _controller.refresh();
+    } catch (_) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    _resetDetailOverridesAfterRefresh(deletedMediaId: deletedMediaId);
+    await _loadMovieCollectionStatus();
+  }
+
+  void _resetDetailOverridesAfterRefresh({required int deletedMediaId}) {
+    final refreshedMediaItems = _controller.movie?.mediaItems ?? const [];
+    final retainedSelectedMediaId =
+        _selectedMediaId != null &&
+                _selectedMediaId != deletedMediaId &&
+                refreshedMediaItems.any(
+                  (item) => item.mediaId == _selectedMediaId,
+                )
+            ? _selectedMediaId
+            : null;
+    setState(() {
+      _pointOverrides.clear();
+      _selectedMediaId =
+          retainedSelectedMediaId ??
+          (refreshedMediaItems.isNotEmpty
+              ? refreshedMediaItems.first.mediaId
+              : null);
+      _isSubscribedOverride = null;
+      _isCollectionOverride = null;
+    });
+  }
+
   List<MovieMediaItemDto> _resolveMediaItems(MovieDetailDto movie) {
     if (_pointOverrides.isEmpty) {
       return movie.mediaItems;
@@ -249,6 +397,14 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
           return _copyMediaItemWithPoints(item, pointsOverride);
         })
         .toList(growable: false);
+  }
+
+  String _buildMediaDeleteLabel(MovieMediaItemDto mediaItem) {
+    final label = mediaItem.specialTags.trim();
+    if (label.isNotEmpty) {
+      return label;
+    }
+    return '媒体源 ${mediaItem.mediaId}';
   }
 
   MovieMediaItemDto _copyMediaItemWithPoints(

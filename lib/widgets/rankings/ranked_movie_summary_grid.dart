@@ -24,7 +24,8 @@ class RankedMovieSummaryGrid extends StatelessWidget {
   final String? errorMessage;
   final ValueChanged<RankedMovieListItemDto>? onMovieTap;
   final ValueChanged<RankedMovieListItemDto>? onMovieSubscriptionTap;
-  final bool Function(RankedMovieListItemDto movie)? isMovieSubscriptionUpdating;
+  final bool Function(RankedMovieListItemDto movie)?
+  isMovieSubscriptionUpdating;
   final String emptyMessage;
   final int placeholderCount;
 
@@ -130,7 +131,9 @@ class _RankedMovieSummaryCardSkeleton extends StatelessWidget {
       child: AspectRatio(
         aspectRatio: 0.7,
         child: DecoratedBox(
-          key: Key('ranked-movie-summary-card-skeleton-poster-${_indexFromKey()}'),
+          key: Key(
+            'ranked-movie-summary-card-skeleton-poster-${_indexFromKey()}',
+          ),
           decoration: BoxDecoration(color: context.appColors.surfaceMuted),
         ),
       ),

@@ -126,14 +126,14 @@ void main() {
   });
 
   testWidgets(
-    'mobile rankings filter panel supports source board and period selection',
+    'mobile rankings filter panel supports source switch and period selection',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
         method: 'GET',
         path: '/ranking-sources',
         body: <Map<String, dynamic>>[
           <String, dynamic>{'source_key': 'javdb', 'name': 'JavDB'},
-          <String, dynamic>{'source_key': 'dmm', 'name': 'DMM'},
+          <String, dynamic>{'source_key': 'missav', 'name': 'MissAV'},
         ],
       );
       bundle.adapter.enqueueJson(
@@ -156,37 +156,30 @@ void main() {
       );
       bundle.adapter.enqueueJson(
         method: 'GET',
-        path: '/ranking-sources/dmm/boards',
+        path: '/ranking-sources/missav/boards',
         body: <Map<String, dynamic>>[
           <String, dynamic>{
-            'source_key': 'dmm',
-            'board_key': 'hot',
-            'name': '热门',
-            'supported_periods': <String>['monthly'],
-            'default_period': 'monthly',
-          },
-          <String, dynamic>{
-            'source_key': 'dmm',
-            'board_key': 'trending',
-            'name': '趋势',
-            'supported_periods': <String>['weekly', 'daily'],
-            'default_period': 'weekly',
+            'source_key': 'missav',
+            'board_key': 'all',
+            'name': '综合',
+            'supported_periods': <String>['daily', 'weekly', 'monthly'],
+            'default_period': 'daily',
           },
         ],
       );
       bundle.adapter.enqueueJson(
         method: 'GET',
-        path: '/ranking-sources/dmm/boards/hot/items',
+        path: '/ranking-sources/missav/boards/all/items',
         body: _rankingItemsJson(total: 1),
       );
       bundle.adapter.enqueueJson(
         method: 'GET',
-        path: '/ranking-sources/dmm/boards/trending/items',
+        path: '/ranking-sources/missav/boards/all/items',
         body: _rankingItemsJson(total: 1),
       );
       bundle.adapter.enqueueJson(
         method: 'GET',
-        path: '/ranking-sources/dmm/boards/trending/items',
+        path: '/ranking-sources/missav/boards/all/items',
         body: _rankingItemsJson(total: 1),
       );
 
@@ -201,46 +194,36 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('rankings-filter-source-dmm')));
+      await tester.tap(find.byKey(const Key('rankings-filter-source-missav')));
       await tester.pump();
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
       expect(
         bundle.adapter.requests.last.uri.path,
-        '/ranking-sources/dmm/boards/hot/items',
-      );
-      expect(
-        bundle.adapter.requests.last.uri.queryParameters['period'],
-        'monthly',
-      );
-
-      await tester.ensureVisible(
-        find.byKey(const Key('rankings-filter-board-trending')),
-      );
-      await tester.tap(find.byKey(const Key('rankings-filter-board-trending')));
-      await tester.pump();
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
-      expect(
-        bundle.adapter.requests.last.uri.path,
-        '/ranking-sources/dmm/boards/trending/items',
-      );
-      expect(
-        bundle.adapter.requests.last.uri.queryParameters['period'],
-        'weekly',
-      );
-
-      await tester.tap(find.byKey(const Key('rankings-filter-period-daily')));
-      await tester.pump();
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
-      expect(
-        bundle.adapter.requests.last.uri.path,
-        '/ranking-sources/dmm/boards/trending/items',
+        '/ranking-sources/missav/boards/all/items',
       );
       expect(
         bundle.adapter.requests.last.uri.queryParameters['period'],
         'daily',
+      );
+
+      expect(
+        find.byKey(const Key('rankings-filter-board-all')),
+        findsOneWidget,
+      );
+      expect(find.text('综合'), findsWidgets);
+
+      await tester.tap(find.byKey(const Key('rankings-filter-period-weekly')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
+      expect(
+        bundle.adapter.requests.last.uri.path,
+        '/ranking-sources/missav/boards/all/items',
+      );
+      expect(
+        bundle.adapter.requests.last.uri.queryParameters['period'],
+        'weekly',
       );
     },
   );
@@ -406,6 +389,7 @@ void _enqueueDefaultSourcesAndBoards(TestApiBundle bundle) {
     path: '/ranking-sources',
     body: <Map<String, dynamic>>[
       <String, dynamic>{'source_key': 'javdb', 'name': 'JavDB'},
+      <String, dynamic>{'source_key': 'missav', 'name': 'MissAV'},
     ],
   );
   bundle.adapter.enqueueJson(
@@ -416,6 +400,20 @@ void _enqueueDefaultSourcesAndBoards(TestApiBundle bundle) {
         'source_key': 'javdb',
         'board_key': 'censored',
         'name': '有码',
+        'supported_periods': <String>['daily', 'weekly', 'monthly'],
+        'default_period': 'daily',
+      },
+      <String, dynamic>{
+        'source_key': 'javdb',
+        'board_key': 'uncensored',
+        'name': '无码',
+        'supported_periods': <String>['daily', 'weekly', 'monthly'],
+        'default_period': 'daily',
+      },
+      <String, dynamic>{
+        'source_key': 'javdb',
+        'board_key': 'fc2',
+        'name': 'FC2',
         'supported_periods': <String>['daily', 'weekly', 'monthly'],
         'default_period': 'daily',
       },

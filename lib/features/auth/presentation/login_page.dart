@@ -139,7 +139,6 @@ class _LoginPageState extends State<LoginPage> {
     final colors = context.appColors;
     final spacing = context.appSpacing;
     final radius = context.appRadius;
-    final textTheme = Theme.of(context).textTheme;
     final viewInsets = MediaQuery.of(context).viewInsets;
     final isCompact = MediaQuery.of(context).size.width < 640;
 
@@ -210,17 +209,31 @@ class _LoginPageState extends State<LoginPage> {
                                   SizedBox(width: spacing.sm),
                                   Text(
                                     'SakuraMedia',
-                                    style: textTheme.titleMedium,
+                                    style: resolveAppTextStyle(
+                                      context,
+                                      size: AppTextSize.s18,
+                                      weight: AppTextWeight.semibold,
+                                    ),
                                   ),
                                 ],
                               ),
                               SizedBox(height: spacing.lg),
-                              Text('登录', style: textTheme.bodyMedium),
+                              Text(
+                                '登录',
+                                style: resolveAppTextStyle(
+                                  context,
+                                  size: AppTextSize.s14,
+                                  weight: AppTextWeight.regular,
+                                  tone: AppTextTone.secondary,
+                                ),
+                              ),
                               SizedBox(height: spacing.sm),
                               Text(
                                 '请输入服务器地址与账号信息',
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: colors.textSecondary,
+                                style: resolveAppTextStyle(
+                                  context,
+                                  size: AppTextSize.s14,
+                                  tone: AppTextTone.secondary,
                                 ),
                               ),
                               SizedBox(height: spacing.xl),
@@ -238,7 +251,7 @@ class _LoginPageState extends State<LoginPage> {
                                 prefix: Icon(
                                   Icons.dns_outlined,
                                   size: context.appComponentTokens.iconSizeMd,
-                                  color: context.appColors.textMuted,
+                                  color: context.appTextPalette.muted,
                                 ),
                               ),
                               SizedBox(height: spacing.lg),
@@ -256,7 +269,7 @@ class _LoginPageState extends State<LoginPage> {
                                 prefix: Icon(
                                   Icons.person_outline_rounded,
                                   size: context.appComponentTokens.iconSizeMd,
-                                  color: context.appColors.textMuted,
+                                  color: context.appTextPalette.muted,
                                 ),
                               ),
                               SizedBox(height: spacing.lg),
@@ -274,7 +287,7 @@ class _LoginPageState extends State<LoginPage> {
                                 prefix: Icon(
                                   Icons.lock_outline_rounded,
                                   size: context.appComponentTokens.iconSizeMd,
-                                  color: context.appColors.textMuted,
+                                  color: context.appTextPalette.muted,
                                 ),
                                 suffix: AppIconButton(
                                   key: const Key('login-password-toggle'),
@@ -314,7 +327,12 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                   child: Text(
                                     _submitError!,
-                                    style: textTheme.bodyMedium?.copyWith(
+                                    style: resolveAppTextStyle(
+                                      context,
+                                      size: AppTextSize.s14,
+                                      weight: AppTextWeight.regular,
+                                      tone: AppTextTone.secondary,
+                                    ).copyWith(
                                       color:
                                           Theme.of(
                                             context,
@@ -391,28 +409,21 @@ class _LoginPageState extends State<LoginPage> {
                                                 SizedBox(width: spacing.md),
                                                 Text(
                                                   '登录中...',
-                                                  style: textTheme.labelLarge
-                                                      ?.copyWith(
-                                                        color:
-                                                            Theme.of(context)
-                                                                .colorScheme
-                                                                .onPrimary,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
+                                                  style: resolveAppTextStyle(
+                                                    context,
+                                                    size: AppTextSize.s14,
+                                                    tone: AppTextTone.onMedia,
+                                                  ),
                                                 ),
                                               ],
                                             )
                                             : Text(
                                               '登录',
-                                              style: textTheme.labelLarge
-                                                  ?.copyWith(
-                                                    color:
-                                                        Theme.of(
-                                                          context,
-                                                        ).colorScheme.onPrimary,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
+                                              style: resolveAppTextStyle(
+                                                context,
+                                                size: AppTextSize.s14,
+                                                tone: AppTextTone.onMedia,
+                                              ),
                                             ),
                                   ),
                                 ),

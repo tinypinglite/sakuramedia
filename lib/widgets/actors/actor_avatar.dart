@@ -32,7 +32,7 @@ class ActorAvatar extends StatelessWidget {
                   ),
                   child: Icon(
                     Icons.person_outline_rounded,
-                    color: context.appColors.textMuted,
+                    color: context.appTextPalette.muted,
                   ),
                 ),
       ),

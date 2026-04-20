@@ -240,16 +240,18 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
             Icon(
               Icons.category_outlined,
               size: componentTokens.iconSizeXs,
-              color: colors.textSecondary,
+              color: context.appTextPalette.secondary,
             ),
             SizedBox(width: spacing.sm),
             Text(
               isCollection == null
                   ? '标记为合集/单体'
                   : (isCollection ? '标记为单体' : '标记为合集'),
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: colors.textPrimary,
-                fontWeight: FontWeight.w500,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.primary,
               ),
             ),
           ],
@@ -276,14 +278,16 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
               Icon(
                 Icons.auto_awesome_motion_outlined,
                 size: componentTokens.iconSizeXs,
-                color: colors.textSecondary,
+                color: context.appTextPalette.secondary,
               ),
               SizedBox(width: spacing.sm),
               Text(
                 '将"$feature"加入合集特征',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: colors.textPrimary,
-                  fontWeight: FontWeight.w500,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.primary,
                 ),
               ),
             ],

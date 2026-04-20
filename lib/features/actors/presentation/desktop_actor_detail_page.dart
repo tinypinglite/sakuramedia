@@ -103,14 +103,17 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
               Icon(
                 Icons.error_outline_rounded,
                 size: componentTokens.iconSizeXl,
-                color: colors.textSecondary,
+                color: context.appTextPalette.secondary,
               ),
               SizedBox(width: spacing.sm),
               Text(
                 moviesController.loadMoreErrorMessage!,
-                style: Theme.of(
+                style: resolveAppTextStyle(
                   context,
-                ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
               SizedBox(width: spacing.sm),
               TextButton(
@@ -167,8 +170,11 @@ class _ActorDetailHeader extends StatelessWidget {
             key: const Key('actor-detail-name'),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: context.appColors.textPrimary,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s18,
+              weight: AppTextWeight.semibold,
+              tone: AppTextTone.primary,
             ),
           ),
         ),
@@ -183,8 +189,11 @@ class _ActorDetailHeader extends StatelessWidget {
         Text(
           '$total 部',
           key: const Key('actor-detail-total'),
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: context.appColors.textSecondary,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.secondary,
           ),
         ),
       ],

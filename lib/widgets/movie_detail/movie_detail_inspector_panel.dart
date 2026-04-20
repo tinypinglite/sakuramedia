@@ -23,7 +23,10 @@ import 'package:sakuramedia/features/movies/presentation/movie_detail_thumbnail_
 import 'package:sakuramedia/features/search/presentation/catalog_search_stream_status.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/media/thumbnail_grid_column_resolver.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_preview_overlay.dart';
@@ -294,34 +297,27 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
     return Column(
       key: const Key('movie-detail-inspector-panel'),
       children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            context.appSpacing.lg,
-            0,
-            context.appSpacing.sm,
-            0,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: AppTabBar(
-                  controller: _tabController,
-                  tabs: const <Widget>[
-                    Tab(text: '评论'),
-                    Tab(text: '磁力搜索'),
-                    Tab(text: '缩略图'),
-                    Tab(text: 'Missav缩略图'),
-                  ],
-                ),
+        Row(
+          children: [
+            Expanded(
+              child: AppTabBar(
+                variant: AppTabBarVariant.compact,
+                controller: _tabController,
+                tabs: const <Widget>[
+                  Tab(text: '评论'),
+                  Tab(text: '磁力搜索'),
+                  Tab(text: '缩略图'),
+                  Tab(text: 'Missav缩略图'),
+                ],
               ),
-              // if (widget.showCloseButton)
-              //   AppIconButton(
-              //     tooltip: '关闭',
-              //     onPressed: widget.onClose,
-              //     icon: const Icon(Icons.close_rounded),
-              //   ),
-            ],
-          ),
+            ),
+            // if (widget.showCloseButton)
+            //   AppIconButton(
+            //     tooltip: '关闭',
+            //     onPressed: widget.onClose,
+            //     icon: const Icon(Icons.close_rounded),
+            //   ),
+          ],
         ),
         Expanded(
           child: TabBarView(
@@ -442,11 +438,9 @@ class _MovieDetailReviewTabState extends State<_MovieDetailReviewTab> {
   Widget build(BuildContext context) {
     final controller = widget.controller;
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        context.appSpacing.md,
-        context.appSpacing.sm,
-        context.appSpacing.md,
-        context.appSpacing.md,
+      padding: EdgeInsets.only(
+        top: context.appSpacing.sm,
+        bottom: context.appSpacing.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,11 +450,10 @@ class _MovieDetailReviewTabState extends State<_MovieDetailReviewTab> {
             runSpacing: context.appSpacing.xs,
             children: [
               for (final sort in MovieReviewSort.values)
-                AppButton(
+                AppTextButton(
                   key: Key('movie-detail-review-sort-${sort.apiValue}'),
                   label: sort.label,
-                  size: AppButtonSize.xSmall,
-                  variant: AppButtonVariant.secondary,
+                  size: AppTextButtonSize.xSmall,
                   isSelected: controller.sort == sort,
                   onPressed:
                       _isSortSwitchLoading
@@ -493,8 +486,11 @@ class _MovieDetailReviewTabState extends State<_MovieDetailReviewTab> {
           children: [
             Text(
               controller.initialErrorMessage!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: context.appColors.textSecondary,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
               ),
             ),
             SizedBox(height: context.appSpacing.md),
@@ -588,14 +584,20 @@ class _MovieDetailReviewCard extends StatelessWidget {
             children: [
               Text(
                 review.username.trim().isEmpty ? '匿名用户' : review.username,
-                style: Theme.of(
+                style: resolveAppTextStyle(
                   context,
-                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
               Text(
                 reviewDate,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: context.appColors.textSecondary,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
                 ),
               ),
               Row(
@@ -609,8 +611,11 @@ class _MovieDetailReviewCard extends StatelessWidget {
                   SizedBox(width: context.appSpacing.xs),
                   Text(
                     '${review.score}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.muted,
                     ),
                   ),
                 ],
@@ -626,8 +631,11 @@ class _MovieDetailReviewCard extends StatelessWidget {
                   SizedBox(width: context.appSpacing.xs),
                   Text(
                     '${review.likeCount}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.muted,
                     ),
                   ),
                 ],
@@ -637,7 +645,12 @@ class _MovieDetailReviewCard extends StatelessWidget {
           SizedBox(height: context.appSpacing.xs),
           Text(
             review.content.trim().isEmpty ? '暂无评论内容' : review.content,
-            style: Theme.of(context).textTheme.bodyMedium,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.secondary,
+            ),
           ),
         ],
       ),
@@ -669,9 +682,12 @@ class _MovieDetailReviewFooter extends StatelessWidget {
         children: [
           Text(
             controller.loadMoreErrorMessage!,
-            style: Theme.of(
+            style: resolveAppTextStyle(
               context,
-            ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
           ),
           SizedBox(height: context.appSpacing.sm),
           AppButton(
@@ -769,6 +785,8 @@ class _ReviewSkeletonLine extends StatelessWidget {
 }
 
 class _MovieDetailMagnetTab extends StatelessWidget {
+  static const double _sortToolbarBreakpoint = 320;
+
   const _MovieDetailMagnetTab({
     required this.movieNumber,
     required this.controller,
@@ -779,51 +797,134 @@ class _MovieDetailMagnetTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        context.appSpacing.lg,
-        context.appSpacing.md,
-        context.appSpacing.lg,
-        context.appSpacing.lg,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: context.appSpacing.sm,
-            runSpacing: context.appSpacing.sm,
-            crossAxisAlignment: WrapCrossAlignment.center,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompactToolbar = constraints.maxWidth < _sortToolbarBreakpoint;
+        return Padding(
+          padding: EdgeInsets.only(
+            top: context.appSpacing.md,
+            bottom: context.appSpacing.lg,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final kind in MovieDetailMagnetIndexerKind.values)
-                AppButton(
-                  key: Key(
-                    'movie-detail-magnet-filter-${kind == MovieDetailMagnetIndexerKind.all ? 'all' : kind.apiValue}',
-                  ),
-                  label: kind.label,
-                  size: AppButtonSize.xSmall,
-                  variant: AppButtonVariant.secondary,
-                  isSelected: controller.selectedIndexerKind == kind,
-                  onPressed: () => controller.setIndexerKind(kind),
+              if (isCompactToolbar)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: _buildSortActions(context, compact: true),
+                    ),
+                    SizedBox(height: context.appSpacing.sm),
+                    _buildSearchAction(
+                      context,
+                      alignment: Alignment.centerRight,
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSortActions(context),
+                    SizedBox(width: context.appSpacing.md),
+                    Expanded(
+                      child: _buildSearchAction(
+                        context,
+                        alignment: Alignment.centerRight,
+                      ),
+                    ),
+                  ],
                 ),
-              AppButton(
-                size: AppButtonSize.xSmall,
-                key: const Key('movie-detail-magnet-search-button'),
-                label: controller.isLoading ? '搜索中' : '搜索资源',
-                isLoading: controller.isLoading,
-                variant: AppButtonVariant.primary,
-                onPressed: controller.isLoading ? null : controller.search,
-              ),
+              SizedBox(height: context.appSpacing.md),
+              Expanded(child: _buildContent(context)),
             ],
           ),
-          SizedBox(height: context.appSpacing.md),
-          Expanded(child: _buildContent(context)),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchAction(
+    BuildContext context, {
+    Alignment alignment = Alignment.centerLeft,
+  }) {
+    return Align(
+      alignment: alignment,
+      child: AppButton(
+        size: AppButtonSize.xxSmall,
+        key: const Key('movie-detail-magnet-search-button'),
+        label: controller.isLoading ? '搜索中' : '搜索资源',
+        isLoading: controller.isLoading,
+        variant: AppButtonVariant.primary,
+        onPressed: controller.isLoading ? null : controller.search,
       ),
     );
   }
 
+  Widget _buildSortActions(BuildContext context, {bool compact = false}) {
+    final nextDirectionLabel =
+        controller.selectedSortDirection == MovieDetailMagnetSortDirection.desc
+            ? '当前降序，点击切换为升序'
+            : '当前升序，点击切换为降序';
+    final selectWidth =
+        compact
+            ? context.appLayoutTokens.filterFieldWidthSm - context.appSpacing.xl
+            : context.appLayoutTokens.filterFieldWidthSm;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: selectWidth,
+          child: AppSelectField<MovieDetailMagnetSortField>(
+            key: const Key('movie-detail-magnet-sort-field'),
+            value: controller.selectedSortField,
+            size: AppSelectFieldSize.mini,
+            textStyle: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s10,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
+            items: MovieDetailMagnetSortField.values
+                .map(
+                  (value) => DropdownMenuItem<MovieDetailMagnetSortField>(
+                    value: value,
+                    child: Text(value.label),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              controller.setSortField(value);
+            },
+          ),
+        ),
+        SizedBox(width: context.appSpacing.sm),
+        AppIconButton(
+          key: const Key('movie-detail-magnet-sort-direction'),
+          tooltip: nextDirectionLabel,
+          semanticLabel: nextDirectionLabel,
+          isSelected: true,
+          size: AppIconButtonSize.mini,
+          icon:
+              controller.selectedSortDirection.isAscending
+                  ? const Icon(Icons.arrow_upward_rounded)
+                  : const Icon(Icons.arrow_downward_rounded),
+          onPressed: controller.toggleSortDirection,
+        ),
+      ],
+    );
+  }
+
   Widget _buildContent(BuildContext context) {
-    if (controller.isLoading && controller.items.isEmpty) {
+    final items = controller.sortedItems;
+
+    if (controller.isLoading && items.isEmpty) {
       return const Center(
         child: CircularProgressIndicator.adaptive(
           key: Key('movie-detail-magnet-loading-indicator'),
@@ -838,8 +939,11 @@ class _MovieDetailMagnetTab extends StatelessWidget {
           children: [
             Text(
               controller.errorMessage!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: context.appColors.textSecondary,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
               ),
             ),
             SizedBox(height: context.appSpacing.md),
@@ -858,16 +962,16 @@ class _MovieDetailMagnetTab extends StatelessWidget {
       return const Center(child: AppEmptyState(message: '搜索依赖配置管理中的下载器与索引器。'));
     }
 
-    if (controller.items.isEmpty) {
+    if (items.isEmpty) {
       return const Center(child: AppEmptyState(message: '没有找到可用资源'));
     }
 
     return ListView.separated(
-      itemCount: controller.items.length,
+      itemCount: items.length,
       separatorBuilder:
           (context, index) => SizedBox(height: context.appSpacing.md),
       itemBuilder: (context, index) {
-        final item = controller.items[index];
+        final item = items[index];
         return _MovieDetailMagnetCandidateCard(
           key: Key('movie-detail-magnet-candidate-$index'),
           candidate: item,
@@ -927,7 +1031,15 @@ class _MovieDetailMagnetCandidateCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(candidate.title, style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            candidate.title,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.secondary,
+            ),
+          ),
           SizedBox(height: context.appSpacing.sm),
           Wrap(
             spacing: context.appSpacing.md,
@@ -955,8 +1067,11 @@ class _MovieDetailMagnetCandidateCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   '下载器: ${candidate.resolvedClientName}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: context.appColors.textSecondary,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.secondary,
                   ),
                 ),
               ),
@@ -986,9 +1101,12 @@ class _MagnetMetaText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       '$label: $value',
-      style: Theme.of(
+      style: resolveAppTextStyle(
         context,
-      ).textTheme.bodySmall?.copyWith(color: context.appColors.textSecondary),
+        size: AppTextSize.s12,
+        weight: AppTextWeight.regular,
+        tone: AppTextTone.secondary,
+      ),
     );
   }
 }
@@ -1032,11 +1150,9 @@ class _MovieDetailThumbnailTab extends StatelessWidget {
         }
 
         return Padding(
-          padding: EdgeInsets.fromLTRB(
-            context.appSpacing.lg,
-            context.appSpacing.md,
-            context.appSpacing.lg,
-            context.appSpacing.lg,
+          padding: EdgeInsets.only(
+            top: context.appSpacing.md,
+            bottom: context.appSpacing.lg,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1149,11 +1265,9 @@ class _MovieDetailMissavThumbnailTab extends StatelessWidget {
         }
 
         return Padding(
-          padding: EdgeInsets.fromLTRB(
-            context.appSpacing.lg,
-            context.appSpacing.md,
-            context.appSpacing.lg,
-            context.appSpacing.lg,
+          padding: EdgeInsets.only(
+            top: context.appSpacing.md,
+            bottom: context.appSpacing.lg,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1309,11 +1423,10 @@ class _MovieDetailThumbnailIntervalSelector extends StatelessWidget {
       tooltip: '缩略图时间间隔',
       children: [
         for (final seconds in options)
-          AppButton(
+          AppTextButton(
             key: Key('$keyPrefix-interval-$seconds'),
             label: '$seconds',
-            size: AppButtonSize.xSmall,
-            variant: AppButtonVariant.secondary,
+            size: AppTextButtonSize.xSmall,
             isSelected: selectedIntervalSeconds == seconds,
             onPressed: () => onSelect(seconds),
           ),
@@ -1344,11 +1457,10 @@ class _MovieDetailThumbnailColumnsSelector extends StatelessWidget {
       tooltip: '缩略图列数',
       children: [
         for (final columns in options)
-          AppButton(
+          AppTextButton(
             key: Key('$keyPrefix-columns-$columns'),
             label: '$columns',
-            size: AppButtonSize.xSmall,
-            variant: AppButtonVariant.secondary,
+            size: AppTextButtonSize.xSmall,
             isSelected: selectedColumns == columns,
             onPressed: () => onSelect(columns),
           ),
@@ -1397,7 +1509,7 @@ class _MovieDetailThumbnailControlGroup extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: context.appComponentTokens.iconSizeXs,
-                  color: colors.textPrimary,
+                  color: context.appTextPalette.primary,
                 ),
               ),
             ),
@@ -1422,8 +1534,11 @@ class _MovieDetailMissavHintState extends StatelessWidget {
         child: Text(
           message,
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: context.appColors.textSecondary,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.secondary,
           ),
         ),
       ),

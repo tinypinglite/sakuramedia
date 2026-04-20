@@ -43,9 +43,12 @@ class OverviewStatsStrip extends StatelessWidget {
     } else if (errorMessage != null) {
       content = Text(
         errorMessage!,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: Theme.of(context).colorScheme.error,
-        ),
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s14,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.secondary,
+        ).copyWith(color: Theme.of(context).colorScheme.error),
       );
     } else {
       content = Wrap(
@@ -60,7 +63,15 @@ class OverviewStatsStrip extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('系统信息', style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          '系统信息',
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s18,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ),
+        ),
         SizedBox(height: context.appSpacing.lg),
         content,
       ],
@@ -93,8 +104,11 @@ class _OverviewStatTile extends StatelessWidget {
         children: [
           Text(
             item.label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: context.appColors.textMuted,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s10,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
             ),
           ),
           SizedBox(height: context.appSpacing.sm),
@@ -110,8 +124,11 @@ class _OverviewStatTile extends StatelessWidget {
           else
             Text(
               item.value,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: context.appColors.textPrimary,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s18,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
               ),
               maxLines: 1,
               softWrap: false,

@@ -63,10 +63,11 @@ class MovieSummaryCard extends StatelessWidget {
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: colors.textOnMedia,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.6,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s12,
+                        weight: AppTextWeight.regular,
+                        tone: AppTextTone.onMedia,
                       ),
                     ),
                   ),
@@ -137,9 +138,11 @@ class MovieSummaryCard extends StatelessWidget {
                 Text(
                   _formatMovieHeat(movie.heat),
                   key: Key('movie-summary-card-heat-text-${movie.movieNumber}'),
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: colors.textOnMedia,
-                    fontWeight: FontWeight.w700,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s10,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.onMedia,
                   ),
                 ),
               ],
@@ -170,7 +173,7 @@ class MovieSummaryCard extends StatelessWidget {
                     'movie-summary-card-status-playable-${movie.movieNumber}',
                   ),
                   icon: Icons.play_arrow_rounded,
-                  iconColor: colors.textOnMedia,
+                  iconColor: context.appTextPalette.onMedia,
                   background: colors.movieCardPlayableBadgeBackground,
                 ),
             ],
@@ -215,9 +218,11 @@ class _RankBadge extends StatelessWidget {
       ),
       child: Text(
         '#$rank',
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: colors.textOnMedia,
-          fontWeight: FontWeight.w700,
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s10,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.onMedia,
         ),
       ),
     );
@@ -255,7 +260,7 @@ class _MovieCover extends StatelessWidget {
           child: Icon(
             Icons.movie_creation_outlined,
             size: componentTokens.iconSize3xl,
-            color: colors.textMuted,
+            color: context.appTextPalette.muted,
           ),
         ),
       );

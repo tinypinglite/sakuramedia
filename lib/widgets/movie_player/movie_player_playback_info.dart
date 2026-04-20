@@ -461,9 +461,11 @@ class MoviePlayerPlaybackInfoPanel extends StatelessWidget {
             Text(
               '播放信息',
               key: const Key('movie-player-info-panel-title'),
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: context.appColors.textOnMedia,
-                fontWeight: FontWeight.w700,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s18,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.onMedia,
               ),
             ),
             SizedBox(height: context.appSpacing.md),
@@ -643,7 +645,6 @@ class _MoviePlayerPlaybackInfoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final colors = context.appColors;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: spacing.xs),
       child: Column(
@@ -651,9 +652,10 @@ class _MoviePlayerPlaybackInfoSection extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: colors.textOnMedia,
-              fontWeight: FontWeight.w700,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              tone: AppTextTone.onMedia,
             ),
           ),
           SizedBox(height: spacing.sm),
@@ -689,7 +691,6 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -697,8 +698,10 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
           width: 88,
           child: Text(
             data.label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colors.textOnMedia.withValues(alpha: 0.72),
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              tone: AppTextTone.muted,
             ),
           ),
         ),
@@ -707,9 +710,11 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
           child: Text(
             data.value,
             key: data.valueKey,
-            style: Theme.of(
+            style: resolveAppTextStyle(
               context,
-            ).textTheme.bodySmall?.copyWith(color: colors.textOnMedia),
+              size: AppTextSize.s12,
+              tone: AppTextTone.onMedia,
+            ),
           ),
         ),
       ],

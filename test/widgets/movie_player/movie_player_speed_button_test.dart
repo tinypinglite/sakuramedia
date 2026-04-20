@@ -205,10 +205,7 @@ void main() {
       );
 
       expect(menuRect.width, sakuraThemeData.appOverlayTokens.menuWidthSm);
-      expect(
-        label.style?.fontSize,
-        sakuraThemeData.appOverlayTokens.controlLabelFontSize,
-      );
+      expect(label.style?.fontSize, sakuraThemeData.appTextScale.s14);
     });
   });
 }

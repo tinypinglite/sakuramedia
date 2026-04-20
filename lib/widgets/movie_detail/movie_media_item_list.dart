@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_pill_wrap.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_media_point_gallery.dart';
 
@@ -10,6 +11,8 @@ class MovieMediaItemList extends StatelessWidget {
     required this.mediaItems,
     required this.selectedMediaId,
     required this.onSelect,
+    this.isDeletingSelectedMedia = false,
+    this.onDeleteSelectedMedia,
     this.onOpenPointPreview,
     this.onRequestPointMenu,
   });
@@ -17,6 +20,8 @@ class MovieMediaItemList extends StatelessWidget {
   final List<MovieMediaItemDto> mediaItems;
   final int? selectedMediaId;
   final ValueChanged<MovieMediaItemDto> onSelect;
+  final bool isDeletingSelectedMedia;
+  final ValueChanged<MovieMediaItemDto>? onDeleteSelectedMedia;
   final void Function(MovieMediaItemDto mediaItem, MovieMediaPointDto point)?
   onOpenPointPreview;
   final Future<void> Function(
@@ -29,6 +34,7 @@ class MovieMediaItemList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final contentGap = context.appComponentTokens.movieDetailSectionTitleGap;
     final selectedItem =
         mediaItems
             .where((item) => item.mediaId == selectedMediaId)
@@ -37,6 +43,8 @@ class MovieMediaItemList extends StatelessWidget {
         (mediaItems.isNotEmpty ? mediaItems.first : null);
     final technicalSummary =
         selectedItem == null ? null : _buildTechnicalSummary(selectedItem);
+    final showDeleteAction =
+        selectedItem != null && onDeleteSelectedMedia != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,20 +62,78 @@ class MovieMediaItemList extends StatelessWidget {
               })
               .toList(growable: false),
         ),
-        if (technicalSummary != null) ...[
-          SizedBox(height: context.appSpacing.sm),
-          Text(
-            technicalSummary,
-            key: const Key('movie-media-tech-summary'),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
+        if (technicalSummary != null || showDeleteAction) ...[
+          SizedBox(height: contentGap),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Row(
+              key: const Key('movie-media-summary-row'),
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (technicalSummary == null)
+                  const SizedBox(
+                    key: Key('movie-media-tech-summary-placeholder'),
+                  )
+                else
+                  Text(
+                    technicalSummary,
+                    key: const Key('movie-media-tech-summary'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.muted,
+                    ),
+                  ),
+                if (showDeleteAction) ...[
+                  SizedBox(width: context.appSpacing.md),
+                  AppIconButton(
+                    key: const Key('movie-media-delete-button'),
+                    icon:
+                        isDeletingSelectedMedia
+                            ? SizedBox(
+                              width: context.appComponentTokens.iconSizeSm,
+                              height: context.appComponentTokens.iconSizeSm,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  context.appTextPalette.error,
+                                ),
+                              ),
+                            )
+                            : const Icon(Icons.delete_outline_rounded),
+                    tooltip: '删除媒体',
+                    semanticLabel: '删除媒体',
+                    size: AppIconButtonSize.mini,
+                    iconColor: context.appTextPalette.error,
+                    onPressed:
+                        isDeletingSelectedMedia
+                            ? null
+                            : () => onDeleteSelectedMedia?.call(selectedItem!),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
         if (selectedItem != null && selectedItem.points.isNotEmpty) ...[
-          SizedBox(height: context.appSpacing.sm),
+          SizedBox(height: contentGap),
+          Text(
+            '时刻',
+            key: const Key('movie-media-points-title'),
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.secondary,
+            ),
+          ),
+          SizedBox(
+            height: context.appComponentTokens.movieDetailSectionTitleGap,
+          ),
           MovieMediaPointGallery(
             points: selectedItem.points,
             onOpenPreview:

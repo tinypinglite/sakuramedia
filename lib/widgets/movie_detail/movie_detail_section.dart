@@ -6,12 +6,12 @@ class MovieDetailSection extends StatelessWidget {
     super.key,
     required this.title,
     required this.child,
-    this.titleBottomSpacing,
+    this.titleKey,
   });
 
   final String title;
   final Widget child;
-  final double? titleBottomSpacing;
+  final Key? titleKey;
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +22,18 @@ class MovieDetailSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            title,
+            key: titleKey,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.primary,
+            ),
+          ),
           SizedBox(
-            height:
-                titleBottomSpacing ??
-                context.appComponentTokens.movieDetailSectionTitleGap,
+            height: context.appComponentTokens.movieDetailSectionTitleGap,
           ),
           child,
         ],

@@ -64,7 +64,7 @@ class AppMobileShell extends StatelessWidget {
               iconSize: context.appComponentTokens.iconSizeXl,
               backgroundColor: context.appColors.surfaceCard,
               activeColor: Theme.of(context).colorScheme.primary,
-              inactiveColor: context.appColors.textSecondary,
+              inactiveColor: context.appTextPalette.secondary,
               currentIndex: resolvedCurrentIndex,
               items: navItems
                   .map(

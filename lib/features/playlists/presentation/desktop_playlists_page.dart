@@ -90,7 +90,15 @@ class _DesktopPlaylistsPageState extends State<DesktopPlaylistsPage> {
             children: [
               Row(
                 children: [
-                  Text('播放列表', style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    '播放列表',
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s18,
+                      weight: AppTextWeight.semibold,
+                      tone: AppTextTone.primary,
+                    ),
+                  ),
                   const Spacer(),
                   AppButton(
                     key: const Key('playlists-create-button'),
@@ -195,7 +203,7 @@ class _DesktopPlaylistsPageState extends State<DesktopPlaylistsPage> {
                                     'playlist-reorder-handle-${playlist.id}',
                                   ),
                                   size: context.appComponentTokens.iconSizeMd,
-                                  color: context.appColors.textPrimary,
+                                  color: context.appTextPalette.primary,
                                 ),
                               ),
                             ),

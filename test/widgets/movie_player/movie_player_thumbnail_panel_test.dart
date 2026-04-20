@@ -5,6 +5,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_thumbnail_panel.dart';
 
 void main() {
@@ -77,6 +78,14 @@ void main() {
     await tester.pump();
 
     expect(selectedColumns, 5);
+    expect(
+      tester
+          .widget<AppTextButton>(
+            find.byKey(const Key('movie-player-columns-5')),
+          )
+          .isSelected,
+      isFalse,
+    );
   });
 
   testWidgets('thumbnail panel resolves 3 columns at standard panel width', (
@@ -118,6 +127,7 @@ void main() {
 
     expect(delegate.crossAxisCount, 5);
     expect(find.byKey(const Key('movie-player-columns-5')), findsOneWidget);
+    expect(find.byType(AppTextButton), findsNWidgets(4));
   });
 
   testWidgets('thumbnail panel renders locked scroll toggle state', (

@@ -28,8 +28,11 @@ class MovieDetailPillWrap extends StatelessWidget {
     if (items.isEmpty) {
       return Text(
         emptyMessage,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: context.appColors.textSecondary,
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s14,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.secondary,
         ),
       );
     }
@@ -53,26 +56,23 @@ class _MovieDetailPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isInteractive = item.onTap != null;
+    final primary = Theme.of(context).colorScheme.primary;
+    final staticBorderColor = primary.withValues(alpha: 0.22);
     final backgroundColor =
         isInteractive
             ? (item.isSelected
-                ? theme.colorScheme.primary
+                ? primary.withValues(alpha: 0.14)
                 : context.appColors.surfaceMuted)
-            : theme.colorScheme.primary;
+            : primary.withValues(alpha: 0.12);
     final foregroundColor =
         isInteractive
-            ? (item.isSelected
-                ? context.appColors.textOnMedia
-                : context.appColors.textPrimary)
-            : context.appColors.textOnMedia;
+            ? (item.isSelected ? primary : context.appTextPalette.primary)
+            : primary;
     final borderColor =
         isInteractive
-            ? (item.isSelected
-                ? theme.colorScheme.primary
-                : context.appColors.borderSubtle)
-            : Colors.transparent;
+            ? (item.isSelected ? primary : context.appColors.borderSubtle)
+            : staticBorderColor;
     final radius = context.appRadius.xsBorder;
     final tokens = context.appComponentTokens;
     final content = Padding(
@@ -82,11 +82,13 @@ class _MovieDetailPill extends StatelessWidget {
       ),
       child: Text(
         item.label,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: foregroundColor,
-          height: 1.2,
-          fontWeight: item.isSelected ? FontWeight.w600 : FontWeight.w500,
-        ),
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          weight:
+              item.isSelected ? AppTextWeight.semibold : AppTextWeight.medium,
+          tone: AppTextTone.primary,
+        ).copyWith(color: foregroundColor),
       ),
     );
 

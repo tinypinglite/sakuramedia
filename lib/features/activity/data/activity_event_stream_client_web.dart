@@ -10,7 +10,8 @@ import 'package:sakuramedia/core/network/sse_decoder.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:web/web.dart'
-    as web show
+    as web
+    show
         AbortController,
         DOMException,
         HeadersInit,
@@ -47,7 +48,9 @@ class _WebActivityEventStreamClient implements ActivityEventStreamClient {
   @override
   Stream<ApiSseEvent> connect({required int afterEventId}) async* {
     if (_isDisposed) {
-      throw const ActivityEventStreamUnsupportedException('stream client closed');
+      throw const ActivityEventStreamUnsupportedException(
+        'stream client closed',
+      );
     }
     if (_sessionStore.baseUrl.isEmpty || _sessionStore.accessToken.isEmpty) {
       throw ApiException.unauthorized(
@@ -59,19 +62,21 @@ class _WebActivityEventStreamClient implements ActivityEventStreamClient {
     final abortController = web.AbortController();
     _openRequestAbortControllers.add(abortController);
     try {
-      final response = await _fetch(
-        _buildStreamUri(afterEventId).toString().toJS,
-        web.RequestInit(
-          method: 'GET',
-          credentials: 'same-origin',
-          headers: <String, String>{
-                'Accept': 'text/event-stream',
-                'Authorization': 'Bearer ${_sessionStore.accessToken}',
-              }.jsify()
-              as web.HeadersInit,
-          signal: abortController.signal,
-        ),
-      ).toDart;
+      final response =
+          await _fetch(
+            _buildStreamUri(afterEventId).toString().toJS,
+            web.RequestInit(
+              method: 'GET',
+              credentials: 'same-origin',
+              headers:
+                  <String, String>{
+                        'Accept': 'text/event-stream',
+                        'Authorization': 'Bearer ${_sessionStore.accessToken}',
+                      }.jsify()
+                      as web.HeadersInit,
+              signal: abortController.signal,
+            ),
+          ).toDart;
 
       if (response.status >= 400) {
         final body = (await response.text().toDart).toDart;
@@ -85,9 +90,10 @@ class _WebActivityEventStreamClient implements ActivityEventStreamClient {
         );
       }
 
-      yield* _bodyToStream(response, abortController).transform(
-        const SseDecoder(),
-      );
+      yield* _bodyToStream(
+        response,
+        abortController,
+      ).transform(const SseDecoder());
     } finally {
       _openRequestAbortControllers.remove(abortController);
     }
@@ -105,11 +111,11 @@ class _WebActivityEventStreamClient implements ActivityEventStreamClient {
   Uri _buildStreamUri(int afterEventId) {
     final baseUrl = _sessionStore.baseUrl.trim();
     final normalizedBaseUrl =
-        baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+        baseUrl.endsWith('/')
+            ? baseUrl.substring(0, baseUrl.length - 1)
+            : baseUrl;
     return Uri.parse('$normalizedBaseUrl/system/events/stream').replace(
-      queryParameters: <String, String>{
-        'after_event_id': '$afterEventId',
-      },
+      queryParameters: <String, String>{'after_event_id': '$afterEventId'},
     );
   }
 
@@ -206,10 +212,7 @@ class _WebActivityEventStreamClient implements ActivityEventStreamClient {
       } catch (error, stackTrace) {
         if (!cancelled) {
           hadError = true;
-          controller.addError(
-            _mapReaderError(error, requestUri),
-            stackTrace,
-          );
+          controller.addError(_mapReaderError(error, requestUri), stackTrace);
           await controller.close();
         }
         break;
@@ -237,10 +240,7 @@ class _WebActivityEventStreamClient implements ActivityEventStreamClient {
 
   Object _mapReaderError(Object error, Uri requestUri) {
     if (error case web.DOMException(name: 'AbortError')) {
-      return ApiException(
-        message: 'Activity stream aborted',
-        statusCode: null,
-      );
+      return ApiException(message: 'Activity stream aborted', statusCode: null);
     }
     if (error is ApiException ||
         error is ActivityEventStreamUnsupportedException) {

@@ -13,7 +13,6 @@ import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actors/actor_avatar.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
 import 'package:sakuramedia/widgets/media/media_preview_action_grid.dart';
 import 'package:sakuramedia/widgets/media/preview_dialog_surface.dart';
 import 'package:sakuramedia/widgets/media/preview_image_stage.dart';
@@ -295,7 +294,12 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
                   child: Text(
                     _summaryText,
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.muted,
+                    ),
                   ),
                 ),
                 movieInfoSection,
@@ -330,9 +334,12 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
           child: Text(
             _summaryText,
             textAlign: TextAlign.center,
-            style: Theme.of(
+            style: resolveAppTextStyle(
               context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.secondary,
+            ),
           ),
         ),
         Expanded(child: movieInfoSection),
@@ -367,9 +374,12 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
         children: [
           Text(
             _movieDetailErrorMessage!,
-            style: Theme.of(
+            style: resolveAppTextStyle(
               context,
-            ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
           ),
           SizedBox(height: spacing.md),
           TextButton(onPressed: _loadMovieDetail, child: const Text('重试')),
@@ -415,7 +425,12 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
               movie.actors.isEmpty
                   ? Text(
                     movie.title,
-                    style: Theme.of(context).textTheme.titleSmall,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s18,
+                      weight: AppTextWeight.semibold,
+                      tone: AppTextTone.primary,
+                    ),
                   )
                   : _MovieActorStrip(
                     actors: movie.actors,
@@ -594,10 +609,10 @@ class _MovieActorStrip extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
-                          style: Theme.of(
+                          style: resolveAppTextStyle(
                             context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color: context.appColors.textSecondary,
+                            size: AppTextSize.s12,
+                            tone: AppTextTone.secondary,
                           ),
                         ),
                       ),

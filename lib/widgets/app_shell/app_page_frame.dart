@@ -32,22 +32,37 @@ class AppPageFrame extends StatelessWidget {
           if (hasEyebrow) ...[
             Text(
               eyebrow!,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: context.appColors.textMuted,
-                fontWeight: FontWeight.w600,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.muted,
               ),
             ),
             SizedBox(height: context.appSpacing.sm),
           ],
           if (hasTitle)
-            Text(title, style: Theme.of(context).textTheme.displaySmall),
+            Text(
+              title,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s20,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
+              ),
+            ),
           if (hasDescription) ...[
             SizedBox(height: context.appSpacing.md),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 760),
               child: Text(
                 description!,
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s16,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
             ),
           ],

@@ -128,18 +128,6 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands backfill
 - 这是幂等命令，可以重复执行
 - 适合在导入一批历史媒体后跑一次
 
-### 回填影片字幕记录
-
-```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands backfill-movie-subtitles
-```
-
-说明：
-
-- 用于重新整理数据库中的影片字幕记录
-- 会扫描影片和已有字幕关系，并补建或清理记录
-- 更适合在你已经有字幕文件、但页面展示不完整时使用
-
 ### 巡检媒体文件
 
 ```bash
@@ -257,16 +245,17 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands aps gene
 - 页面里还没有缩略图
 - 想立刻为以图搜图和时刻相关能力准备数据
 
-### 抓取影片字幕
+### 重算影片相似度
 
 ```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands aps fetch-movie-subtitles
+docker exec --user app -w /app sakuramedia python -m src.start.commands aps recompute-movie-similarities
 ```
 
 适合场景：
 
-- 想立刻为已订阅影片抓取字幕
-- 不想等字幕任务的下一次定时执行
+- 刚导入了大量影片，想立刻生成相似影片结果
+- 刚调整了合集标记，想刷新详情页里的相似影片列表
+- 不想等夜间自动重算任务
 
 ### 回填影片描述
 

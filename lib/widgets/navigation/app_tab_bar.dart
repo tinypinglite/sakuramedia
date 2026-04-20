@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/theme.dart';
 
-enum AppTabBarVariant { desktop, compact, mobileTop }
+enum AppTabBarVariant { auto, desktop, compact, mobileTop }
 
 class _AppTabBarStyleSpec {
   const _AppTabBarStyleSpec({
@@ -33,7 +35,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
     required this.tabs,
     this.controller,
     this.onTap,
-    this.variant = AppTabBarVariant.desktop,
+    this.variant = AppTabBarVariant.auto,
     this.tabHeight,
     this.indicatorSize = TabBarIndicatorSize.label,
   });
@@ -45,25 +47,45 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
   final double? tabHeight;
   final TabBarIndicatorSize indicatorSize;
 
-  _AppTabBarStyleSpec _spec(BuildContext context) {
+  AppTabBarVariant _resolveVariant(BuildContext context) {
+    if (variant != AppTabBarVariant.auto) {
+      return variant;
+    }
+    final platform = Provider.of<AppPlatform?>(context, listen: false);
+    return switch (platform) {
+      AppPlatform.mobile => AppTabBarVariant.mobileTop,
+      AppPlatform.desktop ||
+      AppPlatform.web ||
+      null =>
+        AppTabBarVariant.desktop,
+    };
+  }
+
+  _AppTabBarStyleSpec _spec(
+    BuildContext context,
+    AppTabBarVariant resolvedVariant,
+  ) {
     final colors = context.appColors;
-    final textTheme = Theme.of(context).textTheme;
     final navigationTokens = context.appNavigationTokens;
 
-    switch (variant) {
+    switch (resolvedVariant) {
+      case AppTabBarVariant.auto:
+        throw StateError('AppTabBarVariant.auto must be resolved before use.');
       case AppTabBarVariant.desktop:
         return _AppTabBarStyleSpec(
           visualTabHeight: navigationTokens.desktopTabHeight,
           labelPadding: EdgeInsets.only(
             right: navigationTokens.desktopTabLabelTrailingPadding,
           ),
-          labelStyle: textTheme.labelMedium!.copyWith(
-            fontWeight: FontWeight.w700,
-            color: colors.textPrimary,
+          labelStyle: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            tone: AppTextTone.primary,
           ),
-          unselectedLabelStyle: textTheme.labelMedium!.copyWith(
-            fontWeight: FontWeight.w500,
-            color: colors.textSecondary,
+          unselectedLabelStyle: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            tone: AppTextTone.secondary,
           ),
           isScrollable: true,
           tabAlignment: TabAlignment.start,
@@ -74,14 +96,16 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
       case AppTabBarVariant.compact:
         return _AppTabBarStyleSpec(
           visualTabHeight: navigationTokens.compactTabHeight,
-          labelPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.sm),
-          labelStyle: textTheme.labelMedium!.copyWith(
-            fontWeight: FontWeight.w700,
-            color: colors.textPrimary,
+          labelPadding: EdgeInsets.only(right: context.appSpacing.sm),
+          labelStyle: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            tone: AppTextTone.primary,
           ),
-          unselectedLabelStyle: textTheme.labelMedium!.copyWith(
-            fontWeight: FontWeight.w500,
-            color: colors.textMuted,
+          unselectedLabelStyle: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            tone: AppTextTone.muted,
           ),
           isScrollable: true,
           tabAlignment: TabAlignment.start,
@@ -93,19 +117,22 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
         return _AppTabBarStyleSpec(
           dividerHeight: 0,
           visualTabHeight: navigationTokens.mobileTopTabHeight,
-          labelPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.sm),
-          labelStyle: textTheme.titleSmall!.copyWith(
-            fontWeight: FontWeight.w700,
-            color: colors.textPrimary,
+          labelPadding: EdgeInsets.only(right: context.appSpacing.sm),
+          labelStyle: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            tone: AppTextTone.primary,
+            weight: AppTextWeight.medium,
           ),
-          unselectedLabelStyle: textTheme.titleSmall!.copyWith(
-            fontWeight: FontWeight.w500,
-            color: colors.textSecondary,
+          unselectedLabelStyle: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            tone: AppTextTone.muted,
           ),
           isScrollable: true,
           tabAlignment: TabAlignment.center,
-          dividerColor: colors.divider,
-          indicatorThickness: navigationTokens.mobileIndicatorThickness,
+          dividerColor: Colors.transparent,
+          indicatorThickness: navigationTokens.compactIndicatorThickness,
         );
     }
   }
@@ -117,15 +144,10 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  EdgeInsetsGeometry _indicatorPadding(double height, double thickness) {
-    return EdgeInsets.only(
-      top: (height - thickness).clamp(0.0, double.infinity),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final spec = _spec(context);
+    final resolvedVariant = _resolveVariant(context);
+    final spec = _spec(context, resolvedVariant);
     final resolvedHeight = tabHeight ?? spec.visualTabHeight;
     final resolvedTabs = tabs
         .map((tab) => SizedBox(height: resolvedHeight, child: tab))
@@ -145,28 +167,28 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
       dividerHeight: spec.dividerHeight,
       indicator: _buildIndicator(context, spec.indicatorThickness),
       indicatorSize: indicatorSize,
-      indicatorPadding: _indicatorPadding(
-        resolvedHeight,
-        spec.indicatorThickness,
-      ),
+      indicatorPadding: EdgeInsets.zero,
     );
   }
 
   @override
   Size get preferredSize {
-    final resolvedHeight = tabHeight ?? _specFallbackHeight(variant);
+    final fallbackVariant =
+        variant == AppTabBarVariant.auto ? AppTabBarVariant.desktop : variant;
+    final resolvedHeight = tabHeight ?? _specFallbackHeight(fallbackVariant);
     return Size.fromHeight(resolvedHeight);
   }
 
   double _specFallbackHeight(AppTabBarVariant value) {
-    final navigationTokens = const AppNavigationTokens.defaults();
     switch (value) {
+      case AppTabBarVariant.auto:
+        throw StateError('AppTabBarVariant.auto must be resolved before use.');
       case AppTabBarVariant.desktop:
-        return navigationTokens.desktopTabHeight;
+        return const AppNavigationTokens.defaults().desktopTabHeight;
       case AppTabBarVariant.compact:
-        return navigationTokens.compactTabHeight;
+        return const AppNavigationTokens.defaults().compactTabHeight;
       case AppTabBarVariant.mobileTop:
-        return navigationTokens.mobileTopTabHeight;
+        return const AppNavigationTokens.mobile().mobileTopTabHeight;
     }
   }
 }
@@ -196,12 +218,11 @@ class _ThinTabIndicatorPainter extends BoxPainter {
       return;
     }
 
-    final paint =
-        Paint()
-          ..color = color
-          ..strokeWidth = thickness
-          ..strokeCap = StrokeCap.round
-          ..style = PaintingStyle.stroke;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = thickness
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
 
     final y = offset.dy + size.height - (thickness / 2);
     final start = Offset(offset.dx + 2, y);

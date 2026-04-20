@@ -18,7 +18,7 @@ void main() {
           File('lib/widgets/movies/movie_summary_card.dart').readAsStringSync();
 
       expect(source, contains('context.appComponentTokens'));
-      expect(source, contains('colors.textOnMedia'));
+      expect(source, contains('context.appTextPalette.onMedia'));
       expect(source, contains('colors.mediaOverlaySoft'));
       expect(source, contains('colors.mediaOverlayStrong'));
       expect(source, contains('colors.subscriptionHeartIcon'));
@@ -127,7 +127,7 @@ void main() {
     final icons = tester.widgetList<Icon>(find.byType(Icon)).toList();
     expect(
       icons.where((icon) => icon.icon == Icons.play_arrow_rounded).single.color,
-      AppColors.defaults().textOnMedia,
+      AppTextPalette.defaults().onMedia,
     );
     final subscriptionIcon =
         icons.where((icon) => icon.icon == Icons.favorite_rounded).single;

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
@@ -15,6 +16,7 @@ import 'package:sakuramedia/widgets/movie_detail/movie_detail_section.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_stat_row.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_media_item_list.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_gallery.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_similar_movie_strip.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_tag_wrap.dart';
 
 class MovieDetailPageContent extends StatelessWidget {
@@ -29,10 +31,14 @@ class MovieDetailPageContent extends StatelessWidget {
     required this.isSubscriptionUpdating,
     required this.selectedMediaId,
     required this.statItems,
+    required this.similarMovies,
+    required this.isSimilarMoviesLoading,
     required this.onInspectorTap,
     required this.onPlaylistTap,
     required this.onCollectionToggle,
     required this.onMediaSelect,
+    this.isDeletingSelectedMedia = false,
+    this.onDeleteSelectedMedia,
     this.mediaItemsOverride,
     this.onOpenMediaPointPreview,
     this.onRequestMediaPointMenu,
@@ -41,6 +47,9 @@ class MovieDetailPageContent extends StatelessWidget {
     this.onActorTap,
     this.onRequestPlotImageMenu,
     this.onOpenPlotPreview,
+    this.similarMoviesErrorMessage,
+    this.onRetrySimilarMovies,
+    this.onSimilarMovieTap,
     this.contentPadding = EdgeInsets.zero,
     this.bottomInfoBarVariant = MovieDetailBottomInfoBarVariant.desktopCard,
     this.scrollPhysics,
@@ -56,10 +65,14 @@ class MovieDetailPageContent extends StatelessWidget {
   final bool isSubscriptionUpdating;
   final int? selectedMediaId;
   final List<MovieDetailStatItem> statItems;
+  final List<MovieListItemDto> similarMovies;
+  final bool isSimilarMoviesLoading;
   final VoidCallback onInspectorTap;
   final VoidCallback onPlaylistTap;
   final VoidCallback? onCollectionToggle;
   final ValueChanged<MovieMediaItemDto> onMediaSelect;
+  final bool isDeletingSelectedMedia;
+  final ValueChanged<MovieMediaItemDto>? onDeleteSelectedMedia;
   final void Function(MovieMediaItemDto mediaItem, MovieMediaPointDto point)?
   onOpenMediaPointPreview;
   final Future<void> Function(
@@ -79,6 +92,9 @@ class MovieDetailPageContent extends StatelessWidget {
   )?
   onRequestPlotImageMenu;
   final ValueChanged<int>? onOpenPlotPreview;
+  final String? similarMoviesErrorMessage;
+  final VoidCallback? onRetrySimilarMovies;
+  final ValueChanged<MovieListItemDto>? onSimilarMovieTap;
   final EdgeInsetsGeometry contentPadding;
   final MovieDetailBottomInfoBarVariant bottomInfoBarVariant;
   final ScrollPhysics? scrollPhysics;
@@ -189,10 +205,12 @@ class MovieDetailPageContent extends StatelessWidget {
       ),
       child: Text(
         isCollection ? '标记单体' : '标记合集',
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.tertiary,
+        ).copyWith(color: Theme.of(context).colorScheme.primary),
       ),
     );
 
@@ -242,7 +260,6 @@ class MovieDetailPageContent extends StatelessWidget {
         MovieDetailSection(title: '标签', child: MovieTagWrap(tags: movie.tags)),
         MovieDetailSection(
           title: '演员',
-          titleBottomSpacing: context.appSpacing.xs,
           child: MovieActorWrap(actors: orderedActors, onActorTap: onActorTap),
         ),
         if (mediaItems.isNotEmpty)
@@ -252,10 +269,23 @@ class MovieDetailPageContent extends StatelessWidget {
               mediaItems: mediaItems,
               selectedMediaId: selectedMediaId,
               onSelect: onMediaSelect,
+              isDeletingSelectedMedia: isDeletingSelectedMedia,
+              onDeleteSelectedMedia: onDeleteSelectedMedia,
               onOpenPointPreview: onOpenMediaPointPreview,
               onRequestPointMenu: onRequestMediaPointMenu,
             ),
           ),
+        MovieDetailSection(
+          title: '相似影片',
+          titleKey: const Key('movie-similar-movies-title'),
+          child: MovieSimilarMovieStrip(
+            movies: similarMovies,
+            isLoading: isSimilarMoviesLoading,
+            errorMessage: similarMoviesErrorMessage,
+            onRetry: onRetrySimilarMovies,
+            onMovieTap: onSimilarMovieTap,
+          ),
+        ),
       ],
     );
   }
@@ -266,22 +296,37 @@ List<Widget> _buildInlineMetaItems(BuildContext context, MovieDetailDto movie) {
     MapEntry('系列', movie.seriesName.trim()),
     MapEntry('厂商', movie.makerName.trim()),
     MapEntry('导演', movie.directorName.trim()),
-  ];
+  ].where((item) => item.value.isNotEmpty).toList(growable: false);
 
-  return items
-      .where((item) => item.value.isNotEmpty)
-      .map(
-        (item) => Padding(
-          padding: EdgeInsets.only(
-            bottom: context.appComponentTokens.movieDetailSectionGap,
-          ),
-          child: Text(
-            '${item.key} · ${item.value}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ),
-      )
-      .toList(growable: false);
+  if (items.isEmpty) {
+    return const <Widget>[];
+  }
+
+  return <Widget>[
+    Padding(
+      padding: EdgeInsets.only(
+        bottom: context.appComponentTokens.movieDetailSectionGap,
+      ),
+      child: Column(
+        key: const Key('movie-detail-inline-meta-group'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var index = 0; index < items.length; index++) ...[
+            if (index > 0) SizedBox(height: context.appSpacing.sm),
+            Text(
+              '${items[index].key} · ${items[index].value}',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.muted,
+              ),
+            ),
+          ],
+        ],
+      ),
+    ),
+  ];
 }
 
 class MovieDetailLoadingSkeleton extends StatelessWidget {
@@ -436,14 +481,12 @@ List<MovieDetailStatItem> buildMovieDetailStatItems(
       tooltip: '评分',
       iconColor: context.appColors.movieDetailScoreIcon,
     ),
-
     MovieDetailStatItem(
       icon: Icons.chat_bubble_outline_rounded,
       label: commentCountLabel,
       tooltip: '评论数',
       iconColor: context.appColors.movieDetailCommentCountIcon,
     ),
-
     MovieDetailStatItem(
       icon: Icons.favorite_border_rounded,
       label: wantWatchCountLabel,

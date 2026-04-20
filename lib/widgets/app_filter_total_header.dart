@@ -16,19 +16,26 @@ class AppFilterTotalHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final componentTokens = context.appComponentTokens;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(child: leading),
         SizedBox(width: spacing.md),
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: spacing.xs),
-          child: Text(
-            totalText,
-            key: totalKey,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: context.appColors.textSecondary,
+        SizedBox(
+          height: componentTokens.buttonHeightSm,
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              totalText,
+              key: totalKey,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
+              ),
             ),
           ),
         ),

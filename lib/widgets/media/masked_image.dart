@@ -113,8 +113,7 @@ class MaskedImage extends StatelessWidget {
     BoxConstraints constraints,
   ) {
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    final effectiveDpr =
-        dpr.clamp(1.0, _decodeDevicePixelRatioCap) as double;
+    final effectiveDpr = dpr.clamp(1.0, _decodeDevicePixelRatioCap) as double;
 
     int? cacheWidth;
     if (constraints.hasBoundedWidth &&
@@ -134,8 +133,10 @@ class MaskedImage extends StatelessWidget {
         constraints.maxHeight.isFinite &&
         constraints.maxHeight > 0) {
       cacheHeight =
-          ((constraints.maxHeight * effectiveDpr).round())
-                  .clamp(1, _decodeSizeUpperBound)
+          ((constraints.maxHeight * effectiveDpr).round()).clamp(
+                1,
+                _decodeSizeUpperBound,
+              )
               as int;
     }
 
@@ -163,7 +164,7 @@ class _MaskedImagePlaceholder extends StatelessWidget {
         child: Icon(
           icon,
           size: componentTokens.iconSize3xl,
-          color: colors.textMuted,
+          color: context.appTextPalette.muted,
         ),
       ),
     );

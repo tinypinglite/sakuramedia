@@ -72,7 +72,12 @@ Future<AppImageActionType?> showAppImageActionMenu({
                 const SizedBox(width: 8),
                 Text(
                   action.label,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.secondary,
+                  ).copyWith(
                     color:
                         action.enabled
                             ? (action.destructive ? Colors.red.shade600 : null)

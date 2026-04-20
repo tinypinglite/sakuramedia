@@ -19,7 +19,6 @@ class AppTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final spacing = context.appSpacing;
     const leftInset = AppPageInsets.desktop;
     const rightInset = AppPageInsets.desktop;
@@ -59,8 +58,11 @@ class AppTopBar extends StatelessWidget {
                       child: Text(
                         config.title,
                         key: const Key('app-topbar-title'),
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s14,
+                          weight: AppTextWeight.semibold,
+                          tone: AppTextTone.primary,
                         ),
                       ),
                     ),

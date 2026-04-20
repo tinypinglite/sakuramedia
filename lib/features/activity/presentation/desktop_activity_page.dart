@@ -2,9 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
@@ -12,8 +10,6 @@ import 'package:sakuramedia/features/activity/presentation/activity_center_contr
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 import 'package:sakuramedia/features/activity/presentation/resource_task_center_controller.dart';
 import 'package:sakuramedia/features/activity/presentation/resource_task_pane.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
@@ -48,9 +44,9 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
         ActivityCenterController(activityApi: activityApi)
           ..addListener(_syncTabSelection)
           ..addListener(_handleControllerChanged);
-    _resourceTaskController =
-        ResourceTaskCenterController(activityApi: activityApi)
-          ..addListener(_handleControllerChanged);
+    _resourceTaskController = ResourceTaskCenterController(
+      activityApi: activityApi,
+    )..addListener(_handleControllerChanged);
     _tabController = TabController(length: 3, vsync: this)
       ..addListener(_handleTabChanged);
     _pageScrollController = ScrollController()..addListener(_handlePageScroll);
@@ -189,7 +185,12 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
   }
 
   List<Widget> _buildNotificationSlivers(BuildContext context) {
-    final titleStyle = Theme.of(context).textTheme.titleSmall;
+    final titleStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s18,
+      weight: AppTextWeight.semibold,
+      tone: AppTextTone.primary,
+    );
     final slivers = <Widget>[
       SliverToBoxAdapter(
         child: Column(
@@ -240,34 +241,6 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
               child: _NotificationCard(
                 notification: item,
                 dateFormat: _dateFormat,
-                onArchive:
-                    item.archived
-                        ? null
-                        : () async {
-                          try {
-                            await _controller.archiveNotification(item.id);
-                          } catch (error) {
-                            if (context.mounted) {
-                              showToast(
-                                apiErrorMessage(
-                                  error,
-                                  fallback: '归档通知失败，请稍后重试',
-                                ),
-                              );
-                            }
-                          }
-                        },
-                onViewTask:
-                    item.relatedTaskRunId == null
-                        ? null
-                        : () => _controller.setActiveTab(
-                          ActivityTab.tasks,
-                          highlightTaskRunId: item.relatedTaskRunId,
-                        ),
-                onViewMovie:
-                    item.canOpenMovie
-                        ? () => context.goPrimaryRoute(desktopMoviesPath)
-                        : null,
               ),
             ),
           );
@@ -293,7 +266,12 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
   }
 
   List<Widget> _buildTaskSlivers(BuildContext context) {
-    final titleStyle = Theme.of(context).textTheme.titleSmall;
+    final titleStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s18,
+      weight: AppTextWeight.semibold,
+      tone: AppTextTone.primary,
+    );
     final slivers = <Widget>[
       SliverToBoxAdapter(
         child: Column(
@@ -527,7 +505,14 @@ class _ActivitySection extends StatelessWidget {
       children: [
         Text(
           title,
-          style: titleStyle ?? Theme.of(context).textTheme.titleSmall,
+          style:
+              titleStyle ??
+              resolveAppTextStyle(
+                context,
+                size: AppTextSize.s18,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
+              ),
         ),
         SizedBox(height: spacing ?? context.appSpacing.lg),
         child,
@@ -545,7 +530,6 @@ class _ConnectionBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final theme = Theme.of(context);
     final backgroundColor = switch (state) {
       ActivityConnectionState.live => Theme.of(
         context,
@@ -556,9 +540,9 @@ class _ConnectionBanner extends StatelessWidget {
     };
     final foregroundColor = switch (state) {
       ActivityConnectionState.live => Theme.of(context).colorScheme.primary,
-      ActivityConnectionState.connecting => colors.textSecondary,
-      ActivityConnectionState.reconnecting => colors.warningForeground,
-      ActivityConnectionState.polling => colors.infoForeground,
+      ActivityConnectionState.connecting => context.appTextPalette.secondary,
+      ActivityConnectionState.reconnecting => context.appTextPalette.warning,
+      ActivityConnectionState.polling => context.appTextPalette.info,
     };
     final icon = switch (state) {
       ActivityConnectionState.live => Icons.bolt_rounded,
@@ -591,10 +575,12 @@ class _ConnectionBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message ?? '',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: foregroundColor,
-                fontWeight: FontWeight.w600,
-              ),
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
+              ).copyWith(color: foregroundColor),
             ),
           ),
         ],
@@ -618,7 +604,12 @@ class _NotificationFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final layoutTokens = context.appLayoutTokens;
-    final filterTextStyle = Theme.of(context).textTheme.labelMedium;
+    final filterTextStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s12,
+      weight: AppTextWeight.regular,
+      tone: AppTextTone.tertiary,
+    );
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: context.appSpacing.md,
@@ -672,33 +663,6 @@ class _NotificationFilterBar extends StatelessWidget {
                     ),
           ),
         ),
-        SizedBox(
-          width: layoutTokens.filterFieldWidthSm,
-          child: AppSelectField<ActivityNotificationArchivedFilter>(
-            key: const Key('activity-notification-archived-filter'),
-            value: controller.notificationFilter.archivedFilter,
-            size: AppSelectFieldSize.compact,
-            textStyle: filterTextStyle,
-            items: ActivityNotificationArchivedFilter.values
-                .map(
-                  (value) =>
-                      DropdownMenuItem<ActivityNotificationArchivedFilter>(
-                        value: value,
-                        child: Text(value.label),
-                      ),
-                )
-                .toList(growable: false),
-            onChanged:
-                controller.isRefreshingNotifications
-                    ? null
-                    : (value) => controller.applyNotificationFilter(
-                      controller.notificationFilter.copyWith(
-                        archivedFilter:
-                            value ?? ActivityNotificationArchivedFilter.active,
-                      ),
-                    ),
-          ),
-        ),
         _FilterRefreshIndicator(
           indicatorKey: const Key('activity-notification-filter-loading'),
           isVisible: controller.isRefreshingNotifications,
@@ -728,7 +692,12 @@ class _TaskFilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final layoutTokens = context.appLayoutTokens;
-    final filterTextStyle = Theme.of(context).textTheme.labelMedium;
+    final filterTextStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s12,
+      weight: AppTextWeight.regular,
+      tone: AppTextTone.tertiary,
+    );
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.center,
       spacing: context.appSpacing.md,
@@ -879,21 +848,14 @@ class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
     required this.notification,
     required this.dateFormat,
-    this.onArchive,
-    this.onViewTask,
-    this.onViewMovie,
   });
 
   final ActivityNotificationDto notification;
   final DateFormat dateFormat;
-  final Future<void> Function()? onArchive;
-  final VoidCallback? onViewTask;
-  final VoidCallback? onViewMovie;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final theme = Theme.of(context);
     return SizedBox(
       width: double.infinity,
       child: Container(
@@ -921,15 +883,21 @@ class _NotificationCard extends StatelessWidget {
                     children: [
                       Text(
                         notification.title,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s14,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.secondary,
                         ),
                       ),
                       SizedBox(height: context.appSpacing.xs),
                       Text(
                         notification.content,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colors.textSecondary,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s14,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.secondary,
                         ),
                       ),
                     ],
@@ -954,38 +922,13 @@ class _NotificationCard extends StatelessWidget {
                 ),
                 Text(
                   _formatDate(notification.createdAt, dateFormat),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.textMuted,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.muted,
                   ),
                 ),
-              ],
-            ),
-            SizedBox(height: context.appSpacing.md),
-            Wrap(
-              spacing: context.appSpacing.sm,
-              runSpacing: context.appSpacing.sm,
-              children: [
-                if (onArchive != null)
-                  AppButton(
-                    label: '归档',
-                    size: AppButtonSize.xSmall,
-                    variant: AppButtonVariant.ghost,
-                    onPressed: () => onArchive!(),
-                  ),
-                if (onViewTask != null)
-                  AppButton(
-                    label: '查看任务',
-                    size: AppButtonSize.xSmall,
-                    variant: AppButtonVariant.secondary,
-                    onPressed: onViewTask,
-                  ),
-                if (onViewMovie != null)
-                  AppButton(
-                    label: '查看影片',
-                    size: AppButtonSize.xSmall,
-                    variant: AppButtonVariant.secondary,
-                    onPressed: onViewMovie,
-                  ),
               ],
             ),
           ],
@@ -1009,7 +952,6 @@ class _TaskRunCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final theme = Theme.of(context);
     final progressValue = taskRun.progressValue;
 
     return Container(
@@ -1038,16 +980,22 @@ class _TaskRunCard extends StatelessWidget {
                   children: [
                     Text(
                       taskRun.taskName,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s14,
+                        weight: AppTextWeight.regular,
+                        tone: AppTextTone.secondary,
                       ),
                     ),
                     if ((taskRun.progressText ?? '').trim().isNotEmpty) ...[
                       SizedBox(height: context.appSpacing.xs),
                       Text(
                         taskRun.progressText!,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colors.textSecondary,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s14,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.secondary,
                         ),
                       ),
                     ],
@@ -1083,8 +1031,11 @@ class _TaskRunCard extends StatelessWidget {
               ),
               Text(
                 _taskTimeSummary(taskRun, dateFormat),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.textMuted,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.muted,
                 ),
               ),
             ],
@@ -1093,8 +1044,11 @@ class _TaskRunCard extends StatelessWidget {
             SizedBox(height: context.appSpacing.md),
             Text(
               taskRun.displaySummary!,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colors.textSecondary,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
               ),
             ),
           ],

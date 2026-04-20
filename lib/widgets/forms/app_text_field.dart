@@ -48,8 +48,6 @@ class AppTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = context.appColors;
     final formTokens = context.appFormTokens;
 
     return Column(
@@ -58,9 +56,10 @@ class AppTextField extends StatelessWidget {
         if (label != null && label!.isNotEmpty) ...[
           Text(
             label!,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: colors.textSecondary,
-              fontWeight: FontWeight.w600,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              tone: AppTextTone.secondary,
             ),
           ),
           SizedBox(height: formTokens.labelGap),
@@ -79,10 +78,7 @@ class AppTextField extends StatelessWidget {
           autovalidateMode: autovalidateMode,
           maxLines: obscureText ? 1 : maxLines,
           minLines: obscureText ? 1 : minLines,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: colors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
+          style: resolveAppTextStyle(context, size: AppTextSize.s14),
           decoration: _buildDecoration(context),
         ),
       ],
@@ -91,8 +87,8 @@ class AppTextField extends StatelessWidget {
 
   InputDecoration _buildDecoration(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = context.appColors;
     final formTokens = context.appFormTokens;
+    final colors = context.appColors;
 
     OutlineInputBorder border(Color color) => OutlineInputBorder(
       borderRadius: context.appRadius.smBorder,
@@ -102,13 +98,20 @@ class AppTextField extends StatelessWidget {
     return InputDecoration(
       hintText: hintText,
       helperText: helperText,
-      hintStyle: theme.textTheme.bodyMedium?.copyWith(
-        color: colors.textMuted,
-        fontWeight: FontWeight.w500,
+      hintStyle: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s14,
+        tone: AppTextTone.muted,
       ),
-      helperStyle: theme.textTheme.bodySmall?.copyWith(color: colors.textMuted),
-      errorStyle: theme.textTheme.bodySmall?.copyWith(
-        color: theme.colorScheme.error,
+      helperStyle: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s12,
+        tone: AppTextTone.muted,
+      ),
+      errorStyle: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s12,
+        tone: AppTextTone.error,
       ),
       isDense: isDense,
       filled: true,

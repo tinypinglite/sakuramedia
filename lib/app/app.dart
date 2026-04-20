@@ -190,15 +190,16 @@ class _MyAppState extends State<MyApp> {
           create:
               (context) => ImageSearchApi(apiClient: context.read<ApiClient>()),
         ),
-        Provider<ImageSearchDraftStore>(
-          create: (_) => ImageSearchDraftStore(),
-        ),
+        Provider<ImageSearchDraftStore>(create: (_) => ImageSearchDraftStore()),
       ],
       child: OKToast(
         child: MaterialApp.router(
           title: 'SakuraMedia',
           debugShowCheckedModeBanner: false,
-          theme: sakuraThemeData,
+          theme:
+              _platform == AppPlatform.mobile
+                  ? sakuraMobileThemeData
+                  : sakuraDesktopThemeData,
           routerConfig: _router,
           builder: (context, child) {
             return ScrollConfiguration(

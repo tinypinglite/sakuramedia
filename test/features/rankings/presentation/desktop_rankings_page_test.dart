@@ -236,6 +236,114 @@ void main() {
   );
 
   testWidgets(
+    'desktop rankings filter panel supports switching to missav source and period',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{'source_key': 'javdb', 'name': 'JavDB'},
+          <String, dynamic>{'source_key': 'missav', 'name': 'MissAV'},
+        ],
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/javdb/boards',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'source_key': 'javdb',
+            'board_key': 'censored',
+            'name': '有码',
+            'supported_periods': <String>['daily', 'weekly', 'monthly'],
+            'default_period': 'daily',
+          },
+          <String, dynamic>{
+            'source_key': 'javdb',
+            'board_key': 'uncensored',
+            'name': '无码',
+            'supported_periods': <String>['daily', 'weekly', 'monthly'],
+            'default_period': 'daily',
+          },
+          <String, dynamic>{
+            'source_key': 'javdb',
+            'board_key': 'fc2',
+            'name': 'FC2',
+            'supported_periods': <String>['daily', 'weekly', 'monthly'],
+            'default_period': 'daily',
+          },
+        ],
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/javdb/boards/censored/items',
+        body: _rankingItemsJson(total: 1),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/missav/boards',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'source_key': 'missav',
+            'board_key': 'all',
+            'name': '综合',
+            'supported_periods': <String>['daily', 'weekly', 'monthly'],
+            'default_period': 'daily',
+          },
+        ],
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/missav/boards/all/items',
+        body: _rankingItemsJson(total: 1),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/missav/boards/all/items',
+        body: _rankingItemsJson(total: 1),
+      );
+
+      await _pumpRankingsPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        bundle.adapter.requests[2].uri.path,
+        '/ranking-sources/javdb/boards/censored/items',
+      );
+      expect(_queryValue(bundle, 2, 'period'), 'daily');
+
+      await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('rankings-filter-source-missav')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
+      expect(
+        bundle.adapter.requests[4].uri.path,
+        '/ranking-sources/missav/boards/all/items',
+      );
+      expect(_queryValue(bundle, 4, 'period'), 'daily');
+
+      await tester.tap(find.byKey(const Key('rankings-filter-period-weekly')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
+      expect(
+        bundle.adapter.requests[5].uri.path,
+        '/ranking-sources/missav/boards/all/items',
+      );
+      expect(_queryValue(bundle, 5, 'period'), 'weekly');
+    },
+  );
+
+  testWidgets(
     'desktop rankings page retries failed load-more without clearing items',
     (WidgetTester tester) async {
       _enqueueDefaultSourcesAndBoards(bundle);
@@ -393,6 +501,7 @@ void _enqueueDefaultSourcesAndBoards(TestApiBundle bundle) {
     path: '/ranking-sources',
     body: <Map<String, dynamic>>[
       <String, dynamic>{'source_key': 'javdb', 'name': 'JavDB'},
+      <String, dynamic>{'source_key': 'missav', 'name': 'MissAV'},
     ],
   );
   bundle.adapter.enqueueJson(
@@ -403,6 +512,20 @@ void _enqueueDefaultSourcesAndBoards(TestApiBundle bundle) {
         'source_key': 'javdb',
         'board_key': 'censored',
         'name': '有码',
+        'supported_periods': <String>['daily', 'weekly', 'monthly'],
+        'default_period': 'daily',
+      },
+      <String, dynamic>{
+        'source_key': 'javdb',
+        'board_key': 'uncensored',
+        'name': '无码',
+        'supported_periods': <String>['daily', 'weekly', 'monthly'],
+        'default_period': 'daily',
+      },
+      <String, dynamic>{
+        'source_key': 'javdb',
+        'board_key': 'fc2',
+        'name': 'FC2',
         'supported_periods': <String>['daily', 'weekly', 'monthly'],
         'default_period': 'daily',
       },

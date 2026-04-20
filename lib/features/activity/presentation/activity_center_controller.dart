@@ -204,7 +204,7 @@ class ActivityCenterController extends ChangeNotifier {
         pageSize: _pageSize,
         category: _notificationFilter.category,
         level: _notificationFilter.level,
-        archived: _notificationFilter.archivedFilter.apiValue,
+        archived: false,
       );
       if (_disposed || requestId != _notificationRefreshRequestId) {
         return;
@@ -280,7 +280,7 @@ class ActivityCenterController extends ChangeNotifier {
         pageSize: _pageSize,
         category: _notificationFilter.category,
         level: _notificationFilter.level,
-        archived: _notificationFilter.archivedFilter.apiValue,
+        archived: false,
       );
       _notifications = <ActivityNotificationDto>[
         ..._notifications,
@@ -339,17 +339,6 @@ class ActivityCenterController extends ChangeNotifier {
     _notifySafely();
   }
 
-  Future<void> archiveNotification(int notificationId) async {
-    final current = _findNotification(notificationId);
-    if (current == null || current.archived) {
-      return;
-    }
-
-    await _activityApi.archiveNotification(notificationId: notificationId);
-    _applyNotificationSnapshot(current.copyWith(archived: true));
-    _notifySafely();
-  }
-
   @override
   void dispose() {
     _disposed = true;
@@ -364,7 +353,7 @@ class ActivityCenterController extends ChangeNotifier {
     final response = await _activityApi.getBootstrap(
       notificationCategory: _notificationFilter.category,
       notificationLevel: _notificationFilter.level,
-      notificationArchived: _notificationFilter.archivedFilter.apiValue,
+      notificationArchived: false,
       taskState: _taskFilter.state,
       taskKey: _taskFilter.taskKey,
       taskTriggerType: _taskFilter.triggerType,
@@ -671,7 +660,7 @@ class ActivityCenterController extends ChangeNotifier {
         _notificationFilter.level != item.level) {
       return false;
     }
-    if (item.archived != _notificationFilter.archivedFilter.apiValue) {
+    if (item.archived) {
       return false;
     }
     return true;

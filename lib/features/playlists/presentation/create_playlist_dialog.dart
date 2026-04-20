@@ -85,7 +85,15 @@ class _CreatePlaylistDialogState extends State<CreatePlaylistDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('新建播放列表', style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            '新建播放列表',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.secondary,
+            ),
+          ),
           SizedBox(height: spacing.md),
           AppTextField(
             fieldKey: const Key('create-playlist-name-field'),

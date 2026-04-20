@@ -5,6 +5,7 @@ import 'package:sakuramedia/app/app.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/theme.dart';
 
 void main() {
   testWidgets('MyApp preserves router instance across parent rebuilds', (
@@ -57,6 +58,28 @@ void main() {
     );
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
     expect(find.byKey(const Key('mobile-actors-page')), findsOneWidget);
+  });
+
+  testWidgets('MyApp uses platform-specific theme mapping', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MyApp(platformOverride: AppPlatform.mobile));
+    await tester.pumpAndSettle();
+
+    var materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(
+      materialApp.theme?.appTextScale.s14,
+      sakuraMobileThemeData.appTextScale.s14,
+    );
+
+    await tester.pumpWidget(const MyApp(platformOverride: AppPlatform.desktop));
+    await tester.pumpAndSettle();
+
+    materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(
+      materialApp.theme?.appTextScale.s14,
+      sakuraDesktopThemeData.appTextScale.s14,
+    );
   });
 }
 

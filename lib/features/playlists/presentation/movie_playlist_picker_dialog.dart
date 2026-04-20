@@ -66,7 +66,6 @@ class MoviePlaylistPickerDialog extends StatefulWidget {
 }
 
 class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
-  static const double _playlistItemFontSizeDelta = 4;
   static const double _playlistCheckboxScale = 0.85;
 
   List<PlaylistDto> _playlists = const <PlaylistDto>[];
@@ -109,7 +108,6 @@ class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final textTheme = Theme.of(context).textTheme;
     final isAnyUpdating = _updatingPlaylistIds.isNotEmpty;
     final isBottomDrawer =
         widget.presentation == MoviePlaylistPickerPresentation.bottomDrawer;
@@ -153,13 +151,21 @@ class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
                 Expanded(
                   child: Text(
                     playlist.name,
-                    style: _reduceFontSize(textTheme.bodyLarge),
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s14,
+                      tone: AppTextTone.secondary,
+                    ),
                   ),
                 ),
                 if (playlist.movieCount > 0)
                   Text(
                     '${playlist.movieCount}',
-                    style: _reduceFontSize(textTheme.bodySmall),
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      tone: AppTextTone.muted,
+                    ),
                   ),
               ],
             ),
@@ -182,7 +188,12 @@ class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
                   Expanded(
                     child: Text(
                       '加入播放列表',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s14,
+                        weight: AppTextWeight.regular,
+                        tone: AppTextTone.secondary,
+                      ),
                     ),
                   ),
                   AppIconButton(
@@ -315,14 +326,5 @@ class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
       _playlists = <PlaylistDto>[playlist, ..._playlists];
     });
     await _togglePlaylist(playlist);
-  }
-
-  TextStyle? _reduceFontSize(TextStyle? style) {
-    final fontSize = style?.fontSize;
-    if (style == null || fontSize == null) {
-      return style;
-    }
-    final reduced = fontSize - _playlistItemFontSizeDelta;
-    return style.copyWith(fontSize: reduced > 0 ? reduced : fontSize);
   }
 }

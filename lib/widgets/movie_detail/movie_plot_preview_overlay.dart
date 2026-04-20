@@ -54,6 +54,7 @@ Future<void> showMoviePlotPreviewOverlay({
         context: context,
         drawerKey: const Key('movie-plot-preview-bottom-drawer'),
         heightFactor: kMoviePlotPreviewDrawerHeightFactor,
+        ignoreTopSafeArea: true,
         builder:
             (sheetContext) => _MoviePlotPreviewContent(
               plotImages: plotImages,
@@ -297,7 +298,6 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final colors = context.appColors;
     final tokens = context.appComponentTokens;
 
     return KeyboardListener(
@@ -316,8 +316,11 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
                   child: Text(
                     '${_currentIndex + 1} / ${widget.plotImages.length}',
                     key: const Key('movie-plot-preview-counter'),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.textSecondary,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.secondary,
                     ),
                   ),
                 ),

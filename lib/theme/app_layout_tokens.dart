@@ -88,17 +88,9 @@ class AppLayoutTokens extends ThemeExtension<AppLayoutTokens> {
     }
     return AppLayoutTokens(
       inlineActionButtonSize:
-          lerpDouble(
-            inlineActionButtonSize,
-            other.inlineActionButtonSize,
-            t,
-          )!,
+          lerpDouble(inlineActionButtonSize, other.inlineActionButtonSize, t)!,
       panelIconContainerSize:
-          lerpDouble(
-            panelIconContainerSize,
-            other.panelIconContainerSize,
-            t,
-          )!,
+          lerpDouble(panelIconContainerSize, other.panelIconContainerSize, t)!,
       segmentedControlHeight:
           lerpDouble(segmentedControlHeight, other.segmentedControlHeight, t)!,
       filterFieldWidthSm:

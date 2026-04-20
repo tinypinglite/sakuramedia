@@ -2,20 +2,20 @@ import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/features/downloads/data/download_candidate_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
 
-enum MovieDetailMagnetIndexerKind { all, pt, bt }
+enum MovieDetailMagnetSortField { sizeBytes, seeders }
 
-extension MovieDetailMagnetIndexerKindValue on MovieDetailMagnetIndexerKind {
+enum MovieDetailMagnetSortDirection { asc, desc }
+
+extension MovieDetailMagnetSortFieldValue on MovieDetailMagnetSortField {
   String get label => switch (this) {
-    MovieDetailMagnetIndexerKind.all => '全部',
-    MovieDetailMagnetIndexerKind.pt => 'PT',
-    MovieDetailMagnetIndexerKind.bt => 'BT',
+    MovieDetailMagnetSortField.sizeBytes => '文件大小',
+    MovieDetailMagnetSortField.seeders => '做种人数',
   };
+}
 
-  String? get apiValue => switch (this) {
-    MovieDetailMagnetIndexerKind.all => null,
-    MovieDetailMagnetIndexerKind.pt => 'pt',
-    MovieDetailMagnetIndexerKind.bt => 'bt',
-  };
+extension MovieDetailMagnetSortDirectionValue
+    on MovieDetailMagnetSortDirection {
+  bool get isAscending => this == MovieDetailMagnetSortDirection.asc;
 }
 
 class MovieDetailMagnetController extends ChangeNotifier {
@@ -38,29 +38,44 @@ class MovieDetailMagnetController extends ChangeNotifier {
   })
   createDownloadRequest;
 
-  MovieDetailMagnetIndexerKind _selectedIndexerKind =
-      MovieDetailMagnetIndexerKind.all;
   List<DownloadCandidateDto> _items = const <DownloadCandidateDto>[];
+  MovieDetailMagnetSortField _selectedSortField =
+      MovieDetailMagnetSortField.sizeBytes;
+  MovieDetailMagnetSortDirection _selectedSortDirection =
+      MovieDetailMagnetSortDirection.desc;
   bool _isLoading = false;
   bool _hasSearched = false;
   String? _errorMessage;
   String? _submittingCandidateKey;
 
-  MovieDetailMagnetIndexerKind get selectedIndexerKind => _selectedIndexerKind;
   List<DownloadCandidateDto> get items => _items;
+  MovieDetailMagnetSortField get selectedSortField => _selectedSortField;
+  MovieDetailMagnetSortDirection get selectedSortDirection =>
+      _selectedSortDirection;
+  List<DownloadCandidateDto> get sortedItems {
+    final sorted = List<DownloadCandidateDto>.from(_items);
+    sorted.sort(_compareCandidate);
+    return List<DownloadCandidateDto>.unmodifiable(sorted);
+  }
+
   bool get isLoading => _isLoading;
   bool get hasSearched => _hasSearched;
   String? get errorMessage => _errorMessage;
   String? get submittingCandidateKey => _submittingCandidateKey;
 
-  void setIndexerKind(MovieDetailMagnetIndexerKind kind) {
-    if (_selectedIndexerKind == kind) {
+  void setSortField(MovieDetailMagnetSortField field) {
+    if (_selectedSortField == field) {
       return;
     }
-    _selectedIndexerKind = kind;
-    _items = const <DownloadCandidateDto>[];
-    _errorMessage = null;
-    _hasSearched = false;
+    _selectedSortField = field;
+    notifyListeners();
+  }
+
+  void toggleSortDirection() {
+    _selectedSortDirection =
+        _selectedSortDirection == MovieDetailMagnetSortDirection.desc
+            ? MovieDetailMagnetSortDirection.asc
+            : MovieDetailMagnetSortDirection.desc;
     notifyListeners();
   }
 
@@ -75,10 +90,7 @@ class MovieDetailMagnetController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _items = await searchCandidates(
-        movieNumber: movieNumber,
-        indexerKind: _selectedIndexerKind.apiValue,
-      );
+      _items = await searchCandidates(movieNumber: movieNumber);
       _errorMessage = null;
     } catch (_) {
       _items = const <DownloadCandidateDto>[];
@@ -109,5 +121,22 @@ class MovieDetailMagnetController extends ChangeNotifier {
       _submittingCandidateKey = null;
       notifyListeners();
     }
+  }
+
+  int _compareCandidate(DownloadCandidateDto left, DownloadCandidateDto right) {
+    final primary = switch (_selectedSortField) {
+      MovieDetailMagnetSortField.sizeBytes => left.sizeBytes.compareTo(
+        right.sizeBytes,
+      ),
+      MovieDetailMagnetSortField.seeders => left.seeders.compareTo(
+        right.seeders,
+      ),
+    };
+    final directionalPrimary =
+        _selectedSortDirection.isAscending ? primary : -primary;
+    if (directionalPrimary != 0) {
+      return directionalPrimary;
+    }
+    return left.title.compareTo(right.title);
   }
 }

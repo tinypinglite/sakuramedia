@@ -5,6 +5,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_pill_wrap.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_media_item_list.dart';
 
@@ -139,6 +140,7 @@ void main() {
       expect(find.text('导演剪辑版 500.0 MB'), findsOneWidget);
       expect(find.byType(MovieDetailPillWrap), findsOneWidget);
       expect(find.byKey(const Key('movie-media-tech-summary')), findsOneWidget);
+      expect(find.byKey(const Key('movie-media-points-title')), findsOneWidget);
       expect(find.text('H.264 · 22.8 Mbps · 29.97 fps'), findsOneWidget);
       expect(
         find.byKey(const Key('movie-media-point-timecode-0')),
@@ -154,8 +156,38 @@ void main() {
       final selectedText = tester.widget<Text>(find.text('普通 1.0 GB'));
       final unselectedText = tester.widget<Text>(find.text('导演剪辑版 500.0 MB'));
 
-      expect(selectedText.style?.fontWeight, FontWeight.w600);
-      expect(unselectedText.style?.fontWeight, FontWeight.w500);
+      expect(
+        selectedText.style?.fontWeight,
+        sakuraThemeData.appTextWeights.semibold,
+      );
+      expect(
+        unselectedText.style?.fontWeight,
+        sakuraThemeData.appTextWeights.medium,
+      );
+
+      final pillWrapBottom =
+          tester.getBottomLeft(find.byType(MovieDetailPillWrap)).dy;
+      final techSummaryTop =
+          tester
+              .getTopLeft(find.byKey(const Key('movie-media-tech-summary')))
+              .dy;
+      final techSummaryBottom =
+          tester
+              .getBottomLeft(find.byKey(const Key('movie-media-tech-summary')))
+              .dy;
+      final pointsTitleTop =
+          tester
+              .getTopLeft(find.byKey(const Key('movie-media-points-title')))
+              .dy;
+
+      expect(
+        techSummaryTop - pillWrapBottom,
+        AppComponentTokens.defaults().movieDetailSectionTitleGap,
+      );
+      expect(
+        pointsTitleTop - techSummaryBottom,
+        AppComponentTokens.defaults().movieDetailSectionTitleGap,
+      );
 
       await tester.tap(find.text('导演剪辑版 500.0 MB'));
       await tester.pumpAndSettle();
@@ -219,6 +251,160 @@ void main() {
       );
 
       expect(find.byKey(const Key('movie-media-tech-summary')), findsNothing);
+      expect(find.byKey(const Key('movie-media-points-title')), findsNothing);
+      expect(find.text('暂无标记点'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'movie media item list shows delete icon beside summary for selected media when callback is provided',
+    (WidgetTester tester) async {
+      MovieMediaItemDto? deletedItem;
+
+      await tester.pumpWidget(
+        _testApp(
+          child: MovieMediaItemList(
+            mediaItems: const <MovieMediaItemDto>[
+              MovieMediaItemDto(
+                mediaId: 100,
+                libraryId: 1,
+                playUrl: '/files/media/movies/ABC-001/video.mp4',
+                path: '/library/main/ABC-001/video.mp4',
+                storageMode: 'hardlink',
+                resolution: '1920x1080',
+                fileSizeBytes: 1073741824,
+                durationSeconds: 7200,
+                specialTags: '普通',
+                valid: true,
+                progress: null,
+                points: <MovieMediaPointDto>[],
+                videoInfo: null,
+              ),
+            ],
+            selectedMediaId: 100,
+            onSelect: (_) {},
+            onDeleteSelectedMedia: (item) {
+              deletedItem = item;
+            },
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('movie-media-delete-button')),
+        findsOneWidget,
+      );
+      expect(find.byType(AppIconButton), findsOneWidget);
+      expect(
+        find.byKey(const Key('movie-media-tech-summary-placeholder')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('movie-media-delete-button')));
+      await tester.pumpAndSettle();
+
+      expect(deletedItem?.mediaId, 100);
+    },
+  );
+
+  testWidgets(
+    'movie media item list disables delete button while selected media is deleting',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        _testApp(
+          child: MovieMediaItemList(
+            mediaItems: const <MovieMediaItemDto>[
+              MovieMediaItemDto(
+                mediaId: 100,
+                libraryId: 1,
+                playUrl: '/files/media/movies/ABC-001/video.mp4',
+                path: '/library/main/ABC-001/video.mp4',
+                storageMode: 'hardlink',
+                resolution: '1920x1080',
+                fileSizeBytes: 1073741824,
+                durationSeconds: 7200,
+                specialTags: '普通',
+                valid: true,
+                progress: null,
+                points: <MovieMediaPointDto>[],
+                videoInfo: null,
+              ),
+            ],
+            selectedMediaId: 100,
+            onSelect: (_) {},
+            isDeletingSelectedMedia: true,
+            onDeleteSelectedMedia: (_) {},
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('movie-media-delete-button')),
+        findsOneWidget,
+      );
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'movie media item list places delete icon immediately after technical summary',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        _testApp(
+          child: MovieMediaItemList(
+            mediaItems: const <MovieMediaItemDto>[
+              MovieMediaItemDto(
+                mediaId: 100,
+                libraryId: 1,
+                playUrl: '/files/media/movies/ABC-001/video.mp4',
+                path: '/library/main/ABC-001/video.mp4',
+                storageMode: 'hardlink',
+                resolution: '1920x1080',
+                fileSizeBytes: 1073741824,
+                durationSeconds: 7200,
+                specialTags: '普通',
+                valid: true,
+                progress: null,
+                points: <MovieMediaPointDto>[],
+                videoInfo: MovieMediaVideoInfoDto(
+                  container: MovieMediaContainerInfoDto(
+                    formatName: 'mp4',
+                    durationSeconds: 7200,
+                    bitRate: 5700000,
+                    sizeBytes: 1073741824,
+                  ),
+                  video: MovieMediaVideoStreamInfoDto(
+                    codecName: 'h264',
+                    codecLongName: '',
+                    profile: 'High',
+                    bitRate: null,
+                    width: 1920,
+                    height: 1080,
+                    frameRate: 29.97,
+                    pixelFormat: 'yuv420p',
+                  ),
+                  audio: null,
+                  subtitles: <MovieMediaSubtitleInfoDto>[],
+                ),
+              ),
+            ],
+            selectedMediaId: 100,
+            onSelect: (_) {},
+            onDeleteSelectedMedia: (_) {},
+          ),
+        ),
+      );
+
+      final summaryRight =
+          tester
+              .getTopRight(find.byKey(const Key('movie-media-tech-summary')))
+              .dx;
+      final deleteLeft =
+          tester
+              .getTopLeft(find.byKey(const Key('movie-media-delete-button')))
+              .dx;
+
+      expect(deleteLeft - summaryRight, const AppSpacing.defaults().md);
     },
   );
 }

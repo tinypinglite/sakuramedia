@@ -96,7 +96,12 @@ class _DesktopFollowPageState extends State<DesktopFollowPage> {
                 AppFilterTotalHeader(
                   leading: Text(
                     '女优上新',
-                    style: Theme.of(context).textTheme.titleSmall,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s18,
+                      weight: AppTextWeight.semibold,
+                      tone: AppTextTone.primary,
+                    ),
                   ),
                   totalText: '${_moviesController.total} 部',
                   totalKey: const Key('desktop-follow-page-total'),

@@ -11,9 +11,7 @@ class RankingsApi {
 
   Future<List<RankingSourceDto>> getRankingSources() async {
     final response = await _apiClient.getList('/ranking-sources');
-    return response
-        .map(RankingSourceDto.fromJson)
-        .toList(growable: false);
+    return response.map(RankingSourceDto.fromJson).toList(growable: false);
   }
 
   Future<List<RankingBoardDto>> getRankingBoards({

@@ -18,6 +18,7 @@ void main() {
       r'EdgeInsets\.(?:all|only|symmetric|fromLTRB)\([^)]*(?:[:(,]\s*[1-9]\d*(?:\.\d+)?)',
     );
     final directRadius = RegExp(r'(?:BorderRadius|Radius)\.circular\(\d');
+    final directTextTheme = RegExp(r'(?:^|[^\w])textTheme(?:\b|\.)');
 
     final violations = <String>[];
     for (final file in files) {
@@ -27,6 +28,7 @@ void main() {
         ('fontSize', directFontSize),
         ('EdgeInsets literal', directInsets),
         ('circular radius literal', directRadius),
+        ('textTheme access', directTextTheme),
       ]) {
         final match = pattern.firstMatch(source);
         if (match != null) {

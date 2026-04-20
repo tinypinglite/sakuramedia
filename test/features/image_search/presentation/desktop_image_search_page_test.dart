@@ -848,10 +848,7 @@ void main() {
     );
 
     final actionLabel = tester.widget<Text>(find.text('相似图片'));
-    expect(
-      actionLabel.style?.fontSize,
-      sakuraThemeData.textTheme.labelMedium?.fontSize,
-    );
+    expect(actionLabel.style?.fontSize, sakuraThemeData.appTextScale.s12);
     final firstActionTile = find.ancestor(
       of: find.text('相似图片'),
       matching: find.byType(InkWell),

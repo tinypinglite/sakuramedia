@@ -298,8 +298,10 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
               children: [
                 Text(
                   '删除媒体库',
-                  style: Theme.of(dialogContext).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: resolveAppTextStyle(
+                    dialogContext,
+                    size: AppTextSize.s18,
+                  ),
                 ),
                 SizedBox(height: dialogContext.appSpacing.lg),
                 Text('确认删除媒体库“${library.name}”？该操作不可恢复。'),
@@ -424,7 +426,12 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
             Expanded(
               child: Text(
                 '媒体库 (Media Libraries)',
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
             ),
             AppButton(
@@ -439,9 +446,12 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
         SizedBox(height: context.appSpacing.md),
         Text(
           '媒体库用于维护本地媒体存储根路径，下载器等模块会依赖这里的路径配置。',
-          style: Theme.of(
+          style: resolveAppTextStyle(
             context,
-          ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
+            size: AppTextSize.s12,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.muted,
+          ),
         ),
         SizedBox(height: context.appSpacing.lg),
         if (_libraries.isEmpty)
@@ -481,16 +491,24 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
     return AppContentCard(
       title: '合集番号特征',
       padding: EdgeInsets.all(spacing.lg),
-      titleStyle: Theme.of(context).textTheme.titleSmall,
+      titleStyle: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s18,
+        weight: AppTextWeight.semibold,
+        tone: AppTextTone.primary,
+      ),
       headerBottomSpacing: spacing.md,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '每行输入一个番号特征，用于判定影片是否为合集。保存时可选择是否立即触发全库重算。',
-            style: Theme.of(
+            style: resolveAppTextStyle(
               context,
-            ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
           ),
           SizedBox(height: spacing.lg),
           AppTextField(
@@ -508,9 +526,11 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
               children: [
                 Text(
                   '保存后动作',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: context.appColors.textSecondary,
-                    fontWeight: FontWeight.w600,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.secondary,
                   ),
                 ),
                 SizedBox(height: spacing.sm),
@@ -570,7 +590,15 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
           ),
           if (syncStats != null) ...[
             SizedBox(height: spacing.lg),
-            Text('最近一次即时重算结果', style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              '最近一次即时重算结果',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
+              ),
+            ),
             SizedBox(height: spacing.sm),
             Wrap(
               spacing: spacing.sm,
@@ -734,7 +762,12 @@ class _AccountSecuritySectionState extends State<_AccountSecuritySection> {
     return AppContentCard(
       title: '账号安全',
       padding: EdgeInsets.all(spacing.lg),
-      titleStyle: Theme.of(context).textTheme.titleSmall,
+      titleStyle: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s18,
+        weight: AppTextWeight.semibold,
+        tone: AppTextTone.primary,
+      ),
       headerBottomSpacing: spacing.md,
       child: Form(
         key: _formKey,
@@ -743,8 +776,11 @@ class _AccountSecuritySectionState extends State<_AccountSecuritySection> {
           children: [
             Text(
               '修改密码后将立即退出当前登录，需要使用新密码重新登录。',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: context.appColors.textMuted,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.muted,
               ),
             ),
             SizedBox(height: spacing.lg),
@@ -972,8 +1008,10 @@ class _DownloadClientsTabState extends State<_DownloadClientsTab> {
               children: [
                 Text(
                   '删除下载器',
-                  style: Theme.of(dialogContext).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: resolveAppTextStyle(
+                    dialogContext,
+                    size: AppTextSize.s18,
+                  ),
                 ),
                 SizedBox(height: dialogContext.appSpacing.lg),
                 Text('确认删除下载器“${client.name}”？该操作不会删除下载任务。'),
@@ -1042,9 +1080,12 @@ class _DownloadClientsTabState extends State<_DownloadClientsTab> {
         if (_libraries.isEmpty) ...[
           Text(
             '当前没有可用媒体库，创建下载器前请先在后端配置媒体库。',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.error,
-            ),
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ).copyWith(color: Theme.of(context).colorScheme.error),
           ),
         ],
         SizedBox(height: context.appSpacing.lg),
@@ -1094,7 +1135,6 @@ class _DownloadClientCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final dateLabel = _formatUpdatedAt(client.updatedAt);
 
     return Container(
@@ -1114,9 +1154,24 @@ class _DownloadClientCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(client.name, style: textTheme.titleSmall),
+                    Text(
+                      client.name,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s18,
+                        weight: AppTextWeight.semibold,
+                      ),
+                    ),
                     SizedBox(height: context.appSpacing.xs),
-                    Text(client.baseUrl, style: textTheme.bodyMedium),
+                    Text(
+                      client.baseUrl,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s14,
+                        weight: AppTextWeight.regular,
+                        tone: AppTextTone.secondary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1285,8 +1340,10 @@ class _PlaylistsTabState extends State<_PlaylistsTab> {
               children: [
                 Text(
                   '删除播放列表',
-                  style: Theme.of(dialogContext).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: resolveAppTextStyle(
+                    dialogContext,
+                    size: AppTextSize.s18,
+                  ),
                 ),
                 SizedBox(height: dialogContext.appSpacing.lg),
                 Text('确认删除播放列表“${playlist.name}”？该操作不可恢复。'),
@@ -1417,14 +1474,22 @@ class _PlaylistCard extends StatelessWidget {
                   children: [
                     Text(
                       playlist.name,
-                      style: Theme.of(context).textTheme.titleSmall,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s18,
+                        weight: AppTextWeight.semibold,
+                        tone: AppTextTone.primary,
+                      ),
                     ),
                     if (description.isNotEmpty) ...[
                       SizedBox(height: context.appSpacing.xs),
                       Text(
                         description,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: context.appColors.textSecondary,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s12,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.secondary,
                         ),
                       ),
                     ],
@@ -1535,9 +1600,12 @@ class _PlaylistDialogState extends State<_PlaylistDialog> {
           children: [
             Text(
               widget.title,
-              style: Theme.of(
+              style: resolveAppTextStyle(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                size: AppTextSize.s18,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
+              ),
             ),
             SizedBox(height: spacing.xl),
             const _DialogFieldLabel(label: '名称'),
@@ -1634,31 +1702,42 @@ class _MediaLibraryCard extends StatelessWidget {
               children: [
                 Text(
                   library.name,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: colors.textPrimary,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.primary,
                   ),
                 ),
                 SizedBox(height: context.appSpacing.xs),
                 Text(
                   library.rootPath,
-                  style: Theme.of(
+                  style: resolveAppTextStyle(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.secondary,
+                  ),
                 ),
                 SizedBox(height: context.appSpacing.xs),
                 Text(
                   'ID: ${library.id}',
-                  style: Theme.of(
+                  style: resolveAppTextStyle(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.muted,
+                  ),
                 ),
                 SizedBox(height: context.appSpacing.sm),
                 Text(
                   '更新时间: ${_formatUpdatedAt(library.updatedAt)}',
-                  style: Theme.of(
+                  style: resolveAppTextStyle(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.muted,
+                  ),
                 ),
               ],
             ),
@@ -1760,9 +1839,12 @@ class _MediaLibraryDialogState extends State<_MediaLibraryDialog> {
           children: [
             Text(
               widget.title,
-              style: Theme.of(
+              style: resolveAppTextStyle(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                size: AppTextSize.s18,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
+              ),
             ),
             SizedBox(height: spacing.xl),
             const _DialogFieldLabel(label: '名称'),
@@ -2057,7 +2139,12 @@ class _IndexerSettingsTabState extends State<_IndexerSettingsTab> {
             Expanded(
               child: Text(
                 'API 密钥 (Key)',
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
             ),
             AppIconButton(
@@ -2071,7 +2158,7 @@ class _IndexerSettingsTabState extends State<_IndexerSettingsTab> {
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
                 size: context.appComponentTokens.iconSizeSm,
-                color: context.appColors.textMuted,
+                color: context.appTextPalette.muted,
               ),
             ),
           ],
@@ -2085,9 +2172,12 @@ class _IndexerSettingsTabState extends State<_IndexerSettingsTab> {
         SizedBox(height: context.appSpacing.sm),
         Text(
           '该密钥用于与 Jackett 后端进行身份验证',
-          style: Theme.of(
+          style: resolveAppTextStyle(
             context,
-          ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
+            size: AppTextSize.s12,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.muted,
+          ),
         ),
         SizedBox(height: context.appSpacing.lg),
         Row(
@@ -2095,7 +2185,12 @@ class _IndexerSettingsTabState extends State<_IndexerSettingsTab> {
             Expanded(
               child: Text(
                 '索引器列表 (Indexers)',
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
             ),
             AppButton(
@@ -2111,9 +2206,12 @@ class _IndexerSettingsTabState extends State<_IndexerSettingsTab> {
           SizedBox(height: context.appSpacing.sm),
           Text(
             '请先在下载器 Tab 创建下载器',
-            style: Theme.of(
+            style: resolveAppTextStyle(
               context,
-            ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
           ),
         ],
         SizedBox(height: context.appSpacing.md),
@@ -2193,7 +2291,12 @@ class _IndexerEntryCard extends StatelessWidget {
                     Flexible(
                       child: Text(
                         entry.name,
-                        style: Theme.of(context).textTheme.titleSmall,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s18,
+                          weight: AppTextWeight.semibold,
+                          tone: AppTextTone.primary,
+                        ),
                       ),
                     ),
                     SizedBox(width: context.appSpacing.sm),
@@ -2203,16 +2306,22 @@ class _IndexerEntryCard extends StatelessWidget {
                 SizedBox(height: context.appSpacing.xs),
                 Text(
                   entry.url,
-                  style: Theme.of(
+                  style: resolveAppTextStyle(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.secondary,
+                  ),
                 ),
                 SizedBox(height: context.appSpacing.xs),
                 Text(
                   '下载器: ${entry.downloadClientName}',
-                  style: Theme.of(
+                  style: resolveAppTextStyle(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: colors.textMuted),
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.muted,
+                  ),
                 ),
               ],
             ),
@@ -2352,9 +2461,12 @@ class _DownloadClientDialogState extends State<_DownloadClientDialog> {
             children: [
               Text(
                 widget.title,
-                style: Theme.of(
+                style: resolveAppTextStyle(
                   context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  size: AppTextSize.s18,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.primary,
+                ),
               ),
               SizedBox(height: spacing.xl),
               AppTextField(
@@ -2598,9 +2710,12 @@ class _IndexerEntryDialogState extends State<_IndexerEntryDialog> {
           children: [
             Text(
               widget.title,
-              style: Theme.of(
+              style: resolveAppTextStyle(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                size: AppTextSize.s18,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
+              ),
             ),
             SizedBox(height: spacing.xl),
             _DialogFieldLabel(label: '名称 (NAME)'),
@@ -2711,15 +2826,13 @@ class _IndexerSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
-
     return AppTextField(
       controller: controller,
       hintText: '搜索已添加的索引器...',
       prefix: Icon(
         Icons.search_rounded,
         size: context.appComponentTokens.iconSizeSm,
-        color: colors.textMuted,
+        color: context.appTextPalette.muted,
       ),
       onChanged: (_) {},
       isDense: false,
@@ -2740,7 +2853,7 @@ class _IndexerSourceAvatar extends StatelessWidget {
         kind == 'bt' ? colors.selectionSurface : colors.errorSurface;
     final foregroundColor =
         kind == 'bt'
-            ? colors.selectionForeground
+            ? context.appTextPalette.accent
             : colors.errorAccentForeground;
     final icon =
         kind == 'bt' ? Icons.language_rounded : Icons.cloud_download_outlined;
@@ -2816,7 +2929,7 @@ class _IndexerActionButtonState extends State<_IndexerActionButton> {
           child: Icon(
             widget.icon,
             size: context.appComponentTokens.iconSizeSm,
-            color: context.appColors.textSecondary,
+            color: context.appTextPalette.secondary,
           ),
         ),
       ),
@@ -2848,13 +2961,16 @@ class _IndexerEmptyState extends StatelessWidget {
           Icon(
             Icons.travel_explore_outlined,
             size: context.appComponentTokens.iconSizeMd,
-            color: context.appColors.textMuted,
+            color: context.appTextPalette.muted,
           ),
           SizedBox(height: context.appSpacing.sm),
           Text(
             message,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: context.appColors.textSecondary,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.secondary,
             ),
           ),
         ],
@@ -2872,9 +2988,11 @@ class _DialogFieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-        color: context.appColors.textSecondary,
-        fontWeight: FontWeight.w600,
+      style: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s12,
+        weight: AppTextWeight.regular,
+        tone: AppTextTone.secondary,
       ),
     );
   }
@@ -2899,7 +3017,9 @@ class _KindOptionButton extends StatelessWidget {
         selected ? colors.selectionSurface : colors.surfaceMuted;
     final borderColor = selected ? colors.selectionBorder : colors.borderSubtle;
     final foregroundColor =
-        selected ? colors.selectionForeground : colors.textSecondary;
+        selected
+            ? context.appTextPalette.accent
+            : context.appTextPalette.secondary;
 
     return InkWell(
       onTap: onTap,
@@ -2915,10 +3035,12 @@ class _KindOptionButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: foregroundColor,
-            fontWeight: FontWeight.w700,
-          ),
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.tertiary,
+          ).copyWith(color: foregroundColor),
         ),
       ),
     );
@@ -2945,9 +3067,12 @@ class _InfoPill extends StatelessWidget {
       ),
       child: Text(
         '$label: $value',
-        style: Theme.of(
+        style: resolveAppTextStyle(
           context,
-        ).textTheme.bodySmall?.copyWith(color: context.appColors.textSecondary),
+          size: AppTextSize.s12,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.secondary,
+        ),
       ),
     );
   }
@@ -2987,8 +3112,11 @@ class _EmptyPanel extends StatelessWidget {
       color: context.appColors.surfaceMuted,
       child: Text(
         message,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: context.appColors.textSecondary,
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s14,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.secondary,
         ),
       ),
     );
@@ -3011,9 +3139,25 @@ class _SectionErrorState extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          title,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s18,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ),
+        ),
         SizedBox(height: context.appSpacing.md),
-        Text(message, style: Theme.of(context).textTheme.bodyMedium),
+        Text(
+          message,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.secondary,
+          ),
+        ),
         SizedBox(height: context.appSpacing.lg),
         AppButton(
           onPressed: () => onRetry(),

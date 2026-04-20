@@ -83,6 +83,46 @@ void main() {
     expect(find.text('2 / 2'), findsOneWidget);
   });
 
+  testWidgets(
+    'plot preview bottom drawer ignores top safe area and keeps bottom inset',
+    (WidgetTester tester) async {
+      tester.view.padding = const FakeViewPadding(top: 40, bottom: 24);
+      tester.view.viewPadding = const FakeViewPadding(top: 40, bottom: 24);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+
+      await tester.pumpWidget(
+        awaitableOverlayApp(
+          child: Builder(
+            builder:
+                (context) => TextButton(
+                  onPressed:
+                      () => showMoviePlotPreviewOverlay(
+                        context: context,
+                        plotImages: _plotImages,
+                        initialIndex: 1,
+                        presentation: MoviePlotPreviewPresentation.bottomDrawer,
+                      ),
+                  child: const Text('open'),
+                ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      final drawerRect = tester.getRect(
+        find.byKey(const Key('movie-plot-preview-bottom-drawer')),
+      );
+      final counterRect = tester.getRect(
+        find.byKey(const Key('movie-plot-preview-counter')),
+      );
+
+      expect(counterRect.top - drawerRect.top, 16);
+    },
+  );
+
   testWidgets('plot preview on mobile hides close button', (
     WidgetTester tester,
   ) async {

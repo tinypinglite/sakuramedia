@@ -65,9 +65,11 @@ class MovieMediaPointGallery extends StatelessWidget {
                     child: Text(
                       formatMediaTimecode(point.offsetSeconds),
                       key: Key('movie-media-point-timecode-$index'),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s12,
+                        weight: AppTextWeight.regular,
+                        tone: AppTextTone.onMedia,
                       ),
                     ),
                   ),
@@ -127,8 +129,11 @@ class _EmptyPanel extends StatelessWidget {
       ),
       child: Text(
         message,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: context.appColors.textSecondary,
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s14,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.secondary,
         ),
       ),
     );

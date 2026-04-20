@@ -66,7 +66,12 @@ class AppMobileSubpageShell extends StatelessWidget {
                 ),
                 title: Text(
                   title,
-                  style: Theme.of(context).textTheme.titleSmall,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    weight: AppTextWeight.medium,
+                    tone: AppTextTone.primary,
+                  ),
                 ),
               ),
               body: Padding(

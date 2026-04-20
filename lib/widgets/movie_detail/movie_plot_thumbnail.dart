@@ -106,10 +106,11 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
       return null;
     }
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    final effectiveDpr =
-        dpr.clamp(1.0, _decodeDevicePixelRatioCap) as double;
-    return ((widget.maxHeight * effectiveDpr).round())
-            .clamp(1, _decodeSizeUpperBound)
+    final effectiveDpr = dpr.clamp(1.0, _decodeDevicePixelRatioCap) as double;
+    return ((widget.maxHeight * effectiveDpr).round()).clamp(
+          1,
+          _decodeSizeUpperBound,
+        )
         as int;
   }
 
@@ -221,7 +222,7 @@ class _PlotThumbnailPlaceholder extends StatelessWidget {
         child: Icon(
           icon,
           size: componentTokens.iconSize3xl,
-          color: colors.textMuted,
+          color: context.appTextPalette.muted,
         ),
       ),
     );

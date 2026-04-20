@@ -55,15 +55,18 @@ class AppPagedLoadMoreFooter extends StatelessWidget {
               Icon(
                 Icons.error_outline_rounded,
                 size: componentTokens.iconSizeXl,
-                color: colors.textSecondary,
+                color: context.appTextPalette.secondary,
               ),
               SizedBox(width: spacing.sm),
               Flexible(
                 child: Text(
                   errorMessage!,
-                  style: Theme.of(
+                  style: resolveAppTextStyle(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.secondary,
+                  ),
                 ),
               ),
               SizedBox(width: spacing.sm),

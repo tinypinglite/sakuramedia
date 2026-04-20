@@ -33,7 +33,14 @@ class AppContentCard extends StatelessWidget {
         children: [
           Text(
             title,
-            style: titleStyle ?? Theme.of(context).textTheme.titleMedium,
+            style:
+                titleStyle ??
+                resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s18,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.primary,
+                ),
           ),
           SizedBox(height: headerBottomSpacing ?? context.appSpacing.lg),
           child,

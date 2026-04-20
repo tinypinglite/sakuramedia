@@ -46,13 +46,29 @@ class ImageSearchFilterPanel extends StatelessWidget {
             children: [
               const Icon(Icons.filter_alt_outlined),
               SizedBox(width: spacing.sm),
-              Text('搜索筛选', style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                '搜索筛选',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
+              ),
             ],
           ),
           if (currentMovieNumber != null &&
               currentMovieNumber!.trim().isNotEmpty) ...[
             SizedBox(height: spacing.sm),
-            Text('当前影片范围', style: Theme.of(context).textTheme.bodyMedium),
+            Text(
+              '当前影片范围',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
+              ),
+            ),
             SizedBox(height: spacing.xs),
             Wrap(
               spacing: spacing.sm,
@@ -71,7 +87,15 @@ class ImageSearchFilterPanel extends StatelessWidget {
             ),
           ],
           SizedBox(height: spacing.sm),
-          Text('已订阅女优范围', style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            '已订阅女优范围',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.secondary,
+            ),
+          ),
           SizedBox(height: spacing.sm),
           Wrap(
             spacing: spacing.sm,
@@ -100,9 +124,12 @@ class ImageSearchFilterPanel extends StatelessWidget {
           Text(
             summaryText,
             key: const Key('desktop-image-search-filter-summary'),
-            style: Theme.of(
+            style: resolveAppTextStyle(
               context,
-            ).textTheme.bodySmall?.copyWith(color: context.appColors.textMuted),
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
           ),
           SizedBox(height: spacing.sm),
           SizedBox(

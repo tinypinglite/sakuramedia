@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
 
-enum AppIconButtonSize { compact, regular }
+enum AppIconButtonSize { mini, compact, regular }
 
 class AppIconButton extends StatelessWidget {
   const AppIconButton({
@@ -53,13 +53,21 @@ class AppIconButton extends StatelessWidget {
             : borderColor ?? Colors.transparent;
     final resolvedIconColor =
         isSelected
-            ? selectedIconColor ?? iconColor ?? colors.textPrimary
-            : iconColor ?? colors.textMuted;
-    final buttonDimension = switch (size) {
-      AppIconButtonSize.compact =>
+            ? selectedIconColor ?? iconColor ?? context.appTextPalette.primary
+            : iconColor ?? context.appTextPalette.muted;
+    final (buttonDimension, iconSize) = switch (size) {
+      AppIconButtonSize.mini => (
+        context.appComponentTokens.iconSizeSm + context.appSpacing.xs * 2,
+        context.appComponentTokens.iconSizeSm,
+      ),
+      AppIconButtonSize.compact => (
         context.appComponentTokens.iconSizeMd + context.appSpacing.xs * 2,
-      AppIconButtonSize.regular =>
+        context.appComponentTokens.iconSizeMd,
+      ),
+      AppIconButtonSize.regular => (
         context.appComponentTokens.iconSizeMd + context.appSpacing.md * 2,
+        context.appComponentTokens.iconSizeMd,
+      ),
     };
 
     Widget child = Semantics(
@@ -82,10 +90,7 @@ class AppIconButton extends StatelessWidget {
               padding: resolvedPadding,
               child: Center(
                 child: IconTheme(
-                  data: IconThemeData(
-                    size: context.appComponentTokens.iconSizeMd,
-                    color: resolvedIconColor,
-                  ),
+                  data: IconThemeData(size: iconSize, color: resolvedIconColor),
                   child: icon,
                 ),
               ),

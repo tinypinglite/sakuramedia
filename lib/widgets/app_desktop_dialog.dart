@@ -20,7 +20,6 @@ class AppDesktopDialog extends StatelessWidget {
     this.closeButtonInset,
     this.closeButtonBackgroundColor,
     this.closeButtonIconColor,
-    this.contentPadding,
     this.onClose,
     required this.child,
   }) : assert(
@@ -43,7 +42,6 @@ class AppDesktopDialog extends StatelessWidget {
   final EdgeInsets? closeButtonInset;
   final Color? closeButtonBackgroundColor;
   final Color? closeButtonIconColor;
-  final EdgeInsetsGeometry? contentPadding;
   final VoidCallback? onClose;
   final Widget child;
 
@@ -51,7 +49,7 @@ class AppDesktopDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final closeInset = closeButtonInset ?? EdgeInsets.all(spacing.sm);
-    final resolvedContentPadding = contentPadding ?? EdgeInsets.all(spacing.xl);
+    final resolvedContentPadding = EdgeInsets.all(spacing.xl);
 
     Widget content = Padding(padding: resolvedContentPadding, child: child);
     if (constraints != null) {

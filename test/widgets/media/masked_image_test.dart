@@ -34,8 +34,6 @@ void main() {
     expect(image.imageUrl, 'https://api.example.com/covers/a.jpg');
   });
 
- 
-
   testWidgets(
     'masked image does not wrap image when visible width factor unset',
     (WidgetTester tester) async {

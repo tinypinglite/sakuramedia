@@ -151,6 +151,7 @@ void main() {
         findsOneWidget,
       );
       expect(_triggerLabelText(tester), '已订阅');
+      expect(_queryValue(bundle, 0, 'gender'), 'all');
 
       await tester.tap(find.byIcon(Icons.filter_alt_outlined));
       await tester.pumpAndSettle();
@@ -169,7 +170,7 @@ void main() {
       );
       expect(_triggerLabelText(tester), '未订阅');
       expect(_queryValue(bundle, 1, 'subscription_status'), 'unsubscribed');
-      expect(_queryValue(bundle, 1, 'gender'), 'female');
+      expect(_queryValue(bundle, 1, 'gender'), 'all');
     },
   );
 
@@ -236,7 +237,10 @@ void main() {
     await _pumpActorsPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
 
-    final triggerHeight = _buttonHeightForLabel(tester, '已订阅');
+    final triggerHeight = _buttonHeightForFinder(
+      tester,
+      find.byKey(const Key('actors-filter-trigger-label')),
+    );
 
     await tester.tap(find.byIcon(Icons.filter_alt_outlined));
     await tester.pumpAndSettle();
@@ -441,8 +445,12 @@ String _triggerLabelText(WidgetTester tester) {
 }
 
 double _buttonHeightForLabel(WidgetTester tester, String label) {
+  return _buttonHeightForFinder(tester, find.text(label).first);
+}
+
+double _buttonHeightForFinder(WidgetTester tester, Finder finder) {
   final containerFinder = find.ancestor(
-    of: find.text(label).first,
+    of: finder,
     matching: find.byType(AnimatedContainer),
   );
 

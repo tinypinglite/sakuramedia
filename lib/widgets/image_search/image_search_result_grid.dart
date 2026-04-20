@@ -33,7 +33,7 @@ class ImageSearchResultGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: spacing,
             mainAxisSpacing: spacing,
-            childAspectRatio: 16/10,
+            childAspectRatio: 16 / 10,
           ),
           itemBuilder:
               (context, index) => ImageSearchResultCard(

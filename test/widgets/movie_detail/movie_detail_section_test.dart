@@ -25,6 +25,7 @@ void main() {
 
     final sizedBoxes =
         tester.widgetList<SizedBox>(find.byType(SizedBox)).toList();
+    final titleText = tester.widget<Text>(find.text('系列'));
     expect(
       sizedBoxes.any(
         (widget) =>
@@ -33,5 +34,6 @@ void main() {
       ),
       isTrue,
     );
+    expect(titleText.style?.fontSize, sakuraThemeData.appTextScale.s14);
   });
 }

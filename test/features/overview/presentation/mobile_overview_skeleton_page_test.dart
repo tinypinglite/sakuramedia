@@ -9,6 +9,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
@@ -74,10 +75,17 @@ void main() {
     final tabBar = tester.widget<AppTabBar>(
       find.byKey(const Key('mobile-overview-tabs')),
     );
+    final materialTabBar = tester.widget<TabBar>(
+      find.descendant(
+        of: find.byKey(const Key('mobile-overview-tabs')),
+        matching: find.byType(TabBar),
+      ),
+    );
     final pageRoot = tester.widget<ColoredBox>(
       find.byKey(const Key('mobile-overview-skeleton-page')),
     );
     expect(tabBar.variant, AppTabBarVariant.mobileTop);
+    expect(materialTabBar.tabAlignment, TabAlignment.center);
     expect(pageRoot.color, sakuraThemeData.appColors.surfaceCard);
   });
 
@@ -130,10 +138,9 @@ void main() {
   });
 
   testWidgets(
-    'mobile overview drawer shows configuration action and bottom logout action',
+    'mobile overview drawer shows settings actions and bottom logout action',
     (WidgetTester tester) async {
       _enqueueOverviewResponses(bundle);
-      _enqueueMobileConfigurationResponses(bundle);
       final router = buildMobileRouter(sessionStore: sessionStore);
       addTearDown(router.dispose);
 
@@ -149,29 +156,82 @@ void main() {
       await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
       await tester.pumpAndSettle();
 
-      final configurationItem = find.byKey(
-        const Key('mobile-overview-drawer-configuration'),
+      final primarySection = find.byKey(
+        const Key('mobile-overview-drawer-primary-section'),
+      );
+      final mediaLibrariesItem = find.byKey(
+        const Key('mobile-overview-drawer-media-libraries'),
+      );
+      final downloadersItem = find.byKey(
+        const Key('mobile-overview-drawer-downloaders'),
+      );
+      final indexersItem = find.byKey(
+        const Key('mobile-overview-drawer-indexers'),
+      );
+      final playlistsItem = find.byKey(
+        const Key('mobile-overview-drawer-playlists'),
+      );
+      final passwordItem = find.byKey(
+        const Key('mobile-overview-drawer-password'),
       );
       final logoutItem = find.byKey(const Key('mobile-overview-drawer-logout'));
       final bottomActions = find.byKey(
         const Key('mobile-overview-drawer-bottom-actions'),
       );
+      final mediaLibrariesLabel = tester.widget<Text>(
+        find.descendant(of: mediaLibrariesItem, matching: find.text('媒体库')),
+      );
+      final logoutLabel = tester.widget<Text>(
+        find.descendant(of: logoutItem, matching: find.text('退出登录')),
+      );
+      final mediaLibrariesPadding = tester.widget<Padding>(
+        find.descendant(
+          of: mediaLibrariesItem,
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Padding &&
+                widget.padding ==
+                    EdgeInsets.symmetric(
+                      horizontal: sakuraThemeData.appSpacing.md,
+                      vertical: sakuraThemeData.appSpacing.sm,
+                    ),
+          ),
+        ).first,
+      );
 
       expect(find.byKey(const Key('mobile-overview-drawer')), findsOneWidget);
-      expect(configurationItem, findsOneWidget);
+      expect(find.text('菜单'), findsNothing);
+      expect(find.text('配置管理'), findsNothing);
+      expect(primarySection, findsOneWidget);
+      expect(mediaLibrariesItem, findsOneWidget);
+      expect(downloadersItem, findsOneWidget);
+      expect(indexersItem, findsOneWidget);
+      expect(playlistsItem, findsOneWidget);
+      expect(passwordItem, findsOneWidget);
       expect(logoutItem, findsOneWidget);
       expect(
+        mediaLibrariesLabel.style?.fontSize,
+        sakuraThemeData.appTextScale.s14,
+      );
+      expect(logoutLabel.style?.fontSize, sakuraThemeData.appTextScale.s14);
+      expect(
+        mediaLibrariesPadding.padding,
+        EdgeInsets.symmetric(
+          horizontal: sakuraThemeData.appSpacing.md,
+          vertical: sakuraThemeData.appSpacing.sm,
+        ),
+      );
+      expect(
         tester.getTopLeft(bottomActions).dy,
-        greaterThan(tester.getBottomLeft(configurationItem).dy),
+        greaterThan(tester.getBottomLeft(primarySection).dy),
       );
     },
   );
 
-  testWidgets('mobile overview drawer configuration opens subpage shell', (
+  testWidgets('mobile overview drawer media libraries opens subpage shell', (
     WidgetTester tester,
   ) async {
     _enqueueOverviewResponses(bundle);
-    _enqueueMobileConfigurationResponses(bundle);
     final router = buildMobileRouter(sessionStore: sessionStore);
     addTearDown(router.dispose);
 
@@ -187,13 +247,47 @@ void main() {
     await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(const Key('mobile-overview-drawer-configuration')),
+      find.byKey(const Key('mobile-overview-drawer-media-libraries')),
     );
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
-    expect(find.text('配置管理'), findsOneWidget);
-    expect(find.byKey(const Key('configuration-page')), findsOneWidget);
+    expect(find.text('媒体库'), findsOneWidget);
+    expect(
+      find.byKey(const Key('mobile-settings-media-libraries')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+  });
+
+  testWidgets('mobile overview drawer password opens real change page', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      _buildRouterApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mobile-overview-drawer-password')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('修改密码'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-settings-password')), findsOneWidget);
+    expect(
+      find.byKey(const Key('mobile-password-submit-button')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
   });
 
@@ -1206,6 +1300,7 @@ Widget _buildTestApp({
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
       Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
       Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
+      Provider<AppPlatform>.value(value: AppPlatform.mobile),
     ],
     child: OKToast(
       child: MaterialApp(theme: sakuraThemeData, home: Scaffold(body: child)),
@@ -1337,32 +1432,6 @@ void _enqueueOverviewResponses(
     path: '/hot-reviews',
     statusCode: 200,
     body: _hotReviewsPageJson(),
-  );
-}
-
-void _enqueueMobileConfigurationResponses(TestApiBundle bundle) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/media-libraries',
-    statusCode: 200,
-    body: const <Map<String, Object?>>[
-      {
-        'id': 1,
-        'name': 'Main Library',
-        'root_path': '/media/library/main',
-        'created_at': '2026-03-08T09:30:00Z',
-        'updated_at': '2026-03-08T09:30:00Z',
-      },
-    ],
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/collection-number-features',
-    statusCode: 200,
-    body: const <String, Object?>{
-      'features': <String>['CJOB', 'DVAJ'],
-      'sync_stats': null,
-    },
   );
 }
 

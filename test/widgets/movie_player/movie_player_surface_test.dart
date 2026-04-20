@@ -572,22 +572,23 @@ void main() {
                 width: 240,
                 height: 420,
                 child: Builder(
-                  builder: (context) => Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      const ColoredBox(color: Colors.black),
-                      buildMoviePlayerMobileDrawerOverlay(
-                        context: context,
-                        activeDrawer: MoviePlayerMobileDrawerType.speed,
-                        subtitleState: MoviePlayerSubtitleState.empty,
-                        currentRate: 1.0,
-                        isApplyingSubtitle: false,
-                        onDismiss: () {},
-                        onRateSelected: (_) async {},
-                        onSubtitleSelected: (_) async {},
+                  builder:
+                      (context) => Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          const ColoredBox(color: Colors.black),
+                          buildMoviePlayerMobileDrawerOverlay(
+                            context: context,
+                            activeDrawer: MoviePlayerMobileDrawerType.speed,
+                            subtitleState: MoviePlayerSubtitleState.empty,
+                            currentRate: 1.0,
+                            isApplyingSubtitle: false,
+                            onDismiss: () {},
+                            onRateSelected: (_) async {},
+                            onSubtitleSelected: (_) async {},
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
                 ),
               ),
             ),

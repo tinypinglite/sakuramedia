@@ -41,7 +41,6 @@ class CatalogSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final theme = Theme.of(context);
     final spacing = context.appSpacing;
 
     return Container(
@@ -62,17 +61,21 @@ class CatalogSearchField extends StatelessWidget {
               autofocus: autofocus,
               textInputAction: TextInputAction.search,
               onSubmitted: onSubmitted,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colors.textSecondary,
-                fontWeight: FontWeight.normal,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
               ),
               decoration: InputDecoration(
                 isDense: true,
                 border: InputBorder.none,
                 hintText: hintText,
-                hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                  color: colors.textSecondary,
-                  fontWeight: FontWeight.normal,
+                hintStyle: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
                 ),
                 contentPadding: EdgeInsets.zero,
               ),
@@ -81,7 +84,7 @@ class CatalogSearchField extends StatelessWidget {
           if (showImageSearchButton) ...[
             AppIconButton(
               key: imageSearchButtonKey,
-              iconColor: colors.textPrimary,
+              iconColor: context.appTextPalette.primary,
               icon: const Icon(Icons.image_search_outlined),
               onPressed: onImageSearchTap,
             ),
@@ -99,7 +102,7 @@ class CatalogSearchField extends StatelessWidget {
           ],
           AppIconButton(
             key: searchButtonKey,
-            iconColor: colors.textPrimary,
+            iconColor: context.appTextPalette.primary,
             icon: const Icon(Icons.search_rounded),
             onPressed: onSearchTap,
           ),

@@ -28,7 +28,12 @@ class MovieDetailStatRow extends StatelessWidget {
                   SizedBox(width: context.appSpacing.xs),
                   Text(
                     item.label,
-                    style: Theme.of(context).textTheme.bodySmall,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.muted,
+                    ),
                   ),
                 ],
               ),

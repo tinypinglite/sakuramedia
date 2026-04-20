@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_source_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 
 class RankingFilterToolbar extends StatefulWidget {
   const RankingFilterToolbar({
@@ -174,9 +174,8 @@ class _RankingFilterToolbarState extends State<RankingFilterToolbar> {
                     options: widget.sources,
                     selectedValue: widget.selectedSource,
                     optionKeyBuilder:
-                        (value) => Key(
-                          'rankings-filter-source-${value.sourceKey}',
-                        ),
+                        (value) =>
+                            Key('rankings-filter-source-${value.sourceKey}'),
                     labelBuilder: (value) => value.name,
                     onSelected: widget.onSourceChanged,
                   ),
@@ -203,7 +202,6 @@ class _RankingFilterToolbarState extends State<RankingFilterToolbar> {
                     labelBuilder: rankingPeriodLabel,
                     onSelected: widget.onPeriodChanged,
                   ),
-                 
                 ],
               ),
             ),
@@ -218,14 +216,13 @@ class _RankingFilterToolbarState extends State<RankingFilterToolbar> {
     final label = _buildTriggerLabel();
     return CompositedTransformTarget(
       link: _layerLink,
-      child: AppButton(
+      child: AppTextButton(
         key: _triggerKey,
         label: label,
         labelKey: const Key('rankings-filter-trigger-label'),
         icon: const Icon(Icons.filter_alt_outlined),
         trailingIcon: Icon(_isOpen ? Icons.expand_less : Icons.expand_more),
-        variant: AppButtonVariant.secondary,
-        size: AppButtonSize.small,
+        size: AppTextButtonSize.small,
         isSelected: _isOpen,
         onPressed: _togglePanel,
       ),
@@ -267,9 +264,11 @@ class _FilterSection<T> extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: context.appColors.textPrimary,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.primary,
           ),
         ),
         SizedBox(height: context.appSpacing.sm),
@@ -278,11 +277,10 @@ class _FilterSection<T> extends StatelessWidget {
           runSpacing: context.appSpacing.sm,
           children: options
               .map(
-                (value) => AppButton(
+                (value) => AppTextButton(
                   key: optionKeyBuilder(value),
                   label: labelBuilder(value),
-                  size: AppButtonSize.xSmall,
-                  variant: AppButtonVariant.secondary,
+                  size: AppTextButtonSize.xSmall,
                   isSelected: value == selectedValue,
                   onPressed: () => onSelected(value),
                 ),

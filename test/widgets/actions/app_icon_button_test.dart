@@ -73,7 +73,7 @@ void main() {
 
     expect(material.color, Colors.transparent);
     expect(shape.side.color, Colors.transparent);
-    expect(iconTheme.data.color, AppColors.defaults().textMuted);
+    expect(iconTheme.data.color, AppTextPalette.defaults().muted);
   });
 
   testWidgets('app icon button uses selected surface colors', (
@@ -109,7 +109,7 @@ void main() {
 
     expect(material.color, AppColors.defaults().surfaceCard);
     expect(shape.side.color, AppColors.defaults().borderStrong);
-    expect(iconTheme.data.color, AppColors.defaults().textPrimary);
+    expect(iconTheme.data.color, AppTextPalette.defaults().primary);
   });
 
   testWidgets('app icon button is disabled when onPressed is null', (
@@ -178,5 +178,78 @@ void main() {
 
     expect(regularBox.width!, greaterThan(compactBox.width!));
     expect(regularBox.height!, greaterThan(compactBox.height!));
+  });
+
+  testWidgets('app icon button mini size shrinks icon and tap target', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: Scaffold(
+          body: Wrap(
+            children: const [
+              AppIconButton(
+                key: Key('mini-button'),
+                size: AppIconButtonSize.mini,
+                icon: Icon(Icons.search_rounded),
+              ),
+              AppIconButton(
+                key: Key('compact-button'),
+                icon: Icon(Icons.search_rounded),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final miniIconTheme = tester.widget<IconTheme>(
+      find
+          .ancestor(
+            of: find.descendant(
+              of: find.byKey(const Key('mini-button')),
+              matching: find.byIcon(Icons.search_rounded),
+            ),
+            matching: find.byType(IconTheme),
+          )
+          .first,
+    );
+    final compactIconTheme = tester.widget<IconTheme>(
+      find
+          .ancestor(
+            of: find.descendant(
+              of: find.byKey(const Key('compact-button')),
+              matching: find.byIcon(Icons.search_rounded),
+            ),
+            matching: find.byType(IconTheme),
+          )
+          .first,
+    );
+
+    final miniBox = tester
+        .widgetList<SizedBox>(
+          find.descendant(
+            of: find.byKey(const Key('mini-button')),
+            matching: find.byType(SizedBox),
+          ),
+        )
+        .firstWhere((box) => box.width != null && box.height != null);
+    final compactBox = tester
+        .widgetList<SizedBox>(
+          find.descendant(
+            of: find.byKey(const Key('compact-button')),
+            matching: find.byType(SizedBox),
+          ),
+        )
+        .firstWhere((box) => box.width != null && box.height != null);
+
+    expect(miniIconTheme.data.size, AppComponentTokens.defaults().iconSizeSm);
+    expect(
+      compactIconTheme.data.size,
+      AppComponentTokens.defaults().iconSizeMd,
+    );
+    expect(miniBox.width!, lessThan(compactBox.width!));
+    expect(miniBox.height!, lessThan(compactBox.height!));
   });
 }

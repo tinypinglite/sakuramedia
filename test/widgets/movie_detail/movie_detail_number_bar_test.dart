@@ -53,6 +53,20 @@ void main() {
 
     expect(numberBottom, lessThan(interactionTop));
     expect(interactionTop, lessThan(summaryTop));
+
+    final numberText = tester.widget<Text>(
+      find.byKey(const Key('movie-detail-number')),
+    );
+    final summaryText = tester.widget<Text>(
+      find.byKey(const Key('movie-detail-summary')),
+    );
+    final wantWatchText = tester.widget<Text>(
+      find.byKey(const Key('movie-detail-interaction-want-watch-text')),
+    );
+
+    expect(numberText.style?.fontSize, sakuraThemeData.appTextScale.s14);
+    expect(wantWatchText.style?.fontSize, sakuraThemeData.appTextScale.s12);
+    expect(summaryText.style?.fontSize, sakuraThemeData.appTextScale.s14);
   });
 
   testWidgets('movie detail number bar keeps zero values visible', (

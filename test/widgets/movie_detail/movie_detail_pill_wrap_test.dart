@@ -71,8 +71,15 @@ void main() {
       final selectedText = tester.widget<Text>(find.text('普通 1.0 GB'));
       final unselectedText = tester.widget<Text>(find.text('导演剪辑版 500.0 MB'));
 
-      expect(selectedText.style?.fontWeight, FontWeight.w600);
-      expect(unselectedText.style?.fontWeight, FontWeight.w500);
+      expect(
+        selectedText.style?.fontWeight,
+        sakuraThemeData.appTextWeights.semibold,
+      );
+      expect(
+        unselectedText.style?.fontWeight,
+        sakuraThemeData.appTextWeights.medium,
+      );
+      expect(selectedText.style?.fontSize, sakuraThemeData.appTextScale.s12);
 
       await tester.tap(find.text('导演剪辑版 500.0 MB'));
       await tester.pump();
@@ -121,4 +128,28 @@ void main() {
       );
     },
   );
+
+  testWidgets('movie detail pill wrap uses compact radius for pill shape', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const Scaffold(
+          body: MovieDetailPillWrap(
+            emptyMessage: '暂无数据',
+            items: <MovieDetailPillItem>[MovieDetailPillItem(label: 'A')],
+          ),
+        ),
+      ),
+    );
+
+    final pillDecoration = tester
+        .widgetList<DecoratedBox>(find.byType(DecoratedBox))
+        .map((widget) => widget.decoration)
+        .whereType<BoxDecoration>()
+        .firstWhere((decoration) => decoration.borderRadius != null);
+
+    expect(pillDecoration.borderRadius, sakuraThemeData.appRadius.xsBorder);
+  });
 }

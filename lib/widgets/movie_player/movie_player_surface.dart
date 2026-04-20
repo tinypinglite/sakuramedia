@@ -1314,16 +1314,7 @@ class _MoviePlayerMobileDrawerToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = context.appColors;
     final overlayTokens = context.appOverlayTokens;
-    final activeColor = theme.colorScheme.primary;
-    final textColor =
-        active
-            ? activeColor
-            : colors.textOnMedia.withValues(
-              alpha: overlayTokens.primaryLabelAlpha,
-            );
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -1340,11 +1331,10 @@ class _MoviePlayerMobileDrawerToggleButton extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: textColor,
-            fontSize: overlayTokens.controlLabelFontSize,
-            fontWeight: FontWeight.w500,
-            height: overlayTokens.controlLabelHeight,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            tone: active ? AppTextTone.accent : AppTextTone.onMedia,
           ),
         ),
       ),
@@ -1410,7 +1400,7 @@ class _MoviePlayerMobileDrawerSurface extends StatelessWidget {
           left: Radius.circular(overlayTokens.surfaceRadius),
         ),
         border: Border.all(
-          color: colors.textOnMedia.withValues(
+          color: context.appTextPalette.onMedia.withValues(
             alpha: overlayTokens.surfaceBorderAlpha,
           ),
         ),
@@ -1442,7 +1432,7 @@ class _MoviePlayerMobileSpeedDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final overlayTokens = context.appOverlayTokens;
-    final selectedColor = Theme.of(context).colorScheme.primary;
+    final selectedColor = resolveAppTextToneColor(context, AppTextTone.accent);
     return _MoviePlayerMobileDrawerSurface(
       child: Padding(
         padding: EdgeInsets.symmetric(
@@ -1470,24 +1460,13 @@ class _MoviePlayerMobileSpeedDrawer extends StatelessWidget {
                           child: Center(
                             child: Text(
                               formatMoviePlayerPlaybackRateLabel(rate),
-                              style: Theme.of(
+                              style: resolveAppTextStyle(
                                 context,
-                              ).textTheme.labelLarge?.copyWith(
-                                color:
+                                size: AppTextSize.s14,
+                                tone:
                                     selected
-                                        ? selectedColor
-                                        : context.appColors.textOnMedia
-                                            .withValues(
-                                              alpha:
-                                                  overlayTokens
-                                                      .primaryLabelAlpha,
-                                            ),
-                                fontSize: overlayTokens.controlLabelFontSize,
-                                fontWeight:
-                                    selected
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
-                                height: overlayTokens.controlLabelHeight,
+                                        ? AppTextTone.accent
+                                        : AppTextTone.onMedia,
                               ),
                             ),
                           ),
@@ -1548,7 +1527,7 @@ class _MoviePlayerInfoSideDrawer extends StatelessWidget {
           left: Radius.circular(overlayTokens.surfaceRadius),
         ),
         border: Border.all(
-          color: colors.textOnMedia.withValues(
+          color: context.appTextPalette.onMedia.withValues(
             alpha: overlayTokens.infoDrawerSurfaceAlpha / 2,
           ),
         ),
@@ -1606,15 +1585,10 @@ class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
                       child: Center(
                         child: Text(
                           _moviePlayerMobileNoSubtitleLabel,
-                          style: Theme.of(
+                          style: resolveAppTextStyle(
                             context,
-                          ).textTheme.labelLarge?.copyWith(
-                            color: context.appColors.textOnMedia.withValues(
-                              alpha: overlayTokens.mutedLabelAlpha,
-                            ),
-                            fontSize: overlayTokens.controlLabelFontSize,
-                            fontWeight: FontWeight.w500,
-                            height: overlayTokens.controlLabelHeight,
+                            size: AppTextSize.s14,
+                            tone: AppTextTone.muted,
                           ),
                         ),
                       ),
@@ -1646,26 +1620,13 @@ class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
                                   child: Center(
                                     child: Text(
                                       option.label,
-                                      style: Theme.of(
+                                      style: resolveAppTextStyle(
                                         context,
-                                      ).textTheme.labelLarge?.copyWith(
-                                        color:
+                                        size: AppTextSize.s14,
+                                        tone:
                                             selected
-                                                ? selectedColor
-                                                : context.appColors.textOnMedia
-                                                    .withValues(
-                                                      alpha:
-                                                          overlayTokens
-                                                              .primaryLabelAlpha,
-                                                    ),
-                                        fontSize:
-                                            overlayTokens.controlLabelFontSize,
-                                        fontWeight:
-                                            selected
-                                                ? FontWeight.w700
-                                                : FontWeight.w500,
-                                        height:
-                                            overlayTokens.controlLabelHeight,
+                                                ? AppTextTone.accent
+                                                : AppTextTone.onMedia,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                       maxLines: 1,

@@ -113,8 +113,9 @@ class MediaPreviewActionTile extends StatelessWidget {
     final tokens = context.appComponentTokens;
     final canTap = item.onTap != null && !item.isLoading;
     final spacing = context.appSpacing;
-    final iconColor = canTap ? colors.textPrimary : colors.textMuted;
-    final textColor = canTap ? colors.textPrimary : colors.textMuted;
+    final iconColor =
+        canTap ? context.appTextPalette.primary : context.appTextPalette.muted;
+    final textTone = canTap ? AppTextTone.primary : AppTextTone.muted;
 
     return Material(
       key: item.key,
@@ -156,9 +157,11 @@ class MediaPreviewActionTile extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                color: textColor,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.regular,
+                tone: textTone,
               ),
             ),
           ],

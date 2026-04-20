@@ -14,13 +14,18 @@ const String desktopActivityPath = '/desktop/system/activity';
 const String desktopConfigurationPath = '/desktop/system/configuration';
 
 const String mobileOverviewPath = '/mobile/overview';
-const String mobileConfigurationPath = '/mobile/system/configuration';
 const String mobilePlaylistDetailPathPrefix = '$mobileOverviewPath/playlists';
 const String mobileSearchPath = '/mobile/search';
 const String mobileImageSearchPath = '/mobile/search/image';
 const String mobileMoviesPath = '/mobile/library/movies';
 const String mobileActorsPath = '/mobile/library/actors';
 const String mobileRankingsPath = '/mobile/rankings';
+const String mobileSettingsMediaLibrariesPath =
+    '/mobile/settings/media-libraries';
+const String mobileSettingsDownloadersPath = '/mobile/settings/downloaders';
+const String mobileSettingsIndexersPath = '/mobile/settings/indexers';
+const String mobileSettingsPlaylistsPath = '/mobile/settings/playlists';
+const String mobileSettingsPasswordPath = '/mobile/settings/password';
 
 const String loginPath = '/login';
 

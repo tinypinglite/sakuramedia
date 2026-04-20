@@ -48,8 +48,6 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
   Rect? _buttonRect;
   Rect? _menuRect;
 
-  bool get _isMenuOpen => _overlayEntry != null;
-
   double get _menuHeight =>
       (kMoviePlayerPlaybackRates.length *
           context.appOverlayTokens.menuItemHeight) +
@@ -291,8 +289,6 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = context.appColors;
     final overlayTokens = context.appOverlayTokens;
     final label =
         _displayHasExplicitSelection ? _formatRateLabel(_displayRate) : '倍速';
@@ -319,13 +315,10 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
             child: Text(
               label,
               key: const Key('movie-player-speed-button'),
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: colors.textOnMedia.withValues(
-                  alpha: overlayTokens.primaryLabelAlpha,
-                ),
-                fontSize: overlayTokens.controlLabelFontSize,
-                fontWeight: FontWeight.w500,
-                height: overlayTokens.controlLabelHeight,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                tone: AppTextTone.onMedia,
               ),
             ),
           ),
@@ -365,7 +358,7 @@ class _MoviePlayerSpeedMenu extends StatelessWidget {
         ),
         borderRadius: overlayTokens.surfaceBorderRadius,
         border: Border.all(
-          color: colors.textOnMedia.withValues(
+          color: context.appTextPalette.onMedia.withValues(
             alpha: overlayTokens.surfaceBorderAlpha,
           ),
         ),
@@ -419,20 +412,14 @@ class _MoviePlayerSpeedMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = context.appColors;
     final overlayTokens = context.appOverlayTokens;
     final label = _formatRateLabel(rate);
-    final selectedColor = theme.colorScheme.primary;
-    final textColor =
-        selected
-            ? selectedColor
-            : colors.textOnMedia.withValues(
-              alpha: overlayTokens.primaryLabelAlpha,
-            );
+    final selectedColor = resolveAppTextToneColor(context, AppTextTone.accent);
     final backgroundColor =
         hovered
-            ? colors.textOnMedia.withValues(alpha: overlayTokens.hoverAlpha)
+            ? context.appTextPalette.onMedia.withValues(
+              alpha: overlayTokens.hoverAlpha,
+            )
             : Colors.transparent;
 
     return MouseRegion(
@@ -456,11 +443,10 @@ class _MoviePlayerSpeedMenuItem extends StatelessWidget {
                     key: Key(
                       'movie-player-speed-menu-item-label-${_rateKey(rate)}',
                     ),
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: textColor,
-                      fontSize: overlayTokens.controlLabelFontSize,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      height: overlayTokens.controlLabelHeight,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s14,
+                      tone: selected ? AppTextTone.accent : AppTextTone.onMedia,
                     ),
                   ),
                 ),

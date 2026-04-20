@@ -10,7 +10,6 @@ class CatalogSearchStreamStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final theme = Theme.of(context);
     final spacing = context.appSpacing;
 
     return Container(
@@ -32,17 +31,22 @@ class CatalogSearchStreamStatusCard extends StatelessWidget {
             children: [
               Text(
                 status.message,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: colors.textPrimary,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.primary,
                 ),
               ),
               if (status.progressLabel != null) ...[
                 SizedBox(height: spacing.xs),
                 Text(
                   status.progressLabel!,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: colors.textMuted,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.muted,
                   ),
                 ),
               ],
@@ -50,8 +54,11 @@ class CatalogSearchStreamStatusCard extends StatelessWidget {
                 SizedBox(height: spacing.xs),
                 Text(
                   status.statsLabel!,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: colors.textMuted,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.muted,
                   ),
                 ),
               ],

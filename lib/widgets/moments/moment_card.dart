@@ -13,9 +13,11 @@ class MomentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final labelTextStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: Colors.white,
-      fontWeight: FontWeight.w700,
+    final labelTextStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s12,
+      weight: AppTextWeight.regular,
+      tone: AppTextTone.onMedia,
     );
     return Material(
       color: Colors.transparent,

@@ -9,14 +9,16 @@ Future<T?> showAppBottomDrawer<T>({
   double? maxHeightFactor,
   bool isScrollControlled = true,
   bool useSafeArea = true,
+  bool ignoreTopSafeArea = false,
   bool enableDrag = true,
   bool showHandle = true,
-  EdgeInsetsGeometry? contentPadding,
 }) {
+  final shouldUseRouteSafeArea = useSafeArea && !ignoreTopSafeArea;
+
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: isScrollControlled,
-    useSafeArea: useSafeArea,
+    useSafeArea: shouldUseRouteSafeArea,
     showDragHandle: false,
     enableDrag: enableDrag,
     shape: RoundedRectangleBorder(
@@ -25,15 +27,27 @@ Future<T?> showAppBottomDrawer<T>({
       ),
     ),
     clipBehavior: Clip.antiAlias,
-    builder:
-        (sheetContext) => AppBottomDrawerSurface(
-          key: drawerKey,
-          heightFactor: heightFactor,
-          maxHeightFactor: maxHeightFactor,
-          showHandle: showHandle,
-          contentPadding: contentPadding,
-          child: builder(sheetContext),
-        ),
+    builder: (sheetContext) {
+      Widget drawer = AppBottomDrawerSurface(
+        key: drawerKey,
+        heightFactor: heightFactor,
+        maxHeightFactor: maxHeightFactor,
+        showHandle: showHandle,
+        child: builder(sheetContext),
+      );
+
+      if (useSafeArea && ignoreTopSafeArea) {
+        drawer = SafeArea(
+          top: false,
+          left: false,
+          right: false,
+          bottom: true,
+          child: drawer,
+        );
+      }
+
+      return drawer;
+    },
   );
 }
 
@@ -44,7 +58,6 @@ class AppBottomDrawerSurface extends StatelessWidget {
     this.heightFactor = 0.9,
     this.maxHeightFactor,
     this.showHandle = true,
-    this.contentPadding,
   });
 
   static const double _handleWidth = 28;
@@ -56,14 +69,12 @@ class AppBottomDrawerSurface extends StatelessWidget {
   final double heightFactor;
   final double? maxHeightFactor;
   final bool showHandle;
-  final EdgeInsetsGeometry? contentPadding;
 
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final colors = context.appColors;
-    final resolvedContentPadding =
-        contentPadding ?? EdgeInsets.all(context.appSpacing.lg);
+    final resolvedContentPadding = EdgeInsets.all(context.appSpacing.lg);
     final handleContentTopInset =
         showHandle
             ? _handleTopSpacing + _handleHeight + _handleBottomSpacing
@@ -74,12 +85,9 @@ class AppBottomDrawerSurface extends StatelessWidget {
       child: Stack(
         children: [
           Padding(
-            padding: EdgeInsets.only(top: handleContentTopInset),
-            child: Padding(
-              key: const Key('app-bottom-drawer-content'),
-              padding: resolvedContentPadding,
-              child: child,
-            ),
+            key: const Key('app-bottom-drawer-content'),
+            padding: resolvedContentPadding,
+            child: child,
           ),
           if (showHandle)
             Positioned(
