@@ -135,6 +135,18 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('相似度'), findsNothing);
+      expect(
+        find.byKey(
+          const Key('image-search-result-preview-movie-info-divider-top'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const Key('image-search-result-preview-movie-info-divider-bottom'),
+        ),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('影片详情'));
       await tester.pumpAndSettle();

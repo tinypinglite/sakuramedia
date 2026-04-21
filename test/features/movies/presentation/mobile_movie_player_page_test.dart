@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,14 +14,11 @@ import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart'
 
 import '../../../support/test_api_bundle.dart';
 
-const List<String> _portraitOrientations = <String>[
-  'DeviceOrientation.portraitUp',
-  'DeviceOrientation.portraitDown',
-];
 const List<String> _landscapeOrientations = <String>[
   'DeviceOrientation.landscapeLeft',
   'DeviceOrientation.landscapeRight',
 ];
+const List<String> _systemDefaultOrientations = <String>[];
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -70,85 +68,87 @@ void main() {
     bundle.dispose();
   });
 
-  testWidgets('mobile movie player locks landscape and restores portrait', (
-    WidgetTester tester,
-  ) async {
-    tester.view.physicalSize = const Size(540, 1080);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'mobile movie player locks landscape and restores system default from portrait',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(540, 1080);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/movies/ABC-001',
-      body: _movieDetailJson(mediaItems: const <Map<String, dynamic>>[]),
-    );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(mediaItems: const <Map<String, dynamic>>[]),
+      );
 
-    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
-    await tester.pumpAndSettle();
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
 
-    expect(
-      _countOrientationCalls(orientationCalls, _landscapeOrientations),
-      greaterThanOrEqualTo(1),
-    );
-    expect(
-      _countUiModeCalls(systemUiModeCalls, 'SystemUiMode.immersiveSticky'),
-      greaterThanOrEqualTo(1),
-    );
+      expect(
+        _countOrientationCalls(orientationCalls, _landscapeOrientations),
+        greaterThanOrEqualTo(1),
+      );
+      expect(
+        _countUiModeCalls(systemUiModeCalls, 'SystemUiMode.immersiveSticky'),
+        greaterThanOrEqualTo(1),
+      );
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    await tester.pump();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.pump();
 
-    expect(
-      _countOrientationCalls(orientationCalls, _portraitOrientations),
-      greaterThanOrEqualTo(1),
-    );
-    expect(
-      _countVisibleOverlayCalls(systemUiOverlayCalls),
-      greaterThanOrEqualTo(2),
-    );
-  });
+      expect(
+        _countOrientationCalls(orientationCalls, _systemDefaultOrientations),
+        greaterThanOrEqualTo(1),
+      );
+      expect(
+        _countVisibleOverlayCalls(systemUiOverlayCalls),
+        greaterThanOrEqualTo(2),
+      );
+    },
+  );
 
-  testWidgets('mobile movie player locks landscape and restores landscape', (
-    WidgetTester tester,
-  ) async {
-    tester.view.physicalSize = const Size(1080, 540);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    'mobile movie player locks landscape and restores system default from landscape',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 540);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/movies/ABC-001',
-      body: _movieDetailJson(mediaItems: const <Map<String, dynamic>>[]),
-    );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(mediaItems: const <Map<String, dynamic>>[]),
+      );
 
-    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
-    await tester.pumpAndSettle();
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
 
-    expect(
-      _countOrientationCalls(orientationCalls, _landscapeOrientations),
-      greaterThanOrEqualTo(1),
-    );
-    expect(
-      _countUiModeCalls(systemUiModeCalls, 'SystemUiMode.immersiveSticky'),
-      greaterThanOrEqualTo(1),
-    );
+      expect(
+        _countOrientationCalls(orientationCalls, _landscapeOrientations),
+        greaterThanOrEqualTo(1),
+      );
+      expect(
+        _countUiModeCalls(systemUiModeCalls, 'SystemUiMode.immersiveSticky'),
+        greaterThanOrEqualTo(1),
+      );
 
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    await tester.pump();
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await tester.pump();
 
-    expect(
-      _countOrientationCalls(orientationCalls, _landscapeOrientations),
-      greaterThanOrEqualTo(2),
-    );
-    expect(
-      _countVisibleOverlayCalls(systemUiOverlayCalls),
-      greaterThanOrEqualTo(2),
-    );
-  });
+      expect(
+        _countOrientationCalls(orientationCalls, _systemDefaultOrientations),
+        greaterThanOrEqualTo(1),
+      );
+      expect(
+        _countVisibleOverlayCalls(systemUiOverlayCalls),
+        greaterThanOrEqualTo(2),
+      );
+    },
+  );
 
   testWidgets('mobile movie player back falls back to movie detail route', (
     WidgetTester tester,
@@ -303,6 +303,98 @@ void main() {
     );
     expect(desktopPlayer.enableThumbnailActionMenu, isTrue);
     expect(desktopPlayer.imageSearchRoutePath, mobileImageSearchPath);
+    expect(desktopPlayer.dividerHandleBuffer, 12);
+  });
+
+  testWidgets('mobile movie player expands divider drag hit area', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: _movieDetailJson(
+        mediaItems: const <Map<String, dynamic>>[
+          <String, dynamic>{
+            'media_id': 100,
+            'play_url': '/files/media/movies/ABC-001/video.mp4',
+            'path': '/library/main/ABC-001/video.mp4',
+            'duration_seconds': 7200,
+            'progress': null,
+          },
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/100/thumbnails',
+      body: const <String, dynamic>{
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'thumbnail_id': 1,
+            'media_id': 100,
+            'offset_seconds': 10,
+            'image': <String, dynamic>{
+              'id': 11,
+              'origin': '/files/images/thumb-10.webp',
+              'small': '/files/images/thumb-10.webp',
+              'medium': '/files/images/thumb-10.webp',
+              'large': '/files/images/thumb-10.webp',
+            },
+          },
+        ],
+      },
+    );
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ],
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: MobileMoviePlayerPage(
+              movieNumber: 'ABC-001',
+              surfaceBuilder: (
+                BuildContext context,
+                String resolvedUrl,
+                surfaceController,
+                Duration? initialPosition,
+                ValueChanged<Duration>? onPositionChanged,
+                ValueChanged<bool>? onPlayingChanged,
+                subtitleState,
+                onSubtitleSelectionChanged,
+                onSubtitleReloadRequested,
+                VoidCallback onBackPressed,
+                bool useTouchOptimizedControls,
+              ) {
+                return const SizedBox.expand();
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final leftPanelFinder = find.byKey(const Key('movie-player-left-panel'));
+    final initialWidth = tester.getSize(leftPanelFinder).width;
+    final leftPanelRect = tester.getRect(leftPanelFinder);
+    final gesture = await tester.startGesture(
+      Offset(leftPanelRect.right - 8, leftPanelRect.center.dy),
+      kind: PointerDeviceKind.touch,
+    );
+    await gesture.moveBy(const Offset(80, 0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(leftPanelFinder).width, greaterThan(initialWidth));
   });
 }
 

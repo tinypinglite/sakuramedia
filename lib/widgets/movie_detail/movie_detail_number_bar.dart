@@ -48,7 +48,7 @@ class MovieDetailNumberBar extends StatelessWidget {
                 key: const Key('movie-detail-number'),
                 style: resolveAppTextStyle(
                   context,
-                  size: AppTextSize.s14,
+                  size: AppTextSize.s16,
                   weight: AppTextWeight.regular,
                   tone: AppTextTone.secondary,
                 ),

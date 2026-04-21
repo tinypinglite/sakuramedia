@@ -14,6 +14,10 @@ import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dar
 import 'package:sakuramedia/features/configuration/data/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/desktop_llm_settings_section.dart';
+import 'package:sakuramedia/features/configuration/presentation/download_client_form.dart';
+import 'package:sakuramedia/features/configuration/presentation/indexer_entry_form.dart';
+import 'package:sakuramedia/features/configuration/presentation/media_library_form.dart';
 import 'package:sakuramedia/features/playlists/data/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/create_playlist_dialog.dart';
@@ -21,7 +25,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
 import 'package:sakuramedia/widgets/app_shell/app_page_frame.dart';
@@ -398,9 +401,11 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
       children: [
         _buildMediaLibrariesSection(context),
         SizedBox(height: context.appSpacing.xl),
-        const _AccountSecuritySection(),
-        SizedBox(height: context.appSpacing.xl),
         _buildCollectionNumberFeaturesSection(context),
+        SizedBox(height: context.appSpacing.xl),
+        const DesktopLlmSettingsSection(),
+        SizedBox(height: context.appSpacing.xl),
+        const _AccountSecuritySection(),
       ],
     );
   }
@@ -1806,18 +1811,16 @@ class _MediaLibraryDialogState extends State<_MediaLibraryDialog> {
       return;
     }
 
-    final name = _nameController.text.trim();
-    final rootPath = _rootPathController.text.trim();
+    final value = MediaLibraryFormValue.fromControllers(
+      nameController: _nameController,
+      rootPathController: _rootPathController,
+    );
     if (_isEditing) {
-      Navigator.of(
-        context,
-      ).pop(UpdateMediaLibraryPayload(name: name, rootPath: rootPath));
+      Navigator.of(context).pop(value.toUpdatePayload());
       return;
     }
 
-    Navigator.of(
-      context,
-    ).pop(CreateMediaLibraryPayload(name: name, rootPath: rootPath));
+    Navigator.of(context).pop(value.toCreatePayload());
   }
 
   @override
@@ -1847,32 +1850,10 @@ class _MediaLibraryDialogState extends State<_MediaLibraryDialog> {
               ),
             ),
             SizedBox(height: spacing.xl),
-            const _DialogFieldLabel(label: '名称'),
-            SizedBox(height: spacing.sm),
-            AppTextField(
-              fieldKey: const Key('media-library-name-field'),
-              controller: _nameController,
-              hintText: '例如: Main Library',
-              validator:
-                  (value) =>
-                      value == null || value.trim().isEmpty ? '请输入媒体库名称' : null,
-            ),
-            SizedBox(height: spacing.lg),
-            const _DialogFieldLabel(label: '根路径'),
-            SizedBox(height: spacing.sm),
-            AppTextField(
-              fieldKey: const Key('media-library-root-path-field'),
-              controller: _rootPathController,
-              hintText: '填映射到容器内的路径，例如: /mnt/medialibray1',
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return '请输入媒体库根路径';
-                }
-                if (!_isAbsolutePath(value.trim())) {
-                  return '请输入路径';
-                }
-                return null;
-              },
+            MediaLibraryFormFields(
+              nameController: _nameController,
+              rootPathController: _rootPathController,
+              labelBuilder: (context, label) => _DialogFieldLabel(label: label),
             ),
             SizedBox(height: spacing.xl),
             Row(
@@ -2009,17 +1990,17 @@ class _IndexerSettingsTabState extends State<_IndexerSettingsTab> {
       showToast('请输入 API Key');
       return;
     }
-    final duplicateNames = _findDuplicateIndexerNames(_indexers);
+    final duplicateNames = findDuplicateIndexerNames(_indexers);
     if (duplicateNames.isNotEmpty) {
       showToast('索引器名称重复: ${duplicateNames.first}');
       return;
     }
     for (final item in _indexers) {
-      if (!_isValidHttpUrl(item.url)) {
+      if (!isValidIndexerHttpUrl(item.url)) {
         showToast('索引器 URL 必须是合法的 http/https 地址');
         return;
       }
-      if (!_isSupportedIndexerKind(item.kind)) {
+      if (!isSupportedIndexerKind(item.kind)) {
         showToast('索引器类型仅支持 pt 或 bt');
         return;
       }
@@ -2280,7 +2261,7 @@ class _IndexerEntryCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _IndexerSourceAvatar(kind: entry.kind),
+          IndexerSourceAvatar(kind: entry.kind),
           SizedBox(width: context.appSpacing.lg),
           Expanded(
             child: Column(
@@ -2300,7 +2281,7 @@ class _IndexerEntryCard extends StatelessWidget {
                       ),
                     ),
                     SizedBox(width: context.appSpacing.sm),
-                    _IndexerKindBadge(kind: entry.kind),
+                    IndexerKindBadge(kind: entry.kind),
                   ],
                 ),
                 SizedBox(height: context.appSpacing.xs),
@@ -2410,35 +2391,22 @@ class _DownloadClientDialogState extends State<_DownloadClientDialog> {
       return;
     }
 
+    final value = DownloadClientFormValue.fromControllers(
+      nameController: _nameController,
+      baseUrlController: _baseUrlController,
+      usernameController: _usernameController,
+      passwordController: _passwordController,
+      clientSavePathController: _clientSavePathController,
+      localRootPathController: _localRootPathController,
+      mediaLibraryId: _selectedLibraryId,
+    );
+
     if (_isEditing) {
-      Navigator.of(context).pop(
-        UpdateDownloadClientPayload(
-          name: _nameController.text.trim(),
-          baseUrl: _baseUrlController.text.trim(),
-          username: _usernameController.text.trim(),
-          password:
-              _passwordController.text.trim().isEmpty
-                  ? null
-                  : _passwordController.text.trim(),
-          clientSavePath: _clientSavePathController.text.trim(),
-          localRootPath: _localRootPathController.text.trim(),
-          mediaLibraryId: _selectedLibraryId,
-        ),
-      );
+      Navigator.of(context).pop(value.toUpdatePayload());
       return;
     }
 
-    Navigator.of(context).pop(
-      CreateDownloadClientPayload(
-        name: _nameController.text.trim(),
-        baseUrl: _baseUrlController.text.trim(),
-        username: _usernameController.text.trim(),
-        password: _passwordController.text.trim(),
-        clientSavePath: _clientSavePathController.text.trim(),
-        localRootPath: _localRootPathController.text.trim(),
-        mediaLibraryId: _selectedLibraryId!,
-      ),
-    );
+    Navigator.of(context).pop(value.toCreatePayload());
   }
 
   @override
@@ -2469,125 +2437,22 @@ class _DownloadClientDialogState extends State<_DownloadClientDialog> {
                 ),
               ),
               SizedBox(height: spacing.xl),
-              AppTextField(
-                fieldKey: const Key('download-client-name-field'),
-                controller: _nameController,
-                label: '名称',
-                hintText: '给下载器起个名字，例如：pt 专属',
-                validator:
-                    (value) =>
-                        value == null || value.trim().isEmpty
-                            ? '请输入下载器名称'
-                            : null,
-              ),
-              SizedBox(height: context.appSpacing.lg),
-              AppTextField(
-                fieldKey: const Key('download-client-base-url-field'),
-                controller: _baseUrlController,
-                label: '服务地址',
-                hintText: '填写完整内网地址，例如：http://192.168.1.2:8080',
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '请输入服务地址';
-                  }
-                  if (!_isValidHttpUrl(value.trim())) {
-                    return '请输入合法的 http/https 地址';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: context.appSpacing.lg),
-              Row(
-                children: [
-                  Expanded(
-                    child: AppTextField(
-                      fieldKey: const Key('download-client-username-field'),
-                      controller: _usernameController,
-                      label: '用户名',
-                      hintText: '输入用于登录下载器的用户名',
-                      validator:
-                          (value) =>
-                              value == null || value.trim().isEmpty
-                                  ? '请输入用户名'
-                                  : null,
-                    ),
-                  ),
-                  SizedBox(width: context.appSpacing.md),
-                  Expanded(
-                    child: AppTextField(
-                      fieldKey: const Key('download-client-password-field'),
-                      controller: _passwordController,
-                      label: '密码',
-                      hintText: '输入用于登录下载器的密码',
-                      helperText: _isEditing ? '留空则保持原密码不变' : null,
-                      obscureText: true,
-                      validator: (value) {
-                        if (_isEditing) {
-                          return null;
-                        }
-                        if (value == null || value.trim().isEmpty) {
-                          return '请输入密码';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: context.appSpacing.lg),
-              AppTextField(
-                fieldKey: const Key('download-client-client-save-path-field'),
-                controller: _clientSavePathController,
-                label: 'qBittorrent保存路径',
-                hintText: '填写 qBittorrent 容器内使用的路径，例如：/downloads',
-                helperText: 'qBittorrent 实际保存文件时使用的路径',
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '请输入qBittorrent保存路径';
-                  }
-                  if (!_isAbsolutePath(value.trim())) {
-                    return '请输入路径';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: context.appSpacing.lg),
-              AppTextField(
-                fieldKey: const Key('download-client-local-root-path-field'),
-                controller: _localRootPathController,
-                label: '本地访问路径',
-                hintText: '填写 SakuraMediaBE 中的实际下载绝对路径，例如:/mnt/downloads',
-                helperText: '注意确保和 qBittorrent 的下载路径在宿主机上是同一个路径.',
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return '请输入本地访问路径';
-                  }
-                  if (!_isAbsolutePath(value.trim())) {
-                    return '请输入路径';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: context.appSpacing.lg),
-              AppSelectField<int>(
-                key: const Key('download-client-media-library-field'),
-                value: _selectedLibraryId,
-                items: widget.libraries
-                    .map(
-                      (library) => DropdownMenuItem<int>(
-                        value: library.id,
-                        child: Text(library.name),
-                      ),
-                    )
-                    .toList(growable: false),
-                label: '目标媒体库',
-                onChanged:
-                    widget.libraries.isEmpty
-                        ? null
-                        : (value) => setState(() {
-                          _selectedLibraryId = value;
-                        }),
-                validator: (value) => value == null ? '请选择目标媒体库' : null,
+              DownloadClientFormFields(
+                nameController: _nameController,
+                baseUrlController: _baseUrlController,
+                usernameController: _usernameController,
+                passwordController: _passwordController,
+                clientSavePathController: _clientSavePathController,
+                localRootPathController: _localRootPathController,
+                libraries: widget.libraries,
+                selectedLibraryId: _selectedLibraryId,
+                onLibraryChanged:
+                    (value) => setState(() {
+                      _selectedLibraryId = value;
+                    }),
+                isEditing: _isEditing,
+                credentialsLayout: DownloadClientCredentialsLayout.horizontal,
+                onSubmitted: _submit,
               ),
               SizedBox(height: spacing.xl),
               Row(
@@ -2718,80 +2583,18 @@ class _IndexerEntryDialogState extends State<_IndexerEntryDialog> {
               ),
             ),
             SizedBox(height: spacing.xl),
-            _DialogFieldLabel(label: '名称 (NAME)'),
-            SizedBox(height: spacing.sm),
-            AppTextField(
-              fieldKey: const Key('indexer-entry-name-field'),
-              controller: _nameController,
-              hintText: '例如: 馒头',
-              validator:
-                  (value) =>
-                      value == null || value.trim().isEmpty ? '请输入索引器名称' : null,
-            ),
-            SizedBox(height: spacing.lg),
-            _DialogFieldLabel(label: '资源地址 (URL)'),
-            SizedBox(height: spacing.sm),
-            AppTextField(
-              fieldKey: const Key('indexer-entry-url-field'),
-              controller: _urlController,
-              hintText: '填写完整的 torznab 地址',
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return '请输入索引器 URL';
-                }
-                if (!_isValidHttpUrl(value.trim())) {
-                  return '请输入合法的 http/https 地址';
-                }
-                return null;
-              },
-            ),
-            SizedBox(height: spacing.lg),
-            _DialogFieldLabel(label: '类别 (KIND)'),
-            SizedBox(height: spacing.sm),
-            Row(
-              key: const Key('indexer-entry-kind-field'),
-              children: [
-                Expanded(
-                  child: _KindOptionButton(
-                    label: 'PT (私有)',
-                    selected: _kind == 'pt',
-                    onTap: () => setState(() => _kind = 'pt'),
-                  ),
-                ),
-                SizedBox(width: context.appSpacing.md),
-                Expanded(
-                  child: _KindOptionButton(
-                    label: 'BT (公网)',
-                    selected: _kind == 'bt',
-                    onTap: () => setState(() => _kind = 'bt'),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: spacing.lg),
-            AppSelectField<int>(
-              key: const Key('indexer-entry-download-client-field'),
-              value: _selectedDownloadClientId,
-              items: widget.downloadClients
-                  .map(
-                    (client) => DropdownMenuItem<int>(
-                      value: client.id,
-                      child: Text(client.name),
-                    ),
-                  )
-                  .toList(growable: false),
-              label: '绑定下载器',
-              placeholder:
-                  widget.downloadClients.isEmpty
-                      ? '请先在下载器 Tab 创建下载器'
-                      : '请选择下载器',
-              onChanged:
-                  widget.downloadClients.isEmpty
-                      ? null
-                      : (value) => setState(() {
-                        _selectedDownloadClientId = value;
-                      }),
-              validator: (value) => value == null ? '请选择下载器' : null,
+            IndexerEntryFormFields(
+              nameController: _nameController,
+              urlController: _urlController,
+              kind: _kind,
+              downloadClients: widget.downloadClients,
+              selectedDownloadClientId: _selectedDownloadClientId,
+              onKindChanged: (value) => setState(() => _kind = value),
+              onDownloadClientChanged:
+                  (value) => setState(() {
+                    _selectedDownloadClientId = value;
+                  }),
+              onSubmitted: _submit,
             ),
             SizedBox(height: spacing.xl),
             Row(
@@ -2836,56 +2639,6 @@ class _IndexerSearchField extends StatelessWidget {
       ),
       onChanged: (_) {},
       isDense: false,
-    );
-  }
-}
-
-class _IndexerSourceAvatar extends StatelessWidget {
-  const _IndexerSourceAvatar({required this.kind});
-
-  final String kind;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final layoutTokens = context.appLayoutTokens;
-    final backgroundColor =
-        kind == 'bt' ? colors.selectionSurface : colors.errorSurface;
-    final foregroundColor =
-        kind == 'bt'
-            ? context.appTextPalette.accent
-            : colors.errorAccentForeground;
-    final icon =
-        kind == 'bt' ? Icons.language_rounded : Icons.cloud_download_outlined;
-
-    return Container(
-      width: layoutTokens.panelIconContainerSize,
-      height: layoutTokens.panelIconContainerSize,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: context.appRadius.mdBorder,
-      ),
-      alignment: Alignment.center,
-      child: Icon(
-        icon,
-        size: context.appComponentTokens.iconSizeLg,
-        color: foregroundColor,
-      ),
-    );
-  }
-}
-
-class _IndexerKindBadge extends StatelessWidget {
-  const _IndexerKindBadge({required this.kind});
-
-  final String kind;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppBadge(
-      label: kind == 'bt' ? 'BT' : 'PT',
-      tone: kind == 'bt' ? AppBadgeTone.primary : AppBadgeTone.error,
-      size: AppBadgeSize.compact,
     );
   }
 }
@@ -2993,55 +2746,6 @@ class _DialogFieldLabel extends StatelessWidget {
         size: AppTextSize.s12,
         weight: AppTextWeight.regular,
         tone: AppTextTone.secondary,
-      ),
-    );
-  }
-}
-
-class _KindOptionButton extends StatelessWidget {
-  const _KindOptionButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final layoutTokens = context.appLayoutTokens;
-    final backgroundColor =
-        selected ? colors.selectionSurface : colors.surfaceMuted;
-    final borderColor = selected ? colors.selectionBorder : colors.borderSubtle;
-    final foregroundColor =
-        selected
-            ? context.appTextPalette.accent
-            : context.appTextPalette.secondary;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: context.appRadius.mdBorder,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 120),
-        height: layoutTokens.segmentedControlHeight,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: context.appRadius.mdBorder,
-          border: Border.all(color: borderColor),
-        ),
-        child: Text(
-          label,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.tertiary,
-          ).copyWith(color: foregroundColor),
-        ),
       ),
     );
   }
@@ -3205,43 +2909,10 @@ String _apiMessage(Object error, {required String fallback}) {
   return apiErrorMessage(error, fallback: fallback);
 }
 
-bool _isValidHttpUrl(String value) {
-  final uri = Uri.tryParse(value);
-  return uri != null &&
-      (uri.scheme == 'http' || uri.scheme == 'https') &&
-      uri.host.isNotEmpty;
-}
-
-bool _isAbsolutePath(String value) {
-  if (value.startsWith('/')) {
-    return true;
-  }
-  return RegExp(r'^[A-Za-z]:[\\/]').hasMatch(value);
-}
-
-bool _isSupportedIndexerKind(String value) {
-  return value == 'pt' || value == 'bt';
-}
-
 List<String> _parseCollectionNumberFeaturesInput(String rawValue) {
   return rawValue
       .split('\n')
       .map((item) => item.trim())
       .where((item) => item.isNotEmpty)
       .toList(growable: false);
-}
-
-Set<String> _findDuplicateIndexerNames(List<IndexerEntryDto> items) {
-  final seen = <String>{};
-  final duplicates = <String>{};
-  for (final item in items) {
-    final normalized = item.name.trim();
-    if (normalized.isEmpty) {
-      continue;
-    }
-    if (!seen.add(normalized)) {
-      duplicates.add(normalized);
-    }
-  }
-  return duplicates;
 }

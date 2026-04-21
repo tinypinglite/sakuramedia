@@ -207,7 +207,7 @@ class MovieDetailPageContent extends StatelessWidget {
         isCollection ? '标记单体' : '标记合集',
         style: resolveAppTextStyle(
           context,
-          size: AppTextSize.s12,
+          size: AppTextSize.s14,
           weight: AppTextWeight.regular,
           tone: AppTextTone.tertiary,
         ).copyWith(color: Theme.of(context).colorScheme.primary),

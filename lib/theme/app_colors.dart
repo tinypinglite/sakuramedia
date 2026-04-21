@@ -7,6 +7,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.surfaceCard,
     required this.surfaceElevated,
     required this.surfaceMuted,
+    required this.noticeSurface,
     required this.desktopSidebarGlassTint,
     required this.desktopSidebarGlassHover,
     required this.desktopSidebarGlassActive,
@@ -50,6 +51,7 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceCard = const Color(0xFFFFFFFF),
       surfaceElevated = const Color(0xFFFFFFFF),
       surfaceMuted = const Color(0xFFF1F1F1),
+      noticeSurface = const Color(0xFFF3F3F3),
       desktopSidebarGlassTint = const Color(0x4CEFEFEF),
       desktopSidebarGlassHover = const Color(0x80FFFFFF),
       desktopSidebarGlassActive = const Color(0x99FFFFFF),
@@ -91,6 +93,7 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color surfaceCard;
   final Color surfaceElevated;
   final Color surfaceMuted;
+  final Color noticeSurface;
   final Color desktopSidebarGlassTint;
   final Color desktopSidebarGlassHover;
   final Color desktopSidebarGlassActive;
@@ -134,6 +137,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? surfaceCard,
     Color? surfaceElevated,
     Color? surfaceMuted,
+    Color? noticeSurface,
     Color? desktopSidebarGlassTint,
     Color? desktopSidebarGlassHover,
     Color? desktopSidebarGlassActive,
@@ -176,6 +180,7 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceCard: surfaceCard ?? this.surfaceCard,
       surfaceElevated: surfaceElevated ?? this.surfaceElevated,
       surfaceMuted: surfaceMuted ?? this.surfaceMuted,
+      noticeSurface: noticeSurface ?? this.noticeSurface,
       desktopSidebarGlassTint:
           desktopSidebarGlassTint ?? this.desktopSidebarGlassTint,
       desktopSidebarGlassHover:
@@ -251,6 +256,7 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceCard: Color.lerp(surfaceCard, other.surfaceCard, t)!,
       surfaceElevated: Color.lerp(surfaceElevated, other.surfaceElevated, t)!,
       surfaceMuted: Color.lerp(surfaceMuted, other.surfaceMuted, t)!,
+      noticeSurface: Color.lerp(noticeSurface, other.noticeSurface, t)!,
       desktopSidebarGlassTint:
           Color.lerp(
             desktopSidebarGlassTint,

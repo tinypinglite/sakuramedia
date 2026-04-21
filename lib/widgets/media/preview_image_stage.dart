@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 
 class PreviewImageStage extends StatelessWidget {
@@ -16,6 +17,8 @@ class PreviewImageStage extends StatelessWidget {
     this.fit = BoxFit.contain,
     this.showCloseButton = true,
     this.overlayChild,
+    this.enablePinchToFullscreen = false,
+    this.fullscreenImageKey,
   });
 
   final Key? stageKey;
@@ -28,6 +31,8 @@ class PreviewImageStage extends StatelessWidget {
   final BoxFit fit;
   final bool showCloseButton;
   final Widget? overlayChild;
+  final bool enablePinchToFullscreen;
+  final Key? fullscreenImageKey;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +48,13 @@ class PreviewImageStage extends StatelessWidget {
           children: [
             Positioned.fill(
               child: Center(
-                child: MaskedImage(key: imageKey, url: imageUrl, fit: fit),
+                child: AppPinchToFullscreenImage(
+                  enabled: enablePinchToFullscreen,
+                  url: imageUrl,
+                  fit: fit,
+                  fullscreenImageKey: fullscreenImageKey,
+                  child: MaskedImage(key: imageKey, url: imageUrl, fit: fit),
+                ),
               ),
             ),
             if (overlayChild != null) overlayChild!,

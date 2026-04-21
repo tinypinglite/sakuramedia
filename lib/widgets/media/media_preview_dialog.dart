@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
@@ -282,6 +283,10 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
                   height: resolvedPreviewHeight,
                   onClose: () => Navigator.of(context).pop(),
                   showCloseButton: false,
+                  enablePinchToFullscreen: isMobileAppPlatform(),
+                  fullscreenImageKey: const Key(
+                    'image-search-result-preview-fullscreen-image',
+                  ),
                 ),
                 Container(
                   key: const Key('image-search-result-preview-summary'),
@@ -322,6 +327,7 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
           height: previewHeight,
           onClose: () => Navigator.of(context).pop(),
           showCloseButton: false,
+          enablePinchToFullscreen: false,
         ),
         Container(
           key: const Key('image-search-result-preview-summary'),
@@ -391,51 +397,70 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
     if (movie == null) {
       return const SizedBox.shrink();
     }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+      key: const Key('image-search-result-preview-movie-info-section'),
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          key: const Key('image-search-result-preview-movie-cover'),
-          child:
-              movie.coverImage == null
-                  ? ClipRRect(
-                    borderRadius: context.appRadius.mdBorder,
-                    child: SizedBox(
-                      width: 88,
-                      height: 80,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: context.appColors.surfaceMuted,
-                        ),
-                        child: const Center(child: Icon(Icons.movie_outlined)),
-                      ),
-                    ),
-                  )
-                  : MoviePlotThumbnail(
-                    url: movie.coverImage!.bestAvailableUrl,
-                    maxHeight: 80,
-                    fit: BoxFit.cover,
-                    borderRadius: context.appRadius.mdBorder,
-                    fallbackAspectRatio: 0.72,
-                  ),
+        _MediaPreviewSectionDivider(
+          key: const Key('image-search-result-preview-movie-info-divider-top'),
         ),
-        SizedBox(width: spacing.sm),
-        Expanded(
-          child:
-              movie.actors.isEmpty
-                  ? Text(
-                    movie.title,
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s18,
-                      weight: AppTextWeight.semibold,
-                      tone: AppTextTone.primary,
-                    ),
-                  )
-                  : _MovieActorStrip(
-                    actors: movie.actors,
-                    controller: _actorScrollController,
-                  ),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: spacing.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                key: const Key('image-search-result-preview-movie-cover'),
+                child:
+                    movie.coverImage == null
+                        ? ClipRRect(
+                          borderRadius: context.appRadius.mdBorder,
+                          child: SizedBox(
+                            width: 88,
+                            height: 80,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: context.appColors.surfaceMuted,
+                              ),
+                              child: const Center(
+                                child: Icon(Icons.movie_outlined),
+                              ),
+                            ),
+                          ),
+                        )
+                        : MoviePlotThumbnail(
+                          url: movie.coverImage!.bestAvailableUrl,
+                          maxHeight: 80,
+                          fit: BoxFit.cover,
+                          borderRadius: context.appRadius.mdBorder,
+                          fallbackAspectRatio: 0.72,
+                        ),
+              ),
+              SizedBox(width: spacing.sm),
+              Expanded(
+                child:
+                    movie.actors.isEmpty
+                        ? Text(
+                          movie.title,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s18,
+                            weight: AppTextWeight.semibold,
+                            tone: AppTextTone.primary,
+                          ),
+                        )
+                        : _MovieActorStrip(
+                          actors: movie.actors,
+                          controller: _actorScrollController,
+                        ),
+              ),
+            ],
+          ),
+        ),
+        _MediaPreviewSectionDivider(
+          key: const Key(
+            'image-search-result-preview-movie-info-divider-bottom',
+          ),
         ),
       ],
     );
@@ -546,6 +571,19 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
   void _handleOpenMovieDetail() {
     widget.onOpenMovieDetail?.call();
     Navigator.of(context).pop();
+  }
+}
+
+class _MediaPreviewSectionDivider extends StatelessWidget {
+  const _MediaPreviewSectionDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: context.appColors.borderSubtle.withValues(alpha: 0.72),
+    );
   }
 }
 

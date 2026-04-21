@@ -100,6 +100,22 @@ void main() {
     expect(find.text('删除标记'), findsOneWidget);
     expect(find.text('播放'), findsOneWidget);
     expect(find.text('影片详情'), findsOneWidget);
+    expect(
+      find.byKey(const Key('image-search-result-preview-movie-info-section')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const Key('image-search-result-preview-movie-info-divider-top'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const Key('image-search-result-preview-movie-info-divider-bottom'),
+      ),
+      findsOneWidget,
+    );
 
     final previewHeroImage = tester.widget<MaskedImage>(
       find.descendant(

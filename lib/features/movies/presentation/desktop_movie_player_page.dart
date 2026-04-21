@@ -47,6 +47,7 @@ class DesktopMoviePlayerPage extends StatefulWidget {
     this.enableThumbnailActionMenu = true,
     this.imageSearchRoutePath = desktopImageSearchPath,
     this.useTouchOptimizedControls = false,
+    this.dividerHandleBuffer = 0,
     this.surfaceBuilder,
   });
 
@@ -57,6 +58,7 @@ class DesktopMoviePlayerPage extends StatefulWidget {
   final bool enableThumbnailActionMenu;
   final String imageSearchRoutePath;
   final bool useTouchOptimizedControls;
+  final double dividerHandleBuffer;
   final MoviePlayerSurfaceBuilder? surfaceBuilder;
 
   @override
@@ -115,19 +117,23 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
           animation: _controller,
           builder: (context, child) {
             if (_controller.isLoading) {
-              return const _MoviePlayerLoadingState();
+              return _MoviePlayerLoadingState(
+                dividerHandleBuffer: widget.dividerHandleBuffer,
+              );
             }
 
             if (_controller.errorMessage != null) {
               return _MoviePlayerErrorState(
                 message: _controller.errorMessage!,
                 onRetry: _controller.load,
+                dividerHandleBuffer: widget.dividerHandleBuffer,
               );
             }
 
             final resolvedUrl = _controller.resolvedPlayUrl;
             return _MoviePlayerSplitLayout(
               controller: _splitController,
+              dividerHandleBuffer: widget.dividerHandleBuffer,
               leftChild:
                   resolvedUrl == null
                       ? const _MoviePlayerEmptyState()
@@ -369,11 +375,13 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
 class _MoviePlayerSplitLayout extends StatelessWidget {
   const _MoviePlayerSplitLayout({
     required this.controller,
+    required this.dividerHandleBuffer,
     required this.leftChild,
     required this.rightChild,
   });
 
   final MultiSplitViewController controller;
+  final double dividerHandleBuffer;
   final Widget leftChild;
   final Widget rightChild;
 
@@ -382,6 +390,7 @@ class _MoviePlayerSplitLayout extends StatelessWidget {
     return MultiSplitViewTheme(
       data: MultiSplitViewThemeData(
         dividerThickness: context.appSpacing.xs,
+        dividerHandleBuffer: dividerHandleBuffer,
         dividerPainter: DividerPainters.grooved1(
           color: context.appColors.borderSubtle,
         ),
@@ -439,7 +448,9 @@ class _MoviePlayerSidePanel extends StatelessWidget {
 }
 
 class _MoviePlayerLoadingState extends StatelessWidget {
-  const _MoviePlayerLoadingState();
+  const _MoviePlayerLoadingState({required this.dividerHandleBuffer});
+
+  final double dividerHandleBuffer;
 
   @override
   Widget build(BuildContext context) {
@@ -447,6 +458,7 @@ class _MoviePlayerLoadingState extends StatelessWidget {
       controller: MultiSplitViewController(
         areas: [Area(flex: 0.72), Area(flex: 0.28)],
       ),
+      dividerHandleBuffer: dividerHandleBuffer,
       leftChild: const _MoviePlayerLoadingPanel(),
       rightChild: const SizedBox.expand(),
     );
@@ -467,10 +479,15 @@ class _MoviePlayerLoadingPanel extends StatelessWidget {
 }
 
 class _MoviePlayerErrorState extends StatelessWidget {
-  const _MoviePlayerErrorState({required this.message, required this.onRetry});
+  const _MoviePlayerErrorState({
+    required this.message,
+    required this.onRetry,
+    required this.dividerHandleBuffer,
+  });
 
   final String message;
   final VoidCallback onRetry;
+  final double dividerHandleBuffer;
 
   @override
   Widget build(BuildContext context) {
@@ -478,6 +495,7 @@ class _MoviePlayerErrorState extends StatelessWidget {
       controller: MultiSplitViewController(
         areas: [Area(flex: 0.72), Area(flex: 0.28)],
       ),
+      dividerHandleBuffer: dividerHandleBuffer,
       leftChild: _MoviePlayerPanelMessage(
         title: '播放器加载失败',
         message: message,

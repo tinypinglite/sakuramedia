@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +16,7 @@ import 'package:sakuramedia/features/configuration/data/collection_number_featur
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
+import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
@@ -156,8 +155,14 @@ void main() {
       await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
       await tester.pumpAndSettle();
 
-      final primarySection = find.byKey(
-        const Key('mobile-overview-drawer-primary-section'),
+      final librarySection = find.byKey(
+        const Key('mobile-overview-drawer-library-section'),
+      );
+      final playlistsSection = find.byKey(
+        const Key('mobile-overview-drawer-playlists-section'),
+      );
+      final passwordSection = find.byKey(
+        const Key('mobile-overview-drawer-password-section'),
       );
       final mediaLibrariesItem = find.byKey(
         const Key('mobile-overview-drawer-media-libraries'),
@@ -168,6 +173,7 @@ void main() {
       final indexersItem = find.byKey(
         const Key('mobile-overview-drawer-indexers'),
       );
+      final llmItem = find.byKey(const Key('mobile-overview-drawer-llm'));
       final playlistsItem = find.byKey(
         const Key('mobile-overview-drawer-playlists'),
       );
@@ -178,6 +184,7 @@ void main() {
       final bottomActions = find.byKey(
         const Key('mobile-overview-drawer-bottom-actions'),
       );
+      final drawer = find.byKey(const Key('mobile-overview-drawer'));
       final mediaLibrariesLabel = tester.widget<Text>(
         find.descendant(of: mediaLibrariesItem, matching: find.text('媒体库')),
       );
@@ -185,30 +192,84 @@ void main() {
         find.descendant(of: logoutItem, matching: find.text('退出登录')),
       );
       final mediaLibrariesPadding = tester.widget<Padding>(
-        find.descendant(
-          of: mediaLibrariesItem,
-          matching: find.byWidgetPredicate(
-            (widget) =>
-                widget is Padding &&
-                widget.padding ==
-                    EdgeInsets.symmetric(
-                      horizontal: sakuraThemeData.appSpacing.md,
-                      vertical: sakuraThemeData.appSpacing.sm,
-                    ),
-          ),
-        ).first,
+        find
+            .descendant(
+              of: mediaLibrariesItem,
+              matching: find.byWidgetPredicate(
+                (widget) =>
+                    widget is Padding &&
+                    widget.padding ==
+                        EdgeInsets.symmetric(
+                          horizontal: sakuraThemeData.appSpacing.md,
+                          vertical: sakuraThemeData.appSpacing.sm,
+                        ),
+              ),
+            )
+            .first,
       );
 
-      expect(find.byKey(const Key('mobile-overview-drawer')), findsOneWidget);
+      expect(drawer, findsOneWidget);
       expect(find.text('菜单'), findsNothing);
       expect(find.text('配置管理'), findsNothing);
-      expect(primarySection, findsOneWidget);
+      expect(librarySection, findsOneWidget);
+      expect(playlistsSection, findsOneWidget);
+      expect(passwordSection, findsOneWidget);
       expect(mediaLibrariesItem, findsOneWidget);
       expect(downloadersItem, findsOneWidget);
       expect(indexersItem, findsOneWidget);
+      expect(llmItem, findsOneWidget);
       expect(playlistsItem, findsOneWidget);
       expect(passwordItem, findsOneWidget);
       expect(logoutItem, findsOneWidget);
+      expect(
+        find.descendant(
+          of: drawer,
+          matching: find.byIcon(Icons.chevron_right_rounded),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: librarySection,
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Divider &&
+                widget.color ==
+                    sakuraThemeData.appColors.borderSubtle.withValues(
+                      alpha: 0.56,
+                    ),
+          ),
+        ),
+        findsNWidgets(3),
+      );
+      expect(
+        find.descendant(of: librarySection, matching: mediaLibrariesItem),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: librarySection, matching: downloadersItem),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: librarySection, matching: indexersItem),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: librarySection, matching: llmItem),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: playlistsSection, matching: playlistsItem),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: passwordSection, matching: passwordItem),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: bottomActions, matching: logoutItem),
+        findsOneWidget,
+      );
       expect(
         mediaLibrariesLabel.style?.fontSize,
         sakuraThemeData.appTextScale.s14,
@@ -222,8 +283,20 @@ void main() {
         ),
       );
       expect(
+        tester.getTopLeft(playlistsSection).dy,
+        greaterThan(tester.getBottomLeft(librarySection).dy),
+      );
+      expect(
+        tester.getTopLeft(llmItem).dy,
+        greaterThan(tester.getTopLeft(indexersItem).dy),
+      );
+      expect(
+        tester.getTopLeft(passwordSection).dy,
+        greaterThan(tester.getBottomLeft(playlistsSection).dy),
+      );
+      expect(
         tester.getTopLeft(bottomActions).dy,
-        greaterThan(tester.getBottomLeft(primarySection).dy),
+        greaterThan(tester.getBottomLeft(passwordSection).dy),
       );
     },
   );
@@ -232,6 +305,7 @@ void main() {
     WidgetTester tester,
   ) async {
     _enqueueOverviewResponses(bundle);
+    _enqueueMediaLibraries(bundle, libraries: const <Map<String, dynamic>>[]);
     final router = buildMobileRouter(sessionStore: sessionStore);
     addTearDown(router.dispose);
 
@@ -257,6 +331,11 @@ void main() {
       find.byKey(const Key('mobile-settings-media-libraries')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const Key('mobile-media-libraries-create-button')),
+      findsOneWidget,
+    );
+    expect(find.text('开发中'), findsNothing);
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
   });
 
@@ -288,6 +367,72 @@ void main() {
       find.byKey(const Key('mobile-password-submit-button')),
       findsOneWidget,
     );
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+  });
+
+  testWidgets('mobile overview drawer llm opens real settings page', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+    _enqueueLlmSettings(bundle);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      _buildRouterApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mobile-overview-drawer-llm')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('LLM 配置'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-settings-llm')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-llm-save-button')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+  });
+
+  testWidgets('mobile overview drawer playlists opens real playlists page', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists',
+      body: const <Map<String, dynamic>>[],
+    );
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      _buildRouterApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mobile-overview-drawer-playlists')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('播放列表'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-settings-playlists')), findsOneWidget);
+    expect(
+      find.byKey(const Key('mobile-playlists-create-button')),
+      findsOneWidget,
+    );
+    expect(find.text('开发中'), findsNothing);
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
   });
 
@@ -1293,6 +1438,9 @@ Widget _buildTestApp({
       Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
       Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
       Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
+      Provider<MovieDescTranslationSettingsApi>.value(
+        value: bundle.movieDescTranslationSettingsApi,
+      ),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       ChangeNotifierProvider(
         create: (_) => MovieCollectionTypeChangeNotifier(),
@@ -1328,6 +1476,9 @@ Widget _buildRouterApp({
       Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
       Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
       Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
+      Provider<MovieDescTranslationSettingsApi>.value(
+        value: bundle.movieDescTranslationSettingsApi,
+      ),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       ChangeNotifierProvider(
         create: (_) => MovieCollectionTypeChangeNotifier(),
@@ -1432,6 +1583,32 @@ void _enqueueOverviewResponses(
     path: '/hot-reviews',
     statusCode: 200,
     body: _hotReviewsPageJson(),
+  );
+}
+
+void _enqueueLlmSettings(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/movie-desc-translation-settings',
+    body: const <String, dynamic>{
+      'enabled': false,
+      'base_url': 'http://llm.internal:8000',
+      'api_key': '',
+      'model': 'gpt-4o-mini',
+      'timeout_seconds': 300.0,
+      'connect_timeout_seconds': 3.0,
+    },
+  );
+}
+
+void _enqueueMediaLibraries(
+  TestApiBundle bundle, {
+  required List<Map<String, dynamic>> libraries,
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/media-libraries',
+    body: libraries,
   );
 }
 

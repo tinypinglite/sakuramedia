@@ -36,8 +36,7 @@ Future<void> showMoviePlaylistPickerDialog(
       return showAppBottomDrawer<void>(
         context: context,
         drawerKey: const Key('movie-playlist-picker-bottom-sheet'),
-        heightFactor: 0.4,
-        // maxHeightFactor: 0.4,
+        heightFactor: 0.7,
         builder:
             (sheetContext) => MoviePlaylistPickerDialog(
               movieNumber: movieNumber,
@@ -190,8 +189,8 @@ class _MoviePlaylistPickerDialogState extends State<MoviePlaylistPickerDialog> {
                       '加入播放列表',
                       style: resolveAppTextStyle(
                         context,
-                        size: AppTextSize.s14,
-                        weight: AppTextWeight.regular,
+                        size: AppTextSize.s16,
+                        weight: AppTextWeight.medium,
                         tone: AppTextTone.secondary,
                       ),
                     ),

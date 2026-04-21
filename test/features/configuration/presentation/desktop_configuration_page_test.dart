@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/configuration/data/collection_number_featur
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
+import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
@@ -91,6 +92,307 @@ void main() {
         bundle.adapter.hitCount('GET', '/collection-number-features'),
         greaterThanOrEqualTo(1),
       );
+    });
+
+    testWidgets('loads llm settings section on basic tab', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      expect(find.byKey(const Key('configuration-llm-card')), findsOneWidget);
+      expect(find.text('LLM 配置'), findsOneWidget);
+      expect(
+        find.byKey(const Key('configuration-llm-base-url-field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('configuration-llm-test-button')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('configuration-llm-save-button')),
+        findsOneWidget,
+      );
+      expect(find.text('可保存'), findsOneWidget);
+      expect(
+        bundle.adapter.hitCount('GET', '/movie-desc-translation-settings'),
+        1,
+      );
+    });
+
+    testWidgets('saves llm settings and applies returned state', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/movie-desc-translation-settings',
+        body: _buildMovieDescTranslationSettingsJson(
+          enabled: true,
+          baseUrl: 'http://127.0.0.1:8000',
+          apiKey: 'secret-token',
+          model: 'gpt-4.1-mini',
+          timeoutSeconds: 120,
+          connectTimeoutSeconds: 5,
+        ),
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-llm-enabled-button')),
+      );
+      await tester.tap(
+        find.byKey(const Key('configuration-llm-enabled-button')),
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-base-url-field')),
+        'http://127.0.0.1:8000',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-api-key-field')),
+        'secret-token',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-model-field')),
+        'gpt-4.1-mini',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-timeout-field')),
+        '120',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-connect-timeout-field')),
+        '5',
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-llm-save-button')),
+      );
+      await tester.tap(find.byKey(const Key('configuration-llm-save-button')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      final patchRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'PATCH' &&
+            request.path == '/movie-desc-translation-settings',
+      );
+      expect(patchRequest.body['enabled'], isTrue);
+      expect(patchRequest.body['base_url'], 'http://127.0.0.1:8000');
+      expect(patchRequest.body['model'], 'gpt-4.1-mini');
+      expect(patchRequest.body['timeout_seconds'], 120.0);
+      expect(find.text('已启用'), findsWidgets);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('tests llm draft without triggering save', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/movie-desc-translation-settings/test',
+        body: const <String, dynamic>{'ok': true},
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-base-url-field')),
+        'http://127.0.0.1:9000',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-model-field')),
+        'gpt-4.1-mini',
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-llm-test-button')),
+      );
+      await tester.tap(find.byKey(const Key('configuration-llm-test-button')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(
+        bundle.adapter.hitCount(
+          'POST',
+          '/movie-desc-translation-settings/test',
+        ),
+        1,
+      );
+      expect(
+        bundle.adapter.hitCount('PATCH', '/movie-desc-translation-settings'),
+        0,
+      );
+      expect(find.text('测试通过'), findsWidgets);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('validates llm fields before save', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-base-url-field')),
+        'not-url',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-model-field')),
+        '',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-timeout-field')),
+        '0',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-connect-timeout-field')),
+        '-1',
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-llm-save-button')),
+      );
+      await tester.tap(find.byKey(const Key('configuration-llm-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('请输入合法的 http/https 地址'), findsOneWidget);
+      expect(find.text('请输入模型名称'), findsOneWidget);
+      expect(find.text('请求超时必须是正数'), findsOneWidget);
+      expect(find.text('连接超时必须是正数'), findsOneWidget);
+      expect(
+        bundle.adapter.hitCount('PATCH', '/movie-desc-translation-settings'),
+        0,
+      );
+    });
+
+    testWidgets('failed llm test updates recent test state', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueResponder(
+        method: 'POST',
+        path: '/movie-desc-translation-settings/test',
+        responder: (_, __) async {
+          return ResponseBody.fromString(
+            jsonEncode({
+              'error': <String, dynamic>{
+                'code': 'movie_desc_translation_failed',
+                'message': '测试失败',
+              },
+            }),
+            500,
+            headers: const <String, List<String>>{
+              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-llm-test-button')),
+      );
+      await tester.tap(find.byKey(const Key('configuration-llm-test-button')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('测试失败'), findsWidgets);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('shows llm error state and retries successfully', (
+      WidgetTester tester,
+    ) async {
+      bundle.adapter.enqueueResponder(
+        method: 'GET',
+        path: '/movie-desc-translation-settings',
+        responder: (_, __) async {
+          return ResponseBody.fromString(
+            jsonEncode({
+              'error': <String, dynamic>{
+                'code': 'server_error',
+                'message': 'LLM 配置加载失败，请稍后重试。',
+              },
+            }),
+            500,
+            headers: const <String, List<String>>{
+              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+            },
+          );
+        },
+      );
+      _enqueueMediaLibraries(bundle, includeLlmSettings: false);
+      _enqueueMovieDescTranslationSettings(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      expect(
+        find.byKey(const Key('configuration-llm-error-state')),
+        findsOneWidget,
+      );
+      expect(find.text('LLM 配置加载失败，请稍后重试。'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('configuration-llm-retry-button')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('configuration-llm-card')), findsOneWidget);
+      expect(
+        find.byKey(const Key('configuration-llm-save-button')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('keeps llm draft when saving fails', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueResponder(
+        method: 'PATCH',
+        path: '/movie-desc-translation-settings',
+        responder: (_, __) async {
+          return ResponseBody.fromString(
+            jsonEncode({
+              'error': <String, dynamic>{
+                'code': 'invalid_movie_desc_translation_base_url',
+                'message': 'Base URL 不合法',
+              },
+            }),
+            422,
+            headers: const <String, List<String>>{
+              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-base-url-field')),
+        'http://127.0.0.1:9000',
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-llm-model-field')),
+        'gpt-4.1-mini',
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-llm-save-button')),
+      );
+      await tester.tap(find.byKey(const Key('configuration-llm-save-button')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextFormField>(
+        find.byKey(const Key('configuration-llm-base-url-field')),
+      );
+      expect(field.controller?.text, 'http://127.0.0.1:9000');
+      expect(find.text('Base URL 不合法'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
     });
 
     testWidgets(
@@ -860,6 +1162,9 @@ void main() {
       _enqueueMediaLibraries(bundle);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
       await tester.tap(
         find.byKey(const Key('configuration-password-submit-button')),
       );
@@ -890,6 +1195,9 @@ void main() {
         'same-password',
       );
 
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
       await tester.tap(
         find.byKey(const Key('configuration-password-submit-button')),
       );
@@ -918,6 +1226,9 @@ void main() {
         'other-password',
       );
 
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
       await tester.tap(
         find.byKey(const Key('configuration-password-submit-button')),
       );
@@ -973,6 +1284,9 @@ void main() {
         'new-password',
       );
 
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
       await tester.tap(
         find.byKey(const Key('configuration-password-submit-button')),
       );
@@ -1014,6 +1328,9 @@ void main() {
         'reset-password',
       );
 
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-password-reset-button')),
+      );
       await tester.tap(
         find.byKey(const Key('configuration-password-reset-button')),
       );
@@ -1101,6 +1418,9 @@ void main() {
         'new-password',
       );
 
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
       await tester.tap(
         find.byKey(const Key('configuration-password-submit-button')),
       );
@@ -1161,6 +1481,9 @@ void main() {
         'new-password',
       );
 
+      await tester.ensureVisible(
+        find.byKey(const Key('configuration-password-submit-button')),
+      );
       await tester.tap(
         find.byKey(const Key('configuration-password-submit-button')),
       );
@@ -1878,6 +2201,9 @@ void main() {
           Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
           Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
           Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
+          Provider<MovieDescTranslationSettingsApi>.value(
+            value: bundle.movieDescTranslationSettingsApi,
+          ),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
           Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
@@ -1906,6 +2232,9 @@ void main() {
     await tester.enterText(
       find.byKey(const Key('configuration-password-confirm-field')),
       'new-password',
+    );
+    await tester.ensureVisible(
+      find.byKey(const Key('configuration-password-submit-button')),
     );
     await tester.tap(
       find.byKey(const Key('configuration-password-submit-button')),
@@ -1940,6 +2269,9 @@ Future<void> _pumpPage(
         Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
         Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
         Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
+        Provider<MovieDescTranslationSettingsApi>.value(
+          value: bundle.movieDescTranslationSettingsApi,
+        ),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
       ],
       child: OKToast(
@@ -2016,6 +2348,7 @@ void _enqueuePlaylists(
 
 void _enqueueMediaLibraries(
   TestApiBundle bundle, {
+  bool includeLlmSettings = true,
   List<Map<String, Object?>> libraries = const [
     {
       'id': 1,
@@ -2032,6 +2365,9 @@ void _enqueueMediaLibraries(
     body: libraries,
   );
   _enqueueCollectionNumberFeatures(bundle);
+  if (includeLlmSettings) {
+    _enqueueMovieDescTranslationSettings(bundle);
+  }
 }
 
 void _enqueueCollectionNumberFeatures(
@@ -2044,6 +2380,47 @@ void _enqueueCollectionNumberFeatures(
     path: '/collection-number-features',
     body: {'features': features, 'sync_stats': syncStats},
   );
+}
+
+void _enqueueMovieDescTranslationSettings(
+  TestApiBundle bundle, {
+  bool enabled = false,
+  String baseUrl = 'http://llm.internal:8000',
+  String apiKey = '',
+  String model = 'gpt-4o-mini',
+  double timeoutSeconds = 300,
+  double connectTimeoutSeconds = 3,
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/movie-desc-translation-settings',
+    body: _buildMovieDescTranslationSettingsJson(
+      enabled: enabled,
+      baseUrl: baseUrl,
+      apiKey: apiKey,
+      model: model,
+      timeoutSeconds: timeoutSeconds,
+      connectTimeoutSeconds: connectTimeoutSeconds,
+    ),
+  );
+}
+
+Map<String, dynamic> _buildMovieDescTranslationSettingsJson({
+  bool enabled = false,
+  String baseUrl = 'http://llm.internal:8000',
+  String apiKey = '',
+  String model = 'gpt-4o-mini',
+  double timeoutSeconds = 300,
+  double connectTimeoutSeconds = 3,
+}) {
+  return <String, dynamic>{
+    'enabled': enabled,
+    'base_url': baseUrl,
+    'api_key': apiKey,
+    'model': model,
+    'timeout_seconds': timeoutSeconds,
+    'connect_timeout_seconds': connectTimeoutSeconds,
+  };
 }
 
 Future<SessionStore> _buildLoggedInSessionStore() async {

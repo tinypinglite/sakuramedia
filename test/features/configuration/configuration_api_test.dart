@@ -4,6 +4,7 @@ import 'package:sakuramedia/features/configuration/data/collection_number_featur
 import 'package:sakuramedia/features/configuration/data/download_client_dto.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/data/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_dto.dart';
 
 import '../../support/test_api_bundle.dart';
 
@@ -347,6 +348,93 @@ void main() {
         expect(settings.indexers.single.id, 0);
         expect(settings.indexers.single.downloadClientId, 0);
         expect(settings.indexers.single.downloadClientName, '');
+      },
+    );
+
+    test(
+      'movie desc translation settings api maps resource and test endpoint',
+      () async {
+        final sessionStore = await _buildLoggedInSessionStore();
+        final bundle = await createTestApiBundle(sessionStore);
+        addTearDown(bundle.dispose);
+
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/movie-desc-translation-settings',
+          body: <String, dynamic>{
+            'enabled': false,
+            'base_url': 'http://llm.internal:8000',
+            'api_key': 'secret-token',
+            'model': 'gpt-4o-mini',
+            'timeout_seconds': 300.0,
+            'connect_timeout_seconds': 3.0,
+          },
+        );
+        bundle.adapter.enqueueJson(
+          method: 'PATCH',
+          path: '/movie-desc-translation-settings',
+          body: <String, dynamic>{
+            'enabled': true,
+            'base_url': 'http://127.0.0.1:8000',
+            'api_key': '',
+            'model': 'gpt-4o-mini',
+            'timeout_seconds': 180.0,
+            'connect_timeout_seconds': 9.0,
+          },
+        );
+        bundle.adapter.enqueueJson(
+          method: 'POST',
+          path: '/movie-desc-translation-settings/test',
+          body: const <String, dynamic>{'ok': true},
+        );
+
+        final settings =
+            await bundle.movieDescTranslationSettingsApi.getSettings();
+        final updated = await bundle.movieDescTranslationSettingsApi
+            .updateSettings(
+              const UpdateMovieDescTranslationSettingsPayload(
+                enabled: true,
+                baseUrl: 'http://127.0.0.1:8000',
+                apiKey: '',
+                model: 'gpt-4o-mini',
+                timeoutSeconds: 180,
+                connectTimeoutSeconds: 9,
+              ),
+            );
+        final ok = await bundle.movieDescTranslationSettingsApi.testSettings(
+          const TestMovieDescTranslationSettingsPayload(
+            enabled: true,
+            baseUrl: 'http://127.0.0.1:8000',
+            apiKey: '',
+            model: 'gpt-4o-mini',
+            timeoutSeconds: 180,
+            connectTimeoutSeconds: 9,
+          ),
+        );
+
+        expect(settings.enabled, isFalse);
+        expect(settings.baseUrl, 'http://llm.internal:8000');
+        expect(settings.model, 'gpt-4o-mini');
+        expect(settings.timeoutSeconds, 300);
+        expect(updated.enabled, isTrue);
+        expect(updated.connectTimeoutSeconds, 9);
+        expect(ok, isTrue);
+        expect(
+          bundle.adapter.requests[1].body['base_url'],
+          'http://127.0.0.1:8000',
+        );
+        expect(bundle.adapter.requests[2].body['timeout_seconds'], 180.0);
+        expect(
+          bundle.adapter.hitCount('PATCH', '/movie-desc-translation-settings'),
+          1,
+        );
+        expect(
+          bundle.adapter.hitCount(
+            'POST',
+            '/movie-desc-translation-settings/test',
+          ),
+          1,
+        );
       },
     );
   });

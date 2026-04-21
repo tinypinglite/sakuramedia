@@ -958,7 +958,7 @@ void main() {
       expect(heroTop, lessThan(movieNumberBottom));
       expect(movieNumberBottom, lessThan(interactionTop));
       expect(interactionTop, lessThan(summaryTop));
-      expect(numberText.style?.fontSize, sakuraThemeData.appTextScale.s14);
+      expect(numberText.style?.fontSize, sakuraThemeData.appTextScale.s16);
       expect(summaryText.style?.fontSize, sakuraThemeData.appTextScale.s14);
     },
   );

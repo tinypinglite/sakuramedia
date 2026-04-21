@@ -30,8 +30,7 @@ Future<PlaylistDto?> showCreatePlaylistDialog(
       return showAppBottomDrawer<PlaylistDto>(
         context: context,
         drawerKey: const Key('create-playlist-bottom-sheet'),
-        // maxHeightFactor: 0.4,
-        heightFactor: 0.4,
+        heightFactor: 0.7,
         builder:
             (sheetContext) => const CreatePlaylistDialog(
               presentation: CreatePlaylistDialogPresentation.bottomDrawer,

@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 
+const double _mobilePlayerDividerHandleBuffer = 12;
+
 class MobileMoviePlayerPage extends StatefulWidget {
   const MobileMoviePlayerPage({
     super.key,
@@ -23,43 +25,19 @@ class MobileMoviePlayerPage extends StatefulWidget {
   State<MobileMoviePlayerPage> createState() => _MobileMoviePlayerPageState();
 }
 
-enum _OrientationCategory { portrait, landscape }
-
 class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage> {
-  _OrientationCategory? _entryOrientation;
-
   @override
   void initState() {
     super.initState();
     debugPrint(
       '[player-debug] mobile_player_page_init movie=${widget.movieNumber} initialMediaId=${widget.initialMediaId} initialPositionSeconds=${widget.initialPositionSeconds}',
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      final orientation = MediaQuery.orientationOf(context);
-      _entryOrientation =
-          orientation == Orientation.landscape
-              ? _OrientationCategory.landscape
-              : _OrientationCategory.portrait;
-      unawaited(_enterPlayerSystemUi());
-    });
+    unawaited(_enterPlayerSystemUi());
   }
 
   @override
   void dispose() {
-    final restoreOrientations =
-        _entryOrientation == _OrientationCategory.landscape
-            ? const <DeviceOrientation>[
-              DeviceOrientation.landscapeLeft,
-              DeviceOrientation.landscapeRight,
-            ]
-            : const <DeviceOrientation>[
-              DeviceOrientation.portraitUp,
-              DeviceOrientation.portraitDown,
-            ];
-    unawaited(_restoreSystemUi(restoreOrientations));
+    unawaited(_restoreSystemUi());
     super.dispose();
   }
 
@@ -71,14 +49,12 @@ class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage> {
     ]);
   }
 
-  Future<void> _restoreSystemUi(
-    List<DeviceOrientation> restoreOrientations,
-  ) async {
+  Future<void> _restoreSystemUi() async {
     await SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.manual,
       overlays: SystemUiOverlay.values,
     );
-    await SystemChrome.setPreferredOrientations(restoreOrientations);
+    await SystemChrome.setPreferredOrientations(const <DeviceOrientation>[]);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(
         SystemChrome.setEnabledSystemUIMode(
@@ -99,6 +75,7 @@ class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage> {
       enableThumbnailActionMenu: true,
       imageSearchRoutePath: mobileImageSearchPath,
       useTouchOptimizedControls: true,
+      dividerHandleBuffer: _mobilePlayerDividerHandleBuffer,
       surfaceBuilder: widget.surfaceBuilder,
     );
   }

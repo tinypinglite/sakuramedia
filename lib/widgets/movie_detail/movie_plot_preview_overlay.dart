@@ -10,6 +10,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 import 'package:sakuramedia/widgets/media/preview_dialog_surface.dart';
@@ -47,6 +48,7 @@ Future<void> showMoviePlotPreviewOverlay({
               initialIndex: initialIndex,
               onRequestImageMenu: onRequestImageMenu,
               thumbnailStripLayout: thumbnailStripLayout,
+              enablePinchToFullscreen: false,
             ),
       );
     case MoviePlotPreviewPresentation.bottomDrawer:
@@ -61,6 +63,7 @@ Future<void> showMoviePlotPreviewOverlay({
               initialIndex: initialIndex,
               onRequestImageMenu: onRequestImageMenu,
               thumbnailStripLayout: thumbnailStripLayout,
+              enablePinchToFullscreen: isMobileAppPlatform(),
             ),
       );
   }
@@ -72,6 +75,7 @@ class _MoviePlotPreviewDialog extends StatelessWidget {
     required this.initialIndex,
     required this.onRequestImageMenu,
     required this.thumbnailStripLayout,
+    required this.enablePinchToFullscreen,
   });
 
   final List<MovieImageDto> plotImages;
@@ -83,6 +87,7 @@ class _MoviePlotPreviewDialog extends StatelessWidget {
   )?
   onRequestImageMenu;
   final MoviePlotPreviewThumbnailStripLayout thumbnailStripLayout;
+  final bool enablePinchToFullscreen;
 
   @override
   Widget build(BuildContext context) {
@@ -111,6 +116,7 @@ class _MoviePlotPreviewDialog extends StatelessWidget {
         initialIndex: initialIndex,
         onRequestImageMenu: onRequestImageMenu,
         thumbnailStripLayout: thumbnailStripLayout,
+        enablePinchToFullscreen: enablePinchToFullscreen,
       ),
     );
   }
@@ -122,6 +128,7 @@ class _MoviePlotPreviewContent extends StatefulWidget {
     required this.initialIndex,
     required this.onRequestImageMenu,
     required this.thumbnailStripLayout,
+    required this.enablePinchToFullscreen,
   });
 
   final List<MovieImageDto> plotImages;
@@ -133,6 +140,7 @@ class _MoviePlotPreviewContent extends StatefulWidget {
   )?
   onRequestImageMenu;
   final MoviePlotPreviewThumbnailStripLayout thumbnailStripLayout;
+  final bool enablePinchToFullscreen;
 
   @override
   State<_MoviePlotPreviewContent> createState() =>
@@ -146,6 +154,7 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
   late List<GlobalKey> _thumbnailKeys;
   late int _currentIndex;
   bool _hasSyncedInitialThumbnailStrip = false;
+  bool _isFullscreenActive = false;
 
   @override
   void initState() {
@@ -332,6 +341,10 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
             child: PageView.builder(
               key: const Key('movie-plot-preview-page-view'),
               controller: _pageController,
+              physics:
+                  _isFullscreenActive
+                      ? const NeverScrollableScrollPhysics()
+                      : null,
               itemCount: widget.plotImages.length,
               onPageChanged: (index) {
                 if (_currentIndex == index) {
@@ -350,6 +363,15 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
                   fallbackAspectRatio:
                       tokens.movieDetailPlotThumbnailWidth /
                       tokens.movieDetailPlotThumbnailHeight,
+                  enablePinchToFullscreen: widget.enablePinchToFullscreen,
+                  onFullscreenChanged: (isActive) {
+                    if (_isFullscreenActive == isActive) {
+                      return;
+                    }
+                    setState(() {
+                      _isFullscreenActive = isActive;
+                    });
+                  },
                   onRequestMenu:
                       widget.onRequestImageMenu == null
                           ? null
@@ -363,49 +385,52 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
             ),
           ),
           SizedBox(height: spacing.md),
-          SizedBox(
-            height:
-                tokens.movieDetailPlotPreviewThumbnailHeight + spacing.xs * 2,
-            child: ListView.separated(
-              key: const Key('movie-plot-preview-thumbnail-list'),
-              controller: _thumbnailScrollController,
-              scrollDirection: Axis.horizontal,
-              itemCount: widget.plotImages.length,
-              separatorBuilder: (_, __) => SizedBox(width: spacing.sm),
-              itemBuilder: (context, index) {
-                final image = widget.plotImages[index];
-                final isCurrent = index == _currentIndex;
-                final animatedThumbnail = AnimatedScale(
-                  key: _thumbnailKeys[index],
-                  duration: const Duration(milliseconds: 180),
-                  scale: isCurrent ? 1.0 : 0.94,
-                  child: AnimatedOpacity(
+          IgnorePointer(
+            ignoring: _isFullscreenActive,
+            child: SizedBox(
+              height:
+                  tokens.movieDetailPlotPreviewThumbnailHeight + spacing.xs * 2,
+              child: ListView.separated(
+                key: const Key('movie-plot-preview-thumbnail-list'),
+                controller: _thumbnailScrollController,
+                scrollDirection: Axis.horizontal,
+                itemCount: widget.plotImages.length,
+                separatorBuilder: (_, __) => SizedBox(width: spacing.sm),
+                itemBuilder: (context, index) {
+                  final image = widget.plotImages[index];
+                  final isCurrent = index == _currentIndex;
+                  final animatedThumbnail = AnimatedScale(
+                    key: _thumbnailKeys[index],
                     duration: const Duration(milliseconds: 180),
-                    opacity: isCurrent ? 1 : 0.58,
-                    child: _PreviewStripThumbnail(
-                      image: image,
-                      thumbnailStripLayout: widget.thumbnailStripLayout,
+                    scale: isCurrent ? 1.0 : 0.94,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 180),
+                      opacity: isCurrent ? 1 : 0.58,
+                      child: _PreviewStripThumbnail(
+                        image: image,
+                        thumbnailStripLayout: widget.thumbnailStripLayout,
+                      ),
                     ),
-                  ),
-                );
-                return widget.onRequestImageMenu == null
-                    ? GestureDetector(
-                      key: Key('movie-plot-preview-thumb-$index'),
-                      onTap: () => _goToIndex(index),
-                      child: animatedThumbnail,
-                    )
-                    : AppImageActionTrigger(
-                      key: Key('movie-plot-preview-thumb-$index'),
-                      onTap: () => _goToIndex(index),
-                      onRequestMenu:
-                          (globalPosition) => widget.onRequestImageMenu!(
-                            context,
-                            index,
-                            globalPosition,
-                          ),
-                      child: animatedThumbnail,
-                    );
-              },
+                  );
+                  return widget.onRequestImageMenu == null
+                      ? GestureDetector(
+                        key: Key('movie-plot-preview-thumb-$index'),
+                        onTap: () => _goToIndex(index),
+                        child: animatedThumbnail,
+                      )
+                      : AppImageActionTrigger(
+                        key: Key('movie-plot-preview-thumb-$index'),
+                        onTap: () => _goToIndex(index),
+                        onRequestMenu:
+                            (globalPosition) => widget.onRequestImageMenu!(
+                              context,
+                              index,
+                              globalPosition,
+                            ),
+                        child: animatedThumbnail,
+                      );
+                },
+              ),
             ),
           ),
           SizedBox(height: spacing.md),
@@ -452,11 +477,15 @@ class _PreviewMainImageActionTarget extends StatefulWidget {
     super.key,
     required this.imageUrl,
     required this.fallbackAspectRatio,
+    required this.enablePinchToFullscreen,
+    this.onFullscreenChanged,
     this.onRequestMenu,
   });
 
   final String imageUrl;
   final double fallbackAspectRatio;
+  final bool enablePinchToFullscreen;
+  final ValueChanged<bool>? onFullscreenChanged;
   final ValueChanged<Offset>? onRequestMenu;
 
   @override
@@ -470,6 +499,7 @@ class _PreviewMainImageActionTargetState
   ImageStreamListener? _imageStreamListener;
   ImageProvider<Object>? _resolvedImageProvider;
   double? _imageAspectRatio;
+  bool _suppressMenuRequests = false;
 
   @override
   void didChangeDependencies() {
@@ -559,7 +589,7 @@ class _PreviewMainImageActionTargetState
     required Offset globalPosition,
   }) {
     final callback = widget.onRequestMenu;
-    if (callback == null) {
+    if (callback == null || _suppressMenuRequests) {
       return;
     }
 
@@ -611,23 +641,41 @@ class _PreviewMainImageActionTargetState
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onLongPressStart:
-          widget.onRequestMenu == null
-              ? null
-              : (details) => _requestMenuIfHit(
-                localPosition: details.localPosition,
-                globalPosition: details.globalPosition,
-              ),
-      onSecondaryTapDown:
-          widget.onRequestMenu == null
-              ? null
-              : (details) => _requestMenuIfHit(
-                localPosition: details.localPosition,
-                globalPosition: details.globalPosition,
-              ),
-      child: MaskedImage(url: widget.imageUrl, fit: BoxFit.contain),
+    return AppPinchToFullscreenImage(
+      enabled: widget.enablePinchToFullscreen,
+      url: widget.imageUrl,
+      imageProvider: _resolvedImageProvider,
+      imageAspectRatio: _imageAspectRatio,
+      fallbackAspectRatio: widget.fallbackAspectRatio,
+      fit: BoxFit.contain,
+      fullscreenImageKey: const Key('movie-plot-preview-fullscreen-image'),
+      onFullscreenChanged: (isActive) {
+        if (_suppressMenuRequests == isActive) {
+          return;
+        }
+        setState(() {
+          _suppressMenuRequests = isActive;
+        });
+        widget.onFullscreenChanged?.call(isActive);
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onLongPressStart:
+            widget.onRequestMenu == null
+                ? null
+                : (details) => _requestMenuIfHit(
+                  localPosition: details.localPosition,
+                  globalPosition: details.globalPosition,
+                ),
+        onSecondaryTapDown:
+            widget.onRequestMenu == null
+                ? null
+                : (details) => _requestMenuIfHit(
+                  localPosition: details.localPosition,
+                  globalPosition: details.globalPosition,
+                ),
+        child: MaskedImage(url: widget.imageUrl, fit: BoxFit.contain),
+      ),
     );
   }
 }

@@ -26,6 +26,7 @@ import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
+import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
@@ -46,32 +47,37 @@ import '../support/test_api_bundle.dart';
 
 const List<_MobileSettingsRouteCase> _mobileSettingsRouteCases =
     <_MobileSettingsRouteCase>[
-  _MobileSettingsRouteCase(
-    path: mobileSettingsMediaLibrariesPath,
-    title: '媒体库',
-    pageKey: Key('mobile-settings-media-libraries'),
-  ),
-  _MobileSettingsRouteCase(
-    path: mobileSettingsDownloadersPath,
-    title: '下载器',
-    pageKey: Key('mobile-settings-downloaders'),
-  ),
-  _MobileSettingsRouteCase(
-    path: mobileSettingsIndexersPath,
-    title: '索引器',
-    pageKey: Key('mobile-settings-indexers'),
-  ),
-  _MobileSettingsRouteCase(
-    path: mobileSettingsPlaylistsPath,
-    title: '播放列表',
-    pageKey: Key('mobile-settings-playlists'),
-  ),
-  _MobileSettingsRouteCase(
-    path: mobileSettingsPasswordPath,
-    title: '修改密码',
-    pageKey: Key('mobile-settings-password'),
-  ),
-];
+      _MobileSettingsRouteCase(
+        path: mobileSettingsMediaLibrariesPath,
+        title: '媒体库',
+        pageKey: Key('mobile-settings-media-libraries'),
+      ),
+      _MobileSettingsRouteCase(
+        path: mobileSettingsDownloadersPath,
+        title: '下载器',
+        pageKey: Key('mobile-settings-downloaders'),
+      ),
+      _MobileSettingsRouteCase(
+        path: mobileSettingsIndexersPath,
+        title: '索引器',
+        pageKey: Key('mobile-settings-indexers'),
+      ),
+      _MobileSettingsRouteCase(
+        path: mobileSettingsLlmPath,
+        title: 'LLM 配置',
+        pageKey: Key('mobile-settings-llm'),
+      ),
+      _MobileSettingsRouteCase(
+        path: mobileSettingsPlaylistsPath,
+        title: '播放列表',
+        pageKey: Key('mobile-settings-playlists'),
+      ),
+      _MobileSettingsRouteCase(
+        path: mobileSettingsPasswordPath,
+        title: '修改密码',
+        pageKey: Key('mobile-settings-password'),
+      ),
+    ];
 
 void main() {
   setUp(() {
@@ -957,15 +963,139 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      if (routeCase.path == mobileSettingsMediaLibrariesPath) {
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/media-libraries',
+          body: const <Map<String, dynamic>>[],
+        );
+      } else if (routeCase.path == mobileSettingsDownloadersPath) {
+        _enqueueMobileDownloadersResponses(bundle);
+      } else if (routeCase.path == mobileSettingsIndexersPath) {
+        _enqueueMobileIndexersResponses(bundle);
+      } else if (routeCase.path == mobileSettingsLlmPath) {
+        _enqueueMobileLlmResponses(bundle);
+      } else if (routeCase.path == mobileSettingsPlaylistsPath) {
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/playlists',
+          body: const <Map<String, dynamic>>[],
+        );
+      }
+
       router.go(routeCase.path);
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
       expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
-      expect(find.text(routeCase.title), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('mobile-subpage-topbar')),
+          matching: find.text(routeCase.title),
+        ),
+        findsOneWidget,
+      );
       expect(find.byKey(routeCase.pageKey), findsOneWidget);
     });
   }
+
+  testWidgets('mobile media libraries route renders real page content', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-libraries',
+      body: const <Map<String, dynamic>>[],
+    );
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileSettingsMediaLibrariesPath);
+    await tester.pumpAndSettle();
+
+    expect(find.text('开发中'), findsNothing);
+    expect(
+      find.byKey(const Key('mobile-media-libraries-create-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('mobile-media-libraries-notice-card')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('mobile indexers route renders real page content', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    _enqueueMobileIndexersResponses(bundle);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileSettingsIndexersPath);
+    await tester.pumpAndSettle();
+
+    expect(find.text('开发中'), findsNothing);
+    expect(
+      find.byKey(const Key('mobile-indexers-api-key-card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('mobile-indexers-create-button')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('mobile llm route renders real page content', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    _enqueueMobileLlmResponses(bundle);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileSettingsLlmPath);
+    await tester.pumpAndSettle();
+
+    expect(find.text('开发中'), findsNothing);
+    expect(find.byKey(const Key('mobile-llm-overview-card')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-llm-form-card')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-llm-save-button')), findsOneWidget);
+  });
 
   testWidgets('mobile playlist detail route uses subpage shell', (
     WidgetTester tester,
@@ -1253,7 +1383,8 @@ void main() {
     addTearDown(bundle.dispose);
     addTearDown(() => debugMobileImageSearchFilePicker = null);
     final router = buildMobileRouter(sessionStore: sessionStore);
-    debugMobileImageSearchFilePicker = () async => ImageSearchPickedFile(
+    debugMobileImageSearchFilePicker =
+        () async => ImageSearchPickedFile(
           bytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
           fileName: 'picked.png',
           mimeType: 'image/png',
@@ -1417,7 +1548,10 @@ void main() {
         '456',
       );
       expect(
-        router.routeInformationProvider.value.uri
+        router
+            .routeInformationProvider
+            .value
+            .uri
             .queryParameters['positionSeconds'],
         '120',
       );
@@ -1479,36 +1613,47 @@ void main() {
   });
 
   for (final routeCase in _mobileSettingsRouteCases) {
-    testWidgets(
-      '${routeCase.title} deep link back falls back to overview',
-      (WidgetTester tester) async {
-        final sessionStore = await _buildLoggedInSessionStore(
-          platform: AppPlatform.mobile,
+    testWidgets('${routeCase.title} deep link back falls back to overview', (
+      WidgetTester tester,
+    ) async {
+      final sessionStore = await _buildLoggedInSessionStore(
+        platform: AppPlatform.mobile,
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      final router = buildMobileRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      if (routeCase.path == mobileSettingsMediaLibrariesPath) {
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/media-libraries',
+          body: const <Map<String, dynamic>>[],
         );
-        final bundle = await createTestApiBundle(sessionStore);
-        addTearDown(bundle.dispose);
-        final router = buildMobileRouter(sessionStore: sessionStore);
+      } else if (routeCase.path == mobileSettingsDownloadersPath) {
+        _enqueueMobileDownloadersResponses(bundle);
+      } else if (routeCase.path == mobileSettingsIndexersPath) {
+        _enqueueMobileIndexersResponses(bundle);
+      }
 
-        await _pumpRouterApp(
-          tester,
-          router: router,
-          sessionStore: sessionStore,
-          bundle: bundle,
-        );
-        await tester.pumpAndSettle();
+      router.go(routeCase.path);
+      await tester.pumpAndSettle();
 
-        router.go(routeCase.path);
-        await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+      await tester.pumpAndSettle();
 
-        await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
-        await tester.pumpAndSettle();
-
-        expect(
-          router.routeInformationProvider.value.uri.path,
-          mobileOverviewPath,
-        );
-      },
-    );
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        mobileOverviewPath,
+      );
+    });
   }
 
   testWidgets('mobile movie detail deep link back falls back to movie list', (
@@ -2730,6 +2875,9 @@ Future<void> _pumpRouterApp(
     Provider<DownloadsApi>.value(value: bundle.downloadsApi),
     Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
     Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
+    Provider<MovieDescTranslationSettingsApi>.value(
+      value: bundle.movieDescTranslationSettingsApi,
+    ),
   ];
 
   return tester.pumpWidget(
@@ -2986,6 +3134,60 @@ void _enqueueMobileMoviesResponse(TestApiBundle bundle) {
       'page': 1,
       'page_size': 24,
       'total': 1,
+    },
+  );
+}
+
+void _enqueueMobileDownloadersResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/download-clients',
+    body: const <Map<String, dynamic>>[],
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/media-libraries',
+    body: const <Map<String, dynamic>>[],
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/indexer-settings',
+    body: const <String, dynamic>{
+      'type': 'builtin',
+      'api_key': '',
+      'indexers': <Map<String, dynamic>>[],
+    },
+  );
+}
+
+void _enqueueMobileIndexersResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/download-clients',
+    body: const <Map<String, dynamic>>[],
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/indexer-settings',
+    body: const <String, dynamic>{
+      'type': 'jackett',
+      'api_key': '',
+      'indexers': <Map<String, dynamic>>[],
+    },
+  );
+}
+
+void _enqueueMobileLlmResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/movie-desc-translation-settings',
+    body: const <String, dynamic>{
+      'enabled': false,
+      'base_url': 'http://llm.internal:8000',
+      'api_key': '',
+      'model': 'gpt-4o-mini',
+      'timeout_seconds': 300.0,
+      'connect_timeout_seconds': 3.0,
     },
   );
 }

@@ -17,6 +17,7 @@ import 'package:sakuramedia/features/configuration/data/collection_number_featur
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
+import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
@@ -29,6 +30,7 @@ import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key, this.platformOverride, this.sessionStore});
@@ -162,6 +164,12 @@ class _MyAppState extends State<MyApp> {
               (context) =>
                   MediaLibrariesApi(apiClient: context.read<ApiClient>()),
         ),
+        Provider<MovieDescTranslationSettingsApi>(
+          create:
+              (context) => MovieDescTranslationSettingsApi(
+                apiClient: context.read<ApiClient>(),
+              ),
+        ),
         Provider<StatusApi>(
           create: (context) => StatusApi(apiClient: context.read<ApiClient>()),
         ),
@@ -202,17 +210,19 @@ class _MyAppState extends State<MyApp> {
                   : sakuraDesktopThemeData,
           routerConfig: _router,
           builder: (context, child) {
-            return ScrollConfiguration(
-              behavior: const MaterialScrollBehavior().copyWith(
-                dragDevices: const {
-                  PointerDeviceKind.mouse,
-                  PointerDeviceKind.touch,
-                  PointerDeviceKind.trackpad,
-                  PointerDeviceKind.stylus,
-                  PointerDeviceKind.invertedStylus,
-                },
+            return AppImageFullscreenHost(
+              child: ScrollConfiguration(
+                behavior: const MaterialScrollBehavior().copyWith(
+                  dragDevices: const {
+                    PointerDeviceKind.mouse,
+                    PointerDeviceKind.touch,
+                    PointerDeviceKind.trackpad,
+                    PointerDeviceKind.stylus,
+                    PointerDeviceKind.invertedStylus,
+                  },
+                ),
+                child: child ?? const SizedBox.shrink(),
               ),
-              child: child ?? const SizedBox.shrink(),
             );
           },
         ),

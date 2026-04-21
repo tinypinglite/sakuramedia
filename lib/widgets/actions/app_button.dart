@@ -129,6 +129,7 @@ class AppButton extends StatelessWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 120),
               height: height,
+              alignment: Alignment.center,
               padding: EdgeInsets.symmetric(horizontal: horizontal),
               decoration: BoxDecoration(
                 color: _isEnabled ? backgroundColor : disabledColor,

@@ -123,6 +123,29 @@ class PlaylistsOverviewController extends ChangeNotifier {
     unawaited(_savePlaylistOrder(_playlists));
   }
 
+  void replacePlaylist(PlaylistDto playlist) {
+    final updated = List<PlaylistDto>.from(_playlists);
+    final index = updated.indexWhere((item) => item.id == playlist.id);
+    if (index >= 0) {
+      updated[index] = playlist;
+    } else {
+      updated.insert(0, playlist);
+      _coverUrls.putIfAbsent(playlist.id, () => null);
+    }
+    _playlists = updated;
+    notifyListeners();
+    unawaited(_savePlaylistOrder(_playlists));
+  }
+
+  void removePlaylist(int playlistId) {
+    _playlists = _playlists
+        .where((playlist) => playlist.id != playlistId)
+        .toList(growable: false);
+    _coverUrls.remove(playlistId);
+    notifyListeners();
+    unawaited(_savePlaylistOrder(_playlists));
+  }
+
   Future<List<PlaylistDto>> _loadAndApplyPlaylists() async {
     final playlists = await fetchPlaylists(includeSystem: true);
     return _applyStoredOrder(playlists);

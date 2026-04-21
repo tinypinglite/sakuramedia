@@ -47,6 +47,7 @@ void main() {
     );
 
     expect(colors.surfacePage, const Color(0xFFF5F5F5));
+    expect(colors.noticeSurface, const Color(0xFFF3F3F3));
     expect(colors.mediaOverlaySoft, const Color(0x14000000));
     expect(colors.movieCardSubscribedBadgeBackground, const Color(0xFFF97316));
     expect(colors.subscriptionHeartIcon, const Color(0xFFD44B5C));
@@ -215,5 +216,24 @@ void main() {
     expect(source, isNot(contains('movieCardErrorIconSize')));
     expect(source, isNot(contains('movieCardStatusIconSize')));
     expect(source, isNot(contains('movieDetailMetaRowIconSize')));
+  });
+
+  test('mobile notice cards use noticeSurface token', () {
+    const files = <String>[
+      'lib/features/account/presentation/mobile_change_password_page.dart',
+      'lib/features/configuration/presentation/mobile_media_libraries_page.dart',
+      'lib/features/configuration/presentation/mobile_downloaders_page.dart',
+      'lib/features/configuration/presentation/mobile_indexers_page.dart',
+      'lib/features/configuration/presentation/mobile_llm_settings_page.dart',
+    ];
+
+    for (final path in files) {
+      final source = File(path).readAsStringSync();
+      expect(source, contains('colors.noticeSurface'));
+      expect(
+        source,
+        isNot(contains('primaryContainer.withValues(alpha: 0.42)')),
+      );
+    }
   });
 }

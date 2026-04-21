@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 import 'package:sakuramedia/widgets/media/preview_image_stage.dart';
 
@@ -75,6 +76,52 @@ void main() {
     final background = tester.widget<ColoredBox>(find.byType(ColoredBox).first);
     expect(background.color, Colors.black);
   });
+
+  testWidgets('preview image stage enters and exits fullscreen on pinch', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      _TestApp(
+        sessionStore: sessionStore,
+        child: PreviewImageStage(
+          imageUrl: '/preview.jpg',
+          height: 240,
+          onClose: () {},
+          enablePinchToFullscreen: true,
+          fullscreenImageKey: const Key('preview-image-stage-fullscreen-image'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final rect = tester.getRect(find.byType(PreviewImageStage));
+    final leftFinger = await tester.startGesture(
+      Offset(rect.center.dx - 20, rect.center.dy),
+    );
+    await tester.pump();
+    final rightFinger = await tester.startGesture(
+      Offset(rect.center.dx + 20, rect.center.dy),
+    );
+    await tester.pump();
+
+    expect(find.byKey(kAppImageFullscreenOverlayKey), findsOneWidget);
+    expect(
+      find.byKey(const Key('preview-image-stage-fullscreen-image')),
+      findsOneWidget,
+    );
+
+    await leftFinger.moveTo(Offset(rect.center.dx - 5, rect.center.dy));
+    await rightFinger.moveTo(Offset(rect.center.dx + 5, rect.center.dy));
+    await tester.pump();
+    await leftFinger.up();
+    await rightFinger.up();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(kAppImageFullscreenOverlayKey), findsNothing);
+  });
 }
 
 class _TestApp extends StatelessWidget {
@@ -91,6 +138,9 @@ class _TestApp extends StatelessWidget {
       ],
       child: MaterialApp(
         theme: sakuraThemeData,
+        builder:
+            (context, content) =>
+                AppImageFullscreenHost(child: content ?? const SizedBox()),
         home: Scaffold(body: Center(child: SizedBox(width: 320, child: child))),
       ),
     );

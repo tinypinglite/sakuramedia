@@ -195,4 +195,29 @@ void main() {
     );
     expect(label.style?.fontSize, sakuraMobileThemeData.appTextScale.s14);
   });
+
+  testWidgets('full width app button keeps label centered', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraMobileThemeData,
+        home: Scaffold(
+          body: SizedBox(
+            width: 240,
+            child: AppButton(
+              label: '确认修改',
+              variant: AppButtonVariant.primary,
+              onPressed: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final buttonRect = tester.getRect(find.byType(AnimatedContainer).first);
+    final labelRect = tester.getRect(find.text('确认修改'));
+
+    expect(labelRect.center.dx, closeTo(buttonRect.center.dx, 0.01));
+  });
 }

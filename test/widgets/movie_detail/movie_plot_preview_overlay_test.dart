@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/media/preview_dialog_surface.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_preview_overlay.dart';
 
@@ -501,7 +502,13 @@ Widget awaitableOverlayApp({required Widget child}) {
   final sessionStore = SessionStore.inMemory();
   return ChangeNotifierProvider<SessionStore>.value(
     value: sessionStore,
-    child: MaterialApp(theme: sakuraThemeData, home: Scaffold(body: child)),
+    child: MaterialApp(
+      theme: sakuraThemeData,
+      builder:
+          (context, content) =>
+              AppImageFullscreenHost(child: content ?? const SizedBox()),
+      home: Scaffold(body: child),
+    ),
   );
 }
 

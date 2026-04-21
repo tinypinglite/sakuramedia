@@ -13,11 +13,15 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
+import 'package:sakuramedia/features/configuration/presentation/mobile_downloaders_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/mobile_indexers_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/mobile_llm_settings_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/mobile_media_libraries_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
+import 'package:sakuramedia/features/playlists/presentation/mobile_playlists_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/mobile_playlist_detail_page.dart';
 import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_page.dart';
-import 'package:sakuramedia/features/shared/presentation/mobile_settings_placeholder_page.dart';
 import 'package:sakuramedia/routes/app_route_helpers.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
@@ -242,8 +246,7 @@ class MobileSearchQueryRouteData extends _MobileSubpageRouteData
 @TypedGoRoute<MobileSettingsMediaLibrariesRouteData>(
   path: mobileSettingsMediaLibrariesPath,
 )
-class MobileSettingsMediaLibrariesRouteData
-    extends _MobileSettingsPlaceholderRouteData
+class MobileSettingsMediaLibrariesRouteData extends _MobileSubpageRouteData
     with $MobileSettingsMediaLibrariesRouteData {
   const MobileSettingsMediaLibrariesRouteData();
 
@@ -252,13 +255,20 @@ class MobileSettingsMediaLibrariesRouteData
 
   @override
   String get title => '媒体库';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileMediaLibrariesPage();
+  }
 }
 
 @TypedGoRoute<MobileSettingsDownloadersRouteData>(
   path: mobileSettingsDownloadersPath,
 )
-class MobileSettingsDownloadersRouteData
-    extends _MobileSettingsPlaceholderRouteData
+class MobileSettingsDownloadersRouteData extends _MobileSubpageRouteData
     with $MobileSettingsDownloadersRouteData {
   const MobileSettingsDownloadersRouteData();
 
@@ -267,11 +277,18 @@ class MobileSettingsDownloadersRouteData
 
   @override
   String get title => '下载器';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileDownloadersPage();
+  }
 }
 
 @TypedGoRoute<MobileSettingsIndexersRouteData>(path: mobileSettingsIndexersPath)
-class MobileSettingsIndexersRouteData
-    extends _MobileSettingsPlaceholderRouteData
+class MobileSettingsIndexersRouteData extends _MobileSubpageRouteData
     with $MobileSettingsIndexersRouteData {
   const MobileSettingsIndexersRouteData();
 
@@ -280,13 +297,40 @@ class MobileSettingsIndexersRouteData
 
   @override
   String get title => '索引器';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileIndexersPage();
+  }
+}
+
+@TypedGoRoute<MobileSettingsLlmRouteData>(path: mobileSettingsLlmPath)
+class MobileSettingsLlmRouteData extends _MobileSubpageRouteData
+    with $MobileSettingsLlmRouteData {
+  const MobileSettingsLlmRouteData();
+
+  @override
+  String get pageName => 'mobile-settings-llm';
+
+  @override
+  String get title => 'LLM 配置';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileLlmSettingsPage();
+  }
 }
 
 @TypedGoRoute<MobileSettingsPlaylistsRouteData>(
   path: mobileSettingsPlaylistsPath,
 )
-class MobileSettingsPlaylistsRouteData
-    extends _MobileSettingsPlaceholderRouteData
+class MobileSettingsPlaylistsRouteData extends _MobileSubpageRouteData
     with $MobileSettingsPlaylistsRouteData {
   const MobileSettingsPlaylistsRouteData();
 
@@ -295,6 +339,14 @@ class MobileSettingsPlaylistsRouteData
 
   @override
   String get title => '播放列表';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobilePlaylistsPage();
+  }
 }
 
 @TypedGoRoute<MobileSettingsPasswordRouteData>(path: mobileSettingsPasswordPath)
@@ -442,7 +494,7 @@ class _MobileOverviewDrawer extends StatelessWidget {
 
   final BuildContext hostContext;
 
-  static const List<_MobileOverviewDrawerMenuItem> _primaryItems =
+  static const List<_MobileOverviewDrawerMenuItem> _libraryItems =
       <_MobileOverviewDrawerMenuItem>[
         _MobileOverviewDrawerMenuItem(
           key: 'media-libraries',
@@ -460,25 +512,33 @@ class _MobileOverviewDrawer extends StatelessWidget {
           label: '索引器',
         ),
         _MobileOverviewDrawerMenuItem(
-          key: 'playlists',
-          icon: Icons.playlist_play_outlined,
-          label: '播放列表',
-        ),
-        _MobileOverviewDrawerMenuItem(
-          key: 'password',
-          icon: Icons.lock_outline_rounded,
-          label: '修改密码',
+          key: 'llm',
+          icon: Icons.auto_awesome_outlined,
+          label: 'LLM 配置',
         ),
       ];
+
+  static const _MobileOverviewDrawerMenuItem _playlistsItem =
+      _MobileOverviewDrawerMenuItem(
+        key: 'playlists',
+        icon: Icons.playlist_play_outlined,
+        label: '播放列表',
+      );
+
+  static const _MobileOverviewDrawerMenuItem _passwordItem =
+      _MobileOverviewDrawerMenuItem(
+        key: 'password',
+        icon: Icons.lock_outline_rounded,
+        label: '修改密码',
+      );
 
   @override
   Widget build(BuildContext context) {
     final spacing = hostContext.appSpacing;
-    final colors = hostContext.appColors;
 
     return Drawer(
       key: const Key('mobile-overview-drawer'),
-      backgroundColor: colors.surfacePage,
+      backgroundColor: hostContext.appColors.surfacePage,
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(
@@ -492,30 +552,44 @@ class _MobileOverviewDrawer extends StatelessWidget {
             children: [
               Expanded(
                 child: SingleChildScrollView(
-                  child: _MobileOverviewDrawerSection(
-                    key: const Key('mobile-overview-drawer-primary-section'),
-                    items: _primaryItems
-                        .map(
-                          (item) => _MobileOverviewDrawerItem(
-                            key: Key('mobile-overview-drawer-${item.key}'),
-                            icon: item.icon,
-                            label: item.label,
-                            showChevron: true,
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              WidgetsBinding.instance.addPostFrameCallback((_) {
-                                if (!hostContext.mounted) {
-                                  return;
-                                }
-                                _pushMenuRoute(item.key);
-                              });
-                            },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _MobileOverviewDrawerSection(
+                        key: const Key(
+                          'mobile-overview-drawer-library-section',
+                        ),
+                        items: _libraryItems
+                            .map(
+                              (item) =>
+                                  _buildMenuEntry(context: context, item: item),
+                            )
+                            .toList(growable: false),
+                      ),
+                      SizedBox(height: spacing.md),
+                      _MobileOverviewDrawerSection(
+                        key: const Key(
+                          'mobile-overview-drawer-playlists-section',
+                        ),
+                        items: <Widget>[
+                          _buildMenuEntry(
+                            context: context,
+                            item: _playlistsItem,
                           ),
-                        )
-                        .toList(growable: false),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
+              SizedBox(height: spacing.md),
+              _MobileOverviewDrawerSection(
+                key: const Key('mobile-overview-drawer-password-section'),
+                items: <Widget>[
+                  _buildMenuEntry(context: context, item: _passwordItem),
+                ],
+              ),
+              SizedBox(height: spacing.md),
               _MobileOverviewDrawerSection(
                 key: const Key('mobile-overview-drawer-bottom-actions'),
                 items: <Widget>[
@@ -542,6 +616,26 @@ class _MobileOverviewDrawer extends StatelessWidget {
     );
   }
 
+  Widget _buildMenuEntry({
+    required BuildContext context,
+    required _MobileOverviewDrawerMenuItem item,
+  }) {
+    return _MobileOverviewDrawerItem(
+      key: Key('mobile-overview-drawer-${item.key}'),
+      icon: item.icon,
+      label: item.label,
+      onTap: () {
+        Navigator.of(context).pop();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!hostContext.mounted) {
+            return;
+          }
+          _pushMenuRoute(item.key);
+        });
+      },
+    );
+  }
+
   void _pushMenuRoute(String key) {
     switch (key) {
       case 'media-libraries':
@@ -552,6 +646,9 @@ class _MobileOverviewDrawer extends StatelessWidget {
         return;
       case 'indexers':
         const MobileSettingsIndexersRouteData().push(hostContext);
+        return;
+      case 'llm':
+        const MobileSettingsLlmRouteData().push(hostContext);
         return;
       case 'playlists':
         const MobileSettingsPlaylistsRouteData().push(hostContext);
@@ -573,32 +670,42 @@ class _MobileOverviewDrawerSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final spacing = context.appSpacing;
+    final componentTokens = context.appComponentTokens;
 
     return Container(
       decoration: BoxDecoration(
         color: colors.surfaceCard,
         borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: colors.borderSubtle),
       ),
-      child: Column(
-        children: List<Widget>.generate(items.length, (index) {
-          return Column(
-            children: [
-              items[index],
-              if (index < items.length - 1)
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: context.appSpacing.md,
-                  ),
-                  child: Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: colors.divider,
-                  ),
-                ),
-            ],
-          );
-        }),
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: spacing.xs),
+        child: Column(
+          children: items
+              .expand((item) {
+                final itemIndex = items.indexOf(item);
+                return <Widget>[
+                  item,
+                  if (itemIndex < items.length - 1)
+                    Padding(
+                      padding: EdgeInsetsDirectional.only(
+                        start:
+                            spacing.md +
+                            componentTokens.iconSizeXl +
+                            spacing.sm +
+                            spacing.md,
+                        end: spacing.md,
+                      ),
+                      child: Divider(
+                        height: spacing.xs,
+                        thickness: 1,
+                        color: colors.borderSubtle.withValues(alpha: 0.56),
+                      ),
+                    ),
+                ];
+              })
+              .toList(growable: false),
+        ),
       ),
     );
   }
@@ -622,13 +729,11 @@ class _MobileOverviewDrawerItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    this.showChevron = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final bool showChevron;
 
   @override
   Widget build(BuildContext context) {
@@ -673,12 +778,6 @@ class _MobileOverviewDrawerItem extends StatelessWidget {
                   ),
                 ),
               ),
-              if (showChevron)
-                Icon(
-                  Icons.chevron_right_rounded,
-                  size: componentTokens.iconSizeLg,
-                  color: context.appTextPalette.muted,
-                ),
             ],
           ),
         ),
@@ -804,19 +903,6 @@ class MobileActorDetailRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobileActorDetailPage(actorId: actorId);
-  }
-}
-
-abstract class _MobileSettingsPlaceholderRouteData
-    extends _MobileSubpageRouteData {
-  const _MobileSettingsPlaceholderRouteData();
-
-  @override
-  String get defaultLocation => mobileOverviewPath;
-
-  @override
-  Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return MobileSettingsPlaceholderPage(pageKey: Key(pageName));
   }
 }
 

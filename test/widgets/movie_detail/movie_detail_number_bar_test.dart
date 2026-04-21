@@ -64,7 +64,7 @@ void main() {
       find.byKey(const Key('movie-detail-interaction-want-watch-text')),
     );
 
-    expect(numberText.style?.fontSize, sakuraThemeData.appTextScale.s14);
+    expect(numberText.style?.fontSize, sakuraThemeData.appTextScale.s16);
     expect(wantWatchText.style?.fontSize, sakuraThemeData.appTextScale.s12);
     expect(summaryText.style?.fontSize, sakuraThemeData.appTextScale.s14);
   });

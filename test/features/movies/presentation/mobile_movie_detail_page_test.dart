@@ -24,6 +24,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_subpage_shell.dart';
+import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_hero_card.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
@@ -98,13 +99,14 @@ void main() {
     (WidgetTester tester) async {
       final controller = MovieDetailController(
         movieNumber: 'ABC-001',
-        fetchMovieDetail: ({required movieNumber}) => Future<MovieDetailDto>.value(
-          throw UnimplementedError(),
-        ),
-        fetchSimilarMovies: ({
-          required movieNumber,
-          int limit = 15,
-        }) => Future<List<MovieListItemDto>>.value(const <MovieListItemDto>[]),
+        fetchMovieDetail:
+            ({required movieNumber}) =>
+                Future<MovieDetailDto>.value(throw UnimplementedError()),
+        fetchSimilarMovies:
+            ({required movieNumber, int limit = 15}) =>
+                Future<List<MovieListItemDto>>.value(
+                  const <MovieListItemDto>[],
+                ),
       );
       addTearDown(controller.dispose);
 
@@ -719,7 +721,7 @@ void main() {
       expect(interactionTop, lessThan(summaryTop));
       expect(
         numberText.style?.fontSize,
-        sakuraMobileThemeData.appTextScale.s14,
+        sakuraMobileThemeData.appTextScale.s16,
       );
       expect(
         summaryText.style?.fontSize,
@@ -965,12 +967,12 @@ void main() {
               )
               .height;
 
-      expect(drawerHeight, lessThanOrEqualTo(viewportHeight * 0.4));
+      expect(drawerHeight, lessThanOrEqualTo(viewportHeight * 0.7));
     },
   );
 
   testWidgets(
-    'mobile movie detail playlist picker caps height at 40% and keeps list scrollable',
+    'mobile movie detail playlist picker caps height at 70% and keeps list scrollable',
     (WidgetTester tester) async {
       tester.view.physicalSize = const Size(540, 1080);
       tester.view.devicePixelRatio = 1;
@@ -1022,7 +1024,7 @@ void main() {
                 find.byKey(const Key('movie-playlist-picker-bottom-sheet')),
               )
               .height;
-      final maxAllowedHeight = viewportHeight * 0.4;
+      final maxAllowedHeight = viewportHeight * 0.7;
 
       expect(drawerHeight, lessThanOrEqualTo(maxAllowedHeight + 0.1));
 
@@ -1454,6 +1456,9 @@ Future<void> _pumpPage(
       ],
       child: MaterialApp(
         theme: sakuraMobileThemeData,
+        builder:
+            (context, child) =>
+                AppImageFullscreenHost(child: child ?? const SizedBox()),
         home: const OKToast(
           child: Scaffold(body: MobileMovieDetailPage(movieNumber: 'ABC-001')),
         ),
@@ -1488,6 +1493,9 @@ Future<void> _pumpSubpage(
       ],
       child: MaterialApp(
         theme: sakuraMobileThemeData,
+        builder:
+            (context, child) =>
+                AppImageFullscreenHost(child: child ?? const SizedBox()),
         home: const OKToast(
           child: AppMobileSubpageShell(
             title: '影片详情',
@@ -1522,6 +1530,9 @@ Future<void> _pumpRouterPage(
       child: OKToast(
         child: MaterialApp.router(
           theme: sakuraMobileThemeData,
+          builder:
+              (context, child) =>
+                  AppImageFullscreenHost(child: child ?? const SizedBox()),
           routerConfig: router,
         ),
       ),

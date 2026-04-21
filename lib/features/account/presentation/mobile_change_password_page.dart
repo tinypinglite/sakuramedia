@@ -307,9 +307,7 @@ class _NoticeCard extends StatelessWidget {
       key: const Key('mobile-password-notice-card'),
       padding: EdgeInsets.all(spacing.md),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.primaryContainer.withValues(alpha: 0.42),
+        color: colors.noticeSurface,
         borderRadius: context.appRadius.mdBorder,
         border: Border.all(color: colors.borderSubtle),
       ),
