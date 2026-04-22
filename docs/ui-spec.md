@@ -992,22 +992,26 @@ Tab 自身制造额外 gutter。
 
 影片卡和女优卡是同一套视觉家族，后续新增同类卡片应尽量保持统一。当前热度徽标属于通用 `MovieSummaryCard` 的一部分，因此复用该卡片的影片场景会共享这一表现。
 
-### 7.8 AppPullToRefresh
+### 7.8 Pull To Refresh
 
-当前移动端下拉刷新统一复用 `AppPullToRefresh`：
+当前移动端下拉刷新分为两层共享封装：
 
-- 基于 `RefreshIndicator` 封装
-- 指示器样式跟随平台自适应；iOS / macOS 使用系统风格小菊花
-- spinner 颜色使用主题 `colorScheme.primary`
-- 背景色使用 `surfaceCard`
-- 支持传入 `notificationPredicate` 适配嵌套滚动
+- `AppPullToRefresh` 基于 `RefreshIndicator` 封装
+- `AppAdaptiveRefreshScrollView` 负责平台分流：
+  iOS 使用 `CupertinoSliverRefreshControl`
+  Android / Web / 桌面继续走 `AppPullToRefresh`
+- `AppPullToRefresh` 的 spinner 颜色使用主题 `colorScheme.primary`
+- `AppPullToRefresh` 的背景色使用 `surfaceCard`
+- `AppPullToRefresh` 支持传入 `notificationPredicate` 适配嵌套滚动
 
 使用约束：
 
 - 共享内容组件默认不启用下拉刷新，只有移动端宿主显式开启时才接入
+- iOS 需要原生下拉刷新的页面，优先通过 `AppAdaptiveRefreshScrollView` 提供 `slivers`
 - 页面需要保留已有内容时，优先使用控制器静默 `refresh()`，不要复用会清空数据的 `reload()`
 - 刷新失败保留当前内容，并通过 toast 反馈，不回退到骨架屏
 - 需要下拉刷新的滚动容器应显式使用 `AlwaysScrollableScrollPhysics`
+- 桌面端默认不启用 `CupertinoSliverRefreshControl`
 
 ## 8. 状态与反馈
 

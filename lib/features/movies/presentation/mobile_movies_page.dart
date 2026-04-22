@@ -5,10 +5,11 @@ import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_list_content.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_list_page_state.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 
 class MobileMoviesPage extends StatefulWidget {
   const MobileMoviesPage({super.key});
@@ -29,7 +30,11 @@ class _MobileMoviesPageState extends State<MobileMoviesPage> {
       context,
       key: mobileMoviesPageStateKey(),
       create:
-          () => MovieListPageStateEntry(moviesApi: context.read<MoviesApi>()),
+          () => MovieListPageStateEntry(
+            moviesApi: context.read<MoviesApi>(),
+            subscriptionChangeNotifier:
+                context.read<MovieSubscriptionChangeNotifier>(),
+          ),
     );
   }
 
@@ -52,14 +57,13 @@ class _MobileMoviesPageState extends State<MobileMoviesPage> {
             movieNumber: movieNumber,
           ).push(context),
       bodyBuilder:
-          (context, scrollController, child, onRefresh) => AppPullToRefresh(
-            onRefresh: onRefresh!,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              controller: scrollController,
-              child: child,
-            ),
-          ),
+          (context, scrollController, child, onRefresh) =>
+              AppAdaptiveRefreshScrollView(
+                onRefresh: onRefresh!,
+                controller: scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[SliverToBoxAdapter(child: child)],
+              ),
       enableRefresh: true,
       onRefreshFailure: (_) => showToast('刷新失败'),
     );

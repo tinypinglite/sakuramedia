@@ -5,6 +5,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlist_detail_page.dart';
 import 'package:sakuramedia/theme.dart';
@@ -167,6 +168,9 @@ Future<void> _pumpPage(
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
       ],
       child: MaterialApp(
         theme: sakuraThemeData,
@@ -190,6 +194,9 @@ Future<void> _pumpRouterPage(
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
       ],
       child: MaterialApp.router(
         theme: sakuraThemeData,

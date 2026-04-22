@@ -73,6 +73,34 @@ void main() {
 
       controller.dispose();
     });
+
+    test(
+      'applySubscriptionChange updates matched ranked movie state',
+      () async {
+        final controller = PagedRankedMovieController(
+          subscribeMovie: ({required movieNumber}) async {},
+          unsubscribeMovie:
+              ({required movieNumber, deleteMedia = false}) async {},
+          fetchPage:
+              (_, __) async => PaginatedResponseDto<RankedMovieListItemDto>(
+                items: <RankedMovieListItemDto>[_rankedMovie(1)],
+                page: 1,
+                pageSize: 24,
+                total: 1,
+              ),
+        );
+
+        await controller.initialize();
+        controller.applySubscriptionChange(
+          movieNumber: 'ABC-001',
+          isSubscribed: true,
+        );
+
+        expect(controller.items.single.isSubscribed, isTrue);
+
+        controller.dispose();
+      },
+    );
   });
 }
 

@@ -15,6 +15,7 @@ import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_page_content.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_detail_page.dart';
@@ -527,9 +528,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      final verticalScrollable = find.byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      );
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('movie-summary-card-SIM-001')),
+        300,
+        scrollable: verticalScrollable,
+      );
       await tester.ensureVisible(
         find.byKey(const Key('movie-summary-card-SIM-001')),
       );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('movie-summary-card-SIM-001')));
       await tester.pumpAndSettle();
 
@@ -578,9 +589,19 @@ void main() {
       await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
       await tester.pumpAndSettle();
 
+      final verticalScrollable = find.byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      );
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('movie-media-point-thumb-0')),
+        300,
+        scrollable: verticalScrollable,
+      );
       await tester.ensureVisible(
         find.byKey(const Key('movie-media-point-thumb-0')),
       );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('movie-media-point-thumb-0')));
       await tester.pumpAndSettle();
 
@@ -1421,7 +1442,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.byKey(const Key('movie-actor-1')));
+    final verticalScrollable = find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable && widget.axisDirection == AxisDirection.down,
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('movie-actor-1')),
+      300,
+      scrollable: verticalScrollable,
+    );
     await tester.tap(find.byKey(const Key('movie-actor-1')));
     await tester.pumpAndSettle();
 
@@ -1450,6 +1479,9 @@ Future<void> _pumpPage(
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
         ),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         Provider<DownloadsApi>.value(value: bundle.downloadsApi),
@@ -1488,6 +1520,9 @@ Future<void> _pumpSubpage(
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         Provider<DownloadsApi>.value(value: bundle.downloadsApi),
       ],
@@ -1523,6 +1558,9 @@ Future<void> _pumpRouterPage(
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
         ),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         Provider<DownloadsApi>.value(value: bundle.downloadsApi),

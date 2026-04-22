@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/rankings/presentation/rankings_list_page_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
@@ -13,7 +14,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/rankings/ranked_movie_summary_grid.dart';
@@ -41,6 +42,8 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
           () => RankingsListPageStateEntry(
             rankingsApi: context.read<RankingsApi>(),
             moviesApi: context.read<MoviesApi>(),
+            subscriptionChangeNotifier:
+                context.read<MovieSubscriptionChangeNotifier>(),
           ),
     );
     unawaited(_pageState.initialize());
@@ -66,85 +69,90 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: context.appColors.surfaceCard,
-      child: AppPullToRefresh(
+      child: AppAdaptiveRefreshScrollView(
         onRefresh: _handleRefresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          controller: _pageState.controller.scrollController,
-          child: AnimatedBuilder(
-            animation: Listenable.merge([_pageState, _pageState.controller]),
-            builder: (context, _) {
-              final showFooter =
-                  _pageState.controller.items.isNotEmpty &&
-                  (_pageState.controller.isLoadingMore ||
-                      _pageState.controller.loadMoreErrorMessage != null);
-              return Column(
-                key: const Key('mobile-rankings-page'),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppFilterTotalHeader(
-                    leading: RankingFilterToolbar(
-                      sources: _pageState.sources,
-                      selectedSource: _pageState.selectedSource,
-                      boards: _pageState.boards,
-                      selectedBoard: _pageState.selectedBoard,
-                      selectedPeriod: _pageState.selectedPeriod,
-                      isLoading: _pageState.isFilterLoading,
-                      onSourceChanged:
-                          (value) => unawaited(_pageState.selectSource(value)),
-                      onBoardChanged:
-                          (value) => unawaited(_pageState.selectBoard(value)),
-                      onPeriodChanged:
-                          (value) => unawaited(_pageState.selectPeriod(value)),
-                    ),
-                    totalText: '${_pageState.controller.total} 部',
-                    totalKey: const Key('mobile-rankings-page-total'),
-                  ),
-                  SizedBox(height: context.appSpacing.md),
-                  if (_pageState.filterErrorMessage != null) ...[
-                    _FilterErrorBanner(
-                      message: _pageState.filterErrorMessage!,
-                      onRetry: _pageState.reloadFiltersAndData,
+        controller: _pageState.controller.scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: <Widget>[
+          SliverToBoxAdapter(
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_pageState, _pageState.controller]),
+              builder: (context, _) {
+                final showFooter =
+                    _pageState.controller.items.isNotEmpty &&
+                    (_pageState.controller.isLoadingMore ||
+                        _pageState.controller.loadMoreErrorMessage != null);
+                return Column(
+                  key: const Key('mobile-rankings-page'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppFilterTotalHeader(
+                      leading: RankingFilterToolbar(
+                        sources: _pageState.sources,
+                        selectedSource: _pageState.selectedSource,
+                        boards: _pageState.boards,
+                        selectedBoard: _pageState.selectedBoard,
+                        selectedPeriod: _pageState.selectedPeriod,
+                        isLoading: _pageState.isFilterLoading,
+                        onSourceChanged:
+                            (value) =>
+                                unawaited(_pageState.selectSource(value)),
+                        onBoardChanged:
+                            (value) => unawaited(_pageState.selectBoard(value)),
+                        onPeriodChanged:
+                            (value) =>
+                                unawaited(_pageState.selectPeriod(value)),
+                      ),
+                      totalText: '${_pageState.controller.total} 部',
+                      totalKey: const Key('mobile-rankings-page-total'),
                     ),
                     SizedBox(height: context.appSpacing.md),
+                    if (_pageState.filterErrorMessage != null) ...[
+                      _FilterErrorBanner(
+                        message: _pageState.filterErrorMessage!,
+                        onRetry: _pageState.reloadFiltersAndData,
+                      ),
+                      SizedBox(height: context.appSpacing.md),
+                    ],
+                    if (_pageState.sources.isEmpty &&
+                        !_pageState.isFilterLoading &&
+                        _pageState.filterErrorMessage == null)
+                      const AppEmptyState(message: '暂无可用排行榜')
+                    else
+                      RankedMovieSummaryGrid(
+                        items: _pageState.controller.items,
+                        isLoading:
+                            _pageState.isFilterLoading
+                                ? _pageState.controller.items.isEmpty
+                                : _pageState.controller.isInitialLoading,
+                        errorMessage: _pageState.controller.initialErrorMessage,
+                        onMovieTap:
+                            (movie) => context.pushMobileMovieDetail(
+                              movieNumber: movie.movieNumber,
+                            ),
+                        onMovieSubscriptionTap:
+                            (movie) =>
+                                _toggleMovieSubscription(movie.movieNumber),
+                        isMovieSubscriptionUpdating:
+                            (movie) => _pageState.controller
+                                .isSubscriptionUpdating(movie.movieNumber),
+                        emptyMessage: '暂无榜单数据',
+                      ),
+                    if (showFooter) ...[
+                      SizedBox(height: context.appSpacing.md),
+                      AppPagedLoadMoreFooter(
+                        isLoading: _pageState.controller.isLoadingMore,
+                        errorMessage:
+                            _pageState.controller.loadMoreErrorMessage,
+                        onRetry: _pageState.controller.loadMore,
+                      ),
+                    ],
                   ],
-                  if (_pageState.sources.isEmpty &&
-                      !_pageState.isFilterLoading &&
-                      _pageState.filterErrorMessage == null)
-                    const AppEmptyState(message: '暂无可用排行榜')
-                  else
-                    RankedMovieSummaryGrid(
-                      items: _pageState.controller.items,
-                      isLoading:
-                          _pageState.isFilterLoading
-                              ? _pageState.controller.items.isEmpty
-                              : _pageState.controller.isInitialLoading,
-                      errorMessage: _pageState.controller.initialErrorMessage,
-                      onMovieTap:
-                          (movie) => context.pushMobileMovieDetail(
-                            movieNumber: movie.movieNumber,
-                          ),
-                      onMovieSubscriptionTap:
-                          (movie) =>
-                              _toggleMovieSubscription(movie.movieNumber),
-                      isMovieSubscriptionUpdating:
-                          (movie) => _pageState.controller
-                              .isSubscriptionUpdating(movie.movieNumber),
-                      emptyMessage: '暂无榜单数据',
-                    ),
-                  if (showFooter) ...[
-                    SizedBox(height: context.appSpacing.md),
-                    AppPagedLoadMoreFooter(
-                      isLoading: _pageState.controller.isLoadingMore,
-                      errorMessage: _pageState.controller.loadMoreErrorMessage,
-                      onRetry: _pageState.controller.loadMore,
-                    ),
-                  ],
-                ],
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

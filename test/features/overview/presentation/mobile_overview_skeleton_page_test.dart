@@ -21,12 +21,14 @@ import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_skeleton_page.dart';
 import 'package:sakuramedia/features/playlists/data/playlist_order_store.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
+import 'package:sakuramedia/widgets/movies/mobile_follow_movie_card.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
@@ -1234,12 +1236,13 @@ void main() {
         1,
       );
 
+      final followScrollable = find.byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      );
+
       for (var index = 0; index < 6; index += 1) {
-        await tester.fling(
-          find.byKey(const Key('mobile-overview-follow-list')),
-          const Offset(0, -900),
-          1500,
-        );
+        await tester.fling(followScrollable, const Offset(0, -900), 1500);
         await tester.pumpAndSettle();
       }
       await tester.pumpAndSettle();
@@ -1248,11 +1251,7 @@ void main() {
         greaterThanOrEqualTo(2),
       );
 
-      await tester.fling(
-        find.byKey(const Key('mobile-overview-follow-list')),
-        const Offset(0, -300),
-        1200,
-      );
+      await tester.fling(followScrollable, const Offset(0, -300), 1200);
       await tester.pumpAndSettle();
       expect(
         bundle.adapter.hitCount('GET', '/movies/subscribed-actors/latest'),
@@ -1445,6 +1444,7 @@ Widget _buildTestApp({
       ChangeNotifierProvider(
         create: (_) => MovieCollectionTypeChangeNotifier(),
       ),
+      ChangeNotifierProvider(create: (_) => MovieSubscriptionChangeNotifier()),
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
       Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
       Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
@@ -1483,6 +1483,7 @@ Widget _buildRouterApp({
       ChangeNotifierProvider(
         create: (_) => MovieCollectionTypeChangeNotifier(),
       ),
+      ChangeNotifierProvider(create: (_) => MovieSubscriptionChangeNotifier()),
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
       Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
       Provider<ImageSearchDraftStore>.value(value: draftStore),

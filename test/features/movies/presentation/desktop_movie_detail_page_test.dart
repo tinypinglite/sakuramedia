@@ -22,6 +22,7 @@ import 'package:sakuramedia/features/image_search/presentation/desktop_image_sea
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_detail_page.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -3354,6 +3355,9 @@ Future<void> _pumpPage(
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
         ),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         Provider<DownloadsApi>.value(value: bundle.downloadsApi),

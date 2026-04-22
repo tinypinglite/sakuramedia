@@ -9,7 +9,7 @@ import 'package:sakuramedia/features/configuration/data/movie_desc_translation_s
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/forms/app_text_field.dart';
@@ -82,18 +82,20 @@ class _MobileLlmSettingsPageState extends State<MobileLlmSettingsPage> {
       child: Column(
         children: [
           Expanded(
-            child: AppPullToRefresh(
+            child: AppAdaptiveRefreshScrollView(
               onRefresh: _refreshSettings,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  spacing.md,
-                  spacing.md,
-                  spacing.md,
-                  spacing.lg,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: <Widget>[
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    spacing.md,
+                    spacing.md,
+                    spacing.md,
+                    spacing.lg,
+                  ),
+                  sliver: SliverToBoxAdapter(child: _buildBody(context)),
                 ),
-                children: [_buildBody(context)],
-              ),
+              ],
             ),
           ),
           if (_errorMessage == null)

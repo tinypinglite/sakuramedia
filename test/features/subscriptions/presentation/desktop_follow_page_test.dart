@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/desktop_follow_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
@@ -294,6 +295,38 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
     },
   );
+
+  testWidgets(
+    'desktop follow page keeps card while applying external unsubscribe change',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/subscribed-actors/latest',
+        body: _followMoviesJson(
+          total: 1,
+          items: <Map<String, dynamic>>[
+            _movieItem(movieNumber: 'ABC-001', isSubscribed: true),
+          ],
+        ),
+      );
+
+      await _pumpFollowPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(DesktopFollowPage));
+      context.read<MovieSubscriptionChangeNotifier>().reportChange(
+        movieNumber: 'ABC-001',
+        isSubscribed: false,
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const Key('movie-summary-card-ABC-001')),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
+    },
+  );
 }
 
 Future<void> _pumpFollowPage(
@@ -313,6 +346,9 @@ Future<void> _pumpFollowPage(
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
         ),
       ],
       child: MaterialApp(
@@ -341,6 +377,9 @@ Future<void> _pumpFollowRouter(
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
         ),
       ],
       child: OKToast(

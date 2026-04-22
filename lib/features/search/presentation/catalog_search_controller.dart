@@ -19,11 +19,13 @@ class CatalogSearchController extends ChangeNotifier {
   CatalogSearchController({
     required MoviesApi moviesApi,
     required ActorsApi actorsApi,
+    this.onMovieSubscriptionChanged,
   }) : _moviesApi = moviesApi,
        _actorsApi = actorsApi;
 
   final MoviesApi _moviesApi;
   final ActorsApi _actorsApi;
+  final MovieSubscriptionChangeReporter? onMovieSubscriptionChanged;
 
   String _query = '';
   CatalogSearchKind _activeKind = CatalogSearchKind.movies;
@@ -324,11 +326,19 @@ class CatalogSearchController extends ChangeNotifier {
         await _moviesApi.unsubscribeMovie(movieNumber: movieNumber);
         _movieResults = List<MovieListItemDto>.of(_movieResults)
           ..[index] = movie.copyWith(isSubscribed: false);
+        onMovieSubscriptionChanged?.call(
+          movieNumber: movieNumber,
+          isSubscribed: false,
+        );
         return const MovieSubscriptionToggleResult.unsubscribed();
       } else {
         await _moviesApi.subscribeMovie(movieNumber: movieNumber);
         _movieResults = List<MovieListItemDto>.of(_movieResults)
           ..[index] = movie.copyWith(isSubscribed: true);
+        onMovieSubscriptionChanged?.call(
+          movieNumber: movieNumber,
+          isSubscribed: true,
+        );
         return const MovieSubscriptionToggleResult.subscribed();
       }
     } catch (error) {
@@ -345,6 +355,32 @@ class CatalogSearchController extends ChangeNotifier {
       _updatingMovieNumbers.remove(movieNumber);
       _notifyListenersSafely();
     }
+  }
+
+  void applyMovieSubscriptionChange({
+    required String movieNumber,
+    required bool isSubscribed,
+    bool removeIfUnsubscribed = false,
+  }) {
+    final index = _movieResults.indexWhere(
+      (movie) => movie.movieNumber == movieNumber,
+    );
+    if (index == -1) {
+      return;
+    }
+    if (!isSubscribed && removeIfUnsubscribed) {
+      _movieResults = List<MovieListItemDto>.of(_movieResults)..removeAt(index);
+      _notifyListenersSafely();
+      return;
+    }
+
+    final movie = _movieResults[index];
+    if (movie.isSubscribed == isSubscribed) {
+      return;
+    }
+    _movieResults = List<MovieListItemDto>.of(_movieResults)
+      ..[index] = movie.copyWith(isSubscribed: isSubscribed);
+    _notifyListenersSafely();
   }
 
   bool _isBlockedByMedia(Object error) {

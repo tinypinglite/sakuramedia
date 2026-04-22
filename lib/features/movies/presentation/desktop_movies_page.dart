@@ -5,6 +5,7 @@ import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_list_content.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_list_page_state.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
@@ -28,7 +29,11 @@ class _DesktopMoviesPageState extends State<DesktopMoviesPage> {
       context,
       key: desktopMoviesPageStateKey(),
       create:
-          () => MovieListPageStateEntry(moviesApi: context.read<MoviesApi>()),
+          () => MovieListPageStateEntry(
+            moviesApi: context.read<MoviesApi>(),
+            subscriptionChangeNotifier:
+                context.read<MovieSubscriptionChangeNotifier>(),
+          ),
     );
   }
 

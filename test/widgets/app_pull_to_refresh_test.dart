@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 
 void main() {
@@ -70,4 +72,61 @@ void main() {
 
     expect(find.byType(RefreshProgressIndicator), findsOneWidget);
   });
+
+  testWidgets(
+    'adaptive refresh scroll view uses cupertino sliver refresh on iOS',
+    (WidgetTester tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      var refreshCount = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData.copyWith(platform: TargetPlatform.iOS),
+          home: Scaffold(
+            body: AppAdaptiveRefreshScrollView(
+              onRefresh: () async {
+                refreshCount += 1;
+              },
+              slivers: const <Widget>[
+                SliverToBoxAdapter(
+                  child: SizedBox(height: 120, child: Text('A')),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 300));
+      await tester.pump();
+
+      expect(refreshCount, 1);
+      expect(find.byType(RefreshIndicator), findsNothing);
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
+
+  testWidgets(
+    'adaptive refresh scroll view keeps material refresh wrapper on android',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData.copyWith(platform: TargetPlatform.android),
+          home: Scaffold(
+            body: AppAdaptiveRefreshScrollView(
+              onRefresh: () async {},
+              slivers: const <Widget>[
+                SliverToBoxAdapter(
+                  child: SizedBox(height: 120, child: Text('A')),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(RefreshIndicator), findsOneWidget);
+      expect(find.byType(CupertinoSliverRefreshControl), findsNothing);
+    },
+  );
 }

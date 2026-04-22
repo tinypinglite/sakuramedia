@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_page.dart';
 import 'package:sakuramedia/routes/desktop_search_route_state.dart';
 import 'package:sakuramedia/theme.dart';
@@ -875,6 +876,9 @@ Future<void> _pumpSearchApp(
       providers: [
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         Provider<ActorsApi>.value(value: bundle.actorsApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
       ],
       child: OKToast(
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),

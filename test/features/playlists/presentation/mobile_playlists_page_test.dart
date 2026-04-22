@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -209,6 +211,28 @@ void main() {
     );
     expect(find.text('播放列表加载失败，请稍后重试。'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('mobile playlists page uses cupertino sliver refresh on iOS', (
+    WidgetTester tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+
+    _enqueuePlaylistCoverRequests(_bundle, const <int>[2, 5]);
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists',
+      body: _customPlaylistsJson(),
+    );
+
+    await _pumpPage(
+      tester,
+      theme: sakuraThemeData.copyWith(platform: TargetPlatform.iOS),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RefreshIndicator), findsNothing);
+    debugDefaultTargetPlatformOverride = null;
   });
 
   testWidgets('creates playlist from bottom drawer and syncs list', (
@@ -451,7 +475,11 @@ void main() {
   });
 }
 
-Future<void> _pumpPage(WidgetTester tester, {PlaylistsApi? api}) async {
+Future<void> _pumpPage(
+  WidgetTester tester, {
+  PlaylistsApi? api,
+  ThemeData? theme,
+}) async {
   await tester.pumpWidget(
     MultiProvider(
       providers: [
@@ -459,7 +487,7 @@ Future<void> _pumpPage(WidgetTester tester, {PlaylistsApi? api}) async {
       ],
       child: OKToast(
         child: MaterialApp(
-          theme: sakuraThemeData,
+          theme: theme ?? sakuraThemeData,
           home: const Scaffold(body: MobilePlaylistsPage()),
         ),
       ),

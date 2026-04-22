@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/mobile_playlist_detail_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -57,6 +60,26 @@ void main() {
     expect(find.byType(MovieSummaryCard), findsOneWidget);
     expect(find.byType(RefreshIndicator), findsOneWidget);
   });
+
+  testWidgets(
+    'mobile playlist detail page uses cupertino sliver refresh on iOS',
+    (WidgetTester tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+
+      _enqueuePlaylistDetailSuccess(bundle);
+      _enqueuePlaylistMoviesSuccess(bundle);
+
+      await _pumpPage(
+        tester,
+        bundle: bundle,
+        theme: sakuraThemeData.copyWith(platform: TargetPlatform.iOS),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RefreshIndicator), findsNothing);
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
 
   testWidgets(
     'mobile playlist detail page shows empty state when detail fails',
@@ -138,15 +161,22 @@ void main() {
   );
 }
 
-Future<void> _pumpPage(WidgetTester tester, {required TestApiBundle bundle}) {
+Future<void> _pumpPage(
+  WidgetTester tester, {
+  required TestApiBundle bundle,
+  ThemeData? theme,
+}) {
   return tester.pumpWidget(
     MultiProvider(
       providers: [
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
       ],
       child: MaterialApp(
-        theme: sakuraThemeData,
+        theme: theme ?? sakuraThemeData,
         home: const OKToast(
           child: Scaffold(body: MobilePlaylistDetailPage(playlistId: 8)),
         ),
@@ -165,6 +195,9 @@ Future<void> _pumpRouterPage(
       providers: [
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
       ],
       child: OKToast(
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/rankings/presentation/rankings_list_page_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
@@ -40,6 +41,8 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
           () => RankingsListPageStateEntry(
             rankingsApi: context.read<RankingsApi>(),
             moviesApi: context.read<MoviesApi>(),
+            subscriptionChangeNotifier:
+                context.read<MovieSubscriptionChangeNotifier>(),
           ),
     );
     unawaited(_pageState.initialize());

@@ -17,6 +17,9 @@ typedef MovieSubscriptionWriter =
 typedef MovieUnsubscriptionWriter =
     Future<void> Function({required String movieNumber, bool deleteMedia});
 
+typedef MovieSubscriptionChangeReporter =
+    void Function({required String movieNumber, required bool isSubscribed});
+
 enum MovieSubscriptionToggleStatus {
   subscribed,
   unsubscribed,
@@ -53,6 +56,7 @@ class PagedMovieSummaryController
     required MovieSummaryPageFetcher fetchPage,
     required this.subscribeMovie,
     required this.unsubscribeMovie,
+    this.onSubscriptionChanged,
     int initialPage = 1,
     int pageSize = 24,
     double loadMoreTriggerOffset = 300,
@@ -71,6 +75,7 @@ class PagedMovieSummaryController
 
   final MovieSubscriptionWriter subscribeMovie;
   final MovieUnsubscriptionWriter unsubscribeMovie;
+  final MovieSubscriptionChangeReporter? onSubscriptionChanged;
   final Set<String> _updatingMovieNumbers = <String>{};
 
   bool isSubscriptionUpdating(String movieNumber) {
@@ -95,11 +100,16 @@ class PagedMovieSummaryController
       if (movie.isSubscribed) {
         await unsubscribeMovie(movieNumber: movieNumber, deleteMedia: false);
         mutableItems[index] = movie.copyWith(isSubscribed: false);
+        onSubscriptionChanged?.call(
+          movieNumber: movieNumber,
+          isSubscribed: false,
+        );
         return const MovieSubscriptionToggleResult.unsubscribed();
       }
 
       await subscribeMovie(movieNumber: movieNumber);
       mutableItems[index] = movie.copyWith(isSubscribed: true);
+      onSubscriptionChanged?.call(movieNumber: movieNumber, isSubscribed: true);
       return const MovieSubscriptionToggleResult.subscribed();
     } catch (error) {
       if (_isBlockedByMedia(error)) {
@@ -126,6 +136,30 @@ class PagedMovieSummaryController
     }
     mutableItems.removeAt(index);
     mutableTotal = (mutableTotal - 1).clamp(0, mutableTotal);
+    notifyListenersSafely();
+  }
+
+  void applySubscriptionChange({
+    required String movieNumber,
+    required bool isSubscribed,
+    bool removeIfUnsubscribed = false,
+  }) {
+    final index = mutableItems.indexWhere(
+      (item) => item.movieNumber == movieNumber,
+    );
+    if (index == -1) {
+      return;
+    }
+    if (!isSubscribed && removeIfUnsubscribed) {
+      removeItem(movieNumber);
+      return;
+    }
+
+    final movie = mutableItems[index];
+    if (movie.isSubscribed == isSubscribed) {
+      return;
+    }
+    mutableItems[index] = movie.copyWith(isSubscribed: isSubscribed);
     notifyListenersSafely();
   }
 

@@ -5,7 +5,7 @@ import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_con
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
@@ -52,14 +52,13 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
               _MobileActorDetailErrorState(message: message, onRetry: onRetry),
       footerBuilder: _buildLoadMoreFooter,
       bodyBuilder:
-          (context, scrollController, child, onRefresh) => AppPullToRefresh(
-            onRefresh: onRefresh!,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              controller: scrollController,
-              child: child,
-            ),
-          ),
+          (context, scrollController, child, onRefresh) =>
+              AppAdaptiveRefreshScrollView(
+                onRefresh: onRefresh!,
+                controller: scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[SliverToBoxAdapter(child: child)],
+              ),
       enableRefresh: true,
       onRefreshFailure: (_) => showToast('刷新失败'),
     );

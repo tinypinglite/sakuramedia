@@ -16,8 +16,8 @@ import 'package:sakuramedia/features/configuration/presentation/download_client_
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
@@ -144,77 +144,93 @@ class _MobileDownloadersPageState extends State<MobileDownloadersPage>
   Widget _buildDownloadersTab(BuildContext context) {
     final spacing = context.appSpacing;
 
-    return AppPullToRefresh(
+    return AppAdaptiveRefreshScrollView(
       onRefresh: _refreshData,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          spacing.md,
-          spacing.sm,
-          spacing.md,
-          spacing.lg,
-        ),
-        children: [
-          _MobileDownloadersOverviewCard(
-            clientCount: _clients.length,
-            linkedLibraryCount: _linkedLibraryCount,
-            savedPasswordCount: _savedPasswordCount,
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: <Widget>[
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(
+            spacing.md,
+            spacing.sm,
+            spacing.md,
+            spacing.lg,
           ),
-          SizedBox(height: spacing.md),
-          _buildDownloadersSection(context),
-        ],
-      ),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _MobileDownloadersOverviewCard(
+                  clientCount: _clients.length,
+                  linkedLibraryCount: _linkedLibraryCount,
+                  savedPasswordCount: _savedPasswordCount,
+                ),
+                SizedBox(height: spacing.md),
+                _buildDownloadersSection(context),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildGuideTab(BuildContext context) {
     final spacing = context.appSpacing;
 
-    return AppPullToRefresh(
+    return AppAdaptiveRefreshScrollView(
       onRefresh: _refreshData,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          spacing.md,
-          spacing.sm,
-          spacing.md,
-          spacing.lg,
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: <Widget>[
+        SliverPadding(
+          padding: EdgeInsets.fromLTRB(
+            spacing.md,
+            spacing.sm,
+            spacing.md,
+            spacing.lg,
+          ),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _MobileGuideStepCard(
+                  key: const Key('mobile-downloaders-guide-step-libraries'),
+                  title: '先准备媒体库',
+                  description: '媒体库用于维护本地存储根路径，下载器创建前需要先明确映射位置。',
+                  tip: '关键字段：媒体库名称、根路径。',
+                  completed: _hasLibraries,
+                  actionLabel: '前往媒体库',
+                  onActionTap:
+                      () => GoRouter.of(
+                        context,
+                      ).push(mobileSettingsMediaLibrariesPath),
+                ),
+                SizedBox(height: spacing.md),
+                _MobileGuideStepCard(
+                  key: const Key('mobile-downloaders-guide-step-downloaders'),
+                  title: '再配置下载器',
+                  description: '下载器负责接收索引器推送的资源请求，并映射 qBittorrent 下载路径。',
+                  tip: '关键字段：服务地址、qBittorrent 保存路径、本地访问路径。',
+                  completed: _clients.isNotEmpty,
+                  actionLabel: '切换到下载器',
+                  onActionTap: () => _tabController.animateTo(0),
+                ),
+                SizedBox(height: spacing.md),
+                _MobileGuideStepCard(
+                  key: const Key('mobile-downloaders-guide-step-indexers'),
+                  title: '最后把索引器绑定到下载器',
+                  description: '只有索引器绑定到下载器，影片详情里的资源搜索结果才能投递到对应客户端。',
+                  tip: '常见问题：未绑定下载器时，搜索结果会提示先创建下载器。',
+                  completed: _hasLinkedIndexer,
+                  actionLabel: '查看索引器',
+                  onActionTap:
+                      () =>
+                          GoRouter.of(context).push(mobileSettingsIndexersPath),
+                ),
+              ],
+            ),
+          ),
         ),
-        children: [
-          _MobileGuideStepCard(
-            key: const Key('mobile-downloaders-guide-step-libraries'),
-            title: '先准备媒体库',
-            description: '媒体库用于维护本地存储根路径，下载器创建前需要先明确映射位置。',
-            tip: '关键字段：媒体库名称、根路径。',
-            completed: _hasLibraries,
-            actionLabel: '前往媒体库',
-            onActionTap:
-                () =>
-                    GoRouter.of(context).push(mobileSettingsMediaLibrariesPath),
-          ),
-          SizedBox(height: spacing.md),
-          _MobileGuideStepCard(
-            key: const Key('mobile-downloaders-guide-step-downloaders'),
-            title: '再配置下载器',
-            description: '下载器负责接收索引器推送的资源请求，并映射 qBittorrent 下载路径。',
-            tip: '关键字段：服务地址、qBittorrent 保存路径、本地访问路径。',
-            completed: _clients.isNotEmpty,
-            actionLabel: '切换到下载器',
-            onActionTap: () => _tabController.animateTo(0),
-          ),
-          SizedBox(height: spacing.md),
-          _MobileGuideStepCard(
-            key: const Key('mobile-downloaders-guide-step-indexers'),
-            title: '最后把索引器绑定到下载器',
-            description: '只有索引器绑定到下载器，影片详情里的资源搜索结果才能投递到对应客户端。',
-            tip: '常见问题：未绑定下载器时，搜索结果会提示先创建下载器。',
-            completed: _hasLinkedIndexer,
-            actionLabel: '查看索引器',
-            onActionTap:
-                () => GoRouter.of(context).push(mobileSettingsIndexersPath),
-          ),
-        ],
-      ),
+      ],
     );
   }
 
