@@ -120,7 +120,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
           labelPadding: EdgeInsets.only(right: context.appSpacing.sm),
           labelStyle: resolveAppTextStyle(
             context,
-            size: AppTextSize.s14,
+            size: AppTextSize.s16,
             tone: AppTextTone.primary,
             weight: AppTextWeight.medium,
           ),
