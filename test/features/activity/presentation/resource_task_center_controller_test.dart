@@ -212,6 +212,46 @@ void main() {
     expect(pageRequest.uri.queryParameters['page'], '2');
   });
 
+  test('refreshRecords 重新拉取第一页并替换当前列表', () async {
+    _enqueueDefinitions(bundle);
+    _enqueuePage(
+      bundle,
+      taskKey: 'movie_desc_sync',
+      page: 1,
+      total: 2,
+      items: <Map<String, dynamic>>[
+        _recordJson(id: 1001),
+        _recordJson(id: 1002),
+      ],
+    );
+
+    final controller = ResourceTaskCenterController(
+      activityApi: bundle.activityApi,
+    );
+    addTearDown(controller.dispose);
+
+    await controller.initialize();
+
+    _enqueuePage(
+      bundle,
+      taskKey: 'movie_desc_sync',
+      page: 1,
+      total: 1,
+      items: <Map<String, dynamic>>[_recordJson(id: 1003)],
+    );
+
+    await controller.refreshRecords();
+
+    expect(controller.activeRecords.map((r) => r.resourceId), <int>[1003]);
+    expect(controller.hasMoreRecords, isFalse);
+    final requests =
+        bundle.adapter.requests
+            .where((req) => req.path == '/system/resource-task-states')
+            .toList();
+    expect(requests, hasLength(2));
+    expect(requests.last.uri.queryParameters['page'], '1');
+  });
+
   test('openDetail / closeDetail 控制当前选中记录', () async {
     _enqueueDefinitions(bundle);
     _enqueuePage(

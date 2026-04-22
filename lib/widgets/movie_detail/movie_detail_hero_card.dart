@@ -15,7 +15,9 @@ class MovieDetailHeroCard extends StatelessWidget {
     required this.isCollection,
     required this.onPlayTap,
     this.onSubscriptionTap,
+    this.onMoreActionsTap,
     this.isSubscriptionUpdating = false,
+    this.isMoreActionsUpdating = false,
   });
 
   final double height;
@@ -28,7 +30,9 @@ class MovieDetailHeroCard extends StatelessWidget {
   final bool isCollection;
   final VoidCallback? onPlayTap;
   final VoidCallback? onSubscriptionTap;
+  final Future<void> Function(Offset globalPosition)? onMoreActionsTap;
   final bool isSubscriptionUpdating;
+  final bool isMoreActionsUpdating;
 
   @override
   Widget build(BuildContext context) {
@@ -106,40 +110,50 @@ class MovieDetailHeroCard extends StatelessWidget {
           Positioned(
             top: spacing.sm,
             right: spacing.sm,
-            child: Container(
-              key: const Key('movie-detail-hero-heat-badge'),
-              padding: EdgeInsets.symmetric(
-                horizontal: spacing.sm,
-                vertical: spacing.xs,
-              ),
-              decoration: BoxDecoration(
-                color: colors.mediaOverlayStrong,
-                borderRadius: context.appRadius.pillBorder,
-                border: Border.all(
-                  color: colors.borderSubtle.withValues(alpha: 0.42),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.local_fire_department_rounded,
-                    size: tokens.iconSizeXs,
-                    color: colors.movieDetailHeatIcon,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  key: const Key('movie-detail-hero-heat-badge'),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: spacing.sm,
+                    vertical: spacing.xs,
                   ),
-                  SizedBox(width: spacing.xs),
-                  Text(
-                    '$heat',
-                    key: const Key('movie-detail-hero-heat-text'),
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s12,
-                      weight: AppTextWeight.regular,
-                      tone: AppTextTone.onMedia,
+                  decoration: BoxDecoration(
+                    color: colors.mediaOverlayStrong,
+                    borderRadius: context.appRadius.pillBorder,
+                    border: Border.all(
+                      color: colors.borderSubtle.withValues(alpha: 0.42),
                     ),
                   ),
-                ],
-              ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.local_fire_department_rounded,
+                        size: tokens.iconSizeXs,
+                        color: colors.movieDetailHeatIcon,
+                      ),
+                      SizedBox(width: spacing.xs),
+                      Text(
+                        '$heat',
+                        key: const Key('movie-detail-hero-heat-text'),
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s12,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.onMedia,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: spacing.xs),
+                _HeroMoreActionsButton(
+                  isUpdating: isMoreActionsUpdating,
+                  onTap: onMoreActionsTap,
+                ),
+              ],
             ),
           ),
           if (onPlayTap != null)
@@ -312,3 +326,56 @@ class _HeroSubscriptionBadge extends StatelessWidget {
 }
 
 enum _HeroBadgeColorToken { defaultMuted, playable }
+
+class _HeroMoreActionsButton extends StatelessWidget {
+  const _HeroMoreActionsButton({required this.isUpdating, required this.onTap});
+
+  final bool isUpdating;
+  final Future<void> Function(Offset globalPosition)? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final spacing = context.appSpacing;
+    final tokens = context.appComponentTokens;
+
+    final button = Container(
+      key: const Key('movie-detail-hero-more-actions-button'),
+      padding: EdgeInsets.all(spacing.xs),
+      decoration: BoxDecoration(
+        color: colors.mediaOverlayStrong,
+        borderRadius: context.appRadius.pillBorder,
+        border: Border.all(color: colors.borderSubtle.withValues(alpha: 0.42)),
+      ),
+      child:
+          isUpdating
+              ? SizedBox(
+                width: tokens.iconSizeSm,
+                height: tokens.iconSizeSm,
+                child: CircularProgressIndicator(
+                  key: const Key('movie-detail-hero-more-actions-loading'),
+                  strokeWidth: 2,
+                  color: context.appTextPalette.onMedia,
+                ),
+              )
+              : Icon(
+                Icons.more_horiz_rounded,
+                size: tokens.iconSizeSm,
+                color: context.appTextPalette.onMedia,
+              ),
+    );
+
+    if (onTap == null || isUpdating) {
+      return button;
+    }
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTapDown: (details) => onTap!(details.globalPosition),
+        child: button,
+      ),
+    );
+  }
+}

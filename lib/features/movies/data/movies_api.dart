@@ -85,6 +85,42 @@ class MoviesApi {
     return MovieDetailDto.fromJson(response);
   }
 
+  Future<MovieDetailDto> refreshMovieMetadata({
+    required String movieNumber,
+  }) async {
+    final response = await _apiClient.post(
+      '/movies/$movieNumber/metadata-refresh',
+    );
+    return MovieDetailDto.fromJson(response);
+  }
+
+  Future<MovieDetailDto> translateMovieDescription({
+    required String movieNumber,
+  }) async {
+    final response = await _apiClient.post(
+      '/movies/$movieNumber/desc-translation',
+    );
+    return MovieDetailDto.fromJson(response);
+  }
+
+  Future<MovieDetailDto> syncMovieInteraction({
+    required String movieNumber,
+  }) async {
+    final response = await _apiClient.post(
+      '/movies/$movieNumber/interaction-sync',
+    );
+    return MovieDetailDto.fromJson(response);
+  }
+
+  Future<MovieDetailDto> recomputeMovieHeat({
+    required String movieNumber,
+  }) async {
+    final response = await _apiClient.post(
+      '/movies/$movieNumber/heat-recompute',
+    );
+    return MovieDetailDto.fromJson(response);
+  }
+
   Future<List<MovieListItemDto>> getSimilarMovies({
     required String movieNumber,
     int limit = 15,

@@ -40,6 +40,49 @@ void main() {
     apiClient.dispose();
   });
 
+  Map<String, dynamic> movieDetailBody({
+    String title = 'Movie 1',
+    String titleZh = '',
+    String coverOrigin = '/files/images/movies/ABC-001/cover.jpg',
+  }) {
+    return <String, dynamic>{
+      'javdb_id': 'MovieA1',
+      'movie_number': 'ABC-001',
+      'title': title,
+      'title_zh': titleZh,
+      'series_name': 'Series 1',
+      'maker_name': 'Maker',
+      'director_name': 'Director',
+      'cover_image': <String, dynamic>{
+        'id': 10,
+        'origin': coverOrigin,
+        'small': coverOrigin,
+        'medium': coverOrigin,
+        'large': coverOrigin,
+      },
+      'release_date': '2026-03-08',
+      'duration_minutes': 120,
+      'score': 4.5,
+      'heat': 18,
+      'watched_count': 12,
+      'want_watch_count': 23,
+      'comment_count': 34,
+      'score_number': 45,
+      'is_collection': false,
+      'is_subscribed': true,
+      'can_play': true,
+      'summary': '',
+      'desc_zh': '',
+      'desc': 'desc',
+      'thin_cover_image': null,
+      'actors': const <Map<String, dynamic>>[],
+      'tags': const <Map<String, dynamic>>[],
+      'plot_images': const <Map<String, dynamic>>[],
+      'media_items': const <Map<String, dynamic>>[],
+      'playlists': const <Map<String, dynamic>>[],
+    };
+  }
+
   test('getMovies sends movie library filters and parses response', () async {
     adapter.enqueueJson(
       method: 'GET',
@@ -51,6 +94,7 @@ void main() {
             'javdb_id': 'MovieA1',
             'movie_number': 'ABC-001',
             'title': 'Movie 1',
+            'title_zh': '电影 1',
             'cover_image': null,
             'release_date': '2024-01-02',
             'duration_minutes': 120,
@@ -81,6 +125,8 @@ void main() {
     expect(request.uri.queryParameters['page'], '1');
     expect(request.uri.queryParameters['page_size'], '24');
     expect(page.items.single.movieNumber, 'ABC-001');
+    expect(page.items.single.titleZh, '电影 1');
+    expect(page.items.single.preferredTitle, '电影 1');
     expect(page.items.single.heat, 9);
   });
 
@@ -483,6 +529,7 @@ void main() {
             'javdb_id': 'MovieA1',
             'movie_number': 'ABC-001',
             'title': 'Movie 1',
+            'title_zh': '电影 1',
             'cover_image': <String, dynamic>{
               'id': 10,
               'origin': 'origin.jpg',
@@ -508,6 +555,8 @@ void main() {
     expect(page.pageSize, 8);
     expect(page.total, 1);
     expect(page.items.single.movieNumber, 'ABC-001');
+    expect(page.items.single.titleZh, '电影 1');
+    expect(page.items.single.preferredTitle, '电影 1');
     expect(page.items.single.coverImage?.bestAvailableUrl, 'large.jpg');
     expect(page.items.single.releaseDate, DateTime.parse('2024-01-02'));
     expect(page.items.single.canPlay, isTrue);
@@ -608,6 +657,7 @@ void main() {
         'javdb_id': 'MovieA1',
         'movie_number': 'ABC-001',
         'title': 'Movie 1',
+        'title_zh': '电影 1',
         'cover_image': <String, dynamic>{
           'id': 10,
           'origin': 'cover-origin.jpg',
@@ -757,6 +807,9 @@ void main() {
 
     expect(detail, isA<MovieDetailDto>());
     expect(detail.movieNumber, 'ABC-001');
+    expect(detail.title, 'Movie 1');
+    expect(detail.titleZh, '电影 1');
+    expect(detail.preferredTitle, '电影 1');
     expect(detail.heat, 27);
     expect(detail.seriesName, 'Series 1');
     expect(detail.makerName, 'S1 NO.1 STYLE');
@@ -1061,6 +1114,178 @@ void main() {
               'error.code',
               'movie_not_found',
             ),
+      ),
+    );
+  });
+
+  test('refreshMovieMetadata posts to metadata refresh endpoint', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/ABC-001/metadata-refresh',
+      statusCode: 200,
+      body: movieDetailBody(title: 'Refreshed movie'),
+    );
+
+    final detail = await moviesApi.refreshMovieMetadata(movieNumber: 'ABC-001');
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/movies/ABC-001/metadata-refresh');
+    expect(detail.title, 'Refreshed movie');
+  });
+
+  test('refreshMovieMetadata preserves backend ApiException payload', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/ABC-001/metadata-refresh',
+      statusCode: 409,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'movie_metadata_number_conflict',
+          'message': '冲突',
+        },
+      },
+    );
+
+    expect(
+      () => moviesApi.refreshMovieMetadata(movieNumber: 'ABC-001'),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'movie_metadata_number_conflict',
+        ),
+      ),
+    );
+  });
+
+  test(
+    'translateMovieDescription posts to desc translation endpoint',
+    () async {
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/movies/ABC-001/desc-translation',
+        statusCode: 200,
+        body: movieDetailBody(title: 'Translated movie'),
+      );
+
+      final detail = await moviesApi.translateMovieDescription(
+        movieNumber: 'ABC-001',
+      );
+
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, '/movies/ABC-001/desc-translation');
+      expect(detail.title, 'Translated movie');
+    },
+  );
+
+  test(
+    'translateMovieDescription preserves backend ApiException payload',
+    () async {
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/movies/ABC-001/desc-translation',
+        statusCode: 422,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{
+            'code': 'movie_desc_missing',
+            'message': '缺少描述',
+          },
+        },
+      );
+
+      expect(
+        () => moviesApi.translateMovieDescription(movieNumber: 'ABC-001'),
+        throwsA(
+          isA<ApiException>().having(
+            (ApiException error) => error.error?.code,
+            'error.code',
+            'movie_desc_missing',
+          ),
+        ),
+      );
+    },
+  );
+
+  test('syncMovieInteraction posts to interaction sync endpoint', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/ABC-001/interaction-sync',
+      statusCode: 200,
+      body: movieDetailBody(title: 'Synced movie'),
+    );
+
+    final detail = await moviesApi.syncMovieInteraction(movieNumber: 'ABC-001');
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/movies/ABC-001/interaction-sync');
+    expect(detail.title, 'Synced movie');
+  });
+
+  test('syncMovieInteraction preserves backend ApiException payload', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/ABC-001/interaction-sync',
+      statusCode: 502,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'movie_interaction_sync_failed',
+          'message': '同步失败',
+        },
+      },
+    );
+
+    expect(
+      () => moviesApi.syncMovieInteraction(movieNumber: 'ABC-001'),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'movie_interaction_sync_failed',
+        ),
+      ),
+    );
+  });
+
+  test('recomputeMovieHeat posts to heat recompute endpoint', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/ABC-001/heat-recompute',
+      statusCode: 200,
+      body: movieDetailBody(title: 'Recomputed movie'),
+    );
+
+    final detail = await moviesApi.recomputeMovieHeat(movieNumber: 'ABC-001');
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/movies/ABC-001/heat-recompute');
+    expect(detail.title, 'Recomputed movie');
+  });
+
+  test('recomputeMovieHeat preserves backend ApiException payload', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/ABC-001/heat-recompute',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'movie_heat_recompute_failed',
+          'message': '重算失败',
+        },
+      },
+    );
+
+    expect(
+      () => moviesApi.recomputeMovieHeat(movieNumber: 'ABC-001'),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'movie_heat_recompute_failed',
+        ),
       ),
     );
   });

@@ -42,6 +42,7 @@ class MovieListItemDto {
     required this.javdbId,
     required this.movieNumber,
     required this.title,
+    this.titleZh = '',
     required this.coverImage,
     required this.releaseDate,
     required this.durationMinutes,
@@ -54,6 +55,7 @@ class MovieListItemDto {
   final String javdbId;
   final String movieNumber;
   final String title;
+  final String titleZh;
   final MovieImageDto? coverImage;
   final DateTime? releaseDate;
   final int durationMinutes;
@@ -62,10 +64,19 @@ class MovieListItemDto {
   final bool canPlay;
   final double? similarityScore;
 
+  String get preferredTitle {
+    final resolvedTitleZh = titleZh.trim();
+    if (resolvedTitleZh.isNotEmpty) {
+      return resolvedTitleZh;
+    }
+    return title.trim();
+  }
+
   MovieListItemDto copyWith({
     String? javdbId,
     String? movieNumber,
     String? title,
+    String? titleZh,
     MovieImageDto? coverImage,
     DateTime? releaseDate,
     int? durationMinutes,
@@ -78,6 +89,7 @@ class MovieListItemDto {
       javdbId: javdbId ?? this.javdbId,
       movieNumber: movieNumber ?? this.movieNumber,
       title: title ?? this.title,
+      titleZh: titleZh ?? this.titleZh,
       coverImage: coverImage ?? this.coverImage,
       releaseDate: releaseDate ?? this.releaseDate,
       durationMinutes: durationMinutes ?? this.durationMinutes,
@@ -93,6 +105,7 @@ class MovieListItemDto {
       javdbId: json['javdb_id'] as String? ?? '',
       movieNumber: json['movie_number'] as String? ?? '',
       title: json['title'] as String? ?? '',
+      titleZh: json['title_zh'] as String? ?? '',
       coverImage: _movieImageFromJson(json['cover_image']),
       releaseDate: _dateFromJson(json['release_date']),
       durationMinutes: json['duration_minutes'] as int? ?? 0,

@@ -3,6 +3,7 @@ import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/resource_task_definition_dto.dart';
 import 'package:sakuramedia/features/activity/data/resource_task_record_dto.dart';
@@ -215,46 +216,27 @@ class ResourceTaskCenterController extends ChangeNotifier {
     }
 
     final requestId = ++bucket.loadRequestId;
-    bucket.isLoadingMore = true;
-    bucket.loadMoreErrorMessage = null;
+    _startLoadMore(bucket);
     _notifySafely();
 
     try {
-      final response = await _activityApi.getResourceTaskRecords(
-        taskKey: key,
+      final response = await _fetchRecordsPage(
+        key,
         page: bucket.nextPage,
-        pageSize: _pageSize,
-        state: bucket.filter.stateFilter.apiValue,
-        search:
-            bucket.filter.normalizedSearch.isEmpty
-                ? null
-                : bucket.filter.normalizedSearch,
-        sort: bucket.filter.sort.apiValue,
+        bucket: bucket,
       );
 
-      if (_disposed || requestId != bucket.loadRequestId) {
+      if (_isStaleRequest(bucket, requestId)) {
         return;
       }
 
-      bucket.records = <ResourceTaskRecordDto>[
-        ...bucket.records,
-        ...response.items,
-      ];
-      bucket.nextPage = response.page + 1;
-      bucket.hasMore =
-          response.items.length >= response.pageSize &&
-          bucket.records.length < response.total;
-      bucket.isLoadingMore = false;
+      _applyLoadMoreSuccess(bucket, response);
       _notifySafely();
     } catch (error) {
-      if (_disposed || requestId != bucket.loadRequestId) {
+      if (_isStaleRequest(bucket, requestId)) {
         return;
       }
-      bucket.isLoadingMore = false;
-      bucket.loadMoreErrorMessage = apiErrorMessage(
-        error,
-        fallback: '加载更多失败，请稍后重试',
-      );
+      _applyLoadMoreFailure(bucket, error);
       _notifySafely();
     }
   }
@@ -278,47 +260,112 @@ class ResourceTaskCenterController extends ChangeNotifier {
   Future<void> _loadFirstPage(String taskKey) async {
     final bucket = _ensureBucket(taskKey);
     final requestId = ++bucket.loadRequestId;
-    bucket.isLoading = true;
-    bucket.loadErrorMessage = null;
-    bucket.loadMoreErrorMessage = null;
+    _startInitialLoad(bucket);
     _notifySafely();
 
     try {
-      final response = await _activityApi.getResourceTaskRecords(
-        taskKey: taskKey,
+      final response = await _fetchRecordsPage(
+        taskKey,
         page: 1,
-        pageSize: _pageSize,
-        state: bucket.filter.stateFilter.apiValue,
-        search:
-            bucket.filter.normalizedSearch.isEmpty
-                ? null
-                : bucket.filter.normalizedSearch,
-        sort: bucket.filter.sort.apiValue,
+        bucket: bucket,
       );
 
-      if (_disposed || requestId != bucket.loadRequestId) {
+      if (_isStaleRequest(bucket, requestId)) {
         return;
       }
 
-      bucket.records = List<ResourceTaskRecordDto>.unmodifiable(response.items);
-      bucket.nextPage = response.page + 1;
-      bucket.hasMore =
-          response.items.length >= response.pageSize &&
-          bucket.records.length < response.total;
-      bucket.isLoading = false;
-      bucket.hasLoadedOnce = true;
+      _applyInitialLoadSuccess(bucket, response);
       _notifySafely();
     } catch (error) {
-      if (_disposed || requestId != bucket.loadRequestId) {
+      if (_isStaleRequest(bucket, requestId)) {
         return;
       }
-      bucket.isLoading = false;
-      bucket.loadErrorMessage = apiErrorMessage(
-        error,
-        fallback: '资源任务记录加载失败，请稍后重试',
-      );
+      _applyInitialLoadFailure(bucket, error);
       _notifySafely();
     }
+  }
+
+  Future<PaginatedResponseDto<ResourceTaskRecordDto>> _fetchRecordsPage(
+    String taskKey, {
+    required int page,
+    required _RecordsBucket bucket,
+  }) {
+    return _activityApi.getResourceTaskRecords(
+      taskKey: taskKey,
+      page: page,
+      pageSize: _pageSize,
+      state: bucket.filter.stateFilter.apiValue,
+      search: _normalizedSearch(bucket.filter),
+      sort: bucket.filter.sort.apiValue,
+    );
+  }
+
+  String? _normalizedSearch(ResourceTaskRecordFilterState filter) {
+    return filter.normalizedSearch.isEmpty ? null : filter.normalizedSearch;
+  }
+
+  bool _isStaleRequest(_RecordsBucket bucket, int requestId) {
+    return _disposed || requestId != bucket.loadRequestId;
+  }
+
+  void _startInitialLoad(_RecordsBucket bucket) {
+    bucket.isLoading = true;
+    bucket.loadErrorMessage = null;
+    bucket.loadMoreErrorMessage = null;
+  }
+
+  void _startLoadMore(_RecordsBucket bucket) {
+    bucket.isLoadingMore = true;
+    bucket.loadMoreErrorMessage = null;
+  }
+
+  void _applyInitialLoadSuccess(
+    _RecordsBucket bucket,
+    PaginatedResponseDto<ResourceTaskRecordDto> response,
+  ) {
+    bucket.records = List<ResourceTaskRecordDto>.unmodifiable(response.items);
+    _applyPagination(bucket, response, currentCount: bucket.records.length);
+    bucket.isLoading = false;
+    bucket.hasLoadedOnce = true;
+  }
+
+  void _applyLoadMoreSuccess(
+    _RecordsBucket bucket,
+    PaginatedResponseDto<ResourceTaskRecordDto> response,
+  ) {
+    bucket.records = <ResourceTaskRecordDto>[
+      ...bucket.records,
+      ...response.items,
+    ];
+    bucket.isLoadingMore = false;
+    _applyPagination(bucket, response, currentCount: bucket.records.length);
+  }
+
+  void _applyPagination(
+    _RecordsBucket bucket,
+    PaginatedResponseDto<ResourceTaskRecordDto> response, {
+    required int currentCount,
+  }) {
+    bucket.nextPage = response.page + 1;
+    bucket.hasMore =
+        response.items.length >= response.pageSize &&
+        currentCount < response.total;
+  }
+
+  void _applyInitialLoadFailure(_RecordsBucket bucket, Object error) {
+    bucket.isLoading = false;
+    bucket.loadErrorMessage = apiErrorMessage(
+      error,
+      fallback: '资源任务记录加载失败，请稍后重试',
+    );
+  }
+
+  void _applyLoadMoreFailure(_RecordsBucket bucket, Object error) {
+    bucket.isLoadingMore = false;
+    bucket.loadMoreErrorMessage = apiErrorMessage(
+      error,
+      fallback: '加载更多失败，请稍后重试',
+    );
   }
 
   _RecordsBucket _ensureBucket(String taskKey) {

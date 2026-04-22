@@ -152,17 +152,73 @@ void main() {
         expect(attempt, 2);
       },
     );
+
+    test(
+      'applyMovie replaces detail without resetting current preview by default',
+      () async {
+        final controller = MovieDetailController(
+          movieNumber: 'ABC-001',
+          fetchMovieDetail: ({required movieNumber}) async {
+            return _movieDetail(title: 'Movie 1', coverOrigin: '/covers/1.jpg');
+          },
+          fetchSimilarMovies: ({required movieNumber, int limit = 15}) async {
+            return <MovieListItemDto>[_similarMovie(movieNumber: 'SIM-001')];
+          },
+        );
+
+        await controller.load();
+        controller.applyMovie(
+          _movieDetail(title: 'Movie 2', coverOrigin: '/covers/2.jpg'),
+        );
+
+        expect(controller.movie?.title, 'Movie 2');
+        expect(controller.selectedPreviewUrl, '/covers/2.jpg');
+        expect(controller.errorMessage, isNull);
+      },
+    );
+
+    test('applyMovie resets preview when requested', () async {
+      final controller = MovieDetailController(
+        movieNumber: 'ABC-001',
+        fetchMovieDetail: ({required movieNumber}) async {
+          return _movieDetail(
+            title: 'Movie 1',
+            coverOrigin: '/covers/1.jpg',
+            thinCoverOrigin: '/covers/thin-1.jpg',
+          );
+        },
+        fetchSimilarMovies: ({required movieNumber, int limit = 15}) async {
+          return <MovieListItemDto>[_similarMovie(movieNumber: 'SIM-001')];
+        },
+      );
+
+      await controller.load();
+      controller.applyMovie(
+        _movieDetail(
+          title: 'Movie 2',
+          coverOrigin: '',
+          thinCoverOrigin: '/covers/thin-2.jpg',
+        ),
+        resetPreview: true,
+      );
+
+      expect(controller.movie?.title, 'Movie 2');
+      expect(controller.selectedPreviewKey, 'thin-cover');
+      expect(controller.selectedPreviewUrl, '/covers/thin-2.jpg');
+    });
   });
 }
 
 MovieDetailDto _movieDetail({
   required String title,
   required String coverOrigin,
+  String? thinCoverOrigin,
 }) {
   return MovieDetailDto(
     javdbId: 'movie-1',
     movieNumber: 'ABC-001',
     title: title,
+    titleZh: '',
     seriesName: '',
     makerName: '',
     directorName: '',
@@ -187,7 +243,16 @@ MovieDetailDto _movieDetail({
     summary: '',
     descZh: '',
     desc: '',
-    thinCoverImage: null,
+    thinCoverImage:
+        thinCoverOrigin == null
+            ? null
+            : MovieImageDto(
+              id: 2,
+              origin: thinCoverOrigin,
+              small: '',
+              medium: '',
+              large: '',
+            ),
     plotImages: const <MovieImageDto>[],
     actors: const <MovieActorDto>[],
     tags: const <MovieTagDto>[],
@@ -201,6 +266,7 @@ MovieListItemDto _similarMovie({required String movieNumber}) {
     javdbId: 'similar-$movieNumber',
     movieNumber: movieNumber,
     title: 'Similar $movieNumber',
+    titleZh: '',
     coverImage: null,
     releaseDate: null,
     durationMinutes: 0,

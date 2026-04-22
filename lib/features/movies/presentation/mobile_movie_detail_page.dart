@@ -12,6 +12,8 @@ import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_detail_action_menu.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_detail_action_support.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_page_content.dart';
@@ -43,6 +45,7 @@ class MobileMovieDetailPage extends StatefulWidget {
 class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
   late final MovieDetailController _controller;
   late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
+  var _ownsSubscriptionChangeNotifier = false;
   final Map<int, List<MovieMediaPointDto>> _pointOverrides =
       <int, List<MovieMediaPointDto>>{};
   int? _selectedMediaId;
@@ -51,12 +54,19 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
   bool _isSubscriptionUpdating = false;
   bool _isCollectionUpdating = false;
   int? _deletingMediaId;
+  MovieDetailActionType? _activeMovieAction;
+
+  bool get _isMovieActionLocked =>
+      _isSubscriptionUpdating ||
+      _isCollectionUpdating ||
+      _activeMovieAction != null;
 
   @override
   void initState() {
     super.initState();
-    _subscriptionChangeNotifier =
-        context.read<MovieSubscriptionChangeNotifier>();
+    final binding = resolveMovieSubscriptionNotifier(context);
+    _subscriptionChangeNotifier = binding.notifier;
+    _ownsSubscriptionChangeNotifier = binding.ownsNotifier;
     _controller = MovieDetailController(
       movieNumber: widget.movieNumber,
       fetchMovieDetail: context.read<MoviesApi>().getMovieDetail,
@@ -68,6 +78,9 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
   @override
   void dispose() {
     _controller.dispose();
+    if (_ownsSubscriptionChangeNotifier) {
+      _subscriptionChangeNotifier.dispose();
+    }
     super.dispose();
   }
 
@@ -94,6 +107,7 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
           final mediaItems = _resolveMediaItems(movie);
           final isSubscribed = _isSubscribedOverride ?? movie.isSubscribed;
           final isCollection = _isCollectionOverride ?? movie.isCollection;
+          final isActionControlsLocked = _isMovieActionLocked;
           final selectedMedia =
               mediaItems
                   .where((item) => item.mediaId == _selectedMediaId)
@@ -111,6 +125,7 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
             isSubscribed: isSubscribed,
             isSubscriptionUpdating: _isSubscriptionUpdating,
             isCollectionUpdating: _isCollectionUpdating,
+            isMoreActionsUpdating: _activeMovieAction != null,
             selectedMediaId: selectedMedia?.mediaId,
             statItems: buildMovieDetailStatItems(context, movie),
             similarMovies: _controller.similarMovies,
@@ -130,10 +145,14 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
                       slivers: <Widget>[SliverToBoxAdapter(child: content)],
                     ),
             onSubscriptionTap:
-                _isSubscriptionUpdating
+                isActionControlsLocked
                     ? null
                     : () =>
                         _toggleMovieSubscription(isSubscribed: isSubscribed),
+            onMoreActionsTap:
+                isActionControlsLocked
+                    ? null
+                    : (_) => _showMovieActionDrawer(movie, isSubscribed),
             onPlayTap:
                 selectedMedia != null && selectedMedia.hasPlayableUrl
                     ? () => _openMoviePlayer(mediaId: selectedMedia.mediaId)
@@ -146,7 +165,7 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
                   presentation: MoviePlaylistPickerPresentation.bottomDrawer,
                 ),
             onCollectionToggle:
-                _isCollectionUpdating
+                isActionControlsLocked
                     ? null
                     : () =>
                         _toggleMovieCollectionType(isCollection: isCollection),
@@ -395,6 +414,54 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
         showToast('刷新失败');
       }
     }
+  }
+
+  Future<void> _showMovieActionDrawer(MovieDetailDto movie, bool isSubscribed) {
+    return showMovieDetailMobileActionDrawer(
+      context: context,
+      movieNumber: movie.movieNumber,
+      actions: buildMovieDetailActionDescriptors(
+        movie: movie,
+        isSubscribed: isSubscribed,
+      ),
+      onExecuteAction: _executeMovieAction,
+    );
+  }
+
+  Future<bool> _executeMovieAction(MovieDetailActionType action) {
+    if (action == MovieDetailActionType.toggleSubscription) {
+      return _toggleMovieSubscription(
+        isSubscribed:
+            _isSubscribedOverride ?? _controller.movie?.isSubscribed ?? false,
+      );
+    }
+
+    return executeMovieDetailRemoteAction(
+      context: context,
+      action: action,
+      movieNumber: widget.movieNumber,
+      isLocked: _isMovieActionLocked,
+      controller: _controller,
+      selectedMediaId: _selectedMediaId,
+      onActiveActionChanged: (nextAction) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _activeMovieAction = nextAction;
+        });
+      },
+      onMovieApplied: (result) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _selectedMediaId = result.selectedMediaId;
+          _isSubscribedOverride = result.isSubscribedOverride;
+          _isCollectionOverride = result.isCollectionOverride;
+        });
+      },
+    );
   }
 
   Future<void> _refreshAfterMediaDelete({required int deletedMediaId}) async {
@@ -781,9 +848,9 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
     }
   }
 
-  Future<void> _toggleMovieSubscription({required bool isSubscribed}) async {
+  Future<bool> _toggleMovieSubscription({required bool isSubscribed}) async {
     if (_isSubscriptionUpdating) {
-      return;
+      return false;
     }
 
     setState(() {
@@ -823,13 +890,15 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
     _reportSubscriptionChange(result);
 
     if (!mounted) {
-      return;
+      return false;
     }
 
     setState(() {
       _isSubscriptionUpdating = false;
     });
     showMovieSubscriptionFeedback(result);
+    return result.status == MovieSubscriptionToggleStatus.subscribed ||
+        result.status == MovieSubscriptionToggleStatus.unsubscribed;
   }
 
   bool _isBlockedByMedia(Object error) {

@@ -237,6 +237,10 @@ void main() {
       findsOneWidget,
     );
     expect(
+      find.byKey(const Key('movie-detail-hero-more-actions-button')),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const Key('movie-detail-hero-heat-text')),
       findsOneWidget,
     );
@@ -246,13 +250,18 @@ void main() {
     final heatRect = tester.getRect(
       find.byKey(const Key('movie-detail-hero-heat-badge')),
     );
+    final moreRect = tester.getRect(
+      find.byKey(const Key('movie-detail-hero-more-actions-button')),
+    );
     final subscriptionRect = tester.getRect(
       find.byKey(const Key('movie-detail-hero-subscription-icon')),
     );
     final edgeInset = AppSpacing.defaults().sm;
 
-    expect(heatRect.top - heroRect.top, closeTo(edgeInset, 0.1));
-    expect(heroRect.right - heatRect.right, closeTo(edgeInset, 0.1));
+    expect(heatRect.top - heroRect.top, closeTo(edgeInset, 1.0));
+    expect(moreRect.top - heroRect.top, closeTo(edgeInset, 1.0));
+    expect(heroRect.right - moreRect.right, closeTo(edgeInset, 0.1));
+    expect(heatRect.right, lessThan(moreRect.left));
     expect(subscriptionRect.top - heroRect.top, closeTo(edgeInset, 0.1));
     expect(subscriptionRect.left - heroRect.left, closeTo(edgeInset, 0.1));
 
@@ -266,6 +275,48 @@ void main() {
     );
     final decoration = badge.decoration as BoxDecoration;
     expect(decoration.color, AppColors.defaults().mediaOverlayStrong);
+  });
+
+  testWidgets('movie detail hero card invokes more actions callback', (
+    WidgetTester tester,
+  ) async {
+    Offset? tappedPosition;
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<SessionStore>.value(
+        value: sessionStore,
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: SizedBox(
+              width: 1200,
+              child: MovieDetailHeroCard(
+                height: 420,
+                mainImageKey: 'cover',
+                mainImageUrl: '/covers/main.jpg',
+                thinCoverUrl: '/covers/thin.jpg',
+                heat: 24,
+                canPlay: true,
+                isSubscribed: false,
+                isCollection: false,
+                onPlayTap: null,
+                onSubscriptionTap: null,
+                onMoreActionsTap: (globalPosition) async {
+                  tappedPosition = globalPosition;
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const Key('movie-detail-hero-more-actions-button')),
+    );
+    await tester.pump();
+
+    expect(tappedPosition, isNotNull);
   });
 }
 

@@ -14,6 +14,7 @@ import 'package:sakuramedia/widgets/movie_detail/movie_detail_number_bar.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_hero_card.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_section.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_stat_row.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_detail_title.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_media_item_list.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_gallery.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_similar_movie_strip.dart';
@@ -51,6 +52,7 @@ class MovieDetailPageContent extends StatelessWidget {
     this.onRequestMediaPointMenu,
     this.onPlayTap,
     this.onSubscriptionTap,
+    this.onMoreActionsTap,
     this.onActorTap,
     this.onRequestPlotImageMenu,
     this.onOpenPlotPreview,
@@ -61,6 +63,7 @@ class MovieDetailPageContent extends StatelessWidget {
     this.bottomInfoBarVariant = MovieDetailBottomInfoBarVariant.desktopCard,
     this.scrollPhysics,
     this.scrollViewBuilder,
+    this.isMoreActionsUpdating = false,
   });
 
   final MovieDetailDto movie;
@@ -71,6 +74,7 @@ class MovieDetailPageContent extends StatelessWidget {
   final bool isSubscribed;
   final bool isCollectionUpdating;
   final bool isSubscriptionUpdating;
+  final bool isMoreActionsUpdating;
   final int? selectedMediaId;
   final List<MovieDetailStatItem> statItems;
   final List<MovieListItemDto> similarMovies;
@@ -92,6 +96,7 @@ class MovieDetailPageContent extends StatelessWidget {
   onRequestMediaPointMenu;
   final VoidCallback? onPlayTap;
   final VoidCallback? onSubscriptionTap;
+  final Future<void> Function(Offset globalPosition)? onMoreActionsTap;
   final ValueChanged<MovieActorDto>? onActorTap;
   final Future<void> Function(
     BuildContext context,
@@ -224,6 +229,10 @@ class MovieDetailPageContent extends StatelessWidget {
       key: const Key('movie-detail-page'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        MovieDetailTitle(
+          title: movie.preferredTitle,
+          movieNumber: movie.movieNumber,
+        ),
         MovieDetailHeroCard(
           height: heroHeight,
           mainImageKey: selectedPreviewKey,
@@ -235,6 +244,8 @@ class MovieDetailPageContent extends StatelessWidget {
           isCollection: isCollection,
           onSubscriptionTap: onSubscriptionTap,
           isSubscriptionUpdating: isSubscriptionUpdating,
+          onMoreActionsTap: onMoreActionsTap,
+          isMoreActionsUpdating: isMoreActionsUpdating,
           onPlayTap: onPlayTap,
         ),
         SizedBox(height: context.appSpacing.lg),

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/llm_settings_copy.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
@@ -210,7 +211,7 @@ class _MobileLlmSettingsPageState extends State<MobileLlmSettingsPage> {
             ),
             SizedBox(height: spacing.xs),
             Text(
-              '当前页面管理 LLM 服务接入参数，现阶段由影片简介翻译任务使用。',
+              LlmSettingsCopy.sharedUsageDescription,
               style: resolveAppTextStyle(
                 context,
                 size: AppTextSize.s12,
@@ -264,7 +265,7 @@ class _MobileLlmSettingsPageState extends State<MobileLlmSettingsPage> {
               controller: _baseUrlController,
               label: 'Base URL',
               hintText: '请输入 http/https 地址',
-              helperText: '例如：http://127.0.0.1:8000',
+              helperText: LlmSettingsCopy.baseUrlHelperText,
               enabled: !_isSaving && !_isTesting,
               keyboardType: TextInputType.url,
               autovalidateMode: autovalidateMode,
@@ -303,7 +304,7 @@ class _MobileLlmSettingsPageState extends State<MobileLlmSettingsPage> {
               fieldKey: const Key('mobile-llm-model-field'),
               controller: _modelController,
               label: '模型',
-              hintText: '例如：gpt-4o-mini',
+              hintText: LlmSettingsCopy.modelHintText,
               enabled: !_isSaving && !_isTesting,
               autovalidateMode: autovalidateMode,
               validator: _modelError,
@@ -596,7 +597,7 @@ class _MobileLlmOverviewCard extends StatelessWidget {
           ),
           SizedBox(height: spacing.xs),
           Text(
-            '入口名称保持通用 LLM 配置，当前后端实际接入的是影片简介翻译服务。',
+            LlmSettingsCopy.sharedEndpointDescription,
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s12,

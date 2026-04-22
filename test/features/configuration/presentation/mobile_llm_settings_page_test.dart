@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/llm_settings_copy.dart';
 import 'package:sakuramedia/features/configuration/presentation/mobile_llm_settings_page.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
@@ -44,6 +45,24 @@ void main() {
     expect(find.byKey(const Key('mobile-llm-test-button')), findsOneWidget);
     expect(find.byKey(const Key('mobile-llm-save-button')), findsOneWidget);
     expect(find.text('可保存'), findsOneWidget);
+    expect(find.text(LlmSettingsCopy.sharedUsageDescription), findsOneWidget);
+    expect(
+      find.text(LlmSettingsCopy.sharedEndpointDescription),
+      findsOneWidget,
+    );
+    expect(find.text(LlmSettingsCopy.baseUrlHelperText), findsOneWidget);
+    expect(find.text(LlmSettingsCopy.modelHintText), findsOneWidget);
+  });
+
+  testWidgets('shows llm example config hints when draft is empty', (
+    WidgetTester tester,
+  ) async {
+    _enqueueSettings(_bundle, baseUrl: '', model: '');
+
+    await _pumpPage(tester);
+
+    expect(find.text(LlmSettingsCopy.baseUrlHelperText), findsOneWidget);
+    expect(find.text(LlmSettingsCopy.modelHintText), findsOneWidget);
   });
 
   testWidgets('shows fatal error and retries successfully', (

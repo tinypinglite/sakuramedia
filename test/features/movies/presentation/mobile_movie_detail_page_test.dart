@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_detail_action_copy.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
@@ -321,6 +322,10 @@ void main() {
       await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(
+        find.byKey(const Key('movie-media-delete-button')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('movie-media-delete-button')));
       await tester.pumpAndSettle();
 
@@ -364,6 +369,10 @@ void main() {
       await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(
+        find.byKey(const Key('movie-media-delete-button')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('movie-media-delete-button')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('movie-media-delete-confirm')));
@@ -700,13 +709,14 @@ void main() {
   );
 
   testWidgets(
-    'mobile movie detail page shows preferred description below movie number without title',
+    'mobile movie detail page prefers title_zh above movie number and description',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
         method: 'GET',
         path: '/movies/ABC-001',
         body: _movieDetailJson(
           title: 'ABC-001 4K 中文字幕',
+          titleZh: '中文标题',
           summary: '这是影片简介',
           descZh: '这是中文简介',
           desc: 'これは日本語紹介です',
@@ -716,12 +726,15 @@ void main() {
       await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('movie-detail-title')), findsNothing);
+      expect(find.byKey(const Key('movie-detail-title')), findsOneWidget);
       expect(find.byKey(const Key('movie-detail-summary')), findsOneWidget);
       expect(find.text('ABC-001 4K 中文字幕'), findsNothing);
+      expect(find.text('中文标题'), findsOneWidget);
       expect(find.text('这是中文简介'), findsOneWidget);
 
       final heroTop = tester.getTopLeft(find.byType(MovieDetailHeroCard)).dy;
+      final titleBottom =
+          tester.getBottomLeft(find.byKey(const Key('movie-detail-title'))).dy;
       final movieNumberBottom =
           tester.getBottomLeft(find.byKey(const Key('movie-detail-number'))).dy;
       final interactionTop =
@@ -730,6 +743,9 @@ void main() {
               .dy;
       final summaryTop =
           tester.getTopLeft(find.byKey(const Key('movie-detail-summary'))).dy;
+      final titleText = tester.widget<Text>(
+        find.byKey(const Key('movie-detail-title')),
+      );
       final numberText = tester.widget<Text>(
         find.byKey(const Key('movie-detail-number')),
       );
@@ -737,9 +753,10 @@ void main() {
         find.byKey(const Key('movie-detail-summary')),
       );
 
-      expect(heroTop, lessThan(movieNumberBottom));
+      expect(titleBottom, lessThan(heroTop));
       expect(movieNumberBottom, lessThan(interactionTop));
       expect(interactionTop, lessThan(summaryTop));
+      expect(titleText.style?.fontSize, sakuraMobileThemeData.appTextScale.s16);
       expect(
         numberText.style?.fontSize,
         sakuraMobileThemeData.appTextScale.s16,
@@ -748,6 +765,30 @@ void main() {
         summaryText.style?.fontSize,
         sakuraMobileThemeData.appTextScale.s14,
       );
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail page falls back to original title when title_zh is blank',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(
+          title: '原始标题',
+          titleZh: ' ',
+          summary: '',
+          descZh: ' ',
+          desc: '',
+        ),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('movie-detail-title')), findsOneWidget);
+      expect(find.text('原始标题'), findsOneWidget);
+      expect(find.byKey(const Key('movie-detail-summary')), findsNothing);
     },
   );
 
@@ -1451,12 +1492,136 @@ void main() {
       300,
       scrollable: verticalScrollable,
     );
+    await tester.drag(verticalScrollable, const Offset(0, -120));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('movie-actor-1')));
     await tester.pumpAndSettle();
 
     expect(find.text('actor:1'), findsOneWidget);
     expect(router.canPop(), isTrue);
   });
+
+  testWidgets('mobile movie detail opens action drawer with ordered actions', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      body: _movieDetailJson(isSubscribed: false, desc: '这是原始介绍'),
+    );
+
+    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('movie-detail-hero-more-actions-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('movie-detail-actions-drawer')),
+      findsOneWidget,
+    );
+
+    final labels = <String>['订阅影片', '刷新元数据', '计算热度', '刷新互动数', '翻译影片介绍'];
+    final orderedLabels = List<String>.from(labels)..sort((left, right) {
+      final leftDy = tester.getTopLeft(find.text(left)).dy;
+      final rightDy = tester.getTopLeft(find.text(right)).dy;
+      return leftDy.compareTo(rightDy);
+    });
+    expect(orderedLabels, labels);
+  });
+
+  testWidgets(
+    'mobile movie detail disables interaction sync and description translation actions when prerequisites are missing',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(javdbId: '', desc: ''),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('movie-detail-hero-more-actions-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final syncOpacity = tester.widget<Opacity>(
+        find
+            .ancestor(of: find.text('刷新互动数'), matching: find.byType(Opacity))
+            .first,
+      );
+      final translateOpacity = tester.widget<Opacity>(
+        find
+            .ancestor(of: find.text('翻译影片介绍'), matching: find.byType(Opacity))
+            .first,
+      );
+
+      expect(syncOpacity.opacity, lessThan(1));
+      expect(translateOpacity.opacity, lessThan(1));
+    },
+  );
+
+  testWidgets(
+    'mobile movie detail refreshes metadata through confirmation drawer without refetching detail',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(heat: 12, desc: '这是原始介绍'),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/movies/ABC-001/metadata-refresh',
+        body: _movieDetailJson(
+          heat: 99,
+          title: 'Movie refreshed',
+          desc: '这是原始介绍',
+        ),
+      );
+
+      await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('movie-detail-hero-more-actions-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('刷新元数据'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('movie-detail-refresh-metadata-confirmation')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(MovieDetailRefreshConfirmationCopy.description),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('movie-detail-refresh-metadata-confirm')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('movie-detail-hero-heat-text')))
+            .data,
+        '99',
+      );
+      expect(bundle.adapter.hitCount('GET', '/movies/ABC-001'), 1);
+      expect(
+        bundle.adapter.hitCount('POST', '/movies/ABC-001/metadata-refresh'),
+        1,
+      );
+      await tester.pump(const Duration(seconds: 3));
+    },
+  );
 }
 
 Future<void> _pumpPage(
@@ -1579,19 +1744,23 @@ Future<void> _pumpRouterPage(
 }
 
 Map<String, dynamic> _movieDetailJson({
+  String javdbId = 'MovieA1',
   String title = 'Movie 1',
+  String titleZh = '',
   String summary = '',
   String descZh = '',
   String desc = '',
   String makerName = 'S1 NO.1 STYLE',
   String directorName = '紋℃',
   int heat = 0,
+  bool isSubscribed = true,
   List<Map<String, dynamic>>? mediaItems,
 }) {
   return <String, dynamic>{
-    'javdb_id': 'MovieA1',
+    'javdb_id': javdbId,
     'movie_number': 'ABC-001',
     'title': title,
+    'title_zh': titleZh,
     'cover_image': <String, dynamic>{
       'id': 10,
       'origin': '/files/images/movies/ABC-001/cover.jpg',
@@ -1608,7 +1777,7 @@ Map<String, dynamic> _movieDetailJson({
     'comment_count': 34,
     'score_number': 45,
     'is_collection': false,
-    'is_subscribed': true,
+    'is_subscribed': isSubscribed,
     'can_play': true,
     'series_name': 'Attackers',
     'maker_name': makerName,

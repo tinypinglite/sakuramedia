@@ -38,7 +38,7 @@
 - `database`
 - `auth`
 - `metadata`
-- `movie_desc_translation`（如果你准备启用简介翻译）
+- `movie_info_translation`（如果你准备启用影片信息翻译）
 - `image_search`
 - `scheduler`
 
@@ -53,7 +53,7 @@
 - `[auth]`
 - `[media]`
 - `[metadata]`
-- `[movie_desc_translation]`
+- `[movie_info_translation]`
 - `[scheduler]`
 - `[logging]`
 - `[indexer_settings]`
@@ -269,17 +269,18 @@ import_metadata_max_workers = 3
 - 如果头像下载正常，`proxy` 可以保持空
 - `javdb_host`、GFriends 相关地址通常不建议随便改
 
-## `[movie_desc_translation]`
+## `[movie_info_translation]`
 
-这一组控制影片简介翻译任务连接的外部 OpenAI 兼容大模型接口。
+这一组控制影片信息翻译任务连接的外部 OpenAI 兼容大模型接口。
+当前它由“影片简介翻译”和“影片标题翻译”共用。
 
 ```toml
-[movie_desc_translation]
+[movie_info_translation]
 enabled = false
-base_url = "http://localhost:8000"
-api_key = ""
-model = "gpt-4o-mini"
-timeout_seconds = 300
+base_url = "https://ollama.com"
+api_key = "填入ollama的api key"
+model = "gemma4:31b-cloud"
+timeout_seconds = 120
 connect_timeout_seconds = 3
 ```
 
@@ -287,7 +288,7 @@ connect_timeout_seconds = 3
 
 | 字段 | 作用 |
 |---|---|
-| `enabled` | 是否启用影片简介翻译任务 |
+| `enabled` | 是否启用影片信息翻译任务 |
 | `base_url` | OpenAI 兼容大模型接口地址 |
 | `api_key` | 大模型接口 API Key |
 | `model` | 翻译使用的模型名称 |
@@ -296,9 +297,11 @@ connect_timeout_seconds = 3
 
 建议：
 
-- 如果你暂时不需要中文简介，可以保持 `enabled = false`
+- 如果你暂时不需要中文简介和中文标题，可以保持 `enabled = false`
 - 真正启用前，先用 [常用命令](/guide/commands) 里的 `test-trans` 验证这个 OpenAI 格式接口是否可用
-- 这组配置只影响简介翻译，不影响影片原文描述抓取
+- 这组配置只影响影片信息翻译，不影响影片原文描述抓取
+- 旧配置名 `[movie_desc_translation]` 目前仍兼容，但新配置建议统一写成 `[movie_info_translation]`
+- 文档里的 `base_url` 示例当前统一写成 `https://ollama.com`，`model` 示例当前统一写成 `gemma4:31b-cloud`
 
 ## `[scheduler]`
 
@@ -647,6 +650,8 @@ media_file_scan_cron = "0 */6 * * *"
 movie_desc_sync_cron = "0 4 * * *"
 # 翻译影片简介为中文。
 movie_desc_translation_cron = "15 4 * * *"
+# 翻译影片标题为中文。
+movie_title_translation_cron = "20 4 * * *"
 # 生成媒体资源缩略图。
 media_thumbnail_cron = "*/5 * * * *"
 # 生成以图搜图缩略图向量。
@@ -656,17 +661,17 @@ image_search_optimize_cron = "0 3 * * *"
 # 影片相似度离线重算。
 movie_similarity_recompute_cron = "30 3 * * *"
 
-[movie_desc_translation]
-# 是否启用影片简介翻译任务。
+[movie_info_translation]
+# 是否启用影片信息翻译任务（简介翻译、标题翻译共用）。
 enabled = false
 # OpenAI 兼容服务地址。
-base_url = "http://localhost:8000"
+base_url = "https://ollama.com"
 # OpenAI 兼容服务 API Key；未启用时可留空。
 api_key = ""
 # 翻译使用的模型名称。
-model = "gpt-4o-mini"
+model = "gemma4:31b-cloud"
 # 翻译请求总超时秒数。
-timeout_seconds = 300
+timeout_seconds = 120
 # 翻译请求建连超时秒数。
 connect_timeout_seconds = 3
 

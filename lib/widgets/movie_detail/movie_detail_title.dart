@@ -29,8 +29,8 @@ class MovieDetailTitle extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: resolveAppTextStyle(
           context,
-          size: AppTextSize.s14,
-          weight: AppTextWeight.regular,
+          size: AppTextSize.s16,
+          weight: AppTextWeight.semibold,
           tone: AppTextTone.primary,
         ),
       ),

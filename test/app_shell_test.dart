@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
@@ -67,6 +68,9 @@ Future<void> _pumpDesktopApp(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         ChangeNotifierProvider(create: (_) => AppShellController()),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
         Provider<StatusApi>.value(value: statusApi),
         Provider<MoviesApi>.value(value: moviesApi),
       ],

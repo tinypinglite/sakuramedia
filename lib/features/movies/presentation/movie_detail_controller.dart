@@ -37,6 +37,16 @@ class MovieDetailController extends ChangeNotifier {
   String? get selectedPreviewUrl => _selectedPreview.url;
   String get selectedPreviewKey => _selectedPreview.key;
 
+  void applyMovie(MovieDetailDto movie, {bool resetPreview = false}) {
+    _movie = movie;
+    _selectedPreview =
+        resetPreview
+            ? _defaultPreviewFor(movie)
+            : _resolveUpdatedPreview(movie);
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   Future<void> refresh() async {
     if (_isLoading) {
       return;
@@ -93,6 +103,24 @@ class MovieDetailController extends ChangeNotifier {
     }
 
     return const _MovieDetailPreview.placeholder();
+  }
+
+  _MovieDetailPreview _resolveUpdatedPreview(MovieDetailDto movie) {
+    if (_selectedPreview.key == 'cover') {
+      final coverUrl = movie.coverImage?.bestAvailableUrl ?? '';
+      if (coverUrl.isNotEmpty) {
+        return _MovieDetailPreview.cover(url: coverUrl);
+      }
+    }
+
+    if (_selectedPreview.key == 'thin-cover') {
+      final thinCoverUrl = movie.thinCoverImage?.bestAvailableUrl ?? '';
+      if (thinCoverUrl.isNotEmpty) {
+        return _MovieDetailPreview.thinCover(url: thinCoverUrl);
+      }
+    }
+
+    return _defaultPreviewFor(movie);
   }
 
   String _messageForError(Object error) {

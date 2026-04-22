@@ -11,6 +11,9 @@ import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_detail_action_copy.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_detail_action_menu.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_detail_action_support.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_page_content.dart';
@@ -41,6 +44,7 @@ class DesktopMovieDetailPage extends StatefulWidget {
 class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
   late final MovieDetailController _controller;
   late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
+  var _ownsSubscriptionChangeNotifier = false;
   final Map<int, List<MovieMediaPointDto>> _pointOverrides =
       <int, List<MovieMediaPointDto>>{};
   int? _selectedMediaId;
@@ -49,12 +53,19 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
   bool _isSubscriptionUpdating = false;
   bool _isCollectionUpdating = false;
   int? _deletingMediaId;
+  MovieDetailActionType? _activeMovieAction;
+
+  bool get _isMovieActionLocked =>
+      _isSubscriptionUpdating ||
+      _isCollectionUpdating ||
+      _activeMovieAction != null;
 
   @override
   void initState() {
     super.initState();
-    _subscriptionChangeNotifier =
-        context.read<MovieSubscriptionChangeNotifier>();
+    final binding = resolveMovieSubscriptionNotifier(context);
+    _subscriptionChangeNotifier = binding.notifier;
+    _ownsSubscriptionChangeNotifier = binding.ownsNotifier;
     _controller = MovieDetailController(
       movieNumber: widget.movieNumber,
       fetchMovieDetail: context.read<MoviesApi>().getMovieDetail,
@@ -66,6 +77,9 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
   @override
   void dispose() {
     _controller.dispose();
+    if (_ownsSubscriptionChangeNotifier) {
+      _subscriptionChangeNotifier.dispose();
+    }
     super.dispose();
   }
 
@@ -89,6 +103,7 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
         final mediaItems = _resolveMediaItems(movie);
         final isSubscribed = _isSubscribedOverride ?? movie.isSubscribed;
         final isCollection = _isCollectionOverride ?? movie.isCollection;
+        final isActionControlsLocked = _isMovieActionLocked;
         final selectedMedia =
             mediaItems
                 .where((item) => item.mediaId == _selectedMediaId)
@@ -103,6 +118,7 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
           isSubscribed: isSubscribed,
           isCollectionUpdating: _isCollectionUpdating,
           isSubscriptionUpdating: _isSubscriptionUpdating,
+          isMoreActionsUpdating: _activeMovieAction != null,
           selectedMediaId: selectedMedia?.mediaId,
           statItems: buildMovieDetailStatItems(context, movie),
           similarMovies: _controller.similarMovies,
@@ -117,9 +133,14 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
                 ),
               ),
           onSubscriptionTap:
-              _isSubscriptionUpdating
+              isActionControlsLocked
                   ? null
                   : () => _toggleMovieSubscription(isSubscribed: isSubscribed),
+          onMoreActionsTap:
+              isActionControlsLocked
+                  ? null
+                  : (globalPosition) =>
+                      _showMovieActionMenu(globalPosition, movie, isSubscribed),
           onPlayTap:
               selectedMedia != null && selectedMedia.hasPlayableUrl
                   ? () => context.pushDesktopMoviePlayer(
@@ -138,7 +159,7 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
                 presentation: MoviePlaylistPickerPresentation.dialog,
               ),
           onCollectionToggle:
-              _isCollectionUpdating
+              isActionControlsLocked
                   ? null
                   : () =>
                       _toggleMovieCollectionType(isCollection: isCollection),
@@ -364,6 +385,161 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
     }
     _resetDetailOverridesAfterRefresh(deletedMediaId: deletedMediaId);
     await _loadMovieCollectionStatus();
+  }
+
+  Future<void> _showMovieActionMenu(
+    Offset globalPosition,
+    MovieDetailDto movie,
+    bool isSubscribed,
+  ) async {
+    final action = await showMovieDetailDesktopActionMenu(
+      context: context,
+      globalPosition: globalPosition,
+      actions: buildMovieDetailActionDescriptors(
+        movie: movie,
+        isSubscribed: isSubscribed,
+      ),
+    );
+    if (!mounted || action == null) {
+      return;
+    }
+
+    if (action == MovieDetailActionType.refreshMetadata) {
+      await _confirmRefreshMetadata();
+      return;
+    }
+
+    await _executeMovieAction(action);
+  }
+
+  Future<void> _confirmRefreshMetadata() {
+    var isSubmitting = false;
+
+    return showDialog<void>(
+      context: context,
+      builder:
+          (dialogContext) => StatefulBuilder(
+            builder: (dialogContext, setDialogState) {
+              Future<void> handleConfirm() async {
+                if (isSubmitting) {
+                  return;
+                }
+                setDialogState(() {
+                  isSubmitting = true;
+                });
+                final succeeded = await _executeMovieAction(
+                  MovieDetailActionType.refreshMetadata,
+                );
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                if (succeeded) {
+                  Navigator.of(dialogContext).pop();
+                  return;
+                }
+                setDialogState(() {
+                  isSubmitting = false;
+                });
+              }
+
+              return AppDesktopDialog(
+                dialogKey: const Key('movie-detail-refresh-metadata-dialog'),
+                width: dialogContext.appLayoutTokens.dialogWidthSm,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      MovieDetailRefreshConfirmationCopy.title,
+                      style: resolveAppTextStyle(
+                        dialogContext,
+                        size: AppTextSize.s18,
+                      ),
+                    ),
+                    SizedBox(height: dialogContext.appSpacing.lg),
+                    Text(MovieDetailRefreshConfirmationCopy.description),
+                    SizedBox(height: dialogContext.appSpacing.sm),
+                    Text(
+                      MovieDetailRefreshConfirmationCopy.hint,
+                      style: resolveAppTextStyle(
+                        dialogContext,
+                        size: AppTextSize.s12,
+                        tone: AppTextTone.muted,
+                      ),
+                    ),
+                    SizedBox(height: dialogContext.appSpacing.xl),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppButton(
+                            key: const Key(
+                              'movie-detail-refresh-metadata-cancel',
+                            ),
+                            onPressed:
+                                isSubmitting
+                                    ? null
+                                    : () => Navigator.of(dialogContext).pop(),
+                            label:
+                                MovieDetailRefreshConfirmationCopy.cancelLabel,
+                          ),
+                        ),
+                        SizedBox(width: dialogContext.appSpacing.md),
+                        Expanded(
+                          child: AppButton(
+                            key: const Key(
+                              'movie-detail-refresh-metadata-confirm',
+                            ),
+                            onPressed: isSubmitting ? null : handleConfirm,
+                            label:
+                                MovieDetailRefreshConfirmationCopy.confirmLabel,
+                            variant: AppButtonVariant.primary,
+                            isLoading: isSubmitting,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+    );
+  }
+
+  Future<bool> _executeMovieAction(MovieDetailActionType action) {
+    if (action == MovieDetailActionType.toggleSubscription) {
+      return _toggleMovieSubscription(
+        isSubscribed:
+            _isSubscribedOverride ?? _controller.movie?.isSubscribed ?? false,
+      );
+    }
+
+    return executeMovieDetailRemoteAction(
+      context: context,
+      action: action,
+      movieNumber: widget.movieNumber,
+      isLocked: _isMovieActionLocked,
+      controller: _controller,
+      selectedMediaId: _selectedMediaId,
+      onActiveActionChanged: (nextAction) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _activeMovieAction = nextAction;
+        });
+      },
+      onMovieApplied: (result) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _selectedMediaId = result.selectedMediaId;
+          _isSubscribedOverride = result.isSubscribedOverride;
+          _isCollectionOverride = result.isCollectionOverride;
+        });
+      },
+    );
   }
 
   void _resetDetailOverridesAfterRefresh({required int deletedMediaId}) {
@@ -708,9 +884,9 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
     );
   }
 
-  Future<void> _toggleMovieSubscription({required bool isSubscribed}) async {
+  Future<bool> _toggleMovieSubscription({required bool isSubscribed}) async {
     if (_isSubscriptionUpdating) {
-      return;
+      return false;
     }
 
     setState(() {
@@ -750,13 +926,15 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
     _reportSubscriptionChange(result);
 
     if (!mounted) {
-      return;
+      return false;
     }
 
     setState(() {
       _isSubscriptionUpdating = false;
     });
     showMovieSubscriptionFeedback(result);
+    return result.status == MovieSubscriptionToggleStatus.subscribed ||
+        result.status == MovieSubscriptionToggleStatus.unsubscribed;
   }
 
   bool _isBlockedByMedia(Object error) {

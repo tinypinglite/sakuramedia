@@ -26,6 +26,7 @@ outline: [2, 3]
 | 媒体文件巡检 | 检查文件是否存在并补视频信息 | 每 6 小时 |
 | 影片描述回填 | 为历史影片补抓原文描述 `desc` | 每天 04:00 |
 | 影片简介翻译 | 把已抓到的原文描述翻译成中文 `desc_zh` | 每天 04:15 |
+| 影片标题翻译 | 把影片原始标题翻译成中文 `title_zh` | 每天 04:20 |
 | 媒体缩略图生成 | 为媒体生成缩略图 | 每 5 分钟 |
 | 以图搜图索引 | 为待处理缩略图生成向量并入索引 | 每天 00:00 |
 | 影片相似度重算 | 离线重算影片相似结果 | 每天 03:30 |
@@ -165,12 +166,24 @@ outline: [2, 3]
 作用：
 
 - 把已抓到的原文描述翻译成中文 `desc_zh`
-- 它依赖 `[movie_desc_translation]` 配置的大模型接口可用
+- 它依赖 `[movie_info_translation]` 配置的大模型接口可用
 - 如果你不确定模型怎么选，可以看 [常见问题里的模型建议](/faq#movie-desc-translation-model)
 
 默认频率：
 
 - 每天 `04:15`
+
+### 影片标题翻译
+
+作用：
+
+- 把影片原始标题翻译成中文 `title_zh`
+- 它和“影片简介翻译”共用 `[movie_info_translation]` 配置
+- 一般会优先处理已订阅影片、已订阅女优相关影片，再处理普通影片
+
+默认频率：
+
+- 每天 `04:20`
 
 ### 媒体字幕识别
 
@@ -249,6 +262,7 @@ hot_review_sync_cron = "20 1 * * *"
 media_file_scan_cron = "0 */6 * * *"
 movie_desc_sync_cron = "0 4 * * *"
 movie_desc_translation_cron = "15 4 * * *"
+movie_title_translation_cron = "20 4 * * *"
 media_subtitle_asr_cron = "45 */6 * * *"
 media_thumbnail_cron = "*/5 * * * *"
 image_search_index_cron = "0 0 * * *"

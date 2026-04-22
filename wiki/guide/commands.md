@@ -281,6 +281,18 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands aps tran
 - 你刚配置好 OpenAI 格式的大模型接口，想立刻验证整批翻译链路
 - 不想等每天清晨的自动翻译任务
 
+### 翻译影片标题
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands aps translate-movie-title
+```
+
+适合场景：
+
+- 影片已经入库，但列表和详情里还没有中文标题
+- 你刚配置好 OpenAI 格式的大模型接口，想立刻验证标题翻译链路
+- 不想等每天清晨的自动标题翻译任务
+
 ### 生成以图搜图索引
 
 ```bash

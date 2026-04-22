@@ -15,7 +15,9 @@ import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dar
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/llm_settings_copy.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -116,10 +118,29 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('可保存'), findsOneWidget);
+      expect(find.text(LlmSettingsCopy.sharedUsageDescription), findsOneWidget);
+      expect(
+        find.text(LlmSettingsCopy.sharedEndpointDescription),
+        findsOneWidget,
+      );
       expect(
         bundle.adapter.hitCount('GET', '/movie-desc-translation-settings'),
         1,
       );
+      expect(find.text(LlmSettingsCopy.baseUrlHelperText), findsOneWidget);
+      expect(find.text(LlmSettingsCopy.modelHintText), findsOneWidget);
+    });
+
+    testWidgets('shows llm example config hints when draft is empty', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle, includeLlmSettings: false);
+      _enqueueMovieDescTranslationSettings(bundle, baseUrl: '', model: '');
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      expect(find.text(LlmSettingsCopy.baseUrlHelperText), findsOneWidget);
+      expect(find.text(LlmSettingsCopy.modelHintText), findsOneWidget);
     });
 
     testWidgets('saves llm settings and applies returned state', (
@@ -2193,6 +2214,9 @@ void main() {
         providers: [
           ChangeNotifierProvider(create: (_) => AppShellController()),
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
+          ),
           Provider<AccountApi>.value(value: bundle.accountApi),
           Provider<AuthApi>.value(value: bundle.authApi),
           Provider<CollectionNumberFeaturesApi>.value(
@@ -2261,6 +2285,9 @@ Future<void> _pumpPage(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
         Provider<AccountApi>.value(value: bundle.accountApi),
         Provider<AuthApi>.value(value: bundle.authApi),
         Provider<CollectionNumberFeaturesApi>.value(

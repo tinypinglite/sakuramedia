@@ -16,6 +16,7 @@ void main() {
       javdbId: 'MovieA1',
       movieNumber: 'ABC-001',
       title: 'Movie 1',
+      titleZh: '',
       seriesName: '',
       makerName: '',
       directorName: '',

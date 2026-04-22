@@ -5,6 +5,7 @@ class MovieDetailDto {
     required this.javdbId,
     required this.movieNumber,
     required this.title,
+    this.titleZh = '',
     required this.seriesName,
     required this.makerName,
     required this.directorName,
@@ -34,6 +35,7 @@ class MovieDetailDto {
   final String javdbId;
   final String movieNumber;
   final String title;
+  final String titleZh;
   final String seriesName;
   final String makerName;
   final String directorName;
@@ -69,11 +71,20 @@ class MovieDetailDto {
     return '';
   }
 
+  String get preferredTitle {
+    final resolvedTitleZh = titleZh.trim();
+    if (resolvedTitleZh.isNotEmpty) {
+      return resolvedTitleZh;
+    }
+    return title.trim();
+  }
+
   factory MovieDetailDto.fromJson(Map<String, dynamic> json) {
     return MovieDetailDto(
       javdbId: json['javdb_id'] as String? ?? '',
       movieNumber: json['movie_number'] as String? ?? '',
       title: json['title'] as String? ?? '',
+      titleZh: json['title_zh'] as String? ?? '',
       seriesName: json['series_name'] as String? ?? '',
       makerName: json['maker_name'] as String? ?? '',
       directorName: json['director_name'] as String? ?? '',
