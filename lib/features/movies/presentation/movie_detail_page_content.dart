@@ -19,6 +19,13 @@ import 'package:sakuramedia/widgets/movie_detail/movie_plot_gallery.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_similar_movie_strip.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_tag_wrap.dart';
 
+typedef MovieDetailScrollViewBuilder =
+    Widget Function(
+      BuildContext context,
+      Widget content,
+      ScrollPhysics? scrollPhysics,
+    );
+
 class MovieDetailPageContent extends StatelessWidget {
   const MovieDetailPageContent({
     super.key,
@@ -53,6 +60,7 @@ class MovieDetailPageContent extends StatelessWidget {
     this.contentPadding = EdgeInsets.zero,
     this.bottomInfoBarVariant = MovieDetailBottomInfoBarVariant.desktopCard,
     this.scrollPhysics,
+    this.scrollViewBuilder,
   });
 
   final MovieDetailDto movie;
@@ -98,6 +106,7 @@ class MovieDetailPageContent extends StatelessWidget {
   final EdgeInsetsGeometry contentPadding;
   final MovieDetailBottomInfoBarVariant bottomInfoBarVariant;
   final ScrollPhysics? scrollPhysics;
+  final MovieDetailScrollViewBuilder? scrollViewBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -114,19 +123,16 @@ class MovieDetailPageContent extends StatelessWidget {
                   : context.appComponentTokens.movieDetailBottomBarMinHeight +
                       context.appSpacing.sm;
 
-          final scrollableContent = SingleChildScrollView(
-            physics: scrollPhysics,
+          final content = Padding(
+            padding: EdgeInsets.only(bottom: scrollBottomPadding),
             child: Padding(
-              padding: EdgeInsets.only(bottom: scrollBottomPadding),
-              child: Padding(
-                padding: contentPadding,
-                child: _buildDetailBody(
-                  context: context,
-                  heroHeight: heroHeight,
-                ),
-              ),
+              padding: contentPadding,
+              child: _buildDetailBody(context: context, heroHeight: heroHeight),
             ),
           );
+          final scrollableContent =
+              scrollViewBuilder?.call(context, content, scrollPhysics) ??
+              SingleChildScrollView(physics: scrollPhysics, child: content);
 
           if (bottomInfoBarVariant ==
               MovieDetailBottomInfoBarVariant.desktopCard) {

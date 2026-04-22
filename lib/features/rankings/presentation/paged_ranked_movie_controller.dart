@@ -18,6 +18,7 @@ class PagedRankedMovieController
     required RankedMoviePageFetcher fetchPage,
     required this.subscribeMovie,
     required this.unsubscribeMovie,
+    this.onSubscriptionChanged,
     int initialPage = 1,
     int pageSize = 24,
     double loadMoreTriggerOffset = 300,
@@ -36,6 +37,7 @@ class PagedRankedMovieController
 
   final MovieSubscriptionWriter subscribeMovie;
   final MovieUnsubscriptionWriter unsubscribeMovie;
+  final MovieSubscriptionChangeReporter? onSubscriptionChanged;
   final Set<String> _updatingMovieNumbers = <String>{};
 
   bool isSubscriptionUpdating(String movieNumber) {
@@ -60,11 +62,16 @@ class PagedRankedMovieController
       if (movie.isSubscribed) {
         await unsubscribeMovie(movieNumber: movieNumber, deleteMedia: false);
         mutableItems[index] = movie.copyWith(isSubscribed: false);
+        onSubscriptionChanged?.call(
+          movieNumber: movieNumber,
+          isSubscribed: false,
+        );
         return const MovieSubscriptionToggleResult.unsubscribed();
       }
 
       await subscribeMovie(movieNumber: movieNumber);
       mutableItems[index] = movie.copyWith(isSubscribed: true);
+      onSubscriptionChanged?.call(movieNumber: movieNumber, isSubscribed: true);
       return const MovieSubscriptionToggleResult.subscribed();
     } catch (error) {
       if (_isBlockedByMedia(error)) {
@@ -85,5 +92,23 @@ class PagedRankedMovieController
   bool _isBlockedByMedia(Object error) {
     return error is ApiException &&
         error.error?.code == 'movie_subscription_has_media';
+  }
+
+  void applySubscriptionChange({
+    required String movieNumber,
+    required bool isSubscribed,
+  }) {
+    final index = mutableItems.indexWhere(
+      (item) => item.movieNumber == movieNumber,
+    );
+    if (index == -1) {
+      return;
+    }
+    final movie = mutableItems[index];
+    if (movie.isSubscribed == isSubscribed) {
+      return;
+    }
+    mutableItems[index] = movie.copyWith(isSubscribed: isSubscribed);
+    notifyListenersSafely();
   }
 }

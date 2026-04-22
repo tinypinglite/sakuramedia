@@ -160,7 +160,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.drag(
-        find.byType(SingleChildScrollView),
+        find.byType(ActorSummaryCard).first,
         const Offset(0, -2800),
       );
       await tester.pump();

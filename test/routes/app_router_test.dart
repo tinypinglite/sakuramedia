@@ -32,6 +32,7 @@ import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
@@ -1738,6 +1739,9 @@ void main() {
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -1770,6 +1774,9 @@ void main() {
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -1799,6 +1806,9 @@ void main() {
           Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
           ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
@@ -1831,6 +1841,9 @@ void main() {
           Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
           ),
           Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         ],
@@ -1932,6 +1945,109 @@ void main() {
     expect(find.text('1 部'), findsOneWidget);
     expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
   });
+
+  testWidgets(
+    'mobile movies page syncs subscription state after detail subscribe and back',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore(
+        platform: AppPlatform.mobile,
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        body: <String, dynamic>{
+          'items': [
+            <String, dynamic>{
+              'javdb_id': 'MovieA1',
+              'movie_number': 'ABC-001',
+              'title': 'Movie 1',
+              'cover_image': null,
+              'release_date': '2024-01-02',
+              'duration_minutes': 120,
+              'is_subscribed': false,
+              'can_play': true,
+            },
+          ],
+          'page': 1,
+          'page_size': 24,
+          'total': 1,
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: <String, dynamic>{
+          'javdb_id': 'MovieA1',
+          'movie_number': 'ABC-001',
+          'title': 'Movie 1',
+          'cover_image': null,
+          'release_date': '2024-01-02',
+          'duration_minutes': 120,
+          'score': 4.5,
+          'watched_count': 12,
+          'want_watch_count': 23,
+          'comment_count': 34,
+          'score_number': 45,
+          'is_collection': false,
+          'is_subscribed': false,
+          'can_play': true,
+          'summary': '',
+          'actors': [],
+          'tags': [],
+          'thin_cover_image': null,
+          'plot_images': [],
+          'media_items': [],
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'PUT',
+        path: '/movies/ABC-001/subscription',
+        statusCode: 204,
+      );
+      final router = buildMobileRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      router.go(mobileMoviesPath);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('movie-summary-card-subscription-ABC-001')),
+          matching: find.byIcon(Icons.favorite_border_rounded),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('movie-summary-card-ABC-001')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('movie-detail-hero-subscription-icon')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, mobileMoviesPath);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('movie-summary-card-subscription-ABC-001')),
+          matching: find.byIcon(Icons.favorite_rounded),
+        ),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 3));
+    },
+  );
 
   testWidgets('mobile actors root route renders real page', (
     WidgetTester tester,
@@ -2038,6 +2154,9 @@ void main() {
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -2083,6 +2202,9 @@ void main() {
           Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
           ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
@@ -2152,6 +2274,9 @@ void main() {
           Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
           ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
@@ -2302,6 +2427,9 @@ void main() {
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -2343,6 +2471,9 @@ void main() {
           Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
           ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
@@ -2389,6 +2520,9 @@ void main() {
           Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
           ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
@@ -2514,6 +2648,109 @@ void main() {
         find.byKey(const Key('movie-summary-card-ABC-001')),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'desktop movies page syncs subscription state after detail subscribe and back',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      _enqueueDesktopOverviewResponses(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        body: <String, dynamic>{
+          'items': [
+            <String, dynamic>{
+              'javdb_id': 'MovieA1',
+              'movie_number': 'ABC-001',
+              'title': 'Movie 1',
+              'cover_image': null,
+              'release_date': '2024-01-02',
+              'duration_minutes': 120,
+              'is_subscribed': false,
+              'can_play': true,
+            },
+          ],
+          'page': 1,
+          'page_size': 24,
+          'total': 1,
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: <String, dynamic>{
+          'javdb_id': 'MovieA1',
+          'movie_number': 'ABC-001',
+          'title': 'Movie 1',
+          'cover_image': null,
+          'release_date': '2024-01-02',
+          'duration_minutes': 120,
+          'score': 4.5,
+          'watched_count': 12,
+          'want_watch_count': 23,
+          'comment_count': 34,
+          'score_number': 45,
+          'is_collection': false,
+          'is_subscribed': false,
+          'can_play': true,
+          'summary': '',
+          'actors': [],
+          'tags': [],
+          'thin_cover_image': null,
+          'plot_images': [],
+          'media_items': [],
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'PUT',
+        path: '/movies/ABC-001/subscription',
+        statusCode: 204,
+      );
+      final router = buildDesktopRouter(sessionStore: sessionStore);
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        includeShellController: true,
+      );
+      await tester.pumpAndSettle();
+
+      router.go(desktopMoviesPath);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('movie-summary-card-subscription-ABC-001')),
+          matching: find.byIcon(Icons.favorite_border_rounded),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('movie-summary-card-ABC-001')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('movie-detail-hero-subscription-icon')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('topbar-back-button')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, desktopMoviesPath);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('movie-summary-card-subscription-ABC-001')),
+          matching: find.byIcon(Icons.favorite_rounded),
+        ),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 3));
     },
   );
 
@@ -2824,6 +3061,9 @@ void main() {
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -2865,6 +3105,7 @@ Future<void> _pumpRouterApp(
     Provider<StatusApi>.value(value: bundle.statusApi),
     Provider<MoviesApi>.value(value: bundle.moviesApi),
     ChangeNotifierProvider(create: (_) => MovieCollectionTypeChangeNotifier()),
+    ChangeNotifierProvider(create: (_) => MovieSubscriptionChangeNotifier()),
     Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
     Provider<RankingsApi>.value(value: bundle.rankingsApi),
     Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),

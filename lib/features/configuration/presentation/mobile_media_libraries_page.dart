@@ -11,8 +11,8 @@ import 'package:sakuramedia/features/configuration/presentation/media_library_fo
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 
 class MobileMediaLibrariesPage extends StatefulWidget {
@@ -175,22 +175,29 @@ class _MobileMediaLibrariesPageState extends State<MobileMediaLibrariesPage> {
       child: Column(
         children: [
           Expanded(
-            child: AppPullToRefresh(
+            child: AppAdaptiveRefreshScrollView(
               onRefresh: _refreshLibraries,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  spacing.md,
-                  spacing.md,
-                  spacing.md,
-                  spacing.lg,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: <Widget>[
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    spacing.md,
+                    spacing.md,
+                    spacing.md,
+                    spacing.lg,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const _MobileMediaLibrariesNoticeCard(),
+                        SizedBox(height: spacing.md),
+                        _buildContentSection(context),
+                      ],
+                    ),
+                  ),
                 ),
-                children: [
-                  const _MobileMediaLibrariesNoticeCard(),
-                  SizedBox(height: spacing.md),
-                  _buildContentSection(context),
-                ],
-              ),
+              ],
             ),
           ),
           AnimatedContainer(

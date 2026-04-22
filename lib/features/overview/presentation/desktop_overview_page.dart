@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/features/status/data/status_dto.dart';
@@ -25,10 +26,14 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
   StatusImageSearchDto? _imageSearchStatus;
   String? _statusError;
   late final PagedMovieSummaryController _moviesController;
+  late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
 
   @override
   void initState() {
     super.initState();
+    _subscriptionChangeNotifier =
+        context.read<MovieSubscriptionChangeNotifier>();
+    _subscriptionChangeNotifier.addListener(_onMovieSubscriptionChanged);
     _moviesController = PagedMovieSummaryController(
       fetchPage:
           (page, pageSize) => context.read<MoviesApi>().getLatestMovies(
@@ -37,6 +42,7 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
           ),
       subscribeMovie: context.read<MoviesApi>().subscribeMovie,
       unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
+      onSubscriptionChanged: _reportSubscriptionChange,
       pageSize: 24,
       loadMoreTriggerOffset: 300,
     );
@@ -46,8 +52,30 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
 
   @override
   void dispose() {
+    _subscriptionChangeNotifier.removeListener(_onMovieSubscriptionChanged);
     _moviesController.dispose();
     super.dispose();
+  }
+
+  void _onMovieSubscriptionChanged() {
+    final change = _subscriptionChangeNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    _moviesController.applySubscriptionChange(
+      movieNumber: change.movieNumber,
+      isSubscribed: change.isSubscribed,
+    );
+  }
+
+  void _reportSubscriptionChange({
+    required String movieNumber,
+    required bool isSubscribed,
+  }) {
+    _subscriptionChangeNotifier.reportChange(
+      movieNumber: movieNumber,
+      isSubscribed: isSubscribed,
+    );
   }
 
   Future<void> _loadOverview() async {

@@ -9,6 +9,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/overview/presentation/desktop_overview_page.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/theme.dart';
@@ -560,6 +561,9 @@ Future<void> _pumpOverviewPage(
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         Provider<StatusApi>.value(value: bundle.statusApi),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
       ],
       child: MaterialApp(
         theme: sakuraThemeData,

@@ -15,6 +15,7 @@ import 'package:sakuramedia/features/movies/presentation/movie_collection_type_c
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_page_content.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_plot_image_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/playlists/presentation/movie_playlist_picker_dialog.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
@@ -39,6 +40,7 @@ class DesktopMovieDetailPage extends StatefulWidget {
 
 class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
   late final MovieDetailController _controller;
+  late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
   final Map<int, List<MovieMediaPointDto>> _pointOverrides =
       <int, List<MovieMediaPointDto>>{};
   int? _selectedMediaId;
@@ -51,6 +53,8 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
   @override
   void initState() {
     super.initState();
+    _subscriptionChangeNotifier =
+        context.read<MovieSubscriptionChangeNotifier>();
     _controller = MovieDetailController(
       movieNumber: widget.movieNumber,
       fetchMovieDetail: context.read<MoviesApi>().getMovieDetail,
@@ -743,6 +747,8 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
       }
     }
 
+    _reportSubscriptionChange(result);
+
     if (!mounted) {
       return;
     }
@@ -756,5 +762,26 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
   bool _isBlockedByMedia(Object error) {
     return error is ApiException &&
         error.error?.code == 'movie_subscription_has_media';
+  }
+
+  void _reportSubscriptionChange(MovieSubscriptionToggleResult result) {
+    switch (result.status) {
+      case MovieSubscriptionToggleStatus.subscribed:
+        _subscriptionChangeNotifier.reportChange(
+          movieNumber: widget.movieNumber,
+          isSubscribed: true,
+        );
+        break;
+      case MovieSubscriptionToggleStatus.unsubscribed:
+        _subscriptionChangeNotifier.reportChange(
+          movieNumber: widget.movieNumber,
+          isSubscribed: false,
+        );
+        break;
+      case MovieSubscriptionToggleStatus.blockedByMedia:
+      case MovieSubscriptionToggleStatus.failed:
+      case MovieSubscriptionToggleStatus.ignored:
+        break;
+    }
   }
 }

@@ -7,6 +7,7 @@ import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_controller.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_page_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
@@ -49,6 +50,8 @@ class _MobileCatalogSearchPageState extends State<MobileCatalogSearchPage>
           () => CatalogSearchPageStateEntry(
             moviesApi: context.read<MoviesApi>(),
             actorsApi: context.read<ActorsApi>(),
+            subscriptionChangeNotifier:
+                context.read<MovieSubscriptionChangeNotifier>(),
           ),
     );
 

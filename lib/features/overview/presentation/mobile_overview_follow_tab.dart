@@ -7,13 +7,14 @@ import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart'
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movies/mobile_follow_movie_card.dart';
 
@@ -31,6 +32,7 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
 
   late final PagedMovieSummaryController _moviesController;
   late final MovieCollectionTypeChangeNotifier _collectionChangeNotifier;
+  late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
   final Map<String, _FollowMovieDetailState> _movieDetailStates =
       <String, _FollowMovieDetailState>{};
   final Queue<String> _detailQueue = Queue<String>();
@@ -43,6 +45,9 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
     _collectionChangeNotifier =
         context.read<MovieCollectionTypeChangeNotifier>();
     _collectionChangeNotifier.addListener(_onCollectionTypeChanged);
+    _subscriptionChangeNotifier =
+        context.read<MovieSubscriptionChangeNotifier>();
+    _subscriptionChangeNotifier.addListener(_onMovieSubscriptionChanged);
 
     _moviesController = PagedMovieSummaryController(
       fetchPage:
@@ -51,6 +56,7 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
               .getSubscribedActorsLatestMovies(page: page, pageSize: pageSize),
       subscribeMovie: context.read<MoviesApi>().subscribeMovie,
       unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
+      onSubscriptionChanged: _reportSubscriptionChange,
       pageSize: 20,
       loadMoreTriggerOffset: 300,
       initialLoadErrorText: '关注影片加载失败，请稍后重试',
@@ -63,6 +69,7 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
   @override
   void dispose() {
     _collectionChangeNotifier.removeListener(_onCollectionTypeChanged);
+    _subscriptionChangeNotifier.removeListener(_onMovieSubscriptionChanged);
     _moviesController.dispose();
     super.dispose();
   }
@@ -76,6 +83,27 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
       _movieDetailStates.remove(change.movieNumber);
       _moviesController.removeItem(change.movieNumber);
     }
+  }
+
+  void _onMovieSubscriptionChanged() {
+    final change = _subscriptionChangeNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    _moviesController.applySubscriptionChange(
+      movieNumber: change.movieNumber,
+      isSubscribed: change.isSubscribed,
+    );
+  }
+
+  void _reportSubscriptionChange({
+    required String movieNumber,
+    required bool isSubscribed,
+  }) {
+    _subscriptionChangeNotifier.reportChange(
+      movieNumber: movieNumber,
+      isSubscribed: isSubscribed,
+    );
   }
 
   Future<void> _toggleMovieSubscription(String movieNumber) async {
@@ -151,103 +179,121 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: context.appColors.surfaceCard,
-      child: AppPullToRefresh(
+      child: AppAdaptiveRefreshScrollView(
         onRefresh: _handleRefresh,
-        child: AnimatedBuilder(
-          animation: _moviesController,
-          builder: (context, _) {
-            if (_moviesController.isInitialLoading &&
-                _moviesController.items.isEmpty) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: const [_FollowTabLoadingState()],
-              );
-            }
-
-            if (_moviesController.initialErrorMessage != null &&
-                _moviesController.items.isEmpty) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AppEmptyState(
-                          message: _moviesController.initialErrorMessage!,
-                        ),
-                        SizedBox(height: context.appSpacing.xs),
-                        TextButton(
-                          onPressed: _moviesController.reload,
-                          child: const Text('重试'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            if (_moviesController.items.isEmpty) {
-              return ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-                  const Center(child: AppEmptyState(message: '暂无关注影片')),
-                ],
-              );
-            }
-
-            final showFooter =
-                _moviesController.isLoadingMore ||
-                _moviesController.loadMoreErrorMessage != null;
-            return ListView.separated(
-              key: const Key('mobile-overview-follow-list'),
-              physics: const AlwaysScrollableScrollPhysics(),
-              controller: _moviesController.scrollController,
-              padding: EdgeInsets.only(
-                top: context.appSpacing.sm,
-                bottom: context.appSpacing.md,
-              ),
-              itemCount: _moviesController.items.length + (showFooter ? 1 : 0),
-              separatorBuilder:
-                  (_, __) => SizedBox(height: context.appSpacing.sm),
-              itemBuilder: (context, index) {
-                if (index >= _moviesController.items.length) {
-                  return AppPagedLoadMoreFooter(
-                    isLoading: _moviesController.isLoadingMore,
-                    errorMessage: _moviesController.loadMoreErrorMessage,
-                    onRetry: _moviesController.loadMore,
-                  );
-                }
-
-                final movie = _moviesController.items[index];
-                final detailState = _movieDetailStates[movie.movieNumber];
-                return MobileFollowMovieCard(
-                  movie: movie,
-                  onTap:
-                      () => MobileMovieDetailRouteData(
-                        movieNumber: movie.movieNumber,
-                      ).push(context),
-                  onSubscriptionTap:
-                      () => _toggleMovieSubscription(movie.movieNumber),
-                  isSubscriptionUpdating: _moviesController
-                      .isSubscriptionUpdating(movie.movieNumber),
-                  isDetailLoading:
-                      detailState == null ||
-                      detailState.status == _FollowMovieDetailStatus.loading,
-                  detailStillImageUrls: detailState?.stillImageUrls ?? const [],
-                  detailSummary: detailState?.summary,
-                  detailThinCoverUrl: detailState?.thinCoverUrl,
-                  onVisible: () => _ensureMovieDetailLoaded(movie.movieNumber),
-                );
-              },
-            );
-          },
-        ),
+        controller: _moviesController.scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: <Widget>[
+          AnimatedBuilder(
+            animation: _moviesController,
+            builder: (context, _) => _buildContentSliver(context),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildContentSliver(BuildContext context) {
+    if (_moviesController.isInitialLoading && _moviesController.items.isEmpty) {
+      return const SliverToBoxAdapter(child: _FollowTabLoadingState());
+    }
+
+    if (_moviesController.initialErrorMessage != null &&
+        _moviesController.items.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Column(
+          children: [
+            SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppEmptyState(
+                    message: _moviesController.initialErrorMessage!,
+                  ),
+                  SizedBox(height: context.appSpacing.xs),
+                  TextButton(
+                    onPressed: _moviesController.reload,
+                    child: const Text('重试'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_moviesController.items.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Column(
+          children: [
+            SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+            const Center(child: AppEmptyState(message: '暂无关注影片')),
+          ],
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: EdgeInsets.only(
+        top: context.appSpacing.sm,
+        bottom: context.appSpacing.md,
+      ),
+      sliver: SliverList(
+        key: const Key('mobile-overview-follow-list'),
+        delegate: SliverChildListDelegate(_buildFollowListChildren(context)),
+      ),
+    );
+  }
+
+  List<Widget> _buildFollowListChildren(BuildContext context) {
+    final children = <Widget>[];
+    final showFooter =
+        _moviesController.isLoadingMore ||
+        _moviesController.loadMoreErrorMessage != null;
+
+    for (var index = 0; index < _moviesController.items.length; index += 1) {
+      if (index > 0) {
+        children.add(SizedBox(height: context.appSpacing.sm));
+      }
+
+      final movie = _moviesController.items[index];
+      final detailState = _movieDetailStates[movie.movieNumber];
+      children.add(
+        MobileFollowMovieCard(
+          movie: movie,
+          onTap:
+              () => MobileMovieDetailRouteData(
+                movieNumber: movie.movieNumber,
+              ).push(context),
+          onSubscriptionTap: () => _toggleMovieSubscription(movie.movieNumber),
+          isSubscriptionUpdating: _moviesController.isSubscriptionUpdating(
+            movie.movieNumber,
+          ),
+          isDetailLoading:
+              detailState == null ||
+              detailState.status == _FollowMovieDetailStatus.loading,
+          detailStillImageUrls: detailState?.stillImageUrls ?? const [],
+          detailSummary: detailState?.summary,
+          detailThinCoverUrl: detailState?.thinCoverUrl,
+          onVisible: () => _ensureMovieDetailLoaded(movie.movieNumber),
+        ),
+      );
+    }
+
+    if (showFooter) {
+      children.add(SizedBox(height: context.appSpacing.sm));
+      children.add(
+        AppPagedLoadMoreFooter(
+          isLoading: _moviesController.isLoadingMore,
+          errorMessage: _moviesController.loadMoreErrorMessage,
+          onRetry: _moviesController.loadMore,
+        ),
+      );
+    }
+
+    return children;
   }
 
   Future<void> _handleRefresh() async {

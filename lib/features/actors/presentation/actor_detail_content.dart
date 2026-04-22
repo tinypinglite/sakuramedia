@@ -12,6 +12,7 @@ import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
@@ -84,6 +85,7 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
   late final ActorDetailController _actorController;
   late final PagedMovieSummaryController _moviesController;
   late final MovieCollectionTypeChangeNotifier _collectionChangeNotifier;
+  late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
 
   MovieFilterState _filterState = MovieFilterState.initial;
   bool? _isActorSubscribedOverride;
@@ -98,6 +100,9 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
     _collectionChangeNotifier =
         context.read<MovieCollectionTypeChangeNotifier>();
     _collectionChangeNotifier.addListener(_onCollectionTypeChanged);
+    _subscriptionChangeNotifier =
+        context.read<MovieSubscriptionChangeNotifier>();
+    _subscriptionChangeNotifier.addListener(_onMovieSubscriptionChanged);
 
     _actorController = ActorDetailController(
       actorId: widget.actorId,
@@ -115,6 +120,7 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
           ),
       subscribeMovie: context.read<MoviesApi>().subscribeMovie,
       unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
+      onSubscriptionChanged: _reportSubscriptionChange,
       pageSize: 24,
       loadMoreTriggerOffset: 300,
       initialLoadErrorText: '影片列表加载失败，请稍后重试',
@@ -127,6 +133,7 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
   @override
   void dispose() {
     _collectionChangeNotifier.removeListener(_onCollectionTypeChanged);
+    _subscriptionChangeNotifier.removeListener(_onMovieSubscriptionChanged);
     _actorController.dispose();
     _moviesController.dispose();
     super.dispose();
@@ -141,6 +148,27 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
         _filterState.collectionType == MovieCollectionTypeFilter.single) {
       _moviesController.removeItem(change.movieNumber);
     }
+  }
+
+  void _onMovieSubscriptionChanged() {
+    final change = _subscriptionChangeNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    _moviesController.applySubscriptionChange(
+      movieNumber: change.movieNumber,
+      isSubscribed: change.isSubscribed,
+    );
+  }
+
+  void _reportSubscriptionChange({
+    required String movieNumber,
+    required bool isSubscribed,
+  }) {
+    _subscriptionChangeNotifier.reportChange(
+      movieNumber: movieNumber,
+      isSubscribed: isSubscribed,
+    );
   }
 
   void _applyFilter(MovieFilterState nextState) {

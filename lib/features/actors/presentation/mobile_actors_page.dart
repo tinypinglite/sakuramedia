@@ -14,7 +14,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/actors/actor_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/actors/actor_summary_grid.dart';
 
@@ -80,60 +80,63 @@ class _MobileActorsPageState extends State<MobileActorsPage> {
   Widget build(BuildContext context) {
     return ColoredBox(
       color: context.appColors.surfaceCard,
-      child: AppPullToRefresh(
+      child: AppAdaptiveRefreshScrollView(
         onRefresh: _handleRefresh,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          controller: _actorsController.scrollController,
-          child: AnimatedBuilder(
-            animation: _actorsController,
-            builder: (context, _) {
-              final showFooter =
-                  _actorsController.items.isNotEmpty &&
-                  (_actorsController.isLoadingMore ||
-                      _actorsController.loadMoreErrorMessage != null);
-              return Column(
-                key: const Key('mobile-actors-page'),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppFilterTotalHeader(
-                    leading: ActorFilterToolbar(
-                      filterState: _filterState,
-                      onChanged: _applyFilter,
-                      onReset: _resetFilters,
+        controller: _actorsController.scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: <Widget>[
+          SliverToBoxAdapter(
+            child: AnimatedBuilder(
+              animation: _actorsController,
+              builder: (context, _) {
+                final showFooter =
+                    _actorsController.items.isNotEmpty &&
+                    (_actorsController.isLoadingMore ||
+                        _actorsController.loadMoreErrorMessage != null);
+                return Column(
+                  key: const Key('mobile-actors-page'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppFilterTotalHeader(
+                      leading: ActorFilterToolbar(
+                        filterState: _filterState,
+                        onChanged: _applyFilter,
+                        onReset: _resetFilters,
+                      ),
+                      totalText: '${_actorsController.total} 位',
+                      totalKey: const Key('mobile-actors-page-total'),
                     ),
-                    totalText: '${_actorsController.total} 位',
-                    totalKey: const Key('mobile-actors-page-total'),
-                  ),
-                  SizedBox(height: context.appSpacing.md),
-                  ActorSummaryGrid(
-                    items: _actorsController.items,
-                    isLoading: _actorsController.isInitialLoading,
-                    errorMessage: _actorsController.initialErrorMessage,
-                    onActorTap:
-                        (actor) => MobileActorDetailRouteData(
-                          actorId: actor.id,
-                        ).push(context),
-                    onActorSubscriptionTap:
-                        (actor) => _toggleActorSubscription(actor.id),
-                    isActorSubscriptionUpdating:
-                        (actor) =>
-                            _actorsController.isSubscriptionUpdating(actor.id),
-                    emptyMessage: '暂无女优数据',
-                  ),
-                  if (showFooter) ...[
                     SizedBox(height: context.appSpacing.md),
-                    AppPagedLoadMoreFooter(
-                      isLoading: _actorsController.isLoadingMore,
-                      errorMessage: _actorsController.loadMoreErrorMessage,
-                      onRetry: _actorsController.loadMore,
+                    ActorSummaryGrid(
+                      items: _actorsController.items,
+                      isLoading: _actorsController.isInitialLoading,
+                      errorMessage: _actorsController.initialErrorMessage,
+                      onActorTap:
+                          (actor) => MobileActorDetailRouteData(
+                            actorId: actor.id,
+                          ).push(context),
+                      onActorSubscriptionTap:
+                          (actor) => _toggleActorSubscription(actor.id),
+                      isActorSubscriptionUpdating:
+                          (actor) => _actorsController.isSubscriptionUpdating(
+                            actor.id,
+                          ),
+                      emptyMessage: '暂无女优数据',
                     ),
+                    if (showFooter) ...[
+                      SizedBox(height: context.appSpacing.md),
+                      AppPagedLoadMoreFooter(
+                        isLoading: _actorsController.isLoadingMore,
+                        errorMessage: _actorsController.loadMoreErrorMessage,
+                        onRetry: _actorsController.loadMore,
+                      ),
+                    ],
                   ],
-                ],
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

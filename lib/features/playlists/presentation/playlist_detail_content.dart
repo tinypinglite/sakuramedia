@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/playlist_detail_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
@@ -32,6 +35,7 @@ class PlaylistDetailContent extends StatefulWidget {
 class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
   late final PlaylistDetailController _detailController;
   late final PagedMovieSummaryController _moviesController;
+  late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
 
   Listenable get _pageListenable =>
       Listenable.merge(<Listenable>[_detailController, _moviesController]);
@@ -41,6 +45,9 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
     super.initState();
     final playlistsApi = context.read<PlaylistsApi>();
     final moviesApi = context.read<MoviesApi>();
+    _subscriptionChangeNotifier =
+        context.read<MovieSubscriptionChangeNotifier>();
+    _subscriptionChangeNotifier.addListener(_onMovieSubscriptionChanged);
     _detailController = PlaylistDetailController(
       playlistId: widget.playlistId,
       fetchPlaylistDetail: playlistsApi.getPlaylistDetail,
@@ -54,6 +61,7 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
           ),
       subscribeMovie: moviesApi.subscribeMovie,
       unsubscribeMovie: moviesApi.unsubscribeMovie,
+      onSubscriptionChanged: _reportSubscriptionChange,
       pageSize: 24,
       loadMoreTriggerOffset: 300,
       initialLoadErrorText: '影片列表加载失败，请稍后重试',
@@ -65,9 +73,31 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
 
   @override
   void dispose() {
+    _subscriptionChangeNotifier.removeListener(_onMovieSubscriptionChanged);
     _detailController.dispose();
     _moviesController.dispose();
     super.dispose();
+  }
+
+  void _onMovieSubscriptionChanged() {
+    final change = _subscriptionChangeNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    _moviesController.applySubscriptionChange(
+      movieNumber: change.movieNumber,
+      isSubscribed: change.isSubscribed,
+    );
+  }
+
+  void _reportSubscriptionChange({
+    required String movieNumber,
+    required bool isSubscribed,
+  }) {
+    _subscriptionChangeNotifier.reportChange(
+      movieNumber: movieNumber,
+      isSubscribed: isSubscribed,
+    );
   }
 
   @override
@@ -142,6 +172,15 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
 
         if (!widget.enablePullToRefresh) {
           return scrollView;
+        }
+
+        if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+          return AppAdaptiveRefreshScrollView(
+            onRefresh: _handleRefresh,
+            controller: _moviesController.scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[SliverToBoxAdapter(child: scrollView.child!)],
+          );
         }
 
         return AppPullToRefresh(onRefresh: _handleRefresh, child: scrollView);

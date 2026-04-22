@@ -4,6 +4,7 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_source_dto.dart';
@@ -15,20 +16,25 @@ class RankingsListPageStateEntry extends ChangeNotifier
   RankingsListPageStateEntry({
     required RankingsApi rankingsApi,
     required MoviesApi moviesApi,
+    required MovieSubscriptionChangeNotifier subscriptionChangeNotifier,
   }) : _rankingsApi = rankingsApi,
-       _moviesApi = moviesApi {
+       _moviesApi = moviesApi,
+       _subscriptionChangeNotifier = subscriptionChangeNotifier {
     controller = PagedRankedMovieController(
       fetchPage: _fetchRankingPage,
       subscribeMovie: _moviesApi.subscribeMovie,
       unsubscribeMovie: _moviesApi.unsubscribeMovie,
+      onSubscriptionChanged: _reportSubscriptionChange,
       pageSize: 24,
       loadMoreTriggerOffset: 300,
     );
+    _subscriptionChangeNotifier.addListener(_onMovieSubscriptionChanged);
     controller.attachScrollListener();
   }
 
   final RankingsApi _rankingsApi;
   final MoviesApi _moviesApi;
+  final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
   late final PagedRankedMovieController controller;
 
   bool _isDisposed = false;
@@ -41,6 +47,27 @@ class RankingsListPageStateEntry extends ChangeNotifier
   RankingSourceDto? selectedSource;
   RankingBoardDto? selectedBoard;
   String? selectedPeriod;
+
+  void _onMovieSubscriptionChanged() {
+    final change = _subscriptionChangeNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    controller.applySubscriptionChange(
+      movieNumber: change.movieNumber,
+      isSubscribed: change.isSubscribed,
+    );
+  }
+
+  void _reportSubscriptionChange({
+    required String movieNumber,
+    required bool isSubscribed,
+  }) {
+    _subscriptionChangeNotifier.reportChange(
+      movieNumber: movieNumber,
+      isSubscribed: isSubscribed,
+    );
+  }
 
   Future<void> initialize() async {
     if (_hasInitialized) {
@@ -229,6 +256,7 @@ class RankingsListPageStateEntry extends ChangeNotifier
   @override
   void dispose() {
     _isDisposed = true;
+    _subscriptionChangeNotifier.removeListener(_onMovieSubscriptionChanged);
     controller.dispose();
     super.dispose();
   }

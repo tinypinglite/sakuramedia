@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/actors/presentation/desktop_actor_detail_page.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
@@ -580,6 +581,9 @@ Future<void> _pumpPage(
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
       ],
       child: MaterialApp(
         theme: sakuraThemeData,
@@ -597,8 +601,12 @@ String? _queryValue(TestApiBundle bundle, int requestIndex, String key) {
 }
 
 Color? _buttonBackgroundColor(WidgetTester tester, Finder finder) {
-  final buttonFinder = find.ancestor(of: finder, matching: find.byType(AppTextButton));
-  final resolvedFinder = buttonFinder.evaluate().isNotEmpty ? buttonFinder : finder;
+  final buttonFinder = find.ancestor(
+    of: finder,
+    matching: find.byType(AppTextButton),
+  );
+  final resolvedFinder =
+      buttonFinder.evaluate().isNotEmpty ? buttonFinder : finder;
   final button = tester.widget<AppTextButton>(resolvedFinder);
   final context = tester.element(resolvedFinder);
   if (button.onPressed == null) {
@@ -636,7 +644,8 @@ Map<String, dynamic> _moviesJson({
   List<Map<String, dynamic>>? items,
 }) {
   return <String, dynamic>{
-    'items': items ??
+    'items':
+        items ??
         <Map<String, dynamic>>[
           _movieItem(movieNumber: 'ABC-001'),
           _movieItem(movieNumber: 'ABC-002'),

@@ -286,6 +286,84 @@ void main() {
     expect(controller.isActorSubscriptionUpdating(1), isFalse);
   });
 
+  test(
+    'applyMovieSubscriptionChange updates matched movie result state',
+    () async {
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/movies/search/parse-number',
+        body: <String, dynamic>{
+          'query': 'abp123',
+          'parsed': true,
+          'movie_number': 'ABP-123',
+          'reason': null,
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/search/local',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'javdb_id': 'MovieA1',
+            'movie_number': 'ABP-123',
+            'title': 'Movie 1',
+            'cover_image': null,
+            'release_date': null,
+            'duration_minutes': 120,
+            'is_subscribed': false,
+            'can_play': true,
+          },
+        ],
+      );
+
+      await controller.submit('abp123', useOnlineSearch: false);
+      controller.applyMovieSubscriptionChange(
+        movieNumber: 'ABP-123',
+        isSubscribed: true,
+      );
+
+      expect(controller.movieResults.single.isSubscribed, isTrue);
+    },
+  );
+
+  test('applyMovieSubscriptionChange removes movie when requested', () async {
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/search/parse-number',
+      body: <String, dynamic>{
+        'query': 'abp123',
+        'parsed': true,
+        'movie_number': 'ABP-123',
+        'reason': null,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/search/local',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'javdb_id': 'MovieA1',
+          'movie_number': 'ABP-123',
+          'title': 'Movie 1',
+          'cover_image': null,
+          'release_date': null,
+          'duration_minutes': 120,
+          'is_subscribed': true,
+          'can_play': true,
+        },
+      ],
+    );
+
+    await controller.submit('abp123', useOnlineSearch: false);
+    controller.applyMovieSubscriptionChange(
+      movieNumber: 'ABP-123',
+      isSubscribed: false,
+      removeIfUnsubscribed: true,
+    );
+
+    expect(controller.movieResults, isEmpty);
+  });
+
   test('submit searches online movies and exposes stream progress', () async {
     bundle.adapter.enqueueJson(
       method: 'POST',

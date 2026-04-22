@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -172,6 +174,37 @@ void main() {
       find.byKey(const Key('mobile-overview-hot-reviews-tab')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('mobile hot reviews tab uses cupertino sliver refresh on iOS', (
+    WidgetTester tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/hot-reviews',
+      body: _hotReviewsJson(total: 1),
+    );
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
+        ],
+        child: MaterialApp(
+          theme: sakuraThemeData.copyWith(platform: TargetPlatform.iOS),
+          home: const OKToast(
+            child: Scaffold(body: MobileOverviewHotReviewsTab()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RefreshIndicator), findsNothing);
+    debugDefaultTargetPlatformOverride = null;
   });
 
   testWidgets(

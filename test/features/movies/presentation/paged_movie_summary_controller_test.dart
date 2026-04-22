@@ -383,6 +383,66 @@ void main() {
         controller.dispose();
       },
     );
+
+    test('applySubscriptionChange updates matched movie state', () async {
+      final controller = PagedMovieSummaryController(
+        subscribeMovie: ({required movieNumber}) async {},
+        unsubscribeMovie:
+            ({required movieNumber, deleteMedia = false}) async {},
+        fetchPage:
+            (_, __) async => PaginatedResponseDto<MovieListItemDto>(
+              items: <MovieListItemDto>[_movie(1, isSubscribed: false)],
+              page: 1,
+              pageSize: 24,
+              total: 1,
+            ),
+      );
+
+      await controller.initialize();
+      controller.applySubscriptionChange(
+        movieNumber: 'ABC-001',
+        isSubscribed: true,
+      );
+
+      expect(controller.items.single.isSubscribed, isTrue);
+
+      controller.dispose();
+    });
+
+    test(
+      'applySubscriptionChange removes movie when unsubscribed filter requires removal',
+      () async {
+        final controller = PagedMovieSummaryController(
+          subscribeMovie: ({required movieNumber}) async {},
+          unsubscribeMovie:
+              ({required movieNumber, deleteMedia = false}) async {},
+          fetchPage:
+              (_, __) async => PaginatedResponseDto<MovieListItemDto>(
+                items: <MovieListItemDto>[
+                  _movie(1, isSubscribed: true),
+                  _movie(2, isSubscribed: true),
+                ],
+                page: 1,
+                pageSize: 24,
+                total: 2,
+              ),
+        );
+
+        await controller.initialize();
+        controller.applySubscriptionChange(
+          movieNumber: 'ABC-001',
+          isSubscribed: false,
+          removeIfUnsubscribed: true,
+        );
+
+        expect(controller.items.map((movie) => movie.movieNumber), <String>[
+          'ABC-002',
+        ]);
+        expect(controller.total, 1);
+
+        controller.dispose();
+      },
+    );
   });
 }
 

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
@@ -19,6 +18,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
@@ -208,55 +208,57 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
 
-    return AppPullToRefresh(
+    return AppAdaptiveRefreshScrollView(
       onRefresh: _handleRefresh,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: spacing.sm),
-            CatalogSearchField(
-              key: const Key('mobile-overview-my-search-field'),
-              fieldKey: const Key('mobile-overview-my-search-input'),
-              searchButtonKey: const Key('mobile-overview-my-search-submit'),
-              imageSearchButtonKey: const Key(
-                'mobile-overview-my-search-image',
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: <Widget>[
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: spacing.sm),
+              CatalogSearchField(
+                key: const Key('mobile-overview-my-search-field'),
+                fieldKey: const Key('mobile-overview-my-search-input'),
+                searchButtonKey: const Key('mobile-overview-my-search-submit'),
+                imageSearchButtonKey: const Key(
+                  'mobile-overview-my-search-image',
+                ),
+                controller: _searchController,
+                hintText: '找影片',
+                showImageSearchButton: true,
+                onSearchTap: _submitSearch,
+                onSubmitted: (_) => _submitSearch(),
+                onImageSearchTap: _openImageSearch,
               ),
-              controller: _searchController,
-              hintText: '找影片',
-              showImageSearchButton: true,
-              onSearchTap: _submitSearch,
-              onSubmitted: (_) => _submitSearch(),
-              onImageSearchTap: _openImageSearch,
-            ),
-            SizedBox(height: spacing.sm),
-            Text(
-              '最近添加',
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.secondary,
+              SizedBox(height: spacing.sm),
+              Text(
+                '最近添加',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
-            ),
-            SizedBox(height: spacing.xs),
-            _buildLatestMoviesSection(),
-            SizedBox(height: spacing.sm),
-            Text(
-              '播放列表',
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.secondary,
+              SizedBox(height: spacing.xs),
+              _buildLatestMoviesSection(),
+              SizedBox(height: spacing.sm),
+              Text(
+                '播放列表',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
-            ),
-            SizedBox(height: spacing.xs),
-            _buildPlaylistsSection(),
-          ],
+              SizedBox(height: spacing.xs),
+              _buildPlaylistsSection(),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 

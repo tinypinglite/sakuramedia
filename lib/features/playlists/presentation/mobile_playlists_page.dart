@@ -12,8 +12,8 @@ import 'package:sakuramedia/features/playlists/presentation/playlists_overview_c
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/playlists/playlist_banner_card.dart';
@@ -64,36 +64,43 @@ class _MobilePlaylistsPageState extends State<MobilePlaylistsPage> {
       child: Column(
         children: [
           Expanded(
-            child: AppPullToRefresh(
+            child: AppAdaptiveRefreshScrollView(
               onRefresh: _refreshPlaylists,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  spacing.md,
-                  spacing.md,
-                  spacing.md,
-                  spacing.lg,
-                ),
-                children: [
-                  AnimatedBuilder(
-                    animation: _controller,
-                    builder: (context, _) {
-                      final customPlaylists = _controller.playlists
-                          .where((item) => !item.isSystem)
-                          .toList(growable: false);
-                      return _MobilePlaylistsNoticeCard(
-                        playlistCount: customPlaylists.length,
-                        movieCount: customPlaylists.fold<int>(
-                          0,
-                          (total, item) => total + item.movieCount,
-                        ),
-                      );
-                    },
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: <Widget>[
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    spacing.md,
+                    spacing.md,
+                    spacing.md,
+                    spacing.lg,
                   ),
-                  SizedBox(height: spacing.md),
-                  _buildContentSection(context),
-                ],
-              ),
+                  sliver: SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AnimatedBuilder(
+                          animation: _controller,
+                          builder: (context, _) {
+                            final customPlaylists = _controller.playlists
+                                .where((item) => !item.isSystem)
+                                .toList(growable: false);
+                            return _MobilePlaylistsNoticeCard(
+                              playlistCount: customPlaylists.length,
+                              movieCount: customPlaylists.fold<int>(
+                                0,
+                                (total, item) => total + item.movieCount,
+                              ),
+                            );
+                          },
+                        ),
+                        SizedBox(height: spacing.md),
+                        _buildContentSection(context),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           AnimatedContainer(

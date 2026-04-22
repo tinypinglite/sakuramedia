@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +14,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
@@ -110,11 +112,28 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
 
     return ColoredBox(
       color: context.appColors.surfaceElevated,
-      child:
-          widget.enablePullToRefresh
-              ? AppPullToRefresh(onRefresh: _handleRefresh, child: scrollView)
-              : scrollView,
+      child: _buildRefreshableBody(context, scrollView),
     );
+  }
+
+  Widget _buildRefreshableBody(
+    BuildContext context,
+    SingleChildScrollView scrollView,
+  ) {
+    if (!widget.enablePullToRefresh) {
+      return scrollView;
+    }
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+      return AppAdaptiveRefreshScrollView(
+        onRefresh: _handleRefresh,
+        controller: _controller.scrollController,
+        physics: widget.scrollPhysics ?? const AlwaysScrollableScrollPhysics(),
+        slivers: <Widget>[SliverToBoxAdapter(child: scrollView.child!)],
+      );
+    }
+
+    return AppPullToRefresh(onRefresh: _handleRefresh, child: scrollView);
   }
 
   Future<void> _handleRefresh() async {

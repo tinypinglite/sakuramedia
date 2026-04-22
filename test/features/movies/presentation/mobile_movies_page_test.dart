@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +14,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movies_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
@@ -108,6 +111,29 @@ void main() {
     );
     expect(find.text('1.8k'), findsOneWidget);
     expect(find.text('4'), findsOneWidget);
+  });
+
+  testWidgets('mobile movies page uses cupertino sliver refresh on iOS', (
+    WidgetTester tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(total: 1),
+    );
+
+    await _pumpMoviesPage(
+      tester,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      theme: sakuraThemeData.copyWith(platform: TargetPlatform.iOS),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(RefreshIndicator), findsNothing);
+    debugDefaultTargetPlatformOverride = null;
   });
 
   testWidgets('mobile movies page shows empty state', (
@@ -551,10 +577,7 @@ void main() {
       await _pumpMoviesPage(tester, sessionStore: sessionStore, bundle: bundle);
       await tester.pumpAndSettle();
 
-      await tester.drag(
-        find.byType(SingleChildScrollView),
-        const Offset(0, -2800),
-      );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -2800));
       await tester.pump();
       await tester.pumpAndSettle();
 
@@ -670,6 +693,9 @@ void main() {
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
+          ChangeNotifierProvider(
+            create: (_) => MovieSubscriptionChangeNotifier(),
+          ),
         ],
         child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
       ),
@@ -682,6 +708,38 @@ void main() {
     expect(find.text('movie:ABC-001'), findsOneWidget);
     expect(movieDetailExtra, isNull);
   });
+
+  testWidgets(
+    'mobile movies page applies external subscription changes in place',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        body: _moviesJson(
+          total: 1,
+          items: <Map<String, dynamic>>[
+            _movieItem(movieNumber: 'ABC-001', isSubscribed: false),
+          ],
+        ),
+      );
+
+      await _pumpMoviesPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      final context = tester.element(find.byType(MobileMoviesPage));
+      context.read<MovieSubscriptionChangeNotifier>().reportChange(
+        movieNumber: 'ABC-001',
+        isSubscribed: true,
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const Key('movie-summary-card-ABC-001')),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
+    },
+  );
 }
 
 Future<void> _pumpMoviesPage(
@@ -689,6 +747,7 @@ Future<void> _pumpMoviesPage(
   required SessionStore sessionStore,
   required TestApiBundle bundle,
   Size physicalSize = const Size(430, 900),
+  ThemeData? theme,
 }) {
   tester.view.physicalSize = physicalSize;
   tester.view.devicePixelRatio = 1;
@@ -706,9 +765,12 @@ Future<void> _pumpMoviesPage(
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
       ],
       child: MaterialApp(
-        theme: sakuraThemeData,
+        theme: theme ?? sakuraThemeData,
         home: OKToast(child: const Scaffold(body: MobileMoviesPage())),
       ),
     ),
@@ -730,8 +792,12 @@ double _buttonHeightForLabel(WidgetTester tester, String label) {
 }
 
 Color? _buttonBackgroundColor(WidgetTester tester, Finder finder) {
-  final buttonFinder = find.ancestor(of: finder, matching: find.byType(AppTextButton));
-  final resolvedFinder = buttonFinder.evaluate().isNotEmpty ? buttonFinder : finder;
+  final buttonFinder = find.ancestor(
+    of: finder,
+    matching: find.byType(AppTextButton),
+  );
+  final resolvedFinder =
+      buttonFinder.evaluate().isNotEmpty ? buttonFinder : finder;
   final button = tester.widget<AppTextButton>(resolvedFinder);
   final context = tester.element(resolvedFinder);
   if (button.onPressed == null) {
@@ -752,7 +818,8 @@ Map<String, dynamic> _moviesJson({
   List<Map<String, dynamic>>? items,
 }) {
   return <String, dynamic>{
-    'items': items ??
+    'items':
+        items ??
         <Map<String, dynamic>>[
           _movieItem(),
           _movieItem(movieNumber: 'ABC-002', isSubscribed: false),
