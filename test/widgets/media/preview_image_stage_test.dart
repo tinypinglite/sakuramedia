@@ -106,12 +106,17 @@ void main() {
       Offset(rect.center.dx + 20, rect.center.dy),
     );
     await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byKey(kAppImageFullscreenOverlayKey), findsOneWidget);
     expect(
       find.byKey(const Key('preview-image-stage-fullscreen-image')),
       findsOneWidget,
     );
+    final overlay = tester.widget<ColoredBox>(
+      find.byKey(kAppImageFullscreenOverlayKey),
+    );
+    expect(overlay.color, Colors.black.withValues(alpha: 0.96));
 
     await leftFinger.moveTo(Offset(rect.center.dx - 5, rect.center.dy));
     await rightFinger.moveTo(Offset(rect.center.dx + 5, rect.center.dy));
