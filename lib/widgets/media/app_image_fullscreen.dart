@@ -100,14 +100,18 @@ class AppImageFullscreenHost extends StatefulWidget {
 }
 
 class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   static const Duration _transitionDuration = Duration(milliseconds: 180);
+  static const Duration _resetDuration = Duration(milliseconds: 140);
   static const double _minInteractiveScale = 0.8;
   static const double _maxInteractiveScale = 4.0;
   static const double _overlayMaxAlpha = 0.96;
 
   late final AnimationController _transitionController;
+  late final AnimationController _resetController;
   AppFullscreenZoomController? _session;
+  Animation<double>? _resetScaleAnimation;
+  Animation<Offset>? _resetTranslationAnimation;
   bool _isSystemUiHidden = false;
 
   bool get isVisible => _session != null;
@@ -115,6 +119,7 @@ class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _transitionController =
         AnimationController(vsync: this, duration: _transitionDuration)
           ..addListener(() {
@@ -131,13 +136,29 @@ class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
               _finalizeDismiss();
             }
           });
+    _resetController =
+        AnimationController(vsync: this, duration: _resetDuration)
+          ..addListener(_handleResetAnimationTick)
+          ..addStatusListener(_handleResetAnimationStatus);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopResetAnimation();
     unawaited(_restoreSystemUi());
+    _resetController.dispose();
     _transitionController.dispose();
     super.dispose();
+  }
+
+  @override
+  Future<bool> didPopRoute() async {
+    if (_session == null) {
+      return false;
+    }
+    dismiss();
+    return true;
   }
 
   bool startSession({
@@ -161,6 +182,7 @@ class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
       onVisibilityChanged: onVisibilityChanged,
     )..resetBaseline();
 
+    _stopResetAnimation();
     _session = session;
     session.onVisibilityChanged?.call(true);
     _transitionController.value = 0;
@@ -177,6 +199,7 @@ class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
     if (session == null) {
       return;
     }
+    _stopResetAnimation();
     session.activePointers[event.pointer] = event.position;
     session.resetBaseline();
     setState(() {});
@@ -231,16 +254,7 @@ class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
 
     session.activePointers.remove(event.pointer);
     if (session.activePointers.isEmpty) {
-      if (session.scale < 1.0) {
-        dismiss();
-        return;
-      }
-      session.scale = math.max(1.0, session.scale);
-      session.translation = _clampTranslation(
-        session.translation,
-        session.scale,
-      );
-      setState(() {});
+      _startResetAnimation();
       return;
     }
 
@@ -254,6 +268,7 @@ class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
       return;
     }
 
+    _stopResetAnimation();
     session.phase = _AppImageFullscreenPhase.exiting;
     session.onVisibilityChanged?.call(false);
     _transitionController.reverse(
@@ -282,11 +297,88 @@ class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
   }
 
   void _finalizeDismiss() {
+    _stopResetAnimation();
     _session = null;
     unawaited(_restoreSystemUi());
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void _handleResetAnimationTick() {
+    final session = _session;
+    if (session == null) {
+      return;
+    }
+
+    if (_resetScaleAnimation != null) {
+      session.scale = _resetScaleAnimation!.value;
+    }
+    if (_resetTranslationAnimation != null) {
+      session.translation = _resetTranslationAnimation!.value;
+    }
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  void _handleResetAnimationStatus(AnimationStatus status) {
+    final session = _session;
+    if (session == null) {
+      return;
+    }
+
+    if (status == AnimationStatus.completed) {
+      session.scale = 1.0;
+      session.translation = Offset.zero;
+      _clearResetAnimation();
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
+  void _startResetAnimation() {
+    final session = _session;
+    if (session == null) {
+      return;
+    }
+
+    final currentTranslation = _clampTranslation(
+      session.translation,
+      session.scale,
+    );
+    if ((session.scale - 1.0).abs() < 0.001 &&
+        currentTranslation.distanceSquared < 0.001) {
+      session.scale = 1.0;
+      session.translation = Offset.zero;
+      _clearResetAnimation();
+      setState(() {});
+      return;
+    }
+
+    _resetScaleAnimation = Tween<double>(
+      begin: session.scale,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _resetController, curve: Curves.easeOut));
+    _resetTranslationAnimation = Tween<Offset>(
+      begin: currentTranslation,
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _resetController, curve: Curves.easeOut));
+    _resetController.value = 0;
+    _resetController.forward();
+  }
+
+  void _stopResetAnimation() {
+    if (_resetController.isAnimating) {
+      _resetController.stop();
+    }
+    _clearResetAnimation();
+  }
+
+  void _clearResetAnimation() {
+    _resetScaleAnimation = null;
+    _resetTranslationAnimation = null;
   }
 
   Offset _clampTranslation(Offset translation, double scale) {
