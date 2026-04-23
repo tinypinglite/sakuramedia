@@ -104,6 +104,7 @@ class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
   static const Duration _transitionDuration = Duration(milliseconds: 180);
   static const double _minInteractiveScale = 0.8;
   static const double _maxInteractiveScale = 4.0;
+  static const double _overlayMaxAlpha = 0.96;
 
   late final AnimationController _transitionController;
   AppFullscreenZoomController? _session;
@@ -373,6 +374,7 @@ class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
         session.phase == _AppImageFullscreenPhase.exiting
             ? _transitionController.value
             : Curves.easeOut.transform(_transitionController.value);
+    final overlayAlpha = (alpha.clamp(0.0, 1.0) as double) * _overlayMaxAlpha;
 
     return Positioned.fill(
       child: Listener(
@@ -385,7 +387,7 @@ class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
           children: [
             ColoredBox(
               key: kAppImageFullscreenOverlayKey,
-              color: Colors.black.withValues(alpha: alpha.clamp(0.0, 1.0)),
+              color: Colors.black.withValues(alpha: overlayAlpha),
             ),
             Positioned.fromRect(
               rect: baseRect,
