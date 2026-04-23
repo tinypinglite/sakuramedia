@@ -203,8 +203,8 @@ void main() {
       );
 
       expect(controller.movie?.title, 'Movie 2');
-      expect(controller.selectedPreviewKey, 'thin-cover');
-      expect(controller.selectedPreviewUrl, '/covers/thin-2.jpg');
+      expect(controller.selectedPreviewKey, 'placeholder');
+      expect(controller.selectedPreviewUrl, isNull);
     });
   });
 }

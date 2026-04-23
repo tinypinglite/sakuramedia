@@ -8,7 +8,6 @@ class MovieDetailHeroCard extends StatelessWidget {
     required this.height,
     required this.mainImageKey,
     required this.mainImageUrl,
-    required this.thinCoverUrl,
     required this.heat,
     required this.canPlay,
     required this.isSubscribed,
@@ -23,7 +22,6 @@ class MovieDetailHeroCard extends StatelessWidget {
   final double height;
   final String mainImageKey;
   final String? mainImageUrl;
-  final String? thinCoverUrl;
   final int heat;
   final bool canPlay;
   final bool isSubscribed;
@@ -57,33 +55,11 @@ class MovieDetailHeroCard extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.symmetric(horizontal: spacing.lg),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Center(
-                    child: _HeroImageFrame(
-                      imageKey: mainImageKey,
-                      imageUrl: mainImageUrl,
-                    ),
-                  ),
-                ),
-                if (thinCoverUrl != null && thinCoverUrl!.isNotEmpty) ...[
-                  SizedBox(width: spacing.lg),
-                  SizedBox(
-                    width: tokens.movieDetailThinCoverWidth,
-                    child: ClipRRect(
-                      borderRadius: context.appRadius.mdBorder,
-                      child: AspectRatio(
-                        aspectRatio: 0.68,
-                        child: MaskedImage(
-                          url: thinCoverUrl!,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+            child: Center(
+              child: _HeroImageFrame(
+                imageKey: mainImageKey,
+                imageUrl: mainImageUrl,
+              ),
             ),
           ),
           Positioned(

@@ -97,11 +97,6 @@ class MovieDetailController extends ChangeNotifier {
       return _MovieDetailPreview.cover(url: coverUrl);
     }
 
-    final thinCoverUrl = movie.thinCoverImage?.bestAvailableUrl ?? '';
-    if (thinCoverUrl.isNotEmpty) {
-      return _MovieDetailPreview.thinCover(url: thinCoverUrl);
-    }
-
     return const _MovieDetailPreview.placeholder();
   }
 
@@ -110,13 +105,6 @@ class MovieDetailController extends ChangeNotifier {
       final coverUrl = movie.coverImage?.bestAvailableUrl ?? '';
       if (coverUrl.isNotEmpty) {
         return _MovieDetailPreview.cover(url: coverUrl);
-      }
-    }
-
-    if (_selectedPreview.key == 'thin-cover') {
-      final thinCoverUrl = movie.thinCoverImage?.bestAvailableUrl ?? '';
-      if (thinCoverUrl.isNotEmpty) {
-        return _MovieDetailPreview.thinCover(url: thinCoverUrl);
       }
     }
 
@@ -160,9 +148,6 @@ class _MovieDetailPreview {
 
   const _MovieDetailPreview.cover({required String url})
     : this(key: 'cover', url: url);
-
-  const _MovieDetailPreview.thinCover({required String url})
-    : this(key: 'thin-cover', url: url);
 
   const _MovieDetailPreview.placeholder() : this(key: 'placeholder', url: null);
 

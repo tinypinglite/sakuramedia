@@ -65,7 +65,6 @@ void main() {
                 height: 420,
                 mainImageKey: 'cover',
                 mainImageUrl: '/covers/main.jpg',
-                thinCoverUrl: '/covers/thin.jpg',
                 heat: 24,
                 canPlay: true,
                 isSubscribed: true,
@@ -107,7 +106,6 @@ void main() {
                   height: 420,
                   mainImageKey: 'cover',
                   mainImageUrl: '/covers/main.jpg',
-                  thinCoverUrl: '/covers/thin.jpg',
                   heat: 24,
                   canPlay: true,
                   isSubscribed: false,
@@ -155,7 +153,6 @@ void main() {
                 height: 420,
                 mainImageKey: 'cover',
                 mainImageUrl: '/covers/main.jpg',
-                thinCoverUrl: '/covers/thin.jpg',
                 heat: 24,
                 canPlay: true,
                 isSubscribed: false,
@@ -192,7 +189,6 @@ void main() {
                 height: 420,
                 mainImageKey: 'cover',
                 mainImageUrl: '/covers/main.jpg',
-                thinCoverUrl: '/covers/thin.jpg',
                 heat: 24,
                 canPlay: true,
                 isSubscribed: false,
@@ -277,6 +273,43 @@ void main() {
     expect(decoration.color, AppColors.defaults().mediaOverlayStrong);
   });
 
+  testWidgets(
+    'movie detail hero card shows placeholder when main image is absent',
+    (WidgetTester tester) async {
+      await tester.pumpWidget(
+        ChangeNotifierProvider<SessionStore>.value(
+          value: sessionStore,
+          child: MaterialApp(
+            theme: sakuraThemeData,
+            home: Scaffold(
+              body: SizedBox(
+                width: 1200,
+                child: MovieDetailHeroCard(
+                  height: 420,
+                  mainImageKey: 'placeholder',
+                  mainImageUrl: null,
+                  heat: 24,
+                  canPlay: false,
+                  isSubscribed: false,
+                  isCollection: false,
+                  onPlayTap: null,
+                  onSubscriptionTap: null,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('movie-detail-main-image-placeholder')),
+        findsOneWidget,
+      );
+      expect(find.byType(MaskedImage), findsNothing);
+      expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+    },
+  );
+
   testWidgets('movie detail hero card invokes more actions callback', (
     WidgetTester tester,
   ) async {
@@ -294,7 +327,6 @@ void main() {
                 height: 420,
                 mainImageKey: 'cover',
                 mainImageUrl: '/covers/main.jpg',
-                thinCoverUrl: '/covers/thin.jpg',
                 heat: 24,
                 canPlay: true,
                 isSubscribed: false,
@@ -332,7 +364,6 @@ Widget _buildApp({required SessionStore sessionStore}) {
             height: 420,
             mainImageKey: 'cover',
             mainImageUrl: '/covers/main.jpg',
-            thinCoverUrl: '/covers/thin.jpg',
             heat: 24,
             canPlay: true,
             isSubscribed: false,
