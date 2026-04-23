@@ -2974,7 +2974,7 @@ void main() {
     },
   );
 
-  testWidgets('movie detail page keeps thin cover hero when cover is absent', (
+  testWidgets('movie detail page shows hero placeholder when cover is absent', (
     WidgetTester tester,
   ) async {
     final detail = _movieDetailJson();
@@ -2990,7 +2990,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const Key('movie-detail-main-image-thin-cover')),
+      find.byKey(const Key('movie-detail-main-image-placeholder')),
       findsOneWidget,
     );
   });

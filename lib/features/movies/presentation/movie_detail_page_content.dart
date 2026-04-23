@@ -237,7 +237,6 @@ class MovieDetailPageContent extends StatelessWidget {
           height: heroHeight,
           mainImageKey: selectedPreviewKey,
           mainImageUrl: selectedPreviewUrl,
-          thinCoverUrl: movie.thinCoverImage?.bestAvailableUrl,
           heat: movie.heat,
           canPlay: movie.canPlay,
           isSubscribed: isSubscribed,
