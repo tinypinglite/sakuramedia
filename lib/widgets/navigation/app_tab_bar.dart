@@ -126,7 +126,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           unselectedLabelStyle: resolveAppTextStyle(
             context,
-            size: AppTextSize.s14,
+            size: AppTextSize.s16,
             tone: AppTextTone.muted,
           ),
           isScrollable: true,

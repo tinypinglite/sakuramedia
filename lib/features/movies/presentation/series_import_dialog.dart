@@ -323,7 +323,7 @@ class _ProgressBar extends StatelessWidget {
     final progress = controller.progress;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: context.appRadius.xsBorder,
       child: LinearProgressIndicator(
         value: progress,
         minHeight: 5,
@@ -532,7 +532,7 @@ class _DragHandle extends StatelessWidget {
       height: 4,
       decoration: BoxDecoration(
         color: context.appColors.borderStrong,
-        borderRadius: BorderRadius.circular(2),
+        borderRadius: context.appRadius.xsBorder,
       ),
     );
   }

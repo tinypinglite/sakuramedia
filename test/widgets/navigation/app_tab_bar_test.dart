@@ -222,6 +222,6 @@ void main() {
       tabBar.labelPadding,
       EdgeInsets.only(right: sakuraMobileThemeData.appSpacing.sm),
     );
-    expect(labelStyle.fontSize, sakuraMobileThemeData.appTextScale.s14);
+    expect(labelStyle.fontSize, sakuraMobileThemeData.appTextScale.s16);
   });
 }
