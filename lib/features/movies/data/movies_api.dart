@@ -274,6 +274,83 @@ class MoviesApi {
     );
   }
 
+  Stream<MovieSearchStreamUpdate> importSeriesMoviesStream({
+    required int seriesId,
+  }) {
+    return _apiClient
+        .postSse(
+          '/movies/series/$seriesId/javdb/import/stream',
+          data: <String, dynamic>{},
+        )
+        .map(_mapSeriesImportStreamEvent);
+  }
+
+  MovieSearchStreamUpdate _mapSeriesImportStreamEvent(ApiSseEvent event) {
+    final payload = event.jsonData;
+
+    switch (event.event) {
+      case 'search_started':
+        return const MovieSearchStreamUpdate(
+          stage: 'searching',
+          message: '正在搜索系列...',
+        );
+      case 'series_found':
+        return MovieSearchStreamUpdate(
+          stage: 'series_matched',
+          message: '已找到本地系列：${payload['series_name'] ?? ''}',
+        );
+      case 'javdb_series_found':
+        final count = payload['videos_count'];
+        final countLabel = count != null ? '，共 $count 部' : '';
+        return MovieSearchStreamUpdate(
+          stage: 'series_matched',
+          message: '已匹配到 JAVDB 系列$countLabel',
+          total: count as int?,
+        );
+      case 'movie_found':
+        final total = payload['total'] as int?;
+        return MovieSearchStreamUpdate(
+          stage: 'movies_found',
+          message: '已获取到 ${total ?? 0} 部影片，准备入库',
+          total: total,
+        );
+      case 'upsert_started':
+        return MovieSearchStreamUpdate(
+          stage: 'importing',
+          message: '正在入库影片...',
+          current: 0,
+          total: payload['total'] as int?,
+        );
+      case 'movie_skipped' || 'movie_upsert_started' || 'movie_upsert_finished':
+        return MovieSearchStreamUpdate(
+          stage: 'importing',
+          message: '正在入库影片...',
+          current: payload['index'] as int?,
+          total: payload['total'] as int?,
+        );
+      case 'upsert_finished':
+        return MovieSearchStreamUpdate(
+          stage: 'import_finished',
+          message: '入库完成',
+          stats: CatalogSearchStreamStats.fromLooseJson(payload),
+        );
+      case 'completed':
+        return MovieSearchStreamUpdate(
+          stage: 'completed',
+          message: payload['success'] as bool? ?? false ? '导入成功' : '导入失败',
+          results: _parseMovieResults(payload['movies']),
+          stats: CatalogSearchStreamStats.fromLooseJson(payload),
+          success: payload['success'] as bool?,
+          reason: payload['reason'] as String?,
+        );
+      default:
+        return MovieSearchStreamUpdate(
+          stage: event.event,
+          message: '正在处理...',
+        );
+    }
+  }
+
   MovieSearchStreamUpdate _mapMovieSearchStreamEvent(ApiSseEvent event) {
     final payload = event.jsonData;
 

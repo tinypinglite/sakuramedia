@@ -7,6 +7,7 @@ import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/series_import_dialog.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
@@ -150,6 +151,16 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent> {
     }
   }
 
+  Future<void> _handleImport() async {
+    final hasNewMovies = await showSeriesImportDialog(
+      context,
+      widget.seriesId,
+    );
+    if (hasNewMovies && mounted) {
+      await _controller.refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
@@ -172,6 +183,7 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent> {
                   seriesName: _displaySeriesName,
                   total: _controller.total,
                   totalKey: widget.totalKey,
+                  onImport: _handleImport,
                 ),
                 SizedBox(height: widget.sectionSpacing),
                 _buildMoviesArea(context),
@@ -245,11 +257,13 @@ class _SeriesMoviesHeader extends StatelessWidget {
     required this.seriesName,
     required this.total,
     required this.totalKey,
+    this.onImport,
   });
 
   final String seriesName;
   final int total;
   final Key totalKey;
+  final VoidCallback? onImport;
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +271,10 @@ class _SeriesMoviesHeader extends StatelessWidget {
     return Container(
       key: const Key('series-movies-header-card'),
       width: double.infinity,
-      padding: EdgeInsets.all(spacing.md),
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.md,
+        vertical: spacing.sm,
+      ),
       decoration: BoxDecoration(
         color: context.appColors.surfaceCard,
         borderRadius: context.appRadius.smBorder,
@@ -266,7 +283,6 @@ class _SeriesMoviesHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-         
           Expanded(
             child: Text(
               seriesName,
@@ -282,6 +298,10 @@ class _SeriesMoviesHeader extends StatelessWidget {
             ),
           ),
           SizedBox(width: spacing.md),
+          if (onImport != null) ...[
+            _ImportButton(onTap: onImport!),
+            SizedBox(width: spacing.sm),
+          ],
           Text(
             '共 $total 部',
             key: totalKey,
@@ -293,6 +313,40 @@ class _SeriesMoviesHeader extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ImportButton extends StatelessWidget {
+  const _ImportButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    return TextButton(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        padding: EdgeInsets.symmetric(
+          horizontal: spacing.sm,
+          vertical: spacing.xs,
+        ),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(
+          borderRadius: context.appRadius.xsBorder,
+        ),
+      ),
+      child: Text(
+        '同步系列影片',
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          weight: AppTextWeight.medium,
+          tone: AppTextTone.accent,
+        ),
       ),
     );
   }
