@@ -26,7 +26,6 @@ void main() {
       expect(source, isNot(contains('Colors.white')));
       expect(source, isNot(contains('Colors.black')));
       expect(source, isNot(contains('withValues(alpha: 0.92)')));
-      expect(source, contains('movieCardCoverVisibleWidthFactor'));
       expect(source, isNot(contains('0.47')));
       expect(source, isNot(contains('size: 36')));
       expect(source, isNot(contains('size: 32')));
@@ -39,7 +38,7 @@ void main() {
     },
   );
 
-  testWidgets('movie summary card uses poster-only presentation', (
+  testWidgets('movie summary card prefers thin cover image', (
     WidgetTester tester,
   ) async {
     final sessionStore = SessionStore.inMemory();
@@ -66,6 +65,13 @@ void main() {
                     small: '/poster-small.jpg',
                     medium: '/poster-medium.jpg',
                     large: '/poster-large.jpg',
+                  ),
+                  thinCoverImage: const MovieImageDto(
+                    id: 2,
+                    origin: '/thin-origin.jpg',
+                    small: '/thin-small.jpg',
+                    medium: '/thin-medium.jpg',
+                    large: '/thin-large.jpg',
                   ),
                   releaseDate: DateTime(2024, 1, 1),
                   durationMinutes: 120,
@@ -105,11 +111,9 @@ void main() {
     expect(find.byType(MaskedImage), findsOneWidget);
 
     final maskedImage = tester.widget<MaskedImage>(find.byType(MaskedImage));
-    expect(
-      maskedImage.visibleWidthFactor,
-      AppComponentTokens.defaults().movieCardCoverVisibleWidthFactor,
-    );
-    expect(maskedImage.visibleAlignment, Alignment.centerRight);
+    expect(maskedImage.url, '/thin-large.jpg');
+    expect(maskedImage.fit, BoxFit.cover);
+    expect(maskedImage.visibleWidthFactor, isNull);
 
     final playableBadgeContainer = tester.widget<Container>(
       find.descendant(
@@ -143,6 +147,62 @@ void main() {
     );
     final heatBadgeDecoration = heatBadgeContainer.decoration as BoxDecoration;
     expect(heatBadgeDecoration.color, AppColors.defaults().mediaOverlayStrong);
+  });
+
+  testWidgets('movie summary card contains horizontal cover fallback', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+        ],
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: SizedBox(
+              width: 220,
+              child: MovieSummaryCard(
+                movie: MovieListItemDto(
+                  javdbId: 'MovieA1-cover',
+                  movieNumber: 'ABC-101',
+                  title: 'Movie 101',
+                  coverImage: const MovieImageDto(
+                    id: 1,
+                    origin: '/cover-origin.jpg',
+                    small: '/cover-small.jpg',
+                    medium: '/cover-medium.jpg',
+                    large: '/cover-large.jpg',
+                  ),
+                  thinCoverImage: const MovieImageDto(
+                    id: 2,
+                    origin: '',
+                    small: '',
+                    medium: '',
+                    large: '',
+                  ),
+                  releaseDate: DateTime(2024, 1, 1),
+                  durationMinutes: 120,
+                  heat: 42,
+                  isSubscribed: false,
+                  canPlay: false,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(MaskedImage), findsOneWidget);
+
+    final maskedImage = tester.widget<MaskedImage>(find.byType(MaskedImage));
+    expect(maskedImage.url, '/cover-large.jpg');
+    expect(maskedImage.fit, BoxFit.contain);
+    expect(maskedImage.visibleWidthFactor, isNull);
   });
 
   testWidgets(

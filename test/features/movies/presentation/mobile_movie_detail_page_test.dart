@@ -1153,6 +1153,10 @@ void main() {
       await gesture.up();
       await tester.pumpAndSettle();
 
+      expect(
+        find.byKey(const Key('app-image-action-bottom-drawer')),
+        findsOneWidget,
+      );
       expect(find.text('相似图片'), findsOneWidget);
       expect(find.text('保存到本地'), findsOneWidget);
     },

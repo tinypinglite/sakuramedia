@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/media/preview_dialog_surface.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_preview_overlay.dart';
@@ -223,7 +224,7 @@ void main() {
       find.byKey(const Key('movie-plot-preview-thumb-1')),
     );
     await tester.tapAt(center, buttons: kSecondaryMouseButton);
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(menuIndex, 1);
     expect(menuPosition, equals(center));
@@ -411,6 +412,264 @@ void main() {
     expect(find.text('2 / 2'), findsOneWidget);
   });
 
+  testWidgets(
+    'plot preview fullscreen switches to next image by swiping left',
+    (WidgetTester tester) async {
+      await _pumpMobilePlotPreview(tester, initialIndex: 0);
+      await _openPlotPreviewFullscreen(tester);
+
+      final fullscreenImage = find.byKey(
+        const Key('movie-plot-preview-fullscreen-image'),
+      );
+      final swipe = await tester.startGesture(
+        tester.getCenter(fullscreenImage),
+      );
+      await tester.pump();
+      await swipe.moveBy(const Offset(-520, 0));
+      await tester.pump();
+      await swipe.up();
+      await _pumpFullscreenAnimations(tester);
+
+      expect(find.text('2 / 2'), findsOneWidget);
+      await tester.tap(find.byKey(kAppImageFullscreenCloseButtonKey));
+      await _pumpFullscreenAnimations(tester);
+      expect(find.byKey(kAppImageFullscreenOverlayKey), findsNothing);
+      expect(find.text('2 / 2'), findsOneWidget);
+      final pageView = tester.widget<PageView>(
+        find.byKey(const Key('movie-plot-preview-page-view')),
+      );
+      expect(pageView.physics, isNot(isA<NeverScrollableScrollPhysics>()));
+
+      await tester.drag(
+        find.byKey(const Key('movie-plot-preview-page-view')),
+        const Offset(520, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('1 / 2'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'plot preview fullscreen forwards long press to current image menu',
+    (WidgetTester tester) async {
+      int? menuIndex;
+      Offset? menuPosition;
+
+      await _pumpMobilePlotPreview(
+        tester,
+        initialIndex: 0,
+        onRequestImageMenu: (context, index, globalPosition) async {
+          menuIndex = index;
+          menuPosition = globalPosition;
+        },
+      );
+      await _openPlotPreviewFullscreen(tester);
+
+      final fullscreenImage = find.byKey(
+        const Key('movie-plot-preview-fullscreen-image'),
+      );
+      final center = tester.getCenter(fullscreenImage);
+      final gesture = await tester.startGesture(center);
+      await tester.pump(kLongPressTimeout);
+      await gesture.up();
+      await tester.pump();
+
+      expect(menuIndex, 0);
+      expect(menuPosition, equals(center));
+      expect(find.byKey(kAppImageFullscreenOverlayKey), findsOneWidget);
+    },
+  );
+
+  testWidgets('plot preview fullscreen long press uses swiped image index', (
+    WidgetTester tester,
+  ) async {
+    int? menuIndex;
+
+    await _pumpMobilePlotPreview(
+      tester,
+      initialIndex: 0,
+      onRequestImageMenu: (context, index, globalPosition) async {
+        menuIndex = index;
+      },
+    );
+    await _openPlotPreviewFullscreen(tester);
+
+    final fullscreenImage = find.byKey(
+      const Key('movie-plot-preview-fullscreen-image'),
+    );
+    final swipe = await tester.startGesture(tester.getCenter(fullscreenImage));
+    await tester.pump();
+    await swipe.moveBy(const Offset(-520, 0));
+    await tester.pump();
+    await swipe.up();
+    await _pumpFullscreenAnimations(tester);
+
+    final center = tester.getCenter(fullscreenImage);
+    final longPress = await tester.startGesture(center);
+    await tester.pump(kLongPressTimeout);
+    await longPress.up();
+    await tester.pump();
+
+    expect(menuIndex, 1);
+    expect(find.byKey(kAppImageFullscreenOverlayKey), findsOneWidget);
+  });
+
+  testWidgets(
+    'plot preview fullscreen shows bottom drawer above fullscreen image',
+    (WidgetTester tester) async {
+      await _pumpMobilePlotPreview(
+        tester,
+        initialIndex: 0,
+        onRequestImageMenu: (context, index, globalPosition) async {
+          await showAppImageActionMenu(
+            context: context,
+            globalPosition: globalPosition,
+            presentation: AppImageActionMenuPresentation.bottomDrawer,
+            actions: const <AppImageActionDescriptor>[
+              AppImageActionDescriptor(
+                type: AppImageActionType.searchSimilar,
+                label: '相似图片',
+                icon: Icons.image_search_outlined,
+              ),
+              AppImageActionDescriptor(
+                type: AppImageActionType.saveToLocal,
+                label: '保存到本地',
+                icon: Icons.download_outlined,
+              ),
+            ],
+          );
+        },
+      );
+      await _openPlotPreviewFullscreen(tester);
+
+      final fullscreenImage = find.byKey(
+        const Key('movie-plot-preview-fullscreen-image'),
+      );
+      final center = tester.getCenter(fullscreenImage);
+      final longPress = await tester.startGesture(center);
+      await tester.pump(kLongPressTimeout);
+      await longPress.up();
+      await tester.pump();
+
+      expect(find.byKey(kAppImageFullscreenOverlayKey), findsOneWidget);
+      expect(
+        find.byKey(const Key('app-image-action-bottom-drawer')),
+        findsOneWidget,
+      );
+      expect(find.text('相似图片'), findsOneWidget);
+      expect(find.text('保存到本地'), findsOneWidget);
+
+      final enteringDrawerTop = tester.getTopLeft(
+        find.byKey(const Key('app-image-action-bottom-drawer')),
+      );
+      await tester.pump(const Duration(milliseconds: 90));
+      final midAnimationDrawerTop = tester.getTopLeft(
+        find.byKey(const Key('app-image-action-bottom-drawer')),
+      );
+      expect(midAnimationDrawerTop.dy, lessThan(enteringDrawerTop.dy));
+
+      await tester.pump(const Duration(milliseconds: 120));
+
+      final overlayTop = tester.getTopLeft(
+        find.byKey(kAppImageFullscreenOverlayKey),
+      );
+      final drawerTop = tester.getTopLeft(
+        find.byKey(const Key('app-image-action-bottom-drawer')),
+      );
+      expect(drawerTop.dy, greaterThan(overlayTop.dy));
+
+      await tester.tap(
+        find.byKey(
+          const Key('app-image-action-bottom-drawer-action-searchSimilar'),
+        ),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const Key('app-image-action-bottom-drawer')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(milliseconds: 220));
+      expect(
+        find.byKey(const Key('app-image-action-bottom-drawer')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets('plot preview fullscreen does not wrap at image edges', (
+    WidgetTester tester,
+  ) async {
+    await _pumpMobilePlotPreview(tester, initialIndex: 0);
+    await _openPlotPreviewFullscreen(tester);
+
+    final fullscreenImage = find.byKey(
+      const Key('movie-plot-preview-fullscreen-image'),
+    );
+    final rightSwipe = await tester.startGesture(
+      tester.getCenter(fullscreenImage),
+    );
+    await tester.pump();
+    await rightSwipe.moveBy(const Offset(520, 0));
+    await tester.pump();
+    await rightSwipe.up();
+    await _pumpFullscreenAnimations(tester);
+
+    expect(find.text('1 / 2'), findsOneWidget);
+    final leftSwipe = await tester.startGesture(
+      tester.getCenter(fullscreenImage),
+    );
+    await tester.pump();
+    await leftSwipe.moveBy(const Offset(-520, 0));
+    await tester.pump();
+    await leftSwipe.up();
+    await _pumpFullscreenAnimations(tester);
+
+    expect(find.text('2 / 2'), findsOneWidget);
+    final edgeSwipe = await tester.startGesture(
+      tester.getCenter(fullscreenImage),
+    );
+    await tester.pump();
+    await edgeSwipe.moveBy(const Offset(-520, 0));
+    await tester.pump();
+    await edgeSwipe.up();
+    await _pumpFullscreenAnimations(tester);
+
+    expect(find.text('2 / 2'), findsOneWidget);
+  });
+
+  testWidgets(
+    'plot preview fullscreen keeps image after zoomed horizontal drag',
+    (WidgetTester tester) async {
+      await _pumpMobilePlotPreview(tester, initialIndex: 0);
+      await _openPlotPreviewFullscreen(tester);
+
+      final fullscreenImage = find.byKey(
+        const Key('movie-plot-preview-fullscreen-image'),
+      );
+      final center = tester.getCenter(fullscreenImage);
+      final leftFinger = await tester.startGesture(
+        Offset(center.dx - 20, center.dy),
+      );
+      await tester.pump();
+      final rightFinger = await tester.startGesture(
+        Offset(center.dx + 20, center.dy),
+      );
+      await tester.pump();
+      await leftFinger.moveTo(Offset(center.dx - 80, center.dy));
+      await rightFinger.moveTo(Offset(center.dx + 80, center.dy));
+      await tester.pump();
+      await leftFinger.up();
+      await tester.pump();
+      await rightFinger.moveBy(const Offset(-140, 0));
+      await tester.pump();
+      await rightFinger.up();
+      await _pumpFullscreenAnimations(tester);
+
+      expect(find.text('1 / 2'), findsOneWidget);
+    },
+  );
+
   testWidgets('plot preview dialog uses fixed thumbnail width in fixed mode', (
     WidgetTester tester,
   ) async {
@@ -512,6 +771,56 @@ Widget awaitableOverlayApp({required Widget child}) {
   );
 }
 
+Future<void> _pumpMobilePlotPreview(
+  WidgetTester tester, {
+  required int initialIndex,
+  Future<void> Function(BuildContext context, int index, Offset globalPosition)?
+  onRequestImageMenu,
+}) async {
+  final previousOverride = debugDefaultTargetPlatformOverride;
+  debugDefaultTargetPlatformOverride = TargetPlatform.android;
+  try {
+    await tester.pumpWidget(
+      awaitableOverlayApp(
+        child: Builder(
+          builder:
+              (context) => TextButton(
+                onPressed:
+                    () => showMoviePlotPreviewOverlay(
+                      context: context,
+                      plotImages: _absolutePlotImages,
+                      initialIndex: initialIndex,
+                      presentation: MoviePlotPreviewPresentation.bottomDrawer,
+                      onRequestImageMenu: onRequestImageMenu,
+                    ),
+                child: const Text('open'),
+              ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+  } finally {
+    debugDefaultTargetPlatformOverride = previousOverride;
+  }
+}
+
+Future<void> _pumpFullscreenAnimations(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
+Future<void> _openPlotPreviewFullscreen(WidgetTester tester) async {
+  final targetRect = tester.getRect(
+    find.byKey(const Key('movie-plot-preview-main-image-0')),
+  );
+  await tester.tapAt(targetRect.center);
+  await _pumpFullscreenAnimations(tester);
+
+  expect(find.byKey(kAppImageFullscreenOverlayKey), findsOneWidget);
+}
+
 const List<MovieImageDto> _plotImages = <MovieImageDto>[
   MovieImageDto(
     id: 1,
@@ -526,5 +835,22 @@ const List<MovieImageDto> _plotImages = <MovieImageDto>[
     small: 'plot-1-small.jpg',
     medium: 'plot-1-medium.jpg',
     large: 'plot-1-large.jpg',
+  ),
+];
+
+const List<MovieImageDto> _absolutePlotImages = <MovieImageDto>[
+  MovieImageDto(
+    id: 1,
+    origin: 'https://api.example.com/plot-0.jpg',
+    small: 'https://api.example.com/plot-0-small.jpg',
+    medium: 'https://api.example.com/plot-0-medium.jpg',
+    large: 'https://api.example.com/plot-0-large.jpg',
+  ),
+  MovieImageDto(
+    id: 2,
+    origin: 'https://api.example.com/plot-1.jpg',
+    small: 'https://api.example.com/plot-1-small.jpg',
+    medium: 'https://api.example.com/plot-1-medium.jpg',
+    large: 'https://api.example.com/plot-1-large.jpg',
   ),
 ];

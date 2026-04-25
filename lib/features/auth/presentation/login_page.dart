@@ -247,7 +247,7 @@ class _LoginPageState extends State<LoginPage> {
                                 validator: _validateBaseUrl,
                                 onFieldSubmitted:
                                     (_) => _usernameFocusNode.requestFocus(),
-                                hintText: '服务器地址，例如 http://127.0.0.1:38000',
+                                hintText: 'http://127.0.0.1:38000',
                                 prefix: Icon(
                                   Icons.dns_outlined,
                                   size: context.appComponentTokens.iconSizeMd,

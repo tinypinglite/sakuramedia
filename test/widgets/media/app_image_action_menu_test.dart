@@ -59,6 +59,123 @@ void main() {
     final menuTopLeft = tester.getTopLeft(_popupMenuFinder());
     expect((menuTopLeft - pointer).distance, lessThan(48));
   });
+
+  testWidgets('image action menu supports bottom drawer presentation', (
+    WidgetTester tester,
+  ) async {
+    AppImageActionType? selectedAction;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder:
+                (context) => TextButton(
+                  onPressed: () async {
+                    selectedAction = await showAppImageActionMenu(
+                      context: context,
+                      globalPosition: null,
+                      presentation: AppImageActionMenuPresentation.bottomDrawer,
+                      actions: const [
+                        AppImageActionDescriptor(
+                          type: AppImageActionType.searchSimilar,
+                          label: '相似图片',
+                          icon: Icons.image_search_outlined,
+                        ),
+                        AppImageActionDescriptor(
+                          type: AppImageActionType.saveToLocal,
+                          label: '保存到本地',
+                          icon: Icons.download_outlined,
+                        ),
+                      ],
+                    );
+                  },
+                  child: const Text('open'),
+                ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('app-image-action-bottom-drawer')),
+      findsOneWidget,
+    );
+    expect(find.text('相似图片'), findsOneWidget);
+    expect(find.text('保存到本地'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(
+        const Key('app-image-action-bottom-drawer-action-searchSimilar'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(selectedAction, AppImageActionType.searchSimilar);
+    expect(
+      find.byKey(const Key('app-image-action-bottom-drawer')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('image action bottom drawer keeps disabled action visible', (
+    WidgetTester tester,
+  ) async {
+    AppImageActionType? selectedAction;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder:
+                (context) => TextButton(
+                  onPressed: () async {
+                    selectedAction = await showAppImageActionMenu(
+                      context: context,
+                      globalPosition: null,
+                      presentation: AppImageActionMenuPresentation.bottomDrawer,
+                      actions: const [
+                        AppImageActionDescriptor(
+                          type: AppImageActionType.searchSimilar,
+                          label: '相似图片',
+                          icon: Icons.image_search_outlined,
+                          enabled: false,
+                        ),
+                      ],
+                    );
+                  },
+                  child: const Text('open'),
+                ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('app-image-action-bottom-drawer')),
+      findsOneWidget,
+    );
+    expect(find.text('相似图片'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(
+        const Key('app-image-action-bottom-drawer-action-searchSimilar'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(selectedAction, isNull);
+    expect(
+      find.byKey(const Key('app-image-action-bottom-drawer')),
+      findsOneWidget,
+    );
+  });
 }
 
 Finder _popupMenuFinder() {

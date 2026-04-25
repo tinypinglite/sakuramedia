@@ -40,6 +40,7 @@ dependencies:
   shared_preferences: ^2.2.2
   oktoast: ^3.4.0
   cached_network_image: ^3.4.0
+  photo_view: ^0.15.0
   media_kit: ^1.1.11
   media_kit_video: ^1.2.5
   media_kit_libs_video: ^1.0.5

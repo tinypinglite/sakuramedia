@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:photo_view/photo_view_gallery.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/theme.dart';
@@ -78,7 +79,7 @@ void main() {
     expect(background.color, Colors.black);
   });
 
-  testWidgets('preview image stage resets to fullscreen after pinch in', (
+  testWidgets('preview image stage opens fullscreen on tap', (
     WidgetTester tester,
   ) async {
     final sessionStore = SessionStore.inMemory();
@@ -99,40 +100,34 @@ void main() {
     await tester.pump();
 
     final rect = tester.getRect(find.byType(PreviewImageStage));
-    final leftFinger = await tester.startGesture(
-      Offset(rect.center.dx - 20, rect.center.dy),
-    );
-    await tester.pump();
-    final rightFinger = await tester.startGesture(
-      Offset(rect.center.dx + 20, rect.center.dy),
-    );
-    await tester.pump();
-    await tester.pumpAndSettle();
+    await tester.tapAt(rect.center);
+    await _pumpAnimations(tester);
 
     _expectFullscreenVisible(tester);
     final overlay = tester.widget<ColoredBox>(
       find.byKey(kAppImageFullscreenOverlayKey),
     );
-    expect(overlay.color, Colors.black.withValues(alpha: 0.96));
+    expect(overlay.color, Colors.black);
+    expect(
+      tester.getSize(find.byKey(kAppImageFullscreenOverlayKey)),
+      tester.view.physicalSize / tester.view.devicePixelRatio,
+    );
+    expect(find.byType(PhotoViewGallery), findsOneWidget);
     final fullscreenImage = find.byKey(
       const Key('preview-image-stage-fullscreen-image'),
     );
     final fullscreenRect = tester.getRect(fullscreenImage);
-
-    await leftFinger.moveTo(Offset(rect.center.dx - 5, rect.center.dy));
-    await rightFinger.moveTo(Offset(rect.center.dx + 5, rect.center.dy));
-    await tester.pump();
-    final shrunkenRect = tester.getRect(fullscreenImage);
-    expect(shrunkenRect.width, lessThan(fullscreenRect.width));
-    await leftFinger.up();
-    await rightFinger.up();
-    await tester.pumpAndSettle();
+    final overlayRect = tester.getRect(
+      find.byKey(kAppImageFullscreenOverlayKey),
+    );
+    expect(fullscreenRect.width, lessThanOrEqualTo(overlayRect.width));
+    expect(fullscreenRect.height, lessThanOrEqualTo(overlayRect.height));
 
     _expectFullscreenVisible(tester);
-    _expectRectCloseTo(tester.getRect(fullscreenImage), fullscreenRect);
+    expect(find.byType(PhotoViewGallery), findsOneWidget);
   });
 
-  testWidgets('preview image stage resets to fullscreen after pinch out', (
+  testWidgets('preview image stage fades fullscreen overlay in', (
     WidgetTester tester,
   ) async {
     final sessionStore = SessionStore.inMemory();
@@ -153,32 +148,62 @@ void main() {
     await tester.pump();
 
     final rect = tester.getRect(find.byType(PreviewImageStage));
-    final leftFinger = await tester.startGesture(
-      Offset(rect.center.dx - 20, rect.center.dy),
-    );
+    await tester.tapAt(rect.center);
     await tester.pump();
-    final rightFinger = await tester.startGesture(
-      Offset(rect.center.dx + 20, rect.center.dy),
-    );
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    final fullscreenImage = find.byKey(
-      const Key('preview-image-stage-fullscreen-image'),
-    );
-    final fullscreenRect = tester.getRect(fullscreenImage);
-
-    await leftFinger.moveTo(Offset(rect.center.dx - 45, rect.center.dy));
-    await rightFinger.moveTo(Offset(rect.center.dx + 45, rect.center.dy));
-    await tester.pump();
-    final expandedRect = tester.getRect(fullscreenImage);
-    expect(expandedRect.width, greaterThan(fullscreenRect.width));
-    await leftFinger.up();
-    await rightFinger.up();
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 90));
 
     _expectFullscreenVisible(tester);
-    _expectRectCloseTo(tester.getRect(fullscreenImage), fullscreenRect);
+    final overlay = tester.widget<ColoredBox>(
+      find.byKey(kAppImageFullscreenOverlayKey),
+    );
+    expect(overlay.color, isNot(Colors.transparent));
+    expect(overlay.color, isNot(Colors.black));
+    final fullscreenImageOpacity = tester.widget<Opacity>(
+      find
+          .ancestor(
+            of: find.byKey(const Key('preview-image-stage-fullscreen-image')),
+            matching: find.byType(Opacity),
+          )
+          .first,
+    );
+    expect(fullscreenImageOpacity.opacity, greaterThan(0));
+    expect(fullscreenImageOpacity.opacity, lessThan(1));
+
+    await _pumpAnimations(tester);
+    final settledOverlay = tester.widget<ColoredBox>(
+      find.byKey(kAppImageFullscreenOverlayKey),
+    );
+    expect(settledOverlay.color, Colors.black);
+  });
+
+  testWidgets('preview image stage keeps fullscreen gallery after tap', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      _TestApp(
+        sessionStore: sessionStore,
+        child: PreviewImageStage(
+          imageUrl: '/preview.jpg',
+          height: 240,
+          onClose: () {},
+          enablePinchToFullscreen: true,
+          fullscreenImageKey: const Key('preview-image-stage-fullscreen-image'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final rect = tester.getRect(find.byType(PreviewImageStage));
+    await tester.tapAt(rect.center);
+    await _pumpAnimations(tester);
+
+    expect(find.byType(PhotoViewGallery), findsOneWidget);
+
+    _expectFullscreenVisible(tester);
+    expect(find.byType(PhotoViewGallery), findsOneWidget);
   });
 
   testWidgets('preview image stage closes fullscreen via close button', (
@@ -202,24 +227,145 @@ void main() {
     await tester.pump();
 
     final rect = tester.getRect(find.byType(PreviewImageStage));
-    final leftFinger = await tester.startGesture(
-      Offset(rect.center.dx - 20, rect.center.dy),
-    );
-    await tester.pump();
-    final rightFinger = await tester.startGesture(
-      Offset(rect.center.dx + 20, rect.center.dy),
-    );
-    await tester.pump();
-    await tester.pumpAndSettle();
-    await leftFinger.up();
-    await rightFinger.up();
-    await tester.pumpAndSettle();
+    await tester.tapAt(rect.center);
+    await _pumpAnimations(tester);
 
     _expectFullscreenVisible(tester);
     await tester.tap(find.byKey(kAppImageFullscreenCloseButtonKey));
-    await tester.pumpAndSettle();
+    await _pumpAnimations(tester);
 
     expect(find.byKey(kAppImageFullscreenOverlayKey), findsNothing);
+  });
+
+  testWidgets('preview image stage dismisses fullscreen on tap', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      _TestApp(
+        sessionStore: sessionStore,
+        child: PreviewImageStage(
+          imageUrl: '/preview.jpg',
+          height: 240,
+          onClose: () {},
+          enablePinchToFullscreen: true,
+          fullscreenImageKey: const Key('preview-image-stage-fullscreen-image'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final rect = tester.getRect(find.byType(PreviewImageStage));
+    await tester.tapAt(rect.center);
+    await _pumpAnimations(tester);
+
+    _expectFullscreenVisible(tester);
+    final tap = await tester.startGesture(rect.center);
+    await tester.pump();
+    await tap.up();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 90));
+
+    _expectFullscreenVisible(tester);
+    final exitingOverlay = tester.widget<ColoredBox>(
+      find.byKey(kAppImageFullscreenOverlayKey),
+    );
+    expect(exitingOverlay.color, isNot(Colors.black));
+
+    await _pumpAnimations(tester);
+    expect(find.byKey(kAppImageFullscreenOverlayKey), findsNothing);
+  });
+
+  testWidgets('preview image stage dismisses fullscreen on swipe down', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      _TestApp(
+        sessionStore: sessionStore,
+        child: PreviewImageStage(
+          imageUrl: '/preview.jpg',
+          height: 240,
+          onClose: () {},
+          enablePinchToFullscreen: true,
+          fullscreenImageKey: const Key('preview-image-stage-fullscreen-image'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final rect = tester.getRect(find.byType(PreviewImageStage));
+    await tester.tapAt(rect.center);
+    await _pumpAnimations(tester);
+
+    _expectFullscreenVisible(tester);
+    final fullscreenImage = find.byKey(
+      const Key('preview-image-stage-fullscreen-image'),
+    );
+    final fullscreenRect = tester.getRect(fullscreenImage);
+    final swipe = await tester.startGesture(rect.center);
+    await tester.pump();
+    await swipe.moveBy(const Offset(0, 120));
+    await tester.pump();
+    expect(
+      tester.getRect(fullscreenImage).top,
+      greaterThan(fullscreenRect.top),
+    );
+    await swipe.up();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 90));
+
+    _expectFullscreenVisible(tester);
+    final exitingOverlay = tester.widget<ColoredBox>(
+      find.byKey(kAppImageFullscreenOverlayKey),
+    );
+    expect(exitingOverlay.color, isNot(Colors.black));
+
+    await _pumpAnimations(tester);
+    expect(find.byKey(kAppImageFullscreenOverlayKey), findsNothing);
+  });
+
+  testWidgets('preview image stage keeps fullscreen after short swipe down', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      _TestApp(
+        sessionStore: sessionStore,
+        child: PreviewImageStage(
+          imageUrl: '/preview.jpg',
+          height: 240,
+          onClose: () {},
+          enablePinchToFullscreen: true,
+          fullscreenImageKey: const Key('preview-image-stage-fullscreen-image'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final rect = tester.getRect(find.byType(PreviewImageStage));
+    await tester.tapAt(rect.center);
+    await _pumpAnimations(tester);
+
+    final fullscreenImage = find.byKey(
+      const Key('preview-image-stage-fullscreen-image'),
+    );
+    final fullscreenRect = tester.getRect(fullscreenImage);
+    final swipe = await tester.startGesture(rect.center);
+    await tester.pump();
+    await swipe.moveBy(const Offset(0, 40));
+    await tester.pump();
+    await swipe.up();
+    await _pumpAnimations(tester);
+
+    _expectFullscreenVisible(tester);
+    _expectRectCloseTo(tester.getRect(fullscreenImage), fullscreenRect);
   });
 
   testWidgets('preview image stage dismisses fullscreen on system back', (
@@ -267,28 +413,23 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpAnimations(tester);
 
     final rect = tester.getRect(find.byType(PreviewImageStage));
-    final leftFinger = await tester.startGesture(
-      Offset(rect.center.dx - 20, rect.center.dy),
-    );
-    await tester.pump();
-    final rightFinger = await tester.startGesture(
-      Offset(rect.center.dx + 20, rect.center.dy),
-    );
-    await tester.pump();
-    await tester.pumpAndSettle();
-    await leftFinger.up();
-    await rightFinger.up();
-    await tester.pumpAndSettle();
+    await tester.tapAt(rect.center);
+    await _pumpAnimations(tester);
 
     _expectFullscreenVisible(tester);
     await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
+    await _pumpAnimations(tester);
 
     expect(find.byKey(kAppImageFullscreenOverlayKey), findsNothing);
   });
+}
+
+Future<void> _pumpAnimations(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
 }
 
 void _expectFullscreenVisible(WidgetTester tester) {

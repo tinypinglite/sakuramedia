@@ -220,6 +220,21 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
     _scrollThumbnailsToCurrent();
   }
 
+  void _syncFullscreenImageIndex(int index) {
+    final normalized = _normalizeIndex(index);
+    if (normalized == _currentIndex) {
+      return;
+    }
+
+    setState(() {
+      _currentIndex = normalized;
+    });
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(normalized);
+    }
+    _scrollThumbnailsToCurrent();
+  }
+
   void _scrollThumbnailsToCurrent() {
     if (widget.thumbnailStripLayout ==
         MoviePlotPreviewThumbnailStripLayout.fixed) {
@@ -308,6 +323,9 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final tokens = context.appComponentTokens;
+    final fullscreenGalleryItems = widget.plotImages
+        .map((image) => AppFullscreenImageItem(url: image.bestAvailableUrl))
+        .toList(growable: false);
 
     return KeyboardListener(
       focusNode: _focusNode,
@@ -360,12 +378,15 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
                 return _PreviewMainImageActionTarget(
                   key: Key('movie-plot-preview-main-image-$index'),
                   imageUrl: image.bestAvailableUrl,
+                  fullscreenGalleryItems: fullscreenGalleryItems,
+                  fullscreenGalleryIndex: index,
+                  onFullscreenImageIndexChanged: _syncFullscreenImageIndex,
                   fallbackAspectRatio:
                       tokens.movieDetailPlotThumbnailWidth /
                       tokens.movieDetailPlotThumbnailHeight,
                   enablePinchToFullscreen: widget.enablePinchToFullscreen,
                   onFullscreenChanged: (isActive) {
-                    if (_isFullscreenActive == isActive) {
+                    if (!mounted || _isFullscreenActive == isActive) {
                       return;
                     }
                     setState(() {
@@ -375,11 +396,12 @@ class _MoviePlotPreviewContentState extends State<_MoviePlotPreviewContent> {
                   onRequestMenu:
                       widget.onRequestImageMenu == null
                           ? null
-                          : (globalPosition) => widget.onRequestImageMenu!(
-                            context,
-                            index,
-                            globalPosition,
-                          ),
+                          : (previewIndex, globalPosition) =>
+                              widget.onRequestImageMenu!(
+                                context,
+                                previewIndex,
+                                globalPosition,
+                              ),
                 );
               },
             ),
@@ -476,17 +498,23 @@ class _PreviewMainImageActionTarget extends StatefulWidget {
   const _PreviewMainImageActionTarget({
     super.key,
     required this.imageUrl,
+    required this.fullscreenGalleryItems,
+    required this.fullscreenGalleryIndex,
     required this.fallbackAspectRatio,
     required this.enablePinchToFullscreen,
+    this.onFullscreenImageIndexChanged,
     this.onFullscreenChanged,
     this.onRequestMenu,
   });
 
   final String imageUrl;
+  final List<AppFullscreenImageItem> fullscreenGalleryItems;
+  final int fullscreenGalleryIndex;
   final double fallbackAspectRatio;
   final bool enablePinchToFullscreen;
+  final ValueChanged<int>? onFullscreenImageIndexChanged;
   final ValueChanged<bool>? onFullscreenChanged;
-  final ValueChanged<Offset>? onRequestMenu;
+  final void Function(int index, Offset globalPosition)? onRequestMenu;
 
   @override
   State<_PreviewMainImageActionTarget> createState() =>
@@ -602,7 +630,7 @@ class _PreviewMainImageActionTargetState
       return;
     }
 
-    callback(globalPosition);
+    callback(widget.fullscreenGalleryIndex, globalPosition);
   }
 
   bool _isWithinRenderedImage(Offset localPosition, Size viewportSize) {
@@ -649,7 +677,15 @@ class _PreviewMainImageActionTargetState
       fallbackAspectRatio: widget.fallbackAspectRatio,
       fit: BoxFit.contain,
       fullscreenImageKey: const Key('movie-plot-preview-fullscreen-image'),
+      fullscreenGalleryItems: widget.fullscreenGalleryItems,
+      fullscreenGalleryIndex: widget.fullscreenGalleryIndex,
+      onFullscreenImageIndexChanged: widget.onFullscreenImageIndexChanged,
+      onFullscreenImageMenuRequested: widget.onRequestMenu,
       onFullscreenChanged: (isActive) {
+        if (!mounted) {
+          widget.onFullscreenChanged?.call(isActive);
+          return;
+        }
         if (_suppressMenuRequests == isActive) {
           return;
         }
