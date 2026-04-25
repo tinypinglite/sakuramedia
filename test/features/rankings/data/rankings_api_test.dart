@@ -91,7 +91,20 @@ void main() {
             'javdb_id': 'MovieA1',
             'movie_number': 'ABP-001',
             'title': 'Movie A',
-            'cover_image': null,
+            'cover_image': <String, dynamic>{
+              'id': 10,
+              'origin': 'cover-origin.jpg',
+              'small': 'cover-small.jpg',
+              'medium': 'cover-medium.jpg',
+              'large': 'cover-large.jpg',
+            },
+            'thin_cover_image': <String, dynamic>{
+              'id': 11,
+              'origin': 'thin-origin.jpg',
+              'small': 'thin-small.jpg',
+              'medium': 'thin-medium.jpg',
+              'large': 'thin-large.jpg',
+            },
             'release_date': '2024-10-01',
             'duration_minutes': 120,
             'heat': 1777,
@@ -119,6 +132,15 @@ void main() {
     expect(request.uri.queryParameters['page_size'], '24');
     expect(page.items.single.rank, 1);
     expect(page.items.single.movieNumber, 'ABP-001');
+    expect(page.items.single.coverImage?.bestAvailableUrl, 'cover-large.jpg');
+    expect(
+      page.items.single.thinCoverImage?.bestAvailableUrl,
+      'thin-large.jpg',
+    );
+    expect(
+      page.items.single.toMovieListItem().thinCoverImage?.bestAvailableUrl,
+      'thin-large.jpg',
+    );
     expect(page.items.single.heat, 1777);
     expect(page.page, 2);
     expect(page.total, 30);

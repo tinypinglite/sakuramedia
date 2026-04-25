@@ -537,6 +537,13 @@ void main() {
               'medium': 'medium.jpg',
               'large': 'large.jpg',
             },
+            'thin_cover_image': <String, dynamic>{
+              'id': 11,
+              'origin': 'thin-origin.jpg',
+              'small': 'thin-small.jpg',
+              'medium': 'thin-medium.jpg',
+              'large': 'thin-large.jpg',
+            },
             'release_date': '2024-01-02',
             'duration_minutes': 120,
             'is_subscribed': true,
@@ -558,6 +565,10 @@ void main() {
     expect(page.items.single.titleZh, '电影 1');
     expect(page.items.single.preferredTitle, '电影 1');
     expect(page.items.single.coverImage?.bestAvailableUrl, 'large.jpg');
+    expect(
+      page.items.single.thinCoverImage?.bestAvailableUrl,
+      'thin-large.jpg',
+    );
     expect(page.items.single.releaseDate, DateTime.parse('2024-01-02'));
     expect(page.items.single.canPlay, isTrue);
   });

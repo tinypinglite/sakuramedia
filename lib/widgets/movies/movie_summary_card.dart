@@ -45,7 +45,8 @@ class MovieSummaryCard extends StatelessWidget {
           children: [
             _MovieCover(
               movieNumber: movie.movieNumber,
-              imageUrl: movie.coverImage?.bestAvailableUrl,
+              thinCoverImage: movie.thinCoverImage,
+              coverImage: movie.coverImage,
             ),
             const _MovieCardBottomShade(),
             Positioned(
@@ -230,49 +231,62 @@ class _RankBadge extends StatelessWidget {
 }
 
 class _MovieCover extends StatelessWidget {
-  const _MovieCover({required this.movieNumber, required this.imageUrl});
+  const _MovieCover({
+    required this.movieNumber,
+    required this.thinCoverImage,
+    required this.coverImage,
+  });
 
   final String movieNumber;
-  final String? imageUrl;
+  final MovieImageDto? thinCoverImage;
+  final MovieImageDto? coverImage;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final componentTokens = context.appComponentTokens;
-    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+    final thinCoverUrl = _resolveMovieImageUrl(thinCoverImage);
+    final coverUrl = _resolveMovieImageUrl(coverImage);
 
-    if (!hasImage) {
-      return DecoratedBox(
-        key: Key('movie-summary-card-placeholder-$movieNumber'),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colors.surfaceMuted,
-              Theme.of(
-                context,
-              ).colorScheme.primaryContainer.withValues(alpha: 0.38),
-            ],
-          ),
-        ),
-        child: Center(
-          child: Icon(
-            Icons.movie_creation_outlined,
-            size: componentTokens.iconSize3xl,
-            color: context.appTextPalette.muted,
-          ),
-        ),
-      );
+    if (thinCoverUrl != null) {
+      return MaskedImage(url: thinCoverUrl);
     }
 
-    return MaskedImage(
-      url: imageUrl!,
-      fit: BoxFit.cover,
-      visibleWidthFactor: componentTokens.movieCardCoverVisibleWidthFactor,
-      visibleAlignment: Alignment.centerRight,
+    if (coverUrl != null) {
+      return MaskedImage(url: coverUrl, fit: BoxFit.contain);
+    }
+
+    return DecoratedBox(
+      key: Key('movie-summary-card-placeholder-$movieNumber'),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colors.surfaceMuted,
+            Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withValues(alpha: 0.38),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.movie_creation_outlined,
+          size: componentTokens.iconSize3xl,
+          color: context.appTextPalette.muted,
+        ),
+      ),
     );
   }
+}
+
+String? _resolveMovieImageUrl(MovieImageDto? image) {
+  final url = image?.bestAvailableUrl.trim();
+  if (url == null || url.isEmpty) {
+    return null;
+  }
+  return url;
 }
 
 class _MovieCardBottomShade extends StatelessWidget {

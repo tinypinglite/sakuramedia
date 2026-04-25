@@ -158,7 +158,7 @@ url = "postgresql://sakuramedia:change-me@postgres:5432/sakuramedia"
 
 ## `[auth]`
 
-这一组负责默认登录账号、JWT 签名和资源签名行为。
+这一组负责默认登录账号、JWT 签名和 token 有效期。
 
 ```toml
 [auth]
@@ -168,7 +168,6 @@ secret_key = "replace-with-a-random-secret-key"
 algorithm = "HS256"
 access_token_expire_minutes = 43200
 refresh_token_expire_minutes = 10080
-file_signature_expire_seconds = 900
 ```
 
 字段说明：
@@ -181,7 +180,6 @@ file_signature_expire_seconds = 900
 | `algorithm` | `HS256` | JWT 签名算法 |
 | `access_token_expire_minutes` | `43200` | Access Token 过期时间，单位分钟 |
 | `refresh_token_expire_minutes` | `10080` | Refresh Token 过期时间，单位分钟 |
-| `file_signature_expire_seconds` | `900` | 资源文件签名链接有效期，单位秒 |
 
 说明：
 
@@ -546,8 +544,6 @@ algorithm = "HS256"
 access_token_expire_minutes = 43200
 # Refresh Token 过期时间，单位：分钟。
 refresh_token_expire_minutes = 10080
-# 资源文件签名链接有效期，单位：秒。
-file_signature_expire_seconds = 900
 
 [media]
 # 合集影片的“番号特征”的关键词列表，比如 OFJE 等。

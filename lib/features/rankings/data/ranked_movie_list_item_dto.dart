@@ -7,6 +7,7 @@ class RankedMovieListItemDto {
     required this.movieNumber,
     required this.title,
     required this.coverImage,
+    this.thinCoverImage,
     required this.releaseDate,
     required this.durationMinutes,
     required this.heat,
@@ -19,6 +20,7 @@ class RankedMovieListItemDto {
   final String movieNumber;
   final String title;
   final MovieImageDto? coverImage;
+  final MovieImageDto? thinCoverImage;
   final DateTime? releaseDate;
   final int durationMinutes;
   final int heat;
@@ -31,6 +33,7 @@ class RankedMovieListItemDto {
     String? movieNumber,
     String? title,
     MovieImageDto? coverImage,
+    MovieImageDto? thinCoverImage,
     DateTime? releaseDate,
     int? durationMinutes,
     int? heat,
@@ -43,6 +46,7 @@ class RankedMovieListItemDto {
       movieNumber: movieNumber ?? this.movieNumber,
       title: title ?? this.title,
       coverImage: coverImage ?? this.coverImage,
+      thinCoverImage: thinCoverImage ?? this.thinCoverImage,
       releaseDate: releaseDate ?? this.releaseDate,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       heat: heat ?? this.heat,
@@ -57,6 +61,7 @@ class RankedMovieListItemDto {
       movieNumber: movieNumber,
       title: title,
       coverImage: coverImage,
+      thinCoverImage: thinCoverImage,
       releaseDate: releaseDate,
       durationMinutes: durationMinutes,
       heat: heat,
@@ -72,6 +77,7 @@ class RankedMovieListItemDto {
       movieNumber: json['movie_number'] as String? ?? '',
       title: json['title'] as String? ?? '',
       coverImage: _movieImageFromJson(json['cover_image']),
+      thinCoverImage: _movieImageFromJson(json['thin_cover_image']),
       releaseDate: _dateFromJson(json['release_date']),
       durationMinutes: json['duration_minutes'] as int? ?? 0,
       heat: json['heat'] as int? ?? 0,

@@ -44,6 +44,7 @@ class MovieListItemDto {
     required this.title,
     this.titleZh = '',
     required this.coverImage,
+    this.thinCoverImage,
     required this.releaseDate,
     required this.durationMinutes,
     required this.heat,
@@ -57,6 +58,7 @@ class MovieListItemDto {
   final String title;
   final String titleZh;
   final MovieImageDto? coverImage;
+  final MovieImageDto? thinCoverImage;
   final DateTime? releaseDate;
   final int durationMinutes;
   final int heat;
@@ -78,6 +80,7 @@ class MovieListItemDto {
     String? title,
     String? titleZh,
     MovieImageDto? coverImage,
+    MovieImageDto? thinCoverImage,
     DateTime? releaseDate,
     int? durationMinutes,
     int? heat,
@@ -91,6 +94,7 @@ class MovieListItemDto {
       title: title ?? this.title,
       titleZh: titleZh ?? this.titleZh,
       coverImage: coverImage ?? this.coverImage,
+      thinCoverImage: thinCoverImage ?? this.thinCoverImage,
       releaseDate: releaseDate ?? this.releaseDate,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       heat: heat ?? this.heat,
@@ -107,6 +111,7 @@ class MovieListItemDto {
       title: json['title'] as String? ?? '',
       titleZh: json['title_zh'] as String? ?? '',
       coverImage: _movieImageFromJson(json['cover_image']),
+      thinCoverImage: _movieImageFromJson(json['thin_cover_image']),
       releaseDate: _dateFromJson(json['release_date']),
       durationMinutes: json['duration_minutes'] as int? ?? 0,
       heat: json['heat'] as int? ?? 0,
