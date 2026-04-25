@@ -19,6 +19,7 @@ import 'package:sakuramedia/features/configuration/presentation/mobile_llm_setti
 import 'package:sakuramedia/features/configuration/presentation/mobile_media_libraries_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
+import 'package:sakuramedia/features/movies/presentation/mobile_series_movies_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/mobile_playlists_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/mobile_playlist_detail_page.dart';
 import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_page.dart';
@@ -437,6 +438,7 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
         TypedGoRoute<MobileMoviesRouteData>(
           path: mobileMoviesPath,
           routes: <TypedRoute<RouteData>>[
+            TypedGoRoute<MobileMovieSeriesRouteData>(path: 'series/:seriesId'),
             TypedGoRoute<MobileMovieDetailRouteData>(path: ':movieNumber'),
           ],
         ),
@@ -855,6 +857,47 @@ class MobilePlaylistDetailRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobilePlaylistDetailPage(playlistId: playlistId);
+  }
+}
+
+class MobileMovieSeriesRouteData extends _MobileSubpageRouteData
+    with $MobileMovieSeriesRouteData {
+  const MobileMovieSeriesRouteData({required this.seriesId, this.seriesName});
+
+  static final GlobalKey<NavigatorState> $parentNavigatorKey =
+      mobileRootNavigatorKey;
+
+  final int seriesId;
+  final String? seriesName;
+
+  @override
+  String get pageName => 'mobile-movie-series';
+
+  @override
+  String get title => '系列影片';
+
+  @override
+  String get defaultLocation => mobileMoviesPath;
+
+  @override
+  String get location => buildRouteLocation(
+    path: '$mobileMovieSeriesPathPrefix/$seriesId',
+    queryParameters: <String, String?>{
+      if (seriesName != null && seriesName!.trim().isNotEmpty)
+        'seriesName': seriesName!.trim(),
+    },
+  );
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return MobileSeriesMoviesPage(
+      seriesId: seriesId,
+      seriesName: resolveStringQueryParameter(
+        state,
+        names: const <String>['seriesName', 'series-name'],
+        fallback: seriesName,
+      ),
+    );
   }
 }
 

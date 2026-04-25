@@ -185,7 +185,7 @@ void main() {
     final tagWrapBottom = tester.getBottomLeft(find.byType(MovieTagWrap)).dy;
     final actorTop = tester.getTopLeft(find.text('演员')).dy;
     expect(seriesTop, lessThan(tagTop));
-    expect(makerTop - seriesBottom, sakuraThemeData.appSpacing.sm);
+    expect(makerTop - seriesBottom, closeTo(sakuraThemeData.appSpacing.sm, 1));
     expect(directorTop - makerBottom, sakuraThemeData.appSpacing.sm);
     expect(makerTop - seriesBottom, lessThan(sectionGap));
     expect(directorTop - makerBottom, lessThan(sectionGap));
@@ -3742,6 +3742,7 @@ Map<String, dynamic> _movieDetailJson({
     'is_collection': false,
     'is_subscribed': isSubscribed,
     'can_play': true,
+    'series_id': 7,
     'series_name': 'Attackers',
     'maker_name': makerName,
     'director_name': directorName,

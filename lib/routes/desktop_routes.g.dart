@@ -151,6 +151,10 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
       factory: $DesktopSearchQueryRouteData._fromState,
     ),
     GoRouteData.$route(
+      path: '/desktop/library/movies/series/:seriesId',
+      factory: $DesktopMovieSeriesRouteData._fromState,
+    ),
+    GoRouteData.$route(
       path: '/desktop/library/movies/:movieNumber',
       factory: $DesktopMovieDetailRouteData._fromState,
     ),
@@ -475,6 +479,37 @@ mixin $DesktopSearchQueryRouteData on GoRouteData {
     queryParams: {
       if (_self.useOnlineSearch != false)
         'use-online-search': _self.useOnlineSearch.toString(),
+    },
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $DesktopMovieSeriesRouteData on GoRouteData {
+  static DesktopMovieSeriesRouteData _fromState(GoRouterState state) =>
+      DesktopMovieSeriesRouteData(
+        seriesId: int.parse(state.pathParameters['seriesId']!),
+        seriesName: state.uri.queryParameters['series-name'],
+      );
+
+  DesktopMovieSeriesRouteData get _self => this as DesktopMovieSeriesRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/desktop/library/movies/series/${Uri.encodeComponent(_self.seriesId.toString())}',
+    queryParams: {
+      if (_self.seriesName != null) 'series-name': _self.seriesName,
     },
   );
 

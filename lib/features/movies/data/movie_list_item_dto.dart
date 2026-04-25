@@ -43,6 +43,8 @@ class MovieListItemDto {
     required this.movieNumber,
     required this.title,
     this.titleZh = '',
+    this.seriesId,
+    this.seriesName = '',
     required this.coverImage,
     this.thinCoverImage,
     required this.releaseDate,
@@ -57,6 +59,8 @@ class MovieListItemDto {
   final String movieNumber;
   final String title;
   final String titleZh;
+  final int? seriesId;
+  final String seriesName;
   final MovieImageDto? coverImage;
   final MovieImageDto? thinCoverImage;
   final DateTime? releaseDate;
@@ -79,6 +83,8 @@ class MovieListItemDto {
     String? movieNumber,
     String? title,
     String? titleZh,
+    int? seriesId,
+    String? seriesName,
     MovieImageDto? coverImage,
     MovieImageDto? thinCoverImage,
     DateTime? releaseDate,
@@ -93,6 +99,8 @@ class MovieListItemDto {
       movieNumber: movieNumber ?? this.movieNumber,
       title: title ?? this.title,
       titleZh: titleZh ?? this.titleZh,
+      seriesId: seriesId ?? this.seriesId,
+      seriesName: seriesName ?? this.seriesName,
       coverImage: coverImage ?? this.coverImage,
       thinCoverImage: thinCoverImage ?? this.thinCoverImage,
       releaseDate: releaseDate ?? this.releaseDate,
@@ -110,6 +118,8 @@ class MovieListItemDto {
       movieNumber: json['movie_number'] as String? ?? '',
       title: json['title'] as String? ?? '',
       titleZh: json['title_zh'] as String? ?? '',
+      seriesId: _intFromJson(json['series_id']),
+      seriesName: json['series_name'] as String? ?? '',
       coverImage: _movieImageFromJson(json['cover_image']),
       thinCoverImage: _movieImageFromJson(json['thin_cover_image']),
       releaseDate: _dateFromJson(json['release_date']),
@@ -145,6 +155,19 @@ class MovieListItemDto {
   static double? _doubleFromJson(dynamic value) {
     if (value is num) {
       return value.toDouble();
+    }
+    return null;
+  }
+
+  static int? _intFromJson(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is String) {
+      return int.tryParse(value);
     }
     return null;
   }

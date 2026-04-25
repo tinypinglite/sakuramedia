@@ -54,6 +54,18 @@ extension AppNavigationActions on BuildContext {
     DesktopMovieDetailRouteData(movieNumber: movieNumber).push(this);
   }
 
+  void pushDesktopMovieSeries({
+    required int seriesId,
+    String? seriesName,
+    String? fallbackPath,
+  }) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopMovieSeriesRouteData(
+      seriesId: seriesId,
+      seriesName: seriesName,
+    ).push(this);
+  }
+
   void pushDesktopActorDetail({required int actorId, String? fallbackPath}) {
     GoRouter.optionURLReflectsImperativeAPIs = true;
     DesktopActorDetailRouteData(actorId: actorId).push(this);
@@ -126,6 +138,18 @@ extension AppNavigationActions on BuildContext {
   }) {
     GoRouter.optionURLReflectsImperativeAPIs = true;
     MobileMovieDetailRouteData(movieNumber: movieNumber).push(this);
+  }
+
+  void pushMobileMovieSeries({
+    required int seriesId,
+    String? seriesName,
+    String? fallbackPath,
+  }) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    MobileMovieSeriesRouteData(
+      seriesId: seriesId,
+      seriesName: seriesName,
+    ).push(this);
   }
 
   void pushMobileActorDetail({required int actorId, String? fallbackPath}) {

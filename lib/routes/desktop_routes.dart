@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/image_search/presentation/desktop_image_sea
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
+import 'package:sakuramedia/features/movies/presentation/desktop_series_movies_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlist_detail_page.dart';
 import 'package:sakuramedia/routes/app_route_helpers.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_page.dart';
@@ -100,6 +101,9 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     TypedGoRoute<DesktopImageSearchRouteData>(path: desktopImageSearchPath),
     TypedGoRoute<DesktopSearchQueryRouteData>(
       path: '$desktopSearchPath/:query',
+    ),
+    TypedGoRoute<DesktopMovieSeriesRouteData>(
+      path: '$desktopMovieSeriesPathPrefix/:seriesId',
     ),
     TypedGoRoute<DesktopMovieDetailRouteData>(
       path: '/desktop/library/movies/:movieNumber',
@@ -300,6 +304,38 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
               fallback: currentMovieScope,
             ) ??
             currentMovieScope,
+      ),
+    );
+  }
+}
+
+class DesktopMovieSeriesRouteData extends _DesktopShellPageRouteData
+    with $DesktopMovieSeriesRouteData {
+  const DesktopMovieSeriesRouteData({required this.seriesId, this.seriesName});
+
+  final int seriesId;
+  final String? seriesName;
+
+  @override
+  String get pageName => 'desktop-movie-series';
+
+  @override
+  String get location => buildRouteLocation(
+    path: '$desktopMovieSeriesPathPrefix/$seriesId',
+    queryParameters: <String, String?>{
+      if (seriesName != null && seriesName!.trim().isNotEmpty)
+        'seriesName': seriesName!.trim(),
+    },
+  );
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return DesktopSeriesMoviesPage(
+      seriesId: seriesId,
+      seriesName: resolveStringQueryParameter(
+        state,
+        names: const <String>['seriesName', 'series-name'],
+        fallback: seriesName,
       ),
     );
   }

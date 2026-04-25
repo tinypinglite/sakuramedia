@@ -9,6 +9,77 @@ import 'package:sakuramedia/widgets/movie_detail/movie_detail_stat_row.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_tag_wrap.dart';
 
 void main() {
+  testWidgets('movie detail page content exposes clickable series row', (
+    WidgetTester tester,
+  ) async {
+    var tapCount = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraMobileThemeData,
+        home: Scaffold(
+          body: MovieDetailPageContent(
+            movie: _movieDetail(seriesId: 7),
+            selectedPreviewKey: 'movie-preview',
+            selectedPreviewUrl: null,
+            isCollection: false,
+            isSubscribed: false,
+            isCollectionUpdating: false,
+            isSubscriptionUpdating: false,
+            selectedMediaId: 100,
+            statItems: const <MovieDetailStatItem>[],
+            similarMovies: const <MovieListItemDto>[],
+            isSimilarMoviesLoading: false,
+            onInspectorTap: _noop,
+            onPlaylistTap: _noop,
+            onCollectionToggle: _noop,
+            onMediaSelect: (_) {},
+            onSeriesTap: () => tapCount += 1,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('movie-detail-series-link')));
+    await tester.pump();
+
+    expect(tapCount, 1);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsOneWidget);
+  });
+
+  testWidgets('movie detail page content keeps series text plain without id', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraMobileThemeData,
+        home: Scaffold(
+          body: MovieDetailPageContent(
+            movie: _movieDetail(),
+            selectedPreviewKey: 'movie-preview',
+            selectedPreviewUrl: null,
+            isCollection: false,
+            isSubscribed: false,
+            isCollectionUpdating: false,
+            isSubscriptionUpdating: false,
+            selectedMediaId: 100,
+            statItems: const <MovieDetailStatItem>[],
+            similarMovies: const <MovieListItemDto>[],
+            isSimilarMoviesLoading: false,
+            onInspectorTap: _noop,
+            onPlaylistTap: _noop,
+            onCollectionToggle: _noop,
+            onMediaSelect: (_) {},
+            onSeriesTap: _noop,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('系列 · Attackers'), findsOneWidget);
+    expect(find.byKey(const Key('movie-detail-series-link')), findsNothing);
+    expect(find.byIcon(Icons.chevron_right_rounded), findsNothing);
+  });
+
   testWidgets(
     'movie detail page content keeps grouped meta spacing in mobile theme',
     (WidgetTester tester) async {
@@ -76,12 +147,13 @@ void main() {
   );
 }
 
-MovieDetailDto _movieDetail() {
-  return const MovieDetailDto(
+MovieDetailDto _movieDetail({int? seriesId}) {
+  return MovieDetailDto(
     javdbId: 'javdb-1',
     movieNumber: 'ABC-001',
     title: 'Sample Movie',
     titleZh: '',
+    seriesId: seriesId,
     seriesName: 'Attackers',
     makerName: 'S1 NO.1 STYLE',
     directorName: '紋℃',
@@ -101,8 +173,8 @@ MovieDetailDto _movieDetail() {
     descZh: '中文简介',
     desc: '',
     thinCoverImage: null,
-    plotImages: <MovieImageDto>[],
-    actors: <MovieActorDto>[
+    plotImages: const <MovieImageDto>[],
+    actors: const <MovieActorDto>[
       MovieActorDto(
         id: 1,
         javdbId: 'actor-1',
@@ -122,11 +194,11 @@ MovieDetailDto _movieDetail() {
         profileImage: null,
       ),
     ],
-    tags: <MovieTagDto>[
+    tags: const <MovieTagDto>[
       MovieTagDto(tagId: 1, name: '单体作品'),
       MovieTagDto(tagId: 2, name: '剧情'),
     ],
-    mediaItems: <MovieMediaItemDto>[
+    mediaItems: const <MovieMediaItemDto>[
       MovieMediaItemDto(
         mediaId: 100,
         libraryId: 1,
@@ -142,7 +214,7 @@ MovieDetailDto _movieDetail() {
         points: <MovieMediaPointDto>[],
       ),
     ],
-    playlists: <MoviePlaylistSummaryDto>[],
+    playlists: const <MoviePlaylistSummaryDto>[],
   );
 }
 

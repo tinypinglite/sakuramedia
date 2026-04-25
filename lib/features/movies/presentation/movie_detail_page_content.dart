@@ -54,6 +54,7 @@ class MovieDetailPageContent extends StatelessWidget {
     this.onSubscriptionTap,
     this.onMoreActionsTap,
     this.onActorTap,
+    this.onSeriesTap,
     this.onRequestPlotImageMenu,
     this.onOpenPlotPreview,
     this.similarMoviesErrorMessage,
@@ -98,6 +99,7 @@ class MovieDetailPageContent extends StatelessWidget {
   final VoidCallback? onSubscriptionTap;
   final Future<void> Function(Offset globalPosition)? onMoreActionsTap;
   final ValueChanged<MovieActorDto>? onActorTap;
+  final VoidCallback? onSeriesTap;
   final Future<void> Function(
     BuildContext context,
     int index,
@@ -272,7 +274,7 @@ class MovieDetailPageContent extends StatelessWidget {
             ],
           ),
         ),
-        ..._buildInlineMetaItems(context, movie),
+        ..._buildInlineMetaItems(context, movie, onSeriesTap),
         MovieDetailSection(title: '标签', child: MovieTagWrap(tags: movie.tags)),
         MovieDetailSection(
           title: '演员',
@@ -307,11 +309,19 @@ class MovieDetailPageContent extends StatelessWidget {
   }
 }
 
-List<Widget> _buildInlineMetaItems(BuildContext context, MovieDetailDto movie) {
-  final items = <MapEntry<String, String>>[
-    MapEntry('系列', movie.seriesName.trim()),
-    MapEntry('厂商', movie.makerName.trim()),
-    MapEntry('导演', movie.directorName.trim()),
+List<Widget> _buildInlineMetaItems(
+  BuildContext context,
+  MovieDetailDto movie,
+  VoidCallback? onSeriesTap,
+) {
+  final items = <_MovieInlineMetaItem>[
+    _MovieInlineMetaItem(
+      label: '系列',
+      value: movie.seriesName.trim(),
+      onTap: movie.seriesId == null ? null : onSeriesTap,
+    ),
+    _MovieInlineMetaItem(label: '厂商', value: movie.makerName.trim()),
+    _MovieInlineMetaItem(label: '导演', value: movie.directorName.trim()),
   ].where((item) => item.value.isNotEmpty).toList(growable: false);
 
   if (items.isEmpty) {
@@ -329,20 +339,77 @@ List<Widget> _buildInlineMetaItems(BuildContext context, MovieDetailDto movie) {
         children: [
           for (var index = 0; index < items.length; index++) ...[
             if (index > 0) SizedBox(height: context.appSpacing.sm),
-            Text(
-              '${items[index].key} · ${items[index].value}',
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.muted,
-              ),
-            ),
+            _MovieInlineMetaRow(item: items[index]),
           ],
         ],
       ),
     ),
   ];
+}
+
+class _MovieInlineMetaItem {
+  const _MovieInlineMetaItem({
+    required this.label,
+    required this.value,
+    this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback? onTap;
+}
+
+class _MovieInlineMetaRow extends StatelessWidget {
+  const _MovieInlineMetaRow({required this.item});
+
+  final _MovieInlineMetaItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s12,
+      weight: AppTextWeight.regular,
+      tone: AppTextTone.muted,
+    );
+    final label = '${item.label} · ${item.value}';
+    final onTap = item.onTap;
+    if (onTap == null) {
+      return Text(label, style: textStyle);
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const Key('movie-detail-series-link'),
+        onTap: onTap,
+        borderRadius: context.appRadius.xsBorder,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: context.appSpacing.xs,
+            vertical: 0,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: textStyle.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              SizedBox(width: context.appSpacing.xs),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: context.appComponentTokens.iconSizeSm,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MovieDetailLoadingSkeleton extends StatelessWidget {

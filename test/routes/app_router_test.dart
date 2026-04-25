@@ -284,6 +284,17 @@ void main() {
     expect(config.isBackEnabled, isTrue);
   });
 
+  test('desktop top bar config enables back on movie series page', () {
+    final config = resolveDesktopTopBarConfig(
+      currentPath: '/desktop/library/movies/series/7',
+      routeSpecs: desktopRouteSpecs,
+    );
+
+    expect(config.title, '系列影片');
+    expect(config.fallbackPath, desktopMoviesPath);
+    expect(config.isBackEnabled, isTrue);
+  });
+
   test('desktop top bar config prefers origin path from route extra', () {
     final config = resolveDesktopTopBarConfig(
       currentPath: '/desktop/library/movies/ABC-001',
@@ -597,6 +608,41 @@ void main() {
     final detailPage = _findPageByName(tester, 'desktop-movie-detail');
 
     expect(detailPage, isA<NoTransitionPage<void>>());
+  });
+
+  testWidgets('desktop movie series route uses NoTransitionPage inside shell', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    _enqueueMovieSeriesResponse(bundle);
+    final router = buildDesktopRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    await tester.pumpAndSettle();
+
+    router.go('/desktop/library/movies/series/7?seriesName=Attackers');
+    await tester.pumpAndSettle();
+
+    final seriesPage = _findPageByName(tester, 'desktop-movie-series');
+
+    expect(seriesPage, isA<NoTransitionPage<void>>());
+    expect(find.byKey(const Key('desktop-series-movies-page')), findsOneWidget);
+    expect(find.text('Attackers'), findsOneWidget);
+    expect(bundle.adapter.hitCount('POST', '/movies/by-series'), 1);
+    expect(bundle.adapter.requests.last.body, <String, dynamic>{
+      'series_id': 7,
+      'page': 1,
+      'page_size': 24,
+    });
   });
 
   testWidgets('desktop search route uses NoTransitionPage inside shell', (
@@ -1189,6 +1235,37 @@ void main() {
       infoBarRect.bottom,
       closeTo(appSize.height - AppPageInsets.compact, 0.1),
     );
+  });
+
+  testWidgets('mobile movie series route uses subpage shell', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    _enqueueMovieSeriesResponse(bundle);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go('/mobile/library/movies/series/7?seriesName=Attackers');
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('系列影片'), findsWidgets);
+    expect(find.byKey(const Key('mobile-series-movies-page')), findsOneWidget);
+    final seriesPage = _findPageByName(tester, 'mobile-movie-series');
+    expect(seriesPage, isA<CupertinoPage<void>>());
+    expect(bundle.adapter.hitCount('POST', '/movies/by-series'), 1);
   });
 
   testWidgets('mobile actor detail route uses subpage shell', (
@@ -2495,6 +2572,44 @@ void main() {
     expect(router.routeInformationProvider.value.uri.path, desktopOverviewPath);
   });
 
+  testWidgets('desktop detail series link opens series movies page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    _enqueueMovieDetailResponse(bundle);
+    _enqueueMovieSeriesResponse(bundle);
+    final router = buildDesktopRouter(sessionStore: sessionStore);
+
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    await tester.pumpAndSettle();
+
+    router.go('/desktop/library/movies/ABC-001');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('movie-detail-series-link')));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      '/desktop/library/movies/series/7',
+    );
+    expect(find.byKey(const Key('desktop-series-movies-page')), findsOneWidget);
+    expect(find.text('Attackers'), findsOneWidget);
+  });
+
   testWidgets('top bar back falls back to movies list for deep-linked detail', (
     WidgetTester tester,
   ) async {
@@ -2992,6 +3107,40 @@ void main() {
       );
     },
   );
+
+  testWidgets('mobile detail series link opens series movies page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueMovieDetailResponse(bundle);
+    _enqueueMovieSeriesResponse(bundle);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(buildMobileMovieDetailRoutePath('ABC-001'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('movie-detail-series-link')));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      '/mobile/library/movies/series/7',
+    );
+    expect(find.byKey(const Key('mobile-series-movies-page')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(find.text('Attackers'), findsOneWidget);
+  });
 
   testWidgets(
     'movie detail deep link ignores legacy extra and falls back to canonical list',
@@ -3590,12 +3739,41 @@ void _enqueueMovieDetailResponse(TestApiBundle bundle) {
       'is_collection': false,
       'is_subscribed': true,
       'can_play': true,
+      'series_id': 7,
+      'series_name': 'Attackers',
       'summary': '',
       'actors': [],
       'tags': [],
       'thin_cover_image': null,
       'plot_images': [],
       'media_items': [],
+    },
+  );
+}
+
+void _enqueueMovieSeriesResponse(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'POST',
+    path: '/movies/by-series',
+    body: <String, dynamic>{
+      'items': [
+        <String, dynamic>{
+          'javdb_id': 'MovieA1',
+          'movie_number': 'ABC-001',
+          'title': 'Movie 1',
+          'series_id': 7,
+          'series_name': 'Attackers',
+          'cover_image': null,
+          'release_date': '2024-01-02',
+          'duration_minutes': 120,
+          'heat': 9,
+          'is_subscribed': true,
+          'can_play': true,
+        },
+      ],
+      'page': 1,
+      'page_size': 24,
+      'total': 1,
     },
   );
 }

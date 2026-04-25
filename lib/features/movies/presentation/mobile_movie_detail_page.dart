@@ -22,6 +22,8 @@ import 'package:sakuramedia/features/movies/presentation/movie_subscription_chan
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/playlists/presentation/movie_playlist_picker_dialog.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
+import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
@@ -183,6 +185,16 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
             onActorTap:
                 (actor) =>
                     MobileActorDetailRouteData(actorId: actor.id).push(context),
+            onSeriesTap:
+                movie.seriesId == null
+                    ? null
+                    : () => context.pushMobileMovieSeries(
+                      seriesId: movie.seriesId!,
+                      seriesName: movie.seriesName,
+                      fallbackPath: buildMobileMovieDetailRoutePath(
+                        widget.movieNumber,
+                      ),
+                    ),
             onRequestPlotImageMenu:
                 (menuContext, index, globalPosition) =>
                     showMoviePlotImageActionMenu(

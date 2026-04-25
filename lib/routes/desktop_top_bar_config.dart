@@ -32,6 +32,16 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
     );
   }
 
+  if (currentPath.startsWith(desktopMovieSeriesPathPrefix)) {
+    return DesktopTopBarConfig(
+      title: '系列影片',
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra) ??
+          AppBackDestination.defaultLocationForPath(currentPath),
+      isBackEnabled: true,
+    );
+  }
+
   if (currentPath.startsWith('/desktop/library/movies/')) {
     return DesktopTopBarConfig(
       title: '影片详情',
@@ -133,6 +143,10 @@ AppShellLayout resolveDesktopShellLayout({
   required String currentPath,
   required List<AppRouteSpec> routeSpecs,
 }) {
+  if (currentPath.startsWith(desktopMovieSeriesPathPrefix)) {
+    return AppShellLayout.standard;
+  }
+
   if (currentPath.startsWith('/desktop/library/movies/')) {
     return AppShellLayout.standard;
   }

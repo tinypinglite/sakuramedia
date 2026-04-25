@@ -6,6 +6,7 @@ class MovieDetailDto {
     required this.movieNumber,
     required this.title,
     this.titleZh = '',
+    this.seriesId,
     required this.seriesName,
     required this.makerName,
     required this.directorName,
@@ -36,6 +37,7 @@ class MovieDetailDto {
   final String movieNumber;
   final String title;
   final String titleZh;
+  final int? seriesId;
   final String seriesName;
   final String makerName;
   final String directorName;
@@ -85,6 +87,7 @@ class MovieDetailDto {
       movieNumber: json['movie_number'] as String? ?? '',
       title: json['title'] as String? ?? '',
       titleZh: json['title_zh'] as String? ?? '',
+      seriesId: _intFromJson(json['series_id']),
       seriesName: json['series_name'] as String? ?? '',
       makerName: json['maker_name'] as String? ?? '',
       directorName: json['director_name'] as String? ?? '',
@@ -508,6 +511,19 @@ DateTime? _dateFromJson(dynamic value) {
     return null;
   }
   return DateTime.tryParse(value);
+}
+
+int? _intFromJson(dynamic value) {
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  if (value is String) {
+    return int.tryParse(value);
+  }
+  return null;
 }
 
 DateTime? _dateTimeFromJson(dynamic value) {

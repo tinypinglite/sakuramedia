@@ -13,6 +13,9 @@ class AppBackDestination {
               .first;
       return '$desktopMoviesPath/$movieNumber';
     }
+    if (path.startsWith(desktopMovieSeriesPathPrefix)) {
+      return desktopMoviesPath;
+    }
     if (path.startsWith('/mobile/library/movies/') &&
         path.endsWith('/player')) {
       final movieNumber =
@@ -21,6 +24,9 @@ class AppBackDestination {
               .split('/player')
               .first;
       return '$mobileMoviesPath/$movieNumber';
+    }
+    if (path.startsWith(mobileMovieSeriesPathPrefix)) {
+      return mobileMoviesPath;
     }
     if (path.startsWith('/desktop/library/movies/')) {
       return desktopMoviesPath;

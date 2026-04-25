@@ -427,6 +427,12 @@ RouteBase get $mobileRootShellRouteData => StatefulShellRouteData.$route(
           factory: $MobileMoviesRouteData._fromState,
           routes: [
             GoRouteData.$route(
+              path: 'series/:seriesId',
+              parentNavigatorKey:
+                  MobileMovieSeriesRouteData.$parentNavigatorKey,
+              factory: $MobileMovieSeriesRouteData._fromState,
+            ),
+            GoRouteData.$route(
               path: ':movieNumber',
               parentNavigatorKey:
                   MobileMovieDetailRouteData.$parentNavigatorKey,
@@ -525,6 +531,37 @@ mixin $MobileMoviesRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/mobile/library/movies');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $MobileMovieSeriesRouteData on GoRouteData {
+  static MobileMovieSeriesRouteData _fromState(GoRouterState state) =>
+      MobileMovieSeriesRouteData(
+        seriesId: int.parse(state.pathParameters['seriesId']!),
+        seriesName: state.uri.queryParameters['series-name'],
+      );
+
+  MobileMovieSeriesRouteData get _self => this as MobileMovieSeriesRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/mobile/library/movies/series/${Uri.encodeComponent(_self.seriesId.toString())}',
+    queryParams: {
+      if (_self.seriesName != null) 'series-name': _self.seriesName,
+    },
+  );
 
   @override
   void go(BuildContext context) => context.go(location);

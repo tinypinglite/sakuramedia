@@ -181,6 +181,16 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
                   widget.movieNumber,
                 ),
               ),
+          onSeriesTap:
+              movie.seriesId == null
+                  ? null
+                  : () => context.pushDesktopMovieSeries(
+                    seriesId: movie.seriesId!,
+                    seriesName: movie.seriesName,
+                    fallbackPath: buildDesktopMovieDetailRoutePath(
+                      widget.movieNumber,
+                    ),
+                  ),
           onRequestPlotImageMenu:
               (menuContext, index, globalPosition) =>
                   showMoviePlotImageActionMenu(

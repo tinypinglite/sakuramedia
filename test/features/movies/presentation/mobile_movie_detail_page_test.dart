@@ -1783,6 +1783,7 @@ Map<String, dynamic> _movieDetailJson({
     'is_collection': false,
     'is_subscribed': isSubscribed,
     'can_play': true,
+    'series_id': 7,
     'series_name': 'Attackers',
     'maker_name': makerName,
     'director_name': directorName,

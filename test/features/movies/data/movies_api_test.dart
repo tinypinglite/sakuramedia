@@ -50,6 +50,7 @@ void main() {
       'movie_number': 'ABC-001',
       'title': title,
       'title_zh': titleZh,
+      'series_id': 7,
       'series_name': 'Series 1',
       'maker_name': 'Maker',
       'director_name': 'Director',
@@ -95,6 +96,8 @@ void main() {
             'movie_number': 'ABC-001',
             'title': 'Movie 1',
             'title_zh': '电影 1',
+            'series_id': 7,
+            'series_name': 'Series 1',
             'cover_image': null,
             'release_date': '2024-01-02',
             'duration_minutes': 120,
@@ -127,7 +130,55 @@ void main() {
     expect(page.items.single.movieNumber, 'ABC-001');
     expect(page.items.single.titleZh, '电影 1');
     expect(page.items.single.preferredTitle, '电影 1');
+    expect(page.items.single.seriesId, 7);
+    expect(page.items.single.seriesName, 'Series 1');
     expect(page.items.single.heat, 9);
+  });
+
+  test('getMoviesBySeries sends series body and parses response', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/by-series',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'javdb_id': 'MovieA2',
+            'movie_number': 'ABC-002',
+            'title': 'Movie 2',
+            'series_id': 12,
+            'series_name': 'S1 NO.1 STYLE',
+            'cover_image': null,
+            'release_date': '2026-03-10',
+            'duration_minutes': 120,
+            'heat': 8,
+            'is_subscribed': false,
+            'can_play': false,
+          },
+        ],
+        'page': 2,
+        'page_size': 24,
+        'total': 3,
+      },
+    );
+
+    final page = await moviesApi.getMoviesBySeries(
+      seriesId: 12,
+      page: 2,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.path, '/movies/by-series');
+    expect(request.body, <String, dynamic>{
+      'series_id': 12,
+      'page': 2,
+      'page_size': 24,
+    });
+    expect(page.total, 3);
+    expect(page.items.single.movieNumber, 'ABC-002');
+    expect(page.items.single.seriesId, 12);
+    expect(page.items.single.seriesName, 'S1 NO.1 STYLE');
   });
 
   test('getMovies sends actor_id when actor filter is provided', () async {
@@ -687,6 +738,7 @@ void main() {
         'is_collection': true,
         'is_subscribed': false,
         'can_play': true,
+        'series_id': 7,
         'series_name': 'Series 1',
         'maker_name': 'S1 NO.1 STYLE',
         'director_name': '紋℃',
@@ -822,6 +874,7 @@ void main() {
     expect(detail.titleZh, '电影 1');
     expect(detail.preferredTitle, '电影 1');
     expect(detail.heat, 27);
+    expect(detail.seriesId, 7);
     expect(detail.seriesName, 'Series 1');
     expect(detail.makerName, 'S1 NO.1 STYLE');
     expect(detail.directorName, '紋℃');
@@ -951,6 +1004,7 @@ void main() {
         'is_collection': false,
         'is_subscribed': false,
         'can_play': false,
+        'series_id': null,
         'series_name': null,
         'maker_name': null,
         'director_name': null,
@@ -966,6 +1020,7 @@ void main() {
     final detail = await moviesApi.getMovieDetail(movieNumber: 'ABC-002');
 
     expect(detail.coverImage, isNull);
+    expect(detail.seriesId, isNull);
     expect(detail.seriesName, '');
     expect(detail.makerName, '');
     expect(detail.directorName, '');
