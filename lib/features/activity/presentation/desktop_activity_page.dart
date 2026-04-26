@@ -595,11 +595,11 @@ class _NotificationFilterBar extends StatelessWidget {
   final ActivityCenterController controller;
 
   static const List<String> _categories = <String>[
-    'result',
+    'info',
+    'warning',
+    'error',
     'reminder',
-    'exception',
   ];
-  static const List<String> _levels = <String>['info', 'warning', 'error'];
 
   @override
   Widget build(BuildContext context) {
@@ -623,7 +623,6 @@ class _NotificationFilterBar extends StatelessWidget {
             size: AppSelectFieldSize.compact,
             textStyle: filterTextStyle,
             items: <DropdownMenuItem<String?>>[
-              const DropdownMenuItem<String?>(value: null, child: Text('全部分类')),
               ..._categories.map(
                 (value) => DropdownMenuItem<String?>(
                   value: value,
@@ -636,30 +635,6 @@ class _NotificationFilterBar extends StatelessWidget {
                     ? null
                     : (value) => controller.applyNotificationFilter(
                       controller.notificationFilter.copyWith(category: value),
-                    ),
-          ),
-        ),
-        SizedBox(
-          width: layoutTokens.filterFieldWidthMd,
-          child: AppSelectField<String?>(
-            key: const Key('activity-notification-level-filter'),
-            value: controller.notificationFilter.level,
-            size: AppSelectFieldSize.compact,
-            textStyle: filterTextStyle,
-            items: <DropdownMenuItem<String?>>[
-              const DropdownMenuItem<String?>(value: null, child: Text('全部等级')),
-              ..._levels.map(
-                (value) => DropdownMenuItem<String?>(
-                  value: value,
-                  child: Text(_labelForNotificationLevel(value)),
-                ),
-              ),
-            ],
-            onChanged:
-                controller.isRefreshingNotifications
-                    ? null
-                    : (value) => controller.applyNotificationFilter(
-                      controller.notificationFilter.copyWith(level: value),
                     ),
           ),
         ),
@@ -903,11 +878,6 @@ class _NotificationCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                SizedBox(width: context.appSpacing.md),
-                AppBadge(
-                  label: _labelForNotificationLevel(notification.level),
-                  tone: _notificationLevelTone(notification.level),
-                ),
               ],
             ),
             SizedBox(height: context.appSpacing.md),
@@ -918,7 +888,7 @@ class _NotificationCard extends StatelessWidget {
               children: [
                 AppBadge(
                   label: _labelForNotificationCategory(notification.category),
-                  tone: AppBadgeTone.neutral,
+                  tone: _notificationCategoryTone(notification.category),
                 ),
                 Text(
                   _formatDate(notification.createdAt, dateFormat),
@@ -1075,11 +1045,12 @@ String _taskTimeSummary(TaskRunDto item, DateFormat formatter) {
   return '创建于 ${_formatDate(item.createdAt, formatter)}';
 }
 
-AppBadgeTone _notificationLevelTone(String level) {
-  return switch (level) {
+AppBadgeTone _notificationCategoryTone(String category) {
+  return switch (category) {
     'error' => AppBadgeTone.error,
     'warning' => AppBadgeTone.warning,
-    _ => AppBadgeTone.primary,
+    'info' => AppBadgeTone.primary,
+    _ => AppBadgeTone.neutral,
   };
 }
 
@@ -1095,18 +1066,10 @@ AppBadgeTone _taskStateTone(String state) {
 
 String _labelForNotificationCategory(String value) {
   return switch (value) {
-    'result' => '结果',
-    'reminder' => '提醒',
-    'exception' => '异常',
-    _ => value,
-  };
-}
-
-String _labelForNotificationLevel(String value) {
-  return switch (value) {
     'info' => '信息',
     'warning' => '警告',
     'error' => '错误',
+    'reminder' => '提醒',
     _ => value,
   };
 }

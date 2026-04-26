@@ -137,4 +137,67 @@ void main() {
       ),
     );
   });
+
+  test('testMetadataProvider parses healthy result', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/status/metadata-providers/javdb/test',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'healthy': true,
+        'provider': 'javdb',
+        'error': null,
+      },
+    );
+
+    final result = await statusApi.testMetadataProvider('javdb');
+
+    expect(result.healthy, isTrue);
+    expect(result.provider, 'javdb');
+    expect(result.error, isNull);
+  });
+
+  test('testMetadataProvider parses unhealthy result', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/status/metadata-providers/dmm/test',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'healthy': false,
+        'provider': 'dmm',
+        'error': <String, dynamic>{'message': 'metadata request failed'},
+      },
+    );
+
+    final result = await statusApi.testMetadataProvider('dmm');
+
+    expect(result.healthy, isFalse);
+    expect(result.provider, 'dmm');
+    expect(result.error?.message, 'metadata request failed');
+  });
+
+  test('testMetadataProvider converts backend error to ApiException', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/status/metadata-providers/invalid/test',
+      statusCode: 422,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'invalid_metadata_provider',
+          'message': 'Metadata provider must be javdb or dmm',
+        },
+      },
+    );
+
+    expect(
+      () => statusApi.testMetadataProvider('invalid'),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'invalid_metadata_provider',
+        ),
+      ),
+    );
+  });
 }

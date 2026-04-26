@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/overview/overview_stats_strip.dart';
 
@@ -22,8 +23,11 @@ class DesktopOverviewPage extends StatefulWidget {
 class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
   bool _isLoadingStatus = true;
   bool _isLoadingImageSearchStatus = true;
+  bool _isTestingMetadataProviders = false;
   StatusDto? _status;
   StatusImageSearchDto? _imageSearchStatus;
+  bool? _javdbHealthy;
+  bool? _dmmHealthy;
   String? _statusError;
   late final PagedMovieSummaryController _moviesController;
   late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
@@ -143,6 +147,43 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
     showMovieSubscriptionFeedback(result);
   }
 
+  Future<void> _testExternalDataSources() async {
+    if (_isTestingMetadataProviders) {
+      return;
+    }
+
+    final statusApi = context.read<StatusApi>();
+    setState(() {
+      _isTestingMetadataProviders = true;
+    });
+
+    final results = await Future.wait<bool>([
+      _testMetadataProvider(statusApi, 'javdb'),
+      _testMetadataProvider(statusApi, 'dmm'),
+    ]);
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _javdbHealthy = results[0];
+      _dmmHealthy = results[1];
+      _isTestingMetadataProviders = false;
+    });
+  }
+
+  Future<bool> _testMetadataProvider(
+    StatusApi statusApi,
+    String provider,
+  ) async {
+    try {
+      final result = await statusApi.testMetadataProvider(provider);
+      return result.healthy;
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final stats =
@@ -196,6 +237,14 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
                 label: '待索引',
                 value: _buildJoyTagIndexingValue(),
                 isLoading: _isLoadingImageSearchStatus,
+              ),
+              OverviewStatItem(
+                id: 'external-data-sources',
+                label: '外部数据源',
+                value: _buildExternalDataSourcesValue(),
+                valueTextSize: AppTextSize.s12,
+                maxWidth: 260,
+                action: _buildExternalDataSourcesAction(context),
               ),
             ];
 
@@ -288,6 +337,41 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
       return '不可用';
     }
     return _imageSearchStatus!.indexing.pendingThumbnails.toString();
+  }
+
+  String _buildExternalDataSourcesValue() {
+    if (_javdbHealthy == null && _dmmHealthy == null) {
+      return '未检测 JavDB / DMM';
+    }
+    return '${_buildExternalDataSourceText('JavDB', _javdbHealthy)} ${_buildExternalDataSourceText('DMM', _dmmHealthy)}';
+  }
+
+  String _buildExternalDataSourceText(String label, bool? healthy) {
+    if (healthy == null) {
+      return '未检测 $label';
+    }
+    return '${healthy ? '✅' : '❌'} $label';
+  }
+
+  Widget _buildExternalDataSourcesAction(BuildContext context) {
+    return AppIconButton(
+      key: const Key('overview-external-data-sources-test-button'),
+      tooltip: '检测外部数据源',
+      semanticLabel: '检测外部数据源',
+      size: AppIconButtonSize.mini,
+      onPressed: _isTestingMetadataProviders ? null : _testExternalDataSources,
+      icon:
+          _isTestingMetadataProviders
+              ? SizedBox(
+                width: context.appComponentTokens.iconSizeSm,
+                height: context.appComponentTokens.iconSizeSm,
+                child: CircularProgressIndicator.adaptive(
+                  strokeWidth:
+                      context.appComponentTokens.movieCardLoaderStrokeWidth,
+                ),
+              )
+              : const Icon(Icons.radar_rounded),
+    );
   }
 
   Widget? _buildMovieLoadMoreFooter(BuildContext context) {

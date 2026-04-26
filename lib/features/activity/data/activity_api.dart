@@ -21,7 +21,6 @@ class ActivityApi {
 
   Future<ActivityBootstrapDto> getBootstrap({
     String? notificationCategory,
-    String? notificationLevel,
     bool? notificationArchived,
     String? taskState,
     String? taskKey,
@@ -34,8 +33,6 @@ class ActivityApi {
         if (notificationCategory != null &&
             notificationCategory.trim().isNotEmpty)
           'notification_category': notificationCategory,
-        if (notificationLevel != null && notificationLevel.trim().isNotEmpty)
-          'notification_level': notificationLevel,
         if (notificationArchived != null)
           'notification_archived': notificationArchived,
         if (taskState != null && taskState.trim().isNotEmpty)
@@ -54,7 +51,6 @@ class ActivityApi {
     int page = 1,
     int pageSize = 20,
     String? category,
-    String? level,
     bool? archived,
   }) async {
     final response = await _apiClient.get(
@@ -64,7 +60,6 @@ class ActivityApi {
         'page_size': pageSize,
         if (category != null && category.trim().isNotEmpty)
           'category': category,
-        if (level != null && level.trim().isNotEmpty) 'level': level,
         if (archived != null) 'archived': archived,
       },
     );

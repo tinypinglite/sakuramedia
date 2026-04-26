@@ -92,7 +92,89 @@ void main() {
     expect(find.text('正常'), findsOneWidget);
     expect(find.text('GPU'), findsOneWidget);
     expect(find.text('23'), findsOneWidget);
+    expect(
+      find.byKey(const Key('overview-stat-external-data-sources')),
+      findsOneWidget,
+    );
+    expect(find.text('外部数据源'), findsOneWidget);
+    expect(find.text('未检测 JavDB / DMM'), findsOneWidget);
+    expect(
+      find.byKey(const Key('overview-external-data-sources')),
+      findsNothing,
+    );
+    expect(
+      bundle.adapter.hitCount('GET', '/status/metadata-providers/javdb/test'),
+      0,
+    );
+    expect(
+      bundle.adapter.hitCount('GET', '/status/metadata-providers/dmm/test'),
+      0,
+    );
   });
+
+  testWidgets('desktop overview tests external data sources on demand', (
+    WidgetTester tester,
+  ) async {
+    _enqueueStatusSuccess(bundle);
+    _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
+    _enqueueMetadataProviderTest(bundle, provider: 'javdb', healthy: true);
+    _enqueueMetadataProviderTest(bundle, provider: 'dmm', healthy: false);
+
+    await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('overview-external-data-sources-test-button')),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(
+      bundle.adapter.hitCount('GET', '/status/metadata-providers/javdb/test'),
+      1,
+    );
+    expect(
+      bundle.adapter.hitCount('GET', '/status/metadata-providers/dmm/test'),
+      1,
+    );
+    expect(find.text('✅ JavDB ❌ DMM'), findsOneWidget);
+    expect(find.text('未检测 JavDB / DMM'), findsNothing);
+  });
+
+  testWidgets(
+    'desktop overview treats external data source request errors as failed',
+    (WidgetTester tester) async {
+      _enqueueStatusSuccess(bundle);
+      _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
+      _enqueueMetadataProviderTest(bundle, provider: 'javdb', healthy: true);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/status/metadata-providers/dmm/test',
+        statusCode: 500,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{
+            'code': 'server_error',
+            'message': 'server error',
+          },
+        },
+      );
+
+      await _pumpOverviewPage(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('overview-external-data-sources-test-button')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('✅ JavDB ❌ DMM'), findsOneWidget);
+    },
+  );
 
   testWidgets('desktop overview uses a denser poster grid on wide screens', (
     WidgetTester tester,
@@ -589,6 +671,26 @@ void _enqueueImageSearchStatusSuccess(TestApiBundle bundle) {
     path: '/status/image-search',
     statusCode: 200,
     body: _imageSearchStatusJson(),
+  );
+}
+
+void _enqueueMetadataProviderTest(
+  TestApiBundle bundle, {
+  required String provider,
+  required bool healthy,
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/status/metadata-providers/$provider/test',
+    statusCode: 200,
+    body: <String, dynamic>{
+      'healthy': healthy,
+      'provider': provider,
+      'error':
+          healthy
+              ? null
+              : <String, dynamic>{'message': 'metadata request failed'},
+    },
   );
 }
 

@@ -1,32 +1,26 @@
 class ActivityNotificationFilterState {
-  const ActivityNotificationFilterState({this.category, this.level});
+  const ActivityNotificationFilterState({this.category});
 
   static const ActivityNotificationFilterState initial =
-      ActivityNotificationFilterState();
+      ActivityNotificationFilterState(category: 'reminder');
 
   final String? category;
-  final String? level;
 
-  ActivityNotificationFilterState copyWith({
-    Object? category = _sentinel,
-    Object? level = _sentinel,
-  }) {
+  ActivityNotificationFilterState copyWith({Object? category = _sentinel}) {
     return ActivityNotificationFilterState(
       category:
           identical(category, _sentinel) ? this.category : category as String?,
-      level: identical(level, _sentinel) ? this.level : level as String?,
     );
   }
 
   @override
   bool operator ==(Object other) {
     return other is ActivityNotificationFilterState &&
-        other.category == category &&
-        other.level == level;
+        other.category == category;
   }
 
   @override
-  int get hashCode => Object.hash(category, level);
+  int get hashCode => category.hashCode;
 }
 
 enum ActivityTaskSort {

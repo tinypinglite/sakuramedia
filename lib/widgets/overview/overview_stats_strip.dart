@@ -7,12 +7,18 @@ class OverviewStatItem {
     required this.label,
     required this.value,
     this.isLoading = false,
+    this.action,
+    this.valueTextSize = AppTextSize.s18,
+    this.maxWidth,
   });
 
   final String id;
   final String label;
   final String value;
   final bool isLoading;
+  final Widget? action;
+  final AppTextSize valueTextSize;
+  final double? maxWidth;
 }
 
 class OverviewStatsStrip extends StatelessWidget {
@@ -92,47 +98,64 @@ class _OverviewStatTile extends StatelessWidget {
       key: Key('overview-stat-${item.id}'),
       constraints: BoxConstraints(
         minWidth: componentTokens.overviewStatTileMinWidth,
-        maxWidth: componentTokens.overviewStatTileMaxWidth,
+        maxWidth: item.maxWidth ?? componentTokens.overviewStatTileMaxWidth,
+        minHeight:
+            context.appSpacing.lg * 2 +
+            componentTokens.overviewStatSkeletonLabelHeight +
+            context.appSpacing.md +
+            componentTokens.overviewStatSkeletonValueHeight +
+            context.appSpacing.xs,
       ),
       padding: EdgeInsets.all(context.appSpacing.lg),
       decoration: BoxDecoration(
         color: context.appColors.surfaceMuted,
         borderRadius: context.appRadius.lgBorder,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Text(
-            item.label,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s10,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.muted,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.label,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s10,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.muted,
+                ),
+              ),
+              SizedBox(height: context.appSpacing.sm),
+              if (item.isLoading)
+                SizedBox(
+                  width: componentTokens.iconSizeMd,
+                  height: componentTokens.iconSizeMd,
+                  child: CircularProgressIndicator.adaptive(
+                    key: Key('overview-stat-loading-${item.id}'),
+                    strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
+                  ),
+                )
+              else
+                Text(
+                  item.value,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: item.valueTextSize,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.primary,
+                  ),
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
           ),
-          SizedBox(height: context.appSpacing.sm),
-          if (item.isLoading)
-            SizedBox(
-              width: componentTokens.iconSizeMd,
-              height: componentTokens.iconSizeMd,
-              child: CircularProgressIndicator.adaptive(
-                key: Key('overview-stat-loading-${item.id}'),
-                strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
-              ),
-            )
-          else
-            Text(
-              item.value,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s18,
-                weight: AppTextWeight.semibold,
-                tone: AppTextTone.primary,
-              ),
-              maxLines: 1,
-              softWrap: false,
-              overflow: TextOverflow.ellipsis,
+          if (item.action != null)
+            Positioned(
+              top: -context.appSpacing.xs,
+              right: -context.appSpacing.xs,
+              child: item.action!,
             ),
         ],
       ),

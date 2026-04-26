@@ -3291,7 +3291,6 @@ void _enqueueActivityResponses(TestApiBundle bundle) {
           <String, dynamic>{
             'id': 101,
             'category': 'reminder',
-            'level': 'info',
             'title': '有新的影片可以播放了',
             'content': '本次后台处理新增可播放影片 1 部：SSIS-123',
             'is_read': false,

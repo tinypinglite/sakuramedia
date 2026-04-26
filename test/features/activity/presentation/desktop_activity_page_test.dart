@@ -125,7 +125,7 @@ void main() {
           await Future<void>.delayed(const Duration(milliseconds: 80));
           return _jsonResponseBody(<String, dynamic>{
             'items': <Map<String, dynamic>>[
-              _notificationJson(id: 202, category: 'exception', title: '异常通知'),
+              _notificationJson(id: 202, category: 'error', title: '错误通知'),
             ],
             'page': 1,
             'page_size': 20,
@@ -140,7 +140,7 @@ void main() {
         find.byKey(const Key('activity-notification-category-filter')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('异常').last);
+      await tester.tap(find.text('错误').last);
       await tester.pump();
 
       expect(
@@ -172,7 +172,7 @@ void main() {
   );
 
   testWidgets(
-    'notification category filter can switch back to first option and clears query',
+    'notification category filter switches between explicit categories',
     (WidgetTester tester) async {
       _setDesktopViewport(tester);
       final sessionStore = await _createSessionStore();
@@ -191,7 +191,7 @@ void main() {
         path: '/system/notifications',
         body: <String, dynamic>{
           'items': <Map<String, dynamic>>[
-            _notificationJson(id: 201, category: 'result', isRead: true),
+            _notificationJson(id: 201, category: 'info', isRead: true),
           ],
           'page': 1,
           'page_size': 20,
@@ -217,24 +217,24 @@ void main() {
         find.byKey(const Key('activity-notification-category-filter')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('结果').last);
+      await tester.tap(find.text('信息').last);
       await tester.pumpAndSettle();
 
       await tester.tap(
         find.byKey(const Key('activity-notification-category-filter')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('全部分类').last);
+      await tester.tap(find.text('提醒').last);
       await tester.pumpAndSettle();
 
       final notificationRequests = bundle.adapter.requests
           .where((request) => request.path == '/system/notifications')
           .toList(growable: false);
       expect(notificationRequests, hasLength(2));
-      expect(notificationRequests[0].uri.queryParameters['category'], 'result');
+      expect(notificationRequests[0].uri.queryParameters['category'], 'info');
       expect(
-        notificationRequests[1].uri.queryParameters.containsKey('category'),
-        isFalse,
+        notificationRequests[1].uri.queryParameters['category'],
+        'reminder',
       );
       expect(
         find.byKey(const Key('activity-notification-301')),
@@ -363,7 +363,7 @@ void main() {
 
       expect(_textStyleOf(tester, find.text('通知中心')).fontSize, 18);
       expect(_textStyleOf(tester, find.text('提醒通知标题')).fontSize, 14);
-      expect(_defaultTextStyleOf(tester, find.text('全部分类')).fontSize, 12);
+      expect(_defaultTextStyleOf(tester, find.text('提醒')).fontSize, 12);
 
       await tester.tap(find.byKey(const Key('activity-tab-tasks')));
       await tester.pumpAndSettle();
@@ -897,7 +897,6 @@ Map<String, dynamic> _bootstrapBody({
 Map<String, dynamic> _notificationJson({
   required int id,
   String category = 'reminder',
-  String level = 'info',
   String? title,
   String? content,
   bool isRead = false,
@@ -907,7 +906,6 @@ Map<String, dynamic> _notificationJson({
   return <String, dynamic>{
     'id': id,
     'category': category,
-    'level': level,
     'title': title ?? '通知 $id',
     'content': content ?? '通知内容 $id',
     'is_read': isRead,

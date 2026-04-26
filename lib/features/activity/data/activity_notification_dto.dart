@@ -2,7 +2,6 @@ class ActivityNotificationDto {
   const ActivityNotificationDto({
     required this.id,
     required this.category,
-    required this.level,
     required this.title,
     required this.content,
     required this.isRead,
@@ -16,7 +15,6 @@ class ActivityNotificationDto {
 
   final int id;
   final String category;
-  final String level;
   final String title;
   final String content;
   final bool isRead;
@@ -29,7 +27,6 @@ class ActivityNotificationDto {
 
   ActivityNotificationDto copyWith({
     String? category,
-    String? level,
     String? title,
     String? content,
     bool? isRead,
@@ -43,7 +40,6 @@ class ActivityNotificationDto {
     return ActivityNotificationDto(
       id: id,
       category: category ?? this.category,
-      level: level ?? this.level,
       title: title ?? this.title,
       content: content ?? this.content,
       isRead: isRead ?? this.isRead,
@@ -68,7 +64,6 @@ class ActivityNotificationDto {
   ActivityNotificationDto mergeFromServer(ActivityNotificationDto next) {
     return copyWith(
       category: next.category,
-      level: next.level,
       title: next.title,
       content: next.content,
       isRead: next.isRead,
@@ -85,7 +80,6 @@ class ActivityNotificationDto {
     return ActivityNotificationDto(
       id: _toInt(json['id']),
       category: json['category'] as String? ?? '',
-      level: json['level'] as String? ?? '',
       title: json['title'] as String? ?? '',
       content: json['content'] as String? ?? '',
       isRead: json['is_read'] as bool? ?? false,

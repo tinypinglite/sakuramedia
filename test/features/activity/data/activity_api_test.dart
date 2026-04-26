@@ -38,7 +38,6 @@ void main() {
               <String, dynamic>{
                 'id': 101,
                 'category': 'reminder',
-                'level': 'info',
                 'title': '有新的影片可以播放了',
                 'content': '本次后台处理新增可播放影片 1 部：SSIS-123',
                 'is_read': false,
@@ -90,7 +89,6 @@ void main() {
 
       final response = await bundle.activityApi.getBootstrap(
         notificationCategory: 'reminder',
-        notificationLevel: 'info',
         notificationArchived: false,
         taskState: 'running',
         taskKey: 'download_task_import',
@@ -105,7 +103,10 @@ void main() {
       expect(response.taskRuns.items.single.id, 201);
       final request = bundle.adapter.requests.single;
       expect(request.uri.queryParameters['notification_category'], 'reminder');
-      expect(request.uri.queryParameters['notification_level'], 'info');
+      expect(
+        request.uri.queryParameters.containsKey('notification_level'),
+        isFalse,
+      );
       expect(request.uri.queryParameters['notification_archived'], 'false');
       expect(request.uri.queryParameters['task_state'], 'running');
       expect(request.uri.queryParameters['task_key'], 'download_task_import');
@@ -123,7 +124,6 @@ void main() {
           <String, dynamic>{
             'id': 101,
             'category': 'reminder',
-            'level': 'info',
             'title': '有新的影片可以播放了',
             'content': '本次后台处理新增可播放影片 1 部：SSIS-123',
             'is_read': false,
@@ -142,7 +142,6 @@ void main() {
       page: 2,
       pageSize: 10,
       category: 'reminder',
-      level: 'info',
       archived: false,
     );
 
@@ -152,7 +151,7 @@ void main() {
     expect(request.uri.queryParameters['page'], '2');
     expect(request.uri.queryParameters['page_size'], '10');
     expect(request.uri.queryParameters['category'], 'reminder');
-    expect(request.uri.queryParameters['level'], 'info');
+    expect(request.uri.queryParameters.containsKey('level'), isFalse);
     expect(request.uri.queryParameters['archived'], 'false');
   });
 
@@ -203,7 +202,7 @@ void main() {
       chunks: const <String>[
         'id: 121\n'
             'event: notification_created\n'
-            'data: {"id":101,"category":"reminder","level":"info","title":"有新的影片可以播放了","content":"ok","is_read":false,"archived":false}\n\n',
+            'data: {"id":101,"category":"reminder","title":"有新的影片可以播放了","content":"ok","is_read":false,"archived":false}\n\n',
         'id: 122\n'
             'event: task_run_updated\n'
             'data: {"id":88,"task_key":"download_task_import","task_name":"下载任务导入 SSIS-123","trigger_type":"manual","state":"running","progress_current":2,"progress_total":3,"progress_text":"正在导入影片文件 SSIS-123","created_at":"2026-03-26T09:10:00Z","updated_at":"2026-03-26T09:11:00Z"}\n\n',

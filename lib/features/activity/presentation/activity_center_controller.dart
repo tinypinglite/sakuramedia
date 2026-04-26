@@ -203,7 +203,6 @@ class ActivityCenterController extends ChangeNotifier {
         page: 1,
         pageSize: _pageSize,
         category: _notificationFilter.category,
-        level: _notificationFilter.level,
         archived: false,
       );
       if (_disposed || requestId != _notificationRefreshRequestId) {
@@ -279,7 +278,6 @@ class ActivityCenterController extends ChangeNotifier {
         page: _notificationNextPage,
         pageSize: _pageSize,
         category: _notificationFilter.category,
-        level: _notificationFilter.level,
         archived: false,
       );
       _notifications = <ActivityNotificationDto>[
@@ -352,7 +350,6 @@ class ActivityCenterController extends ChangeNotifier {
   Future<void> _loadBootstrapState() async {
     final response = await _activityApi.getBootstrap(
       notificationCategory: _notificationFilter.category,
-      notificationLevel: _notificationFilter.level,
       notificationArchived: false,
       taskState: _taskFilter.state,
       taskKey: _taskFilter.taskKey,
@@ -654,10 +651,6 @@ class ActivityCenterController extends ChangeNotifier {
   bool _matchesNotificationFilter(ActivityNotificationDto item) {
     if (_notificationFilter.category != null &&
         _notificationFilter.category != item.category) {
-      return false;
-    }
-    if (_notificationFilter.level != null &&
-        _notificationFilter.level != item.level) {
       return false;
     }
     if (item.archived) {

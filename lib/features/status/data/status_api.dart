@@ -15,4 +15,13 @@ class StatusApi {
     final response = await _apiClient.get('/status/image-search');
     return StatusImageSearchDto.fromJson(response);
   }
+
+  Future<StatusMetadataProviderTestDto> testMetadataProvider(
+    String provider,
+  ) async {
+    final response = await _apiClient.get(
+      '/status/metadata-providers/$provider/test',
+    );
+    return StatusMetadataProviderTestDto.fromJson(response);
+  }
 }

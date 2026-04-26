@@ -39,7 +39,7 @@ void main() {
         chunks: const <String>[
           'id: 121\n'
               'event: notification_created\n'
-              'data: {"id":101,"category":"reminder","level":"info","title":"有新的影片可以播放了","content":"本次后台处理新增可播放影片 1 部：SSIS-123","is_read":false,"archived":false,"related_task_run_id":88}\n\n',
+              'data: {"id":101,"category":"reminder","title":"有新的影片可以播放了","content":"本次后台处理新增可播放影片 1 部：SSIS-123","is_read":false,"archived":false,"related_task_run_id":88}\n\n',
         ],
         keepOpen: true,
       );
@@ -58,6 +58,15 @@ void main() {
       expect(controller.connectionState, ActivityConnectionState.live);
       expect(bundle.adapter.hitCount('GET', '/system/activity/bootstrap'), 1);
       expect(bundle.adapter.hitCount('GET', '/system/events/stream'), 1);
+      expect(controller.notificationFilter.category, 'reminder');
+      expect(
+        bundle.adapter.requests
+            .where((request) => request.path == '/system/activity/bootstrap')
+            .single
+            .uri
+            .queryParameters['notification_category'],
+        'reminder',
+      );
       expect(
         bundle.adapter.requests
             .where((request) => request.path == '/system/events/stream')
@@ -155,7 +164,7 @@ void main() {
         path: '/system/notifications',
         body: <String, dynamic>{
           'items': <Map<String, dynamic>>[
-            _notificationJson(id: 202, category: 'exception'),
+            _notificationJson(id: 202, category: 'error'),
           ],
           'page': 1,
           'page_size': 20,
@@ -170,7 +179,7 @@ void main() {
 
       await controller.initialize();
       await controller.applyNotificationFilter(
-        controller.notificationFilter.copyWith(category: 'exception'),
+        controller.notificationFilter.copyWith(category: 'error'),
       );
 
       expect(controller.isRefreshingNotifications, isFalse);
@@ -185,7 +194,7 @@ void main() {
             .last
             .uri
             .queryParameters['category'],
-        'exception',
+        'error',
       );
     },
   );
@@ -262,7 +271,7 @@ void main() {
           await Future<void>.delayed(const Duration(milliseconds: 60));
           return _jsonResponseBody(<String, dynamic>{
             'items': <Map<String, dynamic>>[
-              _notificationJson(id: 201, category: 'reminder'),
+              _notificationJson(id: 201, category: 'info'),
             ],
             'page': 1,
             'page_size': 20,
@@ -277,7 +286,7 @@ void main() {
           await Future<void>.delayed(const Duration(milliseconds: 10));
           return _jsonResponseBody(<String, dynamic>{
             'items': <Map<String, dynamic>>[
-              _notificationJson(id: 202, category: 'exception'),
+              _notificationJson(id: 202, category: 'error'),
             ],
             'page': 1,
             'page_size': 20,
@@ -293,14 +302,14 @@ void main() {
 
       await controller.initialize();
       final first = controller.applyNotificationFilter(
-        controller.notificationFilter.copyWith(category: 'reminder'),
+        controller.notificationFilter.copyWith(category: 'info'),
       );
       final second = controller.applyNotificationFilter(
-        controller.notificationFilter.copyWith(category: 'exception'),
+        controller.notificationFilter.copyWith(category: 'error'),
       );
       await Future.wait<void>(<Future<void>>[first, second]);
 
-      expect(controller.notificationFilter.category, 'exception');
+      expect(controller.notificationFilter.category, 'error');
       expect(controller.notifications.single.id, 202);
       expect(bundle.adapter.hitCount('GET', '/system/events/stream'), 1);
     },
@@ -376,14 +385,12 @@ void _enqueueInitialActivityState(
 Map<String, dynamic> _notificationJson({
   required int id,
   String category = 'reminder',
-  String level = 'info',
   bool isRead = false,
   bool archived = false,
 }) {
   return <String, dynamic>{
     'id': id,
     'category': category,
-    'level': level,
     'title': '通知 $id',
     'content': '通知内容 $id',
     'is_read': isRead,

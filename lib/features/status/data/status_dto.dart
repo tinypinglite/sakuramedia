@@ -157,6 +157,58 @@ class StatusImageSearchDto {
   }
 }
 
+class StatusMetadataProviderTestErrorDto {
+  const StatusMetadataProviderTestErrorDto({required this.message});
+
+  final String message;
+
+  factory StatusMetadataProviderTestErrorDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return StatusMetadataProviderTestErrorDto(
+      message: json['message'] as String? ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{'message': message};
+  }
+}
+
+class StatusMetadataProviderTestDto {
+  const StatusMetadataProviderTestDto({
+    required this.healthy,
+    required this.provider,
+    this.error,
+  });
+
+  final bool healthy;
+  final String provider;
+  final StatusMetadataProviderTestErrorDto? error;
+
+  factory StatusMetadataProviderTestDto.fromJson(Map<String, dynamic> json) {
+    final errorJson = json['error'];
+    return StatusMetadataProviderTestDto(
+      healthy: _asBool(json['healthy']),
+      provider: json['provider'] as String? ?? '',
+      error:
+          errorJson == null
+              ? null
+              : StatusMetadataProviderTestErrorDto.fromJson(
+                _asJsonMap(errorJson),
+              ),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'healthy': healthy,
+      'provider': provider,
+      'error': error?.toJson(),
+    };
+  }
+}
+
 class StatusDto {
   const StatusDto({
     required this.actors,
