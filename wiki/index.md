@@ -15,6 +15,9 @@ hero:
     - theme: alt
       text: GitHub
       link: https://github.com/tinypinglite/sakuramedia
+    - theme: alt
+      text: 电报群
+      link: https://t.me/+xIsN2OZvbM4wYzIx
 
 features:
   - title: 影片发现与观影
