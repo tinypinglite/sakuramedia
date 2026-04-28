@@ -238,7 +238,6 @@ max_thumbnail_process_count = 4
 [metadata]
 javdb_host = "apidd.btyjscl.com"
 proxy = ""
-dmm_proxy = ""
 gfriends_filetree_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends/Filetree.json"
 gfriends_cdn_base_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends"
 gfriends_filetree_cache_path = "/data/cache/gfriends/gfriends-filetree.json"
@@ -251,8 +250,7 @@ import_metadata_max_workers = 3
 | 字段 | 作用 |
 |---|---|
 | `javdb_host` | JavDB API 域名，不带协议头 |
-| `proxy` | GFriends 使用的 HTTP 代理地址 |
-| `dmm_proxy` | DMM 描述抓取使用的 HTTP 代理地址 |
+| `proxy` | DMM 与 GFriends 共用的 HTTP 代理地址；JavDB 默认直连 |
 | `gfriends_filetree_url` | GFriends 文件树索引地址 |
 | `gfriends_cdn_base_url` | GFriends CDN 根地址 |
 | `gfriends_filetree_cache_path` | GFriends 文件树本地缓存路径 |
@@ -261,10 +259,8 @@ import_metadata_max_workers = 3
 
 建议：
 
-- 大多数场景只会关心 `proxy`
-- `dmm_proxy` 只用于 DMM 描述抓取链路，应该配置可访问 DMM 的日本 IP 代理
-- 如果 `dmm_proxy` 不是日本 IP，影片原文描述抓取可能失败或结果不稳定
-- 如果头像下载正常，`proxy` 可以保持空
+- 大多数场景只需要配置 `proxy`
+- `proxy` 同时用于 DMM 描述抓取和 GFriends 头像资源访问，DMM 需要你自行分流到日本代理节点
 - `javdb_host`、GFriends 相关地址通常不建议随便改
 
 ## `[movie_info_translation]`
@@ -601,11 +597,9 @@ max_thumbnail_process_count = 4
 [metadata]
 # JavDB API 域名，不带协议头。
 javdb_host = "apidd.btyjscl.com"
-# 仅 GFriends 使用的代理地址；JavDB 固定直连。不需要代理时留空。
-# 示例：http://192.168.1.1:7890
+# DMM 与 GFriends 共用的代理地址；JavDB 默认直连。不需要代理时留空。
+# 示例：http://192.168.1.1:7890；DMM 通常需要可访问日本站点的代理。
 proxy = ""
-# DMM 页面抓取代理地址。不需要代理时留空；这里应配置可访问 DMM 的日本 IP 代理。
-dmm_proxy = ""
 # GFriends 文件树索引地址。
 gfriends_filetree_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends/Filetree.json"
 # GFriends CDN 根地址，用于拼接演员图片资源链接。

@@ -266,7 +266,7 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands aps sync
 适合场景：
 
 - 历史影片已经入库，但详情页里还缺原文描述
-- 你刚补好了 DMM 代理，想立刻重跑一次描述回填
+- 你刚补好了 metadata 代理，想立刻重跑一次描述回填
 - 不想等每天清晨的描述回填任务
 
 ### 翻译影片简介
@@ -366,8 +366,8 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands test-dmm
 补充：
 
 - 想输出 JSON 时，可以加 `--json`
-- 实际是否可用强依赖 `metadata.dmm_proxy` 指向可用的日本 IP 代理
-- 如果代理不是日本 IP，DMM 描述抓取通常会失败或结果不稳定
+- 实际是否可用强依赖 `metadata.proxy` 指向可访问 DMM 的代理；旧版 `metadata.dmm_proxy` 只作为兼容回退
+- 如果代理无法访问 DMM 日本站点，DMM 描述抓取通常会失败或结果不稳定
 
 ## 相关页面
 

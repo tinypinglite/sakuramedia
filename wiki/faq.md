@@ -11,10 +11,11 @@ outline: [2, 3]
 
 
 ## 代理配置
-配置文件中，`metadata`的配置项 `proxy` 和 `dmm_proxy` 配置代理，分别用于配置grfriends资源访问，以及 DMM网站抓取。
-`dmm_proxy`需要配置为日本 IP，否则会因为代理被拒绝而失败。
+配置文件中，`metadata.proxy` 用于 GFriends 资源访问和 DMM 网站抓取。**DMM**网站需要日本节点的IP, 所以这个代理需要你自己做好分流，确保访问 DMM 的请求能走到日本节点的代理上；GFriends 资源访问则没有地域限制，能访问github就可以了。
 
-**javdb** 相关接口不走代理，所以代理配置对 `javdb` 无效。
+
+
+**javdb** 相关接口不走代理，所以代理配置对 `javdb` 无效，如果你路由器开了透明代理，需要确保`c0.jdbstatic.com`域名直连，或者至少不要让它走日本节点的代理，因为这个域名不允许日本节点访问。
 
 
 ## 搜索与数据
@@ -114,11 +115,11 @@ outline: [2, 3]
 
 ### 为什么 DMM 描述抓取失败？
 
-结论：最常见的问题不是任务没跑，而是 `metadata.dmm_proxy` 没配好。
+结论：最常见的问题不是任务没跑，而是 `metadata.proxy` 没配好。
 
 优先检查这些点：
 
-- `metadata.dmm_proxy` 是否已经配置
+- `metadata.proxy` 是否已经配置；旧版 `metadata.dmm_proxy` 只作为兼容回退
 - 代理是否是可访问 DMM 的日本 IP
 - 代理本身是否还能正常连通目标站点
 

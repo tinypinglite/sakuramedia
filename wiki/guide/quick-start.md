@@ -204,7 +204,7 @@ password = "account"
 secret_key = "replace-with-a-random-secret-key"
 
 [metadata]
-# 下载 GFriends 使用的代理地址，用于处理女优头像。
+# DMM 与 GFriends 共用的代理地址，用于处理 DMM 简介抓取和女优头像。
 # 仅支持 http 代理：例如 http://192.168.1.1:7890
 # 不需要代理时留空即可
 proxy = ""
