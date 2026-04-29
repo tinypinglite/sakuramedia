@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
@@ -24,6 +25,7 @@ void main() {
         tester,
         sessionStore: sessionStore,
         statusApi: bundle.statusApi,
+        metadataProviderLicenseApi: bundle.metadataProviderLicenseApi,
         moviesApi: bundle.moviesApi,
       );
       await tester.pumpAndSettle();
@@ -60,6 +62,7 @@ Future<void> _pumpDesktopApp(
   WidgetTester tester, {
   required SessionStore sessionStore,
   required StatusApi statusApi,
+  required MetadataProviderLicenseApi metadataProviderLicenseApi,
   required MoviesApi moviesApi,
 }) async {
   final router = buildDesktopRouter(sessionStore: sessionStore);
@@ -72,6 +75,9 @@ Future<void> _pumpDesktopApp(
           create: (_) => MovieSubscriptionChangeNotifier(),
         ),
         Provider<StatusApi>.value(value: statusApi),
+        Provider<MetadataProviderLicenseApi>.value(
+          value: metadataProviderLicenseApi,
+        ),
         Provider<MoviesApi>.value(value: moviesApi),
       ],
       child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
@@ -107,6 +113,20 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
         'pending_thumbnails': 23,
         'failed_thumbnails': 2,
       },
+    },
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/metadata-provider-license/status',
+    body: <String, dynamic>{
+      'configured': true,
+      'active': true,
+      'instance_id': 'inst_test',
+      'expires_at': 1777181126,
+      'license_valid_until': 4102444800,
+      'renew_after_seconds': 21600,
+      'error_code': null,
+      'message': null,
     },
   );
   bundle.adapter.enqueueJson(

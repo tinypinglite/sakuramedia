@@ -20,6 +20,7 @@ import 'package:sakuramedia/features/configuration/presentation/mobile_media_lib
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_series_movies_page.dart';
+import 'package:sakuramedia/features/overview/presentation/mobile_system_overview_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/mobile_playlists_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/mobile_playlist_detail_page.dart';
 import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_page.dart';
@@ -266,6 +267,26 @@ class MobileSettingsMediaLibrariesRouteData extends _MobileSubpageRouteData
   }
 }
 
+@TypedGoRoute<MobileSystemOverviewRouteData>(path: mobileSystemOverviewPath)
+class MobileSystemOverviewRouteData extends _MobileSubpageRouteData
+    with $MobileSystemOverviewRouteData {
+  const MobileSystemOverviewRouteData();
+
+  @override
+  String get pageName => 'mobile-system-overview';
+
+  @override
+  String get title => '概览';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileSystemOverviewPage();
+  }
+}
+
 @TypedGoRoute<MobileSettingsDownloadersRouteData>(
   path: mobileSettingsDownloadersPath,
 )
@@ -496,6 +517,13 @@ class _MobileOverviewDrawer extends StatelessWidget {
 
   final BuildContext hostContext;
 
+  static const _MobileOverviewDrawerMenuItem _overviewItem =
+      _MobileOverviewDrawerMenuItem(
+        key: 'overview',
+        icon: Icons.space_dashboard_outlined,
+        label: '概览',
+      );
+
   static const List<_MobileOverviewDrawerMenuItem> _libraryItems =
       <_MobileOverviewDrawerMenuItem>[
         _MobileOverviewDrawerMenuItem(
@@ -557,6 +585,18 @@ class _MobileOverviewDrawer extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      _MobileOverviewDrawerSection(
+                        key: const Key(
+                          'mobile-overview-drawer-overview-section',
+                        ),
+                        items: <Widget>[
+                          _buildMenuEntry(
+                            context: context,
+                            item: _overviewItem,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: spacing.md),
                       _MobileOverviewDrawerSection(
                         key: const Key(
                           'mobile-overview-drawer-library-section',
@@ -640,6 +680,9 @@ class _MobileOverviewDrawer extends StatelessWidget {
 
   void _pushMenuRoute(String key) {
     switch (key) {
+      case 'overview':
+        const MobileSystemOverviewRouteData().push(hostContext);
+        return;
       case 'media-libraries':
         const MobileSettingsMediaLibrariesRouteData().push(hostContext);
         return;

@@ -16,6 +16,7 @@ const String desktopConfigurationPath = '/desktop/system/configuration';
 
 const String mobileOverviewPath = '/mobile/overview';
 const String mobilePlaylistDetailPathPrefix = '$mobileOverviewPath/playlists';
+const String mobileSystemOverviewPath = '/mobile/system/overview';
 const String mobileSearchPath = '/mobile/search';
 const String mobileImageSearchPath = '/mobile/search/image';
 const String mobileMoviesPath = '/mobile/library/movies';

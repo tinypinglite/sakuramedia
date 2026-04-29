@@ -16,6 +16,7 @@ import 'package:sakuramedia/features/configuration/data/collection_number_featur
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
+import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
@@ -28,6 +29,7 @@ import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
+import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/widgets/movies/mobile_follow_movie_card.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
@@ -160,8 +162,14 @@ void main() {
       final librarySection = find.byKey(
         const Key('mobile-overview-drawer-library-section'),
       );
+      final overviewSection = find.byKey(
+        const Key('mobile-overview-drawer-overview-section'),
+      );
       final playlistsSection = find.byKey(
         const Key('mobile-overview-drawer-playlists-section'),
+      );
+      final overviewItem = find.byKey(
+        const Key('mobile-overview-drawer-overview'),
       );
       final passwordSection = find.byKey(
         const Key('mobile-overview-drawer-password-section'),
@@ -213,8 +221,10 @@ void main() {
       expect(drawer, findsOneWidget);
       expect(find.text('菜单'), findsNothing);
       expect(find.text('配置管理'), findsNothing);
+      expect(overviewSection, findsOneWidget);
       expect(librarySection, findsOneWidget);
       expect(playlistsSection, findsOneWidget);
+      expect(overviewItem, findsOneWidget);
       expect(passwordSection, findsOneWidget);
       expect(mediaLibrariesItem, findsOneWidget);
       expect(downloadersItem, findsOneWidget);
@@ -223,6 +233,10 @@ void main() {
       expect(playlistsItem, findsOneWidget);
       expect(passwordItem, findsOneWidget);
       expect(logoutItem, findsOneWidget);
+      expect(
+        tester.getTopLeft(overviewSection).dy,
+        lessThan(tester.getTopLeft(librarySection).dy),
+      );
       expect(
         find.descendant(
           of: drawer,
@@ -338,6 +352,39 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('开发中'), findsNothing);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+  });
+
+  testWidgets('mobile overview drawer overview opens system overview page', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+    _enqueueSystemOverviewResponses(bundle);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      _buildRouterApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mobile-overview-drawer-overview')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('概览'), findsWidgets);
+    expect(
+      find.byKey(const Key('mobile-system-overview-page')),
+      findsOneWidget,
+    );
+    expect(find.text('媒体资产'), findsOneWidget);
+    expect(find.text('服务健康'), findsOneWidget);
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
   });
 
@@ -1437,10 +1484,14 @@ Widget _buildTestApp({
       Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
       Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
       Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
+      Provider<MetadataProviderLicenseApi>.value(
+        value: bundle.metadataProviderLicenseApi,
+      ),
       Provider<MovieDescTranslationSettingsApi>.value(
         value: bundle.movieDescTranslationSettingsApi,
       ),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
+      Provider<StatusApi>.value(value: bundle.statusApi),
       ChangeNotifierProvider(
         create: (_) => MovieCollectionTypeChangeNotifier(),
       ),
@@ -1476,10 +1527,14 @@ Widget _buildRouterApp({
       Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
       Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
       Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
+      Provider<MetadataProviderLicenseApi>.value(
+        value: bundle.metadataProviderLicenseApi,
+      ),
       Provider<MovieDescTranslationSettingsApi>.value(
         value: bundle.movieDescTranslationSettingsApi,
       ),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
+      Provider<StatusApi>.value(value: bundle.statusApi),
       ChangeNotifierProvider(
         create: (_) => MovieCollectionTypeChangeNotifier(),
       ),
@@ -1585,6 +1640,63 @@ void _enqueueOverviewResponses(
     statusCode: 200,
     body: _hotReviewsPageJson(),
   );
+}
+
+void _enqueueSystemOverviewResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/status',
+    statusCode: 200,
+    body: _statusJson(),
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/status/image-search',
+    statusCode: 200,
+    body: _imageSearchStatusJson(),
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/metadata-provider-license/status',
+    statusCode: 200,
+    body: _metadataProviderLicenseStatusJson(),
+  );
+}
+
+Map<String, dynamic> _statusJson({int totalSizeBytes = 987654321}) {
+  return <String, dynamic>{
+    'actors': <String, dynamic>{'female_total': 12, 'female_subscribed': 8},
+    'movies': <String, dynamic>{'total': 120, 'subscribed': 35, 'playable': 88},
+    'media_files': <String, dynamic>{
+      'total': 156,
+      'total_size_bytes': totalSizeBytes,
+    },
+    'media_libraries': <String, dynamic>{'total': 3},
+  };
+}
+
+Map<String, dynamic> _imageSearchStatusJson() {
+  return <String, dynamic>{
+    'healthy': true,
+    'joytag': <String, dynamic>{'healthy': true, 'used_device': 'GPU'},
+    'indexing': <String, dynamic>{
+      'pending_thumbnails': 23,
+      'failed_thumbnails': 2,
+    },
+  };
+}
+
+Map<String, dynamic> _metadataProviderLicenseStatusJson() {
+  return <String, dynamic>{
+    'configured': true,
+    'active': true,
+    'instance_id': 'inst_test',
+    'expires_at': 1777181126,
+    'license_valid_until': 4102444800,
+    'renew_after_seconds': 21600,
+    'error_code': null,
+    'message': null,
+  };
 }
 
 void _enqueueLlmSettings(TestApiBundle bundle) {

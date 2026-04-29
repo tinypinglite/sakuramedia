@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
+import 'package:sakuramedia/features/overview/presentation/overview_system_info_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
-import 'package:sakuramedia/features/status/data/status_dto.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -23,25 +22,17 @@ class DesktopOverviewPage extends StatefulWidget {
 }
 
 class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
-  bool _isLoadingStatus = true;
-  bool _isLoadingImageSearchStatus = true;
-  bool _isLoadingLicenseStatus = true;
-  bool _isTestingMetadataProviders = false;
-  bool _isTestingLicenseConnectivity = false;
-  StatusDto? _status;
-  StatusImageSearchDto? _imageSearchStatus;
-  MetadataProviderLicenseStatusDto? _licenseStatus;
-  MetadataProviderLicenseConnectivityTestDto? _licenseConnectivityTest;
-  String? _licenseStatusError;
-  bool? _javdbHealthy;
-  bool? _dmmHealthy;
-  String? _statusError;
+  late final OverviewSystemInfoController _systemInfoController;
   late final PagedMovieSummaryController _moviesController;
   late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
 
   @override
   void initState() {
     super.initState();
+    _systemInfoController = OverviewSystemInfoController(
+      statusApi: context.read<StatusApi>(),
+      metadataProviderLicenseApi: context.read<MetadataProviderLicenseApi>(),
+    )..addListener(_onSystemInfoChanged);
     _subscriptionChangeNotifier =
         context.read<MovieSubscriptionChangeNotifier>();
     _subscriptionChangeNotifier.addListener(_onMovieSubscriptionChanged);
@@ -63,9 +54,17 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
 
   @override
   void dispose() {
+    _systemInfoController.removeListener(_onSystemInfoChanged);
+    _systemInfoController.dispose();
     _subscriptionChangeNotifier.removeListener(_onMovieSubscriptionChanged);
     _moviesController.dispose();
     super.dispose();
+  }
+
+  void _onSystemInfoChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _onMovieSubscriptionChanged() {
@@ -90,84 +89,9 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
   }
 
   Future<void> _loadOverview() async {
-    final statusFuture = _loadStatus();
-    final imageSearchStatusFuture = _loadImageSearchStatus();
-    final licenseStatusFuture = _loadLicenseStatus();
+    final systemInfoFuture = _systemInfoController.load();
     final moviesFuture = _moviesController.initialize();
-    await Future.wait<void>([
-      statusFuture,
-      imageSearchStatusFuture,
-      licenseStatusFuture,
-      moviesFuture,
-    ]);
-  }
-
-  Future<void> _loadStatus() async {
-    try {
-      final status = await context.read<StatusApi>().getStatus();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _status = status;
-        _statusError = null;
-        _isLoadingStatus = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _statusError = '系统信息加载失败，请稍后重试';
-        _isLoadingStatus = false;
-      });
-    }
-  }
-
-  Future<void> _loadImageSearchStatus() async {
-    try {
-      final imageSearchStatus =
-          await context.read<StatusApi>().getImageSearchStatus();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _imageSearchStatus = imageSearchStatus;
-        _isLoadingImageSearchStatus = false;
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _imageSearchStatus = null;
-        _isLoadingImageSearchStatus = false;
-      });
-    }
-  }
-
-  Future<void> _loadLicenseStatus() async {
-    try {
-      final licenseStatus =
-          await context.read<MetadataProviderLicenseApi>().getStatus();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _licenseStatus = licenseStatus;
-        _licenseStatusError = null;
-        _isLoadingLicenseStatus = false;
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _licenseStatus = null;
-        _licenseStatusError = 'unavailable';
-        _isLoadingLicenseStatus = false;
-      });
-    }
+    await Future.wait<void>([systemInfoFuture, moviesFuture]);
   }
 
   Future<void> _toggleMovieSubscription(String movieNumber) async {
@@ -180,152 +104,81 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
     showMovieSubscriptionFeedback(result);
   }
 
-  Future<void> _testExternalDataSources() async {
-    if (_isTestingMetadataProviders) {
-      return;
-    }
-
-    final statusApi = context.read<StatusApi>();
-    setState(() {
-      _isTestingMetadataProviders = true;
-    });
-
-    final results = await Future.wait<bool>([
-      _testMetadataProvider(statusApi, 'javdb'),
-      _testMetadataProvider(statusApi, 'dmm'),
-    ]);
-
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _javdbHealthy = results[0];
-      _dmmHealthy = results[1];
-      _isTestingMetadataProviders = false;
-    });
-  }
-
-  Future<void> _testLicenseConnectivity() async {
-    if (_isTestingLicenseConnectivity) {
-      return;
-    }
-
-    setState(() {
-      _isTestingLicenseConnectivity = true;
-    });
-
-    try {
-      final result =
-          await context.read<MetadataProviderLicenseApi>().testConnectivity();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _licenseConnectivityTest = result;
-        _isTestingLicenseConnectivity = false;
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _licenseConnectivityTest =
-            const MetadataProviderLicenseConnectivityTestDto(
-              ok: false,
-              url: '',
-              proxyEnabled: false,
-              elapsedMs: 0,
-              error: 'unavailable',
-            );
-        _isTestingLicenseConnectivity = false;
-      });
-    }
-  }
-
-  Future<bool> _testMetadataProvider(
-    StatusApi statusApi,
-    String provider,
-  ) async {
-    try {
-      final result = await statusApi.testMetadataProvider(provider);
-      return result.healthy;
-    } catch (_) {
-      return false;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final systemInfo = _systemInfoController;
     final stats =
-        _status == null
+        systemInfo.status == null
             ? const <OverviewStatItem>[]
             : <OverviewStatItem>[
               OverviewStatItem(
                 id: 'movies-total',
                 label: '影片总数',
-                value: _status!.movies.total.toString(),
+                value: systemInfo.status!.movies.total.toString(),
               ),
               OverviewStatItem(
                 id: 'movies-playable',
                 label: '可播放影片',
-                value: _status!.movies.playable.toString(),
+                value: systemInfo.status!.movies.playable.toString(),
               ),
               OverviewStatItem(
                 id: 'actors-female-total',
                 label: '女优总数',
-                value: _status!.actors.femaleTotal.toString(),
+                value: systemInfo.status!.actors.femaleTotal.toString(),
               ),
               OverviewStatItem(
                 id: 'media-files-total',
                 label: '媒体文件',
-                value: _status!.mediaFiles.total.toString(),
+                value: systemInfo.status!.mediaFiles.total.toString(),
               ),
               OverviewStatItem(
                 id: 'media-libraries-total',
                 label: '资源库',
-                value: _status!.mediaLibraries.total.toString(),
+                value: systemInfo.status!.mediaLibraries.total.toString(),
               ),
               OverviewStatItem(
                 id: 'media-files-size',
                 label: '媒体总量',
-                value: _formatGigabytes(_status!.mediaFiles.totalSizeBytes),
+                value: systemInfo.formatGigabytes(
+                  systemInfo.status!.mediaFiles.totalSizeBytes,
+                ),
               ),
               OverviewStatItem(
                 id: 'joytag-health',
                 label: 'JoyTag 健康',
-                value: _buildJoyTagHealthValue(),
-                isLoading: _isLoadingImageSearchStatus,
+                value: systemInfo.buildJoyTagHealthValue(),
+                isLoading: systemInfo.isLoadingImageSearchStatus,
               ),
               OverviewStatItem(
                 id: 'joytag-device',
                 label: '推理设备',
-                value: _buildJoyTagDeviceValue(),
-                isLoading: _isLoadingImageSearchStatus,
+                value: systemInfo.buildJoyTagDeviceValue(),
+                isLoading: systemInfo.isLoadingImageSearchStatus,
               ),
               OverviewStatItem(
                 id: 'joytag-indexing-backlog',
                 label: '待索引',
-                value: _buildJoyTagIndexingValue(),
-                isLoading: _isLoadingImageSearchStatus,
+                value: systemInfo.buildJoyTagIndexingValue(),
+                isLoading: systemInfo.isLoadingImageSearchStatus,
               ),
               OverviewStatItem(
                 id: 'metadata-provider-license',
                 label: '数据源授权',
-                value: _buildLicenseStatusValue(),
-                isLoading: _isLoadingLicenseStatus,
+                value: systemInfo.buildLicenseStatusValue(),
+                isLoading: systemInfo.isLoadingLicenseStatus,
                 valueTextSize: AppTextSize.s12,
               ),
               OverviewStatItem(
                 id: 'license-center-connectivity',
                 label: '授权中心',
-                value: _buildLicenseConnectivityValue(),
+                value: systemInfo.buildLicenseConnectivityValue(),
                 valueTextSize: AppTextSize.s12,
                 action: _buildLicenseConnectivityAction(context),
               ),
               OverviewStatItem(
                 id: 'external-data-sources',
                 label: '外部数据源',
-                value: _buildExternalDataSourcesValue(),
+                value: systemInfo.buildExternalDataSourcesValue(),
                 valueTextSize: AppTextSize.s12,
                 maxWidth: 260,
                 action: _buildExternalDataSourcesAction(context),
@@ -342,8 +195,8 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
           children: [
             OverviewStatsStrip(
               items: stats,
-              isLoading: _isLoadingStatus,
-              errorMessage: _statusError,
+              isLoading: systemInfo.isLoadingStatus,
+              errorMessage: systemInfo.statusError,
             ),
             SizedBox(height: context.appSpacing.xxl),
             Text(
@@ -395,114 +248,18 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
     );
   }
 
-  String _formatGigabytes(int bytes) {
-    const bytesPerGigabyte = 1024 * 1024 * 1024;
-    final value = bytes <= 0 ? 0.0 : bytes / bytesPerGigabyte;
-    return '${value.toStringAsFixed(1)} GB';
-  }
-
-  String _buildJoyTagHealthValue() {
-    if (_imageSearchStatus == null) {
-      return '不可用';
-    }
-    return _imageSearchStatus!.joyTag.healthy ? '正常' : '异常';
-  }
-
-  String _buildJoyTagDeviceValue() {
-    final device = _imageSearchStatus?.joyTag.usedDevice;
-    if (device == null || device.trim().isEmpty) {
-      return '未知';
-    }
-    return device;
-  }
-
-  String _buildJoyTagIndexingValue() {
-    if (_imageSearchStatus == null) {
-      return '不可用';
-    }
-    return _imageSearchStatus!.indexing.pendingThumbnails.toString();
-  }
-
-  String _buildLicenseStatusValue() {
-    if (_licenseStatusError != null) {
-      return '不可用';
-    }
-    final status = _licenseStatus;
-    if (status == null) {
-      return '不可用';
-    }
-    if (status.active) {
-      return '已激活';
-    }
-    final errorCode = status.errorCode?.trim();
-    if (errorCode == 'license_expired' ||
-        _isUnixSecondsExpired(status.licenseValidUntil)) {
-      return '授权已到期';
-    }
-    if (status.licenseValidUntil != null) {
-      return '授权待同步';
-    }
-    if (status.configured && errorCode != null && errorCode.isNotEmpty) {
-      return _licenseErrorLabel(errorCode);
-    }
-    return '未激活';
-  }
-
-  String _buildLicenseConnectivityValue() {
-    if (_isTestingLicenseConnectivity) {
-      return '检测中';
-    }
-    final result = _licenseConnectivityTest;
-    if (result == null) {
-      return '未检测';
-    }
-    return result.ok ? '连接正常' : '连接异常';
-  }
-
-  bool _isUnixSecondsExpired(int? unixSeconds) {
-    if (unixSeconds == null) {
-      return false;
-    }
-    final value = DateTime.fromMillisecondsSinceEpoch(
-      unixSeconds * 1000,
-      isUtc: true,
-    );
-    return value.isBefore(DateTime.now().toUtc());
-  }
-
-  String _licenseErrorLabel(String errorCode) {
-    return switch (errorCode) {
-      'license_required' => '未激活',
-      'license_expired' => '授权已到期',
-      'license_revoked' => '授权已吊销',
-      'license_unavailable' => '授权不可用',
-      _ => errorCode,
-    };
-  }
-
-  String _buildExternalDataSourcesValue() {
-    if (_javdbHealthy == null && _dmmHealthy == null) {
-      return '未检测 JavDB / DMM';
-    }
-    return '${_buildExternalDataSourceText('JavDB', _javdbHealthy)} ${_buildExternalDataSourceText('DMM', _dmmHealthy)}';
-  }
-
-  String _buildExternalDataSourceText(String label, bool? healthy) {
-    if (healthy == null) {
-      return '未检测 $label';
-    }
-    return '${healthy ? '✅' : '❌'} $label';
-  }
-
   Widget _buildExternalDataSourcesAction(BuildContext context) {
     return AppIconButton(
       key: const Key('overview-external-data-sources-test-button'),
       tooltip: '检测外部数据源',
       semanticLabel: '检测外部数据源',
       size: AppIconButtonSize.mini,
-      onPressed: _isTestingMetadataProviders ? null : _testExternalDataSources,
+      onPressed:
+          _systemInfoController.isTestingMetadataProviders
+              ? null
+              : _systemInfoController.testExternalDataSources,
       icon:
-          _isTestingMetadataProviders
+          _systemInfoController.isTestingMetadataProviders
               ? SizedBox(
                 width: context.appComponentTokens.iconSizeSm,
                 height: context.appComponentTokens.iconSizeSm,
@@ -522,9 +279,11 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
       semanticLabel: '测试授权中心连接',
       size: AppIconButtonSize.mini,
       onPressed:
-          _isTestingLicenseConnectivity ? null : _testLicenseConnectivity,
+          _systemInfoController.isTestingLicenseConnectivity
+              ? null
+              : _systemInfoController.testLicenseConnectivity,
       icon:
-          _isTestingLicenseConnectivity
+          _systemInfoController.isTestingLicenseConnectivity
               ? SizedBox(
                 width: context.appComponentTokens.iconSizeSm,
                 height: context.appComponentTokens.iconSizeSm,
