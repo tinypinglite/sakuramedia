@@ -55,6 +55,11 @@ const List<_MobileSettingsRouteCase> _mobileSettingsRouteCases =
         pageKey: Key('mobile-system-overview-page'),
       ),
       _MobileSettingsRouteCase(
+        path: mobileSettingsDataSourcesPath,
+        title: '数据源',
+        pageKey: Key('mobile-settings-data-sources'),
+      ),
+      _MobileSettingsRouteCase(
         path: mobileSettingsMediaLibrariesPath,
         title: '媒体库',
         pageKey: Key('mobile-settings-media-libraries'),
@@ -1053,7 +1058,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      if (routeCase.path == mobileSettingsMediaLibrariesPath) {
+      if (routeCase.path == mobileSettingsDataSourcesPath) {
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/metadata-provider-license/status',
+          body: _metadataProviderLicenseStatusJson(),
+        );
+      } else if (routeCase.path == mobileSettingsMediaLibrariesPath) {
         bundle.adapter.enqueueJson(
           method: 'GET',
           path: '/media-libraries',
@@ -1752,7 +1763,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      if (routeCase.path == mobileSettingsMediaLibrariesPath) {
+      if (routeCase.path == mobileSettingsDataSourcesPath) {
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/metadata-provider-license/status',
+          body: _metadataProviderLicenseStatusJson(),
+        );
+      } else if (routeCase.path == mobileSettingsMediaLibrariesPath) {
         bundle.adapter.enqueueJson(
           method: 'GET',
           path: '/media-libraries',
@@ -3534,17 +3551,21 @@ void _enqueueMobileSystemOverviewResponses(TestApiBundle bundle) {
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/metadata-provider-license/status',
-    body: <String, dynamic>{
-      'configured': true,
-      'active': true,
-      'instance_id': 'inst_test',
-      'expires_at': 1777181126,
-      'license_valid_until': 4102444800,
-      'renew_after_seconds': 21600,
-      'error_code': null,
-      'message': null,
-    },
+    body: _metadataProviderLicenseStatusJson(),
   );
+}
+
+Map<String, dynamic> _metadataProviderLicenseStatusJson() {
+  return <String, dynamic>{
+    'configured': true,
+    'active': true,
+    'instance_id': 'inst_test',
+    'expires_at': 1777181126,
+    'license_valid_until': 4102444800,
+    'renew_after_seconds': 21600,
+    'error_code': null,
+    'message': null,
+  };
 }
 
 void _enqueueImageSearchSingleResultResponse(TestApiBundle bundle) {

@@ -13,6 +13,7 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
+import 'package:sakuramedia/features/configuration/presentation/mobile_data_sources_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/mobile_downloaders_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/mobile_indexers_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/mobile_llm_settings_page.dart';
@@ -264,6 +265,28 @@ class MobileSettingsMediaLibrariesRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return const MobileMediaLibrariesPage();
+  }
+}
+
+@TypedGoRoute<MobileSettingsDataSourcesRouteData>(
+  path: mobileSettingsDataSourcesPath,
+)
+class MobileSettingsDataSourcesRouteData extends _MobileSubpageRouteData
+    with $MobileSettingsDataSourcesRouteData {
+  const MobileSettingsDataSourcesRouteData();
+
+  @override
+  String get pageName => 'mobile-settings-data-sources';
+
+  @override
+  String get title => '数据源';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileDataSourcesPage();
   }
 }
 
@@ -527,6 +550,11 @@ class _MobileOverviewDrawer extends StatelessWidget {
   static const List<_MobileOverviewDrawerMenuItem> _libraryItems =
       <_MobileOverviewDrawerMenuItem>[
         _MobileOverviewDrawerMenuItem(
+          key: 'data-sources',
+          icon: Icons.cloud_sync_outlined,
+          label: '数据源',
+        ),
+        _MobileOverviewDrawerMenuItem(
           key: 'media-libraries',
           icon: Icons.video_library_outlined,
           label: '媒体库',
@@ -682,6 +710,9 @@ class _MobileOverviewDrawer extends StatelessWidget {
     switch (key) {
       case 'overview':
         const MobileSystemOverviewRouteData().push(hostContext);
+        return;
+      case 'data-sources':
+        const MobileSettingsDataSourcesRouteData().push(hostContext);
         return;
       case 'media-libraries':
         const MobileSettingsMediaLibrariesRouteData().push(hostContext);

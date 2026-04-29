@@ -23,6 +23,7 @@ const String mobileMoviesPath = '/mobile/library/movies';
 const String mobileMovieSeriesPathPrefix = '$mobileMoviesPath/series';
 const String mobileActorsPath = '/mobile/library/actors';
 const String mobileRankingsPath = '/mobile/rankings';
+const String mobileSettingsDataSourcesPath = '/mobile/settings/data-sources';
 const String mobileSettingsMediaLibrariesPath =
     '/mobile/settings/media-libraries';
 const String mobileSettingsDownloadersPath = '/mobile/settings/downloaders';

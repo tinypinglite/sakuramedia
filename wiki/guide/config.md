@@ -52,7 +52,7 @@
 - `[database]`
 - `[auth]`
 - `[media]`
-- `[metadata]`
+- `[metadata]`（包含元数据代理与数据源授权中心代理）
 - `[movie_info_translation]`
 - `[scheduler]`
 - `[logging]`
@@ -238,6 +238,7 @@ max_thumbnail_process_count = 4
 [metadata]
 javdb_host = "apidd.btyjscl.com"
 proxy = ""
+license_proxy = ""
 gfriends_filetree_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends/Filetree.json"
 gfriends_cdn_base_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends"
 gfriends_filetree_cache_path = "/data/cache/gfriends/gfriends-filetree.json"
@@ -251,6 +252,7 @@ import_metadata_max_workers = 3
 |---|---|
 | `javdb_host` | JavDB API 域名，不带协议头 |
 | `proxy` | DMM 与 GFriends 共用的 HTTP 代理地址；JavDB 默认直连 |
+| `license_proxy` | 授权中心 HTTP 代理地址；只用于访问 Cloudflare Workers 授权中心 |
 | `gfriends_filetree_url` | GFriends 文件树索引地址 |
 | `gfriends_cdn_base_url` | GFriends CDN 根地址 |
 | `gfriends_filetree_cache_path` | GFriends 文件树本地缓存路径 |
@@ -259,8 +261,10 @@ import_metadata_max_workers = 3
 
 建议：
 
-- 大多数场景只需要配置 `proxy`
+- 大多数元数据抓取场景只需要配置 `proxy`
 - `proxy` 同时用于 DMM 描述抓取和 GFriends 头像资源访问，DMM 需要你自行分流到日本代理节点
+- `license_proxy` 只用于数据源授权中心；如果当前网络可以直接访问授权中心，保持为空即可
+- 外部数据源需要免费激活后使用，激活码获取与使用规则见[数据源授权](/guide/license)
 - `javdb_host`、GFriends 相关地址通常不建议随便改
 
 ## `[movie_info_translation]`
@@ -600,6 +604,8 @@ javdb_host = "apidd.btyjscl.com"
 # DMM 与 GFriends 共用的代理地址；JavDB 默认直连。不需要代理时留空。
 # 示例：http://192.168.1.1:7890；DMM 通常需要可访问日本站点的代理。
 proxy = ""
+# 授权中心 HTTP 代理；仅访问授权中心时使用。不需要代理时留空。
+license_proxy = ""
 # GFriends 文件树索引地址。
 gfriends_filetree_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends/Filetree.json"
 # GFriends CDN 根地址，用于拼接演员图片资源链接。

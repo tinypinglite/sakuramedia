@@ -30,7 +30,6 @@ import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_p
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
-import 'package:sakuramedia/widgets/movies/mobile_follow_movie_card.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
@@ -177,6 +176,9 @@ void main() {
       final mediaLibrariesItem = find.byKey(
         const Key('mobile-overview-drawer-media-libraries'),
       );
+      final dataSourcesItem = find.byKey(
+        const Key('mobile-overview-drawer-data-sources'),
+      );
       final downloadersItem = find.byKey(
         const Key('mobile-overview-drawer-downloaders'),
       );
@@ -226,6 +228,7 @@ void main() {
       expect(playlistsSection, findsOneWidget);
       expect(overviewItem, findsOneWidget);
       expect(passwordSection, findsOneWidget);
+      expect(dataSourcesItem, findsOneWidget);
       expect(mediaLibrariesItem, findsOneWidget);
       expect(downloadersItem, findsOneWidget);
       expect(indexersItem, findsOneWidget);
@@ -256,7 +259,11 @@ void main() {
                     ),
           ),
         ),
-        findsNWidgets(3),
+        findsNWidgets(4),
+      );
+      expect(
+        find.descendant(of: librarySection, matching: dataSourcesItem),
+        findsOneWidget,
       );
       expect(
         find.descendant(of: librarySection, matching: mediaLibrariesItem),
@@ -299,6 +306,10 @@ void main() {
         ),
       );
       expect(
+        tester.getTopLeft(dataSourcesItem).dy,
+        lessThan(tester.getTopLeft(mediaLibrariesItem).dy),
+      );
+      expect(
         tester.getTopLeft(playlistsSection).dy,
         greaterThan(tester.getBottomLeft(librarySection).dy),
       );
@@ -316,6 +327,48 @@ void main() {
       );
     },
   );
+
+  testWidgets('mobile overview drawer data sources opens subpage shell', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/metadata-provider-license/status',
+      body: _metadataProviderLicenseStatusJson(),
+    );
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      _buildRouterApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('mobile-overview-drawer-data-sources')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('数据源'), findsOneWidget);
+    expect(
+      find.byKey(const Key('mobile-settings-data-sources')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('mobile-data-sources-activate-button')),
+      findsOneWidget,
+    );
+    expect(find.text('开发中'), findsNothing);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+  });
 
   testWidgets('mobile overview drawer media libraries opens subpage shell', (
     WidgetTester tester,

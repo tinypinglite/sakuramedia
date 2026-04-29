@@ -12,6 +12,7 @@ List<RouteBase> get $appRoutes => [
   $mobileImageSearchRouteData,
   $mobileSearchQueryRouteData,
   $mobileSettingsMediaLibrariesRouteData,
+  $mobileSettingsDataSourcesRouteData,
   $mobileSystemOverviewRouteData,
   $mobileSettingsDownloadersRouteData,
   $mobileSettingsIndexersRouteData,
@@ -208,6 +209,32 @@ mixin $MobileSettingsMediaLibrariesRouteData on GoRouteData {
   @override
   String get location =>
       GoRouteData.$location('/mobile/settings/media-libraries');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileSettingsDataSourcesRouteData => GoRouteData.$route(
+  path: '/mobile/settings/data-sources',
+  factory: $MobileSettingsDataSourcesRouteData._fromState,
+);
+
+mixin $MobileSettingsDataSourcesRouteData on GoRouteData {
+  static MobileSettingsDataSourcesRouteData _fromState(GoRouterState state) =>
+      const MobileSettingsDataSourcesRouteData();
+
+  @override
+  String get location => GoRouteData.$location('/mobile/settings/data-sources');
 
   @override
   void go(BuildContext context) => context.go(location);

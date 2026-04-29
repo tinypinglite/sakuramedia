@@ -19,6 +19,7 @@ export default defineConfig({
           text: '指南',
           items: [
             { text: '快速开始', link: '/guide/quick-start' },
+            { text: '数据源授权', link: '/guide/license' },
             { text: '配置说明', link: '/guide/config' },
             { text: '后台任务', link: '/guide/tasks' },
             { text: '进阶部署', link: '/guide/docker' },
