@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/configuration/data/collection_number_featur
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
+import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/llm_settings_copy.dart';
@@ -46,15 +47,343 @@ void main() {
     ) async {
       _enqueueMediaLibraries(bundle);
 
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        enqueueDefaultLicenseStatus: false,
+      );
 
       final tabs = tester.widgetList<Tab>(find.byType(Tab)).toList();
       expect(tabs.map((tab) => tab.text).toList(), [
-        '基础信息',
+        '数据源',
+        '媒体库',
+        '合集特征',
+        'LLM 配置',
+        '账号安全',
         '下载器',
         '索引器',
         '播放列表',
       ]);
+    });
+
+    testWidgets('loads metadata provider license tab by default', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        enqueueDefaultLicenseStatus: false,
+      );
+
+      expect(
+        bundle.adapter.hitCount('GET', '/metadata-provider-license/status'),
+        1,
+      );
+      expect(
+        find.byKey(const Key('configuration-license-card')),
+        findsOneWidget,
+      );
+      expect(find.text('数据源授权'), findsOneWidget);
+      expect(find.text('数据源'), findsOneWidget);
+      expect(find.text('未激活'), findsWidgets);
+      expect(find.text('授权有效期: 未提供'), findsOneWidget);
+      expect(find.text('授权中心: 未检测'), findsOneWidget);
+      expect(find.text('过期时间: 未提供'), findsNothing);
+      expect(find.text('续租建议: 未提供'), findsNothing);
+      expect(find.text('实例 ID: inst_test'), findsNothing);
+    });
+
+    testWidgets('aligns metadata provider license actions with input', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        enqueueDefaultLicenseStatus: false,
+      );
+      await tester.tap(find.byKey(const Key('configuration-tab-license')));
+      await tester.pumpAndSettle();
+
+      final inputCenterY =
+          tester
+              .getCenter(
+                find.byKey(const Key('configuration-license-activation-field')),
+              )
+              .dy;
+      final refreshCenterY =
+          tester
+              .getCenter(
+                find.byKey(const Key('configuration-license-refresh-button')),
+              )
+              .dy;
+      final activateCenterY =
+          tester
+              .getCenter(
+                find.byKey(const Key('configuration-license-activate-button')),
+              )
+              .dy;
+
+      expect(refreshCenterY, closeTo(inputCenterY, 1));
+      expect(activateCenterY, closeTo(inputCenterY, 1));
+    });
+
+    testWidgets('refreshes metadata provider license status', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
+      _enqueueMetadataProviderLicenseStatus(bundle, active: true);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        enqueueDefaultLicenseStatus: false,
+      );
+      await tester.tap(find.byKey(const Key('configuration-tab-license')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('configuration-license-refresh-button')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(
+        bundle.adapter.hitCount('GET', '/metadata-provider-license/status'),
+        2,
+      );
+      expect(find.text('已激活'), findsWidgets);
+    });
+
+    testWidgets('shows pending sync when business license is still valid', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMetadataProviderLicenseStatus(
+        bundle,
+        active: false,
+        errorCode: 'license_unavailable',
+        message: 'License state cannot be validated',
+        licenseValidUntil: 4102444800,
+      );
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        enqueueDefaultLicenseStatus: false,
+      );
+
+      expect(find.text('授权待同步'), findsWidgets);
+      expect(find.text('你的授权仍在有效期内，但当前设备需要重新同步授权后才能使用外部数据源。'), findsOneWidget);
+    });
+
+    testWidgets('syncs metadata provider authorization', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMetadataProviderLicenseStatus(
+        bundle,
+        active: false,
+        errorCode: 'license_unavailable',
+        message: 'License state cannot be validated',
+        licenseValidUntil: 4102444800,
+      );
+      _enqueueMetadataProviderLicenseRenew(bundle);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        enqueueDefaultLicenseStatus: false,
+      );
+      await tester.tap(
+        find.byKey(const Key('configuration-license-sync-button')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(
+        bundle.adapter.hitCount('POST', '/metadata-provider-license/renew'),
+        1,
+      );
+      expect(find.text('已激活'), findsWidgets);
+      expect(find.text('授权状态已同步'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('tests metadata provider license center connectivity', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
+      _enqueueMetadataProviderLicenseConnectivity(bundle, ok: true);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        enqueueDefaultLicenseStatus: false,
+      );
+      await tester.tap(
+        find.byKey(const Key('configuration-license-connectivity-button')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(
+        bundle.adapter.hitCount(
+          'GET',
+          '/metadata-provider-license/connectivity-test',
+        ),
+        1,
+      );
+      expect(find.text('授权中心: 连接正常'), findsOneWidget);
+      expect(find.text('授权中心连接正常'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('keeps metadata provider diagnostics collapsed by default', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        enqueueDefaultLicenseStatus: false,
+      );
+
+      expect(find.text('诊断信息'), findsOneWidget);
+      expect(find.text('实例 ID: inst_test'), findsNothing);
+
+      await tester.tap(
+        find.byKey(const Key('configuration-license-diagnostics')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('实例 ID: inst_test'), findsOneWidget);
+      expect(find.text('错误码: license_required'), findsOneWidget);
+    });
+
+    testWidgets('activates metadata provider license', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
+      _enqueueMetadataProviderLicenseActivate(bundle);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        enqueueDefaultLicenseStatus: false,
+      );
+      await tester.tap(find.byKey(const Key('configuration-tab-license')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('configuration-license-activation-field')),
+        'SMB-SUPER-SECRET',
+      );
+      await tester.tap(
+        find.byKey(const Key('configuration-license-activate-button')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      final request = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'POST' &&
+            request.path == '/metadata-provider-license/activate',
+      );
+      expect(request.body['activation_code'], 'SMB-SUPER-SECRET');
+      expect(find.text('已激活'), findsWidgets);
+      expect(find.text('授权已激活'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextFormField>(
+              find.byKey(const Key('configuration-license-activation-field')),
+            )
+            .controller
+            ?.text,
+        isEmpty,
+      );
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('validates metadata provider license activation code', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        enqueueDefaultLicenseStatus: false,
+      );
+      await tester.tap(find.byKey(const Key('configuration-tab-license')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('configuration-license-activate-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('请输入激活码'), findsOneWidget);
+      expect(
+        bundle.adapter.hitCount('POST', '/metadata-provider-license/activate'),
+        0,
+      );
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('does not expose activation code when activation fails', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/metadata-provider-license/activate',
+        statusCode: 403,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{
+            'code': 'activation_code_invalid',
+            'message': 'Activation code is invalid',
+            'details': <String, dynamic>{
+              'license_error_code': 'activation_code_invalid',
+            },
+          },
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-license')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('configuration-license-activation-field')),
+        'SMB-SUPER-SECRET',
+      );
+      await tester.tap(
+        find.byKey(const Key('configuration-license-activate-button')),
+      );
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Activation code is invalid'), findsOneWidget);
+      expect(find.text('SMB-SUPER-SECRET'), findsNothing);
+      await tester.pump(const Duration(seconds: 3));
     });
 
     testWidgets('loads download clients lazily when switching tabs', (
@@ -67,18 +396,29 @@ void main() {
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
 
       expect(bundle.adapter.hitCount('GET', '/download-clients'), 0);
-      expect(bundle.adapter.hitCount('GET', '/media-libraries'), 1);
-      expect(find.text('还没有媒体库'), findsOneWidget);
+      expect(bundle.adapter.hitCount('GET', '/media-libraries'), 0);
+      expect(bundle.adapter.hitCount('GET', '/collection-number-features'), 0);
+      expect(
+        bundle.adapter.hitCount('GET', '/movie-desc-translation-settings'),
+        0,
+      );
+      expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 0);
+      expect(bundle.adapter.hitCount('GET', '/playlists'), 0);
+      expect(
+        bundle.adapter.hitCount('GET', '/metadata-provider-license/status'),
+        1,
+      );
+      expect(find.text('还没有媒体库'), findsNothing);
 
       await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
       await tester.pumpAndSettle();
 
       expect(bundle.adapter.hitCount('GET', '/download-clients'), 1);
-      expect(bundle.adapter.hitCount('GET', '/media-libraries'), 2);
+      expect(bundle.adapter.hitCount('GET', '/media-libraries'), 1);
       expect(find.text('还没有下载器配置'), findsOneWidget);
     });
 
-    testWidgets('loads collection number features on basic tab', (
+    testWidgets('loads collection number features lazily', (
       WidgetTester tester,
     ) async {
       _enqueueCollectionNumberFeatures(bundle, features: const ['FC2', 'OFJE']);
@@ -86,25 +426,35 @@ void main() {
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
 
+      expect(bundle.adapter.hitCount('GET', '/collection-number-features'), 0);
+      await tester.tap(
+        find.byKey(const Key('configuration-tab-collection-features')),
+      );
+      await tester.pumpAndSettle();
+
       final field = tester.widget<TextFormField>(
         find.byKey(const Key('configuration-collection-features-field')),
       );
       expect(field.controller?.text, 'FC2\nOFJE');
-      expect(
-        bundle.adapter.hitCount('GET', '/collection-number-features'),
-        greaterThanOrEqualTo(1),
-      );
+      expect(bundle.adapter.hitCount('GET', '/collection-number-features'), 1);
     });
 
-    testWidgets('loads llm settings section on basic tab', (
+    testWidgets('loads llm settings section lazily', (
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
 
+      expect(
+        bundle.adapter.hitCount('GET', '/movie-desc-translation-settings'),
+        0,
+      );
+      await tester.tap(find.byKey(const Key('configuration-tab-llm')));
+      await tester.pumpAndSettle();
+
       expect(find.byKey(const Key('configuration-llm-card')), findsOneWidget);
-      expect(find.text('LLM 配置'), findsOneWidget);
+      expect(find.text('LLM 配置'), findsWidgets);
       expect(
         find.byKey(const Key('configuration-llm-base-url-field')),
         findsOneWidget,
@@ -138,6 +488,7 @@ void main() {
       _enqueueMovieDescTranslationSettings(bundle, baseUrl: '', model: '');
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
 
       expect(find.text(LlmSettingsCopy.baseUrlHelperText), findsOneWidget);
       expect(find.text(LlmSettingsCopy.modelHintText), findsOneWidget);
@@ -161,6 +512,7 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
 
       await tester.ensureVisible(
         find.byKey(const Key('configuration-llm-enabled-button')),
@@ -219,6 +571,7 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
 
       await tester.enterText(
         find.byKey(const Key('configuration-llm-base-url-field')),
@@ -256,6 +609,7 @@ void main() {
       _enqueueMediaLibraries(bundle);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
 
       await tester.enterText(
         find.byKey(const Key('configuration-llm-base-url-field')),
@@ -313,6 +667,7 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
 
       await tester.ensureVisible(
         find.byKey(const Key('configuration-llm-test-button')),
@@ -350,6 +705,7 @@ void main() {
       _enqueueMovieDescTranslationSettings(bundle);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
 
       expect(
         find.byKey(const Key('configuration-llm-error-state')),
@@ -392,6 +748,7 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
 
       await tester.enterText(
         find.byKey(const Key('configuration-llm-base-url-field')),
@@ -423,6 +780,10 @@ void main() {
         _enqueueMediaLibraries(bundle);
 
         await _pumpPage(tester, bundle, sessionStore: sessionStore);
+        await _openConfigurationTab(
+          tester,
+          const Key('configuration-tab-collection-features'),
+        );
         await tester.ensureVisible(
           find.byKey(
             const Key('configuration-collection-features-save-button'),
@@ -470,6 +831,10 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-collection-features'),
+      );
 
       await tester.ensureVisible(
         find.byKey(const Key('configuration-collection-features-field')),
@@ -535,6 +900,10 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-collection-features'),
+      );
 
       await tester.ensureVisible(
         find.byKey(const Key('configuration-collection-features-field')),
@@ -590,6 +959,10 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-collection-features'),
+      );
 
       await tester.ensureVisible(
         find.byKey(const Key('configuration-collection-features-field')),
@@ -891,6 +1264,7 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openMediaLibrariesTab(tester);
       await tester.tap(
         find.byKey(const Key('configuration-media-library-create-button')),
       );
@@ -923,6 +1297,7 @@ void main() {
       _enqueueMediaLibraries(bundle);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openMediaLibrariesTab(tester);
 
       expect(find.text('ID: 1'), findsOneWidget);
     });
@@ -969,6 +1344,7 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openMediaLibrariesTab(tester);
       await tester.tap(find.byKey(const Key('media-library-edit-1')));
       await tester.pumpAndSettle();
 
@@ -1022,6 +1398,7 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openMediaLibrariesTab(tester);
       await tester.tap(find.byKey(const Key('media-library-delete-1')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('删除').last);
@@ -1039,6 +1416,7 @@ void main() {
         _enqueueMediaLibraries(bundle);
 
         await _pumpPage(tester, bundle, sessionStore: sessionStore);
+        await _openMediaLibrariesTab(tester);
         await tester.tap(find.byKey(const Key('media-library-delete-1')));
         await tester.pumpAndSettle();
         await tester.tap(find.text('取消').last);
@@ -1074,6 +1452,7 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openMediaLibrariesTab(tester);
       await tester.tap(find.byKey(const Key('media-library-delete-1')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('删除').last);
@@ -1091,6 +1470,7 @@ void main() {
       _enqueueMediaLibraries(bundle, libraries: const []);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openMediaLibrariesTab(tester);
       await tester.tap(
         find.byKey(const Key('configuration-media-library-create-button')),
       );
@@ -1135,6 +1515,7 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openMediaLibrariesTab(tester);
       await tester.tap(
         find.byKey(const Key('configuration-media-library-create-button')),
       );
@@ -1155,14 +1536,18 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
     });
 
-    testWidgets('renders account security form in basic tab', (
+    testWidgets('renders account security form in account tab', (
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-account-security'),
+      );
 
-      expect(find.text('账号安全'), findsOneWidget);
+      expect(find.text('账号安全'), findsWidgets);
       expect(
         find.byKey(const Key('configuration-password-current-field')),
         findsOneWidget,
@@ -1183,6 +1568,10 @@ void main() {
       _enqueueMediaLibraries(bundle);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-account-security'),
+      );
       await tester.ensureVisible(
         find.byKey(const Key('configuration-password-submit-button')),
       );
@@ -1203,6 +1592,10 @@ void main() {
       _enqueueMediaLibraries(bundle);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-account-security'),
+      );
       await tester.enterText(
         find.byKey(const Key('configuration-password-current-field')),
         'same-password',
@@ -1234,6 +1627,10 @@ void main() {
       _enqueueMediaLibraries(bundle);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-account-security'),
+      );
       await tester.enterText(
         find.byKey(const Key('configuration-password-current-field')),
         'old-password',
@@ -1292,6 +1689,10 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-account-security'),
+      );
       await tester.enterText(
         find.byKey(const Key('configuration-password-current-field')),
         'old-password',
@@ -1426,6 +1827,10 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-account-security'),
+      );
       await tester.enterText(
         find.byKey(const Key('configuration-password-current-field')),
         'wrong-password',
@@ -1489,6 +1894,10 @@ void main() {
       );
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-account-security'),
+      );
       await tester.enterText(
         find.byKey(const Key('configuration-password-current-field')),
         'old-password',
@@ -2176,6 +2585,7 @@ void main() {
     final bundle = await createTestApiBundle(sessionStore);
     addTearDown(bundle.dispose);
     _enqueueOverviewResponses(bundle);
+    _enqueueMetadataProviderLicenseStatus(bundle, active: true);
     _enqueueMediaLibraries(bundle);
     bundle.adapter.enqueueJson(
       method: 'GET',
@@ -2225,6 +2635,9 @@ void main() {
           Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
           Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
           Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
+          Provider<MetadataProviderLicenseApi>.value(
+            value: bundle.metadataProviderLicenseApi,
+          ),
           Provider<MovieDescTranslationSettingsApi>.value(
             value: bundle.movieDescTranslationSettingsApi,
           ),
@@ -2244,6 +2657,10 @@ void main() {
 
     router.go(desktopConfigurationPath);
     await tester.pumpAndSettle();
+    await _openConfigurationTab(
+      tester,
+      const Key('configuration-tab-account-security'),
+    );
 
     await tester.enterText(
       find.byKey(const Key('configuration-password-current-field')),
@@ -2277,9 +2694,14 @@ Future<void> _pumpPage(
   WidgetTester tester,
   TestApiBundle bundle, {
   required SessionStore sessionStore,
+  bool enqueueDefaultLicenseStatus = true,
 }) async {
   tester.view.physicalSize = const Size(1440, 900);
   tester.view.devicePixelRatio = 1;
+
+  if (enqueueDefaultLicenseStatus) {
+    _enqueueMetadataProviderLicenseStatus(bundle, active: true);
+  }
 
   await tester.pumpWidget(
     MultiProvider(
@@ -2296,6 +2718,9 @@ Future<void> _pumpPage(
         Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
         Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
         Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
+        Provider<MetadataProviderLicenseApi>.value(
+          value: bundle.metadataProviderLicenseApi,
+        ),
         Provider<MovieDescTranslationSettingsApi>.value(
           value: bundle.movieDescTranslationSettingsApi,
         ),
@@ -2311,6 +2736,18 @@ Future<void> _pumpPage(
   );
   await tester.pumpAndSettle();
   addTearDown(tester.view.reset);
+}
+
+Future<void> _openConfigurationTab(WidgetTester tester, Key tabKey) async {
+  await tester.tap(find.byKey(tabKey));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openMediaLibrariesTab(WidgetTester tester) async {
+  await _openConfigurationTab(
+    tester,
+    const Key('configuration-tab-media-libraries'),
+  );
 }
 
 void _enqueueDownloadClientsList(
@@ -2430,6 +2867,77 @@ void _enqueueMovieDescTranslationSettings(
       connectTimeoutSeconds: connectTimeoutSeconds,
     ),
   );
+}
+
+void _enqueueMetadataProviderLicenseStatus(
+  TestApiBundle bundle, {
+  required bool active,
+  String? errorCode,
+  String? message,
+  int? licenseValidUntil,
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/metadata-provider-license/status',
+    body: _buildMetadataProviderLicenseStatusJson(
+      active: active,
+      errorCode: errorCode,
+      message: message,
+      licenseValidUntil: licenseValidUntil,
+    ),
+  );
+}
+
+void _enqueueMetadataProviderLicenseActivate(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'POST',
+    path: '/metadata-provider-license/activate',
+    body: _buildMetadataProviderLicenseStatusJson(active: true),
+  );
+}
+
+void _enqueueMetadataProviderLicenseRenew(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'POST',
+    path: '/metadata-provider-license/renew',
+    body: _buildMetadataProviderLicenseStatusJson(active: true),
+  );
+}
+
+void _enqueueMetadataProviderLicenseConnectivity(
+  TestApiBundle bundle, {
+  required bool ok,
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/metadata-provider-license/connectivity-test',
+    body: <String, dynamic>{
+      'ok': ok,
+      'url': 'https://license.example.com/',
+      'proxy_enabled': true,
+      'elapsed_ms': 128,
+      'status_code': ok ? 200 : null,
+      'error': ok ? null : 'timeout',
+    },
+  );
+}
+
+Map<String, dynamic> _buildMetadataProviderLicenseStatusJson({
+  required bool active,
+  String? errorCode,
+  String? message,
+  int? licenseValidUntil,
+}) {
+  return <String, dynamic>{
+    'configured': true,
+    'active': active,
+    'instance_id': 'inst_test',
+    'expires_at': active ? 1777181126 : null,
+    'license_valid_until': licenseValidUntil ?? (active ? 4102444800 : null),
+    'renew_after_seconds': active ? 21600 : null,
+    'error_code': active ? null : (errorCode ?? 'license_required'),
+    'message': active ? null : (message ?? 'License activation is required'),
+  };
 }
 
 Map<String, dynamic> _buildMovieDescTranslationSettingsJson({

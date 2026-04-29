@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/overview/presentation/desktop_overview_page.dart';
@@ -93,6 +94,18 @@ void main() {
     expect(find.text('GPU'), findsOneWidget);
     expect(find.text('23'), findsOneWidget);
     expect(
+      find.byKey(const Key('overview-stat-metadata-provider-license')),
+      findsOneWidget,
+    );
+    expect(find.text('数据源授权'), findsOneWidget);
+    expect(find.text('已激活'), findsOneWidget);
+    expect(
+      find.byKey(const Key('overview-stat-license-center-connectivity')),
+      findsOneWidget,
+    );
+    expect(find.text('授权中心'), findsOneWidget);
+    expect(find.text('未检测'), findsOneWidget);
+    expect(
       find.byKey(const Key('overview-stat-external-data-sources')),
       findsOneWidget,
     );
@@ -110,6 +123,108 @@ void main() {
       bundle.adapter.hitCount('GET', '/status/metadata-providers/dmm/test'),
       0,
     );
+  });
+
+  testWidgets('desktop overview shows inactive license status', (
+    WidgetTester tester,
+  ) async {
+    _enqueueStatusSuccess(bundle, enqueueLicenseStatus: false);
+    _enqueueMetadataProviderLicenseStatus(
+      bundle,
+      active: false,
+      errorCode: 'license_required',
+      message: 'License activation is required',
+    );
+    _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
+
+    await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    final licenseTile = find.byKey(
+      const Key('overview-stat-metadata-provider-license'),
+    );
+    expect(licenseTile, findsOneWidget);
+    expect(
+      find.descendant(of: licenseTile, matching: find.text('未激活')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('desktop overview shows unavailable license status on failure', (
+    WidgetTester tester,
+  ) async {
+    _enqueueStatusSuccess(bundle, enqueueLicenseStatus: false);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/metadata-provider-license/status',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'license_unavailable',
+          'message': 'License service is unavailable',
+        },
+      },
+    );
+    _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
+
+    await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    final licenseTile = find.byKey(
+      const Key('overview-stat-metadata-provider-license'),
+    );
+    expect(licenseTile, findsOneWidget);
+    expect(
+      find.descendant(of: licenseTile, matching: find.text('不可用')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('desktop overview tests license center connectivity on demand', (
+    WidgetTester tester,
+  ) async {
+    _enqueueStatusSuccess(bundle);
+    _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
+    _enqueueMetadataProviderLicenseConnectivity(bundle, ok: true);
+
+    await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('overview-license-center-test-button')),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(
+      bundle.adapter.hitCount(
+        'GET',
+        '/metadata-provider-license/connectivity-test',
+      ),
+      1,
+    );
+    expect(find.text('连接正常'), findsOneWidget);
+    expect(find.text('未检测'), findsNothing);
+  });
+
+  testWidgets('desktop overview shows failed license center connectivity', (
+    WidgetTester tester,
+  ) async {
+    _enqueueStatusSuccess(bundle);
+    _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
+    _enqueueMetadataProviderLicenseConnectivity(bundle, ok: false);
+
+    await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('overview-license-center-test-button')),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.text('连接异常'), findsOneWidget);
+    expect(find.text('最近添加'), findsOneWidget);
   });
 
   testWidgets('desktop overview tests external data sources on demand', (
@@ -208,6 +323,7 @@ void main() {
       body: _statusJson(totalSizeBytes: 0),
     );
     _enqueueImageSearchStatusSuccess(bundle);
+    _enqueueMetadataProviderLicenseStatus(bundle);
     _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
 
     await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
@@ -240,6 +356,7 @@ void main() {
           );
         },
       );
+      _enqueueMetadataProviderLicenseStatus(bundle);
       _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
 
       await _pumpOverviewPage(
@@ -331,6 +448,7 @@ void main() {
           },
         },
       );
+      _enqueueMetadataProviderLicenseStatus(bundle);
       _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
 
       await _pumpOverviewPage(
@@ -386,6 +504,7 @@ void main() {
       final statusCompleter = Completer<void>();
       final moviesCompleter = Completer<void>();
       _enqueueImageSearchStatusSuccess(bundle);
+      _enqueueMetadataProviderLicenseStatus(bundle);
 
       bundle.adapter.enqueueResponder(
         method: 'GET',
@@ -641,6 +760,9 @@ Future<void> _pumpOverviewPage(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+        Provider<MetadataProviderLicenseApi>.value(
+          value: bundle.metadataProviderLicenseApi,
+        ),
         Provider<StatusApi>.value(value: bundle.statusApi),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         ChangeNotifierProvider(
@@ -655,7 +777,10 @@ Future<void> _pumpOverviewPage(
   );
 }
 
-void _enqueueStatusSuccess(TestApiBundle bundle) {
+void _enqueueStatusSuccess(
+  TestApiBundle bundle, {
+  bool enqueueLicenseStatus = true,
+}) {
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/status',
@@ -663,6 +788,51 @@ void _enqueueStatusSuccess(TestApiBundle bundle) {
     body: _statusJson(),
   );
   _enqueueImageSearchStatusSuccess(bundle);
+  if (enqueueLicenseStatus) {
+    _enqueueMetadataProviderLicenseStatus(bundle);
+  }
+}
+
+void _enqueueMetadataProviderLicenseStatus(
+  TestApiBundle bundle, {
+  bool active = true,
+  String? errorCode,
+  String? message,
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/metadata-provider-license/status',
+    statusCode: 200,
+    body: <String, dynamic>{
+      'configured': true,
+      'active': active,
+      'instance_id': 'inst_test',
+      'expires_at': active ? 1777181126 : null,
+      'license_valid_until': active ? 4102444800 : null,
+      'renew_after_seconds': active ? 21600 : null,
+      'error_code': errorCode,
+      'message': message,
+    },
+  );
+}
+
+void _enqueueMetadataProviderLicenseConnectivity(
+  TestApiBundle bundle, {
+  required bool ok,
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/metadata-provider-license/connectivity-test',
+    statusCode: 200,
+    body: <String, dynamic>{
+      'ok': ok,
+      'url': 'https://license.example.com/',
+      'proxy_enabled': false,
+      'elapsed_ms': 128,
+      'status_code': ok ? 200 : null,
+      'error': ok ? null : 'timeout',
+    },
+  );
 }
 
 void _enqueueImageSearchStatusSuccess(TestApiBundle bundle) {

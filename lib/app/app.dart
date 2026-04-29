@@ -17,6 +17,7 @@ import 'package:sakuramedia/features/configuration/data/collection_number_featur
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
+import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
@@ -164,6 +165,12 @@ class _MyAppState extends State<MyApp> {
           create:
               (context) =>
                   MediaLibrariesApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<MetadataProviderLicenseApi>(
+          create:
+              (context) => MetadataProviderLicenseApi(
+                apiClient: context.read<ApiClient>(),
+              ),
         ),
         Provider<MovieDescTranslationSettingsApi>(
           create:

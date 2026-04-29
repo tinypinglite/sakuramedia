@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
+import 'package:sakuramedia/features/configuration/data/metadata_provider_license_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
@@ -23,9 +25,14 @@ class DesktopOverviewPage extends StatefulWidget {
 class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
   bool _isLoadingStatus = true;
   bool _isLoadingImageSearchStatus = true;
+  bool _isLoadingLicenseStatus = true;
   bool _isTestingMetadataProviders = false;
+  bool _isTestingLicenseConnectivity = false;
   StatusDto? _status;
   StatusImageSearchDto? _imageSearchStatus;
+  MetadataProviderLicenseStatusDto? _licenseStatus;
+  MetadataProviderLicenseConnectivityTestDto? _licenseConnectivityTest;
+  String? _licenseStatusError;
   bool? _javdbHealthy;
   bool? _dmmHealthy;
   String? _statusError;
@@ -85,10 +92,12 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
   Future<void> _loadOverview() async {
     final statusFuture = _loadStatus();
     final imageSearchStatusFuture = _loadImageSearchStatus();
+    final licenseStatusFuture = _loadLicenseStatus();
     final moviesFuture = _moviesController.initialize();
     await Future.wait<void>([
       statusFuture,
       imageSearchStatusFuture,
+      licenseStatusFuture,
       moviesFuture,
     ]);
   }
@@ -137,6 +146,30 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
     }
   }
 
+  Future<void> _loadLicenseStatus() async {
+    try {
+      final licenseStatus =
+          await context.read<MetadataProviderLicenseApi>().getStatus();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _licenseStatus = licenseStatus;
+        _licenseStatusError = null;
+        _isLoadingLicenseStatus = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _licenseStatus = null;
+        _licenseStatusError = 'unavailable';
+        _isLoadingLicenseStatus = false;
+      });
+    }
+  }
+
   Future<void> _toggleMovieSubscription(String movieNumber) async {
     final result = await _moviesController.toggleSubscription(
       movieNumber: movieNumber,
@@ -170,6 +203,43 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
       _dmmHealthy = results[1];
       _isTestingMetadataProviders = false;
     });
+  }
+
+  Future<void> _testLicenseConnectivity() async {
+    if (_isTestingLicenseConnectivity) {
+      return;
+    }
+
+    setState(() {
+      _isTestingLicenseConnectivity = true;
+    });
+
+    try {
+      final result =
+          await context.read<MetadataProviderLicenseApi>().testConnectivity();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _licenseConnectivityTest = result;
+        _isTestingLicenseConnectivity = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _licenseConnectivityTest =
+            const MetadataProviderLicenseConnectivityTestDto(
+              ok: false,
+              url: '',
+              proxyEnabled: false,
+              elapsedMs: 0,
+              error: 'unavailable',
+            );
+        _isTestingLicenseConnectivity = false;
+      });
+    }
   }
 
   Future<bool> _testMetadataProvider(
@@ -237,6 +307,20 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
                 label: '待索引',
                 value: _buildJoyTagIndexingValue(),
                 isLoading: _isLoadingImageSearchStatus,
+              ),
+              OverviewStatItem(
+                id: 'metadata-provider-license',
+                label: '数据源授权',
+                value: _buildLicenseStatusValue(),
+                isLoading: _isLoadingLicenseStatus,
+                valueTextSize: AppTextSize.s12,
+              ),
+              OverviewStatItem(
+                id: 'license-center-connectivity',
+                label: '授权中心',
+                value: _buildLicenseConnectivityValue(),
+                valueTextSize: AppTextSize.s12,
+                action: _buildLicenseConnectivityAction(context),
               ),
               OverviewStatItem(
                 id: 'external-data-sources',
@@ -339,6 +423,63 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
     return _imageSearchStatus!.indexing.pendingThumbnails.toString();
   }
 
+  String _buildLicenseStatusValue() {
+    if (_licenseStatusError != null) {
+      return '不可用';
+    }
+    final status = _licenseStatus;
+    if (status == null) {
+      return '不可用';
+    }
+    if (status.active) {
+      return '已激活';
+    }
+    final errorCode = status.errorCode?.trim();
+    if (errorCode == 'license_expired' ||
+        _isUnixSecondsExpired(status.licenseValidUntil)) {
+      return '授权已到期';
+    }
+    if (status.licenseValidUntil != null) {
+      return '授权待同步';
+    }
+    if (status.configured && errorCode != null && errorCode.isNotEmpty) {
+      return _licenseErrorLabel(errorCode);
+    }
+    return '未激活';
+  }
+
+  String _buildLicenseConnectivityValue() {
+    if (_isTestingLicenseConnectivity) {
+      return '检测中';
+    }
+    final result = _licenseConnectivityTest;
+    if (result == null) {
+      return '未检测';
+    }
+    return result.ok ? '连接正常' : '连接异常';
+  }
+
+  bool _isUnixSecondsExpired(int? unixSeconds) {
+    if (unixSeconds == null) {
+      return false;
+    }
+    final value = DateTime.fromMillisecondsSinceEpoch(
+      unixSeconds * 1000,
+      isUtc: true,
+    );
+    return value.isBefore(DateTime.now().toUtc());
+  }
+
+  String _licenseErrorLabel(String errorCode) {
+    return switch (errorCode) {
+      'license_required' => '未激活',
+      'license_expired' => '授权已到期',
+      'license_revoked' => '授权已吊销',
+      'license_unavailable' => '授权不可用',
+      _ => errorCode,
+    };
+  }
+
   String _buildExternalDataSourcesValue() {
     if (_javdbHealthy == null && _dmmHealthy == null) {
       return '未检测 JavDB / DMM';
@@ -371,6 +512,28 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
                 ),
               )
               : const Icon(Icons.radar_rounded),
+    );
+  }
+
+  Widget _buildLicenseConnectivityAction(BuildContext context) {
+    return AppIconButton(
+      key: const Key('overview-license-center-test-button'),
+      tooltip: '测试授权中心连接',
+      semanticLabel: '测试授权中心连接',
+      size: AppIconButtonSize.mini,
+      onPressed:
+          _isTestingLicenseConnectivity ? null : _testLicenseConnectivity,
+      icon:
+          _isTestingLicenseConnectivity
+              ? SizedBox(
+                width: context.appComponentTokens.iconSizeSm,
+                height: context.appComponentTokens.iconSizeSm,
+                child: CircularProgressIndicator.adaptive(
+                  strokeWidth:
+                      context.appComponentTokens.movieCardLoaderStrokeWidth,
+                ),
+              )
+              : const Icon(Icons.cloud_sync_outlined),
     );
   }
 

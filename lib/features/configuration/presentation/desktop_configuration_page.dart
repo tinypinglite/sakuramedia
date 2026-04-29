@@ -14,6 +14,8 @@ import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dar
 import 'package:sakuramedia/features/configuration/data/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
+import 'package:sakuramedia/features/configuration/data/metadata_provider_license_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_llm_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/download_client_form.dart';
 import 'package:sakuramedia/features/configuration/presentation/indexer_entry_form.dart';
@@ -25,6 +27,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
 import 'package:sakuramedia/widgets/app_shell/app_page_frame.dart';
@@ -49,7 +52,7 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this)
+    _tabController = TabController(length: 8, vsync: this)
       ..addListener(_handleTabChanged);
   }
 
@@ -87,7 +90,14 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage>
           AppTabBar(
             controller: _tabController,
             tabs: const [
-              Tab(key: Key('configuration-tab-basic'), text: '基础信息'),
+              Tab(key: Key('configuration-tab-license'), text: '数据源'),
+              Tab(key: Key('configuration-tab-media-libraries'), text: '媒体库'),
+              Tab(
+                key: Key('configuration-tab-collection-features'),
+                text: '合集特征',
+              ),
+              Tab(key: Key('configuration-tab-llm'), text: 'LLM 配置'),
+              Tab(key: Key('configuration-tab-account-security'), text: '账号安全'),
               Tab(key: Key('configuration-tab-downloads'), text: '下载器'),
               Tab(key: Key('configuration-tab-indexers'), text: '索引器'),
               Tab(key: Key('configuration-tab-playlists'), text: '播放列表'),
@@ -97,16 +107,20 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage>
           IndexedStack(
             index: _selectedIndex,
             children: [
-              _BasicInformationTab(
-                active: _selectedIndex == 0,
+              _MetadataProviderLicenseTab(active: _selectedIndex == 0),
+              _MediaLibrariesTab(
+                active: _selectedIndex == 1,
                 onLibrariesChanged: _handleMediaLibrariesChanged,
               ),
+              _CollectionNumberFeaturesTab(active: _selectedIndex == 2),
+              DesktopLlmSettingsSection(active: _selectedIndex == 3),
+              const _AccountSecuritySection(),
               _DownloadClientsTab(
-                active: _selectedIndex == 1,
+                active: _selectedIndex == 5,
                 librariesRevision: _mediaLibrariesRevision,
               ),
-              _IndexerSettingsTab(active: _selectedIndex == 2),
-              _PlaylistsTab(active: _selectedIndex == 3),
+              _IndexerSettingsTab(active: _selectedIndex == 6),
+              _PlaylistsTab(active: _selectedIndex == 7),
             ],
           ),
         ],
@@ -115,8 +129,8 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage>
   }
 }
 
-class _BasicInformationTab extends StatefulWidget {
-  const _BasicInformationTab({
+class _MediaLibrariesTab extends StatefulWidget {
+  const _MediaLibrariesTab({
     required this.active,
     required this.onLibrariesChanged,
   });
@@ -125,103 +139,35 @@ class _BasicInformationTab extends StatefulWidget {
   final VoidCallback onLibrariesChanged;
 
   @override
-  State<_BasicInformationTab> createState() => _BasicInformationTabState();
+  State<_MediaLibrariesTab> createState() => _MediaLibrariesTabState();
 }
 
-class _BasicInformationTabState extends State<_BasicInformationTab> {
-  late final TextEditingController _collectionNumberFeaturesController;
-
+class _MediaLibrariesTabState extends State<_MediaLibrariesTab> {
   bool _initialized = false;
   bool _isLoading = false;
-  bool _isSavingCollectionNumberFeatures = false;
-  bool _applyCollectionSyncNow = true;
-  String? _librariesErrorMessage;
-  String? _collectionFeaturesErrorMessage;
+  String? _errorMessage;
   List<MediaLibraryDto> _libraries = const <MediaLibraryDto>[];
-  CollectionNumberFeaturesSyncStatsDto? _collectionSyncStats;
 
   @override
   void initState() {
     super.initState();
-    _collectionNumberFeaturesController = TextEditingController();
     if (widget.active) {
-      _loadTabData();
+      _loadLibraries();
     }
   }
 
   @override
-  void didUpdateWidget(covariant _BasicInformationTab oldWidget) {
+  void didUpdateWidget(covariant _MediaLibrariesTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.active && !_initialized && !_isLoading) {
-      _loadTabData();
+      _loadLibraries();
     }
-  }
-
-  @override
-  void dispose() {
-    _collectionNumberFeaturesController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadTabData() async {
-    setState(() {
-      _isLoading = true;
-      _librariesErrorMessage = null;
-      _collectionFeaturesErrorMessage = null;
-    });
-
-    final librariesFuture = context.read<MediaLibrariesApi>().getLibraries();
-    final collectionFeaturesFuture =
-        context.read<CollectionNumberFeaturesApi>().getFeatures();
-
-    List<MediaLibraryDto>? libraries;
-    CollectionNumberFeaturesDto? collectionFeatures;
-    Object? librariesError;
-    Object? collectionFeaturesError;
-
-    try {
-      libraries = await librariesFuture;
-    } catch (error) {
-      librariesError = error;
-    }
-
-    try {
-      collectionFeatures = await collectionFeaturesFuture;
-    } catch (error) {
-      collectionFeaturesError = error;
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _initialized = true;
-      _isLoading = false;
-      if (libraries != null) {
-        _libraries = libraries;
-      }
-      if (collectionFeatures != null) {
-        _applyCollectionFeatures(collectionFeatures);
-      }
-      _librariesErrorMessage =
-          librariesError == null
-              ? null
-              : _apiMessage(librariesError, fallback: '媒体库加载失败，请稍后重试。');
-      _collectionFeaturesErrorMessage =
-          collectionFeaturesError == null
-              ? null
-              : _apiMessage(
-                collectionFeaturesError,
-                fallback: '合集番号特征加载失败，请稍后重试。',
-              );
-    });
   }
 
   Future<void> _loadLibraries() async {
     setState(() {
       _isLoading = true;
-      _librariesErrorMessage = null;
+      _errorMessage = null;
     });
 
     try {
@@ -241,7 +187,7 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
       setState(() {
         _initialized = true;
         _isLoading = false;
-        _librariesErrorMessage = _apiMessage(error, fallback: '媒体库加载失败，请稍后重试。');
+        _errorMessage = _apiMessage(error, fallback: '媒体库加载失败，请稍后重试。');
       });
     }
   }
@@ -346,79 +292,20 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
     }
   }
 
-  void _applyCollectionFeatures(CollectionNumberFeaturesDto settings) {
-    _collectionNumberFeaturesController.text = settings.features.join('\n');
-    _collectionSyncStats = settings.syncStats;
-  }
-
-  Future<void> _saveCollectionNumberFeatures() async {
-    if (_isSavingCollectionNumberFeatures) {
-      return;
-    }
-
-    final features = _parseCollectionNumberFeaturesInput(
-      _collectionNumberFeaturesController.text,
-    );
-
-    setState(() {
-      _isSavingCollectionNumberFeatures = true;
-    });
-    try {
-      final settings = await context
-          .read<CollectionNumberFeaturesApi>()
-          .updateFeatures(
-            UpdateCollectionNumberFeaturesPayload(features: features),
-            applyNow: _applyCollectionSyncNow,
-          );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _applyCollectionFeatures(settings);
-        _collectionFeaturesErrorMessage = null;
-        _isSavingCollectionNumberFeatures = false;
-      });
-      showToast(_applyCollectionSyncNow ? '已保存并完成合集重算' : '合集番号特征已保存');
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isSavingCollectionNumberFeatures = false;
-      });
-      showToast(_apiMessage(error, fallback: '保存合集番号特征失败'));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!_initialized && !widget.active) {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildMediaLibrariesSection(context),
-        SizedBox(height: context.appSpacing.xl),
-        _buildCollectionNumberFeaturesSection(context),
-        SizedBox(height: context.appSpacing.xl),
-        const DesktopLlmSettingsSection(),
-        SizedBox(height: context.appSpacing.xl),
-        const _AccountSecuritySection(),
-      ],
-    );
-  }
-
-  Widget _buildMediaLibrariesSection(BuildContext context) {
     if (_isLoading) {
       return const _SectionSkeleton(lineCount: 4);
     }
 
-    if (_librariesErrorMessage != null) {
+    if (_errorMessage != null) {
       return _SectionErrorState(
         title: '媒体库加载失败',
-        message: _librariesErrorMessage!,
+        message: _errorMessage!,
         onRetry: _loadLibraries,
       );
     }
@@ -476,21 +363,144 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
       ],
     );
   }
+}
 
-  Widget _buildCollectionNumberFeaturesSection(BuildContext context) {
+class _CollectionNumberFeaturesTab extends StatefulWidget {
+  const _CollectionNumberFeaturesTab({required this.active});
+
+  final bool active;
+
+  @override
+  State<_CollectionNumberFeaturesTab> createState() =>
+      _CollectionNumberFeaturesTabState();
+}
+
+class _CollectionNumberFeaturesTabState
+    extends State<_CollectionNumberFeaturesTab> {
+  late final TextEditingController _collectionNumberFeaturesController;
+
+  bool _initialized = false;
+  bool _isLoading = false;
+  bool _isSaving = false;
+  bool _applySyncNow = true;
+  String? _errorMessage;
+  CollectionNumberFeaturesSyncStatsDto? _syncStats;
+
+  @override
+  void initState() {
+    super.initState();
+    _collectionNumberFeaturesController = TextEditingController();
+    if (widget.active) {
+      _loadFeatures();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _CollectionNumberFeaturesTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !_initialized && !_isLoading) {
+      _loadFeatures();
+    }
+  }
+
+  @override
+  void dispose() {
+    _collectionNumberFeaturesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadFeatures() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final settings =
+          await context.read<CollectionNumberFeaturesApi>().getFeatures();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _applyFeatures(settings);
+        _initialized = true;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _initialized = true;
+        _isLoading = false;
+        _errorMessage = _apiMessage(error, fallback: '合集番号特征加载失败，请稍后重试。');
+      });
+    }
+  }
+
+  void _applyFeatures(CollectionNumberFeaturesDto settings) {
+    _collectionNumberFeaturesController.text = settings.features.join('\n');
+    _syncStats = settings.syncStats;
+  }
+
+  Future<void> _saveFeatures() async {
+    if (_isSaving) {
+      return;
+    }
+
+    final features = _parseCollectionNumberFeaturesInput(
+      _collectionNumberFeaturesController.text,
+    );
+
+    setState(() {
+      _isSaving = true;
+    });
+    try {
+      final settings = await context
+          .read<CollectionNumberFeaturesApi>()
+          .updateFeatures(
+            UpdateCollectionNumberFeaturesPayload(features: features),
+            applyNow: _applySyncNow,
+          );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _applyFeatures(settings);
+        _errorMessage = null;
+        _isSaving = false;
+      });
+      showToast(_applySyncNow ? '已保存并完成合集重算' : '合集番号特征已保存');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSaving = false;
+      });
+      showToast(_apiMessage(error, fallback: '保存合集番号特征失败'));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_initialized && !widget.active) {
+      return const SizedBox.shrink();
+    }
+
     if (_isLoading) {
       return const _SectionSkeleton(lineCount: 5);
     }
 
-    if (_collectionFeaturesErrorMessage != null) {
+    if (_errorMessage != null) {
       return _SectionErrorState(
         title: '合集番号特征加载失败',
-        message: _collectionFeaturesErrorMessage!,
-        onRetry: _loadTabData,
+        message: _errorMessage!,
+        onRetry: _loadFeatures,
       );
     }
 
-    final syncStats = _collectionSyncStats;
+    final syncStats = _syncStats;
     final spacing = context.appSpacing;
 
     return AppContentCard(
@@ -549,7 +559,7 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
                         key: const Key(
                           'configuration-collection-apply-now-field',
                         ),
-                        value: _applyCollectionSyncNow,
+                        value: _applySyncNow,
                         size: AppSelectFieldSize.compact,
                         items: const [
                           DropdownMenuItem<bool>(
@@ -563,7 +573,7 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
                         ],
                         onChanged:
                             (value) => setState(() {
-                              _applyCollectionSyncNow = value ?? true;
+                              _applySyncNow = value ?? true;
                             }),
                       ),
                     ),
@@ -574,18 +584,12 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
                         key: const Key(
                           'configuration-collection-features-save-button',
                         ),
-                        onPressed:
-                            _isSavingCollectionNumberFeatures
-                                ? null
-                                : _saveCollectionNumberFeatures,
+                        onPressed: _isSaving ? null : _saveFeatures,
                         icon:
-                            _isSavingCollectionNumberFeatures
-                                ? null
-                                : const Icon(Icons.save_outlined),
-                        label:
-                            _isSavingCollectionNumberFeatures ? '保存中' : '保存特征',
+                            _isSaving ? null : const Icon(Icons.save_outlined),
+                        label: _isSaving ? '保存中' : '保存特征',
                         variant: AppButtonVariant.primary,
-                        isLoading: _isSavingCollectionNumberFeatures,
+                        isLoading: _isSaving,
                       ),
                     ),
                   ],
@@ -626,6 +630,550 @@ class _BasicInformationTabState extends State<_BasicInformationTab> {
         ],
       ),
     );
+  }
+}
+
+class _MetadataProviderLicenseTab extends StatefulWidget {
+  const _MetadataProviderLicenseTab({required this.active});
+
+  final bool active;
+
+  @override
+  State<_MetadataProviderLicenseTab> createState() =>
+      _MetadataProviderLicenseTabState();
+}
+
+class _MetadataProviderLicenseTabState
+    extends State<_MetadataProviderLicenseTab> {
+  late final TextEditingController _activationCodeController;
+
+  bool _initialized = false;
+  bool _isLoading = false;
+  bool _isActivating = false;
+  bool _isSyncingAuthorization = false;
+  bool _isTestingConnectivity = false;
+  bool _obscureActivationCode = true;
+  String? _errorMessage;
+  MetadataProviderLicenseStatusDto? _status;
+  MetadataProviderLicenseConnectivityTestDto? _connectivityTest;
+
+  MetadataProviderLicenseApi get _api =>
+      context.read<MetadataProviderLicenseApi>();
+
+  bool get _hasBusyAction =>
+      _isLoading ||
+      _isActivating ||
+      _isSyncingAuthorization ||
+      _isTestingConnectivity;
+
+  @override
+  void initState() {
+    super.initState();
+    _activationCodeController = TextEditingController();
+    if (widget.active) {
+      _loadStatus();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _MetadataProviderLicenseTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !_initialized && !_isLoading) {
+      _loadStatus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _activationCodeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadStatus() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final status = await _api.getStatus();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _status = status;
+        _initialized = true;
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _initialized = true;
+        _isLoading = false;
+        _errorMessage = _apiMessage(error, fallback: '授权状态加载失败，请稍后重试。');
+      });
+    }
+  }
+
+  Future<void> _testConnectivity() async {
+    if (_hasBusyAction) {
+      return;
+    }
+
+    setState(() {
+      _isTestingConnectivity = true;
+    });
+
+    try {
+      final result = await _api.testConnectivity();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _connectivityTest = result;
+        _isTestingConnectivity = false;
+      });
+      showToast(result.ok ? '授权中心连接正常' : '授权中心连接异常');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _connectivityTest = null;
+        _isTestingConnectivity = false;
+      });
+      showToast(_apiMessage(error, fallback: '授权中心连接测试失败'));
+    }
+  }
+
+  Future<void> _syncAuthorization() async {
+    if (_hasBusyAction) {
+      return;
+    }
+
+    setState(() {
+      _isSyncingAuthorization = true;
+    });
+
+    try {
+      final status = await _api.syncAuthorization();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _status = status;
+        _errorMessage = null;
+        _initialized = true;
+        _isSyncingAuthorization = false;
+      });
+      showToast('授权状态已同步');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSyncingAuthorization = false;
+      });
+      showToast(_apiMessage(error, fallback: '同步授权失败'));
+    }
+  }
+
+  Future<void> _activate() async {
+    if (_hasBusyAction) {
+      return;
+    }
+    final activationCode = _activationCodeController.text.trim();
+    if (activationCode.isEmpty) {
+      showToast('请输入激活码');
+      return;
+    }
+
+    setState(() {
+      _isActivating = true;
+    });
+
+    try {
+      final status = await _api.activate(activationCode: activationCode);
+      if (!mounted) {
+        return;
+      }
+      _activationCodeController.clear();
+      setState(() {
+        _status = status;
+        _errorMessage = null;
+        _initialized = true;
+        _isActivating = false;
+      });
+      showToast('授权已激活');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      _activationCodeController.clear();
+      setState(() {
+        _isActivating = false;
+      });
+      showToast(_apiMessage(error, fallback: '激活授权失败'));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_initialized && !widget.active) {
+      return const SizedBox.shrink();
+    }
+
+    return AppContentCard(
+      key: const Key('configuration-license-card'),
+      title: '数据源授权',
+      padding: EdgeInsets.all(context.appSpacing.lg),
+      titleStyle: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s18,
+        weight: AppTextWeight.semibold,
+        tone: AppTextTone.primary,
+      ),
+      headerBottomSpacing: context.appSpacing.md,
+      child: _buildBody(context),
+    );
+  }
+
+  Widget _buildBody(BuildContext context) {
+    if (_isLoading) {
+      return const _SectionSkeleton(lineCount: 5);
+    }
+
+    if (_errorMessage != null) {
+      return _SectionErrorState(
+        title: '授权状态加载失败',
+        message: _errorMessage!,
+        onRetry: _loadStatus,
+      );
+    }
+
+    final spacing = context.appSpacing;
+    final formTokens = context.appFormTokens;
+    final status = _status;
+    final statusDescription = _licenseStatusDescription(status);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '数据源负责 DMM、JavDB、MissAV 等外部元数据能力，需要完成授权后使用。',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
+              ),
+            ),
+            SizedBox(width: spacing.md),
+            _buildStatusBadge(status),
+          ],
+        ),
+        SizedBox(height: spacing.lg),
+        Wrap(
+          spacing: spacing.sm,
+          runSpacing: spacing.sm,
+          children: [
+            _InfoPill(label: '授权状态', value: _licenseStatusLabel(status)),
+            _InfoPill(label: '授权有效期', value: _formatLicenseValidUntil(status)),
+            _InfoPill(label: '授权中心', value: _connectivityStatusLabel()),
+          ],
+        ),
+        if (statusDescription != null) ...[
+          SizedBox(height: spacing.lg),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(spacing.md),
+            decoration: BoxDecoration(
+              color: context.appColors.warningSurface,
+              borderRadius: context.appRadius.mdBorder,
+              border: Border.all(color: context.appColors.borderSubtle),
+            ),
+            child: Text(
+              statusDescription,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.warning,
+              ),
+            ),
+          ),
+        ],
+        SizedBox(height: spacing.lg),
+        _buildDiagnostics(context),
+        SizedBox(height: spacing.xl),
+        Text(
+          '激活授权',
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ),
+        ),
+        SizedBox(height: spacing.sm),
+        Text(
+          '激活码仅用于本次请求，前端不会保存，后端也不会写入配置文件。请妥善保管激活码，避免泄露给他人。同一个激活码同一时间仅能激活一个实例；若后续用于激活其他实例，当前实例将会失效。',
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.muted,
+          ),
+        ),
+        SizedBox(height: spacing.md),
+        Text(
+          '激活码',
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            tone: AppTextTone.secondary,
+          ),
+        ),
+        SizedBox(height: formTokens.labelGap),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: AppTextField(
+                fieldKey: const Key('configuration-license-activation-field'),
+                controller: _activationCodeController,
+                hintText: 'SMB-XXXX-XXXX-XXXX',
+                obscureText: _obscureActivationCode,
+                enabled: !_hasBusyAction,
+                suffix: AppIconButton(
+                  key: const Key(
+                    'configuration-license-activation-visibility-button',
+                  ),
+                  tooltip: _obscureActivationCode ? '显示激活码' : '隐藏激活码',
+                  semanticLabel: _obscureActivationCode ? '显示激活码' : '隐藏激活码',
+                  size: AppIconButtonSize.compact,
+                  icon: Icon(
+                    _obscureActivationCode
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                  ),
+                  onPressed:
+                      _hasBusyAction
+                          ? null
+                          : () => setState(() {
+                            _obscureActivationCode = !_obscureActivationCode;
+                          }),
+                ),
+              ),
+            ),
+            SizedBox(width: spacing.md),
+            AppButton(
+              key: const Key('configuration-license-refresh-button'),
+              onPressed: _hasBusyAction ? null : _loadStatus,
+              icon: const Icon(Icons.refresh_rounded),
+              label: '刷新状态',
+            ),
+            SizedBox(width: spacing.sm),
+            AppButton(
+              key: const Key('configuration-license-connectivity-button'),
+              onPressed: _hasBusyAction ? null : _testConnectivity,
+              icon:
+                  _isTestingConnectivity
+                      ? null
+                      : const Icon(Icons.cloud_sync_outlined),
+              label: _isTestingConnectivity ? '检测中' : '测试连接',
+              isLoading: _isTestingConnectivity,
+            ),
+            SizedBox(width: spacing.sm),
+            AppButton(
+              key: const Key('configuration-license-sync-button'),
+              onPressed: _hasBusyAction ? null : _syncAuthorization,
+              icon:
+                  _isSyncingAuthorization
+                      ? null
+                      : const Icon(Icons.sync_rounded),
+              label: _isSyncingAuthorization ? '同步中' : '同步授权',
+              isLoading: _isSyncingAuthorization,
+            ),
+            SizedBox(width: spacing.sm),
+            AppButton(
+              key: const Key('configuration-license-activate-button'),
+              onPressed: _hasBusyAction ? null : _activate,
+              icon: _isActivating ? null : const Icon(Icons.verified_outlined),
+              label: _isActivating ? '激活中' : '激活授权',
+              variant: AppButtonVariant.primary,
+              isLoading: _isActivating,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDiagnostics(BuildContext context) {
+    final status = _status;
+    final connectivity = _connectivityTest;
+    final spacing = context.appSpacing;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.appColors.surfaceMuted,
+        borderRadius: context.appRadius.mdBorder,
+        border: Border.all(color: context.appColors.borderSubtle),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          key: const Key('configuration-license-diagnostics'),
+          tilePadding: EdgeInsets.symmetric(horizontal: spacing.md),
+          childrenPadding: EdgeInsets.fromLTRB(
+            spacing.md,
+            0,
+            spacing.md,
+            spacing.md,
+          ),
+          title: Text(
+            '诊断信息',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.semibold,
+              tone: AppTextTone.secondary,
+            ),
+          ),
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: spacing.sm,
+                runSpacing: spacing.sm,
+                children: [
+                  _InfoPill(label: '实例 ID', value: status?.instanceId ?? '未提供'),
+                  _InfoPill(
+                    label: '错误码',
+                    value: _diagnosticValue(status?.errorCode),
+                  ),
+                  _InfoPill(
+                    label: '后端说明',
+                    value: _diagnosticValue(status?.message),
+                  ),
+                  _InfoPill(
+                    label: '授权中心 URL',
+                    value: _diagnosticValue(connectivity?.url),
+                  ),
+                  _InfoPill(
+                    label: '代理',
+                    value:
+                        connectivity == null
+                            ? '未检测'
+                            : (connectivity.proxyEnabled ? '已启用' : '未启用'),
+                  ),
+                  _InfoPill(
+                    label: '耗时',
+                    value:
+                        connectivity == null
+                            ? '未检测'
+                            : '${connectivity.elapsedMs} ms',
+                  ),
+                  _InfoPill(
+                    label: 'HTTP 状态',
+                    value: connectivity?.statusCode?.toString() ?? '未提供',
+                  ),
+                  _InfoPill(
+                    label: '连接错误',
+                    value: _diagnosticValue(connectivity?.error),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(MetadataProviderLicenseStatusDto? status) {
+    final label = _licenseStatusLabel(status);
+    final tone = switch (label) {
+      '已激活' => AppBadgeTone.success,
+      '授权待同步' => AppBadgeTone.warning,
+      '未激活' => AppBadgeTone.warning,
+      '授权已到期' => AppBadgeTone.error,
+      '授权不可用' => AppBadgeTone.error,
+      _ => AppBadgeTone.neutral,
+    };
+    return AppBadge(label: label, tone: tone, size: AppBadgeSize.compact);
+  }
+
+  String _licenseStatusLabel(MetadataProviderLicenseStatusDto? status) {
+    if (status == null) {
+      return '未提供';
+    }
+    if (status.active) {
+      return '已激活';
+    }
+    if (!status.configured) {
+      return '未配置';
+    }
+    final errorCode = status.errorCode?.trim();
+    if (errorCode == 'license_expired' ||
+        _isUnixSecondsExpired(status.licenseValidUntil)) {
+      return '授权已到期';
+    }
+    if (status.licenseValidUntil != null) {
+      return '授权待同步';
+    }
+    if (errorCode == 'license_required') {
+      return '未激活';
+    }
+    if (errorCode == null || errorCode.isEmpty) {
+      return '未激活';
+    }
+    return '授权不可用';
+  }
+
+  String? _licenseStatusDescription(MetadataProviderLicenseStatusDto? status) {
+    final label = _licenseStatusLabel(status);
+    if (label == '授权待同步') {
+      return '你的授权仍在有效期内，但当前设备需要重新同步授权后才能使用外部数据源。';
+    }
+    if (label == '授权已到期') {
+      return '授权已到期，请使用新的激活码重新激活后继续使用外部数据源。';
+    }
+    if (label == '授权不可用') {
+      return _licenseErrorSummary(status);
+    }
+    return null;
+  }
+
+  String _connectivityStatusLabel() {
+    if (_isTestingConnectivity) {
+      return '检测中';
+    }
+    final result = _connectivityTest;
+    if (result == null) {
+      return '未检测';
+    }
+    return result.ok ? '连接正常' : '连接异常';
+  }
+
+  String _licenseErrorSummary(MetadataProviderLicenseStatusDto? status) {
+    final parts = <String>[];
+    final errorCode = status?.errorCode?.trim();
+    final message = status?.message?.trim();
+    if (errorCode != null && errorCode.isNotEmpty) {
+      parts.add('错误码: $errorCode');
+    }
+    if (message != null && message.isNotEmpty) {
+      parts.add('说明: $message');
+    }
+    return parts.isEmpty ? '授权暂不可用' : parts.join(' · ');
   }
 }
 
@@ -2903,6 +3451,40 @@ String _formatUpdatedAt(DateTime? value) {
     return '未知';
   }
   return DateFormat('yyyy-MM-dd HH:mm').format(value.toLocal());
+}
+
+String _formatLicenseValidUntil(MetadataProviderLicenseStatusDto? status) {
+  if (status == null) {
+    return '未提供';
+  }
+  final unixSeconds = status.licenseValidUntil;
+  if (unixSeconds == null) {
+    return status.active ? '永久有效' : '未提供';
+  }
+  final value = DateTime.fromMillisecondsSinceEpoch(
+    unixSeconds * 1000,
+    isUtc: true,
+  );
+  return '有效至 ${DateFormat('yyyy-MM-dd HH:mm').format(value.toLocal())}';
+}
+
+bool _isUnixSecondsExpired(int? unixSeconds) {
+  if (unixSeconds == null) {
+    return false;
+  }
+  final value = DateTime.fromMillisecondsSinceEpoch(
+    unixSeconds * 1000,
+    isUtc: true,
+  );
+  return value.isBefore(DateTime.now().toUtc());
+}
+
+String _diagnosticValue(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
+    return '未提供';
+  }
+  return trimmed;
 }
 
 String _apiMessage(Object error, {required String fallback}) {

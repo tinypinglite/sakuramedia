@@ -18,7 +18,9 @@ import 'package:sakuramedia/widgets/forms/app_text_field.dart';
 enum _LlmConfigTestState { idle, success, failure }
 
 class DesktopLlmSettingsSection extends StatefulWidget {
-  const DesktopLlmSettingsSection({super.key});
+  const DesktopLlmSettingsSection({super.key, required this.active});
+
+  final bool active;
 
   @override
   State<DesktopLlmSettingsSection> createState() =>
@@ -34,7 +36,8 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
   late final TextEditingController _connectTimeoutController;
 
   bool _enabled = false;
-  bool _isLoading = true;
+  bool _initialized = false;
+  bool _isLoading = false;
   bool _isSaving = false;
   bool _isTesting = false;
   bool _obscureApiKey = true;
@@ -60,7 +63,17 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
     _modelController = TextEditingController();
     _timeoutController = TextEditingController();
     _connectTimeoutController = TextEditingController();
-    unawaited(_loadSettings());
+    if (widget.active) {
+      unawaited(_loadSettings());
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant DesktopLlmSettingsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !_initialized && !_isLoading) {
+      unawaited(_loadSettings());
+    }
   }
 
   @override
@@ -75,6 +88,10 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_initialized && !widget.active) {
+      return const SizedBox.shrink();
+    }
+
     final spacing = context.appSpacing;
 
     return AppContentCard(
@@ -328,6 +345,7 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
       }
       setState(() {
         _applySettings(settings);
+        _initialized = true;
         _testState = _LlmConfigTestState.idle;
         _isLoading = false;
       });
@@ -336,6 +354,7 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
         return;
       }
       setState(() {
+        _initialized = true;
         _isLoading = false;
         _errorMessage = apiErrorMessage(error, fallback: 'LLM 配置加载失败，请稍后重试。');
       });
