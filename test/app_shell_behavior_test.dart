@@ -5,8 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_state.dart';
+import 'package:sakuramedia/app/app_version_info_controller.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
@@ -22,6 +24,16 @@ import 'package:sakuramedia/theme.dart';
 import 'support/test_api_bundle.dart';
 
 void main() {
+  setUp(() {
+    PackageInfo.setMockInitialValues(
+      appName: 'SakuraMedia',
+      packageName: 'sakuramedia',
+      version: '0.2.2',
+      buildNumber: '1',
+      buildSignature: '',
+    );
+  });
+
   testWidgets('desktop sidebar collapses to the token width', (
     WidgetTester tester,
   ) async {
@@ -57,6 +69,12 @@ void main() {
     );
     expect(find.text('SakuraMedia'), findsNothing);
     expect(find.text('SA'), findsNothing);
+    expect(find.byKey(const Key('sidebar-version-info')), findsOneWidget);
+    expect(find.text('系统版本'), findsOneWidget);
+    expect(find.text('客户端'), findsOneWidget);
+    expect(find.text('0.2.2'), findsOneWidget);
+    expect(find.text('服务端'), findsOneWidget);
+    expect(find.text('v0.2.0'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('sidebar-toggle-button')));
     await tester.pumpAndSettle();
@@ -86,6 +104,12 @@ void main() {
       findsNothing,
     );
     expect(find.byTooltip('概览'), findsOneWidget);
+    expect(find.byKey(const Key('sidebar-version-info')), findsNothing);
+    expect(
+      find.byKey(const Key('sidebar-version-info-collapsed')),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('客户端 0.2.2 · 服务端 v0.2.0'), findsOneWidget);
   });
 
   testWidgets('topbar divider aligns with sidebar divider', (
@@ -520,6 +544,9 @@ Future<void> _pumpDesktopApp(
           create: (_) => MovieSubscriptionChangeNotifier(),
         ),
         Provider<StatusApi>.value(value: statusApi),
+        ChangeNotifierProvider<AppVersionInfoController>(
+          create: (_) => AppVersionInfoController(statusApi: statusApi),
+        ),
         Provider<MetadataProviderLicenseApi>.value(
           value: bundle.metadataProviderLicenseApi,
         ),
@@ -554,6 +581,9 @@ Future<GoRouter> _pumpDesktopAppWithRouter(
           create: (_) => MovieSubscriptionChangeNotifier(),
         ),
         Provider<StatusApi>.value(value: statusApi),
+        ChangeNotifierProvider<AppVersionInfoController>(
+          create: (_) => AppVersionInfoController(statusApi: statusApi),
+        ),
         Provider<MetadataProviderLicenseApi>.value(
           value: bundle.metadataProviderLicenseApi,
         ),
@@ -577,6 +607,7 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
     method: 'GET',
     path: '/status',
     body: <String, dynamic>{
+      'backend_version': 'v0.2.0',
       'actors': <String, dynamic>{'female_total': 12, 'female_subscribed': 8},
       'movies': <String, dynamic>{
         'total': 120,

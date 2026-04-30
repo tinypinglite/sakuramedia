@@ -90,6 +90,7 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
     method: 'GET',
     path: '/status',
     body: <String, dynamic>{
+      'backend_version': 'v0.2.0',
       'actors': <String, dynamic>{'female_total': 12, 'female_subscribed': 8},
       'movies': <String, dynamic>{
         'total': 120,

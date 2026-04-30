@@ -30,6 +30,7 @@ const String mobileSettingsDownloadersPath = '/mobile/settings/downloaders';
 const String mobileSettingsIndexersPath = '/mobile/settings/indexers';
 const String mobileSettingsLlmPath = '/mobile/settings/llm';
 const String mobileSettingsPlaylistsPath = '/mobile/settings/playlists';
+const String mobileSettingsUsernamePath = '/mobile/settings/username';
 const String mobileSettingsPasswordPath = '/mobile/settings/password';
 
 const String loginPath = '/login';

@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_state.dart';
+import 'package:sakuramedia/app/app_version_info_controller.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
@@ -141,6 +144,8 @@ class AppSidebar extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: context.appSpacing.sm),
+                    _SidebarVersionInfo(isCompact: isCompact),
+                    SizedBox(height: context.appSpacing.sm),
                     AppSidebarItem(
                       key: const Key('sidebar-logout-button'),
                       icon: Icons.logout_rounded,
@@ -159,6 +164,146 @@ class AppSidebar extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _SidebarVersionInfo extends StatefulWidget {
+  const _SidebarVersionInfo({required this.isCompact});
+
+  final bool isCompact;
+
+  @override
+  State<_SidebarVersionInfo> createState() => _SidebarVersionInfoState();
+}
+
+class _SidebarVersionInfoState extends State<_SidebarVersionInfo> {
+  AppVersionInfoController? _loadedController;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final controller = _readVersionInfoController(context);
+    if (controller == null || identical(controller, _loadedController)) {
+      return;
+    }
+    _loadedController = controller;
+    unawaited(controller.load());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _watchVersionInfoController(context);
+    final frontendVersion = controller?.frontendVersionLabel ?? '--';
+    final backendVersion = controller?.backendVersionLabel ?? '--';
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final shouldUseCompact =
+            widget.isCompact || constraints.maxWidth < sidebarVersionMinWidth;
+        if (shouldUseCompact) {
+          return Tooltip(
+            message:
+                controller?.tooltipLabel ??
+                '客户端 $frontendVersion · 服务端 $backendVersion',
+            waitDuration: const Duration(milliseconds: 300),
+            child: Center(
+              child: Container(
+                key: const Key('sidebar-version-info-collapsed'),
+                width: context.appSidebarTokens.itemHeight,
+                height: context.appSidebarTokens.itemHeight,
+                decoration: BoxDecoration(
+                  color: context.appColors.surfaceMuted,
+                  borderRadius: context.appRadius.smBorder,
+                ),
+                child: Icon(
+                  Icons.info_outline_rounded,
+                  size: context.appComponentTokens.iconSizeSm,
+                  color: context.appTextPalette.muted,
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Padding(
+          key: const Key('sidebar-version-info'),
+          padding: EdgeInsets.all(context.appSpacing.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                '系统版本',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.medium,
+                  tone: AppTextTone.tertiary,
+                ),
+              ),
+              SizedBox(height: context.appSpacing.xs),
+              _SidebarVersionRow(label: '客户端', value: frontendVersion),
+              SizedBox(height: context.appSpacing.xs),
+              _SidebarVersionRow(label: '服务端', value: backendVersion),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+const double sidebarVersionMinWidth = 144;
+
+class _SidebarVersionRow extends StatelessWidget {
+  const _SidebarVersionRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            tone: AppTextTone.muted,
+          ),
+        ),
+        SizedBox(width: context.appSpacing.sm),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.medium,
+              tone: AppTextTone.tertiary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+AppVersionInfoController? _readVersionInfoController(BuildContext context) {
+  try {
+    return context.read<AppVersionInfoController>();
+  } on ProviderNotFoundException {
+    return null;
+  }
+}
+
+AppVersionInfoController? _watchVersionInfoController(BuildContext context) {
+  try {
+    return context.watch<AppVersionInfoController>();
+  } on ProviderNotFoundException {
+    return null;
   }
 }
 

@@ -12,6 +12,7 @@ import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
@@ -83,6 +84,11 @@ const List<_MobileSettingsRouteCase> _mobileSettingsRouteCases =
         path: mobileSettingsPlaylistsPath,
         title: '播放列表',
         pageKey: Key('mobile-settings-playlists'),
+      ),
+      _MobileSettingsRouteCase(
+        path: mobileSettingsUsernamePath,
+        title: '修改用户名',
+        pageKey: Key('mobile-settings-username'),
       ),
       _MobileSettingsRouteCase(
         path: mobileSettingsPasswordPath,
@@ -1082,6 +1088,8 @@ void main() {
           path: '/playlists',
           body: const <Map<String, dynamic>>[],
         );
+      } else if (routeCase.path == mobileSettingsUsernamePath) {
+        _enqueueAccountProfile(bundle);
       }
 
       router.go(routeCase.path);
@@ -1779,6 +1787,8 @@ void main() {
         _enqueueMobileDownloadersResponses(bundle);
       } else if (routeCase.path == mobileSettingsIndexersPath) {
         _enqueueMobileIndexersResponses(bundle);
+      } else if (routeCase.path == mobileSettingsUsernamePath) {
+        _enqueueAccountProfile(bundle);
       }
 
       router.go(routeCase.path);
@@ -3335,6 +3345,7 @@ Future<void> _pumpRouterApp(
     // 路由现在只传 draftId，测试环境也要注入临时草稿仓库。
     Provider<ImageSearchDraftStore>.value(value: draftStore),
     Provider<ApiClient>.value(value: bundle.apiClient),
+    Provider<AccountApi>.value(value: bundle.accountApi),
     Provider<ActivityEventStreamClient>.value(
       value: bundle.activityEventStreamClient,
     ),
@@ -3864,6 +3875,18 @@ void _enqueueMovieDetailResponse(TestApiBundle bundle) {
       'thin_cover_image': null,
       'plot_images': [],
       'media_items': [],
+    },
+  );
+}
+
+void _enqueueAccountProfile(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/account',
+    body: <String, dynamic>{
+      'username': 'account',
+      'created_at': '2026-03-08T09:00:00Z',
+      'last_login_at': '2026-03-08T10:00:00Z',
     },
   );
 }
