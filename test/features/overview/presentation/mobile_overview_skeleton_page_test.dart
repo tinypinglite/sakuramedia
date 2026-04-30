@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sakuramedia/app/app_version_info_controller.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
@@ -45,6 +47,13 @@ void main() {
 
   setUp(() async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    PackageInfo.setMockInitialValues(
+      appName: 'SakuraMedia',
+      packageName: 'sakuramedia',
+      version: '0.2.2',
+      buildNumber: '1',
+      buildSignature: '',
+    );
     sessionStore = SessionStore.inMemory();
     await sessionStore.saveBaseUrl('https://api.example.com');
     await sessionStore.saveTokens(
@@ -170,9 +179,6 @@ void main() {
       final overviewItem = find.byKey(
         const Key('mobile-overview-drawer-overview'),
       );
-      final passwordSection = find.byKey(
-        const Key('mobile-overview-drawer-password-section'),
-      );
       final mediaLibrariesItem = find.byKey(
         const Key('mobile-overview-drawer-media-libraries'),
       );
@@ -191,10 +197,19 @@ void main() {
       );
       final passwordItem = find.byKey(
         const Key('mobile-overview-drawer-password'),
+        skipOffstage: false,
       );
-      final logoutItem = find.byKey(const Key('mobile-overview-drawer-logout'));
+      final logoutItem = find.byKey(
+        const Key('mobile-overview-drawer-logout'),
+        skipOffstage: false,
+      );
+      final versionCard = find.byKey(
+        const Key('mobile-overview-drawer-version-card'),
+        skipOffstage: false,
+      );
       final bottomActions = find.byKey(
         const Key('mobile-overview-drawer-bottom-actions'),
+        skipOffstage: false,
       );
       final drawer = find.byKey(const Key('mobile-overview-drawer'));
       final mediaLibrariesLabel = tester.widget<Text>(
@@ -227,7 +242,6 @@ void main() {
       expect(librarySection, findsOneWidget);
       expect(playlistsSection, findsOneWidget);
       expect(overviewItem, findsOneWidget);
-      expect(passwordSection, findsOneWidget);
       expect(dataSourcesItem, findsOneWidget);
       expect(mediaLibrariesItem, findsOneWidget);
       expect(downloadersItem, findsOneWidget);
@@ -235,6 +249,13 @@ void main() {
       expect(llmItem, findsOneWidget);
       expect(playlistsItem, findsOneWidget);
       expect(passwordItem, findsOneWidget);
+      expect(versionCard, findsOneWidget);
+      expect(find.text('版本与服务'), findsOneWidget);
+      expect(find.text('自动同步'), findsOneWidget);
+      expect(find.text('客户端'), findsOneWidget);
+      expect(find.text('0.2.2'), findsOneWidget);
+      expect(find.text('服务端'), findsOneWidget);
+      expect(find.text('v0.2.0'), findsOneWidget);
       expect(logoutItem, findsOneWidget);
       expect(
         tester.getTopLeft(overviewSection).dy,
@@ -286,10 +307,6 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(of: passwordSection, matching: passwordItem),
-        findsOneWidget,
-      );
-      expect(
         find.descendant(of: bottomActions, matching: logoutItem),
         findsOneWidget,
       );
@@ -317,16 +334,34 @@ void main() {
         tester.getTopLeft(llmItem).dy,
         greaterThan(tester.getTopLeft(indexersItem).dy),
       );
-      expect(
-        tester.getTopLeft(passwordSection).dy,
-        greaterThan(tester.getBottomLeft(playlistsSection).dy),
-      );
-      expect(
-        tester.getTopLeft(bottomActions).dy,
-        greaterThan(tester.getBottomLeft(passwordSection).dy),
-      );
     },
   );
+
+  testWidgets('mobile overview drawer shows placeholder for missing backend', (
+    WidgetTester tester,
+  ) async {
+    _enqueueOverviewResponses(bundle, backendVersion: '');
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      _buildRouterApp(
+        sessionStore: sessionStore,
+        bundle: bundle,
+        router: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('mobile-overview-drawer-version-card')),
+      findsOneWidget,
+    );
+    expect(find.text('--'), findsOneWidget);
+  });
 
   testWidgets('mobile overview drawer data sources opens subpage shell', (
     WidgetTester tester,
@@ -459,7 +494,12 @@ void main() {
 
     await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('mobile-overview-drawer-password')));
+    final passwordItem = find.byKey(
+      const Key('mobile-overview-drawer-password'),
+    );
+    await tester.ensureVisible(passwordItem);
+    await tester.pumpAndSettle();
+    await tester.tap(passwordItem);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
@@ -491,7 +531,10 @@ void main() {
 
     await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('mobile-overview-drawer-llm')));
+    final llmItem = find.byKey(const Key('mobile-overview-drawer-llm'));
+    await tester.ensureVisible(llmItem);
+    await tester.pumpAndSettle();
+    await tester.tap(llmItem);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
@@ -524,7 +567,12 @@ void main() {
 
     await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('mobile-overview-drawer-playlists')));
+    final playlistsItem = find.byKey(
+      const Key('mobile-overview-drawer-playlists'),
+    );
+    await tester.ensureVisible(playlistsItem);
+    await tester.pumpAndSettle();
+    await tester.tap(playlistsItem);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
@@ -556,7 +604,10 @@ void main() {
 
       await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('mobile-overview-drawer-logout')));
+      final logoutItem = find.byKey(const Key('mobile-overview-drawer-logout'));
+      await tester.ensureVisible(logoutItem);
+      await tester.pumpAndSettle();
+      await tester.tap(logoutItem);
       await tester.pumpAndSettle();
 
       expect(sessionStore.hasSession, isFalse);
@@ -1545,6 +1596,9 @@ Widget _buildTestApp({
       ),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       Provider<StatusApi>.value(value: bundle.statusApi),
+      ChangeNotifierProvider<AppVersionInfoController>(
+        create: (_) => AppVersionInfoController(statusApi: bundle.statusApi),
+      ),
       ChangeNotifierProvider(
         create: (_) => MovieCollectionTypeChangeNotifier(),
       ),
@@ -1588,6 +1642,9 @@ Widget _buildRouterApp({
       ),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       Provider<StatusApi>.value(value: bundle.statusApi),
+      ChangeNotifierProvider<AppVersionInfoController>(
+        create: (_) => AppVersionInfoController(statusApi: bundle.statusApi),
+      ),
       ChangeNotifierProvider(
         create: (_) => MovieCollectionTypeChangeNotifier(),
       ),
@@ -1606,7 +1663,14 @@ Widget _buildRouterApp({
 void _enqueueOverviewResponses(
   TestApiBundle bundle, {
   List<Map<String, dynamic>>? playlists,
+  String backendVersion = 'v0.2.0',
 }) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/status',
+    statusCode: 200,
+    body: _statusJson(backendVersion: backendVersion),
+  );
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/movies/latest',
@@ -1716,8 +1780,12 @@ void _enqueueSystemOverviewResponses(TestApiBundle bundle) {
   );
 }
 
-Map<String, dynamic> _statusJson({int totalSizeBytes = 987654321}) {
+Map<String, dynamic> _statusJson({
+  int totalSizeBytes = 987654321,
+  String backendVersion = 'v0.2.0',
+}) {
   return <String, dynamic>{
+    'backend_version': backendVersion,
     'actors': <String, dynamic>{'female_total': 12, 'female_subscribed': 8},
     'movies': <String, dynamic>{'total': 120, 'subscribed': 35, 'playable': 88},
     'media_files': <String, dynamic>{

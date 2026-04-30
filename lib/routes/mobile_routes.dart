@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/app/app_version_info_controller.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/presentation/mobile_change_password_page.dart';
+import 'package:sakuramedia/features/account/presentation/mobile_change_username_page.dart';
 import 'package:sakuramedia/features/actors/presentation/mobile_actor_detail_page.dart';
 import 'package:sakuramedia/features/auth/presentation/login_page.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
@@ -394,6 +398,29 @@ class MobileSettingsPlaylistsRouteData extends _MobileSubpageRouteData
   }
 }
 
+@TypedGoRoute<MobileSettingsUsernameRouteData>(path: mobileSettingsUsernamePath)
+class MobileSettingsUsernameRouteData extends _MobileSubpageRouteData
+    with $MobileSettingsUsernameRouteData {
+  const MobileSettingsUsernameRouteData();
+
+  @override
+  String get pageName => 'mobile-settings-username';
+
+  @override
+  String get title => '修改用户名';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  EdgeInsetsGeometry get bodyPadding => AppPageInsets.zero;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileChangeUsernamePage();
+  }
+}
+
 @TypedGoRoute<MobileSettingsPasswordRouteData>(path: mobileSettingsPasswordPath)
 class MobileSettingsPasswordRouteData extends _MobileSubpageRouteData
     with $MobileSettingsPasswordRouteData {
@@ -583,6 +610,13 @@ class _MobileOverviewDrawer extends StatelessWidget {
         label: '播放列表',
       );
 
+  static const _MobileOverviewDrawerMenuItem _usernameItem =
+      _MobileOverviewDrawerMenuItem(
+        key: 'username',
+        icon: Icons.person_outline_rounded,
+        label: '修改用户名',
+      );
+
   static const _MobileOverviewDrawerMenuItem _passwordItem =
       _MobileOverviewDrawerMenuItem(
         key: 'password',
@@ -654,11 +688,14 @@ class _MobileOverviewDrawer extends StatelessWidget {
               ),
               SizedBox(height: spacing.md),
               _MobileOverviewDrawerSection(
-                key: const Key('mobile-overview-drawer-password-section'),
+                key: const Key('mobile-overview-drawer-account-section'),
                 items: <Widget>[
+                  _buildMenuEntry(context: context, item: _usernameItem),
                   _buildMenuEntry(context: context, item: _passwordItem),
                 ],
               ),
+              SizedBox(height: spacing.md),
+              const _MobileDrawerVersionCard(),
               SizedBox(height: spacing.md),
               _MobileOverviewDrawerSection(
                 key: const Key('mobile-overview-drawer-bottom-actions'),
@@ -729,12 +766,140 @@ class _MobileOverviewDrawer extends StatelessWidget {
       case 'playlists':
         const MobileSettingsPlaylistsRouteData().push(hostContext);
         return;
+      case 'username':
+        const MobileSettingsUsernameRouteData().push(hostContext);
+        return;
       case 'password':
         const MobileSettingsPasswordRouteData().push(hostContext);
         return;
       default:
         return;
     }
+  }
+}
+
+class _MobileDrawerVersionCard extends StatefulWidget {
+  const _MobileDrawerVersionCard();
+
+  @override
+  State<_MobileDrawerVersionCard> createState() =>
+      _MobileDrawerVersionCardState();
+}
+
+class _MobileDrawerVersionCardState extends State<_MobileDrawerVersionCard> {
+  AppVersionInfoController? _loadedController;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final controller = _readVersionInfoController(context);
+    if (controller == null || identical(controller, _loadedController)) {
+      return;
+    }
+    _loadedController = controller;
+    unawaited(controller.load());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _watchVersionInfoController(context);
+    final frontendVersion = controller?.frontendVersionLabel ?? '--';
+    final backendVersion = controller?.backendVersionLabel ?? '--';
+    final spacing = context.appSpacing;
+
+    return Container(
+      key: const Key('mobile-overview-drawer-version-card'),
+      decoration: BoxDecoration(
+        color: context.appColors.surfaceCard,
+        borderRadius: context.appRadius.lgBorder,
+      ),
+      padding: EdgeInsets.all(spacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '版本与服务',
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.primary,
+                  ),
+                ),
+              ),
+              Text(
+                '自动同步',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  tone: AppTextTone.muted,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: spacing.sm),
+          _MobileDrawerVersionRow(label: '客户端', value: frontendVersion),
+          SizedBox(height: spacing.xs),
+          _MobileDrawerVersionRow(label: '服务端', value: backendVersion),
+        ],
+      ),
+    );
+  }
+}
+
+class _MobileDrawerVersionRow extends StatelessWidget {
+  const _MobileDrawerVersionRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            tone: AppTextTone.muted,
+          ),
+        ),
+        SizedBox(width: context.appSpacing.md),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.medium,
+              tone: AppTextTone.primary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+AppVersionInfoController? _readVersionInfoController(BuildContext context) {
+  try {
+    return context.read<AppVersionInfoController>();
+  } on ProviderNotFoundException {
+    return null;
+  }
+}
+
+AppVersionInfoController? _watchVersionInfoController(BuildContext context) {
+  try {
+    return context.watch<AppVersionInfoController>();
+  } on ProviderNotFoundException {
+    return null;
   }
 }
 

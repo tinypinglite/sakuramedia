@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_state.dart';
+import 'package:sakuramedia/app/app_version_info_controller.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
@@ -180,6 +181,12 @@ class _MyAppState extends State<MyApp> {
         ),
         Provider<StatusApi>(
           create: (context) => StatusApi(apiClient: context.read<ApiClient>()),
+        ),
+        ChangeNotifierProvider<AppVersionInfoController>(
+          create:
+              (context) => AppVersionInfoController(
+                statusApi: context.read<StatusApi>(),
+              ),
         ),
         Provider<MoviesApi>(
           create: (context) => MoviesApi(apiClient: context.read<ApiClient>()),

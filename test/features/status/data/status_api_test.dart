@@ -39,6 +39,7 @@ void main() {
       path: '/status',
       statusCode: 200,
       body: <String, dynamic>{
+        'backend_version': 'v0.2.0',
         'actors': <String, dynamic>{'female_total': 12, 'female_subscribed': 8},
         'movies': <String, dynamic>{
           'total': 120,
@@ -55,10 +56,38 @@ void main() {
 
     final status = await statusApi.getStatus();
 
+    expect(status.backendVersion, 'v0.2.0');
     expect(status.actors.femaleTotal, 12);
     expect(status.movies.total, 120);
     expect(status.mediaFiles.totalSizeBytes, 987654321);
     expect(status.mediaLibraries.total, 3);
+    expect(status.toJson()['backend_version'], 'v0.2.0');
+  });
+
+  test('getStatus defaults missing backend version to empty string', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/status',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'actors': <String, dynamic>{'female_total': 12, 'female_subscribed': 8},
+        'movies': <String, dynamic>{
+          'total': 120,
+          'subscribed': 35,
+          'playable': 88,
+        },
+        'media_files': <String, dynamic>{
+          'total': 156,
+          'total_size_bytes': 987654321,
+        },
+        'media_libraries': <String, dynamic>{'total': 3},
+      },
+    );
+
+    final status = await statusApi.getStatus();
+
+    expect(status.backendVersion, isEmpty);
+    expect(status.toJson()['backend_version'], isEmpty);
   });
 
   test('getStatus converts backend error to ApiException', () async {

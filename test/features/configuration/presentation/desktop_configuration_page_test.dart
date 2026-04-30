@@ -1540,6 +1540,7 @@ void main() {
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
+      _enqueueAccount(bundle, username: 'account');
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
       await _openConfigurationTab(
@@ -1548,6 +1549,13 @@ void main() {
       );
 
       expect(find.text('账号安全'), findsWidgets);
+      expect(find.text('账号资料'), findsOneWidget);
+      expect(find.text('修改密码'), findsWidgets);
+      expect(
+        find.byKey(const Key('configuration-username-field')),
+        findsOneWidget,
+      );
+      expect(find.text('account'), findsWidgets);
       expect(
         find.byKey(const Key('configuration-password-current-field')),
         findsOneWidget,
@@ -1566,6 +1574,7 @@ void main() {
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
+      _enqueueAccount(bundle, username: 'account');
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
       await _openConfigurationTab(
@@ -1590,6 +1599,7 @@ void main() {
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
+      _enqueueAccount(bundle, username: 'account');
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
       await _openConfigurationTab(
@@ -1625,6 +1635,7 @@ void main() {
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
+      _enqueueAccount(bundle, username: 'account');
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
       await _openConfigurationTab(
@@ -1656,19 +1667,94 @@ void main() {
       expect(bundle.adapter.hitCount('POST', '/account/password'), 0);
     });
 
+    testWidgets('updates username without clearing session', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueAccount(bundle, username: 'account');
+      _enqueueAccount(bundle, method: 'PATCH', username: 'renamed-account');
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-account-security'),
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-username-field')),
+        '  renamed-account  ',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const Key('configuration-username-submit-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        bundle.adapter.requests
+            .firstWhere(
+              (request) =>
+                  request.method == 'PATCH' && request.path == '/account',
+            )
+            .body,
+        <String, dynamic>{'username': 'renamed-account'},
+      );
+      expect(sessionStore.hasSession, isTrue);
+      expect(find.text('用户名已更新'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('shows username conflict in account profile card', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueAccount(bundle, username: 'account');
+      bundle.adapter.enqueueResponder(
+        method: 'PATCH',
+        path: '/account',
+        responder: (options, requestBody) async {
+          return ResponseBody.fromString(
+            jsonEncode({
+              'error': {
+                'code': 'username_conflict',
+                'message': 'Username already exists',
+                'details': null,
+              },
+            }),
+            409,
+            headers: const {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-account-security'),
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-username-field')),
+        'taken',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const Key('configuration-username-submit-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('用户名已存在，请换一个名称'), findsWidgets);
+      expect(sessionStore.hasSession, isTrue);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
     testWidgets('submits password change request and clears fields on reset', (
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/account',
-        body: {
-          'username': 'account',
-          'created_at': '2026-03-08T09:00:00Z',
-          'last_login_at': '2026-03-08T10:00:00Z',
-        },
-      );
+      _enqueueAccount(bundle, username: 'account');
       bundle.adapter.enqueueJson(
         method: 'POST',
         path: '/account/password',
@@ -1792,15 +1878,7 @@ void main() {
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/account',
-        body: {
-          'username': 'account',
-          'created_at': '2026-03-08T09:00:00Z',
-          'last_login_at': '2026-03-08T10:00:00Z',
-        },
-      );
+      _enqueueAccount(bundle, username: 'account');
       await sessionStore.saveTokens(
         accessToken: 'access-token',
         refreshToken: '',
@@ -1863,15 +1941,7 @@ void main() {
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/account',
-        body: {
-          'username': 'account',
-          'created_at': '2026-03-08T09:00:00Z',
-          'last_login_at': '2026-03-08T10:00:00Z',
-        },
-      );
+      _enqueueAccount(bundle, username: 'account');
       bundle.adapter.enqueueJson(
         method: 'POST',
         path: '/account/password',
@@ -2587,15 +2657,7 @@ void main() {
     _enqueueOverviewResponses(bundle);
     _enqueueMetadataProviderLicenseStatus(bundle, active: true);
     _enqueueMediaLibraries(bundle);
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/account',
-      body: {
-        'username': 'account',
-        'created_at': '2026-03-08T09:00:00Z',
-        'last_login_at': '2026-03-08T10:00:00Z',
-      },
-    );
+    _enqueueAccount(bundle, username: 'account');
     bundle.adapter.enqueueJson(
       method: 'POST',
       path: '/account/password',
@@ -2758,6 +2820,22 @@ void _enqueueDownloadClientsList(
     method: 'GET',
     path: '/download-clients',
     body: clients,
+  );
+}
+
+void _enqueueAccount(
+  TestApiBundle bundle, {
+  String method = 'GET',
+  required String username,
+}) {
+  bundle.adapter.enqueueJson(
+    method: method,
+    path: '/account',
+    body: {
+      'username': username,
+      'created_at': '2026-03-08T09:00:00Z',
+      'last_login_at': '2026-03-08T10:00:00Z',
+    },
   );
 }
 

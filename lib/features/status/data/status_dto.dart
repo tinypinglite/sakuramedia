@@ -211,12 +211,14 @@ class StatusMetadataProviderTestDto {
 
 class StatusDto {
   const StatusDto({
+    required this.backendVersion,
     required this.actors,
     required this.movies,
     required this.mediaFiles,
     required this.mediaLibraries,
   });
 
+  final String backendVersion;
   final ActorStatsDto actors;
   final MovieStatsDto movies;
   final MediaFileStatsDto mediaFiles;
@@ -224,6 +226,7 @@ class StatusDto {
 
   factory StatusDto.fromJson(Map<String, dynamic> json) {
     return StatusDto(
+      backendVersion: json['backend_version'] as String? ?? '',
       actors: ActorStatsDto.fromJson(_asJsonMap(json['actors'])),
       movies: MovieStatsDto.fromJson(_asJsonMap(json['movies'])),
       mediaFiles: MediaFileStatsDto.fromJson(_asJsonMap(json['media_files'])),
@@ -235,6 +238,7 @@ class StatusDto {
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
+      'backend_version': backendVersion,
       'actors': actors.toJson(),
       'movies': movies.toJson(),
       'media_files': mediaFiles.toJson(),
