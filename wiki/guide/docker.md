@@ -6,6 +6,7 @@
 - `compose.yaml` 里每一项到底在做什么
 - SakuraMedia 自己需要看到哪些路径
 - Intel 平台下 `openvino` 应该怎么开
+- NVIDIA 平台下 `cuda` 应该怎么开
 
 ## 这页解决什么问题
 
@@ -14,7 +15,7 @@
 - 不止一块媒体盘时该怎么挂载
 - 为什么建议把媒体根目录整体挂进 SakuraMedia 容器
 - `client_save_path` 和 `local_root_path` 到底应该怎么配
-- `joytag-infer` 除了 CPU 版，还有没有更适合 Intel 平台的方案
+- `joytag-infer` 除了 CPU 版，Intel 或 NVIDIA 平台还有没有更合适的方案
 
 如果你还没完成第一次部署，建议先看“快速开始”。
 
@@ -315,7 +316,7 @@ volumes:
 
 ## OpenVINO 方案
 
-这一节只讨论 Intel 平台，不再展开 `cuda`。
+这一节只讨论 Intel 平台。NVIDIA 平台见下文的 CUDA 方案。
 
 ### 什么时候考虑 OpenVINO
 
@@ -379,6 +380,51 @@ volumes:
 1. 先用 CPU 版把整套服务跑通
 2. 再切到 `openvino + CPU`
 3. 最后再尝试 `openvino + GPU`
+
+## CUDA 方案
+
+如果你的机器装了 NVIDIA 独立显卡，可以用 `cuda` 版本的 `joytag-infer`，把图片搜索推理跑在 GPU 上。
+
+### 什么时候考虑 CUDA
+
+满足下面任一条件时可以试 `cuda`：
+
+- 机器装了 NVIDIA 独立显卡
+- 图片搜索推理速度对你来说太慢
+
+### 前置条件
+
+部署 `cuda` 版前，宿主机需要先满足：
+
+- 已经装好 NVIDIA 驱动，`nvidia-smi` 能正常输出 GPU 信息
+- 驱动版本不低于 `550`（这是 CUDA 12.4 runtime 的最低要求）
+- 已经装好 `nvidia-container-toolkit`，并且把 `nvidia` runtime 注册到了 Docker
+
+### 最小 `joytag-infer` 片段
+
+```yaml
+  joytag-infer:
+    image: tinyping/joytag-infer:cuda
+    container_name: joytag-infer
+    restart: unless-stopped
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: "all"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      JOYTAG_INFER_BACKEND: "cuda"
+      JOYTAG_INFER_MODEL_PATH: "/data/lib/joytag/model_vit_768.onnx"
+      JOYTAG_INFER_API_KEY: ""
+    volumes:
+      - ./docker-data/joytag:/data/lib/joytag
+    ports:
+      - "8001:8001"
+```
+
+这里有几个容易踩坑的点：
+
+- `runtime: nvidia` 走的是 NVIDIA 老式 runtime 路径，目前最稳。在部分 Docker 和 toolkit 版本上，改用 `--gpus all` 会出现"容器能起来但 GPU 没注入"的情况，容器日志里会看到 `WARNING: The NVIDIA Driver was not detected`
+- `NVIDIA_VISIBLE_DEVICES` 和 `NVIDIA_DRIVER_CAPABILITIES` 是 nvidia runtime 用来决定挂哪些设备和库的开关，不要省略
+- `JOYTAG_INFER_BACKEND` 必须显式写成 `cuda`。容器启动时会硬校验 CUDA 是否真的可用，CUDA 不可用就直接抛错退出，不会静默回退到 CPU
 
 ## 部署后如何检查是否正常
 
