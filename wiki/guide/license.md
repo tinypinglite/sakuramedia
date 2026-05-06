@@ -64,7 +64,7 @@ license_proxy = "http://192.168.1.1:7890"
 注意：
 
 - `license_proxy` 只用于访问授权中心
-- `metadata.proxy` 用于 DMM 与 GFriends 等元数据访问
+- `metadata.proxy` 用于 DMM、MissAV 与 GFriends 等元数据访问
 - 两者可以填写不同代理，也可以按你的网络环境分别留空
 
 如果授权中心测试失败，优先确认 `license_proxy` 指向的代理是否能从 SakuraMedia 后端容器内访问。

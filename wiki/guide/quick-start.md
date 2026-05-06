@@ -205,7 +205,7 @@ password = "account"
 secret_key = "replace-with-a-random-secret-key"
 
 [metadata]
-# DMM 与 GFriends 共用的代理地址，用于处理 DMM 简介抓取和女优头像。
+# DMM、MissAV 与 GFriends 共用的代理地址，用于处理 DMM 简介抓取、MissAV 页面访问和女优头像。
 # 仅支持 http 代理：例如 http://192.168.1.1:7890
 # 不需要代理时留空即可
 proxy = ""
@@ -259,7 +259,7 @@ url = "postgresql://sakuramedia:change-me@postgres:5432/sakuramedia"
 - `username` 和 `password` 是第一次登录 Web 时使用的账号密码
 - `secret_key` 一定要改，不能直接保留示例值
 - `inference_base_url` 默认写成 `http://joytag-infer:8001`，前提是你后面的 `compose.yaml` 里服务名也叫 `joytag-infer`
-- `metadata.proxy` 用于 DMM 与 GFriends 等元数据访问；`metadata.license_proxy` 只用于访问授权中心，两者可以按你的网络环境分别配置
+- `metadata.proxy` 用于 DMM、MissAV 与 GFriends 等元数据访问；`metadata.license_proxy` 只用于访问授权中心，两者可以按你的网络环境分别配置
 
 如果你只是先把系统跑起来，这份配置已经足够用了。它只覆盖第一次启动最需要的部分；如果你想了解更多配置项，可以直接看[配置说明](/guide/config)。
 
