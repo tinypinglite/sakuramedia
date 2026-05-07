@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -350,6 +349,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.filter_alt_outlined));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('movies-filter-panel')), findsOneWidget);
+    expect(find.text('发行年份'), findsNothing);
 
     await tester.tap(find.text('可播放'));
     await tester.pump();
@@ -728,9 +728,9 @@ void main() {
 
       final context = tester.element(find.byType(MobileMoviesPage));
       context.read<MovieSubscriptionChangeNotifier>().reportChange(
-        movieNumber: 'ABC-001',
-        isSubscribed: true,
-      );
+            movieNumber: 'ABC-001',
+            isSubscribed: true,
+          );
       await tester.pump();
 
       expect(
@@ -818,8 +818,7 @@ Map<String, dynamic> _moviesJson({
   List<Map<String, dynamic>>? items,
 }) {
   return <String, dynamic>{
-    'items':
-        items ??
+    'items': items ??
         <Map<String, dynamic>>[
           _movieItem(),
           _movieItem(movieNumber: 'ABC-002', isSubscribed: false),

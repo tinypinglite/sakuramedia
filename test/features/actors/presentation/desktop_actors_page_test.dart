@@ -150,8 +150,9 @@ void main() {
         find.byKey(const Key('actors-filter-trigger-label')),
         findsOneWidget,
       );
-      expect(_triggerLabelText(tester), '已订阅');
+      expect(_triggerLabelText(tester), '已订阅 · 最近订阅');
       expect(_queryValue(bundle, 0, 'gender'), 'all');
+      expect(_queryValue(bundle, 0, 'sort'), 'subscribed_at:desc');
 
       await tester.tap(find.byIcon(Icons.filter_alt_outlined));
       await tester.pumpAndSettle();
@@ -168,9 +169,10 @@ void main() {
         find.byKey(const Key('actors-filter-trigger-label')),
         findsOneWidget,
       );
-      expect(_triggerLabelText(tester), '未订阅');
+      expect(_triggerLabelText(tester), '未订阅 · 最近订阅');
       expect(_queryValue(bundle, 1, 'subscription_status'), 'unsubscribed');
       expect(_queryValue(bundle, 1, 'gender'), 'all');
+      expect(_queryValue(bundle, 1, 'sort'), 'subscribed_at:desc');
     },
   );
 
@@ -197,11 +199,41 @@ void main() {
       await tester.pump();
       await tester.pumpAndSettle();
 
-      expect(_triggerLabelText(tester), '已订阅');
+      expect(_triggerLabelText(tester), '已订阅 · 最近订阅');
       expect(_queryValue(bundle, 1, 'subscription_status'), 'subscribed');
       expect(_queryValue(bundle, 1, 'gender'), 'male');
+      expect(_queryValue(bundle, 1, 'sort'), 'subscribed_at:desc');
     },
   );
+
+  testWidgets('desktop actors page applies sort and sends expected params', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors',
+      body: _actorsJson(total: 2),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors',
+      body: _actorsJson(total: 1),
+    );
+
+    await _pumpActorsPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('影片数'));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(_triggerLabelText(tester), '已订阅 · 影片数');
+    expect(_queryValue(bundle, 1, 'subscription_status'), 'subscribed');
+    expect(_queryValue(bundle, 1, 'gender'), 'all');
+    expect(_queryValue(bundle, 1, 'sort'), 'movie_count:desc');
+  });
 
   testWidgets('desktop actors page filter panel closes when tapping outside', (
     WidgetTester tester,

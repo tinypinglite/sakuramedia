@@ -13,6 +13,7 @@ class ActorListPageStateEntry implements AppPageStateEntry {
             pageSize: pageSize,
             subscriptionStatus: filterState.subscriptionStatus,
             gender: filterState.gender,
+            sort: filterState.sortExpression,
           ),
       subscribeActor: _actorsApi.subscribeActor,
       unsubscribeActor: _actorsApi.unsubscribeActor,

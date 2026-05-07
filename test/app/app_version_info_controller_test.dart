@@ -46,7 +46,7 @@ void main() {
         return PackageInfo(
           appName: 'SakuraMedia',
           packageName: 'sakuramedia',
-          version: '0.2.2',
+          version: '0.2.3',
           buildNumber: '1',
           buildSignature: '',
         );
@@ -55,9 +55,9 @@ void main() {
 
     await Future.wait<void>([controller.load(), controller.load()]);
 
-    expect(controller.frontendVersionLabel, '0.2.2');
+    expect(controller.frontendVersionLabel, '0.2.3');
     expect(controller.backendVersionLabel, 'v0.2.0');
-    expect(controller.tooltipLabel, '客户端 0.2.2 · 服务端 v0.2.0');
+    expect(controller.tooltipLabel, '客户端 0.2.3 · 服务端 v0.2.0');
     expect(packageLoadCount, 1);
     expect(adapter.hitCount('GET', '/status'), 1);
   });
@@ -75,7 +75,7 @@ void main() {
         return PackageInfo(
           appName: 'SakuraMedia',
           packageName: 'sakuramedia',
-          version: '0.2.2',
+          version: '0.2.3',
           buildNumber: '1',
           buildSignature: '',
         );
@@ -84,7 +84,7 @@ void main() {
 
     await controller.load();
 
-    expect(controller.frontendVersionLabel, '0.2.2');
+    expect(controller.frontendVersionLabel, '0.2.3');
     expect(controller.backendVersionLabel, '--');
   });
 }

@@ -15,13 +15,12 @@ import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/movies/movie_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 
-typedef MovieListBodyBuilder =
-    Widget Function(
-      BuildContext context,
-      ScrollController scrollController,
-      Widget child,
-      Future<void> Function()? onRefresh,
-    );
+typedef MovieListBodyBuilder = Widget Function(
+  BuildContext context,
+  ScrollController scrollController,
+  Widget child,
+  Future<void> Function()? onRefresh,
+);
 
 class MovieListContent extends StatefulWidget {
   const MovieListContent({
@@ -82,10 +81,7 @@ class _MovieListContentState extends State<MovieListContent> {
 
   void _applyFilter(MovieFilterState nextState) {
     final filterState = widget.pageState.filterState;
-    if (nextState.status == filterState.status &&
-        nextState.collectionType == filterState.collectionType &&
-        nextState.sortField == filterState.sortField &&
-        nextState.sortDirection == filterState.sortDirection) {
+    if (nextState.matches(filterState)) {
       return;
     }
     setState(() {
@@ -138,8 +134,7 @@ class _MovieListContentState extends State<MovieListContent> {
         AnimatedBuilder(
           animation: controller,
           builder: (context, _) {
-            final showFooter =
-                controller.items.isNotEmpty &&
+            final showFooter = controller.items.isNotEmpty &&
                 (controller.isLoadingMore ||
                     controller.loadMoreErrorMessage != null);
             return Column(
@@ -160,8 +155,8 @@ class _MovieListContentState extends State<MovieListContent> {
                   items: controller.items,
                   isLoading: controller.isInitialLoading,
                   errorMessage: controller.initialErrorMessage,
-                  onMovieTap:
-                      (movie) => widget.onMovieTap(context, movie.movieNumber),
+                  onMovieTap: (movie) =>
+                      widget.onMovieTap(context, movie.movieNumber),
                   onMovieMenuRequest: (movie, globalPosition) {
                     unawaited(
                       showMovieCollectionFeatureActionMenu(
@@ -171,11 +166,10 @@ class _MovieListContentState extends State<MovieListContent> {
                       ),
                     );
                   },
-                  onMovieSubscriptionTap:
-                      (movie) => _toggleMovieSubscription(movie.movieNumber),
-                  isMovieSubscriptionUpdating:
-                      (movie) =>
-                          controller.isSubscriptionUpdating(movie.movieNumber),
+                  onMovieSubscriptionTap: (movie) =>
+                      _toggleMovieSubscription(movie.movieNumber),
+                  isMovieSubscriptionUpdating: (movie) =>
+                      controller.isSubscriptionUpdating(movie.movieNumber),
                   emptyMessage: '暂无影片数据',
                 ),
                 if (showFooter) ...[

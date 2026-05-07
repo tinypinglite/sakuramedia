@@ -28,7 +28,7 @@ void main() {
     PackageInfo.setMockInitialValues(
       appName: 'SakuraMedia',
       packageName: 'sakuramedia',
-      version: '0.2.2',
+      version: '0.2.3',
       buildNumber: '1',
       buildSignature: '',
     );
@@ -72,7 +72,7 @@ void main() {
     expect(find.byKey(const Key('sidebar-version-info')), findsOneWidget);
     expect(find.text('系统版本'), findsOneWidget);
     expect(find.text('客户端'), findsOneWidget);
-    expect(find.text('0.2.2'), findsOneWidget);
+    expect(find.text('0.2.3'), findsOneWidget);
     expect(find.text('服务端'), findsOneWidget);
     expect(find.text('v0.2.0'), findsOneWidget);
 
@@ -109,7 +109,7 @@ void main() {
       find.byKey(const Key('sidebar-version-info-collapsed')),
       findsOneWidget,
     );
-    expect(find.byTooltip('客户端 0.2.2 · 服务端 v0.2.0'), findsOneWidget);
+    expect(find.byTooltip('客户端 0.2.3 · 服务端 v0.2.0'), findsOneWidget);
   });
 
   testWidgets('topbar divider aligns with sidebar divider', (

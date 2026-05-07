@@ -242,6 +242,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('movies-filter-panel')), findsOneWidget);
+    expect(find.text('发行年份'), findsNothing);
     await tester.tap(find.text('可播放'));
     await tester.pump();
     await tester.pumpAndSettle();
@@ -870,9 +871,9 @@ void main() {
 
       final context = tester.element(find.byType(DesktopMoviesPage));
       context.read<MovieSubscriptionChangeNotifier>().reportChange(
-        movieNumber: 'ABC-001',
-        isSubscribed: true,
-      );
+            movieNumber: 'ABC-001',
+            isSubscribed: true,
+          );
       await tester.pump();
 
       expect(
@@ -937,10 +938,9 @@ Future<GoRouter> _pumpMoviesRouter(
       GoRoute(
         path: '/desktop/library/movies/:movieNumber',
         name: 'desktop-movie-detail',
-        builder:
-            (context, state) => Scaffold(
-              body: Text('detail: ${state.pathParameters['movieNumber']}'),
-            ),
+        builder: (context, state) => Scaffold(
+          body: Text('detail: ${state.pathParameters['movieNumber']}'),
+        ),
       ),
     ],
   );
@@ -1016,8 +1016,7 @@ Map<String, dynamic> _moviesJson({
   List<Map<String, dynamic>>? items,
 }) {
   return <String, dynamic>{
-    'items':
-        items ??
+    'items': items ??
         <Map<String, dynamic>>[
           _movieItem(),
           _movieItem(movieNumber: 'ABC-002', isSubscribed: false),

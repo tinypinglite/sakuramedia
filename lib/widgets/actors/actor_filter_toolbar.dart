@@ -178,6 +178,18 @@ class _ActorFilterToolbarState extends State<ActorFilterToolbar> {
                         ),
                   ),
                   SizedBox(height: context.appSpacing.lg),
+                  _SortSection(
+                    filterState: widget.filterState,
+                    onSortFieldChanged:
+                        (value) => widget.onChanged(
+                          widget.filterState.copyWith(sortField: value),
+                        ),
+                    onSortDirectionChanged:
+                        (value) => widget.onChanged(
+                          widget.filterState.copyWith(sortDirection: value),
+                        ),
+                  ),
+                  SizedBox(height: context.appSpacing.lg),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -216,7 +228,7 @@ class _ActorFilterToolbarState extends State<ActorFilterToolbar> {
       link: _layerLink,
       child: AppTextButton(
         key: _triggerKey,
-        label: widget.filterState.subscriptionStatus.label,
+        label: widget.filterState.triggerLabel,
         labelKey: const Key('actors-filter-trigger-label'),
         icon: const Icon(Icons.filter_alt_outlined),
         trailingIcon: Icon(_isOpen ? Icons.expand_less : Icons.expand_more),
@@ -267,6 +279,64 @@ class _FilterSection<T> extends StatelessWidget {
                   label: labelBuilder(option),
                   selected: option == selectedValue,
                   onTap: () => onSelected(option),
+                ),
+              )
+              .toList(growable: false),
+        ),
+      ],
+    );
+  }
+}
+
+class _SortSection extends StatelessWidget {
+  const _SortSection({
+    required this.filterState,
+    required this.onSortFieldChanged,
+    required this.onSortDirectionChanged,
+  });
+
+  final ActorFilterState filterState;
+  final ValueChanged<ActorSortField> onSortFieldChanged;
+  final ValueChanged<ActorSortDirection> onSortDirectionChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '排序方式',
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.primary,
+          ),
+        ),
+        SizedBox(height: context.appSpacing.sm),
+        Wrap(
+          spacing: context.appSpacing.sm,
+          runSpacing: context.appSpacing.sm,
+          children: ActorSortField.values
+              .map(
+                (value) => _FilterChipButton(
+                  label: value.label,
+                  selected: value == filterState.sortField,
+                  onTap: () => onSortFieldChanged(value),
+                ),
+              )
+              .toList(growable: false),
+        ),
+        SizedBox(height: context.appSpacing.md),
+        Wrap(
+          spacing: context.appSpacing.sm,
+          runSpacing: context.appSpacing.sm,
+          children: ActorSortDirection.values
+              .map(
+                (value) => _FilterChipButton(
+                  label: value.label,
+                  selected: value == filterState.sortDirection,
+                  onTap: () => onSortDirectionChanged(value),
                 ),
               )
               .toList(growable: false),

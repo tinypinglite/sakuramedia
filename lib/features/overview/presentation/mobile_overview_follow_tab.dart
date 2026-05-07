@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
@@ -277,6 +278,7 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
           detailStillImageUrls: detailState?.stillImageUrls ?? const [],
           detailSummary: detailState?.summary,
           detailThinCoverUrl: detailState?.thinCoverUrl,
+          detailCoverUrl: detailState?.coverUrl,
           onVisible: () => _ensureMovieDetailLoaded(movie.movieNumber),
         ),
       );
@@ -318,6 +320,7 @@ class _FollowMovieDetailState {
     required this.status,
     required this.summary,
     required this.thinCoverUrl,
+    required this.coverUrl,
     required this.stillImageUrls,
   });
 
@@ -326,6 +329,7 @@ class _FollowMovieDetailState {
         status: _FollowMovieDetailStatus.loading,
         summary: null,
         thinCoverUrl: null,
+        coverUrl: null,
         stillImageUrls: const <String>[],
       );
 
@@ -334,6 +338,7 @@ class _FollowMovieDetailState {
         status: _FollowMovieDetailStatus.error,
         summary: null,
         thinCoverUrl: null,
+        coverUrl: null,
         stillImageUrls: const <String>[],
       );
 
@@ -344,18 +349,18 @@ class _FollowMovieDetailState {
     final stillImageUrls = detail.plotImages
         .map((image) => image.bestAvailableUrl.trim())
         .where((url) => url.isNotEmpty)
+        .skip(1)
         .take(stillImageLimit)
         .toList(growable: false);
     final summary =
         detail.summary.trim().isEmpty ? detail.title : detail.summary;
-    final thinCoverUrl =
-        detail.thinCoverImage?.bestAvailableUrl.trim().isNotEmpty ?? false
-            ? detail.thinCoverImage!.bestAvailableUrl.trim()
-            : detail.coverImage?.bestAvailableUrl.trim();
+    final thinCoverUrl = _resolveMovieImageUrl(detail.thinCoverImage);
+    final coverUrl = _resolveMovieImageUrl(detail.coverImage);
     return _FollowMovieDetailState._(
       status: _FollowMovieDetailStatus.success,
       summary: summary,
       thinCoverUrl: thinCoverUrl,
+      coverUrl: coverUrl,
       stillImageUrls: stillImageUrls,
     );
   }
@@ -363,7 +368,16 @@ class _FollowMovieDetailState {
   final _FollowMovieDetailStatus status;
   final String? summary;
   final String? thinCoverUrl;
+  final String? coverUrl;
   final List<String> stillImageUrls;
+}
+
+String? _resolveMovieImageUrl(MovieImageDto? image) {
+  final url = image?.bestAvailableUrl.trim();
+  if (url == null || url.isEmpty) {
+    return null;
+  }
+  return url;
 }
 
 class _FollowTabLoadingState extends StatelessWidget {

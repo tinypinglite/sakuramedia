@@ -52,6 +52,7 @@ void main() {
                   ],
                   detailSummary: null,
                   detailThinCoverUrl: null,
+                  detailCoverUrl: null,
                 ),
               ),
             ),
@@ -72,61 +73,126 @@ void main() {
     },
   );
 
-  testWidgets('mobile follow movie card cover uses fixed visible anchor', (
-    WidgetTester tester,
-  ) async {
-    final sessionStore = SessionStore.inMemory();
-    await sessionStore.saveBaseUrl('https://api.example.com');
+  testWidgets(
+    'mobile follow movie card prefers list thin cover without legacy crop',
+    (WidgetTester tester) async {
+      final sessionStore = SessionStore.inMemory();
+      await sessionStore.saveBaseUrl('https://api.example.com');
 
-    await tester.pumpWidget(
-      MultiProvider(
-        providers: [
-          ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
-        ],
-        child: MaterialApp(
-          theme: sakuraThemeData,
-          home: Scaffold(
-            body: SizedBox(
-              width: 360,
-              child: MobileFollowMovieCard(
-                movie: MovieListItemDto(
-                  javdbId: 'movie-1',
-                  movieNumber: 'ABP-100',
-                  title: 'Movie 100',
-                  coverImage: const MovieImageDto(
-                    id: 1,
-                    origin: '/cover-origin.jpg',
-                    small: '/cover-small.jpg',
-                    medium: '/cover-medium.jpg',
-                    large: '/cover-large.jpg',
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          ],
+          child: MaterialApp(
+            theme: sakuraThemeData,
+            home: Scaffold(
+              body: SizedBox(
+                width: 360,
+                child: MobileFollowMovieCard(
+                  movie: MovieListItemDto(
+                    javdbId: 'movie-1',
+                    movieNumber: 'ABP-100',
+                    title: 'Movie 100',
+                    coverImage: const MovieImageDto(
+                      id: 1,
+                      origin: '/cover-origin.jpg',
+                      small: '/cover-small.jpg',
+                      medium: '/cover-medium.jpg',
+                      large: '/cover-large.jpg',
+                    ),
+                    thinCoverImage: const MovieImageDto(
+                      id: 2,
+                      origin: '/thin-origin.jpg',
+                      small: '/thin-small.jpg',
+                      medium: '/thin-medium.jpg',
+                      large: '/thin-large.jpg',
+                    ),
+                    releaseDate: DateTime(2024, 1, 1),
+                    durationMinutes: 120,
+                    heat: 0,
+                    isSubscribed: true,
+                    canPlay: true,
                   ),
-                  releaseDate: DateTime(2024, 1, 1),
-                  durationMinutes: 120,
-                  heat: 0,
-                  isSubscribed: true,
-                  canPlay: true,
+                  onTap: () {},
+                  onSubscriptionTap: () {},
+                  isSubscriptionUpdating: false,
+                  isDetailLoading: false,
+                  detailStillImageUrls: const <String>[],
+                  detailSummary: null,
+                  detailThinCoverUrl: null,
+                  detailCoverUrl: null,
                 ),
-                onTap: () {},
-                onSubscriptionTap: () {},
-                isSubscriptionUpdating: false,
-                isDetailLoading: false,
-                detailStillImageUrls: const <String>[],
-                detailSummary: null,
-                detailThinCoverUrl: null,
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    final maskedImage = tester.widget<MaskedImage>(find.byType(MaskedImage));
-    expect(
-      maskedImage.visibleWidthFactor,
-      AppComponentTokens.defaults().movieCardCoverVisibleWidthFactor,
-    );
-    expect(maskedImage.visibleAlignment, Alignment.centerRight);
-  });
+      final maskedImage = tester.widget<MaskedImage>(find.byType(MaskedImage));
+      expect(maskedImage.url, '/thin-large.jpg');
+      expect(maskedImage.fit, BoxFit.cover);
+      expect(maskedImage.visibleWidthFactor, isNull);
+      expect(maskedImage.visibleAlignment, Alignment.center);
+    },
+  );
+
+  testWidgets(
+    'mobile follow movie card contains cover fallback without legacy crop',
+    (WidgetTester tester) async {
+      final sessionStore = SessionStore.inMemory();
+      await sessionStore.saveBaseUrl('https://api.example.com');
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          ],
+          child: MaterialApp(
+            theme: sakuraThemeData,
+            home: Scaffold(
+              body: SizedBox(
+                width: 360,
+                child: MobileFollowMovieCard(
+                  movie: MovieListItemDto(
+                    javdbId: 'movie-cover-fallback',
+                    movieNumber: 'ABP-103',
+                    title: 'Movie 103',
+                    coverImage: const MovieImageDto(
+                      id: 1,
+                      origin: '/cover-origin.jpg',
+                      small: '/cover-small.jpg',
+                      medium: '/cover-medium.jpg',
+                      large: '/cover-large.jpg',
+                    ),
+                    releaseDate: DateTime(2024, 1, 1),
+                    durationMinutes: 120,
+                    heat: 0,
+                    isSubscribed: true,
+                    canPlay: true,
+                  ),
+                  onTap: () {},
+                  onSubscriptionTap: () {},
+                  isSubscriptionUpdating: false,
+                  isDetailLoading: false,
+                  detailStillImageUrls: const <String>[],
+                  detailSummary: null,
+                  detailThinCoverUrl: null,
+                  detailCoverUrl: null,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final maskedImage = tester.widget<MaskedImage>(find.byType(MaskedImage));
+      expect(maskedImage.url, '/cover-large.jpg');
+      expect(maskedImage.fit, BoxFit.contain);
+      expect(maskedImage.visibleWidthFactor, isNull);
+      expect(maskedImage.visibleAlignment, Alignment.center);
+    },
+  );
 
   testWidgets(
     'mobile follow movie card shows placeholder when cover image missing',
@@ -163,6 +229,7 @@ void main() {
                   detailStillImageUrls: const <String>[],
                   detailSummary: null,
                   detailThinCoverUrl: null,
+                  detailCoverUrl: null,
                 ),
               ),
             ),
@@ -215,6 +282,7 @@ void main() {
                 detailStillImageUrls: const <String>[],
                 detailSummary: '摘要文案',
                 detailThinCoverUrl: null,
+                detailCoverUrl: null,
               ),
             ),
           ),

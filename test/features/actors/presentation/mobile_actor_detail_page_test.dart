@@ -205,6 +205,11 @@ void main() {
     );
     bundle.adapter.enqueueJson(
       method: 'GET',
+      path: '/actors/1/years',
+      body: _actorMovieYearsJson(),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
       path: '/movies',
       body: _moviesJson(
         total: 1,
@@ -236,10 +241,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('1 部'), findsOneWidget);
-    expect(_queryValue(bundle, 2, 'actor_id'), '1');
-    expect(_queryValue(bundle, 2, 'status'), 'playable');
-    expect(_queryValue(bundle, 2, 'collection_type'), 'single');
-    expect(_queryValue(bundle, 2, 'sort'), 'release_date:desc');
+    expect(_queryValue(bundle, 3, 'actor_id'), '1');
+    expect(_queryValue(bundle, 3, 'status'), 'playable');
+    expect(_queryValue(bundle, 3, 'collection_type'), 'single');
+    expect(_queryValue(bundle, 3, 'sort'), 'release_date:desc');
     expect(
       tester
           .widget<AppTextButton>(
@@ -258,6 +263,66 @@ void main() {
       ),
       sakuraMobileThemeData.colorScheme.primary.withValues(alpha: 0.08),
     );
+  });
+
+  testWidgets('mobile actor detail page filters and resets movie year', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors/1',
+      body: _actorDetailJson(),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(total: 2),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors/1/years',
+      body: _actorMovieYearsJson(),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _movieItem(movieNumber: 'ABC-026'),
+        ],
+      ),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(total: 2),
+    );
+
+    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2026(18)'), findsOneWidget);
+
+    await tester.tap(find.text('2026(18)'));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(_queryValue(bundle, 3, 'actor_id'), '1');
+    expect(_queryValue(bundle, 3, 'year'), '2026');
+    expect(find.text('2026 · 全部'), findsOneWidget);
+
+    await tester.tap(find.text('重置'));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(_queryValue(bundle, 4, 'actor_id'), '1');
+    expect(_queryValue(bundle, 4, 'year'), isNull);
+    expect(
+        find.byKey(const Key('movies-filter-trigger-label')), findsOneWidget);
   });
 
   testWidgets('mobile actor detail page applies quick filter presets', (
@@ -556,11 +621,10 @@ void main() {
         ),
         GoRoute(
           path: '$mobileMoviesPath/:movieNumber',
-          builder:
-              (_, state) => Text(
-                'movie:${state.pathParameters['movieNumber']}',
-                textDirection: TextDirection.ltr,
-              ),
+          builder: (_, state) => Text(
+            'movie:${state.pathParameters['movieNumber']}',
+            textDirection: TextDirection.ltr,
+          ),
         ),
       ],
     );
@@ -694,8 +758,7 @@ Map<String, dynamic> _moviesJson({
   List<Map<String, dynamic>>? items,
 }) {
   return <String, dynamic>{
-    'items':
-        items ??
+    'items': items ??
         <Map<String, dynamic>>[
           _movieItem(movieNumber: 'ABC-001'),
           _movieItem(movieNumber: 'ABC-002'),
@@ -704,6 +767,13 @@ Map<String, dynamic> _moviesJson({
     'page_size': 24,
     'total': total,
   };
+}
+
+List<Map<String, dynamic>> _actorMovieYearsJson() {
+  return const <Map<String, dynamic>>[
+    <String, dynamic>{'year': 2026, 'movie_count': 18},
+    <String, dynamic>{'year': 2025, 'movie_count': 9},
+  ];
 }
 
 Map<String, dynamic> _movieItem({

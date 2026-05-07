@@ -2,6 +2,7 @@ import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/actors/data/actor_list_item_dto.dart';
+import 'package:sakuramedia/features/actors/data/actor_movie_year_dto.dart';
 import 'package:sakuramedia/features/actors/data/actor_search_stream_update.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_filter_state.dart';
 import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
@@ -14,17 +15,23 @@ class ActorsApi {
   Future<PaginatedResponseDto<ActorListItemDto>> getActors({
     ActorSubscriptionStatus subscriptionStatus = ActorSubscriptionStatus.all,
     ActorGender gender = ActorGender.all,
+    String? sort,
     int page = 1,
     int pageSize = 20,
   }) async {
+    final queryParameters = <String, dynamic>{
+      'subscription_status': subscriptionStatus.apiValue,
+      'gender': gender.apiValue,
+      'page': page,
+      'page_size': pageSize,
+    };
+    if (sort != null && sort.isNotEmpty) {
+      queryParameters['sort'] = sort;
+    }
+
     final response = await _apiClient.get(
       '/actors',
-      queryParameters: <String, dynamic>{
-        'subscription_status': subscriptionStatus.apiValue,
-        'gender': gender.apiValue,
-        'page': page,
-        'page_size': pageSize,
-      },
+      queryParameters: queryParameters,
     );
     return PaginatedResponseDto<ActorListItemDto>.fromJson(
       response,
@@ -46,6 +53,16 @@ class ActorsApi {
           (dynamic value) => value is int ? value : int.tryParse('$value') ?? 0,
         )
         .where((int id) => id > 0)
+        .toList(growable: false);
+  }
+
+  Future<List<ActorMovieYearDto>> getActorMovieYears({
+    required int actorId,
+  }) async {
+    final response = await _apiClient.getList('/actors/$actorId/years');
+    return response
+        .map(ActorMovieYearDto.fromJson)
+        .where((item) => item.year > 0)
         .toList(growable: false);
   }
 

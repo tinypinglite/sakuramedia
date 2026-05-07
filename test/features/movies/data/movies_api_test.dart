@@ -181,7 +181,8 @@ void main() {
     expect(page.items.single.seriesName, 'S1 NO.1 STYLE');
   });
 
-  test('getMovies sends actor_id when actor filter is provided', () async {
+  test('getMovies sends actor_id and year when actor year filters provided',
+      () async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/movies',
@@ -194,10 +195,11 @@ void main() {
       },
     );
 
-    await moviesApi.getMovies(actorId: 7, page: 1, pageSize: 24);
+    await moviesApi.getMovies(actorId: 7, year: 2026, page: 1, pageSize: 24);
 
     final request = adapter.requests.single;
     expect(request.uri.queryParameters['actor_id'], '7');
+    expect(request.uri.queryParameters['year'], '2026');
   });
 
   test('getMovies omits optional filters when not provided', () async {
@@ -219,6 +221,7 @@ void main() {
     expect(request.uri.queryParameters.containsKey('status'), isFalse);
     expect(request.uri.queryParameters.containsKey('collection_type'), isFalse);
     expect(request.uri.queryParameters.containsKey('sort'), isFalse);
+    expect(request.uri.queryParameters.containsKey('year'), isFalse);
   });
 
   test('getMovies converts backend error to ApiException', () async {
@@ -490,10 +493,9 @@ void main() {
       ],
     );
 
-    final updates =
-        await moviesApi
-            .searchOnlineMoviesStream(movieNumber: 'ABP-123')
-            .toList();
+    final updates = await moviesApi
+        .searchOnlineMoviesStream(movieNumber: 'ABP-123')
+        .toList();
 
     final request = adapter.requests.single;
     expect(request.method, 'POST');
@@ -518,10 +520,9 @@ void main() {
         ],
       );
 
-      final updates =
-          await moviesApi
-              .searchOnlineMoviesStream(movieNumber: 'ABP-404')
-              .toList();
+      final updates = await moviesApi
+          .searchOnlineMoviesStream(movieNumber: 'ABP-404')
+          .toList();
 
       expect(updates.last.success, isFalse);
       expect(updates.last.reason, 'movie_not_found');
@@ -541,10 +542,9 @@ void main() {
       ],
     );
 
-    final updates =
-        await moviesApi
-            .searchOnlineMoviesStream(movieNumber: 'ABP-123')
-            .toList();
+    final updates = await moviesApi
+        .searchOnlineMoviesStream(movieNumber: 'ABP-123')
+        .toList();
 
     expect(updates.single.results.single.movieNumber, 'ABP-123');
   });
@@ -1574,10 +1574,9 @@ void main() {
         ],
       );
 
-      final updates =
-          await moviesApi
-              .getMissavThumbnailsStream(movieNumber: 'SSNI-888')
-              .toList();
+      final updates = await moviesApi
+          .getMissavThumbnailsStream(movieNumber: 'SSNI-888')
+          .toList();
 
       expect(updates, hasLength(3));
       expect(updates[0].stage, 'search_started');
@@ -1610,10 +1609,9 @@ void main() {
         ],
       );
 
-      final updates =
-          await moviesApi
-              .getMissavThumbnailsStream(movieNumber: 'SSNI-888', refresh: true)
-              .toList();
+      final updates = await moviesApi
+          .getMissavThumbnailsStream(movieNumber: 'SSNI-888', refresh: true)
+          .toList();
 
       expect(updates.single.stage, 'completed');
       expect(updates.single.success, isFalse);

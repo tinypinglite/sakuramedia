@@ -35,6 +35,7 @@ import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/media/masked_image.dart';
 import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -50,7 +51,7 @@ void main() {
     PackageInfo.setMockInitialValues(
       appName: 'SakuraMedia',
       packageName: 'sakuramedia',
-      version: '0.2.2',
+      version: '0.2.3',
       buildNumber: '1',
       buildSignature: '',
     );
@@ -253,7 +254,7 @@ void main() {
       expect(find.text('版本与服务'), findsOneWidget);
       expect(find.text('自动同步'), findsOneWidget);
       expect(find.text('客户端'), findsOneWidget);
-      expect(find.text('0.2.2'), findsOneWidget);
+      expect(find.text('0.2.3'), findsOneWidget);
       expect(find.text('服务端'), findsOneWidget);
       expect(find.text('v0.2.0'), findsOneWidget);
       expect(logoutItem, findsOneWidget);
@@ -1568,6 +1569,208 @@ void main() {
     await tester.pumpAndSettle();
     expect(bundle.adapter.hitCount('GET', '/movies/ABP-302'), 1);
   });
+
+  testWidgets(
+    'mobile overview follow tab keeps list thin cover when detail thin cover missing',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/subscribed-actors/latest',
+        statusCode: 200,
+        body: _followMoviesPageJson(
+          page: 1,
+          total: 1,
+          items: <Map<String, dynamic>>[
+            _followMovieItemJson(movieNumber: 'ABP-303', includeImages: true),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABP-303',
+        statusCode: 200,
+        body: _movieDetailJson(
+          movieNumber: 'ABP-303',
+          includeThinCoverImage: false,
+        ),
+      );
+      _enqueueOverviewResponses(bundle);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          child: const MobileOverviewSkeletonPage(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('关注'));
+      await tester.pumpAndSettle();
+
+      final coverImage = _mobileFollowCardCoverImage(tester, 'ABP-303');
+      expect(
+        coverImage.url,
+        '/files/images/movies/ABP-303/list-thin-large.jpg',
+      );
+      expect(coverImage.fit, BoxFit.cover);
+      expect(coverImage.visibleWidthFactor, isNull);
+    },
+  );
+
+  testWidgets(
+    'mobile overview follow tab prefers detail thin cover over list thin cover',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/subscribed-actors/latest',
+        statusCode: 200,
+        body: _followMoviesPageJson(
+          page: 1,
+          total: 1,
+          items: <Map<String, dynamic>>[
+            _followMovieItemJson(movieNumber: 'ABP-304', includeImages: true),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABP-304',
+        statusCode: 200,
+        body: _movieDetailJson(movieNumber: 'ABP-304'),
+      );
+      _enqueueOverviewResponses(bundle);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          child: const MobileOverviewSkeletonPage(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('关注'));
+      await tester.pumpAndSettle();
+
+      final coverImage = _mobileFollowCardCoverImage(tester, 'ABP-304');
+      expect(coverImage.url, '/files/images/movies/ABP-304/thin-large.jpg');
+      expect(coverImage.fit, BoxFit.cover);
+      expect(coverImage.visibleWidthFactor, isNull);
+    },
+  );
+
+  testWidgets(
+    'mobile overview follow tab starts still images from second valid plot image',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/subscribed-actors/latest',
+        statusCode: 200,
+        body: _followMoviesPageJson(
+          page: 1,
+          total: 1,
+          items: <Map<String, dynamic>>[
+            _followMovieItemJson(movieNumber: 'ABP-305', includeImages: true),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABP-305',
+        statusCode: 200,
+        body: _movieDetailJson(movieNumber: 'ABP-305', plotImageCount: 3),
+      );
+      _enqueueOverviewResponses(bundle);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          child: const MobileOverviewSkeletonPage(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('关注'));
+      await tester.pumpAndSettle();
+
+      final stillImages = _mobileFollowCardStillImages(tester, 'ABP-305');
+      expect(
+        stillImages.map((image) => image.url),
+        containsAllInOrder(<String>[
+          '/files/images/movies/ABP-305/plot-2-large.jpg',
+          '/files/images/movies/ABP-305/plot-3-large.jpg',
+        ]),
+      );
+      expect(
+        stillImages.map((image) => image.url),
+        isNot(contains('/files/images/movies/ABP-305/plot-1-large.jpg')),
+      );
+    },
+  );
+
+  testWidgets(
+    'mobile overview follow tab shows empty still state when only first plot exists',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/subscribed-actors/latest',
+        statusCode: 200,
+        body: _followMoviesPageJson(
+          page: 1,
+          total: 1,
+          items: <Map<String, dynamic>>[
+            _followMovieItemJson(movieNumber: 'ABP-306', includeImages: true),
+          ],
+        ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABP-306',
+        statusCode: 200,
+        body: _movieDetailJson(movieNumber: 'ABP-306', plotImageCount: 1),
+      );
+      _enqueueOverviewResponses(bundle);
+
+      await tester.pumpWidget(
+        _buildTestApp(
+          sessionStore: sessionStore,
+          bundle: bundle,
+          child: const MobileOverviewSkeletonPage(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('关注'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('mobile-follow-movie-card-detail-empty-ABP-306')),
+        findsOneWidget,
+      );
+    },
+  );
+}
+
+MaskedImage _mobileFollowCardCoverImage(
+  WidgetTester tester,
+  String movieNumber,
+) {
+  final cardFinder = find.byKey(Key('mobile-follow-movie-card-$movieNumber'));
+  return tester.widget<MaskedImage>(
+    find.descendant(of: cardFinder, matching: find.byType(MaskedImage)).first,
+  );
+}
+
+List<MaskedImage> _mobileFollowCardStillImages(
+  WidgetTester tester,
+  String movieNumber,
+) {
+  final stripFinder = find.byKey(
+    Key('mobile-follow-movie-card-strip-$movieNumber'),
+  );
+  return tester
+      .widgetList<MaskedImage>(
+        find.descendant(of: stripFinder, matching: find.byType(MaskedImage)),
+      )
+      .toList(growable: false);
 }
 
 Widget _buildTestApp({
@@ -1863,12 +2066,24 @@ Map<String, dynamic> _followMovieItemJson({
   required String movieNumber,
   bool isSubscribed = false,
   bool canPlay = true,
+  bool includeImages = false,
 }) {
   return <String, dynamic>{
     'javdb_id': 'Movie-$movieNumber',
     'movie_number': movieNumber,
     'title': 'Title $movieNumber',
-    'cover_image': null,
+    'cover_image':
+        includeImages
+            ? _movieImageJson(
+              id: 10,
+              large: '/files/images/movies/$movieNumber/list-cover-large.jpg',
+            )
+            : null,
+    if (includeImages)
+      'thin_cover_image': _movieImageJson(
+        id: 11,
+        large: '/files/images/movies/$movieNumber/list-thin-large.jpg',
+      ),
     'release_date': '2026-03-10',
     'duration_minutes': 120,
     'is_subscribed': isSubscribed,
@@ -1876,7 +2091,11 @@ Map<String, dynamic> _followMovieItemJson({
   };
 }
 
-Map<String, dynamic> _movieDetailJson({required String movieNumber}) {
+Map<String, dynamic> _movieDetailJson({
+  required String movieNumber,
+  bool includeThinCoverImage = true,
+  int plotImageCount = 1,
+}) {
   return <String, dynamic>{
     'javdb_id': 'Movie-$movieNumber',
     'movie_number': movieNumber,
@@ -1902,24 +2121,37 @@ Map<String, dynamic> _movieDetailJson({required String movieNumber}) {
     'summary': 'summary $movieNumber',
     'actors': const <Map<String, dynamic>>[],
     'tags': const <Map<String, dynamic>>[],
-    'thin_cover_image': <String, dynamic>{
-      'id': 2,
-      'origin': '/files/images/movies/$movieNumber/thin.jpg',
-      'small': '/files/images/movies/$movieNumber/thin-small.jpg',
-      'medium': '/files/images/movies/$movieNumber/thin-medium.jpg',
-      'large': '/files/images/movies/$movieNumber/thin-large.jpg',
-    },
-    'plot_images': <Map<String, dynamic>>[
-      <String, dynamic>{
-        'id': 3,
-        'origin': '/files/images/movies/$movieNumber/plot-1.jpg',
-        'small': '/files/images/movies/$movieNumber/plot-1-small.jpg',
-        'medium': '/files/images/movies/$movieNumber/plot-1-medium.jpg',
-        'large': '/files/images/movies/$movieNumber/plot-1-large.jpg',
+    if (includeThinCoverImage)
+      'thin_cover_image': <String, dynamic>{
+        'id': 2,
+        'origin': '/files/images/movies/$movieNumber/thin.jpg',
+        'small': '/files/images/movies/$movieNumber/thin-small.jpg',
+        'medium': '/files/images/movies/$movieNumber/thin-medium.jpg',
+        'large': '/files/images/movies/$movieNumber/thin-large.jpg',
       },
-    ],
+    'plot_images': List<Map<String, dynamic>>.generate(plotImageCount, (index) {
+      final imageIndex = index + 1;
+      return <String, dynamic>{
+        'id': 2 + imageIndex,
+        'origin': '/files/images/movies/$movieNumber/plot-$imageIndex.jpg',
+        'small': '/files/images/movies/$movieNumber/plot-$imageIndex-small.jpg',
+        'medium':
+            '/files/images/movies/$movieNumber/plot-$imageIndex-medium.jpg',
+        'large': '/files/images/movies/$movieNumber/plot-$imageIndex-large.jpg',
+      };
+    }),
     'media_items': const <Map<String, dynamic>>[],
     'playlists': const <Map<String, dynamic>>[],
+  };
+}
+
+Map<String, dynamic> _movieImageJson({required int id, required String large}) {
+  return <String, dynamic>{
+    'id': id,
+    'origin': large,
+    'small': large,
+    'medium': large,
+    'large': large,
   };
 }
 

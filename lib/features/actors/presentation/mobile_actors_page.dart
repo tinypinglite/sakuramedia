@@ -52,7 +52,9 @@ class _MobileActorsPageState extends State<MobileActorsPage> {
 
   void _applyFilter(ActorFilterState nextState) {
     if (nextState.subscriptionStatus == _filterState.subscriptionStatus &&
-        nextState.gender == _filterState.gender) {
+        nextState.gender == _filterState.gender &&
+        nextState.sortField == _filterState.sortField &&
+        nextState.sortDirection == _filterState.sortDirection) {
       return;
     }
     setState(() {

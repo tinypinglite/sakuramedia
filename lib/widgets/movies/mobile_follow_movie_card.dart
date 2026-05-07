@@ -15,6 +15,7 @@ class MobileFollowMovieCard extends StatefulWidget {
     required this.detailStillImageUrls,
     required this.detailSummary,
     required this.detailThinCoverUrl,
+    required this.detailCoverUrl,
     this.onVisible,
   });
 
@@ -26,6 +27,7 @@ class MobileFollowMovieCard extends StatefulWidget {
   final List<String> detailStillImageUrls;
   final String? detailSummary;
   final String? detailThinCoverUrl;
+  final String? detailCoverUrl;
   final VoidCallback? onVisible;
 
   @override
@@ -71,10 +73,12 @@ class _MobileFollowMovieCardState extends State<MobileFollowMovieCard> {
         widget.detailSummary?.trim().isNotEmpty ?? false
             ? widget.detailSummary!.trim()
             : widget.movie.title;
-    final thinCoverUrl =
-        widget.detailThinCoverUrl?.trim().isNotEmpty ?? false
-            ? widget.detailThinCoverUrl!.trim()
-            : widget.movie.coverImage?.bestAvailableUrl;
+    final coverImage = _resolveFollowCoverImage(
+      detailThinCoverUrl: widget.detailThinCoverUrl,
+      listThinCoverImage: widget.movie.thinCoverImage,
+      detailCoverUrl: widget.detailCoverUrl,
+      listCoverImage: widget.movie.coverImage,
+    );
 
     return InkWell(
       key: Key('mobile-follow-movie-card-${widget.movie.movieNumber}'),
@@ -100,7 +104,8 @@ class _MobileFollowMovieCardState extends State<MobileFollowMovieCard> {
                     children: [
                       _FollowThinCover(
                         movieNumber: widget.movie.movieNumber,
-                        imageUrl: thinCoverUrl,
+                        imageUrl: coverImage?.url,
+                        fit: coverImage?.fit ?? BoxFit.cover,
                         isSubscribed: widget.movie.isSubscribed,
                         isSubscriptionUpdating: widget.isSubscriptionUpdating,
                         onSubscriptionTap: widget.onSubscriptionTap,
@@ -212,6 +217,7 @@ class _FollowThinCover extends StatelessWidget {
   const _FollowThinCover({
     required this.movieNumber,
     required this.imageUrl,
+    required this.fit,
     required this.isSubscribed,
     required this.isSubscriptionUpdating,
     required this.onSubscriptionTap,
@@ -219,6 +225,7 @@ class _FollowThinCover extends StatelessWidget {
 
   final String movieNumber;
   final String? imageUrl;
+  final BoxFit fit;
   final bool isSubscribed;
   final bool isSubscriptionUpdating;
   final VoidCallback onSubscriptionTap;
@@ -245,13 +252,7 @@ class _FollowThinCover extends StatelessWidget {
                   color: context.appTextPalette.muted,
                 ),
               )
-              : MaskedImage(
-                url: imageUrl!,
-                fit: BoxFit.cover,
-                visibleWidthFactor:
-                    componentTokens.movieCardCoverVisibleWidthFactor,
-                visibleAlignment: Alignment.centerRight,
-              ),
+              : MaskedImage(url: imageUrl!, fit: fit),
     );
 
     return Stack(
@@ -368,4 +369,50 @@ class _StillImagesStrip extends StatelessWidget {
       ),
     );
   }
+}
+
+String? _resolveStringImageUrl(String? url) {
+  final resolvedUrl = url?.trim();
+  if (resolvedUrl == null || resolvedUrl.isEmpty) {
+    return null;
+  }
+  return resolvedUrl;
+}
+
+String? _resolveMovieImageUrl(MovieImageDto? image) {
+  return _resolveStringImageUrl(image?.bestAvailableUrl);
+}
+
+_FollowCoverImage? _resolveFollowCoverImage({
+  required String? detailThinCoverUrl,
+  required MovieImageDto? listThinCoverImage,
+  required String? detailCoverUrl,
+  required MovieImageDto? listCoverImage,
+}) {
+  for (final url in <String?>[
+    _resolveStringImageUrl(detailThinCoverUrl),
+    _resolveMovieImageUrl(listThinCoverImage),
+  ]) {
+    if (url != null) {
+      return _FollowCoverImage(url: url, fit: BoxFit.cover);
+    }
+  }
+
+  for (final url in <String?>[
+    _resolveStringImageUrl(detailCoverUrl),
+    _resolveMovieImageUrl(listCoverImage),
+  ]) {
+    if (url != null) {
+      return _FollowCoverImage(url: url, fit: BoxFit.contain);
+    }
+  }
+
+  return null;
+}
+
+class _FollowCoverImage {
+  const _FollowCoverImage({required this.url, required this.fit});
+
+  final String url;
+  final BoxFit fit;
 }

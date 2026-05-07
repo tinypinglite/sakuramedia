@@ -117,6 +117,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_queryValue(bundle, 0, 'gender'), 'all');
+    expect(_queryValue(bundle, 0, 'sort'), 'subscribed_at:desc');
 
     await tester.tap(find.byIcon(Icons.filter_alt_outlined));
     await tester.pumpAndSettle();
@@ -127,6 +128,41 @@ void main() {
     expect(find.text('河北彩花'), findsOneWidget);
     expect(_queryValue(bundle, 1, 'subscription_status'), 'unsubscribed');
     expect(_queryValue(bundle, 1, 'gender'), 'all');
+    expect(_queryValue(bundle, 1, 'sort'), 'subscribed_at:desc');
+  });
+
+  testWidgets('mobile actors page applies sort and sends expected params', (
+    WidgetTester tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors',
+      body: _actorsJson(total: 2),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors',
+      body: _actorsJson(
+        total: 1,
+        items: <Map<String, dynamic>>[
+          _actorItem(id: 3, name: '河北彩花', aliasName: ''),
+        ],
+      ),
+    );
+
+    await _pumpActorsPage(tester, sessionStore: sessionStore, bundle: bundle);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('影片数'));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.text('河北彩花'), findsOneWidget);
+    expect(_queryValue(bundle, 1, 'subscription_status'), 'subscribed');
+    expect(_queryValue(bundle, 1, 'gender'), 'all');
+    expect(_queryValue(bundle, 1, 'sort'), 'movie_count:desc');
   });
 
   testWidgets(
@@ -187,7 +223,10 @@ void main() {
       );
 
       await tester.ensureVisible(find.widgetWithText(TextButton, '重试'));
-      await tester.tap(find.widgetWithText(TextButton, '重试'));
+      await tester.tap(
+        find.widgetWithText(TextButton, '重试'),
+        warnIfMissed: false,
+      );
       await tester.pump();
       await tester.pumpAndSettle();
 

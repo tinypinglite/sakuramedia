@@ -5,6 +5,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/actors/data/actor_list_item_dto.dart';
+import 'package:sakuramedia/features/actors/data/actor_movie_year_dto.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_detail_controller.dart';
 import 'package:sakuramedia/features/actors/presentation/paged_actor_summary_controller.dart';
@@ -20,32 +21,29 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movies/movie_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 
-typedef ActorDetailBodyBuilder =
-    Widget Function(
-      BuildContext context,
-      ScrollController scrollController,
-      Widget child,
-      Future<void> Function()? onRefresh,
-    );
+typedef ActorDetailBodyBuilder = Widget Function(
+  BuildContext context,
+  ScrollController scrollController,
+  Widget child,
+  Future<void> Function()? onRefresh,
+);
 
-typedef ActorDetailHeaderBuilder =
-    Widget Function(
-      BuildContext context,
-      ActorListItemDto actor,
-      int total,
-      bool isSubscribed,
-      bool isSubscriptionUpdating,
-      VoidCallback? onSubscriptionTap,
-    );
+typedef ActorDetailHeaderBuilder = Widget Function(
+  BuildContext context,
+  ActorListItemDto actor,
+  int total,
+  bool isSubscribed,
+  bool isSubscriptionUpdating,
+  VoidCallback? onSubscriptionTap,
+);
 
-typedef ActorDetailErrorBuilder =
-    Widget Function(BuildContext context, String message, VoidCallback onRetry);
+typedef ActorDetailErrorBuilder = Widget Function(
+    BuildContext context, String message, VoidCallback onRetry);
 
-typedef ActorDetailFooterBuilder =
-    Widget? Function(
-      BuildContext context,
-      PagedMovieSummaryController moviesController,
-    );
+typedef ActorDetailFooterBuilder = Widget? Function(
+  BuildContext context,
+  PagedMovieSummaryController moviesController,
+);
 
 class ActorDetailContent extends StatefulWidget {
   const ActorDetailContent({
@@ -88,6 +86,11 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
   late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
 
   MovieFilterState _filterState = MovieFilterState.initial;
+  List<MovieFilterYearOption> _movieYearOptions =
+      const <MovieFilterYearOption>[];
+  bool _hasLoadedMovieYears = false;
+  bool _isMovieYearsLoading = false;
+  String? _movieYearsErrorMessage;
   bool? _isActorSubscribedOverride;
   bool _isActorSubscriptionUpdating = false;
 
@@ -109,14 +112,14 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
       fetchActorDetail: context.read<ActorsApi>().getActorDetail,
     )..load();
     _moviesController = PagedMovieSummaryController(
-      fetchPage:
-          (page, pageSize) => context.read<MoviesApi>().getMovies(
+      fetchPage: (page, pageSize) => context.read<MoviesApi>().getMovies(
             actorId: widget.actorId,
             page: page,
             pageSize: pageSize,
             status: _filterState.status,
             collectionType: _filterState.collectionType,
             sort: _filterState.sortExpression,
+            year: _filterState.year,
           ),
       subscribeMovie: context.read<MoviesApi>().subscribeMovie,
       unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
@@ -172,10 +175,7 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
   }
 
   void _applyFilter(MovieFilterState nextState) {
-    if (nextState.status == _filterState.status &&
-        nextState.collectionType == _filterState.collectionType &&
-        nextState.sortField == _filterState.sortField &&
-        nextState.sortDirection == _filterState.sortDirection) {
+    if (nextState.matches(_filterState)) {
       return;
     }
     setState(() {
@@ -189,6 +189,54 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
 
   void _resetFilters() {
     _applyFilter(MovieFilterState.initial);
+  }
+
+  void _loadMovieYearsIfNeeded() {
+    if (_hasLoadedMovieYears || _isMovieYearsLoading) {
+      return;
+    }
+    unawaited(_loadMovieYears());
+  }
+
+  Future<void> _loadMovieYears({bool force = false}) async {
+    if (_isMovieYearsLoading || (_hasLoadedMovieYears && !force)) {
+      return;
+    }
+    setState(() {
+      _isMovieYearsLoading = true;
+      _movieYearsErrorMessage = null;
+    });
+
+    try {
+      final years = await context.read<ActorsApi>().getActorMovieYears(
+            actorId: widget.actorId,
+          );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _movieYearOptions = years.map(_toFilterYearOption).toList(
+              growable: false,
+            );
+        _hasLoadedMovieYears = true;
+        _isMovieYearsLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isMovieYearsLoading = false;
+        _movieYearsErrorMessage = '年份加载失败';
+      });
+    }
+  }
+
+  MovieFilterYearOption _toFilterYearOption(ActorMovieYearDto item) {
+    return MovieFilterYearOption(
+      year: item.year,
+      movieCount: item.movieCount,
+    );
   }
 
   Future<void> _toggleMovieSubscription(String movieNumber) async {
@@ -215,8 +263,8 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
     try {
       if (isSubscribed) {
         await context.read<ActorsApi>().unsubscribeActor(
-          actorId: widget.actorId,
-        );
+              actorId: widget.actorId,
+            );
         result = const ActorSubscriptionToggleResult.unsubscribed();
         _isActorSubscribedOverride = false;
       } else {
@@ -248,6 +296,7 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
       await Future.wait<void>([
         _actorController.refresh(),
         _moviesController.refresh(),
+        if (_hasLoadedMovieYears) _loadMovieYears(force: true),
       ]);
       if (mounted) {
         setState(() {
@@ -307,22 +356,29 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
                   _isActorSubscriptionUpdating
                       ? null
                       : () => _toggleActorSubscription(
-                        isSubscribed: isActorSubscribed,
-                      ),
+                            isSubscribed: isActorSubscribed,
+                          ),
                 ),
                 SizedBox(height: widget.sectionSpacing),
                 MovieFilterToolbar(
                   filterState: _filterState,
                   onChanged: _applyFilter,
                   onReset: _resetFilters,
+                  yearOptions: _movieYearOptions,
+                  isYearOptionsLoading: _isMovieYearsLoading,
+                  yearOptionsErrorMessage: _movieYearsErrorMessage,
+                  onYearOptionsRetry: () => unawaited(
+                    _loadMovieYears(force: true),
+                  ),
+                  onOpened: _loadMovieYearsIfNeeded,
                 ),
                 SizedBox(height: widget.sectionSpacing),
                 MovieSummaryGrid(
                   items: _moviesController.items,
                   isLoading: _moviesController.isInitialLoading,
                   errorMessage: _moviesController.initialErrorMessage,
-                  onMovieTap:
-                      (movie) => widget.onMovieTap(context, movie.movieNumber),
+                  onMovieTap: (movie) =>
+                      widget.onMovieTap(context, movie.movieNumber),
                   onMovieMenuRequest: (movie, globalPosition) {
                     unawaited(
                       showMovieCollectionFeatureActionMenu(
@@ -332,12 +388,12 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
                       ),
                     );
                   },
-                  onMovieSubscriptionTap:
-                      (movie) => _toggleMovieSubscription(movie.movieNumber),
-                  isMovieSubscriptionUpdating:
-                      (movie) => _moviesController.isSubscriptionUpdating(
-                        movie.movieNumber,
-                      ),
+                  onMovieSubscriptionTap: (movie) =>
+                      _toggleMovieSubscription(movie.movieNumber),
+                  isMovieSubscriptionUpdating: (movie) =>
+                      _moviesController.isSubscriptionUpdating(
+                    movie.movieNumber,
+                  ),
                   emptyMessage: '暂无影片数据',
                 ),
                 if (footer != null) ...[

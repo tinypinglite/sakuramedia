@@ -97,6 +97,7 @@ void main() {
     await actorsApi.getActors(
       subscriptionStatus: ActorSubscriptionStatus.unsubscribed,
       gender: ActorGender.male,
+      sort: 'movie_count:desc',
       page: 1,
       pageSize: 24,
     );
@@ -106,6 +107,7 @@ void main() {
     expect(request.method, 'GET');
     expect(request.uri.queryParameters['subscription_status'], 'unsubscribed');
     expect(request.uri.queryParameters['gender'], 'male');
+    expect(request.uri.queryParameters['sort'], 'movie_count:desc');
     expect(request.uri.queryParameters['page'], '1');
     expect(request.uri.queryParameters['page_size'], '24');
   });
@@ -227,6 +229,24 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('getActorMovieYears parses year count list', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors/1/years',
+      statusCode: 200,
+      body: const <Map<String, dynamic>>[
+        <String, dynamic>{'year': 2026, 'movie_count': 18},
+        <String, dynamic>{'year': 2025, 'movie_count': 9},
+      ],
+    );
+
+    final years = await actorsApi.getActorMovieYears(actorId: 1);
+
+    expect(years.map((item) => item.year), <int>[2026, 2025]);
+    expect(years.map((item) => item.movieCount), <int>[18, 9]);
+    expect(adapter.requests.single.path, '/actors/1/years');
   });
 
   test(
