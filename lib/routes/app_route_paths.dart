@@ -1,6 +1,9 @@
 import 'package:sakuramedia/app/app_platform.dart';
 
 const String desktopOverviewPath = '/desktop/overview';
+const String desktopDiscoverPath = '/desktop/library/discover';
+const String desktopDiscoverMoviesPath = '$desktopDiscoverPath/movies';
+const String desktopDiscoverMomentsPath = '$desktopDiscoverPath/moments';
 const String desktopFollowPath = '/desktop/library/follow';
 const String desktopSearchPath = '/desktop/search';
 const String desktopImageSearchPath = '/desktop/search/image';
@@ -15,6 +18,8 @@ const String desktopActivityPath = '/desktop/system/activity';
 const String desktopConfigurationPath = '/desktop/system/configuration';
 
 const String mobileOverviewPath = '/mobile/overview';
+const String mobileDiscoverMoviesPath = '$mobileOverviewPath/discover/movies';
+const String mobileDiscoverMomentsPath = '$mobileOverviewPath/discover/moments';
 const String mobilePlaylistDetailPathPrefix = '$mobileOverviewPath/playlists';
 const String mobileSystemOverviewPath = '/mobile/system/overview';
 const String mobileSearchPath = '/mobile/search';

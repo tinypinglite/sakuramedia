@@ -491,6 +491,18 @@ RouteBase get $mobileRootShellRouteData => StatefulShellRouteData.$route(
           factory: $MobileOverviewRouteData._fromState,
           routes: [
             GoRouteData.$route(
+              path: 'discover/movies',
+              parentNavigatorKey:
+                  MobileDiscoverMoviesRouteData.$parentNavigatorKey,
+              factory: $MobileDiscoverMoviesRouteData._fromState,
+            ),
+            GoRouteData.$route(
+              path: 'discover/moments',
+              parentNavigatorKey:
+                  MobileDiscoverMomentsRouteData.$parentNavigatorKey,
+              factory: $MobileDiscoverMomentsRouteData._fromState,
+            ),
+            GoRouteData.$route(
               path: 'playlists/:playlistId',
               parentNavigatorKey:
                   MobilePlaylistDetailRouteData.$parentNavigatorKey,
@@ -563,6 +575,50 @@ mixin $MobileOverviewRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/mobile/overview');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $MobileDiscoverMoviesRouteData on GoRouteData {
+  static MobileDiscoverMoviesRouteData _fromState(GoRouterState state) =>
+      const MobileDiscoverMoviesRouteData();
+
+  @override
+  String get location =>
+      GoRouteData.$location('/mobile/overview/discover/movies');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $MobileDiscoverMomentsRouteData on GoRouteData {
+  static MobileDiscoverMomentsRouteData _fromState(GoRouterState state) =>
+      const MobileDiscoverMomentsRouteData();
+
+  @override
+  String get location =>
+      GoRouteData.$location('/mobile/overview/discover/moments');
 
   @override
   void go(BuildContext context) => context.go(location);

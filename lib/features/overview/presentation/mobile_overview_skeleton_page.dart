@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/features/discovery/presentation/mobile_overview_discover_tab.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
@@ -52,7 +53,7 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
                 children: [
                   _MobileOverviewMyTab(playlistOrderStore: playlistOrderStore),
                   const MobileOverviewFollowTab(),
-                  const _MobileOverviewDiscoverTab(),
+                  const MobileOverviewDiscoverTab(),
                   const MobileOverviewMomentsTab(),
                   const MobileOverviewHotReviewsTab(),
                 ],
@@ -477,14 +478,5 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
         showToast('选择图片失败');
       }
     }
-  }
-}
-
-class _MobileOverviewDiscoverTab extends StatelessWidget {
-  const _MobileOverviewDiscoverTab();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: AppEmptyState(message: '开发中'));
   }
 }

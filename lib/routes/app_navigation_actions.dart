@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/routes/desktop_routes.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 
@@ -15,6 +16,8 @@ extension AppNavigationActions on BuildContext {
     switch (path) {
       case desktopOverviewPath:
         return const DesktopOverviewRouteData().go(this);
+      case desktopDiscoverPath:
+        return const DesktopDiscoverRouteData().go(this);
       case desktopFollowPath:
         return const DesktopFollowRouteData().go(this);
       case desktopMoviesPath:
@@ -125,11 +128,41 @@ extension AppNavigationActions on BuildContext {
       fileBytes: initialFileBytes,
       mimeType: initialMimeType,
     );
-    DesktopImageSearchRouteData(
+    final route = DesktopImageSearchRouteData(
       draftId: draftId,
       currentMovieNumber: currentMovieNumber,
       currentMovieScope: initialCurrentMovieScope.name,
-    ).push(this);
+    );
+    GoRouter.of(this).push<void>(
+      route.location,
+      extra: DesktopImageSearchRouteState(fallbackPath: fallbackPath),
+    );
+  }
+
+  void goDesktopImageSearch({
+    String? fallbackPath,
+    String? initialFileName,
+    Uint8List? initialFileBytes,
+    String? initialMimeType,
+    String? currentMovieNumber,
+    ImageSearchCurrentMovieScope initialCurrentMovieScope =
+        ImageSearchCurrentMovieScope.all,
+  }) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    final draftId = _saveImageSearchDraft(
+      fileName: initialFileName,
+      fileBytes: initialFileBytes,
+      mimeType: initialMimeType,
+    );
+    final route = DesktopImageSearchRouteData(
+      draftId: draftId,
+      currentMovieNumber: currentMovieNumber,
+      currentMovieScope: initialCurrentMovieScope.name,
+    );
+    GoRouter.of(this).go(
+      route.location,
+      extra: DesktopImageSearchRouteState(fallbackPath: fallbackPath),
+    );
   }
 
   void pushMobileMovieDetail({

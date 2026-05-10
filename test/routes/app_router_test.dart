@@ -29,6 +29,7 @@ import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dar
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
+import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
@@ -40,10 +41,12 @@ import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/routes/desktop_search_route_state.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
+import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 
 import '../support/test_api_bundle.dart';
@@ -103,9 +106,10 @@ void main() {
   });
 
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 10);
+    expect(desktopNavGroups.length, 11);
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
+      '发现',
       '女优上新',
       '影片',
       '女优',
@@ -113,11 +117,12 @@ void main() {
       '播放列表',
       '排行榜',
       '热评',
-      '活动中心',
       '配置管理',
+      '活动中心',
     ]);
     expect(desktopRouteSpecs.map((spec) => spec.path), [
       desktopOverviewPath,
+      desktopDiscoverPath,
       desktopFollowPath,
       desktopMoviesPath,
       desktopActorsPath,
@@ -125,8 +130,8 @@ void main() {
       desktopPlaylistsPath,
       desktopRankingsPath,
       desktopHotReviewsPath,
-      desktopActivityPath,
       desktopConfigurationPath,
+      desktopActivityPath,
     ]);
   });
 
@@ -299,6 +304,36 @@ void main() {
     expect(config.title, '影片详情');
     expect(config.fallbackPath, desktopMoviesPath);
     expect(config.isBackEnabled, isTrue);
+  });
+
+  test('desktop top bar config enables back on discover list pages', () {
+    final moviesConfig = resolveDesktopTopBarConfig(
+      currentPath: desktopDiscoverMoviesPath,
+      routeSpecs: desktopRouteSpecs,
+    );
+    final momentsConfig = resolveDesktopTopBarConfig(
+      currentPath: desktopDiscoverMomentsPath,
+      routeSpecs: desktopRouteSpecs,
+    );
+
+    expect(moviesConfig.title, '推荐影片');
+    expect(moviesConfig.fallbackPath, desktopDiscoverPath);
+    expect(moviesConfig.isBackEnabled, isTrue);
+    expect(momentsConfig.title, '推荐时刻');
+    expect(momentsConfig.fallbackPath, desktopDiscoverPath);
+    expect(momentsConfig.isBackEnabled, isTrue);
+  });
+
+  test('mobile discover list routes expose subpage titles', () {
+    const moviesRoute = MobileDiscoverMoviesRouteData();
+    const momentsRoute = MobileDiscoverMomentsRouteData();
+
+    expect(moviesRoute.location, mobileDiscoverMoviesPath);
+    expect(moviesRoute.title, '推荐影片');
+    expect(moviesRoute.defaultLocation, mobileOverviewPath);
+    expect(momentsRoute.location, mobileDiscoverMomentsPath);
+    expect(momentsRoute.title, '推荐时刻');
+    expect(momentsRoute.defaultLocation, mobileOverviewPath);
   });
 
   test('desktop top bar config enables back on movie series page', () {
@@ -734,6 +769,106 @@ void main() {
     expect(imageSearchPage, isA<NoTransitionPage<void>>());
     expect(find.text('以图搜图'), findsWidgets);
   });
+
+  testWidgets('desktop image search route extra fallback returns to player', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    _enqueueMovieDetailResponse(bundle);
+    final router = buildDesktopRouter(sessionStore: sessionStore);
+    const playerPath =
+        '/desktop/library/movies/ABC-001/player?mediaId=100&positionSeconds=61';
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(
+      desktopImageSearchPath,
+      extra: const DesktopImageSearchRouteState(fallbackPath: playerPath),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      desktopImageSearchPath,
+    );
+    expect(find.byKey(const Key('topbar-back-button')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('topbar-back-button')));
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.toString(), playerPath);
+    expect(find.byKey(const Key('topbar-header')), findsNothing);
+  });
+
+  testWidgets(
+    'desktop image search stack reset avoids duplicate shell after player',
+    (WidgetTester tester) async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      _enqueueDesktopOverviewResponses(bundle);
+      _enqueueMovieDetailResponse(bundle);
+      _enqueueMovieDetailResponse(bundle);
+      _enqueueImageSearchSingleResultResponse(bundle);
+      _enqueueMovieDetailResponse(bundle);
+      final router = buildDesktopRouter(sessionStore: sessionStore);
+      const playerPath =
+          '/desktop/library/movies/ABC-001/player?mediaId=100&positionSeconds=61';
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        includeShellController: true,
+      );
+      await tester.pumpAndSettle();
+
+      router.go('/desktop/library/movies/ABC-001');
+      await tester.pumpAndSettle();
+      router.push<void>(playerPath);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('movie-player-page-frame')), findsOneWidget);
+
+      final playerContext = tester.element(
+        find.byKey(const Key('movie-player-page-frame')),
+      );
+      playerContext.goDesktopImageSearch(
+        fallbackPath: playerPath,
+        initialFileName: 'query.webp',
+        initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+        initialMimeType: 'image/webp',
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        desktopImageSearchPath,
+      );
+      expect(
+        find.byKey(const Key('image-search-result-card-123')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('topbar-back-button')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.toString(), playerPath);
+      expect(find.byKey(const Key('topbar-header')), findsNothing);
+    },
+  );
 
   testWidgets('desktop search route accepts search route state extra', (
     WidgetTester tester,
@@ -3351,6 +3486,7 @@ Future<void> _pumpRouterApp(
     ),
     Provider<ActivityApi>.value(value: bundle.activityApi),
     Provider<ActorsApi>.value(value: bundle.actorsApi),
+    Provider<DiscoveryApi>.value(value: bundle.discoveryApi),
     Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
     Provider<ImageSearchApi>(
       create: (_) => ImageSearchApi(apiClient: bundle.apiClient),

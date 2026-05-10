@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/actors/presentation/desktop_actor_detail_page.dart';
 import 'package:sakuramedia/features/auth/presentation/login_page.dart';
+import 'package:sakuramedia/features/discovery/presentation/discovery_recommendation_list_pages.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_detail_page.dart';
@@ -13,6 +14,7 @@ import 'package:sakuramedia/features/playlists/presentation/desktop_playlist_det
 import 'package:sakuramedia/routes/app_route_helpers.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/widgets/app_shell/app_desktop_shell.dart';
 
@@ -87,6 +89,13 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
 @TypedShellRoute<DesktopShellRouteData>(
   routes: <TypedRoute<RouteData>>[
     TypedGoRoute<DesktopOverviewRouteData>(path: desktopOverviewPath),
+    TypedGoRoute<DesktopDiscoverRouteData>(path: desktopDiscoverPath),
+    TypedGoRoute<DesktopDiscoverMoviesRouteData>(
+      path: desktopDiscoverMoviesPath,
+    ),
+    TypedGoRoute<DesktopDiscoverMomentsRouteData>(
+      path: desktopDiscoverMomentsPath,
+    ),
     TypedGoRoute<DesktopFollowRouteData>(path: desktopFollowPath),
     TypedGoRoute<DesktopMoviesRouteData>(path: desktopMoviesPath),
     TypedGoRoute<DesktopActorsRouteData>(path: desktopActorsPath),
@@ -133,6 +142,7 @@ class DesktopShellRouteData extends ShellRouteData {
       topBarConfig: resolveDesktopTopBarConfig(
         currentPath: state.uri.path,
         routeSpecs: desktopRouteSpecs,
+        routeExtra: state.extra,
       ),
       shellNavigatorKey: desktopShellNavigatorKey,
       navGroups: desktopNavGroups,
@@ -144,6 +154,37 @@ class DesktopShellRouteData extends ShellRouteData {
 class DesktopOverviewRouteData extends _DesktopShellSpecRouteData
     with $DesktopOverviewRouteData {
   const DesktopOverviewRouteData() : super(desktopOverviewPath);
+}
+
+class DesktopDiscoverRouteData extends _DesktopShellSpecRouteData
+    with $DesktopDiscoverRouteData {
+  const DesktopDiscoverRouteData() : super(desktopDiscoverPath);
+}
+
+class DesktopDiscoverMoviesRouteData extends _DesktopShellPageRouteData
+    with $DesktopDiscoverMoviesRouteData {
+  const DesktopDiscoverMoviesRouteData();
+
+  @override
+  String get pageName => 'desktop-discover-movies';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return const DesktopDiscoverMoviesPage();
+  }
+}
+
+class DesktopDiscoverMomentsRouteData extends _DesktopShellPageRouteData
+    with $DesktopDiscoverMomentsRouteData {
+  const DesktopDiscoverMomentsRouteData();
+
+  @override
+  String get pageName => 'desktop-discover-moments';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return const DesktopDiscoverMomentsPage();
+  }
 }
 
 class DesktopFollowRouteData extends _DesktopShellSpecRouteData
@@ -282,6 +323,7 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
 
   @override
   Widget buildContent(BuildContext context, GoRouterState state) {
+    final routeState = DesktopImageSearchRouteState.maybeFromExtra(state.extra);
     final resolvedDraftId = resolveStringQueryParameter(
       state,
       names: const <String>['draftId', 'draft-id'],
@@ -289,6 +331,7 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
     );
     final draft = context.read<ImageSearchDraftStore>().get(resolvedDraftId);
     return DesktopImageSearchPage(
+      fallbackPath: routeState.fallbackPath,
       initialFileName: draft?.fileName,
       initialFileBytes: draft?.bytes,
       initialMimeType: draft?.mimeType,

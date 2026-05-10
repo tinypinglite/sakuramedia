@@ -315,6 +315,7 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
             positionSeconds: _controller.currentPlaybackSeconds,
           ),
           fileName: fileName,
+          replaceRouteStack: true,
         );
         break;
       case AppImageActionType.saveToLocal:

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/gestures.dart';
@@ -9,10 +10,13 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
+import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_controller.dart';
@@ -937,6 +941,108 @@ void main() {
       expect(find.text('保存到本地'), findsOneWidget);
       expect(find.text('添加标记'), findsOneWidget);
       expect(find.text('播放'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'movie player thumbnail similar search resets route stack with player fallback',
+    (WidgetTester tester) async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-001',
+        body: _movieDetailJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/thumbnails',
+        body: _mediaThumbnailsJson(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/points',
+        body: const <Map<String, dynamic>>[],
+      );
+      bundle.adapter.enqueueBytes(
+        method: 'GET',
+        path: '/files/images/thumb-20.webp',
+        body: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+      );
+
+      Object? capturedExtra;
+      Uri? capturedUri;
+      final router = GoRouter(
+        initialLocation: '/player',
+        routes: [
+          GoRoute(
+            path: '/player',
+            builder:
+                (context, state) => DesktopMoviePlayerPage(
+                  movieNumber: 'ABC-001',
+                  initialMediaId: 100,
+                  initialPositionSeconds: 61,
+                  surfaceBuilder: _testSurfaceBuilder(
+                    seekRequests,
+                    initialPositions,
+                  ),
+                ),
+          ),
+          GoRoute(
+            path: desktopImageSearchPath,
+            builder: (context, state) {
+              capturedExtra = state.extra;
+              capturedUri = state.uri;
+              return Text('image-search:${state.uri}');
+            },
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      tester.view.physicalSize = const Size(1440, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+            Provider<ApiClient>.value(value: bundle.apiClient),
+            Provider<MediaApi>.value(
+              value: MediaApi(apiClient: bundle.apiClient),
+            ),
+            Provider<MoviesApi>.value(value: bundle.moviesApi),
+            Provider<ImageSearchDraftStore>.value(
+              value: ImageSearchDraftStore(),
+            ),
+          ],
+          child: MaterialApp.router(
+            theme: sakuraThemeData,
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(
+        tester.getCenter(find.byKey(const Key('movie-player-thumb-1'))),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('相似图片'));
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        desktopImageSearchPath,
+      );
+      expect(capturedUri?.path, desktopImageSearchPath);
+      expect(capturedUri?.queryParameters['draftId'], isNotEmpty);
+      expect(capturedExtra, isA<DesktopImageSearchRouteState>());
+      expect(
+        (capturedExtra! as DesktopImageSearchRouteState).fallbackPath,
+        '/desktop/library/movies/ABC-001/player?mediaId=100&positionSeconds=61',
+      );
     },
   );
 }

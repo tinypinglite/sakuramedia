@@ -103,6 +103,18 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
       factory: $DesktopOverviewRouteData._fromState,
     ),
     GoRouteData.$route(
+      path: '/desktop/library/discover',
+      factory: $DesktopDiscoverRouteData._fromState,
+    ),
+    GoRouteData.$route(
+      path: '/desktop/library/discover/movies',
+      factory: $DesktopDiscoverMoviesRouteData._fromState,
+    ),
+    GoRouteData.$route(
+      path: '/desktop/library/discover/moments',
+      factory: $DesktopDiscoverMomentsRouteData._fromState,
+    ),
+    GoRouteData.$route(
       path: '/desktop/library/follow',
       factory: $DesktopFollowRouteData._fromState,
     ),
@@ -180,6 +192,71 @@ mixin $DesktopOverviewRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/desktop/overview');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $DesktopDiscoverRouteData on GoRouteData {
+  static DesktopDiscoverRouteData _fromState(GoRouterState state) =>
+      const DesktopDiscoverRouteData();
+
+  @override
+  String get location => GoRouteData.$location('/desktop/library/discover');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $DesktopDiscoverMoviesRouteData on GoRouteData {
+  static DesktopDiscoverMoviesRouteData _fromState(GoRouterState state) =>
+      const DesktopDiscoverMoviesRouteData();
+
+  @override
+  String get location =>
+      GoRouteData.$location('/desktop/library/discover/movies');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $DesktopDiscoverMomentsRouteData on GoRouteData {
+  static DesktopDiscoverMomentsRouteData _fromState(GoRouterState state) =>
+      const DesktopDiscoverMomentsRouteData();
+
+  @override
+  String get location =>
+      GoRouteData.$location('/desktop/library/discover/moments');
 
   @override
   void go(BuildContext context) => context.go(location);

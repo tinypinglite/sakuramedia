@@ -20,6 +20,7 @@ import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dar
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
+import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
@@ -181,6 +182,10 @@ class _MyAppState extends State<MyApp> {
         ),
         Provider<StatusApi>(
           create: (context) => StatusApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<DiscoveryApi>(
+          create:
+              (context) => DiscoveryApi(apiClient: context.read<ApiClient>()),
         ),
         ChangeNotifierProvider<AppVersionInfoController>(
           create:

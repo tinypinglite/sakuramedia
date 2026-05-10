@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/actors/presentation/mobile_actor_detail_pag
 import 'package:sakuramedia/features/auth/presentation/login_page.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/features/discovery/presentation/discovery_recommendation_list_pages.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
@@ -497,6 +498,12 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
         TypedGoRoute<MobileOverviewRouteData>(
           path: mobileOverviewPath,
           routes: <TypedRoute<RouteData>>[
+            TypedGoRoute<MobileDiscoverMoviesRouteData>(
+              path: 'discover/movies',
+            ),
+            TypedGoRoute<MobileDiscoverMomentsRouteData>(
+              path: 'discover/moments',
+            ),
             TypedGoRoute<MobilePlaylistDetailRouteData>(
               path: 'playlists/:playlistId',
             ),
@@ -1096,6 +1103,50 @@ class MobilePlaylistDetailRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobilePlaylistDetailPage(playlistId: playlistId);
+  }
+}
+
+class MobileDiscoverMoviesRouteData extends _MobileSubpageRouteData
+    with $MobileDiscoverMoviesRouteData {
+  const MobileDiscoverMoviesRouteData();
+
+  static final GlobalKey<NavigatorState> $parentNavigatorKey =
+      mobileRootNavigatorKey;
+
+  @override
+  String get pageName => 'mobile-discover-movies';
+
+  @override
+  String get title => '推荐影片';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileDiscoverMoviesPage();
+  }
+}
+
+class MobileDiscoverMomentsRouteData extends _MobileSubpageRouteData
+    with $MobileDiscoverMomentsRouteData {
+  const MobileDiscoverMomentsRouteData();
+
+  static final GlobalKey<NavigatorState> $parentNavigatorKey =
+      mobileRootNavigatorKey;
+
+  @override
+  String get pageName => 'mobile-discover-moments';
+
+  @override
+  String get title => '推荐时刻';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileDiscoverMomentsPage();
   }
 }
 

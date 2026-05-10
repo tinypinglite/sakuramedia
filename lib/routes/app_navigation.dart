@@ -4,6 +4,7 @@ import 'package:sakuramedia/features/actors/presentation/desktop_actors_page.dar
 import 'package:sakuramedia/features/activity/presentation/desktop_activity_page.dart';
 import 'package:sakuramedia/features/actors/presentation/mobile_actors_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
+import 'package:sakuramedia/features/discovery/presentation/desktop_discover_page.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_reviews_page.dart';
 import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/desktop_follow_page.dart';
@@ -86,6 +87,19 @@ const List<_NavSeed> _desktopNavSeeds = [
         label: '概览',
         icon: Icons.space_dashboard_outlined,
         description: '桌面工作台总览、待办与快捷入口的统一落点。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'discover',
+    label: '发现',
+    icon: Icons.travel_explore_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'library/discover',
+        label: '发现',
+        icon: Icons.travel_explore_outlined,
+        description: '每日推荐影片与推荐时刻的统一发现入口。',
       ),
     ],
   ),
@@ -181,19 +195,6 @@ const List<_NavSeed> _desktopNavSeeds = [
     ],
   ),
   _NavSeed(
-    id: 'activity',
-    label: '活动中心',
-    icon: Icons.notifications_active_outlined,
-    items: [
-      _NavItemSeed(
-        slug: 'system/activity',
-        label: '活动中心',
-        icon: Icons.notifications_active_outlined,
-        description: '后台通知、任务状态与在线活动流的统一入口。',
-      ),
-    ],
-  ),
-  _NavSeed(
     id: 'configuration',
     label: '配置管理',
     icon: Icons.settings_suggest_outlined,
@@ -206,11 +207,25 @@ const List<_NavSeed> _desktopNavSeeds = [
       ),
     ],
   ),
+  _NavSeed(
+    id: 'activity',
+    label: '活动中心',
+    icon: Icons.notifications_active_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'system/activity',
+        label: '活动中心',
+        icon: Icons.notifications_active_outlined,
+        description: '后台通知、任务状态与在线活动流的统一入口。',
+      ),
+    ],
+  ),
 ];
 
 final Map<String, WidgetBuilder> _desktopRouteBuilders =
     <String, WidgetBuilder>{
       desktopOverviewPath: (_) => const DesktopOverviewPage(),
+      desktopDiscoverPath: (_) => const DesktopDiscoverPage(),
       desktopFollowPath: (_) => const DesktopFollowPage(),
       desktopMoviesPath: (_) => const DesktopMoviesPage(),
       desktopActorsPath: (_) => const DesktopActorsPage(),
