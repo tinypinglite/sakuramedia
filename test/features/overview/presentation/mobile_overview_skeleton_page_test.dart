@@ -20,6 +20,7 @@ import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dar
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
+import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
@@ -667,7 +668,8 @@ void main() {
     await tester.fling(find.byType(PageView), const Offset(-600, 0), 1200);
     await tester.pumpAndSettle();
 
-    expect(find.text('开发中'), findsOneWidget);
+    expect(find.text('今日推荐'), findsOneWidget);
+    expect(find.text('推荐时刻'), findsOneWidget);
   });
 
   testWidgets('mobile overview moments tab renders real content', (
@@ -1797,6 +1799,7 @@ Widget _buildTestApp({
       Provider<MovieDescTranslationSettingsApi>.value(
         value: bundle.movieDescTranslationSettingsApi,
       ),
+      Provider<DiscoveryApi>.value(value: bundle.discoveryApi),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       Provider<StatusApi>.value(value: bundle.statusApi),
       ChangeNotifierProvider<AppVersionInfoController>(
@@ -1843,6 +1846,7 @@ Widget _buildRouterApp({
       Provider<MovieDescTranslationSettingsApi>.value(
         value: bundle.movieDescTranslationSettingsApi,
       ),
+      Provider<DiscoveryApi>.value(value: bundle.discoveryApi),
       Provider<MoviesApi>.value(value: bundle.moviesApi),
       Provider<StatusApi>.value(value: bundle.statusApi),
       ChangeNotifierProvider<AppVersionInfoController>(
@@ -1952,6 +1956,29 @@ void _enqueueOverviewResponses(
       'page': 1,
       'page_size': 20,
       'total': 1,
+    },
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/daily-recommendations',
+    statusCode: 200,
+    body: <String, dynamic>{
+      'items': const <Map<String, dynamic>>[],
+      'page': 1,
+      'page_size': 10,
+      'total': 0,
+    },
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/moment-recommendations',
+    statusCode: 200,
+    body: <String, dynamic>{
+      'items': const <Map<String, dynamic>>[],
+      'page': 1,
+      'page_size': 10,
+      'total': 0,
+      'generated_at': null,
     },
   );
   bundle.adapter.enqueueJson(

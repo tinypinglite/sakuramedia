@@ -98,7 +98,7 @@ void main() {
 
       await controller.load();
       final firstSave = controller.saveUsername('renamed');
-      await Future<void>.delayed(const Duration(milliseconds: 1));
+      await _waitForPatchRequest(bundle);
       final secondSave = await controller.saveUsername('renamed-again');
 
       expect(secondSave, isFalse);
@@ -122,6 +122,14 @@ void main() {
       expect(controller.account?.username, 'renamed');
     },
   );
+}
+
+Future<void> _waitForPatchRequest(TestApiBundle bundle) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 2));
+  while (bundle.adapter.hitCount('PATCH', '/account') == 0 &&
+      DateTime.now().isBefore(deadline)) {
+    await Future<void>.delayed(const Duration(milliseconds: 1));
+  }
 }
 
 void _enqueueAccount(
