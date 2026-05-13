@@ -22,6 +22,7 @@ export default defineConfig({
             { text: '数据源授权', link: '/guide/license' },
             { text: '配置说明', link: '/guide/config' },
             { text: '后台任务', link: '/guide/tasks' },
+            { text: '收藏思路', link: '/guide/collection-strategy' },
             { text: '进阶部署', link: '/guide/docker' },
             { text: '常用命令', link: '/guide/commands' },
             { text: '常见问题', link: '/faq' },

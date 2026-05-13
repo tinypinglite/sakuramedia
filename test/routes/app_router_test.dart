@@ -106,7 +106,7 @@ void main() {
   });
 
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 11);
+    expect(desktopNavGroups.length, 12);
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
       '发现',
@@ -117,6 +117,7 @@ void main() {
       '播放列表',
       '排行榜',
       '热评',
+      '媒体维护',
       '配置管理',
       '活动中心',
     ]);
@@ -130,6 +131,7 @@ void main() {
       desktopPlaylistsPath,
       desktopRankingsPath,
       desktopHotReviewsPath,
+      desktopMediaMaintenancePath,
       desktopConfigurationPath,
       desktopActivityPath,
     ]);
@@ -633,6 +635,47 @@ void main() {
 
     expect(actorsPage, isA<NoTransitionPage<void>>());
     expect(find.text('女优'), findsWidgets);
+  });
+
+  testWidgets('desktop media maintenance route renders inside shell', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/invalid',
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+    );
+    final router = buildDesktopRouter(sessionStore: sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    router.go(desktopMediaMaintenancePath);
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      desktopMediaMaintenancePath,
+    );
+    expect(
+      find.byKey(const Key('desktop-media-maintenance-page')),
+      findsOneWidget,
+    );
+    expect(find.text('媒体维护'), findsWidgets);
+    expect(find.text('当前没有失效媒体'), findsOneWidget);
   });
 
   testWidgets('desktop detail route uses NoTransitionPage inside shell', (

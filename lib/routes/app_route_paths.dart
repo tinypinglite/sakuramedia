@@ -14,6 +14,7 @@ const String desktopMomentsPath = '/desktop/library/moments';
 const String desktopPlaylistsPath = '/desktop/library/playlists';
 const String desktopRankingsPath = '/desktop/library/rankings';
 const String desktopHotReviewsPath = '/desktop/library/hot-reviews';
+const String desktopMediaMaintenancePath = '/desktop/system/media-maintenance';
 const String desktopActivityPath = '/desktop/system/activity';
 const String desktopConfigurationPath = '/desktop/system/configuration';
 
