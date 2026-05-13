@@ -414,6 +414,181 @@ void main() {
     expect(find.byKey(const Key('activity-task-201')), findsOneWidget);
   });
 
+  testWidgets('task tab shows executable jobs and disabled forbidden job', (
+    WidgetTester tester,
+  ) async {
+    _setDesktopViewport(tester);
+    final sessionStore = await _createSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+
+    _enqueueActivityState(
+      bundle,
+      jobs: <Map<String, dynamic>>[
+        _jobJson(
+          taskKey: 'ranking_sync',
+          cliHelp: '执行一次排行榜同步',
+          lastTaskRun: _taskJson(
+            id: 88,
+            taskKey: 'ranking_sync',
+            taskName: '排行榜同步',
+            state: 'completed',
+          ),
+        ),
+        _jobJson(
+          taskKey: 'metadata_provider_license_renew',
+          cliHelp: '执行一次元数据授权续租',
+          manualTriggerAllowed: false,
+        ),
+      ],
+    );
+
+    await _pumpActivityPage(tester, bundle: bundle);
+    await tester.tap(find.byKey(const Key('activity-tab-tasks')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('可执行任务'), findsOneWidget);
+    expect(find.text('2 个任务'), findsOneWidget);
+    expect(find.text('执行一次排行榜同步'), findsNothing);
+    expect(
+      find.byKey(const Key('activity-job-trigger-ranking_sync')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const Key('activity-jobs-toggle')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('执行一次排行榜同步'), findsOneWidget);
+    expect(find.text('0 2 * * *'), findsWidgets);
+    expect(find.textContaining('最近运行：完成于'), findsOneWidget);
+    expect(
+      find.byKey(const Key('activity-job-trigger-ranking_sync')),
+      findsOneWidget,
+    );
+    expect(find.text('不可手动执行'), findsOneWidget);
+  });
+
+  testWidgets('task tab triggers executable job and shows submitted toast', (
+    WidgetTester tester,
+  ) async {
+    _setDesktopViewport(tester);
+    final sessionStore = await _createSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+
+    _enqueueActivityState(
+      bundle,
+      jobs: <Map<String, dynamic>>[
+        _jobJson(taskKey: 'ranking_sync', cliHelp: '执行一次排行榜同步'),
+      ],
+    );
+    bundle.adapter.enqueueResponder(
+      method: 'POST',
+      path: '/system/jobs/ranking_sync/run',
+      responder: (_, __) async {
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+        return _jsonResponseBody(<String, dynamic>{
+          'task_run_id': 13,
+          'task_key': 'ranking_sync',
+          'state': 'pending',
+        });
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/activity/bootstrap',
+      body: _bootstrapBody(
+        latestEventId: 121,
+        activeTasks: <Map<String, dynamic>>[
+          _taskJson(id: 13, taskKey: 'ranking_sync', taskName: '排行榜同步'),
+        ],
+        taskRuns: <Map<String, dynamic>>[
+          _taskJson(id: 13, taskKey: 'ranking_sync', taskName: '排行榜同步'),
+        ],
+      ),
+    );
+
+    await _pumpActivityPage(tester, bundle: bundle);
+    await tester.tap(find.byKey(const Key('activity-tab-tasks')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('activity-jobs-toggle')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('activity-job-trigger-ranking_sync')),
+    );
+    await tester.pump();
+
+    expect(find.text('提交中'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
+
+    expect(bundle.adapter.hitCount('POST', '/system/jobs/ranking_sync/run'), 1);
+    expect(find.text('任务已提交'), findsOneWidget);
+    expect(find.byKey(const Key('activity-task-13')), findsWidgets);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('task tab shows jobs load error retry entry', (
+    WidgetTester tester,
+  ) async {
+    _setDesktopViewport(tester);
+    final sessionStore = await _createSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'server_error',
+          'message': '任务列表加载失败',
+        },
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/activity/bootstrap',
+      body: _bootstrapBody(latestEventId: 120),
+    );
+    bundle.adapter.enqueueSse(
+      method: 'GET',
+      path: '/system/events/stream',
+      chunks: const <String>[],
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      body: <Map<String, dynamic>>[
+        _jobJson(taskKey: 'ranking_sync', cliHelp: '执行一次排行榜同步'),
+      ],
+    );
+
+    await _pumpActivityPage(tester, bundle: bundle);
+    await tester.tap(find.byKey(const Key('activity-tab-tasks')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('加载失败'), findsOneWidget);
+    expect(find.byKey(const Key('activity-jobs-error')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('activity-jobs-toggle')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('activity-jobs-error')), findsOneWidget);
+    expect(find.text('任务列表加载失败'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('activity-jobs-retry-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('执行一次排行榜同步'), findsOneWidget);
+  });
+
   testWidgets(
     'activity page loading state renders without outer content card',
     (WidgetTester tester) async {
@@ -841,7 +1016,9 @@ void _enqueueActivityState(
   List<Map<String, dynamic>> activeTasks = const <Map<String, dynamic>>[],
   List<Map<String, dynamic>> taskRuns = const <Map<String, dynamic>>[],
   int? taskRunTotal,
+  List<Map<String, dynamic>> jobs = const <Map<String, dynamic>>[],
 }) {
+  bundle.adapter.enqueueJson(method: 'GET', path: '/system/jobs', body: jobs);
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/system/activity/bootstrap',
@@ -936,6 +1113,24 @@ Map<String, dynamic> _taskJson({
     'updated_at': '2026-03-26T09:11:00Z',
     'started_at': '2026-03-26T09:10:00Z',
     'finished_at': state == 'completed' ? '2026-03-26T09:20:00Z' : null,
+  };
+}
+
+Map<String, dynamic> _jobJson({
+  required String taskKey,
+  String? cliHelp,
+  bool manualTriggerAllowed = true,
+  Map<String, dynamic>? lastTaskRun,
+}) {
+  return <String, dynamic>{
+    'task_key': taskKey,
+    'log_name': taskKey.replaceAll('_', '-'),
+    'cli_name': 'run-$taskKey',
+    'cli_help': cliHelp ?? '执行一次 $taskKey',
+    'cron_setting': '${taskKey}_cron',
+    'cron_expr': '0 2 * * *',
+    'manual_trigger_allowed': manualTriggerAllowed,
+    'last_task_run': lastTaskRun,
   };
 }
 

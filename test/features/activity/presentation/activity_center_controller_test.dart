@@ -315,6 +315,193 @@ void main() {
     },
   );
 
+  test(
+    'initialize exposes executable jobs without changing bootstrap state',
+    () async {
+      _enqueueInitialActivityState(
+        bundle,
+        notifications: <Map<String, dynamic>>[_notificationJson(id: 101)],
+        jobs: <Map<String, dynamic>>[_jobJson(taskKey: 'ranking_sync')],
+      );
+      bundle.adapter.enqueueSse(
+        method: 'GET',
+        path: '/system/events/stream',
+        chunks: const <String>[],
+        keepOpen: true,
+      );
+
+      final controller = ActivityCenterController(
+        activityApi: bundle.activityApi,
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(controller.notifications.single.id, 101);
+      expect(controller.jobs.single.taskKey, 'ranking_sync');
+      expect(controller.jobErrorMessage, isNull);
+    },
+  );
+
+  test('jobs load failure keeps bootstrap state available', () async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'server_error',
+          'message': '任务列表加载失败',
+        },
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/activity/bootstrap',
+      body: <String, dynamic>{
+        'latest_event_id': 120,
+        'notifications': <String, dynamic>{
+          'items': <Map<String, dynamic>>[_notificationJson(id: 101)],
+          'page': 1,
+          'page_size': 20,
+          'total': 1,
+        },
+        'unread_count': 0,
+        'active_task_runs': const <Map<String, dynamic>>[],
+        'task_runs': const <String, dynamic>{
+          'items': <Map<String, dynamic>>[],
+          'page': 1,
+          'page_size': 20,
+          'total': 0,
+        },
+      },
+    );
+    bundle.adapter.enqueueSse(
+      method: 'GET',
+      path: '/system/events/stream',
+      chunks: const <String>[],
+      keepOpen: true,
+    );
+
+    final controller = ActivityCenterController(
+      activityApi: bundle.activityApi,
+    );
+    addTearDown(controller.dispose);
+
+    await controller.initialize();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(controller.notifications.single.id, 101);
+    expect(controller.jobs, isEmpty);
+    expect(controller.jobErrorMessage, '任务列表加载失败');
+    expect(controller.initialErrorMessage, isNull);
+  });
+
+  test(
+    'triggerJob highlights submitted task and refreshes bootstrap',
+    () async {
+      _enqueueInitialActivityState(
+        bundle,
+        jobs: <Map<String, dynamic>>[_jobJson(taskKey: 'ranking_sync')],
+      );
+      bundle.adapter.enqueueSse(
+        method: 'GET',
+        path: '/system/events/stream',
+        chunks: const <String>[],
+        keepOpen: true,
+      );
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/system/jobs/ranking_sync/run',
+        body: <String, dynamic>{
+          'task_run_id': 13,
+          'task_key': 'ranking_sync',
+          'state': 'pending',
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/activity/bootstrap',
+        body: <String, dynamic>{
+          'latest_event_id': 121,
+          'notifications': const <String, dynamic>{
+            'items': <Map<String, dynamic>>[],
+            'page': 1,
+            'page_size': 20,
+            'total': 0,
+          },
+          'unread_count': 0,
+          'active_task_runs': <Map<String, dynamic>>[_runningTaskJson(id: 13)],
+          'task_runs': <String, dynamic>{
+            'items': <Map<String, dynamic>>[_runningTaskJson(id: 13)],
+            'page': 1,
+            'page_size': 20,
+            'total': 1,
+          },
+        },
+      );
+
+      final controller = ActivityCenterController(
+        activityApi: bundle.activityApi,
+      );
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      final response = await controller.triggerJob('ranking_sync');
+
+      expect(response.taskRunId, 13);
+      expect(controller.activeTab, ActivityTab.tasks);
+      expect(controller.highlightedTaskRunId, 13);
+      expect(controller.activeTaskRuns.single.id, 13);
+    },
+  );
+
+  test('triggerJob conflict highlights blocking task run', () async {
+    _enqueueInitialActivityState(
+      bundle,
+      activeTasks: <Map<String, dynamic>>[_runningTaskJson()],
+      jobs: <Map<String, dynamic>>[_jobJson(taskKey: 'ranking_sync')],
+    );
+    bundle.adapter.enqueueSse(
+      method: 'GET',
+      path: '/system/events/stream',
+      chunks: const <String>[],
+      keepOpen: true,
+    );
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/jobs/ranking_sync/run',
+      statusCode: 409,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'task_conflict',
+          'message': '任务已在运行中',
+          'details': <String, dynamic>{
+            'blocking_task_run_id': 88,
+            'blocking_trigger_type': 'scheduled',
+            'blocking_state': 'running',
+          },
+        },
+      },
+    );
+
+    final controller = ActivityCenterController(
+      activityApi: bundle.activityApi,
+    );
+    addTearDown(controller.dispose);
+
+    await controller.initialize();
+    await expectLater(
+      controller.triggerJob('ranking_sync'),
+      throwsA(isA<Exception>()),
+    );
+
+    expect(controller.activeTab, ActivityTab.tasks);
+    expect(controller.highlightedTaskRunId, 88);
+    expect(controller.isTriggeringJob('ranking_sync'), isFalse);
+  });
+
   test('heartbeat keeps live state without redundant notifications', () async {
     _enqueueInitialActivityState(bundle);
     bundle.adapter.enqueueSse(
@@ -358,7 +545,9 @@ void _enqueueInitialActivityState(
   int unreadCount = 0,
   List<Map<String, dynamic>> activeTasks = const <Map<String, dynamic>>[],
   List<Map<String, dynamic>> taskRuns = const <Map<String, dynamic>>[],
+  List<Map<String, dynamic>> jobs = const <Map<String, dynamic>>[],
 }) {
+  bundle.adapter.enqueueJson(method: 'GET', path: '/system/jobs', body: jobs);
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/system/activity/bootstrap',
@@ -400,9 +589,9 @@ Map<String, dynamic> _notificationJson({
   };
 }
 
-Map<String, dynamic> _runningTaskJson() {
+Map<String, dynamic> _runningTaskJson({int id = 88}) {
   return <String, dynamic>{
-    'id': 88,
+    'id': id,
     'task_key': 'download_task_import',
     'task_name': '下载任务导入 SSIS-123',
     'trigger_type': 'manual',
@@ -448,6 +637,23 @@ Map<String, dynamic> _failedTaskJson({required int id}) {
     'updated_at': '2026-03-26T09:20:00Z',
     'started_at': '2026-03-26T09:10:00Z',
     'finished_at': '2026-03-26T09:20:00Z',
+  };
+}
+
+Map<String, dynamic> _jobJson({
+  required String taskKey,
+  bool manualTriggerAllowed = true,
+  Map<String, dynamic>? lastTaskRun,
+}) {
+  return <String, dynamic>{
+    'task_key': taskKey,
+    'log_name': taskKey.replaceAll('_', '-'),
+    'cli_name': 'run-$taskKey',
+    'cli_help': '执行一次 $taskKey',
+    'cron_setting': '${taskKey}_cron',
+    'cron_expr': '0 2 * * *',
+    'manual_trigger_allowed': manualTriggerAllowed,
+    'last_task_run': lastTaskRun,
   };
 }
 

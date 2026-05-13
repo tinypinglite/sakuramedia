@@ -3,6 +3,7 @@ import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_bootstrap_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
+import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_stream_event.dart';
 import 'package:sakuramedia/features/activity/data/resource_task_definition_dto.dart';
@@ -86,6 +87,18 @@ class ActivityApi {
       return int.tryParse(value) ?? 0;
     }
     return 0;
+  }
+
+  Future<List<JobMetadataDto>> getJobs() async {
+    final response = await _apiClient.getList('/system/jobs');
+    return response.map(JobMetadataDto.fromJson).toList(growable: false);
+  }
+
+  Future<ManualJobTriggerResponseDto> triggerJob({
+    required String taskKey,
+  }) async {
+    final response = await _apiClient.post('/system/jobs/$taskKey/run');
+    return ManualJobTriggerResponseDto.fromJson(response);
   }
 
   Future<List<TaskRunDto>> getActiveTaskRuns() async {

@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
+import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_bootstrap_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_stream_event.dart';
+import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 
@@ -47,10 +49,12 @@ class ActivityCenterController extends ChangeNotifier {
   bool _hasMoreTasks = true;
   bool _isLoadingMoreNotifications = false;
   bool _isLoadingMoreTasks = false;
+  bool _isLoadingJobs = false;
   bool _isRefreshingNotifications = false;
   bool _isRefreshingTaskHistory = false;
   String? _notificationLoadMoreErrorMessage;
   String? _taskLoadMoreErrorMessage;
+  String? _jobErrorMessage;
   String? _notificationRefreshErrorMessage;
   String? _taskRefreshErrorMessage;
   ActivityNotificationFilterState _notificationFilter =
@@ -60,6 +64,8 @@ class ActivityCenterController extends ChangeNotifier {
       const <ActivityNotificationDto>[];
   List<TaskRunDto> _activeTaskRuns = const <TaskRunDto>[];
   List<TaskRunDto> _taskRuns = const <TaskRunDto>[];
+  List<JobMetadataDto> _jobs = const <JobMetadataDto>[];
+  final Set<String> _triggeringTaskKeys = <String>{};
   int? _highlightedTaskRunId;
   Timer? _reconnectTimer;
   Timer? _pollingTimer;
@@ -88,24 +94,34 @@ class ActivityCenterController extends ChangeNotifier {
       UnmodifiableListView<TaskRunDto>(_activeTaskRuns);
   UnmodifiableListView<TaskRunDto> get taskRuns =>
       UnmodifiableListView<TaskRunDto>(_taskRuns);
+  UnmodifiableListView<JobMetadataDto> get jobs =>
+      UnmodifiableListView<JobMetadataDto>(_jobs);
   bool get hasMoreNotifications => _hasMoreNotifications;
   bool get hasMoreTasks => _hasMoreTasks;
   bool get isLoadingMoreNotifications => _isLoadingMoreNotifications;
   bool get isLoadingMoreTasks => _isLoadingMoreTasks;
+  bool get isLoadingJobs => _isLoadingJobs;
   bool get isRefreshingNotifications => _isRefreshingNotifications;
   bool get isRefreshingTaskHistory => _isRefreshingTaskHistory;
   String? get notificationLoadMoreErrorMessage =>
       _notificationLoadMoreErrorMessage;
   String? get taskLoadMoreErrorMessage => _taskLoadMoreErrorMessage;
+  String? get jobErrorMessage => _jobErrorMessage;
   String? get notificationRefreshErrorMessage =>
       _notificationRefreshErrorMessage;
   String? get taskRefreshErrorMessage => _taskRefreshErrorMessage;
   int? get highlightedTaskRunId => _highlightedTaskRunId;
+  bool isTriggeringJob(String taskKey) => _triggeringTaskKeys.contains(taskKey);
   bool get isPollingFallback =>
       _connectionState == ActivityConnectionState.polling;
   List<String> get knownTaskKeys {
     final values = <String>{};
     for (final item in <TaskRunDto>[..._activeTaskRuns, ..._taskRuns]) {
+      if (item.taskKey.trim().isNotEmpty) {
+        values.add(item.taskKey);
+      }
+    }
+    for (final item in _jobs) {
       if (item.taskKey.trim().isNotEmpty) {
         values.add(item.taskKey);
       }
@@ -131,9 +147,11 @@ class ActivityCenterController extends ChangeNotifier {
     _resetPendingStreamEvents();
 
     _isInitialLoading = true;
+    _isLoadingJobs = true;
     _isRefreshingNotifications = false;
     _isRefreshingTaskHistory = false;
     _initialErrorMessage = null;
+    _jobErrorMessage = null;
     _notificationRefreshErrorMessage = null;
     _taskRefreshErrorMessage = null;
     _connectionState = ActivityConnectionState.connecting;
@@ -141,7 +159,10 @@ class ActivityCenterController extends ChangeNotifier {
     _notifySafely();
 
     try {
-      await _loadBootstrapState();
+      await Future.wait<void>(<Future<void>>[
+        _loadBootstrapState(),
+        _loadJobsState(),
+      ]);
       _initialized = true;
       _isInitialLoading = false;
       _initialErrorMessage = null;
@@ -152,6 +173,7 @@ class ActivityCenterController extends ChangeNotifier {
       _initialErrorMessage = apiErrorMessage(error, fallback: '活动中心加载失败，请稍后重试');
       _connectionState = ActivityConnectionState.reconnecting;
       _connectionMessage = null;
+      _isLoadingJobs = false;
       _notifySafely();
     }
   }
@@ -263,6 +285,50 @@ class ActivityCenterController extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshJobs() async {
+    if (_isLoadingJobs) {
+      return;
+    }
+    _isLoadingJobs = true;
+    _jobErrorMessage = null;
+    _notifySafely();
+
+    await _loadJobsState();
+    _notifySafely();
+  }
+
+  Future<ManualJobTriggerResponseDto> triggerJob(String taskKey) async {
+    if (_triggeringTaskKeys.contains(taskKey)) {
+      throw StateError('job trigger already running');
+    }
+    _triggeringTaskKeys.add(taskKey);
+    _notifySafely();
+
+    try {
+      final response = await _activityApi.triggerJob(taskKey: taskKey);
+      _activeTab = ActivityTab.tasks;
+      _highlightedTaskRunId = response.taskRunId;
+      try {
+        await _loadBootstrapState();
+      } catch (_) {}
+      return response;
+    } on ApiException catch (error) {
+      if (error.statusCode == 409 && error.error?.code == 'task_conflict') {
+        final blockingTaskRunId = _tryInt(
+          error.error?.details?['blocking_task_run_id'],
+        );
+        if (blockingTaskRunId != null) {
+          _activeTab = ActivityTab.tasks;
+          _highlightedTaskRunId = blockingTaskRunId;
+        }
+      }
+      rethrow;
+    } finally {
+      _triggeringTaskKeys.remove(taskKey);
+      _notifySafely();
+    }
+  }
+
   Future<void> loadMoreNotifications() async {
     if (_isLoadingMoreNotifications ||
         _isRefreshingNotifications ||
@@ -357,6 +423,17 @@ class ActivityCenterController extends ChangeNotifier {
       taskSort: _taskFilter.sort.apiValue,
     );
     _applyBootstrapState(response);
+  }
+
+  Future<void> _loadJobsState() async {
+    try {
+      _jobs = await _activityApi.getJobs();
+      _jobErrorMessage = null;
+    } catch (error) {
+      _jobErrorMessage = apiErrorMessage(error, fallback: '可执行任务加载失败，请重试');
+    } finally {
+      _isLoadingJobs = false;
+    }
   }
 
   void _applyBootstrapState(ActivityBootstrapDto response) {
@@ -671,6 +748,19 @@ class ActivityCenterController extends ChangeNotifier {
       return false;
     }
     return true;
+  }
+
+  int? _tryInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    return null;
   }
 
   List<ActivityNotificationDto> _sortNotifications(

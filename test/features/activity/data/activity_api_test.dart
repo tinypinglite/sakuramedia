@@ -195,6 +195,74 @@ void main() {
     expect(request.uri.queryParameters['sort'], 'started_at:desc');
   });
 
+  test('getJobs maps system job metadata and last task run', () async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'task_key': 'ranking_sync',
+          'log_name': 'ranking-sync',
+          'cli_name': 'sync-rankings',
+          'cli_help': '执行一次排行榜同步',
+          'cron_setting': 'ranking_sync_cron',
+          'cron_expr': '0 2 * * *',
+          'manual_trigger_allowed': true,
+          'last_task_run': <String, dynamic>{
+            'id': 88,
+            'task_key': 'ranking_sync',
+            'task_name': '排行榜同步',
+            'trigger_type': 'manual',
+            'state': 'completed',
+            'created_at': '2026-03-26T09:10:00Z',
+            'updated_at': '2026-03-26T09:20:00Z',
+          },
+        },
+        <String, dynamic>{
+          'task_key': 'metadata_provider_license_renew',
+          'log_name': 'metadata-provider-license-renew',
+          'cli_name': 'renew-metadata-provider-license',
+          'cli_help': '执行一次元数据授权续租',
+          'cron_setting': 'metadata_provider_license_renew_cron',
+          'cron_expr': '0 3 * * *',
+          'manual_trigger_allowed': false,
+          'last_task_run': null,
+        },
+      ],
+    );
+
+    final jobs = await bundle.activityApi.getJobs();
+
+    expect(jobs, hasLength(2));
+    expect(jobs.first.taskKey, 'ranking_sync');
+    expect(jobs.first.manualTriggerAllowed, isTrue);
+    expect(jobs.first.lastTaskRun?.id, 88);
+    expect(jobs.last.manualTriggerAllowed, isFalse);
+    expect(jobs.last.lastTaskRun, isNull);
+    expect(bundle.adapter.hitCount('GET', '/system/jobs'), 1);
+  });
+
+  test('triggerJob maps manual job run endpoint', () async {
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/jobs/ranking_sync/run',
+      body: <String, dynamic>{
+        'task_run_id': 13,
+        'task_key': 'ranking_sync',
+        'state': 'pending',
+      },
+    );
+
+    final response = await bundle.activityApi.triggerJob(
+      taskKey: 'ranking_sync',
+    );
+
+    expect(response.taskRunId, 13);
+    expect(response.taskKey, 'ranking_sync');
+    expect(response.state, 'pending');
+    expect(bundle.adapter.hitCount('POST', '/system/jobs/ranking_sync/run'), 1);
+  });
+
   test('streamEvents maps notification and task payloads', () async {
     bundle.adapter.enqueueSse(
       method: 'GET',
