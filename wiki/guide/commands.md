@@ -104,6 +104,18 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands add-medi
 docker exec --user app -w /app sakuramedia python -m src.start.commands import-media --library-id 1 --source-path /mnt/volume1/media/av
 ```
 
+如果你想明确使用默认传输模式，也可以写成：
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands import-media --library-id 1 --source-path /mnt/volume1/media/av --transfer-mode auto
+```
+
+如果你希望“导入成功后清理源视频文件”，可以显式使用 `cleanup-source`：
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands import-media --library-id 1 --source-path /mnt/volume1/media/av --transfer-mode cleanup-source
+```
+
 说明：
 
 - `--library-id` 是目标媒体库 ID
@@ -111,10 +123,34 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands import-m
 - 命令会扫描目录、识别影片、导入到指定媒体库
 - 这里的 `/mnt/volume1/media/av` 仍然是 SakuraMedia 容器内路径
 
+参数说明：
+
+| 参数 | 是否必填 | 说明 |
+|---|---:|---|
+| `--library-id` | 是 | 目标媒体库 ID，影片会导入到这个媒体库的根目录下 |
+| `--source-path` | 是 | 源文件或源目录，必须是 SakuraMedia 容器内能访问到的路径 |
+| `--transfer-mode` | 否 | 文件传输模式，可选 `auto` / `cleanup-source`，默认是 `auto` |
+
+实际行为：
+
+- `auto` 是默认模式，会优先尝试硬链接，硬链接失败后再复制，源视频和源字幕都会保留。
+- `cleanup-source` 会复制新入库媒体，确认入库成功后删除对应源视频文件。
+- `cleanup-source` 只删除源视频文件，不删除源字幕、目录、非媒体文件、番号解析失败文件、过小文件。
+- 扫描阶段如果发现源视频内容已经在媒体库中存在，并且已有媒体文件真实存在，`cleanup-source` 会删除这个重复源视频，并把它计入跳过数量。
+- 如果数据库里有重复记录，但记录指向的媒体文件已经不存在，系统不会把源视频当作重复项删除，而是继续按普通待导入文件处理。
+
+安全限制与失败表现：
+
+- `cleanup-source` 不允许把任一媒体库根目录或媒体库子目录作为 `--source-path`，避免误删已经入库的文件。
+- 如果你把更外层目录作为 `--source-path`，而这个目录下面刚好包含已配置的媒体库目录，递归扫描会跳过这些媒体库目录树，只处理其他源文件。
+- 删除源视频失败时，任务会记录 `source_delete_failed`，最终状态会变成 `failed`；已经成功入库的媒体记录仍然保留，删除失败的源文件也会留在原位置。
+- 旧写法 `--transfer-mode copy-delete-source` 不存在；需要清理源视频时请使用 `--transfer-mode cleanup-source`。
+
 适合场景：
 
 - 你原来已经有一批历史影片
 - 现在想把它们导入 SakuraMedia 管理
+- 你确认源目录不是媒体库目录，并希望导入后自动清理源视频文件
 
 ### 回填媒体元信息
 
