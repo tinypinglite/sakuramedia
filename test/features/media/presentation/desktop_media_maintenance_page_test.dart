@@ -86,7 +86,10 @@ void main() {
     expect(find.text('Movie 1'), findsOneWidget);
     expect(find.text('Main Library'), findsNWidgets(3));
     expect(find.text('2.0 GB'), findsNWidgets(3));
-    expect(find.text('2026-05-13 20:00'), findsNWidgets(3));
+    expect(
+      find.text(_localDateTimeText('2026-05-13T12:00:00Z')),
+      findsNWidgets(3),
+    );
     expect(find.byKey(const Key('invalid-media-path-1')), findsOneWidget);
 
     final thinCover = tester.widget<MaskedImage>(
@@ -405,4 +408,13 @@ Map<String, dynamic> _validityResultJson({
     'revived': revived,
     'checked_at': '2026-05-13T12:10:00Z',
   };
+}
+
+String _localDateTimeText(String value) {
+  final dateTime = DateTime.parse(value).toLocal();
+  final month = dateTime.month.toString().padLeft(2, '0');
+  final day = dateTime.day.toString().padLeft(2, '0');
+  final hour = dateTime.hour.toString().padLeft(2, '0');
+  final minute = dateTime.minute.toString().padLeft(2, '0');
+  return '${dateTime.year}-$month-$day $hour:$minute';
 }
