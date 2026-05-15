@@ -49,6 +49,7 @@ class MaskedImage extends StatelessWidget {
 
         final image = CachedNetworkImage(
           imageUrl: resolvedUrl,
+          cacheManager: AppImageConfig.networkImageCacheManager,
           fit: fit,
           memCacheWidth: memCacheWidth ?? decodeHint.width,
           memCacheHeight: memCacheHeight ?? decodeHint.height,

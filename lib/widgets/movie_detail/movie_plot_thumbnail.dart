@@ -98,7 +98,10 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
       return null;
     }
 
-    return CachedNetworkImageProvider(resolvedUrl);
+    return CachedNetworkImageProvider(
+      resolvedUrl,
+      cacheManager: AppImageConfig.networkImageCacheManager,
+    );
   }
 
   int? _resolveDecodeHeight() {

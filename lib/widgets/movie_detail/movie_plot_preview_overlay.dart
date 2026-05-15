@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:sakuramedia/config/app_image_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -566,7 +567,10 @@ class _PreviewMainImageActionTargetState
       return;
     }
 
-    final nextProvider = CachedNetworkImageProvider(resolvedUrl);
+    final nextProvider = CachedNetworkImageProvider(
+      resolvedUrl,
+      cacheManager: AppImageConfig.networkImageCacheManager,
+    );
     if (_resolvedImageProvider == nextProvider) {
       return;
     }

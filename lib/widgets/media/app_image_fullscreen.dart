@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:sakuramedia/config/app_image_config.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -452,7 +453,10 @@ class _AppImageFullscreenHostState extends State<AppImageFullscreenHost>
     if (resolvedUrl == null) {
       return null;
     }
-    return CachedNetworkImageProvider(resolvedUrl);
+    return CachedNetworkImageProvider(
+      resolvedUrl,
+      cacheManager: AppImageConfig.networkImageCacheManager,
+    );
   }
 
   void _startImageMenuLongPress(PointerDownEvent event) {
@@ -1008,7 +1012,10 @@ class _AppPinchToFullscreenImageState extends State<AppPinchToFullscreenImage> {
     if (resolvedUrl == null) {
       return null;
     }
-    return CachedNetworkImageProvider(resolvedUrl);
+    return CachedNetworkImageProvider(
+      resolvedUrl,
+      cacheManager: AppImageConfig.networkImageCacheManager,
+    );
   }
 
   void _listenToImageStream(ImageProvider<Object>? provider) {
