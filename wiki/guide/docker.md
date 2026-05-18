@@ -147,7 +147,7 @@
 - `docker-data/cache`
   存缓存、缩略图、字幕等运行数据
 - `docker-data/image-search-index`
-  存图片搜索索引
+  存 ChromaDB 图片搜索向量库数据
 - `docker-data/logs`
   存日志
 - `docker-data/joytag`
@@ -241,7 +241,7 @@ services:
 - `./docker-data/cache/subtitles:/data/cache/subtitles`
   字幕目录（导入时识别到的字幕文件）
 - `./docker-data/image-search-index:/data/indexes`
-  图片搜索索引
+  ChromaDB 图片搜索向量库数据
 - `./docker-data/logs:/data/logs`
   日志
 - `/mnt/volume1/media:/mnt/volume1/media`
@@ -479,4 +479,4 @@ http://<你的NAS地址>:38080
 
 最简单的先看容器日志，确认没有模型缺失或启动失败。
 
-如果你想更稳一点，也可以在服务启动后关注图片搜索相关状态页或日志输出，确认 `joytag-infer` 已经正常响应。
+如果你想更稳一点，也可以在服务启动后关注图片搜索相关状态页或日志输出，确认 `joytag-infer` 已经正常响应，且 ChromaDB 向量库状态正常。

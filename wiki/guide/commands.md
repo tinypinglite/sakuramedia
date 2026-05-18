@@ -341,19 +341,6 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands aps inde
 - 但以图搜图还搜不到结果
 - 想立刻把待处理缩略图写入向量索引
 
-### 优化以图搜图索引
-
-```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands aps optimize-image-search-index
-```
-
-适合场景：
-
-- 你刚完成了一大批缩略图索引
-- 想手动做一次索引优化
-
-普通使用场景下，这条命令通常不需要频繁手动执行。
-
 ### 以后台任务方式巡检媒体文件
 
 ```bash
