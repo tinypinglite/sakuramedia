@@ -236,7 +236,7 @@ max_thumbnail_process_count = 4
 
 ```toml
 [metadata]
-javdb_host = "apidd.btyjscl.com"
+javdb_host = "jdforrepam.com"
 proxy = ""
 license_proxy = ""
 gfriends_filetree_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends/Filetree.json"
@@ -600,7 +600,7 @@ max_thumbnail_process_count = 4
 
 [metadata]
 # JavDB API 域名，不带协议头。
-javdb_host = "apidd.btyjscl.com"
+javdb_host = "jdforrepam.com"
 # DMM、MissAV 与 GFriends 共用的代理地址；JavDB 默认直连。不需要代理时留空。
 # 示例：http://192.168.1.1:7890；DMM 通常需要可访问日本站点的代理。
 proxy = ""
