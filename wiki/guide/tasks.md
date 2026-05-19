@@ -30,6 +30,7 @@ outline: [2, 3]
 | 媒体缩略图生成 | 为媒体生成缩略图 | 每 5 分钟 |
 | 以图搜图索引 | 为待处理缩略图生成向量并入索引 | 每天 00:00 |
 | 影片相似度重算 | 离线重算影片相似结果 | 每天 03:30 |
+| 以图搜图索引优化 | 压缩或优化向量索引 | 每天 03:00 |
 
 ## 按任务说明
 
@@ -229,6 +230,17 @@ outline: [2, 3]
 
 - 每天 `03:30`
 
+### 以图搜图索引优化
+
+作用：
+
+- 压缩或优化向量索引
+- 适合在大量缩略图完成索引后整理搜索性能
+
+默认频率：
+
+- 每天 `03:00`
+
 ## 默认 cron 配置
 
 如果你更习惯直接看 cron，当前默认值如下：
@@ -254,6 +266,7 @@ movie_title_translation_cron = "20 4 * * *"
 media_subtitle_asr_cron = "45 */6 * * *"
 media_thumbnail_cron = "*/5 * * * *"
 image_search_index_cron = "0 0 * * *"
+image_search_optimize_cron = "0 3 * * *"
 movie_similarity_recompute_cron = "30 3 * * *"
 ```
 
@@ -295,6 +308,8 @@ movie_similarity_recompute_cron = "30 3 * * *"
   为时刻和图片搜索提供基础数据
 - `image_search_index_cron`
   把缩略图真正送进图片搜索索引
+- `image_search_optimize_cron`
+  负责后续索引压缩和优化
 
 如果这些任务长期不跑，系统虽然还能登录和浏览，但自动化能力会明显打折。
 

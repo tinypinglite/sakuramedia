@@ -58,7 +58,7 @@
 - `[logging]`
 - `[indexer_settings]`
 - `[image_search]`
-- `[chromadb]`
+- `[lancedb]`
 
 下面按顺序说明。
 
@@ -323,6 +323,7 @@ movie_desc_sync_cron = "0 4 * * *"
 movie_desc_translation_cron = "15 4 * * *"
 media_thumbnail_cron = "*/5 * * * *"
 image_search_index_cron = "0 0 * * *"
+image_search_optimize_cron = "0 3 * * *"
 movie_similarity_recompute_cron = "30 3 * * *"
 ```
 
@@ -346,6 +347,7 @@ movie_similarity_recompute_cron = "30 3 * * *"
 | `movie_desc_translation_cron` | 影片中文简介翻译频率 |
 | `media_thumbnail_cron` | 缩略图生成频率 |
 | `image_search_index_cron` | 图片搜索索引生成频率 |
+| `image_search_optimize_cron` | 图片搜索索引优化频率 |
 | `movie_similarity_recompute_cron` | 影片相似度离线重算频率 |
 
 这组配置已经单独拆成了[后台任务](/guide/tasks)页面。  
@@ -421,6 +423,9 @@ default_page_size = 20
 max_page_size = 100
 search_scan_batch_size = 100
 index_upsert_batch_size = 100
+optimize_every_records = 5000
+optimize_every_seconds = 1800
+optimize_on_job_end = true
 ```
 
 字段说明：
@@ -436,38 +441,53 @@ index_upsert_batch_size = 100
 | `default_page_size` | 默认每页结果数 |
 | `max_page_size` | 最大每页结果数 |
 | `search_scan_batch_size` | 为凑满一页结果时的扫描批大小 |
-| `index_upsert_batch_size` | 向 ChromaDB 批量写入的条数 |
+| `index_upsert_batch_size` | 向 LanceDB 批量写入的条数 |
+| `optimize_every_records` | 每处理多少条成功记录触发一次分段 optimize |
+| `optimize_every_seconds` | 距离上次 optimize 超过多少秒后触发一次分段 optimize |
+| `optimize_on_job_end` | 任务结束后是否再执行一次兜底 optimize |
 
 建议：
 
 - 第一次部署最需要关注的是 `inference_base_url`
 - 只有在你修改了 `joytag-infer` 服务名、地址或鉴权方式时，才需要改 `inference_api_key`
 - `inference_batch_size`、`search_scan_batch_size`、`index_upsert_batch_size`
-- 这类批量参数默认就够用，通常不建议用户手动修改
+- `optimize_every_records`、`optimize_every_seconds`、`optimize_on_job_end`
+- 这类批量参数和优化参数默认就够用，通常不建议用户手动修改
 
-## `[chromadb]`
+## `[lancedb]`
 
-这一组控制图片搜索使用的 ChromaDB 本地向量库。
+这一组控制图片搜索使用的 LanceDB 本地索引。
 
 ```toml
-[chromadb]
+[lancedb]
 uri = "/data/indexes/image-search"
-collection_name = "media_thumbnail_vectors"
+table_name = "media_thumbnail_vectors"
+vector_dtype = "float16"
 distance_metric = "cosine"
+vector_index_type = "ivf_rq"
+vector_index_num_partitions = 512
+vector_index_num_bits = 1
+vector_index_num_sub_vectors = 96
+scalar_index_columns = ["movie_id"]
 ```
 
 字段说明：
 
 | 字段 | 作用 |
 |---|---|
-| `uri` | ChromaDB 本地目录 |
-| `collection_name` | ChromaDB collection 名称 |
+| `uri` | LanceDB 本地目录 |
+| `table_name` | LanceDB 表名 |
+| `vector_dtype` | 向量数据类型 |
 | `distance_metric` | 距离度量方式 |
+| `vector_index_type` | 向量索引类型 |
+| `vector_index_num_partitions` | 向量索引分区数 |
+| `vector_index_num_bits` | RQ / PQ 相关索引参数 |
+| `vector_index_num_sub_vectors` | 子向量数量 |
+| `scalar_index_columns` | 标量索引字段列表 |
 
 建议：
 
 - 这组配置属于图片搜索底层索引参数，默认就按内置值使用即可
-- ChromaDB 使用 HNSW 索引，向量写入后即可参与搜索，不需要手工 optimize
 - 普通部署场景下不建议用户手动修改
 - 即使你在排查图片搜索问题，也通常应先检查数据、任务和推理服务，再考虑动这组配置
 
@@ -476,8 +496,8 @@ distance_metric = "cosine"
 如果你现在还处于“刚跑通”的阶段，通常不建议一上来就改：
 
 - `[media]`
-- `[chromadb]`
-- `[image_search]` 里的批量参数
+- `[lancedb]`
+- `[image_search]` 里的批量参数和优化参数
 - `[scheduler]` 里的 cron
 - `[auth]` 里的 token 过期时间和签名算法
 - `[logging]` 以外的大部分高级项
@@ -632,6 +652,8 @@ movie_title_translation_cron = "20 4 * * *"
 media_thumbnail_cron = "*/5 * * * *"
 # 生成以图搜图缩略图向量。
 image_search_index_cron = "0 0 * * *"
+# 优化以图搜图索引。
+image_search_optimize_cron = "0 3 * * *"
 # 影片相似度离线重算。
 movie_similarity_recompute_cron = "30 3 * * *"
 
@@ -668,16 +690,22 @@ default_page_size = 20
 max_page_size = 100
 # 为凑满一页结果时，每次向量库扫描的批大小。
 search_scan_batch_size = 100
-# JoyTag 索引任务每次批量写入 ChromaDB 的条数。
+# JoyTag 索引任务每次批量写入 LanceDB 的条数。
 index_upsert_batch_size = 100
+# JoyTag 索引任务每处理多少条成功记录后触发一次分段 optimize。
+optimize_every_records = 5000
+# JoyTag 索引任务距离上次 optimize 超过多少秒后触发一次分段 optimize。
+optimize_every_seconds = 1800
+# JoyTag 索引任务结束后是否再执行一次兜底 optimize。
+optimize_on_job_end = true
 
-[chromadb]
-# ChromaDB 本地目录。
+[lancedb]
+# LanceDB 本地目录。
 uri = "/data/indexes/image-search"
-# Collection 名称。
-collection_name = "media_thumbnail_vectors"
-# 距离度量方式，目前固定使用 cosine。
-distance_metric = "cosine"
+# LanceDB 表名。
+table_name = "media_thumbnail_vectors"
+# 标量索引字段列表。
+scalar_index_columns = ["movie_id"]
 
 [logging]
 # 全局日志等级。可选值：DEBUG、INFO、WARNING、ERROR、CRITICAL。
