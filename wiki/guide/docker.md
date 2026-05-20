@@ -147,7 +147,7 @@
 - `docker-data/cache`
   存缓存、缩略图、字幕等运行数据
 - `docker-data/image-search-index`
-  存图片搜索索引
+  Qdrant 向量数据库存储目录，务必放 SSD
 - `docker-data/logs`
   存日志
 - `docker-data/joytag`
@@ -194,7 +194,6 @@ services:
       - ./docker-data/db:/data/db
       - ./docker-data/cache/assets:/data/cache/assets
       - ./docker-data/cache/subtitles:/data/cache/subtitles
-      - ./docker-data/image-search-index:/data/indexes
       - ./docker-data/logs:/data/logs
       - /mnt/volume1/media:/mnt/volume1/media
 
@@ -211,6 +210,17 @@ services:
     ports:
       - "8001:8001"
 
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: qdrant
+    restart: unless-stopped
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: "6333"
+      QDRANT__LOG_LEVEL: "INFO"
+    volumes:
+      # 图片搜索向量库存储；务必放 SSD
+      - ./docker-data/image-search-index:/qdrant/storage
+
   sakuramedia-web:
     image: tinyping/sakuramedia-web:latest
     container_name: sakuramedia-web
@@ -226,7 +236,9 @@ services:
 - `sakuramedia`
   主后端服务，负责账号、媒体库、下载链路、活动中心和任务调度
 - `joytag-infer`
-  图片搜索推理服务
+  图片搜索推理服务，负责把查询图片向量化
+- `qdrant`
+  图片搜索向量数据库，存储缩略图向量并提供检索
 - `sakuramedia-web`
   Web 前端
 
@@ -240,8 +252,8 @@ services:
   缩略图、图片缓存等
 - `./docker-data/cache/subtitles:/data/cache/subtitles`
   字幕目录（导入时识别到的字幕文件）
-- `./docker-data/image-search-index:/data/indexes`
-  图片搜索索引
+- `./docker-data/image-search-index:/qdrant/storage`
+  Qdrant 向量数据库存储（图片搜索向量数据）
 - `./docker-data/logs:/data/logs`
   日志
 - `/mnt/volume1/media:/mnt/volume1/media`
@@ -257,6 +269,8 @@ services:
   Web 页面
 - `8001`
   `joytag-infer` 服务端口，主要供后端容器访问
+
+`qdrant` 默认不向宿主机映射端口，后端容器通过 Docker 内部网络以 `http://qdrant:6333` 访问；如需在宿主机直接调试，可自行追加 `ports: ["6333:6333"]`。
 
 ### 新手通常不需要改的地方
 
@@ -441,6 +455,7 @@ docker compose ps
 - `sakuramedia`
 - `sakuramedia-web`
 - `joytag-infer`
+- `qdrant`
 
 都已经正常启动。
 

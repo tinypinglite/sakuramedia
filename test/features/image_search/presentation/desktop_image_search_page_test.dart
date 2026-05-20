@@ -2075,6 +2075,14 @@ void main() {
     await tester.tap(find.text('搜索'));
     await tester.pumpAndSettle();
 
+    final actorRequest = bundle.adapter.requests.firstWhere(
+      (request) => request.method == 'GET' && request.path == '/actors',
+    );
+    expect(
+      actorRequest.uri.queryParameters['subscription_status'],
+      'subscribed',
+    );
+    expect(actorRequest.uri.queryParameters['gender'], 'all');
     expect(bundle.adapter.hitCount('GET', '/actors/1/movie-ids'), 1);
     expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 2);
     final latestRequest = bundle.adapter.requests.last;

@@ -58,7 +58,7 @@
 - `[logging]`
 - `[indexer_settings]`
 - `[image_search]`
-- `[lancedb]`
+- `[qdrant]`
 
 下面按顺序说明。
 
@@ -441,7 +441,7 @@ optimize_on_job_end = true
 | `default_page_size` | 默认每页结果数 |
 | `max_page_size` | 最大每页结果数 |
 | `search_scan_batch_size` | 为凑满一页结果时的扫描批大小 |
-| `index_upsert_batch_size` | 向 LanceDB 批量写入的条数 |
+| `index_upsert_batch_size` | 向 Qdrant 批量写入的条数 |
 | `optimize_every_records` | 每处理多少条成功记录触发一次分段 optimize |
 | `optimize_every_seconds` | 距离上次 optimize 超过多少秒后触发一次分段 optimize |
 | `optimize_on_job_end` | 任务结束后是否再执行一次兜底 optimize |
@@ -454,49 +454,34 @@ optimize_on_job_end = true
 - `optimize_every_records`、`optimize_every_seconds`、`optimize_on_job_end`
 - 这类批量参数和优化参数默认就够用，通常不建议用户手动修改
 
-## `[lancedb]`
+## `[qdrant]`
 
-这一组控制图片搜索使用的 LanceDB 本地索引。
+这一组控制图片搜索向量库的连接信息，对应 compose 中部署的 Qdrant 服务。
 
 ```toml
-[lancedb]
-uri = "/data/indexes/image-search"
-table_name = "media_thumbnail_vectors"
-vector_dtype = "float16"
-distance_metric = "cosine"
-vector_index_type = "ivf_rq"
-vector_index_num_partitions = 512
-vector_index_num_bits = 1
-vector_index_num_sub_vectors = 96
-scalar_index_columns = ["movie_id"]
+[qdrant]
+url = "http://qdrant:6333"
+api_key = ""
 ```
 
 字段说明：
 
 | 字段 | 作用 |
 |---|---|
-| `uri` | LanceDB 本地目录 |
-| `table_name` | LanceDB 表名 |
-| `vector_dtype` | 向量数据类型 |
-| `distance_metric` | 距离度量方式 |
-| `vector_index_type` | 向量索引类型 |
-| `vector_index_num_partitions` | 向量索引分区数 |
-| `vector_index_num_bits` | RQ / PQ 相关索引参数 |
-| `vector_index_num_sub_vectors` | 子向量数量 |
-| `scalar_index_columns` | 标量索引字段列表 |
+| `url` | Qdrant HTTP API 地址；compose 部署默认走容器内部服务名 `qdrant` |
+| `api_key` | Qdrant API Key；未启用鉴权时留空 |
 
 建议：
 
-- 这组配置属于图片搜索底层索引参数，默认就按内置值使用即可
-- 普通部署场景下不建议用户手动修改
-- 即使你在排查图片搜索问题，也通常应先检查数据、任务和推理服务，再考虑动这组配置
+- Compose 部署时保持默认 `http://qdrant:6333` 即可
+- 仅当你独立部署 Qdrant 或开启了 Qdrant 鉴权时才需要改
 
 ## 哪些配置第一次先别动
 
 如果你现在还处于“刚跑通”的阶段，通常不建议一上来就改：
 
 - `[media]`
-- `[lancedb]`
+- `[qdrant]`
 - `[image_search]` 里的批量参数和优化参数
 - `[scheduler]` 里的 cron
 - `[auth]` 里的 token 过期时间和签名算法
@@ -690,7 +675,7 @@ default_page_size = 20
 max_page_size = 100
 # 为凑满一页结果时，每次向量库扫描的批大小。
 search_scan_batch_size = 100
-# JoyTag 索引任务每次批量写入 LanceDB 的条数。
+# JoyTag 索引任务每次批量写入 Qdrant 的条数。
 index_upsert_batch_size = 100
 # JoyTag 索引任务每处理多少条成功记录后触发一次分段 optimize。
 optimize_every_records = 5000
@@ -699,13 +684,11 @@ optimize_every_seconds = 1800
 # JoyTag 索引任务结束后是否再执行一次兜底 optimize。
 optimize_on_job_end = true
 
-[lancedb]
-# LanceDB 本地目录。
-uri = "/data/indexes/image-search"
-# LanceDB 表名。
-table_name = "media_thumbnail_vectors"
-# 标量索引字段列表。
-scalar_index_columns = ["movie_id"]
+[qdrant]
+# Qdrant 服务地址；compose 部署默认使用内部服务名 qdrant。
+url = "http://qdrant:6333"
+# Qdrant API Key；未启用鉴权时留空。
+api_key = ""
 
 [logging]
 # 全局日志等级。可选值：DEBUG、INFO、WARNING、ERROR、CRITICAL。

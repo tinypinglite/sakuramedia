@@ -125,7 +125,7 @@ class ImageSearchController extends ChangeNotifier {
       while (true) {
         final response = await _actorsApi.getActors(
           subscriptionStatus: ActorSubscriptionStatus.subscribed,
-          gender: ActorGender.female,
+          gender: ActorGender.all,
           page: page,
           pageSize: pageSize,
         );

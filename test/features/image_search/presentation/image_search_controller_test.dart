@@ -78,6 +78,37 @@ void main() {
     expect(controller.nextCursor, 'cursor-1');
   });
 
+  test('ensureSubscribedActorsLoaded requests all genders', () async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors',
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'id': 1,
+            'javdb_id': 'ActorA1',
+            'name': '三上悠亚',
+            'alias_name': '三上悠亚',
+            'profile_image': null,
+            'is_subscribed': true,
+          },
+        ],
+        'page': 1,
+        'page_size': 200,
+        'total': 1,
+      },
+    );
+
+    await controller.ensureSubscribedActorsLoaded();
+
+    expect(controller.subscribedActors.single.id, 1);
+    final request = bundle.adapter.requests.single;
+    expect(request.path, '/actors');
+    expect(request.uri.queryParameters['subscription_status'], 'subscribed');
+    expect(request.uri.queryParameters['gender'], 'all');
+    expect(request.uri.queryParameters['page_size'], '200');
+  });
+
   test(
     'loadMore stops pagination when backend returns repeated next cursor',
     () async {
