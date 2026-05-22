@@ -977,7 +977,17 @@ class _ActorSelectorDialogState extends State<_ActorSelectorDialog> {
                     ),
                     child: Row(
                       children: [
-                        Expanded(child: Text(actor.displayName)),
+                        Expanded(
+                          child: Text(
+                            actor.displayName,
+                            style: resolveAppTextStyle(
+                              context,
+                              size: AppTextSize.s14,
+                              weight: AppTextWeight.regular,
+                              tone: AppTextTone.primary,
+                            ),
+                          ),
+                        ),
                         Checkbox(value: selected, onChanged: (_) {}),
                       ],
                     ),
