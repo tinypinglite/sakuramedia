@@ -87,7 +87,8 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     _syncRenderedImageCache(oldWidget);
     final shouldAutoScroll =
         widget.isScrollLocked && _shouldAutoScroll(oldWidget);
-    if (oldWidget.thumbnails.length != widget.thumbnails.length &&
+    if ((oldWidget.thumbnails.length != widget.thumbnails.length ||
+            oldWidget.columns != widget.columns) &&
         !widget.isScrollLocked) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
