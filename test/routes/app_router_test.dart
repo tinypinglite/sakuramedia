@@ -27,7 +27,6 @@ import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
@@ -57,11 +56,6 @@ const List<_MobileSettingsRouteCase> _mobileSettingsRouteCases =
         path: mobileSystemOverviewPath,
         title: '概览',
         pageKey: Key('mobile-system-overview-page'),
-      ),
-      _MobileSettingsRouteCase(
-        path: mobileSettingsDataSourcesPath,
-        title: '数据源',
-        pageKey: Key('mobile-settings-data-sources'),
       ),
       _MobileSettingsRouteCase(
         path: mobileSettingsMediaLibrariesPath,
@@ -1240,15 +1234,7 @@ void main() {
         sessionStore: sessionStore,
         bundle: bundle,
       );
-      await tester.pumpAndSettle();
-
-      if (routeCase.path == mobileSettingsDataSourcesPath) {
-        bundle.adapter.enqueueJson(
-          method: 'GET',
-          path: '/metadata-provider-license/status',
-          body: _metadataProviderLicenseStatusJson(),
-        );
-      } else if (routeCase.path == mobileSettingsMediaLibrariesPath) {
+      await tester.pumpAndSettle(); if (routeCase.path == mobileSettingsMediaLibrariesPath) {
         bundle.adapter.enqueueJson(
           method: 'GET',
           path: '/media-libraries',
@@ -1947,15 +1933,7 @@ void main() {
         sessionStore: sessionStore,
         bundle: bundle,
       );
-      await tester.pumpAndSettle();
-
-      if (routeCase.path == mobileSettingsDataSourcesPath) {
-        bundle.adapter.enqueueJson(
-          method: 'GET',
-          path: '/metadata-provider-license/status',
-          body: _metadataProviderLicenseStatusJson(),
-        );
-      } else if (routeCase.path == mobileSettingsMediaLibrariesPath) {
+      await tester.pumpAndSettle(); if (routeCase.path == mobileSettingsMediaLibrariesPath) {
         bundle.adapter.enqueueJson(
           method: 'GET',
           path: '/media-libraries',
@@ -2059,11 +2037,7 @@ void main() {
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
-          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2097,11 +2071,7 @@ void main() {
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
-          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2133,11 +2103,7 @@ void main() {
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
-          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2171,11 +2137,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
-          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2486,11 +2448,7 @@ void main() {
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
-          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2538,11 +2496,7 @@ void main() {
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
-          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2613,11 +2567,7 @@ void main() {
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
-          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2768,11 +2718,7 @@ void main() {
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
-          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2816,11 +2762,7 @@ void main() {
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
-          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2906,11 +2848,7 @@ void main() {
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
-          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -3483,11 +3421,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
-          Provider<StatusApi>.value(value: bundle.statusApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
-          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -3534,11 +3468,7 @@ Future<void> _pumpRouterApp(
     Provider<ImageSearchApi>(
       create: (_) => ImageSearchApi(apiClient: bundle.apiClient),
     ),
-    Provider<StatusApi>.value(value: bundle.statusApi),
-    Provider<MetadataProviderLicenseApi>.value(
-      value: bundle.metadataProviderLicenseApi,
-    ),
-    Provider<MoviesApi>.value(value: bundle.moviesApi),
+    Provider<StatusApi>.value(value: bundle.statusApi),    Provider<MoviesApi>.value(value: bundle.moviesApi),
     ChangeNotifierProvider(create: (_) => MovieCollectionTypeChangeNotifier()),
     ChangeNotifierProvider(create: (_) => MovieSubscriptionChangeNotifier()),
     Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
@@ -3738,24 +3668,6 @@ void _enqueueMobileSystemOverviewResponses(TestApiBundle bundle) {
       },
     },
   );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/metadata-provider-license/status',
-    body: _metadataProviderLicenseStatusJson(),
-  );
-}
-
-Map<String, dynamic> _metadataProviderLicenseStatusJson() {
-  return <String, dynamic>{
-    'configured': true,
-    'active': true,
-    'instance_id': 'inst_test',
-    'expires_at': 1777181126,
-    'license_valid_until': 4102444800,
-    'renew_after_seconds': 21600,
-    'error_code': null,
-    'message': null,
-  };
 }
 
 void _enqueueImageSearchSingleResultResponse(TestApiBundle bundle) {

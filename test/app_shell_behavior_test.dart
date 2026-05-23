@@ -9,9 +9,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/app/app_version_info_controller.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
+import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
@@ -543,12 +544,11 @@ Future<void> _pumpDesktopApp(
         ChangeNotifierProvider(
           create: (_) => MovieSubscriptionChangeNotifier(),
         ),
+        Provider<CredentialStore>.value(value: CredentialStore()),
+        Provider<AuthApi>.value(value: bundle.authApi),
         Provider<StatusApi>.value(value: statusApi),
         ChangeNotifierProvider<AppVersionInfoController>(
           create: (_) => AppVersionInfoController(statusApi: statusApi),
-        ),
-        Provider<MetadataProviderLicenseApi>.value(
-          value: bundle.metadataProviderLicenseApi,
         ),
         Provider<MoviesApi>.value(value: moviesApi),
         Provider<ImageSearchApi>(
@@ -580,12 +580,11 @@ Future<GoRouter> _pumpDesktopAppWithRouter(
         ChangeNotifierProvider(
           create: (_) => MovieSubscriptionChangeNotifier(),
         ),
+        Provider<CredentialStore>.value(value: CredentialStore()),
+        Provider<AuthApi>.value(value: bundle.authApi),
         Provider<StatusApi>.value(value: statusApi),
         ChangeNotifierProvider<AppVersionInfoController>(
           create: (_) => AppVersionInfoController(statusApi: statusApi),
-        ),
-        Provider<MetadataProviderLicenseApi>.value(
-          value: bundle.metadataProviderLicenseApi,
         ),
         Provider<MoviesApi>.value(value: moviesApi),
         Provider<ActorsApi>.value(value: actorsApi),
@@ -631,20 +630,6 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
         'pending_thumbnails': 23,
         'failed_thumbnails': 2,
       },
-    },
-  );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/metadata-provider-license/status',
-    body: <String, dynamic>{
-      'configured': true,
-      'active': true,
-      'instance_id': 'inst_test',
-      'expires_at': 1777181126,
-      'license_valid_until': 4102444800,
-      'renew_after_seconds': 21600,
-      'error_code': null,
-      'message': null,
     },
   );
   bundle.adapter.enqueueJson(

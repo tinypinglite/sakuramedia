@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -40,6 +41,20 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _baseUrlController.text = context.read<SessionStore>().baseUrl;
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final credentialStore = context.read<CredentialStore>();
+    final username = await credentialStore.readUsername();
+    final password = await credentialStore.readPassword();
+    if (!mounted) return;
+    if (username != null && username.isNotEmpty) {
+      _usernameController.text = username;
+    }
+    if (password != null && password.isNotEmpty) {
+      _passwordController.text = password;
+    }
   }
 
   @override

@@ -1,29 +1,19 @@
 import 'package:flutter/foundation.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_dto.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/features/status/data/status_dto.dart';
 
 class OverviewSystemInfoController extends ChangeNotifier {
   OverviewSystemInfoController({
     required StatusApi statusApi,
-    required MetadataProviderLicenseApi metadataProviderLicenseApi,
-  }) : _statusApi = statusApi,
-       _metadataProviderLicenseApi = metadataProviderLicenseApi;
+  }) : _statusApi = statusApi;
 
   final StatusApi _statusApi;
-  final MetadataProviderLicenseApi _metadataProviderLicenseApi;
 
   bool isLoadingStatus = true;
   bool isLoadingImageSearchStatus = true;
-  bool isLoadingLicenseStatus = true;
   bool isTestingMetadataProviders = false;
-  bool isTestingLicenseConnectivity = false;
   StatusDto? status;
   StatusImageSearchDto? imageSearchStatus;
-  MetadataProviderLicenseStatusDto? licenseStatus;
-  MetadataProviderLicenseConnectivityTestDto? licenseConnectivityTest;
-  String? licenseStatusError;
   bool? javdbHealthy;
   bool? dmmHealthy;
   String? statusError;
@@ -32,16 +22,13 @@ class OverviewSystemInfoController extends ChangeNotifier {
     await Future.wait<void>([
       loadStatus(),
       loadImageSearchStatus(),
-      loadLicenseStatus(),
     ]);
   }
 
   Future<void> refresh() async {
     isLoadingStatus = true;
     isLoadingImageSearchStatus = true;
-    isLoadingLicenseStatus = true;
     statusError = null;
-    licenseStatusError = null;
     notifyListeners();
     await load();
   }
@@ -70,19 +57,6 @@ class OverviewSystemInfoController extends ChangeNotifier {
     }
   }
 
-  Future<void> loadLicenseStatus() async {
-    try {
-      licenseStatus = await _metadataProviderLicenseApi.getStatus();
-      licenseStatusError = null;
-    } catch (_) {
-      licenseStatus = null;
-      licenseStatusError = 'unavailable';
-    } finally {
-      isLoadingLicenseStatus = false;
-      notifyListeners();
-    }
-  }
-
   Future<void> testExternalDataSources() async {
     if (isTestingMetadataProviders) {
       return;
@@ -100,32 +74,6 @@ class OverviewSystemInfoController extends ChangeNotifier {
     dmmHealthy = results[1];
     isTestingMetadataProviders = false;
     notifyListeners();
-  }
-
-  Future<void> testLicenseConnectivity() async {
-    if (isTestingLicenseConnectivity) {
-      return;
-    }
-
-    isTestingLicenseConnectivity = true;
-    notifyListeners();
-
-    try {
-      licenseConnectivityTest =
-          await _metadataProviderLicenseApi.testConnectivity();
-    } catch (_) {
-      licenseConnectivityTest =
-          const MetadataProviderLicenseConnectivityTestDto(
-            ok: false,
-            url: '',
-            proxyEnabled: false,
-            elapsedMs: 0,
-            error: 'unavailable',
-          );
-    } finally {
-      isTestingLicenseConnectivity = false;
-      notifyListeners();
-    }
   }
 
   String formatGigabytes(int bytes) {
@@ -156,42 +104,6 @@ class OverviewSystemInfoController extends ChangeNotifier {
     return imageSearchStatus!.indexing.pendingThumbnails.toString();
   }
 
-  String buildLicenseStatusValue() {
-    if (licenseStatusError != null) {
-      return '不可用';
-    }
-    final status = licenseStatus;
-    if (status == null) {
-      return '不可用';
-    }
-    if (status.active) {
-      return '已激活';
-    }
-    final errorCode = status.errorCode?.trim();
-    if (errorCode == 'license_expired' ||
-        _isUnixSecondsExpired(status.licenseValidUntil)) {
-      return '授权已到期';
-    }
-    if (status.licenseValidUntil != null) {
-      return '授权待同步';
-    }
-    if (status.configured && errorCode != null && errorCode.isNotEmpty) {
-      return _licenseErrorLabel(errorCode);
-    }
-    return '未激活';
-  }
-
-  String buildLicenseConnectivityValue() {
-    if (isTestingLicenseConnectivity) {
-      return '检测中';
-    }
-    final result = licenseConnectivityTest;
-    if (result == null) {
-      return '未检测';
-    }
-    return result.ok ? '连接正常' : '连接异常';
-  }
-
   String buildExternalDataSourcesValue() {
     if (isTestingMetadataProviders) {
       return '检测中';
@@ -216,26 +128,5 @@ class OverviewSystemInfoController extends ChangeNotifier {
       return '未检测 $label';
     }
     return '${healthy ? '✅' : '❌'} $label';
-  }
-
-  bool _isUnixSecondsExpired(int? unixSeconds) {
-    if (unixSeconds == null) {
-      return false;
-    }
-    final value = DateTime.fromMillisecondsSinceEpoch(
-      unixSeconds * 1000,
-      isUtc: true,
-    );
-    return value.isBefore(DateTime.now().toUtc());
-  }
-
-  String _licenseErrorLabel(String errorCode) {
-    return switch (errorCode) {
-      'license_required' => '未激活',
-      'license_expired' => '授权已到期',
-      'license_revoked' => '授权已吊销',
-      'license_unavailable' => '授权不可用',
-      _ => errorCode,
-    };
   }
 }

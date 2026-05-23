@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/account/presentation/mobile_change_password_page.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
@@ -355,6 +356,7 @@ Future<void> _pumpStandalonePage(WidgetTester tester) async {
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: _sessionStore),
         Provider<AccountApi>.value(value: _bundle.accountApi),
+        Provider<CredentialStore>.value(value: CredentialStore()),
         Provider<AuthApi>.value(value: _bundle.authApi),
       ],
       child: OKToast(
@@ -377,6 +379,7 @@ Future<void> _pumpRouterApp(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: _sessionStore),
         Provider<AccountApi>.value(value: _bundle.accountApi),
+        Provider<CredentialStore>.value(value: CredentialStore()),
         Provider<AuthApi>.value(value: _bundle.authApi),
       ],
       child: OKToast(

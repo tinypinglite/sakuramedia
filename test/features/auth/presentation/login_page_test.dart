@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/features/auth/presentation/login_page.dart';
@@ -18,12 +19,14 @@ Future<void> _pumpLoginPage(
   WidgetTester tester, {
   required SessionStore sessionStore,
   required AuthApi authApi,
+  required CredentialStore credentialStore,
 }) async {
   await tester.pumpWidget(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         Provider<AuthApi>.value(value: authApi),
+        Provider<CredentialStore>.value(value: credentialStore),
       ],
       child: MaterialApp(
         theme: sakuraThemeData,
@@ -47,15 +50,21 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late SessionStore sessionStore;
+  late CredentialStore credentialStore;
   late ApiClient apiClient;
   late AuthApi authApi;
   late FakeHttpClientAdapter adapter;
 
   setUp(() async {
     sessionStore = SessionStore.inMemory();
+    credentialStore = CredentialStore();
     await sessionStore.saveBaseUrl('https://saved.example.com');
     apiClient = ApiClient(sessionStore: sessionStore);
-    authApi = AuthApi(apiClient: apiClient, sessionStore: sessionStore);
+    authApi = AuthApi(
+      apiClient: apiClient,
+      sessionStore: sessionStore,
+      credentialStore: credentialStore,
+    );
     adapter = FakeHttpClientAdapter();
     apiClient.rawDio.httpClientAdapter = adapter;
     apiClient.rawRefreshDio.httpClientAdapter = adapter;
@@ -68,7 +77,7 @@ void main() {
   testWidgets('renders login fields and prefilled base url', (
     WidgetTester tester,
   ) async {
-    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi);
+    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi, credentialStore: credentialStore);
 
     expect(find.byKey(const Key('login-form-base-url')), findsOneWidget);
     expect(find.byKey(const Key('login-form-username')), findsOneWidget);
@@ -80,7 +89,7 @@ void main() {
   testWidgets('validates base url format before submit', (
     WidgetTester tester,
   ) async {
-    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi);
+    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi, credentialStore: credentialStore);
 
     await tester.enterText(
       find.byKey(const Key('login-form-base-url')),
@@ -122,7 +131,7 @@ void main() {
       },
     );
 
-    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi);
+    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi, credentialStore: credentialStore);
     await _fillValidLoginForm(tester);
 
     await tester.tap(find.byKey(const Key('login-submit-button')));
@@ -155,7 +164,7 @@ void main() {
       },
     );
 
-    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi);
+    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi, credentialStore: credentialStore);
     await _fillValidLoginForm(tester);
 
     await tester.tap(find.byKey(const Key('login-submit-button')));
@@ -181,7 +190,7 @@ void main() {
       },
     );
 
-    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi);
+    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi, credentialStore: credentialStore);
     await _fillValidLoginForm(tester);
 
     await tester.tap(find.byKey(const Key('login-submit-button')));
@@ -208,7 +217,7 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
 
-    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi);
+    await _pumpLoginPage(tester, sessionStore: sessionStore, authApi: authApi, credentialStore: credentialStore);
 
     final cardRect = tester.getRect(find.byKey(const Key('login-main-card')));
     final viewportCenterY = tester.binding.renderView.size.height / 2;

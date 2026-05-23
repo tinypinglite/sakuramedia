@@ -7,13 +7,13 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/llm_settings_copy.dart';
@@ -51,12 +51,10 @@ void main() {
         tester,
         bundle,
         sessionStore: sessionStore,
-        enqueueDefaultLicenseStatus: false,
       );
 
       final tabs = tester.widgetList<Tab>(find.byType(Tab)).toList();
       expect(tabs.map((tab) => tab.text).toList(), [
-        '数据源',
         '媒体库',
         '合集特征',
         'LLM 配置',
@@ -67,324 +65,6 @@ void main() {
       ]);
     });
 
-    testWidgets('loads metadata provider license tab by default', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
-
-      await _pumpPage(
-        tester,
-        bundle,
-        sessionStore: sessionStore,
-        enqueueDefaultLicenseStatus: false,
-      );
-
-      expect(
-        bundle.adapter.hitCount('GET', '/metadata-provider-license/status'),
-        1,
-      );
-      expect(
-        find.byKey(const Key('configuration-license-card')),
-        findsOneWidget,
-      );
-      expect(find.text('数据源授权'), findsOneWidget);
-      expect(find.text('数据源'), findsOneWidget);
-      expect(find.text('未激活'), findsWidgets);
-      expect(find.text('授权有效期: 未提供'), findsOneWidget);
-      expect(find.text('授权中心: 未检测'), findsOneWidget);
-      expect(find.text('过期时间: 未提供'), findsNothing);
-      expect(find.text('续租建议: 未提供'), findsNothing);
-      expect(find.text('实例 ID: inst_test'), findsNothing);
-    });
-
-    testWidgets('aligns metadata provider license actions with input', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
-
-      await _pumpPage(
-        tester,
-        bundle,
-        sessionStore: sessionStore,
-        enqueueDefaultLicenseStatus: false,
-      );
-      await tester.tap(find.byKey(const Key('configuration-tab-license')));
-      await tester.pumpAndSettle();
-
-      final inputCenterY =
-          tester
-              .getCenter(
-                find.byKey(const Key('configuration-license-activation-field')),
-              )
-              .dy;
-      final refreshCenterY =
-          tester
-              .getCenter(
-                find.byKey(const Key('configuration-license-refresh-button')),
-              )
-              .dy;
-      final activateCenterY =
-          tester
-              .getCenter(
-                find.byKey(const Key('configuration-license-activate-button')),
-              )
-              .dy;
-
-      expect(refreshCenterY, closeTo(inputCenterY, 1));
-      expect(activateCenterY, closeTo(inputCenterY, 1));
-    });
-
-    testWidgets('refreshes metadata provider license status', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
-      _enqueueMetadataProviderLicenseStatus(bundle, active: true);
-
-      await _pumpPage(
-        tester,
-        bundle,
-        sessionStore: sessionStore,
-        enqueueDefaultLicenseStatus: false,
-      );
-      await tester.tap(find.byKey(const Key('configuration-tab-license')));
-      await tester.pumpAndSettle();
-
-      await tester.tap(
-        find.byKey(const Key('configuration-license-refresh-button')),
-      );
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(
-        bundle.adapter.hitCount('GET', '/metadata-provider-license/status'),
-        2,
-      );
-      expect(find.text('已激活'), findsWidgets);
-    });
-
-    testWidgets('shows pending sync when business license is still valid', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMetadataProviderLicenseStatus(
-        bundle,
-        active: false,
-        errorCode: 'license_unavailable',
-        message: 'License state cannot be validated',
-        licenseValidUntil: 4102444800,
-      );
-
-      await _pumpPage(
-        tester,
-        bundle,
-        sessionStore: sessionStore,
-        enqueueDefaultLicenseStatus: false,
-      );
-
-      expect(find.text('授权待同步'), findsWidgets);
-      expect(find.text('你的授权仍在有效期内，但当前设备需要重新同步授权后才能使用外部数据源。'), findsOneWidget);
-    });
-
-    testWidgets('syncs metadata provider authorization', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMetadataProviderLicenseStatus(
-        bundle,
-        active: false,
-        errorCode: 'license_unavailable',
-        message: 'License state cannot be validated',
-        licenseValidUntil: 4102444800,
-      );
-      _enqueueMetadataProviderLicenseRenew(bundle);
-
-      await _pumpPage(
-        tester,
-        bundle,
-        sessionStore: sessionStore,
-        enqueueDefaultLicenseStatus: false,
-      );
-      await tester.tap(
-        find.byKey(const Key('configuration-license-sync-button')),
-      );
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(
-        bundle.adapter.hitCount('POST', '/metadata-provider-license/renew'),
-        1,
-      );
-      expect(find.text('已激活'), findsWidgets);
-      expect(find.text('授权状态已同步'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('tests metadata provider license center connectivity', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
-      _enqueueMetadataProviderLicenseConnectivity(bundle, ok: true);
-
-      await _pumpPage(
-        tester,
-        bundle,
-        sessionStore: sessionStore,
-        enqueueDefaultLicenseStatus: false,
-      );
-      await tester.tap(
-        find.byKey(const Key('configuration-license-connectivity-button')),
-      );
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(
-        bundle.adapter.hitCount(
-          'GET',
-          '/metadata-provider-license/connectivity-test',
-        ),
-        1,
-      );
-      expect(find.text('授权中心: 连接正常'), findsOneWidget);
-      expect(find.text('授权中心连接正常'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('keeps metadata provider diagnostics collapsed by default', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
-
-      await _pumpPage(
-        tester,
-        bundle,
-        sessionStore: sessionStore,
-        enqueueDefaultLicenseStatus: false,
-      );
-
-      expect(find.text('诊断信息'), findsOneWidget);
-      expect(find.text('实例 ID: inst_test'), findsNothing);
-
-      await tester.tap(
-        find.byKey(const Key('configuration-license-diagnostics')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('实例 ID: inst_test'), findsOneWidget);
-      expect(find.text('错误码: license_required'), findsOneWidget);
-    });
-
-    testWidgets('activates metadata provider license', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
-      _enqueueMetadataProviderLicenseActivate(bundle);
-
-      await _pumpPage(
-        tester,
-        bundle,
-        sessionStore: sessionStore,
-        enqueueDefaultLicenseStatus: false,
-      );
-      await tester.tap(find.byKey(const Key('configuration-tab-license')));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(
-        find.byKey(const Key('configuration-license-activation-field')),
-        'SMB-SUPER-SECRET',
-      );
-      await tester.tap(
-        find.byKey(const Key('configuration-license-activate-button')),
-      );
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      final request = bundle.adapter.requests.firstWhere(
-        (request) =>
-            request.method == 'POST' &&
-            request.path == '/metadata-provider-license/activate',
-      );
-      expect(request.body['activation_code'], 'SMB-SUPER-SECRET');
-      expect(find.text('已激活'), findsWidgets);
-      expect(find.text('授权已激活'), findsOneWidget);
-      expect(
-        tester
-            .widget<TextFormField>(
-              find.byKey(const Key('configuration-license-activation-field')),
-            )
-            .controller
-            ?.text,
-        isEmpty,
-      );
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('validates metadata provider license activation code', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
-
-      await _pumpPage(
-        tester,
-        bundle,
-        sessionStore: sessionStore,
-        enqueueDefaultLicenseStatus: false,
-      );
-      await tester.tap(find.byKey(const Key('configuration-tab-license')));
-      await tester.pumpAndSettle();
-
-      await tester.tap(
-        find.byKey(const Key('configuration-license-activate-button')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('请输入激活码'), findsOneWidget);
-      expect(
-        bundle.adapter.hitCount('POST', '/metadata-provider-license/activate'),
-        0,
-      );
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('does not expose activation code when activation fails', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-      _enqueueMetadataProviderLicenseStatus(bundle, active: false);
-      bundle.adapter.enqueueJson(
-        method: 'POST',
-        path: '/metadata-provider-license/activate',
-        statusCode: 403,
-        body: <String, dynamic>{
-          'error': <String, dynamic>{
-            'code': 'activation_code_invalid',
-            'message': 'Activation code is invalid',
-            'details': <String, dynamic>{
-              'license_error_code': 'activation_code_invalid',
-            },
-          },
-        },
-      );
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await tester.tap(find.byKey(const Key('configuration-tab-license')));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(
-        find.byKey(const Key('configuration-license-activation-field')),
-        'SMB-SUPER-SECRET',
-      );
-      await tester.tap(
-        find.byKey(const Key('configuration-license-activate-button')),
-      );
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(find.text('Activation code is invalid'), findsOneWidget);
-      expect(find.text('SMB-SUPER-SECRET'), findsNothing);
-      await tester.pump(const Duration(seconds: 3));
-    });
 
     testWidgets('loads download clients lazily when switching tabs', (
       WidgetTester tester,
@@ -404,10 +84,6 @@ void main() {
       );
       expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 0);
       expect(bundle.adapter.hitCount('GET', '/playlists'), 0);
-      expect(
-        bundle.adapter.hitCount('GET', '/metadata-provider-license/status'),
-        1,
-      );
       expect(find.text('还没有媒体库'), findsNothing);
 
       await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
@@ -2655,7 +2331,6 @@ void main() {
     final bundle = await createTestApiBundle(sessionStore);
     addTearDown(bundle.dispose);
     _enqueueOverviewResponses(bundle);
-    _enqueueMetadataProviderLicenseStatus(bundle, active: true);
     _enqueueMediaLibraries(bundle);
     _enqueueAccount(bundle, username: 'account');
     bundle.adapter.enqueueJson(
@@ -2690,6 +2365,7 @@ void main() {
             create: (_) => MovieSubscriptionChangeNotifier(),
           ),
           Provider<AccountApi>.value(value: bundle.accountApi),
+          Provider<CredentialStore>.value(value: CredentialStore()),
           Provider<AuthApi>.value(value: bundle.authApi),
           Provider<CollectionNumberFeaturesApi>.value(
             value: bundle.collectionNumberFeaturesApi,
@@ -2697,9 +2373,6 @@ void main() {
           Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
           Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
           Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
-          Provider<MetadataProviderLicenseApi>.value(
-            value: bundle.metadataProviderLicenseApi,
-          ),
           Provider<MovieDescTranslationSettingsApi>.value(
             value: bundle.movieDescTranslationSettingsApi,
           ),
@@ -2756,14 +2429,9 @@ Future<void> _pumpPage(
   WidgetTester tester,
   TestApiBundle bundle, {
   required SessionStore sessionStore,
-  bool enqueueDefaultLicenseStatus = true,
 }) async {
   tester.view.physicalSize = const Size(1440, 900);
   tester.view.devicePixelRatio = 1;
-
-  if (enqueueDefaultLicenseStatus) {
-    _enqueueMetadataProviderLicenseStatus(bundle, active: true);
-  }
 
   await tester.pumpWidget(
     MultiProvider(
@@ -2780,9 +2448,6 @@ Future<void> _pumpPage(
         Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
         Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
         Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
-        Provider<MetadataProviderLicenseApi>.value(
-          value: bundle.metadataProviderLicenseApi,
-        ),
         Provider<MovieDescTranslationSettingsApi>.value(
           value: bundle.movieDescTranslationSettingsApi,
         ),
@@ -2945,77 +2610,6 @@ void _enqueueMovieDescTranslationSettings(
       connectTimeoutSeconds: connectTimeoutSeconds,
     ),
   );
-}
-
-void _enqueueMetadataProviderLicenseStatus(
-  TestApiBundle bundle, {
-  required bool active,
-  String? errorCode,
-  String? message,
-  int? licenseValidUntil,
-}) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/metadata-provider-license/status',
-    body: _buildMetadataProviderLicenseStatusJson(
-      active: active,
-      errorCode: errorCode,
-      message: message,
-      licenseValidUntil: licenseValidUntil,
-    ),
-  );
-}
-
-void _enqueueMetadataProviderLicenseActivate(TestApiBundle bundle) {
-  bundle.adapter.enqueueJson(
-    method: 'POST',
-    path: '/metadata-provider-license/activate',
-    body: _buildMetadataProviderLicenseStatusJson(active: true),
-  );
-}
-
-void _enqueueMetadataProviderLicenseRenew(TestApiBundle bundle) {
-  bundle.adapter.enqueueJson(
-    method: 'POST',
-    path: '/metadata-provider-license/renew',
-    body: _buildMetadataProviderLicenseStatusJson(active: true),
-  );
-}
-
-void _enqueueMetadataProviderLicenseConnectivity(
-  TestApiBundle bundle, {
-  required bool ok,
-}) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/metadata-provider-license/connectivity-test',
-    body: <String, dynamic>{
-      'ok': ok,
-      'url': 'https://license.example.com/',
-      'proxy_enabled': true,
-      'elapsed_ms': 128,
-      'status_code': ok ? 200 : null,
-      'error': ok ? null : 'timeout',
-    },
-  );
-}
-
-Map<String, dynamic> _buildMetadataProviderLicenseStatusJson({
-  required bool active,
-  String? errorCode,
-  String? message,
-  int? licenseValidUntil,
-}) {
-  return <String, dynamic>{
-    'configured': true,
-    'active': active,
-    'instance_id': 'inst_test',
-    'expires_at': active ? 1777181126 : null,
-    'license_valid_until': licenseValidUntil ?? (active ? 4102444800 : null),
-    'renew_after_seconds': active ? 21600 : null,
-    'error_code': active ? null : (errorCode ?? 'license_required'),
-    'message': active ? null : (message ?? 'License activation is required'),
-  };
 }
 
 Map<String, dynamic> _buildMovieDescTranslationSettingsJson({

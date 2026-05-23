@@ -13,12 +13,12 @@ import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
@@ -365,47 +365,6 @@ void main() {
     expect(find.text('--'), findsOneWidget);
   });
 
-  testWidgets('mobile overview drawer data sources opens subpage shell', (
-    WidgetTester tester,
-  ) async {
-    _enqueueOverviewResponses(bundle);
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/metadata-provider-license/status',
-      body: _metadataProviderLicenseStatusJson(),
-    );
-    final router = buildMobileRouter(sessionStore: sessionStore);
-    addTearDown(router.dispose);
-
-    await tester.pumpWidget(
-      _buildRouterApp(
-        sessionStore: sessionStore,
-        bundle: bundle,
-        router: router,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const Key('mobile-overview-drawer-data-sources')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
-    expect(find.text('数据源'), findsOneWidget);
-    expect(
-      find.byKey(const Key('mobile-settings-data-sources')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('mobile-data-sources-activate-button')),
-      findsOneWidget,
-    );
-    expect(find.text('开发中'), findsNothing);
-    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
-  });
 
   testWidgets('mobile overview drawer media libraries opens subpage shell', (
     WidgetTester tester,
@@ -1786,6 +1745,7 @@ Widget _buildTestApp({
       Provider<ApiClient>.value(value: bundle.apiClient),
       Provider<AccountApi>.value(value: bundle.accountApi),
       Provider<ActorsApi>.value(value: bundle.actorsApi),
+      Provider<CredentialStore>.value(value: CredentialStore()),
       Provider<AuthApi>.value(value: bundle.authApi),
       Provider<CollectionNumberFeaturesApi>.value(
         value: bundle.collectionNumberFeaturesApi,
@@ -1793,9 +1753,6 @@ Widget _buildTestApp({
       Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
       Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
       Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
-      Provider<MetadataProviderLicenseApi>.value(
-        value: bundle.metadataProviderLicenseApi,
-      ),
       Provider<MovieDescTranslationSettingsApi>.value(
         value: bundle.movieDescTranslationSettingsApi,
       ),
@@ -1833,6 +1790,7 @@ Widget _buildRouterApp({
       Provider<ApiClient>.value(value: bundle.apiClient),
       Provider<AccountApi>.value(value: bundle.accountApi),
       Provider<ActorsApi>.value(value: bundle.actorsApi),
+      Provider<CredentialStore>.value(value: CredentialStore()),
       Provider<AuthApi>.value(value: bundle.authApi),
       Provider<CollectionNumberFeaturesApi>.value(
         value: bundle.collectionNumberFeaturesApi,
@@ -1840,9 +1798,6 @@ Widget _buildRouterApp({
       Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
       Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
       Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
-      Provider<MetadataProviderLicenseApi>.value(
-        value: bundle.metadataProviderLicenseApi,
-      ),
       Provider<MovieDescTranslationSettingsApi>.value(
         value: bundle.movieDescTranslationSettingsApi,
       ),
@@ -2002,12 +1957,6 @@ void _enqueueSystemOverviewResponses(TestApiBundle bundle) {
     statusCode: 200,
     body: _imageSearchStatusJson(),
   );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/metadata-provider-license/status',
-    statusCode: 200,
-    body: _metadataProviderLicenseStatusJson(),
-  );
 }
 
 Map<String, dynamic> _statusJson({
@@ -2037,18 +1986,6 @@ Map<String, dynamic> _imageSearchStatusJson() {
   };
 }
 
-Map<String, dynamic> _metadataProviderLicenseStatusJson() {
-  return <String, dynamic>{
-    'configured': true,
-    'active': true,
-    'instance_id': 'inst_test',
-    'expires_at': 1777181126,
-    'license_valid_until': 4102444800,
-    'renew_after_seconds': 21600,
-    'error_code': null,
-    'message': null,
-  };
-}
 
 void _enqueueLlmSettings(TestApiBundle bundle) {
   bundle.adapter.enqueueJson(

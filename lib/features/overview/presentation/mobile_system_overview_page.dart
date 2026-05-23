@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_controller.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/theme.dart';
@@ -25,7 +24,6 @@ class _MobileSystemOverviewPageState extends State<MobileSystemOverviewPage> {
     super.initState();
     _controller = OverviewSystemInfoController(
       statusApi: context.read<StatusApi>(),
-      metadataProviderLicenseApi: context.read<MetadataProviderLicenseApi>(),
     )..load();
   }
 
@@ -163,20 +161,6 @@ class _MobileSystemOverviewPageState extends State<MobileSystemOverviewPage> {
               label: '待索引',
               value: _controller.buildJoyTagIndexingValue(),
               isLoading: _controller.isLoadingImageSearchStatus,
-            ),
-            _MobileSystemOverviewMetricItem(
-              id: 'metadata-provider-license',
-              label: '数据源授权',
-              value: _controller.buildLicenseStatusValue(),
-              isLoading: _controller.isLoadingLicenseStatus,
-            ),
-            _MobileSystemOverviewMetricItem(
-              id: 'license-center-connectivity',
-              label: '授权中心',
-              value: _controller.buildLicenseConnectivityValue(),
-              actionLabel: '检测',
-              isActionLoading: _controller.isTestingLicenseConnectivity,
-              onActionPressed: _controller.testLicenseConnectivity,
             ),
             _MobileSystemOverviewMetricItem(
               id: 'external-data-sources',

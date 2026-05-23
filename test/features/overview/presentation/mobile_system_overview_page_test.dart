@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_system_overview_page.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/theme.dart';
@@ -48,11 +47,8 @@ void main() {
     expect(find.text('服务健康'), findsOneWidget);
     expect(find.text('影片总数'), findsOneWidget);
     expect(find.text('JoyTag 健康'), findsOneWidget);
-    expect(find.text('授权中心'), findsOneWidget);
-    expect(find.text('外部数据源'), findsOneWidget);
     expect(find.text('120'), findsOneWidget);
     expect(find.text('正常'), findsOneWidget);
-    expect(find.text('已激活'), findsOneWidget);
   });
 
   testWidgets('mobile system overview retries status failure', (
@@ -70,7 +66,6 @@ void main() {
       },
     );
     _enqueueImageSearchStatus(bundle);
-    _enqueueMetadataProviderLicenseStatus(bundle);
 
     await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
@@ -89,86 +84,6 @@ void main() {
     expect(find.text('媒体资产'), findsOneWidget);
   });
 
-  testWidgets('mobile system overview tests license center connectivity', (
-    WidgetTester tester,
-  ) async {
-    _enqueueSystemOverviewResponses(bundle);
-    _enqueueMetadataProviderLicenseConnectivity(bundle, ok: true);
-
-    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
-    await tester.pumpAndSettle();
-
-    final button = find.byKey(
-      const Key(
-        'mobile-system-overview-license-center-connectivity-test-button',
-      ),
-    );
-    await tester.scrollUntilVisible(button, 120);
-    await tester.tap(button);
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(
-      bundle.adapter.hitCount(
-        'GET',
-        '/metadata-provider-license/connectivity-test',
-      ),
-      1,
-    );
-    expect(find.text('连接正常'), findsOneWidget);
-  });
-
-  testWidgets('mobile system overview shows failed license connectivity', (
-    WidgetTester tester,
-  ) async {
-    _enqueueSystemOverviewResponses(bundle);
-    _enqueueMetadataProviderLicenseConnectivity(bundle, ok: false);
-
-    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
-    await tester.pumpAndSettle();
-
-    final button = find.byKey(
-      const Key(
-        'mobile-system-overview-license-center-connectivity-test-button',
-      ),
-    );
-    await tester.scrollUntilVisible(button, 120);
-    await tester.tap(button);
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(find.text('连接异常'), findsOneWidget);
-  });
-
-  testWidgets('mobile system overview tests external data sources', (
-    WidgetTester tester,
-  ) async {
-    _enqueueSystemOverviewResponses(bundle);
-    _enqueueMetadataProviderTest(bundle, provider: 'javdb', healthy: true);
-    _enqueueMetadataProviderTest(bundle, provider: 'dmm', healthy: false);
-
-    await _pumpPage(tester, sessionStore: sessionStore, bundle: bundle);
-    await tester.pumpAndSettle();
-
-    final button = find.byKey(
-      const Key('mobile-system-overview-external-data-sources-test-button'),
-    );
-    await tester.scrollUntilVisible(button, 120);
-    await tester.tap(button);
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(
-      bundle.adapter.hitCount('GET', '/status/metadata-providers/javdb/test'),
-      1,
-    );
-    expect(
-      bundle.adapter.hitCount('GET', '/status/metadata-providers/dmm/test'),
-      1,
-    );
-    expect(find.text('✅ JavDB ❌ DMM'), findsOneWidget);
-  });
-
   testWidgets(
     'mobile system overview pull refresh reloads all status sources',
     (WidgetTester tester) async {
@@ -184,10 +99,6 @@ void main() {
 
       expect(bundle.adapter.hitCount('GET', '/status'), 2);
       expect(bundle.adapter.hitCount('GET', '/status/image-search'), 2);
-      expect(
-        bundle.adapter.hitCount('GET', '/metadata-provider-license/status'),
-        2,
-      );
     },
   );
 }
@@ -207,9 +118,6 @@ Future<void> _pumpPage(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
         Provider<StatusApi>.value(value: bundle.statusApi),
-        Provider<MetadataProviderLicenseApi>.value(
-          value: bundle.metadataProviderLicenseApi,
-        ),
       ],
       child: OKToast(
         child: MaterialApp(
@@ -229,25 +137,6 @@ void _enqueueSystemOverviewResponses(TestApiBundle bundle) {
     body: _statusJson(),
   );
   _enqueueImageSearchStatus(bundle);
-  _enqueueMetadataProviderLicenseStatus(bundle);
-}
-
-void _enqueueMetadataProviderLicenseStatus(TestApiBundle bundle) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/metadata-provider-license/status',
-    statusCode: 200,
-    body: <String, dynamic>{
-      'configured': true,
-      'active': true,
-      'instance_id': 'inst_test',
-      'expires_at': 1777181126,
-      'license_valid_until': 4102444800,
-      'renew_after_seconds': 21600,
-      'error_code': null,
-      'message': null,
-    },
-  );
 }
 
 void _enqueueImageSearchStatus(TestApiBundle bundle) {
@@ -262,45 +151,6 @@ void _enqueueImageSearchStatus(TestApiBundle bundle) {
         'pending_thumbnails': 23,
         'failed_thumbnails': 2,
       },
-    },
-  );
-}
-
-void _enqueueMetadataProviderLicenseConnectivity(
-  TestApiBundle bundle, {
-  required bool ok,
-}) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/metadata-provider-license/connectivity-test',
-    statusCode: 200,
-    body: <String, dynamic>{
-      'ok': ok,
-      'url': 'https://license.example.com/',
-      'proxy_enabled': false,
-      'elapsed_ms': 128,
-      'status_code': ok ? 200 : null,
-      'error': ok ? null : 'timeout',
-    },
-  );
-}
-
-void _enqueueMetadataProviderTest(
-  TestApiBundle bundle, {
-  required String provider,
-  required bool healthy,
-}) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/status/metadata-providers/$provider/test',
-    statusCode: 200,
-    body: <String, dynamic>{
-      'healthy': healthy,
-      'provider': provider,
-      'error':
-          healthy
-              ? null
-              : <String, dynamic>{'message': 'metadata request failed'},
     },
   );
 }

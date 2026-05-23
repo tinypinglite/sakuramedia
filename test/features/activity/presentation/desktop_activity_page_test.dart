@@ -436,11 +436,6 @@ void main() {
             state: 'completed',
           ),
         ),
-        _jobJson(
-          taskKey: 'metadata_provider_license_renew',
-          cliHelp: '执行一次元数据授权续租',
-          manualTriggerAllowed: false,
-        ),
       ],
     );
 
@@ -449,7 +444,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('可执行任务'), findsOneWidget);
-    expect(find.text('2 个任务'), findsOneWidget);
+    expect(find.text('1 个任务'), findsOneWidget);
     expect(find.text('执行一次排行榜同步'), findsNothing);
     expect(
       find.byKey(const Key('activity-job-trigger-ranking_sync')),

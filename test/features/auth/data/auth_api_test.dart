@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 
@@ -10,15 +11,21 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late SessionStore sessionStore;
+  late CredentialStore credentialStore;
   late ApiClient apiClient;
   late AuthApi authApi;
   late FakeHttpClientAdapter adapter;
 
   setUp(() async {
     sessionStore = SessionStore.inMemory();
+    credentialStore = CredentialStore();
     await sessionStore.saveBaseUrl('https://api.example.com');
     apiClient = ApiClient(sessionStore: sessionStore);
-    authApi = AuthApi(apiClient: apiClient, sessionStore: sessionStore);
+    authApi = AuthApi(
+      apiClient: apiClient,
+      sessionStore: sessionStore,
+      credentialStore: credentialStore,
+    );
     adapter = FakeHttpClientAdapter();
     apiClient.rawDio.httpClientAdapter = adapter;
     apiClient.rawRefreshDio.httpClientAdapter = adapter;

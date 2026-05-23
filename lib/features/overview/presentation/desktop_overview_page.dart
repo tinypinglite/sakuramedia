@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_controller.dart';
@@ -31,7 +30,6 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
     super.initState();
     _systemInfoController = OverviewSystemInfoController(
       statusApi: context.read<StatusApi>(),
-      metadataProviderLicenseApi: context.read<MetadataProviderLicenseApi>(),
     )..addListener(_onSystemInfoChanged);
     _subscriptionChangeNotifier =
         context.read<MovieSubscriptionChangeNotifier>();
@@ -162,20 +160,6 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
                 isLoading: systemInfo.isLoadingImageSearchStatus,
               ),
               OverviewStatItem(
-                id: 'metadata-provider-license',
-                label: '数据源授权',
-                value: systemInfo.buildLicenseStatusValue(),
-                isLoading: systemInfo.isLoadingLicenseStatus,
-                valueTextSize: AppTextSize.s12,
-              ),
-              OverviewStatItem(
-                id: 'license-center-connectivity',
-                label: '授权中心',
-                value: systemInfo.buildLicenseConnectivityValue(),
-                valueTextSize: AppTextSize.s12,
-                action: _buildLicenseConnectivityAction(context),
-              ),
-              OverviewStatItem(
                 id: 'external-data-sources',
                 label: '外部数据源',
                 value: systemInfo.buildExternalDataSourcesValue(),
@@ -272,29 +256,6 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
     );
   }
 
-  Widget _buildLicenseConnectivityAction(BuildContext context) {
-    return AppIconButton(
-      key: const Key('overview-license-center-test-button'),
-      tooltip: '测试授权中心连接',
-      semanticLabel: '测试授权中心连接',
-      size: AppIconButtonSize.mini,
-      onPressed:
-          _systemInfoController.isTestingLicenseConnectivity
-              ? null
-              : _systemInfoController.testLicenseConnectivity,
-      icon:
-          _systemInfoController.isTestingLicenseConnectivity
-              ? SizedBox(
-                width: context.appComponentTokens.iconSizeSm,
-                height: context.appComponentTokens.iconSizeSm,
-                child: CircularProgressIndicator.adaptive(
-                  strokeWidth:
-                      context.appComponentTokens.movieCardLoaderStrokeWidth,
-                ),
-              )
-              : const Icon(Icons.cloud_sync_outlined),
-    );
-  }
 
   Widget? _buildMovieLoadMoreFooter(BuildContext context) {
     if (_moviesController.items.isEmpty) {

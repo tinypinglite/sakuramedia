@@ -1,4 +1,5 @@
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/auth/data/auth_tokens_dto.dart';
 
@@ -6,11 +7,14 @@ class AuthApi {
   const AuthApi({
     required ApiClient apiClient,
     required SessionStore sessionStore,
+    required CredentialStore credentialStore,
   }) : _apiClient = apiClient,
-       _sessionStore = sessionStore;
+       _sessionStore = sessionStore,
+       _credentialStore = credentialStore;
 
   final ApiClient _apiClient;
   final SessionStore _sessionStore;
+  final CredentialStore _credentialStore;
 
   Future<AuthTokensDto> createToken({
     required String username,
@@ -26,6 +30,10 @@ class AuthApi {
       accessToken: dto.accessToken,
       refreshToken: dto.refreshToken,
       expiresAt: dto.expiresAt,
+    );
+    _credentialStore.saveCredentials(
+      username: username,
+      password: password,
     );
     return dto;
   }

@@ -1,4 +1,5 @@
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
@@ -9,7 +10,6 @@ import 'package:sakuramedia/features/configuration/data/collection_number_featur
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
@@ -35,7 +35,6 @@ class TestApiBundle {
     required this.downloadsApi,
     required this.indexerSettingsApi,
     required this.mediaLibrariesApi,
-    required this.metadataProviderLicenseApi,
     required this.movieDescTranslationSettingsApi,
     required this.statusApi,
     required this.moviesApi,
@@ -57,7 +56,6 @@ class TestApiBundle {
   final DownloadsApi downloadsApi;
   final IndexerSettingsApi indexerSettingsApi;
   final MediaLibrariesApi mediaLibrariesApi;
-  final MetadataProviderLicenseApi metadataProviderLicenseApi;
   final MovieDescTranslationSettingsApi movieDescTranslationSettingsApi;
   final StatusApi statusApi;
   final MoviesApi moviesApi;
@@ -91,7 +89,7 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     ),
     activityEventStreamClient: activityEventStreamClient,
     actorsApi: ActorsApi(apiClient: apiClient),
-    authApi: AuthApi(apiClient: apiClient, sessionStore: sessionStore),
+    authApi: AuthApi(apiClient: apiClient, sessionStore: sessionStore, credentialStore: CredentialStore()),
     collectionNumberFeaturesApi: CollectionNumberFeaturesApi(
       apiClient: apiClient,
     ),
@@ -100,9 +98,6 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     downloadsApi: DownloadsApi(apiClient: apiClient),
     indexerSettingsApi: IndexerSettingsApi(apiClient: apiClient),
     mediaLibrariesApi: MediaLibrariesApi(apiClient: apiClient),
-    metadataProviderLicenseApi: MetadataProviderLicenseApi(
-      apiClient: apiClient,
-    ),
     movieDescTranslationSettingsApi: MovieDescTranslationSettingsApi(
       apiClient: apiClient,
     ),

@@ -8,6 +8,7 @@ import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/app/app_version_info_controller.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
@@ -18,7 +19,6 @@ import 'package:sakuramedia/features/configuration/data/collection_number_featur
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
@@ -109,10 +109,17 @@ class _MyAppState extends State<MyApp> {
             return activeCache;
           },
         ),
+        Provider<CredentialStore>(create: (_) => CredentialStore()),
         Provider<ApiClient>(
-          create:
-              (context) =>
-                  ApiClient(sessionStore: context.read<SessionStore>()),
+          create: (context) {
+            final sessionStore = context.read<SessionStore>();
+            return ApiClient(
+              sessionStore: sessionStore,
+              onTransportFailure: () {
+                sessionStore.clearSession();
+              },
+            );
+          },
           dispose: (context, client) => client.dispose(),
         ),
         Provider<AuthApi>(
@@ -120,6 +127,7 @@ class _MyAppState extends State<MyApp> {
               (context) => AuthApi(
                 apiClient: context.read<ApiClient>(),
                 sessionStore: context.read<SessionStore>(),
+                credentialStore: context.read<CredentialStore>(),
               ),
         ),
         Provider<AccountApi>(
@@ -167,12 +175,6 @@ class _MyAppState extends State<MyApp> {
           create:
               (context) =>
                   MediaLibrariesApi(apiClient: context.read<ApiClient>()),
-        ),
-        Provider<MetadataProviderLicenseApi>(
-          create:
-              (context) => MetadataProviderLicenseApi(
-                apiClient: context.read<ApiClient>(),
-              ),
         ),
         Provider<MovieDescTranslationSettingsApi>(
           create:

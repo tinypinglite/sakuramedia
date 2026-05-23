@@ -218,27 +218,15 @@ void main() {
             'updated_at': '2026-03-26T09:20:00Z',
           },
         },
-        <String, dynamic>{
-          'task_key': 'metadata_provider_license_renew',
-          'log_name': 'metadata-provider-license-renew',
-          'cli_name': 'renew-metadata-provider-license',
-          'cli_help': '执行一次元数据授权续租',
-          'cron_setting': 'metadata_provider_license_renew_cron',
-          'cron_expr': '0 3 * * *',
-          'manual_trigger_allowed': false,
-          'last_task_run': null,
-        },
       ],
     );
 
     final jobs = await bundle.activityApi.getJobs();
 
-    expect(jobs, hasLength(2));
+    expect(jobs, hasLength(1));
     expect(jobs.first.taskKey, 'ranking_sync');
     expect(jobs.first.manualTriggerAllowed, isTrue);
     expect(jobs.first.lastTaskRun?.id, 88);
-    expect(jobs.last.manualTriggerAllowed, isFalse);
-    expect(jobs.last.lastTaskRun, isNull);
     expect(bundle.adapter.hitCount('GET', '/system/jobs'), 1);
   });
 

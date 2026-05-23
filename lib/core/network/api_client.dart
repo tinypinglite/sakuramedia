@@ -14,7 +14,11 @@ class ApiClient {
   ApiClient({
     required SessionStore sessionStore,
     void Function()? onUnauthorized,
+    void Function()? onTransportFailure,
+    int transportFailureThreshold = 3,
   }) : _sessionStore = sessionStore,
+       _onTransportFailure = onTransportFailure,
+       _transportFailureThreshold = transportFailureThreshold,
        _dio = Dio(
          BaseOptions(
            connectTimeout: const Duration(seconds: 30),
@@ -47,6 +51,10 @@ class ApiClient {
   final SessionStore _sessionStore;
   final Dio _dio;
   final Dio _refreshDio;
+  final void Function()? _onTransportFailure;
+  final int _transportFailureThreshold;
+
+  int _consecutiveTransportFailures = 0;
 
   Dio get rawDio => _dio;
   Dio get rawRefreshDio => _refreshDio;
@@ -255,7 +263,7 @@ class ApiClient {
     bool Function(int?)? validateStatus,
   }) async {
     try {
-      return await _dio.request<T>(
+      final response = await _dio.request<T>(
         path,
         data: data,
         queryParameters: queryParameters,
@@ -268,8 +276,17 @@ class ApiClient {
           extra: <String, dynamic>{'requiresAuth': requiresAuth},
         ),
       );
+      _consecutiveTransportFailures = 0;
+      return response;
     } on DioException catch (error) {
-      throw _mapDioException(error);
+      final apiException = _mapDioException(error);
+      if (apiException.isTransportFailure) {
+        _consecutiveTransportFailures++;
+        if (_consecutiveTransportFailures >= _transportFailureThreshold) {
+          _onTransportFailure?.call();
+        }
+      }
+      throw apiException;
     }
   }
 
@@ -490,6 +507,35 @@ class ApiClient {
         (dynamic key, dynamic value) => MapEntry(key.toString(), value),
       ),
     );
+  }
+
+  Future<bool> healthCheck() async {
+    if (_sessionStore.baseUrl.isEmpty) {
+      return false;
+    }
+
+    final healthDio = Dio(BaseOptions(
+      baseUrl: _sessionStore.baseUrl,
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
+      sendTimeout: const Duration(seconds: 5),
+    ));
+
+    try {
+      await healthDio.get(
+        '/status',
+        options: Options(
+          headers: <String, dynamic>{
+            if (_sessionStore.accessToken.isNotEmpty)
+              'Authorization': 'Bearer ${_sessionStore.accessToken}',
+          },
+          validateStatus: (_) => true,
+        ),
+      );
+      return true;
+    } on DioException {
+      return false;
+    }
   }
 
   void dispose() {

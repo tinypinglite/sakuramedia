@@ -8,7 +8,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/configuration/data/metadata_provider_license_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/overview/presentation/desktop_overview_page.dart';
@@ -93,203 +92,7 @@ void main() {
     expect(find.text('正常'), findsOneWidget);
     expect(find.text('GPU'), findsOneWidget);
     expect(find.text('23'), findsOneWidget);
-    expect(
-      find.byKey(const Key('overview-stat-metadata-provider-license')),
-      findsOneWidget,
-    );
-    expect(find.text('数据源授权'), findsOneWidget);
-    expect(find.text('已激活'), findsOneWidget);
-    expect(
-      find.byKey(const Key('overview-stat-license-center-connectivity')),
-      findsOneWidget,
-    );
-    expect(find.text('授权中心'), findsOneWidget);
-    expect(find.text('未检测'), findsOneWidget);
-    expect(
-      find.byKey(const Key('overview-stat-external-data-sources')),
-      findsOneWidget,
-    );
-    expect(find.text('外部数据源'), findsOneWidget);
-    expect(find.text('未检测 JavDB / DMM'), findsOneWidget);
-    expect(
-      find.byKey(const Key('overview-external-data-sources')),
-      findsNothing,
-    );
-    expect(
-      bundle.adapter.hitCount('GET', '/status/metadata-providers/javdb/test'),
-      0,
-    );
-    expect(
-      bundle.adapter.hitCount('GET', '/status/metadata-providers/dmm/test'),
-      0,
-    );
   });
-
-  testWidgets('desktop overview shows inactive license status', (
-    WidgetTester tester,
-  ) async {
-    _enqueueStatusSuccess(bundle, enqueueLicenseStatus: false);
-    _enqueueMetadataProviderLicenseStatus(
-      bundle,
-      active: false,
-      errorCode: 'license_required',
-      message: 'License activation is required',
-    );
-    _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
-
-    await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
-    await tester.pumpAndSettle();
-
-    final licenseTile = find.byKey(
-      const Key('overview-stat-metadata-provider-license'),
-    );
-    expect(licenseTile, findsOneWidget);
-    expect(
-      find.descendant(of: licenseTile, matching: find.text('未激活')),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('desktop overview shows unavailable license status on failure', (
-    WidgetTester tester,
-  ) async {
-    _enqueueStatusSuccess(bundle, enqueueLicenseStatus: false);
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/metadata-provider-license/status',
-      statusCode: 500,
-      body: <String, dynamic>{
-        'error': <String, dynamic>{
-          'code': 'license_unavailable',
-          'message': 'License service is unavailable',
-        },
-      },
-    );
-    _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
-
-    await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
-    await tester.pumpAndSettle();
-
-    final licenseTile = find.byKey(
-      const Key('overview-stat-metadata-provider-license'),
-    );
-    expect(licenseTile, findsOneWidget);
-    expect(
-      find.descendant(of: licenseTile, matching: find.text('不可用')),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('desktop overview tests license center connectivity on demand', (
-    WidgetTester tester,
-  ) async {
-    _enqueueStatusSuccess(bundle);
-    _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
-    _enqueueMetadataProviderLicenseConnectivity(bundle, ok: true);
-
-    await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
-    await tester.pumpAndSettle();
-
-    await tester.tap(
-      find.byKey(const Key('overview-license-center-test-button')),
-    );
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(
-      bundle.adapter.hitCount(
-        'GET',
-        '/metadata-provider-license/connectivity-test',
-      ),
-      1,
-    );
-    expect(find.text('连接正常'), findsOneWidget);
-    expect(find.text('未检测'), findsNothing);
-  });
-
-  testWidgets('desktop overview shows failed license center connectivity', (
-    WidgetTester tester,
-  ) async {
-    _enqueueStatusSuccess(bundle);
-    _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
-    _enqueueMetadataProviderLicenseConnectivity(bundle, ok: false);
-
-    await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
-    await tester.pumpAndSettle();
-
-    await tester.tap(
-      find.byKey(const Key('overview-license-center-test-button')),
-    );
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(find.text('连接异常'), findsOneWidget);
-    expect(find.text('最近添加'), findsOneWidget);
-  });
-
-  testWidgets('desktop overview tests external data sources on demand', (
-    WidgetTester tester,
-  ) async {
-    _enqueueStatusSuccess(bundle);
-    _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
-    _enqueueMetadataProviderTest(bundle, provider: 'javdb', healthy: true);
-    _enqueueMetadataProviderTest(bundle, provider: 'dmm', healthy: false);
-
-    await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
-    await tester.pumpAndSettle();
-
-    await tester.tap(
-      find.byKey(const Key('overview-external-data-sources-test-button')),
-    );
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(
-      bundle.adapter.hitCount('GET', '/status/metadata-providers/javdb/test'),
-      1,
-    );
-    expect(
-      bundle.adapter.hitCount('GET', '/status/metadata-providers/dmm/test'),
-      1,
-    );
-    expect(find.text('✅ JavDB ❌ DMM'), findsOneWidget);
-    expect(find.text('未检测 JavDB / DMM'), findsNothing);
-  });
-
-  testWidgets(
-    'desktop overview treats external data source request errors as failed',
-    (WidgetTester tester) async {
-      _enqueueStatusSuccess(bundle);
-      _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
-      _enqueueMetadataProviderTest(bundle, provider: 'javdb', healthy: true);
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/status/metadata-providers/dmm/test',
-        statusCode: 500,
-        body: <String, dynamic>{
-          'error': <String, dynamic>{
-            'code': 'server_error',
-            'message': 'server error',
-          },
-        },
-      );
-
-      await _pumpOverviewPage(
-        tester,
-        sessionStore: sessionStore,
-        bundle: bundle,
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(
-        find.byKey(const Key('overview-external-data-sources-test-button')),
-      );
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(find.text('✅ JavDB ❌ DMM'), findsOneWidget);
-    },
-  );
 
   testWidgets('desktop overview uses a denser poster grid on wide screens', (
     WidgetTester tester,
@@ -317,13 +120,10 @@ void main() {
     WidgetTester tester,
   ) async {
     bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/status',
-      statusCode: 200,
+      method: 'GET', path: '/status', statusCode: 200,
       body: _statusJson(totalSizeBytes: 0),
     );
     _enqueueImageSearchStatusSuccess(bundle);
-    _enqueueMetadataProviderLicenseStatus(bundle);
     _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
 
     await _pumpOverviewPage(tester, sessionStore: sessionStore, bundle: bundle);
@@ -337,14 +137,10 @@ void main() {
     (WidgetTester tester) async {
       final imageSearchStatusCompleter = Completer<void>();
       bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/status',
-        statusCode: 200,
-        body: _statusJson(),
+        method: 'GET', path: '/status', statusCode: 200, body: _statusJson(),
       );
       bundle.adapter.enqueueResponder(
-        method: 'GET',
-        path: '/status/image-search',
+        method: 'GET', path: '/status/image-search',
         responder: (options, body) async {
           await imageSearchStatusCompleter.future;
           return ResponseBody.fromString(
@@ -356,13 +152,11 @@ void main() {
           );
         },
       );
-      _enqueueMetadataProviderLicenseStatus(bundle);
       _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
 
       await _pumpOverviewPage(
         tester,
-        sessionStore: sessionStore,
-        bundle: bundle,
+        sessionStore: sessionStore, bundle: bundle,
       );
 
       final joyTagHealthTile = find.byKey(
@@ -432,15 +226,10 @@ void main() {
     'desktop overview shows fallback joytag values when image search status fails',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/status',
-        statusCode: 200,
-        body: _statusJson(),
+        method: 'GET', path: '/status', statusCode: 200, body: _statusJson(),
       );
       bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/status/image-search',
-        statusCode: 500,
+        method: 'GET', path: '/status/image-search', statusCode: 500,
         body: <String, dynamic>{
           'error': <String, dynamic>{
             'code': 'server_error',
@@ -448,7 +237,6 @@ void main() {
           },
         },
       );
-      _enqueueMetadataProviderLicenseStatus(bundle);
       _enqueueLatestMoviesSuccess(bundle, count: 24, total: 24);
 
       await _pumpOverviewPage(
@@ -504,11 +292,9 @@ void main() {
       final statusCompleter = Completer<void>();
       final moviesCompleter = Completer<void>();
       _enqueueImageSearchStatusSuccess(bundle);
-      _enqueueMetadataProviderLicenseStatus(bundle);
 
       bundle.adapter.enqueueResponder(
-        method: 'GET',
-        path: '/status',
+        method: 'GET', path: '/status',
         responder: (options, body) async {
           await statusCompleter.future;
           return ResponseBody.fromString(
@@ -521,8 +307,7 @@ void main() {
         },
       );
       bundle.adapter.enqueueResponder(
-        method: 'GET',
-        path: '/movies/latest',
+        method: 'GET', path: '/movies/latest',
         responder: (options, body) async {
           await moviesCompleter.future;
           return ResponseBody.fromString(
@@ -563,9 +348,7 @@ void main() {
   ) async {
     _enqueueStatusSuccess(bundle);
     bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/movies/latest',
-      statusCode: 200,
+      method: 'GET', path: '/movies/latest', statusCode: 200,
       body: _latestMoviesJson(count: 0, total: 0),
     );
 
@@ -580,9 +363,7 @@ void main() {
   ) async {
     _enqueueStatusSuccess(bundle);
     bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/movies/latest',
-      statusCode: 500,
+      method: 'GET', path: '/movies/latest', statusCode: 500,
       body: <String, dynamic>{
         'error': <String, dynamic>{
           'code': 'server_error',
@@ -617,11 +398,7 @@ void main() {
       _enqueueStatusSuccess(bundle);
       _enqueueLatestMoviesSuccess(bundle, count: 24, total: 30);
       _enqueueLatestMoviesSuccess(
-        bundle,
-        count: 6,
-        page: 2,
-        total: 30,
-        startIndex: 25,
+        bundle, count: 6, page: 2, total: 30, startIndex: 25,
       );
 
       await _pumpOverviewPage(
@@ -636,8 +413,7 @@ void main() {
       expect(find.byKey(const Key('movie-summary-card-ABC-025')), findsNothing);
 
       await tester.drag(
-        find.byType(SingleChildScrollView),
-        const Offset(0, -2800),
+        find.byType(SingleChildScrollView), const Offset(0, -2800),
       );
       await tester.pump();
       await tester.pumpAndSettle();
@@ -650,8 +426,7 @@ void main() {
       );
 
       await tester.drag(
-        find.byType(SingleChildScrollView),
-        const Offset(0, -600),
+        find.byType(SingleChildScrollView), const Offset(0, -600),
       );
       await tester.pumpAndSettle();
 
@@ -665,9 +440,7 @@ void main() {
       _enqueueStatusSuccess(bundle);
       _enqueueLatestMoviesSuccess(bundle, count: 24, total: 30);
       bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/movies/latest',
-        statusCode: 500,
+        method: 'GET', path: '/movies/latest', statusCode: 500,
         body: <String, dynamic>{
           'error': <String, dynamic>{
             'code': 'server_error',
@@ -684,8 +457,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.drag(
-        find.byType(SingleChildScrollView),
-        const Offset(0, -2800),
+        find.byType(SingleChildScrollView), const Offset(0, -2800),
       );
       await tester.pump();
       await tester.pumpAndSettle();
@@ -695,11 +467,7 @@ void main() {
       expect(find.widgetWithText(TextButton, '重试'), findsOneWidget);
 
       _enqueueLatestMoviesSuccess(
-        bundle,
-        count: 6,
-        page: 2,
-        total: 30,
-        startIndex: 25,
+        bundle, count: 6, page: 2, total: 30, startIndex: 25,
       );
 
       await tester.ensureVisible(find.widgetWithText(TextButton, '重试'));
@@ -722,9 +490,7 @@ void main() {
   ) async {
     _enqueueStatusSuccess(bundle);
     bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/movies/latest',
-      statusCode: 200,
+      method: 'GET', path: '/movies/latest', statusCode: 200,
       body: _latestMoviesJson(count: 1, total: 1),
     );
     bundle.adapter.enqueueJson(
@@ -760,9 +526,6 @@ Future<void> _pumpOverviewPage(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
-        Provider<MetadataProviderLicenseApi>.value(
-          value: bundle.metadataProviderLicenseApi,
-        ),
         Provider<StatusApi>.value(value: bundle.statusApi),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
         ChangeNotifierProvider(
@@ -777,111 +540,28 @@ Future<void> _pumpOverviewPage(
   );
 }
 
-void _enqueueStatusSuccess(
-  TestApiBundle bundle, {
-  bool enqueueLicenseStatus = true,
-}) {
+void _enqueueStatusSuccess(TestApiBundle bundle) {
   bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/status',
-    statusCode: 200,
-    body: _statusJson(),
+    method: 'GET', path: '/status', statusCode: 200, body: _statusJson(),
   );
   _enqueueImageSearchStatusSuccess(bundle);
-  if (enqueueLicenseStatus) {
-    _enqueueMetadataProviderLicenseStatus(bundle);
-  }
-}
-
-void _enqueueMetadataProviderLicenseStatus(
-  TestApiBundle bundle, {
-  bool active = true,
-  String? errorCode,
-  String? message,
-}) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/metadata-provider-license/status',
-    statusCode: 200,
-    body: <String, dynamic>{
-      'configured': true,
-      'active': active,
-      'instance_id': 'inst_test',
-      'expires_at': active ? 1777181126 : null,
-      'license_valid_until': active ? 4102444800 : null,
-      'renew_after_seconds': active ? 21600 : null,
-      'error_code': errorCode,
-      'message': message,
-    },
-  );
-}
-
-void _enqueueMetadataProviderLicenseConnectivity(
-  TestApiBundle bundle, {
-  required bool ok,
-}) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/metadata-provider-license/connectivity-test',
-    statusCode: 200,
-    body: <String, dynamic>{
-      'ok': ok,
-      'url': 'https://license.example.com/',
-      'proxy_enabled': false,
-      'elapsed_ms': 128,
-      'status_code': ok ? 200 : null,
-      'error': ok ? null : 'timeout',
-    },
-  );
 }
 
 void _enqueueImageSearchStatusSuccess(TestApiBundle bundle) {
   bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/status/image-search',
-    statusCode: 200,
+    method: 'GET', path: '/status/image-search', statusCode: 200,
     body: _imageSearchStatusJson(),
-  );
-}
-
-void _enqueueMetadataProviderTest(
-  TestApiBundle bundle, {
-  required String provider,
-  required bool healthy,
-}) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/status/metadata-providers/$provider/test',
-    statusCode: 200,
-    body: <String, dynamic>{
-      'healthy': healthy,
-      'provider': provider,
-      'error':
-          healthy
-              ? null
-              : <String, dynamic>{'message': 'metadata request failed'},
-    },
   );
 }
 
 void _enqueueLatestMoviesSuccess(
   TestApiBundle bundle, {
-  required int count,
-  required int total,
-  int page = 1,
-  int pageSize = 24,
-  int startIndex = 1,
+  required int count, required int total, int page = 1, int pageSize = 24, int startIndex = 1,
 }) {
   bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/movies/latest',
-    statusCode: 200,
+    method: 'GET', path: '/movies/latest', statusCode: 200,
     body: _latestMoviesJson(
-      count: count,
-      total: total,
-      page: page,
-      pageSize: pageSize,
-      startIndex: startIndex,
+      count: count, total: total, page: page, pageSize: pageSize, startIndex: startIndex,
     ),
   );
 }
@@ -891,26 +571,20 @@ Map<String, dynamic> _statusJson({int totalSizeBytes = 987654321}) {
     'actors': <String, dynamic>{'female_total': 12, 'female_subscribed': 8},
     'movies': <String, dynamic>{'total': 120, 'subscribed': 35, 'playable': 88},
     'media_files': <String, dynamic>{
-      'total': 156,
-      'total_size_bytes': totalSizeBytes,
+      'total': 156, 'total_size_bytes': totalSizeBytes,
     },
     'media_libraries': <String, dynamic>{'total': 3},
   };
 }
 
 Map<String, dynamic> _imageSearchStatusJson({
-  bool healthy = true,
-  bool joyTagHealthy = true,
-  String? usedDevice = 'GPU',
-  int pendingThumbnails = 23,
-  int failedThumbnails = 2,
+  bool healthy = true, bool joyTagHealthy = true, String? usedDevice = 'GPU',
+  int pendingThumbnails = 23, int failedThumbnails = 2,
 }) {
   return <String, dynamic>{
-    'healthy': healthy,
-    'checked_at': '2026-03-16T07:30:00Z',
+    'healthy': healthy, 'checked_at': '2026-03-16T07:30:00Z',
     'joytag': <String, dynamic>{
-      'healthy': joyTagHealthy,
-      'used_device': usedDevice,
+      'healthy': joyTagHealthy, 'used_device': usedDevice,
     },
     'indexing': <String, dynamic>{
       'pending_thumbnails': pendingThumbnails,
@@ -921,11 +595,7 @@ Map<String, dynamic> _imageSearchStatusJson({
 }
 
 Map<String, dynamic> _latestMoviesJson({
-  required int count,
-  required int total,
-  int page = 1,
-  int pageSize = 24,
-  int startIndex = 1,
+  required int count, required int total, int page = 1, int pageSize = 24, int startIndex = 1,
 }) {
   return <String, dynamic>{
     'items': List<Map<String, dynamic>>.generate(
