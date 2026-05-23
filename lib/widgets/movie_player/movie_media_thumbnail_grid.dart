@@ -54,6 +54,8 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   Timer? _autoScrollThrottleTimer;
   bool _isUserScrollInProgress = false;
   bool _hasPendingAutoScroll = false;
+  bool _hasPendingVisibleRangeRefresh = false;
+  Size? _lastGridLayoutSize;
   int? _visibleStartIndex;
   int? _visibleEndIndex;
   final Set<int> _renderedImageIndices = <int>{};
@@ -87,15 +89,9 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     _syncRenderedImageCache(oldWidget);
     final shouldAutoScroll =
         widget.isScrollLocked && _shouldAutoScroll(oldWidget);
-    if ((oldWidget.thumbnails.length != widget.thumbnails.length ||
-            oldWidget.columns != widget.columns) &&
-        !widget.isScrollLocked) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-        _markScrollSettled();
-      });
+    if (oldWidget.thumbnails.length != widget.thumbnails.length ||
+        oldWidget.columns != widget.columns) {
+      _scheduleVisibleRangeRefreshAfterLayout();
     }
     if (oldWidget.isScrollLocked && !widget.isScrollLocked) {
       _cancelAutoScrollThrottle();
@@ -318,6 +314,38 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     _scrollIdleTimer = Timer(_scrollIdleDuration, _markScrollSettled);
   }
 
+  void _scheduleVisibleRangeRefreshIfLayoutChanged(BoxConstraints constraints) {
+    if (!constraints.hasBoundedWidth ||
+        !constraints.hasBoundedHeight ||
+        !constraints.maxWidth.isFinite ||
+        !constraints.maxHeight.isFinite ||
+        constraints.maxWidth <= 0 ||
+        constraints.maxHeight <= 0) {
+      return;
+    }
+
+    final nextSize = Size(constraints.maxWidth, constraints.maxHeight);
+    if (_lastGridLayoutSize == nextSize) {
+      return;
+    }
+    _lastGridLayoutSize = nextSize;
+    _scheduleVisibleRangeRefreshAfterLayout();
+  }
+
+  void _scheduleVisibleRangeRefreshAfterLayout() {
+    if (_hasPendingVisibleRangeRefresh) {
+      return;
+    }
+    _hasPendingVisibleRangeRefresh = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _hasPendingVisibleRangeRefresh = false;
+      _markScrollSettled();
+    });
+  }
+
   void _markScrollSettled() {
     _scrollIdleTimer?.cancel();
     final rangeChanged = _updateVisibleIndexRange();
@@ -413,20 +441,16 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     }
 
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    final effectiveDevicePixelRatio =
-        dpr.clamp(1.0, _decodeDevicePixelRatioCap) as double;
-    final cacheWidth =
-        ((constraints.maxWidth * effectiveDevicePixelRatio).round()).clamp(
-              1,
-              _decodeSizeUpperBound,
-            )
-            as int;
-    final cacheHeight =
-        ((constraints.maxHeight * effectiveDevicePixelRatio).round()).clamp(
-              1,
-              _decodeSizeUpperBound,
-            )
-            as int;
+    final effectiveDevicePixelRatio = dpr.clamp(
+      1.0,
+      _decodeDevicePixelRatioCap,
+    );
+    final cacheWidth = ((constraints.maxWidth * effectiveDevicePixelRatio)
+        .round()
+        .clamp(1, _decodeSizeUpperBound));
+    final cacheHeight = ((constraints.maxHeight * effectiveDevicePixelRatio)
+        .round()
+        .clamp(1, _decodeSizeUpperBound));
     return (width: cacheWidth, height: cacheHeight);
   }
 
@@ -449,85 +473,94 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       return const Center(child: AppEmptyState(message: '还没有可用缩略图'));
     }
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: _handleScrollNotification,
-      child: GridView.builder(
-        key: Key('${widget.keyPrefix}-thumbnail-grid'),
-        controller: _scrollController,
-        cacheExtent: 240,
-        physics:
-            widget.isScrollLocked
-                ? const NeverScrollableScrollPhysics()
-                : const ClampingScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: widget.columns,
-          crossAxisSpacing: context.appSpacing.sm,
-          mainAxisSpacing: context.appSpacing.sm,
-          childAspectRatio:
-              context.appComponentTokens.moviePlayerThumbnailAspectRatio,
-        ),
-        itemCount: widget.thumbnails.length,
-        itemBuilder: (context, index) {
-          final thumbnail = widget.thumbnails[index];
-          final isActive = widget.activeIndex == index;
-
-          final child = KeyedSubtree(
-            key: Key('${widget.keyPrefix}-thumb-$index'),
-            child: DecoratedBox(
-              key: Key('${widget.keyPrefix}-thumbnail-tile-$index-decoration'),
-              decoration: BoxDecoration(
-                color:
-                    isActive
-                        ? Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.08)
-                        : context.appColors.surfaceCard,
-                borderRadius: context.appRadius.xsBorder,
-                border: Border.all(
-                  color:
-                      isActive
-                          ? Theme.of(context).colorScheme.primary
-                          : context.appColors.borderSubtle,
-                  width: isActive ? 1.5 : 1,
-                ),
-                boxShadow: isActive ? context.appShadows.panel : null,
-              ),
-              child: ClipRRect(
-                borderRadius: context.appRadius.xsBorder,
-                child:
-                    _shouldBuildImageForIndex(index)
-                        ? LayoutBuilder(
-                          builder: (context, constraints) {
-                            final decodeHint = _resolveDecodeHint(constraints);
-                            return MaskedImage(
-                              url: thumbnail.image.bestAvailableUrl,
-                              fit: BoxFit.cover,
-                              memCacheWidth: decodeHint.width,
-                              memCacheHeight: decodeHint.height,
-                            );
-                          },
-                        )
-                        : const _MovieMediaThumbnailImagePlaceholder(),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        _scheduleVisibleRangeRefreshIfLayoutChanged(constraints);
+        return NotificationListener<ScrollNotification>(
+          onNotification: _handleScrollNotification,
+          child: GridView.builder(
+            key: Key('${widget.keyPrefix}-thumbnail-grid'),
+            controller: _scrollController,
+            cacheExtent: 240,
+            physics:
+                widget.isScrollLocked
+                    ? const NeverScrollableScrollPhysics()
+                    : const ClampingScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: widget.columns,
+              crossAxisSpacing: context.appSpacing.sm,
+              mainAxisSpacing: context.appSpacing.sm,
+              childAspectRatio:
+                  context.appComponentTokens.moviePlayerThumbnailAspectRatio,
             ),
-          );
+            itemCount: widget.thumbnails.length,
+            itemBuilder: (context, index) {
+              final thumbnail = widget.thumbnails[index];
+              final isActive = widget.activeIndex == index;
 
-          final menuHandler = widget.onThumbnailMenuRequested;
-          if (menuHandler == null) {
-            return GestureDetector(
-              onTap: () => widget.onThumbnailTap(index),
-              child: child,
-            );
-          }
+              final child = KeyedSubtree(
+                key: Key('${widget.keyPrefix}-thumb-$index'),
+                child: DecoratedBox(
+                  key: Key(
+                    '${widget.keyPrefix}-thumbnail-tile-$index-decoration',
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        isActive
+                            ? Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: 0.08)
+                            : context.appColors.surfaceCard,
+                    borderRadius: context.appRadius.xsBorder,
+                    border: Border.all(
+                      color:
+                          isActive
+                              ? Theme.of(context).colorScheme.primary
+                              : context.appColors.borderSubtle,
+                      width: isActive ? 1.5 : 1,
+                    ),
+                    boxShadow: isActive ? context.appShadows.panel : null,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: context.appRadius.xsBorder,
+                    child:
+                        _shouldBuildImageForIndex(index)
+                            ? LayoutBuilder(
+                              builder: (context, constraints) {
+                                final decodeHint = _resolveDecodeHint(
+                                  constraints,
+                                );
+                                return MaskedImage(
+                                  url: thumbnail.image.bestAvailableUrl,
+                                  fit: BoxFit.cover,
+                                  memCacheWidth: decodeHint.width,
+                                  memCacheHeight: decodeHint.height,
+                                );
+                              },
+                            )
+                            : const _MovieMediaThumbnailImagePlaceholder(),
+                  ),
+                ),
+              );
 
-          return AppImageActionTrigger(
-            onTap: () => widget.onThumbnailTap(index),
-            onRequestMenu:
-                (globalPosition) => menuHandler(index, globalPosition),
-            child: child,
-          );
-        },
-      ),
+              final menuHandler = widget.onThumbnailMenuRequested;
+              if (menuHandler == null) {
+                return GestureDetector(
+                  onTap: () => widget.onThumbnailTap(index),
+                  child: child,
+                );
+              }
+
+              return AppImageActionTrigger(
+                onTap: () => widget.onThumbnailTap(index),
+                onRequestMenu:
+                    (globalPosition) => menuHandler(index, globalPosition),
+                child: child,
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

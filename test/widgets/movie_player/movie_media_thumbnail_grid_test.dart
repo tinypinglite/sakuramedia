@@ -342,6 +342,54 @@ void main() {
   );
 
   testWidgets(
+    'thumbnail grid loads newly visible images after viewport resize',
+    (WidgetTester tester) async {
+      final thumbnails = _manyThumbnails(120);
+      final resizedVisibleTile = find.byKey(const Key('movie-media-thumb-12'));
+
+      await _pumpGrid(
+        tester,
+        thumbnails: thumbnails,
+        columns: 3,
+        width: 600,
+        height: 60,
+        isScrollLocked: false,
+      );
+      await tester.pumpAndSettle();
+
+      expect(resizedVisibleTile, findsNothing);
+
+      await _pumpGrid(
+        tester,
+        thumbnails: thumbnails,
+        columns: 3,
+        width: 240,
+        height: 360,
+        isScrollLocked: false,
+      );
+
+      expect(resizedVisibleTile, findsOneWidget);
+      expect(
+        find.descendant(
+          of: resizedVisibleTile,
+          matching: find.byType(CachedNetworkImage),
+        ),
+        findsNothing,
+      );
+
+      await tester.pump();
+
+      expect(
+        find.descendant(
+          of: resizedVisibleTile,
+          matching: find.byType(CachedNetworkImage),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
     'thumbnail grid resets rendered cache when thumbnail dataset changes',
     (WidgetTester tester) async {
       await _pumpGrid(
@@ -635,5 +683,5 @@ int _expectedDecodeDimension({
   required double devicePixelRatio,
 }) {
   final effectivePixelRatio = devicePixelRatio > 2 ? 2.0 : devicePixelRatio;
-  return (extent * effectivePixelRatio).round().clamp(1, 1024) as int;
+  return (extent * effectivePixelRatio).round().clamp(1, 1024);
 }
