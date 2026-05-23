@@ -47,11 +47,7 @@ void main() {
     ) async {
       _enqueueMediaLibraries(bundle);
 
-      await _pumpPage(
-        tester,
-        bundle,
-        sessionStore: sessionStore,
-      );
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
 
       final tabs = tester.widgetList<Tab>(find.byType(Tab)).toList();
       expect(tabs.map((tab) => tab.text).toList(), [
@@ -65,7 +61,6 @@ void main() {
       ]);
     });
 
-
     testWidgets('loads download clients lazily when switching tabs', (
       WidgetTester tester,
     ) async {
@@ -76,7 +71,7 @@ void main() {
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
 
       expect(bundle.adapter.hitCount('GET', '/download-clients'), 0);
-      expect(bundle.adapter.hitCount('GET', '/media-libraries'), 0);
+      expect(bundle.adapter.hitCount('GET', '/media-libraries'), 1);
       expect(bundle.adapter.hitCount('GET', '/collection-number-features'), 0);
       expect(
         bundle.adapter.hitCount('GET', '/movie-desc-translation-settings'),
@@ -84,13 +79,13 @@ void main() {
       );
       expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 0);
       expect(bundle.adapter.hitCount('GET', '/playlists'), 0);
-      expect(find.text('还没有媒体库'), findsNothing);
+      expect(find.text('还没有媒体库'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
       await tester.pumpAndSettle();
 
       expect(bundle.adapter.hitCount('GET', '/download-clients'), 1);
-      expect(bundle.adapter.hitCount('GET', '/media-libraries'), 1);
+      expect(bundle.adapter.hitCount('GET', '/media-libraries'), 2);
       expect(find.text('还没有下载器配置'), findsOneWidget);
     });
 

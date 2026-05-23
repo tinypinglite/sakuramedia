@@ -184,9 +184,6 @@ void main() {
       final mediaLibrariesItem = find.byKey(
         const Key('mobile-overview-drawer-media-libraries'),
       );
-      final dataSourcesItem = find.byKey(
-        const Key('mobile-overview-drawer-data-sources'),
-      );
       final downloadersItem = find.byKey(
         const Key('mobile-overview-drawer-downloaders'),
       );
@@ -244,7 +241,6 @@ void main() {
       expect(librarySection, findsOneWidget);
       expect(playlistsSection, findsOneWidget);
       expect(overviewItem, findsOneWidget);
-      expect(dataSourcesItem, findsOneWidget);
       expect(mediaLibrariesItem, findsOneWidget);
       expect(downloadersItem, findsOneWidget);
       expect(indexersItem, findsOneWidget);
@@ -282,11 +278,7 @@ void main() {
                     ),
           ),
         ),
-        findsNWidgets(4),
-      );
-      expect(
-        find.descendant(of: librarySection, matching: dataSourcesItem),
-        findsOneWidget,
+        findsNWidgets(3),
       );
       expect(
         find.descendant(of: librarySection, matching: mediaLibrariesItem),
@@ -325,8 +317,8 @@ void main() {
         ),
       );
       expect(
-        tester.getTopLeft(dataSourcesItem).dy,
-        lessThan(tester.getTopLeft(mediaLibrariesItem).dy),
+        tester.getTopLeft(mediaLibrariesItem).dy,
+        lessThan(tester.getTopLeft(downloadersItem).dy),
       );
       expect(
         tester.getTopLeft(playlistsSection).dy,
@@ -364,7 +356,6 @@ void main() {
     );
     expect(find.text('--'), findsOneWidget);
   });
-
 
   testWidgets('mobile overview drawer media libraries opens subpage shell', (
     WidgetTester tester,
@@ -1985,7 +1976,6 @@ Map<String, dynamic> _imageSearchStatusJson() {
     },
   };
 }
-
 
 void _enqueueLlmSettings(TestApiBundle bundle) {
   bundle.adapter.enqueueJson(

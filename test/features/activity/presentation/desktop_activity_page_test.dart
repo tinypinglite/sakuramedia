@@ -429,6 +429,7 @@ void main() {
         _jobJson(
           taskKey: 'ranking_sync',
           cliHelp: '执行一次排行榜同步',
+          manualTriggerAllowed: false,
           lastTaskRun: _taskJson(
             id: 88,
             taskKey: 'ranking_sync',

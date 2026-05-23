@@ -11,6 +11,7 @@ import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
@@ -1234,7 +1235,8 @@ void main() {
         sessionStore: sessionStore,
         bundle: bundle,
       );
-      await tester.pumpAndSettle(); if (routeCase.path == mobileSettingsMediaLibrariesPath) {
+      await tester.pumpAndSettle();
+      if (routeCase.path == mobileSettingsMediaLibrariesPath) {
         bundle.adapter.enqueueJson(
           method: 'GET',
           path: '/media-libraries',
@@ -1933,7 +1935,8 @@ void main() {
         sessionStore: sessionStore,
         bundle: bundle,
       );
-      await tester.pumpAndSettle(); if (routeCase.path == mobileSettingsMediaLibrariesPath) {
+      await tester.pumpAndSettle();
+      if (routeCase.path == mobileSettingsMediaLibrariesPath) {
         bundle.adapter.enqueueJson(
           method: 'GET',
           path: '/media-libraries',
@@ -2036,8 +2039,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
+          Provider<CredentialStore>(create: (_) => CredentialStore()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2070,8 +2075,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
+          Provider<CredentialStore>(create: (_) => CredentialStore()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2102,8 +2109,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
+          Provider<CredentialStore>(create: (_) => CredentialStore()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2136,8 +2145,10 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
+          Provider<CredentialStore>(create: (_) => CredentialStore()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2447,8 +2458,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
+          Provider<CredentialStore>(create: (_) => CredentialStore()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2495,8 +2508,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
+          Provider<CredentialStore>(create: (_) => CredentialStore()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2566,8 +2581,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
+          Provider<CredentialStore>(create: (_) => CredentialStore()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2717,8 +2734,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
+          Provider<CredentialStore>(create: (_) => CredentialStore()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2761,8 +2780,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
+          Provider<CredentialStore>(create: (_) => CredentialStore()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2847,8 +2868,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
+          Provider<CredentialStore>(create: (_) => CredentialStore()),
           Provider<ActorsApi>.value(value: bundle.actorsApi),
-          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -3421,7 +3444,9 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           ChangeNotifierProvider(create: (_) => AppShellController()),
-          Provider<StatusApi>.value(value: bundle.statusApi),          Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<CredentialStore>(create: (_) => CredentialStore()),
+          Provider<StatusApi>.value(value: bundle.statusApi),
+          Provider<MoviesApi>.value(value: bundle.moviesApi),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -3457,6 +3482,7 @@ Future<void> _pumpRouterApp(
     // 路由现在只传 draftId，测试环境也要注入临时草稿仓库。
     Provider<ImageSearchDraftStore>.value(value: draftStore),
     Provider<ApiClient>.value(value: bundle.apiClient),
+    Provider<CredentialStore>(create: (_) => CredentialStore()),
     Provider<AccountApi>.value(value: bundle.accountApi),
     Provider<ActivityEventStreamClient>.value(
       value: bundle.activityEventStreamClient,
@@ -3468,7 +3494,8 @@ Future<void> _pumpRouterApp(
     Provider<ImageSearchApi>(
       create: (_) => ImageSearchApi(apiClient: bundle.apiClient),
     ),
-    Provider<StatusApi>.value(value: bundle.statusApi),    Provider<MoviesApi>.value(value: bundle.moviesApi),
+    Provider<StatusApi>.value(value: bundle.statusApi),
+    Provider<MoviesApi>.value(value: bundle.moviesApi),
     ChangeNotifierProvider(create: (_) => MovieCollectionTypeChangeNotifier()),
     ChangeNotifierProvider(create: (_) => MovieSubscriptionChangeNotifier()),
     Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
