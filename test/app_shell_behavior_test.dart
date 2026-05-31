@@ -22,6 +22,7 @@ import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
 
+import 'support/in_memory_credential_store.dart';
 import 'support/test_api_bundle.dart';
 
 void main() {
@@ -544,7 +545,7 @@ Future<void> _pumpDesktopApp(
         ChangeNotifierProvider(
           create: (_) => MovieSubscriptionChangeNotifier(),
         ),
-        Provider<CredentialStore>.value(value: CredentialStore()),
+        Provider<CredentialStore>.value(value: InMemoryCredentialStore()),
         Provider<AuthApi>.value(value: bundle.authApi),
         Provider<StatusApi>.value(value: statusApi),
         ChangeNotifierProvider<AppVersionInfoController>(
@@ -580,7 +581,7 @@ Future<GoRouter> _pumpDesktopAppWithRouter(
         ChangeNotifierProvider(
           create: (_) => MovieSubscriptionChangeNotifier(),
         ),
-        Provider<CredentialStore>.value(value: CredentialStore()),
+        Provider<CredentialStore>.value(value: InMemoryCredentialStore()),
         Provider<AuthApi>.value(value: bundle.authApi),
         Provider<StatusApi>.value(value: statusApi),
         ChangeNotifierProvider<AppVersionInfoController>(

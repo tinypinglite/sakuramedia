@@ -34,6 +34,9 @@ class AppBackDestination {
     if (path.startsWith('/desktop/library/actors/')) {
       return desktopActorsPath;
     }
+    if (path.startsWith('$desktopTagsPath/')) {
+      return desktopTagsPath;
+    }
     if (path.startsWith('/desktop/library/playlists/')) {
       return desktopPlaylistsPath;
     }

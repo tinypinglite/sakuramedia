@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class CredentialStore {
@@ -18,8 +19,10 @@ class CredentialStore {
         _storage.write(key: _usernameKey, value: username),
         _storage.write(key: _passwordKey, value: password),
       ]);
-    } catch (_) {
-      // Silently fail when storage is unavailable (e.g., tests, web).
+    } catch (error, stackTrace) {
+      // 存储不可用（如测试、Web）时不阻断登录，但记录下来便于排查，
+      // 而不是完全静默。
+      debugPrint('CredentialStore.saveCredentials failed: $error\n$stackTrace');
     }
   }
 
@@ -32,10 +35,17 @@ class CredentialStore {
   }
 
   Future<void> clearCredentials() async {
-    await Future.wait([
-      _storage.delete(key: _usernameKey),
-      _storage.delete(key: _passwordKey),
-    ]);
+    try {
+      await Future.wait([
+        _storage.delete(key: _usernameKey),
+        _storage.delete(key: _passwordKey),
+      ]);
+    } catch (error, stackTrace) {
+      // 存储删除失败不应阻断登出流程，记录后继续。
+      debugPrint(
+        'CredentialStore.clearCredentials failed: $error\n$stackTrace',
+      );
+    }
   }
 
   Future<String?> _safeRead(String key) async {

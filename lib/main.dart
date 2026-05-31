@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:sakuramedia/app/app.dart';
 import 'package:sakuramedia/app/bootstrap.dart';
-import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 
 export 'package:sakuramedia/app/app.dart';
@@ -9,15 +8,5 @@ export 'package:sakuramedia/app/app.dart';
 Future<void> main() async {
   await bootstrapApplication();
   final sessionStore = await SessionStore.create();
-
-  if (sessionStore.hasSession) {
-    final reachable = await ApiClient(
-      sessionStore: sessionStore,
-    ).healthCheck();
-    if (!reachable) {
-      await sessionStore.clearSession();
-    }
-  }
-
   runApp(MyApp(sessionStore: sessionStore));
 }

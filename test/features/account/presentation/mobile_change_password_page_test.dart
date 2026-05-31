@@ -16,6 +16,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
 
+import '../../../support/in_memory_credential_store.dart';
 import '../../../support/test_api_bundle.dart';
 
 late SessionStore _sessionStore;
@@ -356,7 +357,7 @@ Future<void> _pumpStandalonePage(WidgetTester tester) async {
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: _sessionStore),
         Provider<AccountApi>.value(value: _bundle.accountApi),
-        Provider<CredentialStore>.value(value: CredentialStore()),
+        Provider<CredentialStore>.value(value: InMemoryCredentialStore()),
         Provider<AuthApi>.value(value: _bundle.authApi),
       ],
       child: OKToast(
@@ -379,7 +380,7 @@ Future<void> _pumpRouterApp(
       providers: [
         ChangeNotifierProvider<SessionStore>.value(value: _sessionStore),
         Provider<AccountApi>.value(value: _bundle.accountApi),
-        Provider<CredentialStore>.value(value: CredentialStore()),
+        Provider<CredentialStore>.value(value: InMemoryCredentialStore()),
         Provider<AuthApi>.value(value: _bundle.authApi),
       ],
       child: OKToast(

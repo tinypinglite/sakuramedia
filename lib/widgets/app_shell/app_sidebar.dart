@@ -6,7 +6,6 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/app/app_version_info_controller.dart';
-import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
@@ -153,7 +152,7 @@ class AppSidebar extends StatelessWidget {
                       selected: false,
                       collapsed: isCompact,
                       onTap: () {
-                        context.read<SessionStore>().clearSession();
+                        context.logOut();
                       },
                     ),
                   ],

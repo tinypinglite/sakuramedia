@@ -60,8 +60,11 @@ class ImageSearchDraftStore {
 
   String _nextId() {
     final timestamp = DateTime.now().microsecondsSinceEpoch;
-    final nonce = _random.nextInt(1 << 32).toRadixString(16).padLeft(8, '0');
-    return '$timestamp$nonce';
+    // 拆成两次 16 位随机数拼成 8 位 hex，避免 `1 << 32` 在 dart2js(Web) 上
+    // 被钳成 0 导致 nextInt(0) 抛 RangeError。
+    final high = _random.nextInt(1 << 16).toRadixString(16).padLeft(4, '0');
+    final low = _random.nextInt(1 << 16).toRadixString(16).padLeft(4, '0');
+    return '$timestamp$high$low';
   }
 
   void _evictIfNeeded() {

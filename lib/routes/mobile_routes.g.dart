@@ -20,6 +20,8 @@ List<RouteBase> get $appRoutes => [
   $mobileSettingsUsernameRouteData,
   $mobileSettingsPasswordRouteData,
   $mobileMoviePlayerRouteData,
+  $mobileTagsRouteData,
+  $mobileTagMoviesRouteData,
   $mobileRootShellRouteData,
 ];
 
@@ -437,6 +439,64 @@ mixin $MobileMoviePlayerRouteData on GoRouteData {
       if (_self.positionSeconds != null)
         'position-seconds': _self.positionSeconds!.toString(),
     },
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileTagsRouteData => GoRouteData.$route(
+  path: '/mobile/library/tags',
+  factory: $MobileTagsRouteData._fromState,
+);
+
+mixin $MobileTagsRouteData on GoRouteData {
+  static MobileTagsRouteData _fromState(GoRouterState state) =>
+      const MobileTagsRouteData();
+
+  @override
+  String get location => GoRouteData.$location('/mobile/library/tags');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileTagMoviesRouteData => GoRouteData.$route(
+  path: '/mobile/library/tags/:tagId',
+  factory: $MobileTagMoviesRouteData._fromState,
+);
+
+mixin $MobileTagMoviesRouteData on GoRouteData {
+  static MobileTagMoviesRouteData _fromState(GoRouterState state) =>
+      MobileTagMoviesRouteData(
+        tagId: int.parse(state.pathParameters['tagId']!),
+      );
+
+  MobileTagMoviesRouteData get _self => this as MobileTagMoviesRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/mobile/library/tags/${Uri.encodeComponent(_self.tagId.toString())}',
   );
 
   @override

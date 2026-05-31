@@ -4,6 +4,8 @@ String mobileMoviesPageStateKey() => 'mobile:movies:list';
 String desktopActorsPageStateKey() => 'desktop:actors:list';
 String mobileActorsPageStateKey() => 'mobile:actors:list';
 
+String desktopTagsPageStateKey() => 'desktop:tags:list';
+
 String desktopRankingsPageStateKey() => 'desktop:rankings:list';
 String mobileRankingsPageStateKey() => 'mobile:rankings:list';
 

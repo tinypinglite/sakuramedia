@@ -7,7 +7,7 @@ import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart'
 import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_list_page_state.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_list_filterable_page_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
@@ -32,17 +32,19 @@ class MovieListContent extends StatefulWidget {
     required this.sectionSpacing,
     required this.onMovieTap,
     required this.bodyBuilder,
+    this.emptyMessage = '暂无影片数据',
     this.enableRefresh = false,
     this.onRefreshFailure,
   });
 
-  final MovieListPageStateEntry pageState;
+  final MovieListFilterablePageState pageState;
   final Color surfaceColor;
   final Key contentKey;
   final Key totalKey;
   final double sectionSpacing;
   final void Function(BuildContext context, String movieNumber) onMovieTap;
   final MovieListBodyBuilder bodyBuilder;
+  final String emptyMessage;
   final bool enableRefresh;
   final void Function(BuildContext context)? onRefreshFailure;
 
@@ -170,7 +172,7 @@ class _MovieListContentState extends State<MovieListContent> {
                       _toggleMovieSubscription(movie.movieNumber),
                   isMovieSubscriptionUpdating: (movie) =>
                       controller.isSubscriptionUpdating(movie.movieNumber),
-                  emptyMessage: '暂无影片数据',
+                  emptyMessage: widget.emptyMessage,
                 ),
                 if (showFooter) ...[
                   SizedBox(height: context.appSpacing.md),

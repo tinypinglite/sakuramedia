@@ -11,6 +11,8 @@ import 'package:sakuramedia/features/movies/presentation/desktop_movie_detail_pa
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_series_movies_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlist_detail_page.dart';
+import 'package:sakuramedia/features/subscriptions/presentation/desktop_follow_page.dart';
+import 'package:sakuramedia/features/tags/presentation/desktop_tags_page.dart';
 import 'package:sakuramedia/routes/app_route_helpers.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -99,6 +101,7 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     TypedGoRoute<DesktopFollowRouteData>(path: desktopFollowPath),
     TypedGoRoute<DesktopMoviesRouteData>(path: desktopMoviesPath),
     TypedGoRoute<DesktopActorsRouteData>(path: desktopActorsPath),
+    TypedGoRoute<DesktopTagsRouteData>(path: desktopTagsPath),
     TypedGoRoute<DesktopMomentsRouteData>(path: desktopMomentsPath),
     TypedGoRoute<DesktopPlaylistsRouteData>(path: desktopPlaylistsPath),
     TypedGoRoute<DesktopRankingsRouteData>(path: desktopRankingsPath),
@@ -125,6 +128,9 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     ),
     TypedGoRoute<DesktopActorDetailRouteData>(
       path: '/desktop/library/actors/:actorId',
+    ),
+    TypedGoRoute<DesktopTagMoviesRouteData>(
+      path: '$desktopTagsPath/:tagId',
     ),
   ],
 )
@@ -190,9 +196,17 @@ class DesktopDiscoverMomentsRouteData extends _DesktopShellPageRouteData
   }
 }
 
-class DesktopFollowRouteData extends _DesktopShellSpecRouteData
+class DesktopFollowRouteData extends _DesktopShellPageRouteData
     with $DesktopFollowRouteData {
-  const DesktopFollowRouteData() : super(desktopFollowPath);
+  const DesktopFollowRouteData();
+
+  @override
+  String get pageName => 'desktop-follow';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return const DesktopFollowPage();
+  }
 }
 
 class DesktopMoviesRouteData extends _DesktopShellSpecRouteData
@@ -203,6 +217,11 @@ class DesktopMoviesRouteData extends _DesktopShellSpecRouteData
 class DesktopActorsRouteData extends _DesktopShellSpecRouteData
     with $DesktopActorsRouteData {
   const DesktopActorsRouteData() : super(desktopActorsPath);
+}
+
+class DesktopTagsRouteData extends _DesktopShellSpecRouteData
+    with $DesktopTagsRouteData {
+  const DesktopTagsRouteData() : super(desktopTagsPath);
 }
 
 class DesktopMomentsRouteData extends _DesktopShellSpecRouteData
@@ -434,6 +453,21 @@ class DesktopActorDetailRouteData extends _DesktopShellPageRouteData
   @override
   Widget buildContent(BuildContext context, GoRouterState state) {
     return DesktopActorDetailPage(actorId: actorId);
+  }
+}
+
+class DesktopTagMoviesRouteData extends _DesktopShellPageRouteData
+    with $DesktopTagMoviesRouteData {
+  const DesktopTagMoviesRouteData({required this.tagId});
+
+  final int tagId;
+
+  @override
+  String get pageName => 'desktop-tag-movies';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return DesktopTagsPage(initialTagId: tagId);
   }
 }
 

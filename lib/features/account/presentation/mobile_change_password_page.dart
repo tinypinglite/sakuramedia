@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
@@ -107,7 +107,7 @@ class _MobileChangePasswordPageState extends State<MobileChangePasswordPage> {
         return;
       }
       showToast('密码已更新，请重新登录');
-      await context.read<SessionStore>().clearSession();
+      await context.logOut();
     } catch (error) {
       if (!mounted) {
         return;

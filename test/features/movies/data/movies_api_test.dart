@@ -202,6 +202,113 @@ void main() {
     expect(request.uri.queryParameters['year'], '2026');
   });
 
+  test('getMovies joins tagIds into comma-separated tag_ids', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(
+      tagIds: const <int>[1, 2, 3],
+      page: 1,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters['tag_ids'], '1,2,3');
+  });
+
+  test('getMovies omits tag_ids when tagIds is null or empty', () async {
+    adapter
+      ..enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'items': const <Map<String, dynamic>>[],
+          'page': 1,
+          'page_size': 24,
+          'total': 0,
+        },
+      )
+      ..enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'items': const <Map<String, dynamic>>[],
+          'page': 1,
+          'page_size': 24,
+          'total': 0,
+        },
+      );
+
+    await moviesApi.getMovies(page: 1, pageSize: 24);
+    await moviesApi.getMovies(tagIds: const <int>[], page: 1, pageSize: 24);
+
+    expect(
+      adapter.requests
+          .every((request) => !request.uri.queryParameters.containsKey('tag_ids')),
+      isTrue,
+    );
+  });
+
+  test('getMovies sends tag_match when tagIds and tagMatch are provided',
+      () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(
+      tagIds: const <int>[1, 2],
+      tagMatch: TagMatchMode.and,
+      page: 1,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters['tag_ids'], '1,2');
+    expect(request.uri.queryParameters['tag_match'], 'and');
+  });
+
+  test('getMovies omits tag_match when tagIds is empty', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(
+      tagMatch: TagMatchMode.and,
+      page: 1,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters.containsKey('tag_match'), isFalse);
+  });
+
   test('getMovies omits optional filters when not provided', () async {
     adapter.enqueueJson(
       method: 'GET',

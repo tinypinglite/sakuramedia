@@ -3,6 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/core/session/credential_store.dart';
+import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -18,12 +20,12 @@ extension AppNavigationActions on BuildContext {
         return const DesktopOverviewRouteData().go(this);
       case desktopDiscoverPath:
         return const DesktopDiscoverRouteData().go(this);
-      case desktopFollowPath:
-        return const DesktopFollowRouteData().go(this);
       case desktopMoviesPath:
         return const DesktopMoviesRouteData().go(this);
       case desktopActorsPath:
         return const DesktopActorsRouteData().go(this);
+      case desktopTagsPath:
+        return const DesktopTagsRouteData().go(this);
       case desktopMomentsPath:
         return const DesktopMomentsRouteData().go(this);
       case desktopPlaylistsPath:
@@ -74,6 +76,11 @@ extension AppNavigationActions on BuildContext {
   void pushDesktopActorDetail({required int actorId, String? fallbackPath}) {
     GoRouter.optionURLReflectsImperativeAPIs = true;
     DesktopActorDetailRouteData(actorId: actorId).push(this);
+  }
+
+  void pushDesktopTags({required int tagId}) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopTagMoviesRouteData(tagId: tagId).push(this);
   }
 
   void pushDesktopPlaylistDetail({
@@ -192,6 +199,11 @@ extension AppNavigationActions on BuildContext {
     MobileActorDetailRouteData(actorId: actorId).push(this);
   }
 
+  void pushMobileTags({required int tagId}) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    MobileTagMoviesRouteData(tagId: tagId).push(this);
+  }
+
   void pushMobilePlaylistDetail({
     required int playlistId,
     String? fallbackPath,
@@ -251,6 +263,18 @@ extension AppNavigationActions on BuildContext {
       currentMovieNumber: currentMovieNumber,
       currentMovieScope: initialCurrentMovieScope.name,
     ).push(this);
+  }
+
+  /// 统一登出出口：清空会话并清除已保存的登录凭据。
+  ///
+  /// 在任何 await 之前先取出依赖，避免 await 后 context 失效再读取 Provider；
+  /// 先清空会话以触发 GoRouter 立即重定向到登录页，凭据清除随后进行，
+  /// 不让其 I/O 阻塞登出的可见跳转。
+  Future<void> logOut() async {
+    final credentialStore = read<CredentialStore>();
+    final sessionStore = read<SessionStore>();
+    await sessionStore.clearSession();
+    await credentialStore.clearCredentials();
   }
 
   String? _saveImageSearchDraft({

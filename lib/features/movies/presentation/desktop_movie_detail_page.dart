@@ -191,6 +191,7 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
                       widget.movieNumber,
                     ),
                   ),
+          onTagTap: (tag) => context.pushDesktopTags(tagId: tag.tagId),
           onRequestPlotImageMenu:
               (menuContext, index, globalPosition) =>
                   showMoviePlotImageActionMenu(

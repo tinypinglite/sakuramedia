@@ -8,7 +8,7 @@ import 'package:sakuramedia/features/discovery/presentation/desktop_discover_pag
 import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_reviews_page.dart';
 import 'package:sakuramedia/features/media/presentation/desktop_media_maintenance_page.dart';
 import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.dart';
-import 'package:sakuramedia/features/subscriptions/presentation/desktop_follow_page.dart';
+import 'package:sakuramedia/features/tags/presentation/desktop_tags_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movies_page.dart';
 import 'package:sakuramedia/features/overview/presentation/desktop_overview_page.dart';
@@ -105,19 +105,6 @@ const List<_NavSeed> _desktopNavSeeds = [
     ],
   ),
   _NavSeed(
-    id: 'follow',
-    label: '女优上新',
-    icon: Icons.favorite_border_rounded,
-    items: [
-      _NavItemSeed(
-        slug: 'library/follow',
-        label: '女优上新',
-        icon: Icons.favorite_border_rounded,
-        description: '所有订阅女优最新影片流的统一入口。',
-      ),
-    ],
-  ),
-  _NavSeed(
     id: 'movies',
     label: '影片',
     icon: Icons.movie_creation_outlined,
@@ -140,6 +127,19 @@ const List<_NavSeed> _desktopNavSeeds = [
         label: '女优',
         icon: Icons.face_retouching_natural_outlined,
         description: '演员资料、筛选面板与后续详情工作流的统一入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'tags',
+    label: '标签',
+    icon: Icons.sell_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'library/tags',
+        label: '标签',
+        icon: Icons.sell_outlined,
+        description: '按标签多选组合筛选影片的统一入口。',
       ),
     ],
   ),
@@ -240,9 +240,9 @@ final Map<String, WidgetBuilder> _desktopRouteBuilders =
     <String, WidgetBuilder>{
       desktopOverviewPath: (_) => const DesktopOverviewPage(),
       desktopDiscoverPath: (_) => const DesktopDiscoverPage(),
-      desktopFollowPath: (_) => const DesktopFollowPage(),
       desktopMoviesPath: (_) => const DesktopMoviesPage(),
       desktopActorsPath: (_) => const DesktopActorsPage(),
+      desktopTagsPath: (_) => const DesktopTagsPage(),
       desktopMomentsPath: (_) => const DesktopMomentsPage(),
       desktopPlaylistsPath: (_) => const DesktopPlaylistsPage(),
       desktopRankingsPath: (_) => const DesktopRankingsPage(),

@@ -117,7 +117,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
         return _AppTabBarStyleSpec(
           dividerHeight: 0,
           visualTabHeight: navigationTokens.mobileTopTabHeight,
-          labelPadding: EdgeInsets.only(right: context.appSpacing.sm),
+          labelPadding: EdgeInsets.only(right: context.appSpacing.md),
           labelStyle: resolveAppTextStyle(
             context,
             size: AppTextSize.s16,

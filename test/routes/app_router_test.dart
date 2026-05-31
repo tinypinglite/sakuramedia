@@ -105,9 +105,9 @@ void main() {
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
       '发现',
-      '女优上新',
       '影片',
       '女优',
+      '标签',
       '时刻',
       '播放列表',
       '排行榜',
@@ -119,9 +119,9 @@ void main() {
     expect(desktopRouteSpecs.map((spec) => spec.path), [
       desktopOverviewPath,
       desktopDiscoverPath,
-      desktopFollowPath,
       desktopMoviesPath,
       desktopActorsPath,
+      desktopTagsPath,
       desktopMomentsPath,
       desktopPlaylistsPath,
       desktopRankingsPath,
@@ -179,8 +179,7 @@ void main() {
 
     expect(router.routeInformationProvider.value.uri.path, desktopOverviewPath);
     expect(find.byKey(const Key('desktop-shell-sidebar')), findsOneWidget);
-    expect(find.byKey(const Key('nav-group-follow')), findsOneWidget);
-    expect(find.text('女优上新'), findsOneWidget);
+    expect(find.byKey(const Key('nav-group-follow')), findsNothing);
     expect(find.byKey(const Key('nav-group-rankings')), findsOneWidget);
     expect(find.text('排行榜'), findsOneWidget);
   });
@@ -216,6 +215,33 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('1 部'), findsOneWidget);
+  });
+
+  testWidgets('desktop follow route renders desktop follow page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    addTearDown(sessionStore.dispose);
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueDesktopOverviewResponses(bundle);
+    _enqueueDesktopFollowResponses(bundle);
+    final router = buildAppRouter(AppPlatform.desktop, sessionStore);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+      includeShellController: true,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(desktopFollowPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('desktop-follow-page')), findsOneWidget);
+    expect(find.byKey(const Key('desktop-follow-page-total')), findsOneWidget);
   });
 
   testWidgets('web hot reviews route renders desktop hot reviews page', (
@@ -363,6 +389,26 @@ void main() {
     expect(config.title, '女优详情');
     expect(config.fallbackPath, desktopActorsPath);
     expect(config.isBackEnabled, isTrue);
+  });
+
+  test('desktop top bar config enables back on tag movies page', () {
+    final config = resolveDesktopTopBarConfig(
+      currentPath: '/desktop/library/tags/5',
+      routeSpecs: desktopRouteSpecs,
+    );
+
+    expect(config.title, '标签');
+    expect(config.fallbackPath, desktopTagsPath);
+    expect(config.isBackEnabled, isTrue);
+  });
+
+  test('desktop top bar config keeps back disabled on tags root', () {
+    final config = resolveDesktopTopBarConfig(
+      currentPath: desktopTagsPath,
+      routeSpecs: desktopRouteSpecs,
+    );
+
+    expect(config.isBackEnabled, isFalse);
   });
 
   test('desktop top bar config enables back on playlist detail', () {
@@ -3824,6 +3870,30 @@ void _enqueueMobileLlmResponses(TestApiBundle bundle) {
       'model': 'gpt-4o-mini',
       'timeout_seconds': 300.0,
       'connect_timeout_seconds': 3.0,
+    },
+  );
+}
+
+void _enqueueDesktopFollowResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/movies/subscribed-actors/latest',
+    body: <String, dynamic>{
+      'items': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'javdb_id': 'MovieFOL-001',
+          'movie_number': 'FOL-001',
+          'title': 'Movie FOL-001',
+          'cover_image': null,
+          'release_date': '2026-05-01',
+          'duration_minutes': 120,
+          'is_subscribed': true,
+          'can_play': true,
+        },
+      ],
+      'page': 1,
+      'page_size': 24,
+      'total': 1,
     },
   );
 }
