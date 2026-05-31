@@ -26,6 +26,7 @@ import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 
+import '../../../support/in_memory_credential_store.dart';
 import '../../../support/test_api_bundle.dart';
 
 void main() {
@@ -2360,7 +2361,7 @@ void main() {
             create: (_) => MovieSubscriptionChangeNotifier(),
           ),
           Provider<AccountApi>.value(value: bundle.accountApi),
-          Provider<CredentialStore>.value(value: CredentialStore()),
+          Provider<CredentialStore>.value(value: InMemoryCredentialStore()),
           Provider<AuthApi>.value(value: bundle.authApi),
           Provider<CollectionNumberFeaturesApi>.value(
             value: bundle.collectionNumberFeaturesApi,
@@ -2436,6 +2437,7 @@ Future<void> _pumpPage(
           create: (_) => MovieSubscriptionChangeNotifier(),
         ),
         Provider<AccountApi>.value(value: bundle.accountApi),
+        Provider<CredentialStore>.value(value: InMemoryCredentialStore()),
         Provider<AuthApi>.value(value: bundle.authApi),
         Provider<CollectionNumberFeaturesApi>.value(
           value: bundle.collectionNumberFeaturesApi,

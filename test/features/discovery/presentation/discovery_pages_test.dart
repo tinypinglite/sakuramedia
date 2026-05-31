@@ -12,6 +12,8 @@ import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/theme.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -75,7 +77,14 @@ void main() {
       find.byKey(const Key('desktop-discover-summary-card')),
       findsNothing,
     );
-    expect(find.byKey(const Key('movie-summary-grid')), findsOneWidget);
+    // 女优上新区块 + 今日推荐区块各一个影片网格。
+    expect(find.byKey(const Key('movie-summary-grid')), findsNWidgets(2));
+    expect(find.text('女优上新'), findsOneWidget);
+    expect(find.byKey(const Key('movie-summary-card-FOL-001')), findsOneWidget);
+    expect(
+      find.byKey(const Key('desktop-discover-load-more-follow')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
     expect(find.byKey(const Key('moment-grid')), findsOneWidget);
     expect(find.byKey(const Key('moment-card-1')), findsOneWidget);
@@ -218,6 +227,12 @@ Future<void> _pumpDiscoveryWidget(
           create: (_) => MediaApi(apiClient: bundle.apiClient),
         ),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        ChangeNotifierProvider(
+          create: (_) => MovieCollectionTypeChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
         Provider<ImageSearchApi>(
           create: (_) => ImageSearchApi(apiClient: bundle.apiClient),
         ),
@@ -239,8 +254,42 @@ Future<void> _pumpDiscoveryWidget(
 }
 
 void _enqueueDiscoveryResponses(TestApiBundle bundle) {
+  _enqueueFollowPage(bundle, total: 1);
   _enqueueDailyPage(bundle, page: 1, start: 1, count: 1, total: 1);
   _enqueueMomentPage(bundle, page: 1, start: 1, count: 1, total: 1);
+}
+
+void _enqueueFollowPage(
+  TestApiBundle bundle, {
+  int page = 1,
+  int total = 1,
+}) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/movies/subscribed-actors/latest',
+    body: <String, dynamic>{
+      'items': <Map<String, dynamic>>[_followMovieJson()],
+      'page': page,
+      'page_size': 6,
+      'total': total,
+    },
+  );
+}
+
+Map<String, dynamic> _followMovieJson({
+  String movieNumber = 'FOL-001',
+  bool isSubscribed = true,
+}) {
+  return <String, dynamic>{
+    'javdb_id': 'Movie$movieNumber',
+    'movie_number': movieNumber,
+    'title': 'Movie $movieNumber',
+    'cover_image': null,
+    'release_date': '2026-05-01',
+    'duration_minutes': 120,
+    'is_subscribed': isSubscribed,
+    'can_play': true,
+  };
 }
 
 void _enqueueDailyPage(

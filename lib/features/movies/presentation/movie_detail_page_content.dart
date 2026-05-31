@@ -55,6 +55,7 @@ class MovieDetailPageContent extends StatelessWidget {
     this.onMoreActionsTap,
     this.onActorTap,
     this.onSeriesTap,
+    this.onTagTap,
     this.onRequestPlotImageMenu,
     this.onOpenPlotPreview,
     this.similarMoviesErrorMessage,
@@ -100,6 +101,7 @@ class MovieDetailPageContent extends StatelessWidget {
   final Future<void> Function(Offset globalPosition)? onMoreActionsTap;
   final ValueChanged<MovieActorDto>? onActorTap;
   final VoidCallback? onSeriesTap;
+  final ValueChanged<MovieTagDto>? onTagTap;
   final Future<void> Function(
     BuildContext context,
     int index,
@@ -275,7 +277,10 @@ class MovieDetailPageContent extends StatelessWidget {
           ),
         ),
         ..._buildInlineMetaItems(context, movie, onSeriesTap),
-        MovieDetailSection(title: '标签', child: MovieTagWrap(tags: movie.tags)),
+        MovieDetailSection(
+          title: '标签',
+          child: MovieTagWrap(tags: movie.tags, onTagTap: onTagTap),
+        ),
         MovieDetailSection(
           title: '演员',
           child: MovieActorWrap(actors: orderedActors, onActorTap: onActorTap),

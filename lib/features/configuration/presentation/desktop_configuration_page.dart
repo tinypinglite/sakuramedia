@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/account/data/account_dto.dart';
 import 'package:sakuramedia/features/account/presentation/account_profile_controller.dart';
@@ -23,6 +22,7 @@ import 'package:sakuramedia/features/configuration/presentation/media_library_fo
 import 'package:sakuramedia/features/playlists/data/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/create_playlist_dialog.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
@@ -771,7 +771,7 @@ class _AccountSecuritySectionState extends State<_AccountSecuritySection> {
         return;
       }
       showToast('密码已更新，请重新登录');
-      await context.read<SessionStore>().clearSession();
+      await context.logOut();
     } catch (error) {
       if (!mounted) {
         return;

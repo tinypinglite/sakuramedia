@@ -39,4 +39,34 @@ void main() {
 
     expect(find.text('暂无标签'), findsOneWidget);
   });
+
+  testWidgets('movie tag wrap invokes onTagTap with the tapped tag', (
+    WidgetTester tester,
+  ) async {
+    MovieTagDto? tapped;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: Scaffold(
+          body: MovieTagWrap(
+            tags: const <MovieTagDto>[
+              MovieTagDto(tagId: 5, name: '巨乳'),
+              MovieTagDto(tagId: 8, name: '单体作品'),
+            ],
+            onTagTap: (tag) => tapped = tag,
+          ),
+        ),
+      ),
+    );
+
+    // 提供 onTagTap 后标签变为可点击。
+    expect(find.byType(InkWell), findsNWidgets(2));
+
+    await tester.tap(find.text('巨乳'));
+    await tester.pump();
+
+    expect(tapped, isNotNull);
+    expect(tapped!.tagId, 5);
+    expect(tapped!.name, '巨乳');
+  });
 }

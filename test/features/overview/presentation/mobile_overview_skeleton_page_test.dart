@@ -39,6 +39,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
 
+import '../../../support/in_memory_credential_store.dart';
 import '../../../support/test_api_bundle.dart';
 
 void main() {
@@ -1736,7 +1737,7 @@ Widget _buildTestApp({
       Provider<ApiClient>.value(value: bundle.apiClient),
       Provider<AccountApi>.value(value: bundle.accountApi),
       Provider<ActorsApi>.value(value: bundle.actorsApi),
-      Provider<CredentialStore>.value(value: CredentialStore()),
+      Provider<CredentialStore>.value(value: InMemoryCredentialStore()),
       Provider<AuthApi>.value(value: bundle.authApi),
       Provider<CollectionNumberFeaturesApi>.value(
         value: bundle.collectionNumberFeaturesApi,
@@ -1781,7 +1782,7 @@ Widget _buildRouterApp({
       Provider<ApiClient>.value(value: bundle.apiClient),
       Provider<AccountApi>.value(value: bundle.accountApi),
       Provider<ActorsApi>.value(value: bundle.actorsApi),
-      Provider<CredentialStore>.value(value: CredentialStore()),
+      Provider<CredentialStore>.value(value: InMemoryCredentialStore()),
       Provider<AuthApi>.value(value: bundle.authApi),
       Provider<CollectionNumberFeaturesApi>.value(
         value: bundle.collectionNumberFeaturesApi,

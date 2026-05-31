@@ -48,6 +48,14 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
     );
   }
 
+  if (currentPath == desktopFollowPath) {
+    return const DesktopTopBarConfig(
+      title: '女优上新',
+      fallbackPath: desktopDiscoverPath,
+      isBackEnabled: true,
+    );
+  }
+
   if (currentPath.startsWith(desktopMovieSeriesPathPrefix)) {
     return DesktopTopBarConfig(
       title: '系列影片',
@@ -71,6 +79,16 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
   if (currentPath.startsWith('/desktop/library/actors/')) {
     return DesktopTopBarConfig(
       title: '女优详情',
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra, currentPath: currentPath) ??
+          AppBackDestination.defaultLocationForPath(currentPath),
+      isBackEnabled: true,
+    );
+  }
+
+  if (currentPath.startsWith('$desktopTagsPath/')) {
+    return DesktopTopBarConfig(
+      title: '标签',
       fallbackPath:
           _fallbackPathFromExtra(routeExtra, currentPath: currentPath) ??
           AppBackDestination.defaultLocationForPath(currentPath),
@@ -182,6 +200,10 @@ AppShellLayout resolveDesktopShellLayout({
   }
 
   if (currentPath.startsWith('/desktop/library/actors/')) {
+    return AppShellLayout.standard;
+  }
+
+  if (currentPath.startsWith('$desktopTagsPath/')) {
     return AppShellLayout.standard;
   }
 

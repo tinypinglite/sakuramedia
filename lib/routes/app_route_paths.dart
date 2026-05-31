@@ -10,6 +10,7 @@ const String desktopImageSearchPath = '/desktop/search/image';
 const String desktopMoviesPath = '/desktop/library/movies';
 const String desktopMovieSeriesPathPrefix = '$desktopMoviesPath/series';
 const String desktopActorsPath = '/desktop/library/actors';
+const String desktopTagsPath = '/desktop/library/tags';
 const String desktopMomentsPath = '/desktop/library/moments';
 const String desktopPlaylistsPath = '/desktop/library/playlists';
 const String desktopRankingsPath = '/desktop/library/rankings';
@@ -28,6 +29,7 @@ const String mobileImageSearchPath = '/mobile/search/image';
 const String mobileMoviesPath = '/mobile/library/movies';
 const String mobileMovieSeriesPathPrefix = '$mobileMoviesPath/series';
 const String mobileActorsPath = '/mobile/library/actors';
+const String mobileTagsPath = '/mobile/library/tags';
 const String mobileRankingsPath = '/mobile/rankings';
 const String mobileSettingsMediaLibrariesPath =
     '/mobile/settings/media-libraries';

@@ -7,7 +7,6 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_version_info_controller.dart';
-import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/presentation/mobile_change_password_page.dart';
 import 'package:sakuramedia/features/account/presentation/mobile_change_username_page.dart';
 import 'package:sakuramedia/features/actors/presentation/mobile_actor_detail_page.dart';
@@ -29,8 +28,10 @@ import 'package:sakuramedia/features/overview/presentation/mobile_system_overvie
 import 'package:sakuramedia/features/playlists/presentation/mobile_playlists_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/mobile_playlist_detail_page.dart';
 import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_page.dart';
+import 'package:sakuramedia/features/tags/presentation/mobile_tags_page.dart';
 import 'package:sakuramedia/routes/app_route_helpers.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_shell.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_subpage_shell.dart';
@@ -469,6 +470,48 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
   }
 }
 
+@TypedGoRoute<MobileTagsRouteData>(path: mobileTagsPath)
+class MobileTagsRouteData extends _MobileSubpageRouteData
+    with $MobileTagsRouteData {
+  const MobileTagsRouteData();
+
+  @override
+  String get pageName => 'mobile-tags';
+
+  @override
+  String get title => '标签';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileTagsPage();
+  }
+}
+
+@TypedGoRoute<MobileTagMoviesRouteData>(path: '$mobileTagsPath/:tagId')
+class MobileTagMoviesRouteData extends _MobileSubpageRouteData
+    with $MobileTagMoviesRouteData {
+  const MobileTagMoviesRouteData({required this.tagId});
+
+  final int tagId;
+
+  @override
+  String get pageName => 'mobile-tag-movies';
+
+  @override
+  String get title => '标签';
+
+  @override
+  String get defaultLocation => mobileTagsPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return MobileTagsPage(initialTagId: tagId);
+  }
+}
+
 @TypedStatefulShellRoute<MobileRootShellRouteData>(
   branches: <TypedStatefulShellBranch<StatefulShellBranchData>>[
     TypedStatefulShellBranch<MobileOverviewBranchData>(
@@ -559,6 +602,13 @@ class _MobileOverviewDrawer extends StatelessWidget {
         label: '概览',
       );
 
+  static const _MobileOverviewDrawerMenuItem _tagsItem =
+      _MobileOverviewDrawerMenuItem(
+        key: 'tags',
+        icon: Icons.sell_outlined,
+        label: '标签',
+      );
+
   static const List<_MobileOverviewDrawerMenuItem> _libraryItems =
       <_MobileOverviewDrawerMenuItem>[
         _MobileOverviewDrawerMenuItem(
@@ -640,6 +690,13 @@ class _MobileOverviewDrawer extends StatelessWidget {
                       ),
                       SizedBox(height: spacing.md),
                       _MobileOverviewDrawerSection(
+                        key: const Key('mobile-overview-drawer-tags-section'),
+                        items: <Widget>[
+                          _buildMenuEntry(context: context, item: _tagsItem),
+                        ],
+                      ),
+                      SizedBox(height: spacing.md),
+                      _MobileOverviewDrawerSection(
                         key: const Key(
                           'mobile-overview-drawer-library-section',
                         ),
@@ -690,7 +747,7 @@ class _MobileOverviewDrawer extends StatelessWidget {
                         if (!hostContext.mounted) {
                           return;
                         }
-                        hostContext.read<SessionStore>().clearSession();
+                        hostContext.logOut();
                       });
                     },
                   ),
@@ -727,6 +784,9 @@ class _MobileOverviewDrawer extends StatelessWidget {
     switch (key) {
       case 'overview':
         const MobileSystemOverviewRouteData().push(hostContext);
+        return;
+      case 'tags':
+        const MobileTagsRouteData().push(hostContext);
         return;
       case 'media-libraries':
         const MobileSettingsMediaLibrariesRouteData().push(hostContext);

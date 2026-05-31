@@ -28,6 +28,20 @@ extension MovieCollectionTypeFilterX on MovieCollectionTypeFilter {
       };
 }
 
+enum TagMatchMode { or, and }
+
+extension TagMatchModeX on TagMatchMode {
+  String get apiValue => switch (this) {
+        TagMatchMode.or => 'or',
+        TagMatchMode.and => 'and',
+      };
+
+  String get label => switch (this) {
+        TagMatchMode.or => '任一',
+        TagMatchMode.and => '全部',
+      };
+}
+
 enum MovieSortField {
   releaseDate,
   addedAt,

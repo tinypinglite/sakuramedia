@@ -127,6 +127,10 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
       factory: $DesktopActorsRouteData._fromState,
     ),
     GoRouteData.$route(
+      path: '/desktop/library/tags',
+      factory: $DesktopTagsRouteData._fromState,
+    ),
+    GoRouteData.$route(
       path: '/desktop/library/moments',
       factory: $DesktopMomentsRouteData._fromState,
     ),
@@ -181,6 +185,10 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
     GoRouteData.$route(
       path: '/desktop/library/actors/:actorId',
       factory: $DesktopActorDetailRouteData._fromState,
+    ),
+    GoRouteData.$route(
+      path: '/desktop/library/tags/:tagId',
+      factory: $DesktopTagMoviesRouteData._fromState,
     ),
   ],
 );
@@ -324,6 +332,27 @@ mixin $DesktopActorsRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/desktop/library/actors');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $DesktopTagsRouteData on GoRouteData {
+  static DesktopTagsRouteData _fromState(GoRouterState state) =>
+      const DesktopTagsRouteData();
+
+  @override
+  String get location => GoRouteData.$location('/desktop/library/tags');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -696,6 +725,33 @@ mixin $DesktopActorDetailRouteData on GoRouteData {
   @override
   String get location => GoRouteData.$location(
     '/desktop/library/actors/${Uri.encodeComponent(_self.actorId.toString())}',
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $DesktopTagMoviesRouteData on GoRouteData {
+  static DesktopTagMoviesRouteData _fromState(GoRouterState state) =>
+      DesktopTagMoviesRouteData(
+        tagId: int.parse(state.pathParameters['tagId']!),
+      );
+
+  DesktopTagMoviesRouteData get _self => this as DesktopTagMoviesRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/desktop/library/tags/${Uri.encodeComponent(_self.tagId.toString())}',
   );
 
   @override

@@ -26,6 +26,7 @@ import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/tags/data/tags_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
@@ -111,15 +112,9 @@ class _MyAppState extends State<MyApp> {
         ),
         Provider<CredentialStore>(create: (_) => CredentialStore()),
         Provider<ApiClient>(
-          create: (context) {
-            final sessionStore = context.read<SessionStore>();
-            return ApiClient(
-              sessionStore: sessionStore,
-              onTransportFailure: () {
-                sessionStore.clearSession();
-              },
-            );
-          },
+          create:
+              (context) =>
+                  ApiClient(sessionStore: context.read<SessionStore>()),
           dispose: (context, client) => client.dispose(),
         ),
         Provider<AuthApi>(
@@ -197,6 +192,9 @@ class _MyAppState extends State<MyApp> {
         ),
         Provider<MoviesApi>(
           create: (context) => MoviesApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<TagsApi>(
+          create: (context) => TagsApi(apiClient: context.read<ApiClient>()),
         ),
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),

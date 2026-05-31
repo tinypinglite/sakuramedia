@@ -25,6 +25,8 @@ class MoviesApi {
     String? sort,
     int? actorId,
     int? year,
+    List<int>? tagIds,
+    TagMatchMode? tagMatch,
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -46,6 +48,13 @@ class MoviesApi {
     }
     if (year != null) {
       queryParameters['year'] = year;
+    }
+    if (tagIds != null && tagIds.isNotEmpty) {
+      queryParameters['tag_ids'] = tagIds.join(',');
+      // tag_match 仅在传 tag_ids 时生效：or 命中任一标签，and 须同时命中全部。
+      if (tagMatch != null) {
+        queryParameters['tag_match'] = tagMatch.apiValue;
+      }
     }
 
     final response = await _apiClient.get(

@@ -31,7 +31,7 @@ class AuthApi {
       refreshToken: dto.refreshToken,
       expiresAt: dto.expiresAt,
     );
-    _credentialStore.saveCredentials(
+    await _credentialStore.saveCredentials(
       username: username,
       password: password,
     );

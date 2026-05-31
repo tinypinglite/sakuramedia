@@ -7,6 +7,13 @@ import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/discovery/presentation/discovery_controller.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_launcher.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
+import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
+import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
@@ -27,6 +34,9 @@ class DesktopDiscoverPage extends StatefulWidget {
 
 class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
   late final DiscoveryController _controller;
+  late final PagedMovieSummaryController _followController;
+  late final MovieCollectionTypeChangeNotifier _collectionChangeNotifier;
+  late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
 
   @override
   void initState() {
@@ -36,12 +46,76 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
       dailyPageSize: 6,
       momentPageSize: 8,
     )..load();
+
+    _collectionChangeNotifier =
+        context.read<MovieCollectionTypeChangeNotifier>();
+    _collectionChangeNotifier.addListener(_onCollectionTypeChanged);
+    _subscriptionChangeNotifier =
+        context.read<MovieSubscriptionChangeNotifier>();
+    _subscriptionChangeNotifier.addListener(_onMovieSubscriptionChanged);
+
+    _followController = PagedMovieSummaryController(
+      fetchPage:
+          (page, pageSize) => context
+              .read<MoviesApi>()
+              .getSubscribedActorsLatestMovies(page: page, pageSize: pageSize),
+      subscribeMovie: context.read<MoviesApi>().subscribeMovie,
+      unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
+      onSubscriptionChanged: _reportSubscriptionChange,
+      pageSize: 6,
+      initialLoadErrorText: '女优上新加载失败，请稍后重试',
+    );
+    _followController.initialize();
   }
 
   @override
   void dispose() {
+    _collectionChangeNotifier.removeListener(_onCollectionTypeChanged);
+    _subscriptionChangeNotifier.removeListener(_onMovieSubscriptionChanged);
+    _followController.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _onCollectionTypeChanged() {
+    final change = _collectionChangeNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    if (change.targetType == MovieCollectionType.collection) {
+      _followController.removeItem(change.movieNumber);
+    }
+  }
+
+  void _onMovieSubscriptionChanged() {
+    final change = _subscriptionChangeNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    _followController.applySubscriptionChange(
+      movieNumber: change.movieNumber,
+      isSubscribed: change.isSubscribed,
+    );
+  }
+
+  void _reportSubscriptionChange({
+    required String movieNumber,
+    required bool isSubscribed,
+  }) {
+    _subscriptionChangeNotifier.reportChange(
+      movieNumber: movieNumber,
+      isSubscribed: isSubscribed,
+    );
+  }
+
+  Future<void> _toggleFollowSubscription(String movieNumber) async {
+    final result = await _followController.toggleSubscription(
+      movieNumber: movieNumber,
+    );
+    if (!mounted) {
+      return;
+    }
+    showMovieSubscriptionFeedback(result);
   }
 
   @override
@@ -51,12 +125,17 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
       child: AppPageFrame(
         title: '',
         child: AnimatedBuilder(
-          animation: _controller,
+          animation: Listenable.merge(<Listenable>[
+            _controller,
+            _followController,
+          ]),
           builder: (context, _) {
             return Column(
               key: const Key('desktop-discover-page'),
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                _buildFollowSection(context),
+                SizedBox(height: context.appSpacing.xl),
                 _buildDailySection(context),
                 SizedBox(height: context.appSpacing.xl),
                 _buildMomentSection(context),
@@ -65,6 +144,44 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildFollowSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _DiscoverSectionTitle(
+          title: '女优上新',
+          totalText: '${_followController.total} 部',
+          actionKey: const Key('desktop-discover-load-more-follow'),
+          actionLabel: '更多',
+          onActionTap: () => context.push(desktopFollowPath),
+        ),
+        SizedBox(height: context.appSpacing.md),
+        MovieSummaryGrid(
+          items: _followController.items,
+          isLoading: _followController.isInitialLoading,
+          errorMessage: _followController.initialErrorMessage,
+          onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
+          onMovieMenuRequest: (movie, globalPosition) {
+            unawaited(
+              showMovieCollectionFeatureActionMenu(
+                context: context,
+                movieNumber: movie.movieNumber,
+                globalPosition: globalPosition,
+              ),
+            );
+          },
+          onMovieSubscriptionTap:
+              (movie) => _toggleFollowSubscription(movie.movieNumber),
+          isMovieSubscriptionUpdating:
+              (movie) =>
+                  _followController.isSubscriptionUpdating(movie.movieNumber),
+          emptyMessage: '暂无女优上新',
+          placeholderCount: 6,
+        ),
+      ],
     );
   }
 

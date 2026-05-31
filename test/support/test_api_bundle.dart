@@ -1,5 +1,4 @@
 import 'package:sakuramedia/core/network/api_client.dart';
-import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
@@ -20,6 +19,7 @@ import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 
 import 'fake_http_client_adapter.dart';
+import 'in_memory_credential_store.dart';
 
 class TestApiBundle {
   TestApiBundle({
@@ -89,7 +89,7 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     ),
     activityEventStreamClient: activityEventStreamClient,
     actorsApi: ActorsApi(apiClient: apiClient),
-    authApi: AuthApi(apiClient: apiClient, sessionStore: sessionStore, credentialStore: CredentialStore()),
+    authApi: AuthApi(apiClient: apiClient, sessionStore: sessionStore, credentialStore: InMemoryCredentialStore()),
     collectionNumberFeaturesApi: CollectionNumberFeaturesApi(
       apiClient: apiClient,
     ),

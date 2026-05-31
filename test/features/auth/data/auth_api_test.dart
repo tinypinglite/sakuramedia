@@ -1,24 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
-import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 
 import '../../../support/fake_http_client_adapter.dart';
+import '../../../support/in_memory_credential_store.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late SessionStore sessionStore;
-  late CredentialStore credentialStore;
+  late InMemoryCredentialStore credentialStore;
   late ApiClient apiClient;
   late AuthApi authApi;
   late FakeHttpClientAdapter adapter;
 
   setUp(() async {
     sessionStore = SessionStore.inMemory();
-    credentialStore = CredentialStore();
+    credentialStore = InMemoryCredentialStore();
     await sessionStore.saveBaseUrl('https://api.example.com');
     apiClient = ApiClient(sessionStore: sessionStore);
     authApi = AuthApi(
@@ -65,6 +65,9 @@ void main() {
       'password': 'pwd',
     });
     expect(adapter.requests.first.headers['Authorization'], isNull);
+    // 登录成功后凭据已持久化，供登录页自动回填。
+    expect(credentialStore.username, 'account');
+    expect(credentialStore.password, 'pwd');
   });
 
   test('createToken converts backend error to ApiException', () async {

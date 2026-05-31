@@ -185,6 +185,7 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
             onActorTap:
                 (actor) =>
                     MobileActorDetailRouteData(actorId: actor.id).push(context),
+            onTagTap: (tag) => context.pushMobileTags(tagId: tag.tagId),
             onSeriesTap:
                 movie.seriesId == null
                     ? null
