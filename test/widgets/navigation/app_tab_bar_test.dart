@@ -220,7 +220,7 @@ void main() {
     );
     expect(
       tabBar.labelPadding,
-      EdgeInsets.only(right: sakuraMobileThemeData.appSpacing.sm),
+      EdgeInsets.only(right: sakuraMobileThemeData.appSpacing.md),
     );
     expect(labelStyle.fontSize, sakuraMobileThemeData.appTextScale.s16);
   });
