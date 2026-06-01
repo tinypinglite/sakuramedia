@@ -299,7 +299,7 @@ void main() {
   );
 
   testWidgets(
-    'thumbnail grid only renders previously loaded images during active scroll',
+    'thumbnail grid loads newly visible images during active scroll',
     (WidgetTester tester) async {
       await _pumpGrid(
         tester,
@@ -312,32 +312,30 @@ void main() {
       final unseenTile = find.byKey(const Key('movie-media-thumb-80'));
       expect(unseenTile, findsNothing);
 
+      final unseenImage = find.descendant(
+        of: unseenTile,
+        matching: find.byType(CachedNetworkImage),
+      );
+
+      // 全程按住手指（活动滚动中）滑动；新滚入视口的缩略图应在手指离开前就加载。
       final gesture = await tester.startGesture(
         tester.getCenter(find.byKey(const Key('movie-media-thumbnail-grid'))),
       );
-      for (var step = 0; step < 10 && unseenTile.evaluate().isEmpty; step++) {
-        await gesture.moveBy(const Offset(0, -260));
+      for (var step = 0;
+          step < 30 &&
+              unseenImage.evaluate().isEmpty &&
+              (unseenTile.evaluate().isNotEmpty || step < 14);
+          step++) {
+        await gesture.moveBy(const Offset(0, -160));
         await tester.pump();
       }
 
       expect(unseenTile, findsOneWidget);
-      expect(
-        find.descendant(
-          of: unseenTile,
-          matching: find.byType(CachedNetworkImage),
-        ),
-        findsNothing,
-      );
+      expect(unseenImage, findsOneWidget); // 手指仍未离开即已加载
 
       await gesture.up();
       await tester.pump(const Duration(milliseconds: 200));
-      expect(
-        find.descendant(
-          of: unseenTile,
-          matching: find.byType(CachedNetworkImage),
-        ),
-        findsOneWidget,
-      );
+      expect(unseenImage, findsOneWidget);
     },
   );
 
@@ -390,7 +388,7 @@ void main() {
   );
 
   testWidgets(
-    'thumbnail grid resets rendered cache when thumbnail dataset changes',
+    'thumbnail grid rebuilds visible images with new urls when dataset changes',
     (WidgetTester tester) async {
       await _pumpGrid(
         tester,
@@ -400,47 +398,32 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final gesture = await tester.startGesture(
-        tester.getCenter(find.byKey(const Key('movie-media-thumbnail-grid'))),
-      );
-      await gesture.moveBy(const Offset(0, -220));
-      await tester.pump();
-      final cachedTile = find.byKey(const Key('movie-media-thumb-5'));
-      expect(cachedTile, findsOneWidget);
-      expect(
+      final visibleTile = find.byKey(const Key('movie-media-thumb-0'));
+      final firstImage = tester.widget<CachedNetworkImage>(
         find.descendant(
-          of: cachedTile,
+          of: visibleTile,
           matching: find.byType(CachedNetworkImage),
         ),
-        findsOneWidget,
       );
+      expect(firstImage.imageUrl, contains('first-0'));
 
+      // 数据集换新（不同 id）后，可见瓦片应重建并指向新 url，不残留旧图。
       await _pumpGrid(
         tester,
         thumbnails: _manyThumbnails(120, mediaId: 200, imagePrefix: 'second'),
         activeIndex: 0,
         isScrollLocked: false,
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      expect(cachedTile, findsOneWidget);
-      expect(
+      final secondImage = tester.widget<CachedNetworkImage>(
         find.descendant(
-          of: cachedTile,
+          of: visibleTile,
           matching: find.byType(CachedNetworkImage),
         ),
-        findsNothing,
       );
-
-      await gesture.up();
-      await tester.pump(const Duration(milliseconds: 200));
-      expect(
-        find.descendant(
-          of: cachedTile,
-          matching: find.byType(CachedNetworkImage),
-        ),
-        findsOneWidget,
-      );
+      expect(secondImage.imageUrl, contains('second-0'));
+      expect(secondImage.imageUrl, isNot(contains('first-0')));
     },
   );
 
