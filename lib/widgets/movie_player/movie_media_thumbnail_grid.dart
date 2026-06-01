@@ -45,7 +45,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   static const Duration _autoScrollThrottleDuration = Duration(
     milliseconds: 180,
   );
-  static const int _visibleRowBuffer = 1;
+  static const int _visibleRowBuffer = 2;
   static const double _decodeDevicePixelRatioCap = 2.0;
   static const int _decodeSizeUpperBound = 1024;
 
@@ -408,11 +408,12 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   }
 
   bool _shouldBuildImageForIndex(int index) {
-    final isInVisibleRange = _isWithinVisibleRange(index);
-    if (_isUserScrollInProgress) {
-      return _renderedImageIndices.contains(index);
+    // 已加载过的保持渲染，避免来回滚动时反复变回占位图。
+    if (_renderedImageIndices.contains(index)) {
+      return true;
     }
-    if (!isInVisibleRange) {
+    // 在（带上下缓冲的）可见范围内即建图，滚动过程中也立即加载，不再等手指离开。
+    if (!_isWithinVisibleRange(index)) {
       return false;
     }
     _renderedImageIndices.add(index);
@@ -481,7 +482,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
           child: GridView.builder(
             key: Key('${widget.keyPrefix}-thumbnail-grid'),
             controller: _scrollController,
-            cacheExtent: 240,
+            cacheExtent: 500,
             physics:
                 widget.isScrollLocked
                     ? const NeverScrollableScrollPhysics()
