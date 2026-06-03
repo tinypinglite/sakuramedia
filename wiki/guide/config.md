@@ -333,6 +333,7 @@ movie_similarity_recompute_cron = "30 3 * * *"
 | `subscribed_movie_auto_download_cron` | 已订阅缺失影片自动下载频率 |
 | `download_task_sync_cron` | 下载任务状态同步频率 |
 | `download_task_auto_import_cron` | 已完成下载自动导入频率 |
+| `download_small_file_cleanup_cron` | 下载小文件清理频率 |
 | `movie_collection_sync_cron` | 合集影片同步频率 |
 | `movie_heat_cron` | 影片热度重算频率 |
 | `movie_interaction_sync_cron` | 影片互动数同步频率；当前默认每小时执行一次，但影片是否真正进入候选仍受分层刷新规则影响 |
@@ -609,6 +610,8 @@ subscribed_movie_auto_download_cron = "30 2 * * *"
 download_task_sync_cron = "* * * * *"
 # 已完成下载自动导入 cron 表达式。
 download_task_auto_import_cron = "*/3 * * * *"
+# 下载小文件清理 cron 表达式。
+download_small_file_cleanup_cron = "*/5 * * * *"
 # 合集影片同步 cron 表达式。
 movie_collection_sync_cron = "0 1 * * *"
 # 影片热度重算 cron 表达式。

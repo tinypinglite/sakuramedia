@@ -213,6 +213,19 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands aps auto
 - Jackett 和 qBittorrent 已经配置好
 - 想立刻为“已订阅但本地缺失”的影片跑一次自动下载
 
+### 清理下载中种子的小文件
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands aps cleanup-download-small-files
+```
+
+适合场景：
+
+- 某个下载任务卡在 99%、迟迟完不成，怀疑是种子夹带的 sample / 小垃圾文件没有上传源
+- 不想等定时任务，想立刻把这些小文件设为不下载并清理掉，让种子尽快完成
+
+> 该任务只处理由本系统添加（带 `sakuramedia` 标签）且未完成的种子，会按 `[downloads]` 的 `small_file_cleanup_threshold_mb`（默认 256MB）判定小文件，并**物理删除**它们。详见[后台任务说明](/guide/tasks#下载小文件清理)。
+
 ### 同步合集影片标记
 
 ```bash

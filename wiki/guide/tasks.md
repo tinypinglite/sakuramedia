@@ -23,6 +23,7 @@ outline: [2, 3]
 | 合集影片同步 | 同步合集标记 | 每天 01:00 |
 | 下载任务状态同步 | 同步 qBittorrent 任务到本地任务表 | 每 1 分钟 |
 | 已完成下载自动导入 | 把已完成下载交给导入流程 | 每 3 分钟 |
+| 下载小文件清理 | 把下载中种子里的小文件设为不下载并物理删除，避免卡在无关小文件上 | 每 5 分钟 |
 | 媒体文件巡检 | 检查文件是否存在并补视频信息 | 每 6 小时 |
 | 影片描述回填 | 为历史影片补抓原文描述 `desc` | 每天 04:00 |
 | 影片简介翻译 | 把已抓到的原文描述翻译成中文 `desc_zh` | 每天 04:15 |
@@ -139,6 +140,28 @@ outline: [2, 3]
 
 - 每 `3` 分钟
 
+### 下载小文件清理
+
+作用：
+
+- 解决一个常见的下载卡顿问题：有些种子会夹带 sample 预览片、说明图、广告等无关小文件，做种者少时这些文件可能长期没有上传源，导致整个种子进度卡在 99%，迟迟无法完成、也就无法触发后续自动导入
+- 任务只处理由本系统添加（带 `sakuramedia` 标签）、且尚未下载完成的种子；手动加进 qBittorrent 的种子不受影响
+- 对种子内小于阈值的文件，先在 qBittorrent 里设为“不下载”，让进度不再被它们拖住，再把下载暂存目录里这些残留文件物理删除回收空间
+- 已完成的种子会直接跳过；任务可重复执行，已经处理过的文件不会被重复操作
+
+阈值与配置：
+
+- 判定“小文件”的阈值由 `[downloads]` 的 `small_file_cleanup_threshold_mb` 控制，默认 `256`（MB）
+- 频率由 `[scheduler]` 的 `download_small_file_cleanup_cron` 控制
+
+::: warning 注意
+该任务会**物理删除**被判定为小文件的内容。如果你下载的资源里正片本身就很小（例如低于阈值的短片合集），请把 `small_file_cleanup_threshold_mb` 调小，避免误删正片。
+:::
+
+默认频率：
+
+- 每 `5` 分钟
+
 ### 媒体文件巡检
 
 作用：
@@ -254,6 +277,7 @@ actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
 download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "*/3 * * * *"
+download_small_file_cleanup_cron = "*/5 * * * *"
 movie_collection_sync_cron = "0 1 * * *"
 movie_heat_cron = "15 0 * * *"
 movie_interaction_sync_cron = "0 * * * *"
@@ -284,6 +308,8 @@ movie_similarity_recompute_cron = "30 3 * * *"
   保证已完成下载能自动进入导入流程
 - `subscribed_movie_auto_download_cron`
   保证已订阅且缺资源的影片会自动去找资源
+- `download_small_file_cleanup_cron`
+  清理种子夹带的小文件，避免下载长期卡在无关文件上、迟迟不能完成
 
 ### 数据同步相关
 
