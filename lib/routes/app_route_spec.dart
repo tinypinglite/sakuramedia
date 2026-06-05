@@ -24,6 +24,7 @@ class AppNavGroup {
     required this.icon,
     required this.items,
     this.isCollapsible = true,
+    this.sectionLabel,
   });
 
   final String id;
@@ -31,6 +32,9 @@ class AppNavGroup {
   final IconData icon;
   final List<AppNavItem> items;
   final bool isCollapsible;
+
+  /// 该组在侧边栏所属分区的标题。`null` 表示该组前不渲染分区标题（如概览置顶）。
+  final String? sectionLabel;
 
   bool get showsChildrenInSidebar => isCollapsible && items.length > 1;
 

@@ -95,6 +95,7 @@ const List<_NavSeed> _desktopNavSeeds = [
     id: 'discover',
     label: '发现',
     icon: Icons.travel_explore_outlined,
+    section: '浏览',
     items: [
       _NavItemSeed(
         slug: 'library/discover',
@@ -108,6 +109,7 @@ const List<_NavSeed> _desktopNavSeeds = [
     id: 'movies',
     label: '影片',
     icon: Icons.movie_creation_outlined,
+    section: '浏览',
     items: [
       _NavItemSeed(
         slug: 'library/movies',
@@ -121,6 +123,7 @@ const List<_NavSeed> _desktopNavSeeds = [
     id: 'actors',
     label: '女优',
     icon: Icons.face_retouching_natural_outlined,
+    section: '浏览',
     items: [
       _NavItemSeed(
         slug: 'library/actors',
@@ -134,6 +137,7 @@ const List<_NavSeed> _desktopNavSeeds = [
     id: 'tags',
     label: '标签',
     icon: Icons.sell_outlined,
+    section: '浏览',
     items: [
       _NavItemSeed(
         slug: 'library/tags',
@@ -147,6 +151,7 @@ const List<_NavSeed> _desktopNavSeeds = [
     id: 'moments',
     label: '时刻',
     icon: Icons.auto_awesome_motion_outlined,
+    section: '浏览',
     items: [
       _NavItemSeed(
         slug: 'library/moments',
@@ -160,6 +165,7 @@ const List<_NavSeed> _desktopNavSeeds = [
     id: 'playlists',
     label: '播放列表',
     icon: Icons.playlist_play_outlined,
+    section: '浏览',
     items: [
       _NavItemSeed(
         slug: 'library/playlists',
@@ -173,6 +179,7 @@ const List<_NavSeed> _desktopNavSeeds = [
     id: 'rankings',
     label: '排行榜',
     icon: Icons.local_fire_department_outlined,
+    section: '浏览',
     items: [
       _NavItemSeed(
         slug: 'library/rankings',
@@ -186,6 +193,7 @@ const List<_NavSeed> _desktopNavSeeds = [
     id: 'hot-reviews',
     label: '热评',
     icon: Icons.rate_review_outlined,
+    section: '浏览',
     items: [
       _NavItemSeed(
         slug: 'library/hot-reviews',
@@ -199,6 +207,7 @@ const List<_NavSeed> _desktopNavSeeds = [
     id: 'media-maintenance',
     label: '媒体维护',
     icon: Icons.video_file_outlined,
+    section: '管理',
     items: [
       _NavItemSeed(
         slug: 'system/media-maintenance',
@@ -212,6 +221,7 @@ const List<_NavSeed> _desktopNavSeeds = [
     id: 'configuration',
     label: '配置管理',
     icon: Icons.settings_suggest_outlined,
+    section: '管理',
     items: [
       _NavItemSeed(
         slug: 'system/configuration',
@@ -225,6 +235,7 @@ const List<_NavSeed> _desktopNavSeeds = [
     id: 'activity',
     label: '活动中心',
     icon: Icons.notifications_active_outlined,
+    section: '管理',
     items: [
       _NavItemSeed(
         slug: 'system/activity',
@@ -294,6 +305,7 @@ List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
           label: seed.label,
           icon: seed.icon,
           isCollapsible: false,
+          sectionLabel: seed.section,
           items: seed.items
               .map(
                 (seedItem) => item(
@@ -373,12 +385,16 @@ class _NavSeed {
     required this.label,
     required this.icon,
     required this.items,
+    this.section,
   });
 
   final String id;
   final String label;
   final IconData icon;
   final List<_NavItemSeed> items;
+
+  /// 侧边栏分区标题；`null` 表示该组前不渲染分区标题。
+  final String? section;
 }
 
 class _NavItemSeed {

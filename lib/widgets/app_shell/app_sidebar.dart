@@ -107,27 +107,13 @@ class AppSidebar extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: context.appSpacing.sm,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: navGroups
-                        .map(
-                          (group) => Padding(
-                            padding: EdgeInsets.only(
-                              bottom: context.appSpacing.xs,
-                            ),
-                            child: AppSidebarGroup(
-                              group: group,
-                              currentPath: currentPath,
-                              isCompact: isCompact,
-                            ),
-                          ),
-                        )
-                        .toList(growable: false),
-                  ),
+                child: _SidebarNavScrollArea(
+                  horizontalPadding: context.appSpacing.sm,
+                  fadeColor:
+                      useMacSidebarGlass
+                          ? appColors.desktopSidebarGlassTint
+                          : appColors.sidebarBackground,
+                  children: _buildNavChildren(context, isCompact),
                 ),
               ),
               Padding(
@@ -164,7 +150,183 @@ class AppSidebar extends StatelessWidget {
       },
     );
   }
+
+  List<Widget> _buildNavChildren(BuildContext context, bool isCompact) {
+    final children = <Widget>[];
+    String? previousSection;
+    for (final group in navGroups) {
+      final section = group.sectionLabel;
+      if (section != null && section != previousSection) {
+        children.add(
+          _SidebarSectionHeader(label: section, isCompact: isCompact),
+        );
+      }
+      previousSection = section;
+      children.add(
+        Padding(
+          padding: EdgeInsets.only(bottom: context.appSpacing.xs),
+          child: AppSidebarGroup(
+            group: group,
+            currentPath: currentPath,
+            isCompact: isCompact,
+          ),
+        ),
+      );
+    }
+    return children;
+  }
 }
+
+class _SidebarSectionHeader extends StatelessWidget {
+  const _SidebarSectionHeader({required this.label, required this.isCompact});
+
+  final String label;
+  final bool isCompact;
+
+  @override
+  Widget build(BuildContext context) {
+    final key = Key('sidebar-section-$label');
+    if (isCompact) {
+      return Padding(
+        key: key,
+        padding: EdgeInsets.symmetric(vertical: context.appSpacing.xs),
+        child: Divider(
+          height: 1,
+          color: _sidebarDividerColor(context.appColors, _useMacSidebarGlass),
+        ),
+      );
+    }
+    return Padding(
+      key: key,
+      padding: EdgeInsets.only(
+        top: context.appSpacing.md,
+        bottom: context.appSpacing.xs,
+        left: context.appSpacing.md,
+        right: context.appSpacing.md,
+      ),
+      child: Text(
+        label,
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s10,
+          weight: AppTextWeight.medium,
+          tone: AppTextTone.muted,
+        ).copyWith(letterSpacing: 1.2),
+      ),
+    );
+  }
+}
+
+/// 侧边栏一级导航的滚动区。当内容溢出、底部仍可下滑时，在底部叠一层
+/// 透明→底色的渐隐遮罩，提示「下面还有内容」；滚到底自动消失。
+/// 遮罩为纯装饰（[IgnorePointer]），不拦截对底部菜单项的点击。
+class _SidebarNavScrollArea extends StatefulWidget {
+  const _SidebarNavScrollArea({
+    required this.horizontalPadding,
+    required this.fadeColor,
+    required this.children,
+  });
+
+  final double horizontalPadding;
+  final Color fadeColor;
+  final List<Widget> children;
+
+  @override
+  State<_SidebarNavScrollArea> createState() => _SidebarNavScrollAreaState();
+}
+
+class _SidebarNavScrollAreaState extends State<_SidebarNavScrollArea> {
+  final ScrollController _controller = ScrollController();
+  bool _canScrollDown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_recompute);
+    _scheduleRecompute();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SidebarNavScrollArea oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 折叠/展开或导航内容变化会改变溢出状态，下一帧重新评估。
+    _scheduleRecompute();
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_recompute);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _scheduleRecompute() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _recompute());
+  }
+
+  void _recompute() {
+    if (!mounted || !_controller.hasClients) {
+      return;
+    }
+    final position = _controller.position;
+    final canScrollDown =
+        position.maxScrollExtent > 0 &&
+        position.pixels < position.maxScrollExtent - 1.0;
+    if (canScrollDown != _canScrollDown) {
+      setState(() => _canScrollDown = canScrollDown);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<ScrollMetricsNotification>(
+      onNotification: (_) {
+        // 视口或内容尺寸变化（如窗口 resize）时同步重算。
+        _scheduleRecompute();
+        return false;
+      },
+      child: Stack(
+        children: [
+          SingleChildScrollView(
+            controller: _controller,
+            padding: EdgeInsets.symmetric(horizontal: widget.horizontalPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: widget.children,
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 150),
+                opacity: _canScrollDown ? 1 : 0,
+                child: Container(
+                  key: const Key('sidebar-nav-scroll-fade'),
+                  height: _sidebarNavFadeHeight,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        widget.fadeColor.withValues(alpha: 0),
+                        widget.fadeColor,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+const double _sidebarNavFadeHeight = 32;
 
 class _SidebarVersionInfo extends StatefulWidget {
   const _SidebarVersionInfo({required this.isCompact});
