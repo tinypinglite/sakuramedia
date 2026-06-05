@@ -114,6 +114,85 @@ void main() {
     expect(find.byTooltip('客户端 0.2.3 · 服务端 v0.2.0'), findsOneWidget);
   });
 
+  testWidgets('desktop sidebar groups nav items into 浏览/管理 sections', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueOverviewResponses(bundle);
+    await _pumpDesktopApp(
+      tester,
+      bundle: bundle,
+      sessionStore: sessionStore,
+      statusApi: bundle.statusApi,
+      moviesApi: bundle.moviesApi,
+    );
+    await tester.pumpAndSettle();
+
+    // 展开态：两个分区标题各渲染一次，概览置顶不带标题。
+    expect(find.byKey(const Key('sidebar-section-浏览')), findsOneWidget);
+    expect(find.byKey(const Key('sidebar-section-管理')), findsOneWidget);
+    expect(find.text('浏览'), findsOneWidget);
+    expect(find.text('管理'), findsOneWidget);
+
+    // 顺序：概览 → 浏览标题 → … → 管理标题 → 媒体维护。
+    final overviewTop =
+        tester.getTopLeft(find.byKey(const Key('nav-group-overview'))).dy;
+    final browseHeaderTop =
+        tester.getTopLeft(find.byKey(const Key('sidebar-section-浏览'))).dy;
+    final manageHeaderTop =
+        tester.getTopLeft(find.byKey(const Key('sidebar-section-管理'))).dy;
+    final mediaMaintenanceTop = tester
+        .getTopLeft(find.byKey(const Key('nav-group-media-maintenance')))
+        .dy;
+    expect(overviewTop, lessThan(browseHeaderTop));
+    expect(browseHeaderTop, lessThan(manageHeaderTop));
+    expect(manageHeaderTop, lessThan(mediaMaintenanceTop));
+
+    // 折叠态：标题文字隐藏，分区键位仍在（以分隔线呈现）。
+    await tester.tap(find.byKey(const Key('sidebar-toggle-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('浏览'), findsNothing);
+    expect(find.text('管理'), findsNothing);
+    expect(find.byKey(const Key('sidebar-section-浏览')), findsOneWidget);
+    expect(find.byKey(const Key('sidebar-section-管理')), findsOneWidget);
+  });
+
+  testWidgets('desktop sidebar shows bottom fade only while nav can scroll', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    _enqueueOverviewResponses(bundle);
+    await _pumpDesktopApp(
+      tester,
+      bundle: bundle,
+      sessionStore: sessionStore,
+      statusApi: bundle.statusApi,
+      moviesApi: bundle.moviesApi,
+    );
+    await tester.pumpAndSettle();
+
+    AnimatedOpacity fadeOpacity() => tester.widget<AnimatedOpacity>(
+      find.ancestor(
+        of: find.byKey(const Key('sidebar-nav-scroll-fade')),
+        matching: find.byType(AnimatedOpacity),
+      ),
+    );
+
+    // 默认 800x600 视口下导航溢出，底部渐隐遮罩可见。
+    expect(fadeOpacity().opacity, 1);
+
+    // 视口足够高、导航不再溢出时，遮罩隐藏。
+    await tester.binding.setSurfaceSize(const Size(800, 2000));
+    await tester.pumpAndSettle();
+    expect(fadeOpacity().opacity, 0);
+  });
+
   testWidgets('topbar divider aligns with sidebar divider', (
     WidgetTester tester,
   ) async {
