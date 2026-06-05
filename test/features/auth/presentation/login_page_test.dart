@@ -83,7 +83,10 @@ void main() {
     expect(find.byKey(const Key('login-form-username')), findsOneWidget);
     expect(find.byKey(const Key('login-form-password')), findsOneWidget);
     expect(find.byKey(const Key('login-submit-button')), findsOneWidget);
-    expect(find.text('https://saved.example.com'), findsOneWidget);
+    // 已存地址 https://saved.example.com 被拆分为协议前缀 + 主机部分。
+    expect(find.byKey(const Key('login-protocol-selector')), findsOneWidget);
+    expect(find.text('https://'), findsOneWidget);
+    expect(find.text('saved.example.com'), findsOneWidget);
   });
 
   testWidgets('validates base url format before submit', (
@@ -93,7 +96,7 @@ void main() {
 
     await tester.enterText(
       find.byKey(const Key('login-form-base-url')),
-      'invalid-url',
+      'bad host',
     );
     await tester.enterText(
       find.byKey(const Key('login-form-username')),
@@ -204,6 +207,85 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('XMLHttpRequest onError'), findsNothing);
+  });
+
+  testWidgets('defaults to http and composes full base url after switching '
+      'protocol', (WidgetTester tester) async {
+    final freshSession = SessionStore.inMemory();
+    final freshClient = ApiClient(sessionStore: freshSession);
+    final freshAdapter = FakeHttpClientAdapter();
+    freshClient.rawDio.httpClientAdapter = freshAdapter;
+    freshClient.rawRefreshDio.httpClientAdapter = freshAdapter;
+    final freshAuthApi = AuthApi(
+      apiClient: freshClient,
+      sessionStore: freshSession,
+      credentialStore: credentialStore,
+    );
+    addTearDown(freshClient.dispose);
+
+    freshAdapter.enqueueJson(
+      method: 'POST',
+      path: '/auth/tokens',
+      statusCode: 401,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'invalid_credentials',
+          'message': '用户名或密码错误',
+        },
+      },
+    );
+
+    await _pumpLoginPage(
+      tester,
+      sessionStore: freshSession,
+      authApi: freshAuthApi,
+      credentialStore: credentialStore,
+    );
+
+    // 空地址时默认协议为 http://。
+    expect(find.text('http://'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('login-form-base-url')),
+      '192.168.1.10:8000',
+    );
+    await tester.enterText(
+      find.byKey(const Key('login-form-username')),
+      'demo',
+    );
+    await tester.enterText(find.byKey(const Key('login-form-password')), 'pwd');
+
+    // 打开协议下拉并切换到 https。
+    await tester.tap(find.byKey(const Key('login-protocol-selector')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('login-protocol-https')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('login-submit-button')));
+    await tester.pumpAndSettle();
+
+    expect(freshSession.baseUrl, 'https://192.168.1.10:8000');
+  });
+
+  testWidgets('strips pasted protocol prefix and updates selector', (
+    WidgetTester tester,
+  ) async {
+    await _pumpLoginPage(
+      tester,
+      sessionStore: sessionStore,
+      authApi: authApi,
+      credentialStore: credentialStore,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('login-form-base-url')),
+      'http://paste.example.com:9000',
+    );
+    await tester.pump();
+
+    // 协议前缀被剥离到下拉，输入框只保留主机部分。
+    expect(find.text('http://'), findsOneWidget);
+    expect(find.text('paste.example.com:9000'), findsOneWidget);
   });
 
   testWidgets('centers login card vertically on desktop viewport', (

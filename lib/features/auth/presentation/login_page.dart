@@ -36,13 +36,26 @@ class _LoginPageState extends State<LoginPage> {
   bool _isPasswordObscured = true;
   bool _hasAttemptedSubmit = false;
   String? _submitError;
+  String _protocol = 'http';
 
   @override
   void initState() {
     super.initState();
-    _baseUrlController.text = context.read<SessionStore>().baseUrl;
+    _initBaseUrl(context.read<SessionStore>().baseUrl);
     _loadSavedCredentials();
   }
+
+  void _initBaseUrl(String savedBaseUrl) {
+    final match = RegExp(r'^(https?)://').firstMatch(savedBaseUrl.trim());
+    if (match != null) {
+      _protocol = match.group(1)!;
+      _baseUrlController.text = savedBaseUrl.trim().substring(match.end);
+    } else {
+      _baseUrlController.text = savedBaseUrl.trim();
+    }
+  }
+
+  String _composeBaseUrl() => '$_protocol://${_baseUrlController.text.trim()}';
 
   Future<void> _loadSavedCredentials() async {
     final credentialStore = context.read<CredentialStore>();
@@ -93,7 +106,7 @@ class _LoginPageState extends State<LoginPage> {
     final authApi = context.read<AuthApi>();
 
     try {
-      await sessionStore.saveBaseUrl(_baseUrlController.text.trim());
+      await sessionStore.saveBaseUrl(_composeBaseUrl());
       await authApi.login(
         username: _usernameController.text.trim(),
         password: _passwordController.text,
@@ -127,19 +140,45 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   String? _validateBaseUrl(String? value) {
-    final text = value?.trim() ?? '';
-    if (text.isEmpty) {
-      return '请输入服务器 BaseURL';
+    final host = value?.trim() ?? '';
+    if (host.isEmpty) {
+      return '请输入服务器地址';
+    }
+    if (host.contains(RegExp(r'\s'))) {
+      return '请输入有效的 http(s) 地址';
     }
 
-    final uri = Uri.tryParse(text);
-    final isHttp =
-        uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
-    final hasHost = uri != null && uri.host.isNotEmpty;
-    if (!isHttp || !hasHost) {
+    final uri = Uri.tryParse('$_protocol://$host');
+    if (uri == null || uri.host.isEmpty) {
       return '请输入有效的 http(s) 地址';
     }
     return null;
+  }
+
+  /// 用户在地址框中粘贴/输入完整 URL（含协议）时，自动剥离协议前缀并切换下拉。
+  void _handleBaseUrlChanged(String value) {
+    final match = RegExp(r'^(https?)://').firstMatch(value);
+    if (match == null) {
+      return;
+    }
+    final scheme = match.group(1)!;
+    final rest = value.substring(match.end);
+    setState(() {
+      _protocol = scheme;
+    });
+    _baseUrlController.value = TextEditingValue(
+      text: rest,
+      selection: TextSelection.collapsed(offset: rest.length),
+    );
+  }
+
+  void _handleProtocolChanged(String protocol) {
+    if (protocol == _protocol) {
+      return;
+    }
+    setState(() {
+      _protocol = protocol;
+    });
   }
 
   String? _validateRequired(String label, String? value) {
@@ -260,13 +299,14 @@ class _LoginPageState extends State<LoginPage> {
                                 textInputAction: TextInputAction.next,
                                 enabled: !_isSubmitting,
                                 validator: _validateBaseUrl,
+                                onChanged: _handleBaseUrlChanged,
                                 onFieldSubmitted:
                                     (_) => _usernameFocusNode.requestFocus(),
-                                hintText: 'http://127.0.0.1:38000',
-                                prefix: Icon(
-                                  Icons.dns_outlined,
-                                  size: context.appComponentTokens.iconSizeMd,
-                                  color: context.appTextPalette.muted,
+                                hintText: '127.0.0.1:38000',
+                                prefix: _ProtocolPrefix(
+                                  protocol: _protocol,
+                                  enabled: !_isSubmitting,
+                                  onChanged: _handleProtocolChanged,
                                 ),
                               ),
                               SizedBox(height: spacing.lg),
@@ -452,6 +492,268 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 地址输入框左侧内嵌的协议（http/https）选择器，点击弹出下拉切换。
+class _ProtocolPrefix extends StatefulWidget {
+  const _ProtocolPrefix({
+    required this.protocol,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String protocol;
+  final bool enabled;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_ProtocolPrefix> createState() => _ProtocolPrefixState();
+}
+
+class _ProtocolPrefixState extends State<_ProtocolPrefix> {
+  static const List<String> _protocols = <String>['http', 'https'];
+
+  final LayerLink _layerLink = LayerLink();
+  final GlobalKey _triggerKey = GlobalKey();
+
+  OverlayEntry? _overlayEntry;
+  bool _isMenuOpen = false;
+
+  @override
+  void dispose() {
+    _removeOverlay(notify: false);
+    super.dispose();
+  }
+
+  void _toggleMenu() {
+    if (!widget.enabled) {
+      return;
+    }
+    if (_overlayEntry != null) {
+      _removeOverlay();
+      return;
+    }
+    _showOverlay();
+  }
+
+  void _showOverlay() {
+    final overlay = Overlay.of(context);
+    final triggerBox =
+        _triggerKey.currentContext?.findRenderObject() as RenderBox?;
+    if (triggerBox == null) {
+      return;
+    }
+    final triggerHeight = triggerBox.size.height;
+    // 触发器较窄，菜单需要足够宽度容纳 “https://”，故取触发器宽度与最小宽度的较大值。
+    final menuWidth = math.max(triggerBox.size.width, 132.0);
+    final formTokens = context.appFormTokens;
+
+    setState(() {
+      _isMenuOpen = true;
+    });
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Stack(
+          children: <Widget>[
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _removeOverlay,
+                child: const SizedBox.expand(),
+              ),
+            ),
+            CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: Offset(0, triggerHeight + formTokens.menuGap),
+              child: Material(
+                color: Colors.transparent,
+                child: _ProtocolMenu(
+                  width: menuWidth,
+                  protocols: _protocols,
+                  selected: widget.protocol,
+                  onSelected: (protocol) {
+                    widget.onChanged(protocol);
+                    _removeOverlay();
+                  },
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    overlay.insert(_overlayEntry!);
+  }
+
+  void _removeOverlay({bool notify = true}) {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    if (!notify || !mounted) {
+      return;
+    }
+    setState(() {
+      _isMenuOpen = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final colors = context.appColors;
+
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: MouseRegion(
+        cursor:
+            widget.enabled
+                ? SystemMouseCursors.click
+                : SystemMouseCursors.basic,
+        child: GestureDetector(
+          key: const Key('login-protocol-selector'),
+          onTap: _toggleMenu,
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            key: _triggerKey,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                '${widget.protocol}://',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  tone: AppTextTone.secondary,
+                ),
+              ),
+              Icon(
+                _isMenuOpen
+                    ? Icons.keyboard_arrow_up_rounded
+                    : Icons.keyboard_arrow_down_rounded,
+                size: context.appComponentTokens.iconSizeSm,
+                color: context.appTextPalette.secondary,
+              ),
+              SizedBox(width: spacing.sm),
+              Container(width: 1, height: 20, color: colors.borderSubtle),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProtocolMenu extends StatelessWidget {
+  const _ProtocolMenu({
+    required this.width,
+    required this.protocols,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final double width;
+  final List<String> protocols;
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final overlayTokens = context.appOverlayTokens;
+
+    return Container(
+      width: width,
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
+        borderRadius: context.appRadius.smBorder,
+        border: Border.all(color: colors.borderSubtle),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: context.appTextPalette.primary.withValues(
+              alpha: overlayTokens.hoverAlpha,
+            ),
+            blurRadius: overlayTokens.surfaceShadowBlur,
+            offset: Offset(0, overlayTokens.surfaceShadowOffsetY),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: context.appRadius.smBorder,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children:
+              protocols
+                  .map(
+                    (protocol) => _ProtocolMenuItem(
+                      protocol: protocol,
+                      selected: protocol == selected,
+                      onTap: () => onSelected(protocol),
+                    ),
+                  )
+                  .toList(growable: false),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProtocolMenuItem extends StatefulWidget {
+  const _ProtocolMenuItem({
+    required this.protocol,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String protocol;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_ProtocolMenuItem> createState() => _ProtocolMenuItemState();
+}
+
+class _ProtocolMenuItemState extends State<_ProtocolMenuItem> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final formTokens = context.appFormTokens;
+    final backgroundColor =
+        widget.selected
+            ? colors.surfaceMuted
+            : _isHovered
+            ? colors.sidebarHoverBackground
+            : Colors.transparent;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        key: Key('login-protocol-${widget.protocol}'),
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: Container(
+          height: formTokens.menuItemHeight,
+          padding: EdgeInsets.symmetric(
+            horizontal: formTokens.fieldHorizontalPadding,
+          ),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(color: backgroundColor),
+          child: Text(
+            '${widget.protocol}://',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              tone: widget.selected ? AppTextTone.accent : AppTextTone.primary,
+            ),
           ),
         ),
       ),
