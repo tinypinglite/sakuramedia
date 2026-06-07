@@ -1839,7 +1839,7 @@ void main() {
       await tester.tap(find.text('磁力搜索'));
       await tester.pumpAndSettle();
 
-      expect(find.text('搜索依赖配置管理中的下载器与索引器。'), findsOneWidget);
+      expect(find.text('搜索依赖系统设置中的下载器与索引器。'), findsOneWidget);
       expect(bundle.adapter.hitCount('GET', '/download-candidates'), 0);
       expect(bundle.adapter.hitCount('GET', '/media/100/thumbnails'), 1);
     },
@@ -2223,7 +2223,7 @@ void main() {
       await tester.tap(find.text('磁力搜索'));
       await tester.pumpAndSettle();
 
-      expect(find.text('搜索依赖配置管理中的下载器与索引器。'), findsOneWidget);
+      expect(find.text('搜索依赖系统设置中的下载器与索引器。'), findsOneWidget);
       expect(
         find.byKey(const Key('movie-detail-magnet-open-configuration')),
         findsNothing,

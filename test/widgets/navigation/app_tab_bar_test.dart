@@ -76,8 +76,8 @@ void main() {
     final labelStyle = tabBar.labelStyle as TextStyle;
     final unselectedLabelStyle = tabBar.unselectedLabelStyle as TextStyle;
 
-    expect(labelStyle.fontSize, sakuraThemeData.appTextScale.s12);
-    expect(unselectedLabelStyle.fontSize, sakuraThemeData.appTextScale.s12);
+    expect(labelStyle.fontSize, sakuraThemeData.appTextScale.s14);
+    expect(unselectedLabelStyle.fontSize, sakuraThemeData.appTextScale.s14);
   });
 
   testWidgets('auto app tab bar uses desktop style by default', (

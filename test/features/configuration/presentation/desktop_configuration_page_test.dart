@@ -17,6 +17,7 @@ import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/llm_settings_copy.dart';
+import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
@@ -43,23 +44,58 @@ void main() {
       bundle.dispose();
     });
 
-    testWidgets('renders configuration tabs including playlists tab', (
+    testWidgets('renders all configuration category entries in the rail', (
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
 
-      final tabs = tester.widgetList<Tab>(find.byType(Tab)).toList();
-      expect(tabs.map((tab) => tab.text).toList(), [
-        '媒体库',
-        '合集特征',
-        'LLM 配置',
-        '账号安全',
-        '下载器',
-        '索引器',
-        '播放列表',
-      ]);
+      const categoryKeys = <String>[
+        'configuration-tab-media-libraries',
+        'configuration-tab-collection-features',
+        'configuration-tab-llm',
+        'configuration-tab-account-security',
+        'configuration-tab-downloads',
+        'configuration-tab-indexers',
+        'configuration-tab-playlists',
+        'configuration-tab-media-maintenance',
+      ];
+      for (final key in categoryKeys) {
+        expect(find.byKey(Key(key)), findsOneWidget, reason: key);
+      }
+    });
+
+    testWidgets('loads media maintenance tab lazily when switching tabs', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/invalid',
+        body: <String, Object?>{
+          'items': const <Map<String, Object?>>[],
+          'page': 1,
+          'page_size': 20,
+          'total': 0,
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      expect(bundle.adapter.hitCount('GET', '/media/invalid'), 0);
+
+      await tester.tap(
+        find.byKey(const Key('configuration-tab-media-maintenance')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('GET', '/media/invalid'), 1);
+      expect(
+        find.byKey(const Key('desktop-media-maintenance-page')),
+        findsOneWidget,
+      );
+      expect(find.text('当前没有失效媒体'), findsOneWidget);
     });
 
     testWidgets('loads download clients lazily when switching tabs', (
@@ -963,7 +999,7 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
     });
 
-    testWidgets('shows media library id on configuration cards', (
+    testWidgets('shows media library name and path on configuration cells', (
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
@@ -971,7 +1007,10 @@ void main() {
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
       await _openMediaLibrariesTab(tester);
 
-      expect(find.text('ID: 1'), findsOneWidget);
+      expect(find.byKey(const Key('media-library-card-1')), findsOneWidget);
+      expect(find.text('Main Library'), findsOneWidget);
+      expect(find.text('/media/library/main'), findsOneWidget);
+      expect(find.text('ID 1'), findsOneWidget);
     });
 
     testWidgets('edits a media library and refreshes download tab libraries', (
@@ -2369,6 +2408,7 @@ void main() {
           Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
           Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
           Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
+          Provider<MediaApi>.value(value: bundle.mediaApi),
           Provider<MovieDescTranslationSettingsApi>.value(
             value: bundle.movieDescTranslationSettingsApi,
           ),
@@ -2445,6 +2485,7 @@ Future<void> _pumpPage(
         Provider<DownloadClientsApi>.value(value: bundle.downloadClientsApi),
         Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
         Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
+        Provider<MediaApi>.value(value: bundle.mediaApi),
         Provider<MovieDescTranslationSettingsApi>.value(
           value: bundle.movieDescTranslationSettingsApi,
         ),

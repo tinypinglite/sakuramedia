@@ -959,7 +959,7 @@ class _MovieDetailMagnetTab extends StatelessWidget {
     }
 
     if (!controller.hasSearched) {
-      return const Center(child: AppEmptyState(message: '搜索依赖配置管理中的下载器与索引器。'));
+      return const Center(child: AppEmptyState(message: '搜索依赖系统设置中的下载器与索引器。'));
     }
 
     if (items.isEmpty) {
