@@ -21,6 +21,18 @@
 
 ## 推荐部署思路
 
+::: danger 媒体目录必须挂载到 `/mnt` 下
+挂载影片 / 媒体目录时，**容器内路径必须位于 `/mnt` 下**（例如 `/mnt/volume1/media`、`/mnt/volume2/media`）。也就是说，`volumes` 里媒体相关挂载的冒号右侧必须以 `/mnt/` 开头：
+
+```yaml
+volumes:
+  - /mnt/volume1/media:/mnt/volume1/media   # ✅ 正确：容器内路径在 /mnt 下
+  # - /your/path:/data/media                # ❌ 错误：容器内路径不在 /mnt 下
+```
+
+原因是：导入已有媒体时，后端的目录浏览 API 只能从 `/mnt` 这个根开始往下浏览。如果你把媒体目录挂到 `/data`、`/media` 等其他位置，在 SakuraMedia 里就根本看不到、也选不到它们，自然也无法导入历史影片。本页所有示例都遵循这一约定。
+:::
+
 ### 单硬盘推荐方案
 
 如果你当前只有一块主要媒体盘，最推荐的思路是：
