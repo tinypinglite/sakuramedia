@@ -55,6 +55,7 @@ dependencies:
   volume_controller: 3.4.0
   package_info_plus: ^9.0.1
   flutter_secure_storage: ^9.2.0
+  marionette_flutter: ^0.5.0
 
 dev_dependencies:
   flutter_test:
