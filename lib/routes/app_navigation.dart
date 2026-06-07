@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/actors/presentation/mobile_actors_page.dart
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/desktop_discover_page.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_reviews_page.dart';
+import 'package:sakuramedia/features/media_import/presentation/desktop_media_import_page.dart';
 import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.dart';
 import 'package:sakuramedia/features/tags/presentation/desktop_tags_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dart';
@@ -217,6 +218,20 @@ const List<_NavSeed> _desktopNavSeeds = [
     ],
   ),
   _NavSeed(
+    id: 'media-import',
+    label: '媒体导入',
+    icon: Icons.drive_folder_upload_outlined,
+    section: '管理',
+    items: [
+      _NavItemSeed(
+        slug: 'system/media-import',
+        label: '媒体导入',
+        icon: Icons.drive_folder_upload_outlined,
+        description: '浏览后端目录、导入已有媒体到媒体库，并管理导入进度与失败文件。',
+      ),
+    ],
+  ),
+  _NavSeed(
     id: 'activity',
     label: '活动中心',
     icon: Icons.notifications_active_outlined,
@@ -245,6 +260,7 @@ final Map<String, WidgetBuilder> _desktopRouteBuilders =
       desktopHotReviewsPath: (_) => const DesktopHotReviewsPage(),
       desktopActivityPath: (_) => const DesktopActivityPage(),
       desktopConfigurationPath: (_) => const DesktopConfigurationPage(),
+      desktopMediaImportPath: (_) => const DesktopMediaImportPage(),
     };
 
 final Map<String, WidgetBuilder> _mobileRouteBuilders = <String, WidgetBuilder>{

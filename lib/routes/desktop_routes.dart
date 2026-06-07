@@ -108,6 +108,7 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     TypedGoRoute<DesktopHotReviewsRouteData>(path: desktopHotReviewsPath),
     TypedGoRoute<DesktopActivityRouteData>(path: desktopActivityPath),
     TypedGoRoute<DesktopConfigurationRouteData>(path: desktopConfigurationPath),
+    TypedGoRoute<DesktopMediaImportRouteData>(path: desktopMediaImportPath),
     TypedGoRoute<DesktopSearchRouteData>(path: desktopSearchPath),
     // 以图搜图必须先于 `:query` 声明，避免 `/desktop/search/image` 被吞成普通搜索。
     TypedGoRoute<DesktopImageSearchRouteData>(path: desktopImageSearchPath),
@@ -249,6 +250,11 @@ class DesktopConfigurationRouteData extends _DesktopShellSpecRouteData
 class DesktopActivityRouteData extends _DesktopShellSpecRouteData
     with $DesktopActivityRouteData {
   const DesktopActivityRouteData() : super(desktopActivityPath);
+}
+
+class DesktopMediaImportRouteData extends _DesktopShellSpecRouteData
+    with $DesktopMediaImportRouteData {
+  const DesktopMediaImportRouteData() : super(desktopMediaImportPath);
 }
 
 class DesktopSearchRouteData extends _DesktopShellPageRouteData

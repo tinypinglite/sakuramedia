@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
@@ -36,6 +37,7 @@ class TestApiBundle {
     required this.downloadsApi,
     required this.indexerSettingsApi,
     required this.mediaApi,
+    required this.mediaImportApi,
     required this.mediaLibrariesApi,
     required this.movieDescTranslationSettingsApi,
     required this.statusApi,
@@ -58,6 +60,7 @@ class TestApiBundle {
   final DownloadsApi downloadsApi;
   final IndexerSettingsApi indexerSettingsApi;
   final MediaApi mediaApi;
+  final MediaImportApi mediaImportApi;
   final MediaLibrariesApi mediaLibrariesApi;
   final MovieDescTranslationSettingsApi movieDescTranslationSettingsApi;
   final StatusApi statusApi;
@@ -101,6 +104,7 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     downloadsApi: DownloadsApi(apiClient: apiClient),
     indexerSettingsApi: IndexerSettingsApi(apiClient: apiClient),
     mediaApi: MediaApi(apiClient: apiClient),
+    mediaImportApi: MediaImportApi(apiClient: apiClient),
     mediaLibrariesApi: MediaLibrariesApi(apiClient: apiClient),
     movieDescTranslationSettingsApi: MovieDescTranslationSettingsApi(
       apiClient: apiClient,

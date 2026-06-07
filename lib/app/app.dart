@@ -23,6 +23,7 @@ import 'package:sakuramedia/features/configuration/data/movie_desc_translation_s
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
+import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
@@ -170,6 +171,10 @@ class _MyAppState extends State<MyApp> {
           create:
               (context) =>
                   MediaLibrariesApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<MediaImportApi>(
+          create:
+              (context) => MediaImportApi(apiClient: context.read<ApiClient>()),
         ),
         Provider<MovieDescTranslationSettingsApi>(
           create:

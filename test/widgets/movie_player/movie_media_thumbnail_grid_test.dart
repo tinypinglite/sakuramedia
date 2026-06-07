@@ -365,18 +365,11 @@ void main() {
         height: 360,
         isScrollLocked: false,
       );
+      await tester.pumpAndSettle();
 
+      // 视口变化后，原先不在视口、未建图的瓦片进入可见范围即应加载出图片，
+      // 不应停留在占位图（回归保护：缩略图面板调整尺寸后图片不自动加载）。
       expect(resizedVisibleTile, findsOneWidget);
-      expect(
-        find.descendant(
-          of: resizedVisibleTile,
-          matching: find.byType(CachedNetworkImage),
-        ),
-        findsNothing,
-      );
-
-      await tester.pump();
-
       expect(
         find.descendant(
           of: resizedVisibleTile,

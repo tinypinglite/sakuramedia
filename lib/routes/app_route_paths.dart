@@ -17,6 +17,7 @@ const String desktopRankingsPath = '/desktop/library/rankings';
 const String desktopHotReviewsPath = '/desktop/library/hot-reviews';
 const String desktopActivityPath = '/desktop/system/activity';
 const String desktopConfigurationPath = '/desktop/system/configuration';
+const String desktopMediaImportPath = '/desktop/system/media-import';
 
 const String mobileOverviewPath = '/mobile/overview';
 const String mobileDiscoverMoviesPath = '$mobileOverviewPath/discover/movies';

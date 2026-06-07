@@ -32,6 +32,7 @@ import 'package:sakuramedia/features/configuration/data/movie_desc_translation_s
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
@@ -101,7 +102,7 @@ void main() {
   });
 
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 11);
+    expect(desktopNavGroups.length, 12);
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
       '发现',
@@ -113,6 +114,7 @@ void main() {
       '排行榜',
       '热评',
       '系统设置',
+      '媒体导入',
       '活动中心',
     ]);
     expect(desktopRouteSpecs.map((spec) => spec.path), [
@@ -126,6 +128,7 @@ void main() {
       desktopRankingsPath,
       desktopHotReviewsPath,
       desktopConfigurationPath,
+      desktopMediaImportPath,
       desktopActivityPath,
     ]);
   });
@@ -3511,6 +3514,7 @@ Future<void> _pumpRouterApp(
     Provider<DownloadsApi>.value(value: bundle.downloadsApi),
     Provider<IndexerSettingsApi>.value(value: bundle.indexerSettingsApi),
     Provider<MediaLibrariesApi>.value(value: bundle.mediaLibrariesApi),
+    Provider<MediaImportApi>.value(value: bundle.mediaImportApi),
     Provider<MovieDescTranslationSettingsApi>.value(
       value: bundle.movieDescTranslationSettingsApi,
     ),
