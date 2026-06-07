@@ -18,7 +18,11 @@ import 'package:sakuramedia/widgets/app_shell/app_page_frame.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 
 class DesktopMediaMaintenancePage extends StatefulWidget {
-  const DesktopMediaMaintenancePage({super.key});
+  const DesktopMediaMaintenancePage({super.key, this.active = true});
+
+  /// 作为系统设置页的 tab 嵌入时用于懒加载：仅在该 tab 激活后才拉取失效媒体。
+  /// 作为独立页面使用时保持默认 `true`，进入即加载。
+  final bool active;
 
   @override
   State<DesktopMediaMaintenancePage> createState() =>
@@ -35,7 +39,17 @@ class _DesktopMediaMaintenancePageState
     super.initState();
     _controller = InvalidMediaController(mediaApi: context.read<MediaApi>());
     _controller.attachScrollListener();
-    unawaited(_controller.initialize());
+    if (widget.active) {
+      unawaited(_controller.initialize());
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant DesktopMediaMaintenancePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !oldWidget.active) {
+      unawaited(_controller.initialize());
+    }
   }
 
   @override
@@ -242,6 +256,12 @@ class _MediaMaintenanceHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppContentCard(
       title: '失效媒体维护',
+      titleStyle: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s14,
+        weight: AppTextWeight.semibold,
+        tone: AppTextTone.primary,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -253,9 +273,9 @@ class _MediaMaintenanceHeader extends StatelessWidget {
                   '巡检标记为失效的本地媒体会出现在这里。你可以复查文件是否恢复，或清理已经确认不可用的记录。',
                   style: resolveAppTextStyle(
                     context,
-                    size: AppTextSize.s14,
+                    size: AppTextSize.s12,
                     weight: AppTextWeight.regular,
-                    tone: AppTextTone.secondary,
+                    tone: AppTextTone.muted,
                   ),
                 ),
                 SizedBox(height: context.appSpacing.md),

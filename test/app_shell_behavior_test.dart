@@ -136,19 +136,19 @@ void main() {
     expect(find.text('浏览'), findsOneWidget);
     expect(find.text('管理'), findsOneWidget);
 
-    // 顺序：概览 → 浏览标题 → … → 管理标题 → 媒体维护。
+    // 顺序：概览 → 浏览标题 → … → 管理标题 → 系统设置。
     final overviewTop =
         tester.getTopLeft(find.byKey(const Key('nav-group-overview'))).dy;
     final browseHeaderTop =
         tester.getTopLeft(find.byKey(const Key('sidebar-section-浏览'))).dy;
     final manageHeaderTop =
         tester.getTopLeft(find.byKey(const Key('sidebar-section-管理'))).dy;
-    final mediaMaintenanceTop = tester
-        .getTopLeft(find.byKey(const Key('nav-group-media-maintenance')))
+    final configurationTop = tester
+        .getTopLeft(find.byKey(const Key('nav-group-configuration')))
         .dy;
     expect(overviewTop, lessThan(browseHeaderTop));
     expect(browseHeaderTop, lessThan(manageHeaderTop));
-    expect(manageHeaderTop, lessThan(mediaMaintenanceTop));
+    expect(manageHeaderTop, lessThan(configurationTop));
 
     // 折叠态：标题文字隐藏，分区键位仍在（以分隔线呈现）。
     await tester.tap(find.byKey(const Key('sidebar-toggle-button')));

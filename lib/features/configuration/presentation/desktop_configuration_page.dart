@@ -19,6 +19,7 @@ import 'package:sakuramedia/features/configuration/presentation/desktop_llm_sett
 import 'package:sakuramedia/features/configuration/presentation/download_client_form.dart';
 import 'package:sakuramedia/features/configuration/presentation/indexer_entry_form.dart';
 import 'package:sakuramedia/features/configuration/presentation/media_library_form.dart';
+import 'package:sakuramedia/features/media/presentation/desktop_media_maintenance_page.dart';
 import 'package:sakuramedia/features/playlists/data/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/create_playlist_dialog.dart';
@@ -29,10 +30,10 @@ import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
-import 'package:sakuramedia/widgets/app_shell/app_page_frame.dart';
+import 'package:sakuramedia/widgets/app_shell/app_settings_group.dart';
+import 'package:sakuramedia/widgets/app_shell/app_settings_rail.dart';
 import 'package:sakuramedia/widgets/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/forms/app_text_field.dart';
-import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
 
 class DesktopConfigurationPage extends StatefulWidget {
   const DesktopConfigurationPage({super.key});
@@ -42,33 +43,60 @@ class DesktopConfigurationPage extends StatefulWidget {
       _DesktopConfigurationPageState();
 }
 
-class _DesktopConfigurationPageState extends State<DesktopConfigurationPage>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
   int _selectedIndex = 0;
   int _mediaLibrariesRevision = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 7, vsync: this)
-      ..addListener(_handleTabChanged);
-  }
+  // 顺序即右侧 IndexedStack 的索引；itemKey 沿用原 tab key，保持深链/测试兼容。
+  static const List<_ConfigurationCategory> _categories = [
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-media-libraries'),
+      label: '媒体库',
+      icon: Icons.folder_open_outlined,
+    ),
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-collection-features'),
+      label: '合集特征',
+      icon: Icons.tag_outlined,
+    ),
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-llm'),
+      label: 'LLM 配置',
+      icon: Icons.auto_awesome_outlined,
+    ),
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-account-security'),
+      label: '账号安全',
+      icon: Icons.shield_outlined,
+    ),
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-downloads'),
+      label: '下载器',
+      icon: Icons.download_outlined,
+    ),
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-indexers'),
+      label: '索引器',
+      icon: Icons.travel_explore_outlined,
+    ),
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-playlists'),
+      label: '播放列表',
+      icon: Icons.playlist_play_outlined,
+    ),
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-media-maintenance'),
+      label: '媒体维护',
+      icon: Icons.cleaning_services_outlined,
+    ),
+  ];
 
-  @override
-  void dispose() {
-    _tabController
-      ..removeListener(_handleTabChanged)
-      ..dispose();
-    super.dispose();
-  }
-
-  void _handleTabChanged() {
-    if (_selectedIndex == _tabController.index) {
+  void _select(int index) {
+    if (_selectedIndex == index) {
       return;
     }
     setState(() {
-      _selectedIndex = _tabController.index;
+      _selectedIndex = index;
     });
   }
 
@@ -80,47 +108,115 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage>
 
   @override
   Widget build(BuildContext context) {
-    return AppPageFrame(
-      title: '',
-      child: Column(
-        key: const Key('configuration-page'),
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppTabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(key: Key('configuration-tab-media-libraries'), text: '媒体库'),
-              Tab(
-                key: Key('configuration-tab-collection-features'),
-                text: '合集特征',
+    final spacing = context.appSpacing;
+    return Row(
+      key: const Key('configuration-page'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppSettingsRail(
+          selectedIndex: _selectedIndex,
+          onSelected: _select,
+          items: [
+            for (final category in _categories)
+              AppSettingsRailItem(
+                itemKey: category.itemKey,
+                label: category.label,
+                icon: category.icon,
               ),
-              Tab(key: Key('configuration-tab-llm'), text: 'LLM 配置'),
-              Tab(key: Key('configuration-tab-account-security'), text: '账号安全'),
-              Tab(key: Key('configuration-tab-downloads'), text: '下载器'),
-              Tab(key: Key('configuration-tab-indexers'), text: '索引器'),
-              Tab(key: Key('configuration-tab-playlists'), text: '播放列表'),
-            ],
-          ),
-          SizedBox(height: context.appSpacing.xl),
-          IndexedStack(
-            index: _selectedIndex,
+          ],
+        ),
+        SizedBox(width: spacing.xl),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _MediaLibrariesTab(
-                active: _selectedIndex == 0,
-                onLibrariesChanged: _handleMediaLibrariesChanged,
+              Padding(
+                padding: EdgeInsets.only(bottom: spacing.lg),
+                child: Text(
+                  _categories[_selectedIndex].label,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s20,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.primary,
+                  ),
+                ),
               ),
-              _CollectionNumberFeaturesTab(active: _selectedIndex == 1),
-              DesktopLlmSettingsSection(active: _selectedIndex == 2),
-              const _AccountSecuritySection(),
-              _DownloadClientsTab(
-                active: _selectedIndex == 4,
-                librariesRevision: _mediaLibrariesRevision,
+              Expanded(
+                child: IndexedStack(
+                  index: _selectedIndex,
+                  sizing: StackFit.expand,
+                  children: [
+                    _ConfigurationTabScrollView(
+                      child: _MediaLibrariesTab(
+                        active: _selectedIndex == 0,
+                        onLibrariesChanged: _handleMediaLibrariesChanged,
+                      ),
+                    ),
+                    _ConfigurationTabScrollView(
+                      child: _CollectionNumberFeaturesTab(
+                        active: _selectedIndex == 1,
+                      ),
+                    ),
+                    _ConfigurationTabScrollView(
+                      child: DesktopLlmSettingsSection(
+                        active: _selectedIndex == 2,
+                      ),
+                    ),
+                    const _ConfigurationTabScrollView(
+                      child: _AccountSecuritySection(),
+                    ),
+                    _ConfigurationTabScrollView(
+                      child: _DownloadClientsTab(
+                        active: _selectedIndex == 4,
+                        librariesRevision: _mediaLibrariesRevision,
+                      ),
+                    ),
+                    _ConfigurationTabScrollView(
+                      child: _IndexerSettingsTab(active: _selectedIndex == 5),
+                    ),
+                    _ConfigurationTabScrollView(
+                      child: _PlaylistsTab(active: _selectedIndex == 6),
+                    ),
+                    // 媒体维护页自带滚动控制器（无限滚动分页），直接铺满区域，
+                    // 不再额外包一层滚动视图。
+                    DesktopMediaMaintenancePage(active: _selectedIndex == 7),
+                  ],
+                ),
               ),
-              _IndexerSettingsTab(active: _selectedIndex == 5),
-              _PlaylistsTab(active: _selectedIndex == 6),
             ],
           ),
-        ],
+        ),
+      ],
+    );
+  }
+}
+
+/// 系统设置左侧分类项描述。
+class _ConfigurationCategory {
+  const _ConfigurationCategory({
+    required this.itemKey,
+    required this.label,
+    required this.icon,
+  });
+
+  final Key itemKey;
+  final String label;
+  final IconData icon;
+}
+
+/// 系统设置各 tab 的统一滚动容器：tab 栏固定，内容区各自滚动。
+class _ConfigurationTabScrollView extends StatelessWidget {
+  const _ConfigurationTabScrollView({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: context.appSpacing.xl),
+        child: child,
       ),
     );
   }
@@ -307,32 +403,10 @@ class _MediaLibrariesTabState extends State<_MediaLibrariesTab> {
       );
     }
 
+    final spacing = context.appSpacing;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                '媒体库 (Media Libraries)',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s14,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
-            ),
-            AppButton(
-              key: const Key('configuration-media-library-create-button'),
-              onPressed: _createLibrary,
-              icon: const Icon(Icons.add_rounded),
-              label: '新增媒体库',
-              variant: AppButtonVariant.primary,
-            ),
-          ],
-        ),
-        SizedBox(height: context.appSpacing.md),
         Text(
           '媒体库用于维护本地媒体存储根路径，下载器等模块会依赖这里的路径配置。',
           style: resolveAppTextStyle(
@@ -342,21 +416,64 @@ class _MediaLibrariesTabState extends State<_MediaLibrariesTab> {
             tone: AppTextTone.muted,
           ),
         ),
-        SizedBox(height: context.appSpacing.lg),
+        SizedBox(height: spacing.lg),
         if (_libraries.isEmpty)
           const AppEmptyState(message: '还没有媒体库')
         else
-          _LineSection(
-            children: _libraries
-                .map(
-                  (library) => _MediaLibraryCard(
-                    library: library,
-                    onEdit: () => _editLibrary(library),
-                    onDelete: () => _deleteLibrary(library),
+          AppSettingsGroup(
+            // 分隔线缩到主标题起点（行左边距 + 图标盒 + 间隙）。
+            dividerIndent: spacing.lg + spacing.xxl + spacing.md,
+            children: [
+              for (final library in _libraries)
+                AppSettingCell(
+                  key: Key('media-library-card-${library.id}'),
+                  icon: Icons.folder_open_outlined,
+                  title: library.name,
+                  subtitle: library.rootPath,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'ID ${library.id}',
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s12,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.muted,
+                        ),
+                      ),
+                      SizedBox(width: spacing.sm),
+                      _IndexerActionButton(
+                        key: Key('media-library-edit-${library.id}'),
+                        icon: Icons.edit_outlined,
+                        onTap: () => _editLibrary(library),
+                      ),
+                      SizedBox(width: spacing.xs),
+                      _IndexerActionButton(
+                        key: Key('media-library-delete-${library.id}'),
+                        icon: Icons.delete_outline,
+                        onTap: () => _deleteLibrary(library),
+                      ),
+                    ],
                   ),
-                )
-                .toList(growable: false),
+                ),
+            ],
           ),
+        SizedBox(height: spacing.lg),
+        AppSettingsGroup(
+          children: [
+            AppSettingCell(
+              key: const Key('configuration-media-library-create-button'),
+              icon: Icons.add_rounded,
+              iconColor: Theme.of(context).colorScheme.primary,
+              title: '新增媒体库',
+              titleTone: AppTextTone.accent,
+              titleWeight: AppTextWeight.medium,
+              trailing: const AppSettingCellChevron(),
+              onTap: _createLibrary,
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -1388,46 +1505,51 @@ class _DownloadClientsTabState extends State<_DownloadClientsTab> {
       for (final library in _libraries) library.id: library,
     };
 
+    final spacing = context.appSpacing;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_libraries.isEmpty) ...[
-          Text(
-            '当前没有可用媒体库，创建下载器前请先在后端配置媒体库。',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.muted,
-            ).copyWith(color: Theme.of(context).colorScheme.error),
+        if (_libraries.isEmpty)
+          Padding(
+            padding: EdgeInsets.only(bottom: spacing.lg),
+            child: Text(
+              '当前没有可用媒体库，创建下载器前请先在后端配置媒体库。',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.muted,
+              ).copyWith(color: Theme.of(context).colorScheme.error),
+            ),
           ),
-        ],
-        SizedBox(height: context.appSpacing.lg),
         if (_clients.isEmpty)
-          const _EmptyPanel(message: '还没有下载器配置')
+          const AppEmptyState(message: '还没有下载器配置')
         else
-          _LineSection(
-            children: _clients
-                .map(
-                  (client) => _DownloadClientCard(
-                    client: client,
-                    mediaLibrary: librariesById[client.mediaLibraryId],
-                    onEdit: () => _editClient(client),
-                    onDelete: () => _deleteClient(client),
-                  ),
-                )
-                .toList(growable: false),
+          AppSettingsGroup(
+            children: [
+              for (final client in _clients)
+                _DownloadClientCard(
+                  client: client,
+                  mediaLibrary: librariesById[client.mediaLibraryId],
+                  onEdit: () => _editClient(client),
+                  onDelete: () => _deleteClient(client),
+                ),
+            ],
           ),
-        SizedBox(height: context.appSpacing.lg),
-        Align(
-          alignment: Alignment.bottomRight,
-          child: AppButton(
-            key: const Key('configuration-download-client-create-button'),
-            label: '新建下载器',
-            icon: const Icon(Icons.add_rounded),
-            variant: AppButtonVariant.primary,
-            onPressed: _libraries.isEmpty ? null : _createClient,
-          ),
+        SizedBox(height: spacing.lg),
+        AppSettingsGroup(
+          children: [
+            AppSettingCell(
+              key: const Key('configuration-download-client-create-button'),
+              icon: Icons.add_rounded,
+              iconColor: Theme.of(context).colorScheme.primary,
+              title: '新建下载器',
+              titleTone: AppTextTone.accent,
+              titleWeight: AppTextWeight.medium,
+              trailing: const AppSettingCellChevron(),
+              onTap: _libraries.isEmpty ? null : _createClient,
+            ),
+          ],
         ),
       ],
     );
@@ -1449,88 +1571,89 @@ class _DownloadClientCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateLabel = _formatUpdatedAt(client.updatedAt);
+    final spacing = context.appSpacing;
 
-    return Container(
+    return Padding(
       key: Key('download-client-card-${client.id}'),
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: context.appSpacing.lg),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: context.appColors.divider)),
-      ),
+      padding: EdgeInsets.symmetric(horizontal: spacing.lg, vertical: spacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const AppSettingIconBox(icon: Icons.cloud_download_outlined),
+              SizedBox(width: spacing.md),
               Expanded(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       client.name,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s18,
-                        weight: AppTextWeight.semibold,
-                      ),
-                    ),
-                    SizedBox(height: context.appSpacing.xs),
-                    Text(
-                      client.baseUrl,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: resolveAppTextStyle(
                         context,
                         size: AppTextSize.s14,
+                        weight: AppTextWeight.medium,
+                        tone: AppTextTone.primary,
+                      ),
+                    ),
+                    SizedBox(height: spacing.xs),
+                    Text(
+                      client.baseUrl,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s12,
                         weight: AppTextWeight.regular,
-                        tone: AppTextTone.secondary,
+                        tone: AppTextTone.muted,
                       ),
                     ),
                   ],
                 ),
               ),
-              Wrap(
-                spacing: context.appSpacing.sm,
-                runSpacing: context.appSpacing.sm,
-                children: [
-                  AppButton(
-                    key: Key('download-client-edit-${client.id}'),
-                    onPressed: onEdit,
-                    icon: const Icon(Icons.edit_outlined),
-                    label: '编辑',
-                    size: AppButtonSize.small,
-                    variant: AppButtonVariant.ghost,
-                  ),
-                  AppButton(
-                    key: Key('download-client-delete-${client.id}'),
-                    onPressed: onDelete,
-                    icon: const Icon(Icons.delete_outline),
-                    label: '删除',
-                    size: AppButtonSize.small,
-                    variant: AppButtonVariant.ghost,
-                  ),
-                ],
+              SizedBox(width: spacing.md),
+              _IndexerActionButton(
+                key: Key('download-client-edit-${client.id}'),
+                icon: Icons.edit_outlined,
+                onTap: onEdit,
+              ),
+              SizedBox(width: spacing.xs),
+              _IndexerActionButton(
+                key: Key('download-client-delete-${client.id}'),
+                icon: Icons.delete_outline,
+                onTap: onDelete,
               ),
             ],
           ),
-          SizedBox(height: context.appSpacing.lg),
-          Wrap(
-            spacing: context.appSpacing.md,
-            runSpacing: context.appSpacing.md,
-            children: [
-              _InfoPill(label: '用户名', value: client.username),
-              _InfoPill(
-                label: '媒体库',
-                value:
-                    mediaLibrary == null
-                        ? '未匹配 (${client.mediaLibraryId})'
-                        : mediaLibrary!.name,
-              ),
-              _InfoPill(label: 'qBittorrent保存路径', value: client.clientSavePath),
-              _InfoPill(label: '本地访问路径', value: client.localRootPath),
-              _InfoPill(label: '密码', value: client.hasPassword ? '已设置' : '未设置'),
-              _InfoPill(label: '更新时间', value: dateLabel),
-            ],
+          SizedBox(height: spacing.md),
+          Padding(
+            padding: EdgeInsets.only(left: spacing.xxl + spacing.md),
+            child: Wrap(
+              spacing: spacing.md,
+              runSpacing: spacing.sm,
+              children: [
+                _InfoPill(label: '用户名', value: client.username),
+                _InfoPill(
+                  label: '媒体库',
+                  value:
+                      mediaLibrary == null
+                          ? '未匹配 (${client.mediaLibraryId})'
+                          : mediaLibrary!.name,
+                ),
+                _InfoPill(
+                  label: 'qBittorrent保存路径',
+                  value: client.clientSavePath,
+                ),
+                _InfoPill(label: '本地访问路径', value: client.localRootPath),
+                _InfoPill(
+                  label: '密码',
+                  value: client.hasPassword ? '已设置' : '未设置',
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1715,143 +1838,75 @@ class _PlaylistsTabState extends State<_PlaylistsTab> {
       );
     }
 
+    final spacing = context.appSpacing;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (_playlists.isEmpty)
-          const _EmptyPanel(message: '还没有自定义播放列表')
+          const AppEmptyState(message: '还没有自定义播放列表')
         else
-          _LineSection(
-            children: _playlists
-                .map(
-                  (playlist) => _PlaylistCard(
-                    playlist: playlist,
-                    onEdit:
-                        playlist.isMutable
-                            ? () => _editPlaylist(playlist)
-                            : null,
-                    onDelete:
-                        playlist.isDeletable
-                            ? () => _deletePlaylist(playlist)
-                            : null,
-                  ),
-                )
-                .toList(growable: false),
+          AppSettingsGroup(
+            dividerIndent: spacing.lg + spacing.xxl + spacing.md,
+            children: [
+              for (final playlist in _playlists)
+                AppSettingCell(
+                  key: Key('playlist-card-${playlist.id}'),
+                  icon: Icons.playlist_play_outlined,
+                  title: playlist.name,
+                  subtitle: _playlistSubtitle(playlist),
+                  trailing: _playlistTrailing(context, playlist),
+                ),
+            ],
           ),
-        SizedBox(height: context.appSpacing.lg),
-        Align(
-          alignment: Alignment.bottomRight,
-          child: AppButton(
-            key: const Key('configuration-playlist-create-button'),
-            label: '新建播放列表',
-            icon: const Icon(Icons.add_rounded),
-            variant: AppButtonVariant.primary,
-            onPressed: _createPlaylist,
-          ),
+        SizedBox(height: spacing.lg),
+        AppSettingsGroup(
+          children: [
+            AppSettingCell(
+              key: const Key('configuration-playlist-create-button'),
+              icon: Icons.add_rounded,
+              iconColor: Theme.of(context).colorScheme.primary,
+              title: '新建播放列表',
+              titleTone: AppTextTone.accent,
+              titleWeight: AppTextWeight.medium,
+              trailing: const AppSettingCellChevron(),
+              onTap: _createPlaylist,
+            ),
+          ],
         ),
       ],
     );
   }
-}
 
-class _PlaylistCard extends StatelessWidget {
-  const _PlaylistCard({
-    required this.playlist,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final PlaylistDto playlist;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-
-  @override
-  Widget build(BuildContext context) {
+  String _playlistSubtitle(PlaylistDto playlist) {
     final description = playlist.description.trim();
+    if (description.isNotEmpty) {
+      return '$description · ${playlist.movieCount} 部';
+    }
+    return '${playlist.movieCount} 部影片';
+  }
 
-    return Container(
-      key: Key('playlist-card-${playlist.id}'),
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: context.appSpacing.lg),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: context.appColors.divider)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      playlist.name,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s18,
-                        weight: AppTextWeight.semibold,
-                        tone: AppTextTone.primary,
-                      ),
-                    ),
-                    if (description.isNotEmpty) ...[
-                      SizedBox(height: context.appSpacing.xs),
-                      Text(
-                        description,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s12,
-                          weight: AppTextWeight.regular,
-                          tone: AppTextTone.secondary,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (onEdit != null || onDelete != null)
-                Wrap(
-                  spacing: context.appSpacing.sm,
-                  runSpacing: context.appSpacing.sm,
-                  children: [
-                    if (onEdit != null)
-                      AppButton(
-                        key: Key('playlist-edit-${playlist.id}'),
-                        onPressed: onEdit,
-                        icon: const Icon(Icons.edit_outlined),
-                        label: '编辑',
-                        size: AppButtonSize.small,
-                        variant: AppButtonVariant.ghost,
-                      ),
-                    if (onDelete != null)
-                      AppButton(
-                        key: Key('playlist-delete-${playlist.id}'),
-                        onPressed: onDelete,
-                        icon: const Icon(Icons.delete_outline),
-                        label: '删除',
-                        size: AppButtonSize.small,
-                        variant: AppButtonVariant.ghost,
-                      ),
-                  ],
-                ),
-            ],
+  Widget? _playlistTrailing(BuildContext context, PlaylistDto playlist) {
+    if (!playlist.isMutable && !playlist.isDeletable) {
+      return null;
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (playlist.isMutable)
+          _IndexerActionButton(
+            key: Key('playlist-edit-${playlist.id}'),
+            icon: Icons.edit_outlined,
+            onTap: () => _editPlaylist(playlist),
           ),
-          SizedBox(height: context.appSpacing.lg),
-          Wrap(
-            spacing: context.appSpacing.md,
-            runSpacing: context.appSpacing.md,
-            children: [
-              _InfoPill(label: '影片数', value: '${playlist.movieCount}'),
-              _InfoPill(label: '类型', value: playlist.kind),
-              _InfoPill(
-                label: '更新时间',
-                value: _formatUpdatedAt(playlist.updatedAt),
-              ),
-            ],
+        if (playlist.isMutable && playlist.isDeletable)
+          SizedBox(width: context.appSpacing.xs),
+        if (playlist.isDeletable)
+          _IndexerActionButton(
+            key: Key('playlist-delete-${playlist.id}'),
+            icon: Icons.delete_outline,
+            onTap: () => _deletePlaylist(playlist),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -1963,117 +2018,6 @@ class _PlaylistDialogState extends State<_PlaylistDialog> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _MediaLibraryCard extends StatelessWidget {
-  const _MediaLibraryCard({
-    required this.library,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final MediaLibraryDto library;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final layoutTokens = context.appLayoutTokens;
-
-    return Container(
-      key: Key('media-library-card-${library.id}'),
-      width: double.infinity,
-      padding: EdgeInsets.all(context.appSpacing.md),
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: colors.borderSubtle),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: layoutTokens.panelIconContainerSize,
-            height: layoutTokens.panelIconContainerSize,
-            decoration: BoxDecoration(
-              color: colors.surfaceMuted,
-              borderRadius: context.appRadius.mdBorder,
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.folder_open_outlined,
-              size: context.appComponentTokens.iconSizeLg,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          SizedBox(width: context.appSpacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  library.name,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-                SizedBox(height: context.appSpacing.xs),
-                Text(
-                  library.rootPath,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.secondary,
-                  ),
-                ),
-                SizedBox(height: context.appSpacing.xs),
-                Text(
-                  'ID: ${library.id}',
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.muted,
-                  ),
-                ),
-                SizedBox(height: context.appSpacing.sm),
-                Text(
-                  '更新时间: ${_formatUpdatedAt(library.updatedAt)}',
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.muted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(width: context.appSpacing.md),
-          Wrap(
-            spacing: context.appSpacing.xs,
-            runSpacing: context.appSpacing.xs,
-            children: [
-              _IndexerActionButton(
-                key: Key('media-library-edit-${library.id}'),
-                icon: Icons.edit_outlined,
-                onTap: onEdit,
-              ),
-              _IndexerActionButton(
-                key: Key('media-library-delete-${library.id}'),
-                icon: Icons.delete_outline,
-                onTap: onDelete,
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
@@ -2421,65 +2365,64 @@ class _IndexerSettingsTabState extends State<_IndexerSettingsTab> {
                 })
                 .toList(growable: false);
 
+    final spacing = context.appSpacing;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'API 密钥 (Key)',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s14,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
+        AppContentCard(
+          title: 'API 密钥',
+          titleStyle: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s16,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ),
+          headerBottomSpacing: spacing.md,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppTextField(
+                controller: _apiKeyController,
+                hintText: '请输入 Jackett API Key',
+                obscureText: _obscureApiKey,
+                suffix: AppIconButton(
+                  tooltip: _obscureApiKey ? '显示 API 密钥' : '隐藏 API 密钥',
+                  onPressed:
+                      () => setState(() {
+                        _obscureApiKey = !_obscureApiKey;
+                      }),
+                  icon: Icon(
+                    _obscureApiKey
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    size: context.appComponentTokens.iconSizeSm,
+                  ),
                 ),
               ),
-            ),
-            AppIconButton(
-              tooltip: _obscureApiKey ? '显示 API 密钥' : '隐藏 API 密钥',
-              onPressed:
-                  () => setState(() {
-                    _obscureApiKey = !_obscureApiKey;
-                  }),
-              icon: Icon(
-                _obscureApiKey
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                size: context.appComponentTokens.iconSizeSm,
-                color: context.appTextPalette.muted,
+              SizedBox(height: spacing.sm),
+              Text(
+                '该密钥用于与 Jackett 后端进行身份验证',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.muted,
+                ),
               ),
-            ),
-          ],
-        ),
-        SizedBox(height: context.appSpacing.md),
-        AppTextField(
-          controller: _apiKeyController,
-          hintText: '请输入 Jackett API Key',
-          obscureText: _obscureApiKey,
-        ),
-        SizedBox(height: context.appSpacing.sm),
-        Text(
-          '该密钥用于与 Jackett 后端进行身份验证',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.muted,
+            ],
           ),
         ),
-        SizedBox(height: context.appSpacing.lg),
+        SizedBox(height: spacing.lg),
         Row(
           children: [
             Expanded(
               child: Text(
-                '索引器列表 (Indexers)',
+                '索引器列表',
                 style: resolveAppTextStyle(
                   context,
-                  size: AppTextSize.s14,
+                  size: AppTextSize.s12,
                   weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
+                  tone: AppTextTone.muted,
                 ),
               ),
             ),
@@ -2488,12 +2431,13 @@ class _IndexerSettingsTabState extends State<_IndexerSettingsTab> {
               onPressed: _downloadClients.isEmpty ? null : _createIndexer,
               icon: const Icon(Icons.add_rounded),
               label: '添加',
+              size: AppButtonSize.small,
               variant: AppButtonVariant.primary,
             ),
           ],
         ),
         if (_downloadClients.isEmpty) ...[
-          SizedBox(height: context.appSpacing.sm),
+          SizedBox(height: spacing.sm),
           Text(
             '请先在下载器 Tab 创建下载器',
             style: resolveAppTextStyle(
@@ -2504,26 +2448,24 @@ class _IndexerSettingsTabState extends State<_IndexerSettingsTab> {
             ),
           ),
         ],
-        SizedBox(height: context.appSpacing.md),
+        SizedBox(height: spacing.md),
         _IndexerSearchField(controller: _searchController),
-        SizedBox(height: context.appSpacing.lg),
+        SizedBox(height: spacing.md),
         if (filteredIndexers.isEmpty)
           _IndexerEmptyState(message: query.isEmpty ? '还没有配置索引站' : '没有匹配的索引站')
         else
-          _LineSection(
-            children: filteredIndexers
-                .map((item) {
-                  final actualIndex = _indexers.indexOf(item);
-                  return _IndexerEntryCard(
-                    entry: item,
-                    index: actualIndex,
-                    onEdit: () => _editIndexer(actualIndex),
-                    onDelete: () => _deleteIndexer(actualIndex),
-                  );
-                })
-                .toList(growable: false),
+          AppSettingsGroup(
+            children: [
+              for (final item in filteredIndexers)
+                _IndexerEntryCard(
+                  entry: item,
+                  index: _indexers.indexOf(item),
+                  onEdit: () => _editIndexer(_indexers.indexOf(item)),
+                  onDelete: () => _deleteIndexer(_indexers.indexOf(item)),
+                ),
+            ],
           ),
-        SizedBox(height: context.appSpacing.xl),
+        SizedBox(height: spacing.xl),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -2557,23 +2499,18 @@ class _IndexerEntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
+    final spacing = context.appSpacing;
 
-    return Container(
+    return Padding(
       key: Key('indexer-entry-card-$index'),
-      width: double.infinity,
-      padding: EdgeInsets.all(context.appSpacing.lg),
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: colors.borderSubtle),
-      ),
+      padding: EdgeInsets.symmetric(horizontal: spacing.lg, vertical: spacing.md),
       child: Row(
         children: [
           IndexerSourceAvatar(kind: entry.kind),
-          SizedBox(width: context.appSpacing.lg),
+          SizedBox(width: spacing.md),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -2581,21 +2518,25 @@ class _IndexerEntryCard extends StatelessWidget {
                     Flexible(
                       child: Text(
                         entry.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: resolveAppTextStyle(
                           context,
-                          size: AppTextSize.s18,
-                          weight: AppTextWeight.semibold,
+                          size: AppTextSize.s14,
+                          weight: AppTextWeight.medium,
                           tone: AppTextTone.primary,
                         ),
                       ),
                     ),
-                    SizedBox(width: context.appSpacing.sm),
+                    SizedBox(width: spacing.sm),
                     IndexerKindBadge(kind: entry.kind),
                   ],
                 ),
-                SizedBox(height: context.appSpacing.xs),
+                SizedBox(height: spacing.xs),
                 Text(
                   entry.url,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: resolveAppTextStyle(
                     context,
                     size: AppTextSize.s12,
@@ -2603,9 +2544,11 @@ class _IndexerEntryCard extends StatelessWidget {
                     tone: AppTextTone.secondary,
                   ),
                 ),
-                SizedBox(height: context.appSpacing.xs),
+                SizedBox(height: spacing.xs),
                 Text(
                   '下载器: ${entry.downloadClientName}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: resolveAppTextStyle(
                     context,
                     size: AppTextSize.s12,
@@ -2616,22 +2559,17 @@ class _IndexerEntryCard extends StatelessWidget {
               ],
             ),
           ),
-          SizedBox(width: context.appSpacing.md),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _IndexerActionButton(
-                key: Key('indexer-entry-edit-$index'),
-                icon: Icons.edit_outlined,
-                onTap: onEdit,
-              ),
-              SizedBox(width: context.appSpacing.sm),
-              _IndexerActionButton(
-                key: Key('indexer-entry-delete-$index'),
-                icon: Icons.delete_outline,
-                onTap: onDelete,
-              ),
-            ],
+          SizedBox(width: spacing.md),
+          _IndexerActionButton(
+            key: Key('indexer-entry-edit-$index'),
+            icon: Icons.edit_outlined,
+            onTap: onEdit,
+          ),
+          SizedBox(width: spacing.xs),
+          _IndexerActionButton(
+            key: Key('indexer-entry-delete-$index'),
+            icon: Icons.delete_outline,
+            onTap: onDelete,
           ),
         ],
       ),
@@ -3091,51 +3029,6 @@ class _InfoPill extends StatelessWidget {
   }
 }
 
-class _LineSection extends StatelessWidget {
-  const _LineSection({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: children
-          .map(
-            (child) => Padding(
-              padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-              child: child,
-            ),
-          )
-          .toList(growable: false),
-    );
-  }
-}
-
-class _EmptyPanel extends StatelessWidget {
-  const _EmptyPanel({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: context.appSpacing.xxxl),
-      alignment: Alignment.center,
-      color: context.appColors.surfaceMuted,
-      child: Text(
-        message,
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s14,
-          weight: AppTextWeight.regular,
-          tone: AppTextTone.secondary,
-        ),
-      ),
-    );
-  }
-}
-
 class _SectionErrorState extends StatelessWidget {
   const _SectionErrorState({
     required this.title,
@@ -3205,13 +3098,6 @@ class _SectionSkeleton extends StatelessWidget {
       }),
     );
   }
-}
-
-String _formatUpdatedAt(DateTime? value) {
-  if (value == null) {
-    return '未知';
-  }
-  return DateFormat('yyyy-MM-dd HH:mm').format(value.toLocal());
 }
 
 String _formatAccountDate(DateTime? value) {

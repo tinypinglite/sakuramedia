@@ -6,7 +6,6 @@ import 'package:sakuramedia/features/actors/presentation/mobile_actors_page.dart
 import 'package:sakuramedia/features/configuration/presentation/desktop_configuration_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/desktop_discover_page.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_reviews_page.dart';
-import 'package:sakuramedia/features/media/presentation/desktop_media_maintenance_page.dart';
 import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.dart';
 import 'package:sakuramedia/features/tags/presentation/desktop_tags_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dart';
@@ -204,30 +203,16 @@ const List<_NavSeed> _desktopNavSeeds = [
     ],
   ),
   _NavSeed(
-    id: 'media-maintenance',
-    label: '媒体维护',
-    icon: Icons.video_file_outlined,
-    section: '管理',
-    items: [
-      _NavItemSeed(
-        slug: 'system/media-maintenance',
-        label: '媒体维护',
-        icon: Icons.video_file_outlined,
-        description: '失效媒体复查、封面识别与本地媒体记录清理入口。',
-      ),
-    ],
-  ),
-  _NavSeed(
     id: 'configuration',
-    label: '配置管理',
+    label: '系统设置',
     icon: Icons.settings_suggest_outlined,
     section: '管理',
     items: [
       _NavItemSeed(
         slug: 'system/configuration',
-        label: '配置管理',
+        label: '系统设置',
         icon: Icons.settings_suggest_outlined,
-        description: '下载器、索引器等系统配置的统一管理入口。',
+        description: '媒体库、下载器、索引器、账号安全与失效媒体维护等系统配置的统一入口。',
       ),
     ],
   ),
@@ -258,7 +243,6 @@ final Map<String, WidgetBuilder> _desktopRouteBuilders =
       desktopPlaylistsPath: (_) => const DesktopPlaylistsPage(),
       desktopRankingsPath: (_) => const DesktopRankingsPage(),
       desktopHotReviewsPath: (_) => const DesktopHotReviewsPage(),
-      desktopMediaMaintenancePath: (_) => const DesktopMediaMaintenancePage(),
       desktopActivityPath: (_) => const DesktopActivityPage(),
       desktopConfigurationPath: (_) => const DesktopConfigurationPage(),
     };

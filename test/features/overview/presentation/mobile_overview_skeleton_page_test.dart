@@ -237,7 +237,7 @@ void main() {
 
       expect(drawer, findsOneWidget);
       expect(find.text('菜单'), findsNothing);
-      expect(find.text('配置管理'), findsNothing);
+      expect(find.text('系统设置'), findsNothing);
       expect(overviewSection, findsOneWidget);
       expect(librarySection, findsOneWidget);
       expect(playlistsSection, findsOneWidget);

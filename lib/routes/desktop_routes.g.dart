@@ -147,10 +147,6 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
       factory: $DesktopHotReviewsRouteData._fromState,
     ),
     GoRouteData.$route(
-      path: '/desktop/system/media-maintenance',
-      factory: $DesktopMediaMaintenanceRouteData._fromState,
-    ),
-    GoRouteData.$route(
       path: '/desktop/system/activity',
       factory: $DesktopActivityRouteData._fromState,
     ),
@@ -437,28 +433,6 @@ mixin $DesktopHotReviewsRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/desktop/library/hot-reviews');
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
-mixin $DesktopMediaMaintenanceRouteData on GoRouteData {
-  static DesktopMediaMaintenanceRouteData _fromState(GoRouterState state) =>
-      const DesktopMediaMaintenanceRouteData();
-
-  @override
-  String get location =>
-      GoRouteData.$location('/desktop/system/media-maintenance');
 
   @override
   void go(BuildContext context) => context.go(location);
