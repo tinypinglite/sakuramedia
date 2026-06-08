@@ -1,0 +1,96 @@
+name: Notify Telegram
+
+# 可复用工作流：由 release.yml 在所有平台构建成功后调用。
+# 拉取「后端最新 release」+「前端本次 tag 的 release」说明，合并成一条公告发到电报群。
+# workflow_dispatch 仅用于手动验证 Bot/Secret 接通情况（此时前端说明可能为空，属正常）。
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  announce:
+    name: Compose announcement and send to Telegram
+    runs-on: ubuntu-latest
+    env:
+      # 后端仓库（公开仓库，读 release 无需额外授权）
+      BACKEND_REPO: tinypinglite/sakuramediabe
+    steps:
+      - name: Build combined announcement and send
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FE_REPO: ${{ github.repository }}
+          FE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${TELEGRAM_BOT_TOKEN:-}" ] || [ -z "${TELEGRAM_CHAT_ID:-}" ]; then
+            echo "::error::缺少 TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID secret，请到仓库 Settings → Secrets 配置"
+            exit 1
+          fi
+
+          api() {  # $1 = url；带 token 既可读私有也避免公开 API 限流
+            curl -sS \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "$1"
+          }
+
+          # --- 前端：本次 tag 的 release，轮询等正文非空（macOS job 负责生成 notes）---
+          fe_url="https://github.com/${FE_REPO}/releases/tag/${FE_TAG}"
+          fe_notes=""
+          for i in $(seq 1 6); do
+            resp="$(api "https://api.github.com/repos/${FE_REPO}/releases/tags/${FE_TAG}")"
+            fe_notes="$(printf '%s' "$resp" | jq -r '.body // ""')"
+            fe_html="$(printf '%s' "$resp" | jq -r '.html_url // ""')"
+            [ -n "$fe_html" ] && [ "$fe_html" != "null" ] && fe_url="$fe_html"
+            [ -n "$fe_notes" ] && [ "$fe_notes" != "null" ] && break
+            echo "前端 release 正文暂为空，等待生成… ($i/6)"
+            sleep 15
+          done
+
+          # --- 后端：最新一条 release ---
+          be_resp="$(api "https://api.github.com/repos/${BACKEND_REPO}/releases/latest")"
+          be_tag="$(printf '%s' "$be_resp" | jq -r '.tag_name // ""')"
+          be_notes="$(printf '%s' "$be_resp" | jq -r '.body // ""')"
+          be_url="$(printf '%s' "$be_resp" | jq -r '.html_url // ""')"
+
+          # 用 jq 组装公告并构造请求体：
+          #  - jq 的 length / 切片按 Unicode 码点计算，截断中文不会切坏字符
+          #  - 每段限 1500 码点，加标题/链接后稳在 Telegram 4096 上限内
+          payload="$(jq -n \
+            --arg chat_id "$TELEGRAM_CHAT_ID" \
+            --arg betag "$be_tag" --arg benotes "$be_notes" --arg beurl "$be_url" \
+            --arg fetag "$FE_TAG" --arg fenotes "$fe_notes" --arg feurl "$fe_url" \
+            '
+            def trim(n): if (length) > n then (.[0:n] + "\n…（完整说明见下方链接）") else . end;
+            {
+              chat_id: $chat_id,
+              disable_web_page_preview: true,
+              text: (
+                "🌸 SakuraMedia 新版本发布\n\n"
+                + "【后端 " + $betag + "】\n" + ($benotes | trim(1500))
+                + "\n\n【前端 " + $fetag + "】\n" + ($fenotes | trim(1500))
+                + "\n\n📥 前端下载 / 完整说明：" + $feurl
+                + "\n🔧 后端镜像 / 完整说明：" + $beurl
+              )
+            }')"
+
+          code="$(curl -sS -o /tmp/tg.json -w '%{http_code}' \
+            -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -H 'Content-Type: application/json' \
+            -d "$payload")"
+
+          echo "Telegram 响应码：$code"
+          cat /tmp/tg.json || true
+          echo
+          if [ "$code" != "200" ]; then
+            echo "::error::发送 Telegram 公告失败"
+            exit 1
+          fi
+          echo "✅ 公告已发送到电报群"

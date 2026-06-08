@@ -1,0 +1,48 @@
+name: Release
+
+# 总调度：push 一个 v* tag 触发本工作流，并行调起 5 个平台的构建/发布，
+# 全部成功后再由 notify 任务发送电报公告。
+# 单独重跑某个平台时，可到对应 Release Xxx 工作流用 workflow_dispatch 手动触发。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# 子工作流要发布 GitHub Release，需要 contents: write；
+# 可复用工作流的有效权限受此处上限约束。
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    name: macOS
+    uses: ./.github/workflows/release-macos.yml
+    secrets: inherit
+
+  windows:
+    name: Windows
+    uses: ./.github/workflows/release-windows.yml
+    secrets: inherit
+
+  android:
+    name: Android
+    uses: ./.github/workflows/release-android.yml
+    secrets: inherit
+
+  ios:
+    name: iOS
+    uses: ./.github/workflows/release-ios.yml
+    secrets: inherit
+
+  web:
+    name: Web
+    uses: ./.github/workflows/release-web.yml
+    secrets: inherit
+
+  # 只有上面 5 个平台「全部成功」时才会运行；任一失败/取消则跳过，不发公告。
+  notify:
+    name: Notify Telegram
+    needs: [macos, windows, android, ios, web]
+    uses: ./.github/workflows/notify-telegram.yml
+    secrets: inherit

@@ -1,9 +1,7 @@
 name: Release Windows
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_call:
   workflow_dispatch:
 
 permissions:
