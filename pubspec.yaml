@@ -78,3 +78,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # 内嵌 CJK 子集字体(覆盖中日常用字),Web(CanvasKit)端设为主字体以消除首屏方块字。
+  # 子集由 tool/subset_font.py 生成,体积约 5.5MB。
+  fonts:
+    - family: NotoSansSC
+      fonts:
+        - asset: assets/fonts/NotoSansSC-subset.ttf
