@@ -41,7 +41,6 @@ void main() {
                 'title': '有新的影片可以播放了',
                 'content': '本次后台处理新增可播放影片 1 部：SSIS-123',
                 'is_read': false,
-                'archived': false,
                 'created_at': '2026-03-26T09:10:00Z',
                 'updated_at': '2026-03-26T09:10:00Z',
               },
@@ -89,7 +88,6 @@ void main() {
 
       final response = await bundle.activityApi.getBootstrap(
         notificationCategory: 'reminder',
-        notificationArchived: false,
         taskState: 'running',
         taskKey: 'download_task_import',
         taskTriggerType: 'manual',
@@ -107,7 +105,10 @@ void main() {
         request.uri.queryParameters.containsKey('notification_level'),
         isFalse,
       );
-      expect(request.uri.queryParameters['notification_archived'], 'false');
+      expect(
+        request.uri.queryParameters.containsKey('notification_archived'),
+        isFalse,
+      );
       expect(request.uri.queryParameters['task_state'], 'running');
       expect(request.uri.queryParameters['task_key'], 'download_task_import');
       expect(request.uri.queryParameters['task_trigger_type'], 'manual');
@@ -127,7 +128,6 @@ void main() {
             'title': '有新的影片可以播放了',
             'content': '本次后台处理新增可播放影片 1 部：SSIS-123',
             'is_read': false,
-            'archived': false,
             'created_at': '2026-03-26T09:10:00Z',
             'updated_at': '2026-03-26T09:10:00Z',
           },
@@ -142,7 +142,6 @@ void main() {
       page: 2,
       pageSize: 10,
       category: 'reminder',
-      archived: false,
     );
 
     expect(response.items.single.id, 101);
@@ -152,7 +151,45 @@ void main() {
     expect(request.uri.queryParameters['page_size'], '10');
     expect(request.uri.queryParameters['category'], 'reminder');
     expect(request.uri.queryParameters.containsKey('level'), isFalse);
-    expect(request.uri.queryParameters['archived'], 'false');
+    expect(request.uri.queryParameters.containsKey('archived'), isFalse);
+  });
+
+  test('markNotificationsRead posts ids and maps read result', () async {
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/notifications/read',
+      body: <String, dynamic>{'updated_count': 3, 'unread_count': 5},
+    );
+
+    final result = await bundle.activityApi.markNotificationsRead(
+      <int>[1, 2, 3],
+    );
+
+    expect(result.updatedCount, 3);
+    expect(result.unreadCount, 5);
+    final request = bundle.adapter.requests.single;
+    expect(request.method.toUpperCase(), 'POST');
+    expect(request.path, '/system/notifications/read');
+    expect(request.body, <String, dynamic>{
+      'ids': <int>[1, 2, 3],
+    });
+  });
+
+  test('markAllNotificationsRead posts read-all and maps result', () async {
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/notifications/read-all',
+      body: <String, dynamic>{'updated_count': 8, 'unread_count': 0},
+    );
+
+    final result = await bundle.activityApi.markAllNotificationsRead();
+
+    expect(result.updatedCount, 8);
+    expect(result.unreadCount, 0);
+    expect(
+      bundle.adapter.hitCount('POST', '/system/notifications/read-all'),
+      1,
+    );
   });
 
   test('getTaskRuns maps filters and sort', () async {
@@ -251,17 +288,23 @@ void main() {
     expect(bundle.adapter.hitCount('POST', '/system/jobs/ranking_sync/run'), 1);
   });
 
-  test('streamEvents maps notification and task payloads', () async {
+  test('streamEvents maps notification, task and read payloads', () async {
     bundle.adapter.enqueueSse(
       method: 'GET',
       path: '/system/events/stream',
       chunks: const <String>[
         'id: 121\n'
             'event: notification_created\n'
-            'data: {"id":101,"category":"reminder","title":"有新的影片可以播放了","content":"ok","is_read":false,"archived":false}\n\n',
+            'data: {"id":101,"category":"reminder","title":"有新的影片可以播放了","content":"ok","is_read":false}\n\n',
         'id: 122\n'
             'event: task_run_updated\n'
             'data: {"id":88,"task_key":"download_task_import","task_name":"下载任务导入 SSIS-123","trigger_type":"manual","state":"running","progress_current":2,"progress_total":3,"progress_text":"正在导入影片文件 SSIS-123","created_at":"2026-03-26T09:10:00Z","updated_at":"2026-03-26T09:11:00Z"}\n\n',
+        'id: 123\n'
+            'event: notifications_read\n'
+            'data: {"ids":[101,102],"unread_count":4}\n\n',
+        'id: 124\n'
+            'event: notifications_read_all\n'
+            'data: {"unread_count":0}\n\n',
       ],
     );
 
@@ -272,5 +315,10 @@ void main() {
     expect(events[0].notification?.id, 101);
     expect(events[1].id, 122);
     expect(events[1].taskRun?.id, 88);
+    expect(events[2].isNotificationsRead, isTrue);
+    expect(events[2].notificationIds, <int>[101, 102]);
+    expect(events[2].unreadCount, 4);
+    expect(events[3].isNotificationsReadAll, isTrue);
+    expect(events[3].unreadCount, 0);
   });
 }

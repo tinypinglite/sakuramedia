@@ -6,11 +6,13 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/app/app_version_info_controller.dart';
+import 'package:sakuramedia/features/activity/presentation/notification_center_controller.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
 import 'package:sakuramedia/widgets/app_shell/app_window_drag_area.dart';
 import 'package:sakuramedia/widgets/search/catalog_search_field.dart';
 
@@ -483,6 +485,11 @@ class AppSidebarGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryItem = group.items.first;
+    // 仅「通知」组订阅全局未读数，其它组不 watch、避免无谓重建。
+    final badgeCount =
+        group.id == 'notifications'
+            ? _watchNotificationUnreadCount(context)
+            : null;
 
     return AppSidebarItem(
       key: Key('nav-group-${group.id}'),
@@ -490,8 +497,19 @@ class AppSidebarGroup extends StatelessWidget {
       label: group.label,
       selected: currentPath == primaryItem.path,
       collapsed: isCompact,
+      badgeCount: badgeCount,
       onTap: () => context.goPrimaryRoute(primaryItem.path),
     );
+  }
+}
+
+/// 防御式读取全局未读数：缺 Provider（如部分 widget 测试）时返回 null 不显示角标，
+/// 而非抛 [ProviderNotFoundException]。
+int? _watchNotificationUnreadCount(BuildContext context) {
+  try {
+    return context.watch<NotificationCenterController>().unreadCount;
+  } on ProviderNotFoundException {
+    return null;
   }
 }
 
@@ -611,6 +629,7 @@ class AppSidebarItem extends StatefulWidget {
     required this.onTap,
     required this.selected,
     required this.collapsed,
+    this.badgeCount,
   });
 
   final IconData icon;
@@ -619,12 +638,57 @@ class AppSidebarItem extends StatefulWidget {
   final bool selected;
   final bool collapsed;
 
+  /// 尾部未读角标数；`null` 或 `<= 0` 不显示。
+  final int? badgeCount;
+
   @override
   State<AppSidebarItem> createState() => _AppSidebarItemState();
 }
 
 class _AppSidebarItemState extends State<AppSidebarItem> {
   bool _hovered = false;
+
+  bool get _hasBadge => (widget.badgeCount ?? 0) > 0;
+
+  String get _badgeLabel {
+    final count = widget.badgeCount ?? 0;
+    return count > 99 ? '99+' : '$count';
+  }
+
+  /// 折叠态时在图标右上角叠一个未读小红点（不显示数字，避免拥挤）。
+  Widget _buildIcon(BuildContext context, Color color) {
+    final icon = Icon(
+      widget.icon,
+      size: context.appComponentTokens.iconSizeSm,
+      color: color,
+    );
+    if (!widget.collapsed || !_hasBadge) {
+      return icon;
+    }
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        icon,
+        Positioned(
+          right: -3,
+          top: -2,
+          child: Container(
+            key: const Key('sidebar-item-badge-dot'),
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: context.appTextPalette.error,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: context.appColors.sidebarBackground,
+                width: 1,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -688,11 +752,7 @@ class _AppSidebarItemState extends State<AppSidebarItem> {
                         ? MainAxisAlignment.center
                         : MainAxisAlignment.start,
                 children: [
-                  Icon(
-                    widget.icon,
-                    size: context.appComponentTokens.iconSizeSm,
-                    color: foregroundColor,
-                  ),
+                  _buildIcon(context, foregroundColor),
                   if (!widget.collapsed) ...[
                     SizedBox(width: context.appSpacing.md),
                     Expanded(
@@ -706,6 +766,15 @@ class _AppSidebarItemState extends State<AppSidebarItem> {
                         ),
                       ),
                     ),
+                    if (_hasBadge) ...[
+                      SizedBox(width: context.appSpacing.sm),
+                      AppBadge(
+                        key: const Key('sidebar-item-badge'),
+                        label: _badgeLabel,
+                        tone: AppBadgeTone.error,
+                        size: AppBadgeSize.compact,
+                      ),
+                    ],
                   ],
                 ],
               ),

@@ -7,7 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
-import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_center_controller.dart';
@@ -51,7 +50,7 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
     _resourceTaskController = ResourceTaskCenterController(
       activityApi: activityApi,
     )..addListener(_handleControllerChanged);
-    _tabController = TabController(length: 3, vsync: this)
+    _tabController = TabController(length: 2, vsync: this)
       ..addListener(_handleTabChanged);
     _pageScrollController = ScrollController()..addListener(_handlePageScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -131,13 +130,6 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
     }
 
     switch (_controller.activeTab) {
-      case ActivityTab.notifications:
-        if (_controller.hasMoreNotifications &&
-            !_controller.isLoadingMoreNotifications &&
-            _controller.notificationLoadMoreErrorMessage == null) {
-          unawaited(_controller.loadMoreNotifications());
-        }
-        break;
       case ActivityTab.tasks:
         if (_controller.hasMoreTasks &&
             !_controller.isLoadingMoreTasks &&
@@ -198,7 +190,6 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
       ];
     }
     return switch (_controller.activeTab) {
-      ActivityTab.notifications => _buildNotificationSlivers(context),
       ActivityTab.tasks => _buildTaskSlivers(context),
       ActivityTab.resourceTasks => buildResourceTaskSlivers(
         context: context,
@@ -206,87 +197,6 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
         dateFormat: _dateFormat,
       ),
     };
-  }
-
-  List<Widget> _buildNotificationSlivers(BuildContext context) {
-    final titleStyle = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s18,
-      weight: AppTextWeight.semibold,
-      tone: AppTextTone.primary,
-    );
-    final slivers = <Widget>[
-      SliverToBoxAdapter(
-        child: Column(
-          key: const Key('activity-notifications-tab'),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _ActivitySection(
-              title: '通知中心',
-              titleStyle: titleStyle,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _NotificationFilterBar(controller: _controller),
-                  if (_controller.notificationRefreshErrorMessage != null) ...[
-                    SizedBox(height: context.appSpacing.md),
-                    AppPagedLoadMoreFooter(
-                      isLoading: false,
-                      errorMessage: _controller.notificationRefreshErrorMessage,
-                      onRetry: _controller.refreshNotifications,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            SizedBox(height: context.appSpacing.lg),
-          ],
-        ),
-      ),
-    ];
-
-    if (_controller.notifications.isEmpty) {
-      slivers.add(
-        const SliverToBoxAdapter(child: AppEmptyState(message: '当前筛选下暂无通知')),
-      );
-      return slivers;
-    }
-
-    slivers.add(
-      SliverList(
-        delegate: SliverChildBuilderDelegate((context, index) {
-          final item = _controller.notifications[index];
-          final isLast = index == _controller.notifications.length - 1;
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: isLast ? 0 : context.appSpacing.md,
-            ),
-            child: RepaintBoundary(
-              child: _NotificationCard(
-                notification: item,
-                dateFormat: _dateFormat,
-              ),
-            ),
-          );
-        }, childCount: _controller.notifications.length),
-      ),
-    );
-    slivers.add(
-      SliverToBoxAdapter(
-        child: Column(
-          children: [
-            SizedBox(height: context.appSpacing.lg),
-            AppPagedLoadMoreFooter(
-              isLoading: _controller.isLoadingMoreNotifications,
-              errorMessage: _controller.notificationLoadMoreErrorMessage,
-              onRetry: _controller.loadMoreNotifications,
-            ),
-            SizedBox(height: context.appSpacing.xl),
-          ],
-        ),
-      ),
-    );
-    return slivers;
   }
 
   List<Widget> _buildTaskSlivers(BuildContext context) {
@@ -426,10 +336,6 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
                       AppTabBar(
                         controller: _tabController,
                         tabs: const [
-                          Tab(
-                            key: Key('activity-tab-notifications'),
-                            text: '通知',
-                          ),
                           Tab(key: Key('activity-tab-tasks'), text: '任务'),
                           Tab(
                             key: Key('activity-tab-resource-tasks'),
@@ -612,64 +518,6 @@ class _ConnectionBanner extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _NotificationFilterBar extends StatelessWidget {
-  const _NotificationFilterBar({required this.controller});
-
-  final ActivityCenterController controller;
-
-  static const List<String> _categories = <String>[
-    'info',
-    'warning',
-    'error',
-    'reminder',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final layoutTokens = context.appLayoutTokens;
-    final filterTextStyle = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s12,
-      weight: AppTextWeight.regular,
-      tone: AppTextTone.tertiary,
-    );
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: context.appSpacing.md,
-      runSpacing: context.appSpacing.md,
-      children: [
-        SizedBox(
-          width: layoutTokens.filterFieldWidthMd,
-          child: AppSelectField<String?>(
-            key: const Key('activity-notification-category-filter'),
-            value: controller.notificationFilter.category,
-            size: AppSelectFieldSize.compact,
-            textStyle: filterTextStyle,
-            items: <DropdownMenuItem<String?>>[
-              ..._categories.map(
-                (value) => DropdownMenuItem<String?>(
-                  value: value,
-                  child: Text(_labelForNotificationCategory(value)),
-                ),
-              ),
-            ],
-            onChanged:
-                controller.isRefreshingNotifications
-                    ? null
-                    : (value) => controller.applyNotificationFilter(
-                      controller.notificationFilter.copyWith(category: value),
-                    ),
-          ),
-        ),
-        _FilterRefreshIndicator(
-          indicatorKey: const Key('activity-notification-filter-loading'),
-          isVisible: controller.isRefreshingNotifications,
-        ),
-      ],
     );
   }
 }
@@ -1125,95 +973,6 @@ class _FilterRefreshIndicator extends StatelessWidget {
   }
 }
 
-class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({
-    required this.notification,
-    required this.dateFormat,
-  });
-
-  final ActivityNotificationDto notification;
-  final DateFormat dateFormat;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    return SizedBox(
-      width: double.infinity,
-      child: Container(
-        key: Key('activity-notification-${notification.id}'),
-        width: double.infinity,
-        padding: EdgeInsets.all(context.appSpacing.lg),
-        decoration: BoxDecoration(
-          color: colors.surfaceCard,
-          borderRadius: context.appRadius.mdBorder,
-          border: Border.all(
-            color: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.28),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notification.title,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s14,
-                          weight: AppTextWeight.regular,
-                          tone: AppTextTone.secondary,
-                        ),
-                      ),
-                      SizedBox(height: context.appSpacing.xs),
-                      Text(
-                        notification.content,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s14,
-                          weight: AppTextWeight.regular,
-                          tone: AppTextTone.secondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: context.appSpacing.md),
-            Wrap(
-              spacing: context.appSpacing.sm,
-              runSpacing: context.appSpacing.sm,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                AppBadge(
-                  label: _labelForNotificationCategory(notification.category),
-                  tone: _notificationCategoryTone(notification.category),
-                ),
-                Text(
-                  _formatDate(notification.createdAt, dateFormat),
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.muted,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _TaskRunCard extends StatelessWidget {
   const _TaskRunCard({
     required this.taskRun,
@@ -1351,15 +1110,6 @@ String _taskTimeSummary(TaskRunDto item, DateFormat formatter) {
   return '创建于 ${_formatDate(item.createdAt, formatter)}';
 }
 
-AppBadgeTone _notificationCategoryTone(String category) {
-  return switch (category) {
-    'error' => AppBadgeTone.error,
-    'warning' => AppBadgeTone.warning,
-    'info' => AppBadgeTone.primary,
-    _ => AppBadgeTone.neutral,
-  };
-}
-
 AppBadgeTone _taskStateTone(String state) {
   return switch (state) {
     'failed' => AppBadgeTone.error,
@@ -1367,16 +1117,6 @@ AppBadgeTone _taskStateTone(String state) {
     'running' => AppBadgeTone.primary,
     'pending' => AppBadgeTone.warning,
     _ => AppBadgeTone.neutral,
-  };
-}
-
-String _labelForNotificationCategory(String value) {
-  return switch (value) {
-    'info' => '信息',
-    'warning' => '警告',
-    'error' => '错误',
-    'reminder' => '提醒',
-    _ => value,
   };
 }
 

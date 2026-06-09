@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/activity/data/activity_event_stream_client.
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_stream_event.dart';
+import 'package:sakuramedia/features/activity/data/notification_read_result_dto.dart';
 import 'package:sakuramedia/features/activity/data/resource_task_definition_dto.dart';
 import 'package:sakuramedia/features/activity/data/resource_task_record_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
@@ -22,7 +23,6 @@ class ActivityApi {
 
   Future<ActivityBootstrapDto> getBootstrap({
     String? notificationCategory,
-    bool? notificationArchived,
     String? taskState,
     String? taskKey,
     String? taskTriggerType,
@@ -34,8 +34,6 @@ class ActivityApi {
         if (notificationCategory != null &&
             notificationCategory.trim().isNotEmpty)
           'notification_category': notificationCategory,
-        if (notificationArchived != null)
-          'notification_archived': notificationArchived,
         if (taskState != null && taskState.trim().isNotEmpty)
           'task_state': taskState,
         if (taskKey != null && taskKey.trim().isNotEmpty) 'task_key': taskKey,
@@ -52,7 +50,6 @@ class ActivityApi {
     int page = 1,
     int pageSize = 20,
     String? category,
-    bool? archived,
   }) async {
     final response = await _apiClient.get(
       '/system/notifications',
@@ -61,7 +58,6 @@ class ActivityApi {
         'page_size': pageSize,
         if (category != null && category.trim().isNotEmpty)
           'category': category,
-        if (archived != null) 'archived': archived,
       },
     );
     return PaginatedResponseDto<ActivityNotificationDto>.fromJson(
@@ -70,23 +66,21 @@ class ActivityApi {
     );
   }
 
-  Future<void> markNotificationRead({required int notificationId}) async {
-    await _apiClient.patch('/system/notifications/$notificationId/read');
+  /// 批量已读：把 [ids] 对应的通知置已读，返回最新 `unread_count` 供刷新角标。
+  Future<NotificationReadResultDto> markNotificationsRead(
+    List<int> ids,
+  ) async {
+    final response = await _apiClient.post(
+      '/system/notifications/read',
+      data: <String, dynamic>{'ids': ids},
+    );
+    return NotificationReadResultDto.fromJson(response);
   }
 
-  Future<int> getUnreadCount() async {
-    final response = await _apiClient.get('/system/notifications/unread-count');
-    final value = response['unread_count'];
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value) ?? 0;
-    }
-    return 0;
+  /// 一键全部已读，返回最新 `unread_count`（通常为 0）。
+  Future<NotificationReadResultDto> markAllNotificationsRead() async {
+    final response = await _apiClient.post('/system/notifications/read-all');
+    return NotificationReadResultDto.fromJson(response);
   }
 
   Future<List<JobMetadataDto>> getJobs() async {
@@ -180,6 +174,17 @@ class ActivityApi {
         event: event.event,
         notification: ActivityNotificationDto.fromJson(payload),
       ),
+      'notifications_read' => ActivityStreamEvent(
+        id: event.id,
+        event: event.event,
+        notificationIds: _parseIds(payload['ids']),
+        unreadCount: _tryInt(payload['unread_count']),
+      ),
+      'notifications_read_all' => ActivityStreamEvent(
+        id: event.id,
+        event: event.event,
+        unreadCount: _tryInt(payload['unread_count']),
+      ),
       'task_run_created' || 'task_run_updated' => ActivityStreamEvent(
         id: event.id,
         event: event.event,
@@ -187,5 +192,32 @@ class ActivityApi {
       ),
       _ => ActivityStreamEvent(id: event.id, event: event.event),
     };
+  }
+
+  List<int> _parseIds(dynamic value) {
+    if (value is! List) {
+      return const <int>[];
+    }
+    final ids = <int>[];
+    for (final item in value) {
+      final parsed = _tryInt(item);
+      if (parsed != null) {
+        ids.add(parsed);
+      }
+    }
+    return ids;
+  }
+
+  int? _tryInt(dynamic value) {
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    return null;
   }
 }

@@ -107,6 +107,9 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     TypedGoRoute<DesktopRankingsRouteData>(path: desktopRankingsPath),
     TypedGoRoute<DesktopHotReviewsRouteData>(path: desktopHotReviewsPath),
     TypedGoRoute<DesktopActivityRouteData>(path: desktopActivityPath),
+    TypedGoRoute<DesktopNotificationsRouteData>(
+      path: desktopNotificationsPath,
+    ),
     TypedGoRoute<DesktopConfigurationRouteData>(path: desktopConfigurationPath),
     TypedGoRoute<DesktopMediaImportRouteData>(path: desktopMediaImportPath),
     TypedGoRoute<DesktopSearchRouteData>(path: desktopSearchPath),
@@ -250,6 +253,11 @@ class DesktopConfigurationRouteData extends _DesktopShellSpecRouteData
 class DesktopActivityRouteData extends _DesktopShellSpecRouteData
     with $DesktopActivityRouteData {
   const DesktopActivityRouteData() : super(desktopActivityPath);
+}
+
+class DesktopNotificationsRouteData extends _DesktopShellSpecRouteData
+    with $DesktopNotificationsRouteData {
+  const DesktopNotificationsRouteData() : super(desktopNotificationsPath);
 }
 
 class DesktopMediaImportRouteData extends _DesktopShellSpecRouteData

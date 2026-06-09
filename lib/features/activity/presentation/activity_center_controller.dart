@@ -7,13 +7,12 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_bootstrap_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
-import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_stream_event.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 
-enum ActivityTab { notifications, tasks, resourceTasks }
+enum ActivityTab { tasks, resourceTasks }
 
 enum ActivityConnectionState { connecting, live, reconnecting, polling }
 
@@ -35,33 +34,22 @@ class ActivityCenterController extends ChangeNotifier {
 
   final ActivityApi _activityApi;
 
-  ActivityTab _activeTab = ActivityTab.notifications;
+  ActivityTab _activeTab = ActivityTab.tasks;
   ActivityConnectionState _connectionState = ActivityConnectionState.connecting;
   String? _connectionMessage;
   bool _initialized = false;
   bool _isInitialLoading = false;
   String? _initialErrorMessage;
-  int _unreadCount = 0;
   int _lastEventId = 0;
-  int _notificationNextPage = 1;
   int _taskNextPage = 1;
-  bool _hasMoreNotifications = true;
   bool _hasMoreTasks = true;
-  bool _isLoadingMoreNotifications = false;
   bool _isLoadingMoreTasks = false;
   bool _isLoadingJobs = false;
-  bool _isRefreshingNotifications = false;
   bool _isRefreshingTaskHistory = false;
-  String? _notificationLoadMoreErrorMessage;
   String? _taskLoadMoreErrorMessage;
   String? _jobErrorMessage;
-  String? _notificationRefreshErrorMessage;
   String? _taskRefreshErrorMessage;
-  ActivityNotificationFilterState _notificationFilter =
-      ActivityNotificationFilterState.initial;
   ActivityTaskFilterState _taskFilter = ActivityTaskFilterState.initial;
-  List<ActivityNotificationDto> _notifications =
-      const <ActivityNotificationDto>[];
   List<TaskRunDto> _activeTaskRuns = const <TaskRunDto>[];
   List<TaskRunDto> _taskRuns = const <TaskRunDto>[];
   List<JobMetadataDto> _jobs = const <JobMetadataDto>[];
@@ -72,7 +60,6 @@ class ActivityCenterController extends ChangeNotifier {
   StreamSubscription<ActivityStreamEvent>? _eventSubscription;
   DateTime? _disconnectStartedAt;
   int _reconnectAttempt = 0;
-  int _notificationRefreshRequestId = 0;
   int _taskRefreshRequestId = 0;
   final List<ActivityStreamEvent> _pendingStreamEvents =
       <ActivityStreamEvent>[];
@@ -85,30 +72,19 @@ class ActivityCenterController extends ChangeNotifier {
   ActivityTab get activeTab => _activeTab;
   ActivityConnectionState get connectionState => _connectionState;
   String? get connectionMessage => _connectionMessage;
-  int get unreadCount => _unreadCount;
-  ActivityNotificationFilterState get notificationFilter => _notificationFilter;
   ActivityTaskFilterState get taskFilter => _taskFilter;
-  UnmodifiableListView<ActivityNotificationDto> get notifications =>
-      UnmodifiableListView<ActivityNotificationDto>(_notifications);
   UnmodifiableListView<TaskRunDto> get activeTaskRuns =>
       UnmodifiableListView<TaskRunDto>(_activeTaskRuns);
   UnmodifiableListView<TaskRunDto> get taskRuns =>
       UnmodifiableListView<TaskRunDto>(_taskRuns);
   UnmodifiableListView<JobMetadataDto> get jobs =>
       UnmodifiableListView<JobMetadataDto>(_jobs);
-  bool get hasMoreNotifications => _hasMoreNotifications;
   bool get hasMoreTasks => _hasMoreTasks;
-  bool get isLoadingMoreNotifications => _isLoadingMoreNotifications;
   bool get isLoadingMoreTasks => _isLoadingMoreTasks;
   bool get isLoadingJobs => _isLoadingJobs;
-  bool get isRefreshingNotifications => _isRefreshingNotifications;
   bool get isRefreshingTaskHistory => _isRefreshingTaskHistory;
-  String? get notificationLoadMoreErrorMessage =>
-      _notificationLoadMoreErrorMessage;
   String? get taskLoadMoreErrorMessage => _taskLoadMoreErrorMessage;
   String? get jobErrorMessage => _jobErrorMessage;
-  String? get notificationRefreshErrorMessage =>
-      _notificationRefreshErrorMessage;
   String? get taskRefreshErrorMessage => _taskRefreshErrorMessage;
   int? get highlightedTaskRunId => _highlightedTaskRunId;
   bool isTriggeringJob(String taskKey) => _triggeringTaskKeys.contains(taskKey);
@@ -138,7 +114,6 @@ class ActivityCenterController extends ChangeNotifier {
   }
 
   Future<void> reloadAll() async {
-    _notificationRefreshRequestId += 1;
     _taskRefreshRequestId += 1;
     _cancelReconnectTimer();
     _cancelPollingTimer();
@@ -148,11 +123,9 @@ class ActivityCenterController extends ChangeNotifier {
 
     _isInitialLoading = true;
     _isLoadingJobs = true;
-    _isRefreshingNotifications = false;
     _isRefreshingTaskHistory = false;
     _initialErrorMessage = null;
     _jobErrorMessage = null;
-    _notificationRefreshErrorMessage = null;
     _taskRefreshErrorMessage = null;
     _connectionState = ActivityConnectionState.connecting;
     _connectionMessage = '正在同步活动中心';
@@ -195,57 +168,12 @@ class ActivityCenterController extends ChangeNotifier {
     _notifySafely();
   }
 
-  Future<void> applyNotificationFilter(
-    ActivityNotificationFilterState next,
-  ) async {
-    if (_notificationFilter == next) {
-      return;
-    }
-    _notificationFilter = next;
-    await refreshNotifications();
-  }
-
   Future<void> applyTaskFilter(ActivityTaskFilterState next) async {
     if (_taskFilter == next) {
       return;
     }
     _taskFilter = next;
     await refreshTaskHistory();
-  }
-
-  Future<void> refreshNotifications() async {
-    final requestId = ++_notificationRefreshRequestId;
-    _isRefreshingNotifications = true;
-    _notificationRefreshErrorMessage = null;
-    _notificationLoadMoreErrorMessage = null;
-    _notifySafely();
-
-    try {
-      final response = await _activityApi.getNotifications(
-        page: 1,
-        pageSize: _pageSize,
-        category: _notificationFilter.category,
-        archived: false,
-      );
-      if (_disposed || requestId != _notificationRefreshRequestId) {
-        return;
-      }
-      _notifications = _sortNotifications(response.items);
-      _notificationNextPage = response.page + 1;
-      _hasMoreNotifications = _notifications.length < response.total;
-      _notificationLoadMoreErrorMessage = null;
-      _notificationRefreshErrorMessage = null;
-    } catch (_) {
-      if (_disposed || requestId != _notificationRefreshRequestId) {
-        return;
-      }
-      _notificationRefreshErrorMessage = '通知筛选刷新失败，请重试';
-    } finally {
-      if (!_disposed && requestId == _notificationRefreshRequestId) {
-        _isRefreshingNotifications = false;
-        _notifySafely();
-      }
-    }
   }
 
   Future<void> refreshTaskHistory() async {
@@ -329,40 +257,6 @@ class ActivityCenterController extends ChangeNotifier {
     }
   }
 
-  Future<void> loadMoreNotifications() async {
-    if (_isLoadingMoreNotifications ||
-        _isRefreshingNotifications ||
-        !_hasMoreNotifications) {
-      return;
-    }
-    _isLoadingMoreNotifications = true;
-    _notificationLoadMoreErrorMessage = null;
-    _notifySafely();
-
-    try {
-      final response = await _activityApi.getNotifications(
-        page: _notificationNextPage,
-        pageSize: _pageSize,
-        category: _notificationFilter.category,
-        archived: false,
-      );
-      _notifications = <ActivityNotificationDto>[
-        ..._notifications,
-        ...response.items.where(
-          (item) => !_notifications.any((it) => it.id == item.id),
-        ),
-      ];
-      _notificationNextPage = response.page + 1;
-      _hasMoreNotifications = _notifications.length < response.total;
-      _notificationLoadMoreErrorMessage = null;
-    } catch (_) {
-      _notificationLoadMoreErrorMessage = '加载更多通知失败，请点击重试';
-    } finally {
-      _isLoadingMoreNotifications = false;
-      _notifySafely();
-    }
-  }
-
   Future<void> loadMoreTasks() async {
     if (_isLoadingMoreTasks || _isRefreshingTaskHistory || !_hasMoreTasks) {
       return;
@@ -392,17 +286,6 @@ class ActivityCenterController extends ChangeNotifier {
     }
   }
 
-  Future<void> markNotificationRead(int notificationId) async {
-    final current = _findNotification(notificationId);
-    if (current == null || current.isRead) {
-      return;
-    }
-
-    await _activityApi.markNotificationRead(notificationId: notificationId);
-    _applyNotificationSnapshot(current.copyWith(isRead: true));
-    _notifySafely();
-  }
-
   @override
   void dispose() {
     _disposed = true;
@@ -415,8 +298,6 @@ class ActivityCenterController extends ChangeNotifier {
 
   Future<void> _loadBootstrapState() async {
     final response = await _activityApi.getBootstrap(
-      notificationCategory: _notificationFilter.category,
-      notificationArchived: false,
       taskState: _taskFilter.state,
       taskKey: _taskFilter.taskKey,
       taskTriggerType: _taskFilter.triggerType,
@@ -437,18 +318,11 @@ class ActivityCenterController extends ChangeNotifier {
   }
 
   void _applyBootstrapState(ActivityBootstrapDto response) {
-    _notifications = response.notifications.items;
-    _unreadCount = response.unreadCount;
     _activeTaskRuns = response.activeTaskRuns;
     _taskRuns = response.taskRuns.items;
-    _notificationNextPage = response.notifications.page + 1;
     _taskNextPage = response.taskRuns.page + 1;
-    _hasMoreNotifications =
-        _notifications.length < response.notifications.total;
     _hasMoreTasks = _taskRuns.length < response.taskRuns.total;
-    _notificationLoadMoreErrorMessage = null;
     _taskLoadMoreErrorMessage = null;
-    _notificationRefreshErrorMessage = null;
     _taskRefreshErrorMessage = null;
     _lastEventId = response.latestEventId;
   }
@@ -591,21 +465,6 @@ class ActivityCenterController extends ChangeNotifier {
         continue;
       }
 
-      if (event.isNotificationCreated && event.notification != null) {
-        _applyNotificationSnapshot(
-          event.notification!,
-          insertAtFrontIfMissing: true,
-        );
-        hasChanges = true;
-        continue;
-      }
-
-      if (event.isNotificationUpdated && event.notification != null) {
-        _applyNotificationSnapshot(event.notification!);
-        hasChanges = true;
-        continue;
-      }
-
       if (event.taskRun != null &&
           (event.isTaskRunCreated || event.isTaskRunUpdated)) {
         _upsertTaskRun(event.taskRun!, insertAtFront: event.isTaskRunCreated);
@@ -616,56 +475,6 @@ class ActivityCenterController extends ChangeNotifier {
     if (hasChanges) {
       _notifySafely();
     }
-  }
-
-  // 未读数按最终状态幂等更新，避免重复创建事件把计数加爆。
-  void _applyNotificationSnapshot(
-    ActivityNotificationDto notification, {
-    bool insertAtFrontIfMissing = false,
-  }) {
-    final previous = _findNotification(notification.id);
-    final wasUnread = previous != null && _isUnreadNotification(previous);
-    final isUnread = _isUnreadNotification(notification);
-
-    if (!wasUnread && isUnread) {
-      _unreadCount += 1;
-    } else if (wasUnread && !isUnread) {
-      _unreadCount = (_unreadCount - 1).clamp(0, 1 << 31);
-    }
-
-    _upsertNotification(
-      notification,
-      insertAtFront: previous == null && insertAtFrontIfMissing,
-    );
-  }
-
-  bool _isUnreadNotification(ActivityNotificationDto notification) {
-    return !notification.archived && !notification.isRead;
-  }
-
-  void _upsertNotification(
-    ActivityNotificationDto notification, {
-    bool insertAtFront = false,
-  }) {
-    final matchesFilter = _matchesNotificationFilter(notification);
-    final nextItems = List<ActivityNotificationDto>.from(_notifications);
-    final index = nextItems.indexWhere((item) => item.id == notification.id);
-    if (!matchesFilter) {
-      if (index >= 0) {
-        nextItems.removeAt(index);
-      }
-      _notifications = _sortNotifications(nextItems);
-      return;
-    }
-
-    if (index >= 0) {
-      nextItems[index] = nextItems[index].mergeFromServer(notification);
-    } else if (insertAtFront) {
-      nextItems.insert(0, notification);
-    } else {
-      nextItems.add(notification);
-    }
-    _notifications = _sortNotifications(nextItems);
   }
 
   void _upsertTaskRun(TaskRunDto taskRun, {bool insertAtFront = false}) {
@@ -716,26 +525,6 @@ class ActivityCenterController extends ChangeNotifier {
     return sorter(nextItems);
   }
 
-  ActivityNotificationDto? _findNotification(int id) {
-    for (final item in _notifications) {
-      if (item.id == id) {
-        return item;
-      }
-    }
-    return null;
-  }
-
-  bool _matchesNotificationFilter(ActivityNotificationDto item) {
-    if (_notificationFilter.category != null &&
-        _notificationFilter.category != item.category) {
-      return false;
-    }
-    if (item.archived) {
-      return false;
-    }
-    return true;
-  }
-
   bool _matchesTaskFilter(TaskRunDto item) {
     if (_taskFilter.state != null && _taskFilter.state != item.state) {
       return false;
@@ -761,18 +550,6 @@ class ActivityCenterController extends ChangeNotifier {
       return int.tryParse(value);
     }
     return null;
-  }
-
-  List<ActivityNotificationDto> _sortNotifications(
-    List<ActivityNotificationDto> items,
-  ) {
-    final sorted = List<ActivityNotificationDto>.from(items);
-    sorted.sort((left, right) {
-      final leftAt = left.createdAt?.millisecondsSinceEpoch ?? 0;
-      final rightAt = right.createdAt?.millisecondsSinceEpoch ?? 0;
-      return rightAt.compareTo(leftAt);
-    });
-    return sorted;
   }
 
   List<TaskRunDto> _sortActiveTasks(List<TaskRunDto> items) {

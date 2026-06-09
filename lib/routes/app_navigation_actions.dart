@@ -38,6 +38,8 @@ extension AppNavigationActions on BuildContext {
         return const DesktopConfigurationRouteData().go(this);
       case desktopActivityPath:
         return const DesktopActivityRouteData().go(this);
+      case desktopNotificationsPath:
+        return const DesktopNotificationsRouteData().go(this);
       case mobileOverviewPath:
         return const MobileOverviewRouteData().go(this);
       case mobileMoviesPath:

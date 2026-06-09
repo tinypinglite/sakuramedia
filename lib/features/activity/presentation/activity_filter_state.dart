@@ -1,8 +1,9 @@
 class ActivityNotificationFilterState {
   const ActivityNotificationFilterState({this.category});
 
+  // 默认不限分类（「全部」）。
   static const ActivityNotificationFilterState initial =
-      ActivityNotificationFilterState(category: 'reminder');
+      ActivityNotificationFilterState();
 
   final String? category;
 

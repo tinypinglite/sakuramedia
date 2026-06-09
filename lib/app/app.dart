@@ -13,6 +13,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
+import 'package:sakuramedia/features/activity/presentation/notification_center_controller.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
@@ -143,6 +144,13 @@ class _MyAppState extends State<MyApp> {
                 apiClient: context.read<ApiClient>(),
                 streamClient: context.read<ActivityEventStreamClient>(),
               ),
+        ),
+        ChangeNotifierProvider<NotificationCenterController>(
+          create:
+              (context) =>
+                  NotificationCenterController(
+                    activityApi: context.read<ActivityApi>(),
+                  )..bindSessionStore(context.read<SessionStore>()),
         ),
         Provider<CollectionNumberFeaturesApi>(
           create:

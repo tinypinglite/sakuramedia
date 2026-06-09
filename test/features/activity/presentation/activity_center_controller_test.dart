@@ -1,6 +1,3 @@
-import 'dart:convert';
-
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_center_controller.dart';
@@ -38,8 +35,8 @@ void main() {
         path: '/system/events/stream',
         chunks: const <String>[
           'id: 121\n'
-              'event: notification_created\n'
-              'data: {"id":101,"category":"reminder","title":"有新的影片可以播放了","content":"本次后台处理新增可播放影片 1 部：SSIS-123","is_read":false,"archived":false,"related_task_run_id":88}\n\n',
+              'event: heartbeat\n'
+              'data: {}\n\n',
         ],
         keepOpen: true,
       );
@@ -52,21 +49,9 @@ void main() {
       await controller.initialize();
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
-      expect(controller.notifications, hasLength(1));
-      expect(controller.notifications.single.id, 101);
-      expect(controller.unreadCount, 1);
       expect(controller.connectionState, ActivityConnectionState.live);
       expect(bundle.adapter.hitCount('GET', '/system/activity/bootstrap'), 1);
       expect(bundle.adapter.hitCount('GET', '/system/events/stream'), 1);
-      expect(controller.notificationFilter.category, 'reminder');
-      expect(
-        bundle.adapter.requests
-            .where((request) => request.path == '/system/activity/bootstrap')
-            .single
-            .uri
-            .queryParameters['notification_category'],
-        'reminder',
-      );
       expect(
         bundle.adapter.requests
             .where((request) => request.path == '/system/events/stream')
@@ -77,37 +62,6 @@ void main() {
       );
     },
   );
-
-  test('markNotificationRead updates unread count', () async {
-    _enqueueInitialActivityState(
-      bundle,
-      notifications: <Map<String, dynamic>>[
-        _notificationJson(id: 101, isRead: false),
-      ],
-      unreadCount: 1,
-    );
-    bundle.adapter.enqueueSse(
-      method: 'GET',
-      path: '/system/events/stream',
-      chunks: const <String>[],
-      keepOpen: true,
-    );
-    bundle.adapter.enqueueJson(
-      method: 'PATCH',
-      path: '/system/notifications/101/read',
-      body: <String, dynamic>{'id': 101, 'is_read': true},
-    );
-
-    final controller = ActivityCenterController(
-      activityApi: bundle.activityApi,
-    );
-    addTearDown(controller.dispose);
-
-    await controller.initialize();
-    await controller.markNotificationRead(101);
-    expect(controller.unreadCount, 0);
-    expect(controller.notifications.single.isRead, isTrue);
-  });
 
   test(
     'task_run_updated removes completed task from active list and keeps history',
@@ -139,63 +93,6 @@ void main() {
       expect(controller.activeTaskRuns, isEmpty);
       expect(controller.taskRuns, hasLength(1));
       expect(controller.taskRuns.single.state, 'completed');
-    },
-  );
-
-  test(
-    'applyNotificationFilter refreshes only notifications and keeps stream connection',
-    () async {
-      _enqueueInitialActivityState(
-        bundle,
-        notifications: <Map<String, dynamic>>[
-          _notificationJson(id: 101, category: 'reminder'),
-        ],
-        activeTasks: <Map<String, dynamic>>[_runningTaskJson()],
-        taskRuns: <Map<String, dynamic>>[_completedTaskJson(id: 201)],
-      );
-      bundle.adapter.enqueueSse(
-        method: 'GET',
-        path: '/system/events/stream',
-        chunks: const <String>[],
-        keepOpen: true,
-      );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/notifications',
-        body: <String, dynamic>{
-          'items': <Map<String, dynamic>>[
-            _notificationJson(id: 202, category: 'error'),
-          ],
-          'page': 1,
-          'page_size': 20,
-          'total': 1,
-        },
-      );
-
-      final controller = ActivityCenterController(
-        activityApi: bundle.activityApi,
-      );
-      addTearDown(controller.dispose);
-
-      await controller.initialize();
-      await controller.applyNotificationFilter(
-        controller.notificationFilter.copyWith(category: 'error'),
-      );
-
-      expect(controller.isRefreshingNotifications, isFalse);
-      expect(controller.notifications.single.id, 202);
-      expect(controller.activeTaskRuns.single.id, 88);
-      expect(controller.taskRuns.single.id, 201);
-      expect(bundle.adapter.hitCount('GET', '/system/activity/bootstrap'), 1);
-      expect(bundle.adapter.hitCount('GET', '/system/events/stream'), 1);
-      expect(
-        bundle.adapter.requests
-            .where((request) => request.path == '/system/notifications')
-            .last
-            .uri
-            .queryParameters['category'],
-        'error',
-      );
     },
   );
 
@@ -238,7 +135,6 @@ void main() {
       );
 
       expect(controller.isRefreshingTaskHistory, isFalse);
-      expect(controller.notifications.single.id, 101);
       expect(controller.activeTaskRuns.single.id, 88);
       expect(controller.taskRuns.single.id, 301);
       expect(bundle.adapter.hitCount('GET', '/system/activity/bootstrap'), 1);
@@ -255,72 +151,10 @@ void main() {
   );
 
   test(
-    'last notification filter response wins when requests resolve out of order',
-    () async {
-      _enqueueInitialActivityState(bundle);
-      bundle.adapter.enqueueSse(
-        method: 'GET',
-        path: '/system/events/stream',
-        chunks: const <String>[],
-        keepOpen: true,
-      );
-      bundle.adapter.enqueueResponder(
-        method: 'GET',
-        path: '/system/notifications',
-        responder: (_, __) async {
-          await Future<void>.delayed(const Duration(milliseconds: 60));
-          return _jsonResponseBody(<String, dynamic>{
-            'items': <Map<String, dynamic>>[
-              _notificationJson(id: 201, category: 'info'),
-            ],
-            'page': 1,
-            'page_size': 20,
-            'total': 1,
-          });
-        },
-      );
-      bundle.adapter.enqueueResponder(
-        method: 'GET',
-        path: '/system/notifications',
-        responder: (_, __) async {
-          await Future<void>.delayed(const Duration(milliseconds: 10));
-          return _jsonResponseBody(<String, dynamic>{
-            'items': <Map<String, dynamic>>[
-              _notificationJson(id: 202, category: 'error'),
-            ],
-            'page': 1,
-            'page_size': 20,
-            'total': 1,
-          });
-        },
-      );
-
-      final controller = ActivityCenterController(
-        activityApi: bundle.activityApi,
-      );
-      addTearDown(controller.dispose);
-
-      await controller.initialize();
-      final first = controller.applyNotificationFilter(
-        controller.notificationFilter.copyWith(category: 'info'),
-      );
-      final second = controller.applyNotificationFilter(
-        controller.notificationFilter.copyWith(category: 'error'),
-      );
-      await Future.wait<void>(<Future<void>>[first, second]);
-
-      expect(controller.notificationFilter.category, 'error');
-      expect(controller.notifications.single.id, 202);
-      expect(bundle.adapter.hitCount('GET', '/system/events/stream'), 1);
-    },
-  );
-
-  test(
     'initialize exposes executable jobs without changing bootstrap state',
     () async {
       _enqueueInitialActivityState(
         bundle,
-        notifications: <Map<String, dynamic>>[_notificationJson(id: 101)],
         jobs: <Map<String, dynamic>>[_jobJson(taskKey: 'ranking_sync')],
       );
       bundle.adapter.enqueueSse(
@@ -338,7 +172,6 @@ void main() {
       await controller.initialize();
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
-      expect(controller.notifications.single.id, 101);
       expect(controller.jobs.single.taskKey, 'ranking_sync');
       expect(controller.jobErrorMessage, isNull);
     },
@@ -392,7 +225,6 @@ void main() {
     await controller.initialize();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
-    expect(controller.notifications.single.id, 101);
     expect(controller.jobs, isEmpty);
     expect(controller.jobErrorMessage, '任务列表加载失败');
     expect(controller.initialErrorMessage, isNull);
@@ -575,7 +407,6 @@ Map<String, dynamic> _notificationJson({
   required int id,
   String category = 'reminder',
   bool isRead = false,
-  bool archived = false,
 }) {
   return <String, dynamic>{
     'id': id,
@@ -583,7 +414,6 @@ Map<String, dynamic> _notificationJson({
     'title': '通知 $id',
     'content': '通知内容 $id',
     'is_read': isRead,
-    'archived': archived,
     'created_at': '2026-03-26T09:10:00Z',
     'updated_at': '2026-03-26T09:10:00Z',
   };
@@ -657,12 +487,3 @@ Map<String, dynamic> _jobJson({
   };
 }
 
-ResponseBody _jsonResponseBody(Map<String, dynamic> body) {
-  return ResponseBody.fromString(
-    jsonEncode(body),
-    200,
-    headers: const <String, List<String>>{
-      Headers.contentTypeHeader: <String>[Headers.jsonContentType],
-    },
-  );
-}

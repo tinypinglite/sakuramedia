@@ -18,93 +18,8 @@ import '../../../support/test_api_bundle.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('desktop activity page hides read UI and still switches tabs', (
-    WidgetTester tester,
-  ) async {
-    _setDesktopViewport(tester);
-    final sessionStore = await _createSessionStore();
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    addTearDown(sessionStore.dispose);
-
-    _enqueueActivityState(
-      bundle,
-      notifications: <Map<String, dynamic>>[
-        _notificationJson(id: 101, isRead: true, relatedTaskRunId: 88),
-      ],
-      unreadCount: 1,
-      activeTasks: <Map<String, dynamic>>[_taskJson(id: 88)],
-      taskRuns: <Map<String, dynamic>>[_taskJson(id: 88)],
-    );
-
-    await _pumpActivityPage(tester, bundle: bundle);
-
-    expect(find.byKey(const Key('desktop-activity-page')), findsOneWidget);
-    expect(
-      find.byKey(const Key('activity-notifications-unread-count')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const Key('activity-notification-read-filter')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const Key('activity-notification-archived-filter')),
-      findsNothing,
-    );
-    expect(find.text('归档'), findsNothing);
-    expect(find.text('未归档'), findsNothing);
-    expect(find.text('已归档'), findsNothing);
-    expect(find.text('查看任务'), findsNothing);
-    expect(find.text('已读'), findsNothing);
-    expect(find.text('未读 1 条'), findsNothing);
-
-    await tester.tap(find.byKey(const Key('activity-tab-tasks')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('activity-tasks-tab')), findsOneWidget);
-    expect(find.byKey(const Key('activity-task-88')), findsNWidgets(2));
-  });
-
-  testWidgets('switching to shorter task tab shrinks page scroll extent', (
-    WidgetTester tester,
-  ) async {
-    _setDesktopViewport(tester, size: const Size(1440, 720));
-    final sessionStore = await _createSessionStore();
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    addTearDown(sessionStore.dispose);
-
-    _enqueueActivityState(
-      bundle,
-      notifications: List<Map<String, dynamic>>.generate(
-        20,
-        (index) => _notificationJson(
-          id: index + 1,
-          title: '通知 ${index + 1}',
-          content: '这是用于制造更长通知列表的内容 ${index + 1}',
-          isRead: true,
-        ),
-      ),
-      taskRuns: <Map<String, dynamic>>[
-        _taskJson(id: 201, taskName: '历史任务 201', state: 'completed'),
-      ],
-    );
-
-    await _pumpActivityPage(tester, bundle: bundle);
-
-    final notificationsExtent = _pageMaxScrollExtent(tester);
-    expect(notificationsExtent, greaterThan(0));
-
-    await tester.tap(find.byKey(const Key('activity-tab-tasks')));
-    await tester.pumpAndSettle();
-
-    final tasksExtent = _pageMaxScrollExtent(tester);
-    expect(tasksExtent, lessThan(notificationsExtent));
-  });
-
   testWidgets(
-    'notification filter shows adaptive spinner immediately and keeps current content',
+    'desktop activity page no longer renders notifications and switches tabs',
     (WidgetTester tester) async {
       _setDesktopViewport(tester);
       final sessionStore = await _createSessionStore();
@@ -114,132 +29,27 @@ void main() {
 
       _enqueueActivityState(
         bundle,
-        notifications: <Map<String, dynamic>>[
-          _notificationJson(id: 101, category: 'reminder', title: '提醒通知'),
-        ],
-      );
-      bundle.adapter.enqueueResponder(
-        method: 'GET',
-        path: '/system/notifications',
-        responder: (_, __) async {
-          await Future<void>.delayed(const Duration(milliseconds: 80));
-          return _jsonResponseBody(<String, dynamic>{
-            'items': <Map<String, dynamic>>[
-              _notificationJson(id: 202, category: 'error', title: '错误通知'),
-            ],
-            'page': 1,
-            'page_size': 20,
-            'total': 1,
-          });
-        },
+        activeTasks: <Map<String, dynamic>>[_taskJson(id: 88)],
+        taskRuns: <Map<String, dynamic>>[_taskJson(id: 88)],
       );
 
       await _pumpActivityPage(tester, bundle: bundle);
 
-      await tester.tap(
-        find.byKey(const Key('activity-notification-category-filter')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('错误').last);
-      await tester.pump();
-
+      expect(find.byKey(const Key('desktop-activity-page')), findsOneWidget);
+      // 通知已迁出活动中心：不再有通知 Tab / 通知中心标题 / 已读归档 UI。
       expect(
-        find.byKey(const Key('activity-notification-filter-loading')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('activity-notification-101')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('activity-notifications-tab')),
-        findsOneWidget,
-      );
-
-      await tester.pump(const Duration(milliseconds: 120));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byKey(const Key('activity-notification-filter-loading')),
+        find.byKey(const Key('activity-tab-notifications')),
         findsNothing,
       );
-      expect(find.byKey(const Key('activity-notification-101')), findsNothing);
-      expect(
-        find.byKey(const Key('activity-notification-202')),
-        findsOneWidget,
-      );
-    },
-  );
+      expect(find.text('通知中心'), findsNothing);
+      expect(find.text('归档'), findsNothing);
+      expect(find.text('已读'), findsNothing);
 
-  testWidgets(
-    'notification category filter switches between explicit categories',
-    (WidgetTester tester) async {
-      _setDesktopViewport(tester);
-      final sessionStore = await _createSessionStore();
-      final bundle = await createTestApiBundle(sessionStore);
-      addTearDown(bundle.dispose);
-      addTearDown(sessionStore.dispose);
-
-      _enqueueActivityState(
-        bundle,
-        notifications: <Map<String, dynamic>>[
-          _notificationJson(id: 101, category: 'reminder', isRead: true),
-        ],
-      );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/notifications',
-        body: <String, dynamic>{
-          'items': <Map<String, dynamic>>[
-            _notificationJson(id: 201, category: 'info', isRead: true),
-          ],
-          'page': 1,
-          'page_size': 20,
-          'total': 1,
-        },
-      );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/notifications',
-        body: <String, dynamic>{
-          'items': <Map<String, dynamic>>[
-            _notificationJson(id: 301, category: 'reminder', isRead: true),
-          ],
-          'page': 1,
-          'page_size': 20,
-          'total': 1,
-        },
-      );
-
-      await _pumpActivityPage(tester, bundle: bundle);
-
-      await tester.tap(
-        find.byKey(const Key('activity-notification-category-filter')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('信息').last);
+      await tester.tap(find.byKey(const Key('activity-tab-tasks')));
       await tester.pumpAndSettle();
 
-      await tester.tap(
-        find.byKey(const Key('activity-notification-category-filter')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('提醒').last);
-      await tester.pumpAndSettle();
-
-      final notificationRequests = bundle.adapter.requests
-          .where((request) => request.path == '/system/notifications')
-          .toList(growable: false);
-      expect(notificationRequests, hasLength(2));
-      expect(notificationRequests[0].uri.queryParameters['category'], 'info');
-      expect(
-        notificationRequests[1].uri.queryParameters['category'],
-        'reminder',
-      );
-      expect(
-        find.byKey(const Key('activity-notification-301')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('activity-tasks-tab')), findsOneWidget);
+      expect(find.byKey(const Key('activity-task-88')), findsNWidgets(2));
     },
   );
 
@@ -254,9 +64,6 @@ void main() {
 
       _enqueueActivityState(
         bundle,
-        notifications: <Map<String, dynamic>>[
-          _notificationJson(id: 101, isRead: true),
-        ],
         activeTasks: <Map<String, dynamic>>[_taskJson(id: 88)],
         taskRuns: <Map<String, dynamic>>[
           _taskJson(id: 201, state: 'completed'),
@@ -317,9 +124,6 @@ void main() {
 
       _enqueueActivityState(
         bundle,
-        notifications: <Map<String, dynamic>>[
-          _notificationJson(id: 101, isRead: true),
-        ],
         taskRuns: <Map<String, dynamic>>[
           _taskJson(id: 201, taskName: '历史任务 201', state: 'completed'),
         ],
@@ -348,9 +152,6 @@ void main() {
 
       _enqueueActivityState(
         bundle,
-        notifications: <Map<String, dynamic>>[
-          _notificationJson(id: 101, title: '提醒通知标题'),
-        ],
         activeTasks: <Map<String, dynamic>>[
           _taskJson(id: 88, taskName: '活动任务标题'),
         ],
@@ -360,10 +161,6 @@ void main() {
       );
 
       await _pumpActivityPage(tester, bundle: bundle);
-
-      expect(_textStyleOf(tester, find.text('通知中心')).fontSize, 18);
-      expect(_textStyleOf(tester, find.text('提醒通知标题')).fontSize, 14);
-      expect(_defaultTextStyleOf(tester, find.text('提醒')).fontSize, 12);
 
       await tester.tap(find.byKey(const Key('activity-tab-tasks')));
       await tester.pumpAndSettle();
@@ -387,9 +184,6 @@ void main() {
 
     _enqueueActivityState(
       bundle,
-      notifications: <Map<String, dynamic>>[
-        _notificationJson(id: 101, title: '提醒通知标题'),
-      ],
       activeTasks: <Map<String, dynamic>>[
         _taskJson(id: 88, taskName: '活动任务标题'),
       ],
@@ -399,10 +193,6 @@ void main() {
     );
 
     await _pumpActivityPage(tester, bundle: bundle);
-
-    expect(find.text('通知中心'), findsOneWidget);
-    expect(find.byType(AppContentCard), findsNothing);
-    expect(find.byKey(const Key('activity-notification-101')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('activity-tab-tasks')));
     await tester.pumpAndSettle();
@@ -602,8 +392,6 @@ void main() {
           return _jsonResponseBody(
             _bootstrapBody(
               latestEventId: 120,
-              notifications: const <Map<String, dynamic>>[],
-              unreadCount: 0,
               activeTasks: const <Map<String, dynamic>>[],
               taskRuns: const <Map<String, dynamic>>[],
             ),
@@ -655,71 +443,6 @@ void main() {
   });
 
   testWidgets(
-    'notifications auto load more on scroll and keep retry footer on failure',
-    (WidgetTester tester) async {
-      _setDesktopViewport(tester);
-      final sessionStore = await _createSessionStore();
-      final bundle = await createTestApiBundle(sessionStore);
-      addTearDown(bundle.dispose);
-      addTearDown(sessionStore.dispose);
-
-      _enqueueActivityState(
-        bundle,
-        notifications: List<Map<String, dynamic>>.generate(
-          20,
-          (index) => _notificationJson(
-            id: index + 1,
-            title: '通知 ${index + 1}',
-            content: '通知内容 ${index + 1}',
-            isRead: true,
-          ),
-        ),
-        notificationTotal: 30,
-      );
-      bundle.adapter.enqueueResponder(
-        method: 'GET',
-        path: '/system/notifications',
-        responder: (_, __) async => throw Exception('load more failed'),
-      );
-
-      await _pumpActivityPage(tester, bundle: bundle);
-      await _scrollToBottom(tester);
-
-      expect(find.byKey(const Key('activity-notification-20')), findsOneWidget);
-      expect(find.text('加载更多通知失败，请点击重试'), findsOneWidget);
-
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/notifications',
-        body: <String, dynamic>{
-          'items': List<Map<String, dynamic>>.generate(
-            10,
-            (index) => _notificationJson(
-              id: index + 21,
-              title: '通知 ${index + 21}',
-              content: '通知内容 ${index + 21}',
-              isRead: true,
-            ),
-          ),
-          'page': 2,
-          'page_size': 20,
-          'total': 30,
-        },
-      );
-
-      await tester.ensureVisible(find.widgetWithText(TextButton, '重试'));
-      await tester.tap(find.widgetWithText(TextButton, '重试'));
-      await tester.pump();
-      await tester.pumpAndSettle();
-      await _scrollToBottom(tester);
-
-      expect(bundle.adapter.hitCount('GET', '/system/notifications'), 2);
-      expect(find.byKey(const Key('activity-notification-30')), findsOneWidget);
-      expect(find.text('加载更多通知失败，请点击重试'), findsNothing);
-    },
-  );
-
-  testWidgets(
     'tasks tab auto loads task history on scroll and retries failure',
     (WidgetTester tester) async {
       _setDesktopViewport(tester);
@@ -730,9 +453,6 @@ void main() {
 
       _enqueueActivityState(
         bundle,
-        notifications: <Map<String, dynamic>>[
-          _notificationJson(id: 101, isRead: true),
-        ],
         taskRuns: List<Map<String, dynamic>>.generate(
           20,
           (index) => _taskJson(
@@ -787,156 +507,6 @@ void main() {
       expect(find.text('加载更多任务失败，请点击重试'), findsNothing);
     },
   );
-
-  testWidgets('notifications auto fill viewport when first page is too short', (
-    WidgetTester tester,
-  ) async {
-    _setDesktopViewport(tester, size: const Size(1440, 1400));
-    final sessionStore = await _createSessionStore();
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    addTearDown(sessionStore.dispose);
-
-    _enqueueActivityState(
-      bundle,
-      notifications: <Map<String, dynamic>>[
-        _notificationJson(
-          id: 101,
-          title: '通知 101',
-          content: '通知内容 101',
-          isRead: true,
-        ),
-      ],
-      notificationTotal: 2,
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/notifications',
-      body: <String, dynamic>{
-        'items': <Map<String, dynamic>>[
-          _notificationJson(
-            id: 102,
-            title: '通知 102',
-            content: '通知内容 102',
-            isRead: true,
-          ),
-        ],
-        'page': 2,
-        'page_size': 20,
-        'total': 2,
-      },
-    );
-
-    await _pumpActivityPage(tester, bundle: bundle);
-
-    expect(bundle.adapter.hitCount('GET', '/system/notifications'), 1);
-    expect(find.byKey(const Key('activity-notification-102')), findsOneWidget);
-  });
-
-  testWidgets('notifications lazily build far items only after scroll', (
-    WidgetTester tester,
-  ) async {
-    _setDesktopViewport(tester, size: const Size(1440, 720));
-    final sessionStore = await _createSessionStore();
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    addTearDown(sessionStore.dispose);
-
-    _enqueueActivityState(
-      bundle,
-      notifications: List<Map<String, dynamic>>.generate(
-        200,
-        (index) => _notificationJson(
-          id: index + 1,
-          title: '通知 ${index + 1}',
-          content: '通知内容 ${index + 1}',
-          isRead: true,
-        ),
-      ),
-      notificationTotal: 200,
-    );
-
-    await _pumpActivityPage(tester, bundle: bundle);
-
-    expect(find.byKey(const Key('activity-notification-1')), findsOneWidget);
-    expect(find.byKey(const Key('activity-notification-200')), findsNothing);
-
-    await _scrollToBottom(tester);
-
-    expect(find.byKey(const Key('activity-notification-200')), findsOneWidget);
-  });
-
-  testWidgets(
-    'notification cards share the same visual style for read and unread items',
-    (WidgetTester tester) async {
-      _setDesktopViewport(tester);
-      final sessionStore = await _createSessionStore();
-      final bundle = await createTestApiBundle(sessionStore);
-      addTearDown(bundle.dispose);
-      addTearDown(sessionStore.dispose);
-
-      _enqueueActivityState(
-        bundle,
-        notifications: <Map<String, dynamic>>[
-          _notificationJson(id: 101, isRead: false, title: '未读通知'),
-          _notificationJson(id: 102, isRead: true, title: '已读通知'),
-        ],
-      );
-
-      await _pumpActivityPage(tester, bundle: bundle);
-
-      final unreadContainer = tester.widget<Container>(
-        find.byKey(const Key('activity-notification-101')),
-      );
-      final readContainer = tester.widget<Container>(
-        find.byKey(const Key('activity-notification-102')),
-      );
-      final unreadDecoration = unreadContainer.decoration! as BoxDecoration;
-      final readDecoration = readContainer.decoration! as BoxDecoration;
-      final unreadBorder = unreadDecoration.border! as Border;
-      final readBorder = readDecoration.border! as Border;
-
-      expect(readDecoration.color, unreadDecoration.color);
-      expect(readBorder.top.color, unreadBorder.top.color);
-      expect(find.text('已读'), findsNothing);
-      expect(find.text('未读'), findsNothing);
-    },
-  );
-
-  testWidgets('notification does not auto mark as read after staying visible', (
-    WidgetTester tester,
-  ) async {
-    _setDesktopViewport(tester);
-    final sessionStore = await _createSessionStore();
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    addTearDown(sessionStore.dispose);
-
-    _enqueueActivityState(
-      bundle,
-      notifications: <Map<String, dynamic>>[
-        _notificationJson(
-          id: 101,
-          title: '有新的影片可以播放了',
-          content: '本次后台处理新增可播放影片 1 部：SSIS-123',
-          isRead: false,
-        ),
-      ],
-      unreadCount: 1,
-    );
-
-    await _pumpActivityPage(tester, bundle: bundle);
-
-    await tester.pump(const Duration(milliseconds: 850));
-    await tester.pumpAndSettle();
-
-    expect(
-      bundle.adapter.hitCount('PATCH', '/system/notifications/101/read'),
-      0,
-    );
-    expect(find.text('已读'), findsNothing);
-    expect(find.text('未读'), findsNothing);
-  });
 }
 
 Future<SessionStore> _createSessionStore() async {
@@ -996,19 +566,9 @@ Future<void> _scrollToBottom(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-double _pageMaxScrollExtent(WidgetTester tester) {
-  final scrollable = tester.state<ScrollableState>(
-    find.byType(Scrollable).first,
-  );
-  return scrollable.position.maxScrollExtent;
-}
-
 void _enqueueActivityState(
   TestApiBundle bundle, {
   int latestEventId = 120,
-  List<Map<String, dynamic>> notifications = const <Map<String, dynamic>>[],
-  int? notificationTotal,
-  int unreadCount = 0,
   List<Map<String, dynamic>> activeTasks = const <Map<String, dynamic>>[],
   List<Map<String, dynamic>> taskRuns = const <Map<String, dynamic>>[],
   int? taskRunTotal,
@@ -1020,9 +580,6 @@ void _enqueueActivityState(
     path: '/system/activity/bootstrap',
     body: _bootstrapBody(
       latestEventId: latestEventId,
-      notifications: notifications,
-      notificationTotal: notificationTotal,
-      unreadCount: unreadCount,
       activeTasks: activeTasks,
       taskRuns: taskRuns,
       taskRunTotal: taskRunTotal,
@@ -1041,22 +598,19 @@ void _enqueueActivityState(
 
 Map<String, dynamic> _bootstrapBody({
   required int latestEventId,
-  List<Map<String, dynamic>> notifications = const <Map<String, dynamic>>[],
-  int? notificationTotal,
-  int unreadCount = 0,
   List<Map<String, dynamic>> activeTasks = const <Map<String, dynamic>>[],
   List<Map<String, dynamic>> taskRuns = const <Map<String, dynamic>>[],
   int? taskRunTotal,
 }) {
   return <String, dynamic>{
     'latest_event_id': latestEventId,
-    'notifications': <String, dynamic>{
-      'items': notifications,
+    'notifications': const <String, dynamic>{
+      'items': <Map<String, dynamic>>[],
       'page': 1,
       'page_size': 20,
-      'total': notificationTotal ?? notifications.length,
+      'total': 0,
     },
-    'unread_count': unreadCount,
+    'unread_count': 0,
     'active_task_runs': activeTasks,
     'task_runs': <String, dynamic>{
       'items': taskRuns,
@@ -1064,28 +618,6 @@ Map<String, dynamic> _bootstrapBody({
       'page_size': 20,
       'total': taskRunTotal ?? taskRuns.length,
     },
-  };
-}
-
-Map<String, dynamic> _notificationJson({
-  required int id,
-  String category = 'reminder',
-  String? title,
-  String? content,
-  bool isRead = false,
-  bool archived = false,
-  int? relatedTaskRunId,
-}) {
-  return <String, dynamic>{
-    'id': id,
-    'category': category,
-    'title': title ?? '通知 $id',
-    'content': content ?? '通知内容 $id',
-    'is_read': isRead,
-    'archived': archived,
-    'created_at': '2026-03-26T09:10:00Z',
-    'updated_at': '2026-03-26T09:10:00Z',
-    'related_task_run_id': relatedTaskRunId,
   };
 }
 

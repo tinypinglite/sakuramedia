@@ -5,7 +5,6 @@ class ActivityNotificationDto {
     required this.title,
     required this.content,
     required this.isRead,
-    required this.archived,
     required this.createdAt,
     required this.updatedAt,
     required this.relatedTaskRunId,
@@ -18,7 +17,6 @@ class ActivityNotificationDto {
   final String title;
   final String content;
   final bool isRead;
-  final bool archived;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final int? relatedTaskRunId;
@@ -30,7 +28,6 @@ class ActivityNotificationDto {
     String? title,
     String? content,
     bool? isRead,
-    bool? archived,
     DateTime? createdAt,
     DateTime? updatedAt,
     Object? relatedTaskRunId = _sentinel,
@@ -43,7 +40,6 @@ class ActivityNotificationDto {
       title: title ?? this.title,
       content: content ?? this.content,
       isRead: isRead ?? this.isRead,
-      archived: archived ?? this.archived,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       relatedTaskRunId:
@@ -67,7 +63,6 @@ class ActivityNotificationDto {
       title: next.title,
       content: next.content,
       isRead: next.isRead,
-      archived: next.archived,
       createdAt: next.createdAt,
       updatedAt: next.updatedAt,
       relatedTaskRunId: next.relatedTaskRunId,
@@ -83,7 +78,6 @@ class ActivityNotificationDto {
       title: json['title'] as String? ?? '',
       content: json['content'] as String? ?? '',
       isRead: json['is_read'] as bool? ?? false,
-      archived: json['archived'] as bool? ?? false,
       createdAt: _parseDateTime(json['created_at']),
       updatedAt: _parseDateTime(json['updated_at']),
       relatedTaskRunId: _tryInt(json['related_task_run_id']),

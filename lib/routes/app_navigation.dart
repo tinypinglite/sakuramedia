@@ -7,6 +7,7 @@ import 'package:sakuramedia/features/configuration/presentation/desktop_configur
 import 'package:sakuramedia/features/discovery/presentation/desktop_discover_page.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_reviews_page.dart';
 import 'package:sakuramedia/features/media_import/presentation/desktop_media_import_page.dart';
+import 'package:sakuramedia/features/activity/presentation/desktop_notifications_page.dart';
 import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.dart';
 import 'package:sakuramedia/features/tags/presentation/desktop_tags_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dart';
@@ -234,14 +235,28 @@ const List<_NavSeed> _desktopNavSeeds = [
   _NavSeed(
     id: 'activity',
     label: '活动中心',
-    icon: Icons.notifications_active_outlined,
+    icon: Icons.bolt_outlined,
     section: '管理',
     items: [
       _NavItemSeed(
         slug: 'system/activity',
         label: '活动中心',
-        icon: Icons.notifications_active_outlined,
-        description: '后台通知、任务状态与在线活动流的统一入口。',
+        icon: Icons.bolt_outlined,
+        description: '后台任务状态与在线活动流的统一入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'notifications',
+    label: '通知',
+    icon: Icons.notifications_none_outlined,
+    section: '管理',
+    items: [
+      _NavItemSeed(
+        slug: 'system/notifications',
+        label: '通知',
+        icon: Icons.notifications_none_outlined,
+        description: '后台通知消息中心，展示即自动已读。',
       ),
     ],
   ),
@@ -259,6 +274,7 @@ final Map<String, WidgetBuilder> _desktopRouteBuilders =
       desktopRankingsPath: (_) => const DesktopRankingsPage(),
       desktopHotReviewsPath: (_) => const DesktopHotReviewsPage(),
       desktopActivityPath: (_) => const DesktopActivityPage(),
+      desktopNotificationsPath: (_) => const DesktopNotificationsPage(),
       desktopConfigurationPath: (_) => const DesktopConfigurationPage(),
       desktopMediaImportPath: (_) => const DesktopMediaImportPage(),
     };

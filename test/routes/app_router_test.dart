@@ -102,7 +102,7 @@ void main() {
   });
 
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 12);
+    expect(desktopNavGroups.length, 13);
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
       '发现',
@@ -116,6 +116,7 @@ void main() {
       '系统设置',
       '媒体导入',
       '活动中心',
+      '通知',
     ]);
     expect(desktopRouteSpecs.map((spec) => spec.path), [
       desktopOverviewPath,
@@ -130,6 +131,7 @@ void main() {
       desktopConfigurationPath,
       desktopMediaImportPath,
       desktopActivityPath,
+      desktopNotificationsPath,
     ]);
   });
 
@@ -305,7 +307,8 @@ void main() {
 
     expect(find.byType(DesktopActivityPage), findsOneWidget);
     expect(find.byKey(const Key('desktop-activity-page')), findsOneWidget);
-    expect(find.byKey(const Key('activity-tab-notifications')), findsOneWidget);
+    expect(find.byKey(const Key('activity-tab-tasks')), findsOneWidget);
+    expect(find.byKey(const Key('activity-tab-notifications')), findsNothing);
   });
 
   test('desktop top bar config disables back on overview', () {
@@ -3544,7 +3547,6 @@ void _enqueueActivityResponses(TestApiBundle bundle) {
             'title': '有新的影片可以播放了',
             'content': '本次后台处理新增可播放影片 1 部：SSIS-123',
             'is_read': false,
-            'archived': false,
             'created_at': '2026-03-26T09:10:00Z',
             'updated_at': '2026-03-26T09:10:00Z',
             'related_task_run_id': 88,
