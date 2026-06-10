@@ -51,6 +51,7 @@ void main() {
           'total_size_bytes': 987654321,
         },
         'media_libraries': <String, dynamic>{'total': 3},
+        'thumbnails': <String, dynamic>{'pending_media': 24, 'total': 132},
       },
     );
 
@@ -61,7 +62,40 @@ void main() {
     expect(status.movies.total, 120);
     expect(status.mediaFiles.totalSizeBytes, 987654321);
     expect(status.mediaLibraries.total, 3);
+    expect(status.thumbnails.pendingMedia, 24);
+    expect(status.thumbnails.total, 132);
+    expect(status.toJson()['thumbnails'], <String, dynamic>{
+      'pending_media': 24,
+      'total': 132,
+    });
     expect(status.toJson()['backend_version'], 'v0.2.0');
+  });
+
+  test('getStatus defaults missing thumbnails to zero', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/status',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'backend_version': 'v0.2.0',
+        'actors': <String, dynamic>{'female_total': 12, 'female_subscribed': 8},
+        'movies': <String, dynamic>{
+          'total': 120,
+          'subscribed': 35,
+          'playable': 88,
+        },
+        'media_files': <String, dynamic>{
+          'total': 156,
+          'total_size_bytes': 987654321,
+        },
+        'media_libraries': <String, dynamic>{'total': 3},
+      },
+    );
+
+    final status = await statusApi.getStatus();
+
+    expect(status.thumbnails.pendingMedia, 0);
+    expect(status.thumbnails.total, 0);
   });
 
   test('getStatus defaults missing backend version to empty string', () async {

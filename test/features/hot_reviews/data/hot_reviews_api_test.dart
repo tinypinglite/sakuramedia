@@ -65,6 +65,7 @@ void main() {
         'page': 2,
         'page_size': 10,
         'total': 30,
+        'synced_at': '2026-03-22T06:30:00',
       },
     );
 
@@ -84,6 +85,7 @@ void main() {
     expect(page.items.single.movie.movieNumber, 'ABP-001');
     expect(page.page, 2);
     expect(page.total, 30);
+    expect(page.syncedAt, DateTime.parse('2026-03-22T06:30:00'));
   });
 
   test('hot reviews api preserves backend ApiException payload', () async {

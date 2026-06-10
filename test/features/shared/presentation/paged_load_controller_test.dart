@@ -39,6 +39,56 @@ void main() {
       controller.dispose();
     });
 
+    test('initialize exposes top-level syncedAt from the response', () async {
+      final syncedAt = DateTime.parse('2026-05-08T09:00:00');
+      final controller = PagedLoadController<int>(
+        fetchPage:
+            (_, __) async => PaginatedResponseDto<int>(
+              items: const <int>[1],
+              page: 1,
+              pageSize: 24,
+              total: 1,
+              syncedAt: syncedAt,
+            ),
+        initialLoadErrorText: 'initial failed',
+        loadMoreErrorText: 'load more failed',
+      );
+
+      expect(controller.syncedAt, isNull);
+      await controller.initialize();
+
+      expect(controller.syncedAt, syncedAt);
+
+      controller.dispose();
+    });
+
+    test('reload clears syncedAt when the new batch has none', () async {
+      var call = 0;
+      final controller = PagedLoadController<int>(
+        fetchPage: (_, __) async {
+          call += 1;
+          return PaginatedResponseDto<int>(
+            items: const <int>[1],
+            page: 1,
+            pageSize: 24,
+            total: 1,
+            syncedAt:
+                call == 1 ? DateTime.parse('2026-05-08T09:00:00') : null,
+          );
+        },
+        initialLoadErrorText: 'initial failed',
+        loadMoreErrorText: 'load more failed',
+      );
+
+      await controller.initialize();
+      expect(controller.syncedAt, DateTime.parse('2026-05-08T09:00:00'));
+
+      await controller.reload();
+      expect(controller.syncedAt, isNull);
+
+      controller.dispose();
+    });
+
     test('initialize is idempotent', () async {
       var callCount = 0;
       final controller = PagedLoadController<int>(

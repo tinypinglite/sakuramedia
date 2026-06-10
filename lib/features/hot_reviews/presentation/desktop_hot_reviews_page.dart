@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/core/format/synced_at_label.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_review_list_item_dto.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_review_period.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
@@ -163,7 +164,10 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
 
     return AppFilterTotalHeader(
       leading: leading,
-      totalText: '${_controller.total} 条',
+      totalText: composeTotalWithSyncedAt(
+        '${_controller.total} 条',
+        _controller.syncedAt,
+      ),
       totalKey: const Key('desktop-hot-reviews-page-total'),
     );
   }

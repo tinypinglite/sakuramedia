@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/app/cached_page_state_handle.dart';
+import 'package:sakuramedia/core/format/synced_at_label.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
@@ -103,7 +104,10 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
                             (value) =>
                                 unawaited(_pageState.selectPeriod(value)),
                       ),
-                      totalText: '${_pageState.controller.total} 部',
+                      totalText: composeTotalWithSyncedAt(
+                        '${_pageState.controller.total} 部',
+                        _pageState.controller.syncedAt,
+                      ),
                       totalKey: const Key('mobile-rankings-page-total'),
                     ),
                     SizedBox(height: context.appSpacing.md),

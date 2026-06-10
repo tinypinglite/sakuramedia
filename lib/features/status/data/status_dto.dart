@@ -85,6 +85,24 @@ class MediaLibraryStatsDto {
   }
 }
 
+class ThumbnailStatsDto {
+  const ThumbnailStatsDto({required this.pendingMedia, required this.total});
+
+  final int pendingMedia;
+  final int total;
+
+  factory ThumbnailStatsDto.fromJson(Map<String, dynamic> json) {
+    return ThumbnailStatsDto(
+      pendingMedia: json['pending_media'] as int? ?? 0,
+      total: json['total'] as int? ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{'pending_media': pendingMedia, 'total': total};
+  }
+}
+
 class ImageSearchJoyTagStatsDto {
   const ImageSearchJoyTagStatsDto({required this.healthy, this.usedDevice});
 
@@ -216,6 +234,7 @@ class StatusDto {
     required this.movies,
     required this.mediaFiles,
     required this.mediaLibraries,
+    required this.thumbnails,
   });
 
   final String backendVersion;
@@ -223,6 +242,7 @@ class StatusDto {
   final MovieStatsDto movies;
   final MediaFileStatsDto mediaFiles;
   final MediaLibraryStatsDto mediaLibraries;
+  final ThumbnailStatsDto thumbnails;
 
   factory StatusDto.fromJson(Map<String, dynamic> json) {
     return StatusDto(
@@ -233,6 +253,7 @@ class StatusDto {
       mediaLibraries: MediaLibraryStatsDto.fromJson(
         _asJsonMap(json['media_libraries']),
       ),
+      thumbnails: ThumbnailStatsDto.fromJson(_asJsonMap(json['thumbnails'])),
     );
   }
 
@@ -243,6 +264,7 @@ class StatusDto {
       'movies': movies.toJson(),
       'media_files': mediaFiles.toJson(),
       'media_libraries': mediaLibraries.toJson(),
+      'thumbnails': thumbnails.toJson(),
     };
   }
 }

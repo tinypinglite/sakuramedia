@@ -115,6 +115,7 @@ void main() {
         'page': 2,
         'page_size': 24,
         'total': 30,
+        'synced_at': '2026-05-08T09:00:00',
       },
     );
 
@@ -144,6 +145,7 @@ void main() {
     expect(page.items.single.heat, 1777);
     expect(page.page, 2);
     expect(page.total, 30);
+    expect(page.syncedAt, DateTime.parse('2026-05-08T09:00:00'));
   });
 
   test('rankings api converts backend errors to ApiException', () async {

@@ -142,6 +142,16 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
                 ),
               ),
               OverviewStatItem(
+                id: 'thumbnails-total',
+                label: '缩略图总数',
+                value: systemInfo.status!.thumbnails.total.toString(),
+              ),
+              OverviewStatItem(
+                id: 'thumbnails-pending',
+                label: '待生成缩略图',
+                value: systemInfo.status!.thumbnails.pendingMedia.toString(),
+              ),
+              OverviewStatItem(
                 id: 'joytag-health',
                 label: 'JoyTag 健康',
                 value: systemInfo.buildJoyTagHealthValue(),

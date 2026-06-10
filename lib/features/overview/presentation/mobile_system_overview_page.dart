@@ -137,6 +137,16 @@ class _MobileSystemOverviewPageState extends State<MobileSystemOverviewPage> {
                 status.mediaFiles.totalSizeBytes,
               ),
             ),
+            _MobileSystemOverviewMetricItem(
+              id: 'thumbnails-total',
+              label: '缩略图总数',
+              value: status.thumbnails.total.toString(),
+            ),
+            _MobileSystemOverviewMetricItem(
+              id: 'thumbnails-pending',
+              label: '待生成缩略图',
+              value: status.thumbnails.pendingMedia.toString(),
+            ),
           ],
         ),
         SizedBox(height: context.appSpacing.md),

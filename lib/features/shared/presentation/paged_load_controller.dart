@@ -40,6 +40,7 @@ class PagedLoadController<T> extends ChangeNotifier {
   String? _loadMoreErrorMessage;
   int _currentPage;
   int _total = 0;
+  DateTime? _syncedAt;
 
   List<T> get items => UnmodifiableListView<T>(_items);
   bool get isInitialLoading => _isInitialLoading;
@@ -50,6 +51,9 @@ class PagedLoadController<T> extends ChangeNotifier {
   String? get loadMoreErrorMessage => _loadMoreErrorMessage;
   int get currentPage => _currentPage;
   int get total => _total;
+
+  /// 当前这批数据的抓取时间（本地时区），整批共用同一个值；暂无数据时为 `null`。
+  DateTime? get syncedAt => _syncedAt;
 
   @protected
   List<T> get mutableItems => _items;
@@ -102,6 +106,7 @@ class PagedLoadController<T> extends ChangeNotifier {
     _replaceItems(response.items);
     _currentPage = response.page;
     _total = response.total;
+    _syncedAt = response.syncedAt;
     _hasMore = _items.length < _total;
     _hasLoadedOnce = true;
     _initialErrorMessage = null;
@@ -148,6 +153,7 @@ class PagedLoadController<T> extends ChangeNotifier {
       _loadMoreErrorMessage = null;
       _currentPage = initialPage - 1;
       _total = 0;
+      _syncedAt = null;
       _hasMore = true;
       _hasLoadedOnce = false;
       _items.clear();
@@ -172,6 +178,7 @@ class PagedLoadController<T> extends ChangeNotifier {
 
       _currentPage = response.page;
       _total = response.total;
+      _syncedAt = response.syncedAt;
       _hasLoadedOnce = true;
       _hasMore = _items.length < _total;
       _initialErrorMessage = null;
