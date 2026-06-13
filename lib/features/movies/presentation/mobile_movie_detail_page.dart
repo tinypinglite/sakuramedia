@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +19,7 @@ import 'package:sakuramedia/features/movies/presentation/movie_detail_action_sup
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_page_content.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_playback_launcher.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_plot_image_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
@@ -828,11 +831,15 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
   }
 
   void _openMoviePlayer({int? mediaId, int? positionSeconds}) {
-    MobileMoviePlayerRouteData(
-      movieNumber: widget.movieNumber,
-      mediaId: mediaId,
-      positionSeconds: positionSeconds,
-    ).push(context);
+    unawaited(
+      launchMoviePlayback(
+        context,
+        movieNumber: widget.movieNumber,
+        mediaId: mediaId,
+        positionSeconds: positionSeconds,
+        movie: _controller.movie,
+      ),
+    );
   }
 
   Future<void> _openImageSearchFromUrl({

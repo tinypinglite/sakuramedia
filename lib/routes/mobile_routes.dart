@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
@@ -21,6 +22,7 @@ import 'package:sakuramedia/features/configuration/presentation/mobile_downloade
 import 'package:sakuramedia/features/configuration/presentation/mobile_indexers_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/mobile_llm_settings_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/mobile_media_libraries_page.dart';
+import 'package:sakuramedia/features/external_player/presentation/mobile_external_player_settings_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_series_movies_page.dart';
@@ -378,6 +380,28 @@ class MobileSettingsPlaylistsRouteData extends _MobileSubpageRouteData
   }
 }
 
+@TypedGoRoute<MobileSettingsExternalPlayerRouteData>(
+  path: mobileSettingsExternalPlayerPath,
+)
+class MobileSettingsExternalPlayerRouteData extends _MobileSubpageRouteData
+    with $MobileSettingsExternalPlayerRouteData {
+  const MobileSettingsExternalPlayerRouteData();
+
+  @override
+  String get pageName => 'mobile-settings-external-player';
+
+  @override
+  String get title => '外部播放器';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileExternalPlayerSettingsPage();
+  }
+}
+
 @TypedGoRoute<MobileSettingsUsernameRouteData>(path: mobileSettingsUsernamePath)
 class MobileSettingsUsernameRouteData extends _MobileSubpageRouteData
     with $MobileSettingsUsernameRouteData {
@@ -640,6 +664,17 @@ class _MobileOverviewDrawer extends StatelessWidget {
         label: '播放列表',
       );
 
+  static const _MobileOverviewDrawerMenuItem _externalPlayerItem =
+      _MobileOverviewDrawerMenuItem(
+        key: 'external-player',
+        icon: Icons.open_in_new_rounded,
+        label: '外部播放器',
+      );
+
+  // 调用外部播放器仅在 Android 原生实现，其它平台不展示该入口。
+  static bool get _supportsExternalPlayer =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
   static const _MobileOverviewDrawerMenuItem _usernameItem =
       _MobileOverviewDrawerMenuItem(
         key: 'username',
@@ -696,6 +731,20 @@ class _MobileOverviewDrawer extends StatelessWidget {
                         ],
                       ),
                       SizedBox(height: spacing.md),
+                      if (_supportsExternalPlayer) ...[
+                        _MobileOverviewDrawerSection(
+                          key: const Key(
+                            'mobile-overview-drawer-external-player-section',
+                          ),
+                          items: <Widget>[
+                            _buildMenuEntry(
+                              context: context,
+                              item: _externalPlayerItem,
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: spacing.md),
+                      ],
                       _MobileOverviewDrawerSection(
                         key: const Key(
                           'mobile-overview-drawer-library-section',
@@ -802,6 +851,9 @@ class _MobileOverviewDrawer extends StatelessWidget {
         return;
       case 'playlists':
         const MobileSettingsPlaylistsRouteData().push(hostContext);
+        return;
+      case 'external-player':
+        const MobileSettingsExternalPlayerRouteData().push(hostContext);
         return;
       case 'username':
         const MobileSettingsUsernameRouteData().push(hostContext);

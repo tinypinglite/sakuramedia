@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/discovery/presentation/discovery_controller.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_launcher.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_playback_launcher.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
@@ -205,11 +206,14 @@ class _MobileOverviewDiscoverTabState extends State<MobileOverviewDiscoverTab> {
         await _searchSimilarFromMoment(item);
         break;
       case _MomentPreviewAction.play:
-        MobileMoviePlayerRouteData(
-          movieNumber: item.movieNumber,
-          mediaId: item.mediaId > 0 ? item.mediaId : null,
-          positionSeconds: item.offsetSeconds,
-        ).push(context);
+        unawaited(
+          launchMoviePlayback(
+            context,
+            movieNumber: item.movieNumber,
+            mediaId: item.mediaId > 0 ? item.mediaId : null,
+            positionSeconds: item.offsetSeconds,
+          ),
+        );
         break;
       case _MomentPreviewAction.movieDetail:
         MobileMovieDetailRouteData(movieNumber: item.movieNumber).push(context);

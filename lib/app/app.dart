@@ -23,6 +23,7 @@ import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart
 import 'package:sakuramedia/features/configuration/data/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
+import 'package:sakuramedia/features/external_player/data/external_player_store.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
@@ -235,6 +236,9 @@ class _MyAppState extends State<MyApp> {
               (context) => ImageSearchApi(apiClient: context.read<ApiClient>()),
         ),
         Provider<ImageSearchDraftStore>(create: (_) => ImageSearchDraftStore()),
+        ChangeNotifierProvider<ExternalPlayerStore>(
+          create: (_) => ExternalPlayerStore()..load(),
+        ),
       ],
       child: OKToast(
         child: MaterialApp.router(

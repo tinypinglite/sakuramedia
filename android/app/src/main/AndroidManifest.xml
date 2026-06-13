@@ -55,5 +55,20 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- 用于枚举/拉起可播放视频的外部播放器（设置中选择默认外部播放器）。
+             需覆盖与实际播放直链一致的 http/https scheme，否则 Android 11+ 包可见性
+             会过滤掉只声明网络流过滤器的播放器（如部分 VLC/MX Player 配置）。 -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="video/*"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="http" android:mimeType="video/*"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https" android:mimeType="video/*"/>
+        </intent>
     </queries>
 </manifest>
