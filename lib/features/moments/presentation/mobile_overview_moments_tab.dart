@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_launcher.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_playback_launcher.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
@@ -200,11 +201,14 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
   }
 
   void _openPlayerForMoment(MomentListItem item) {
-    MobileMoviePlayerRouteData(
-      movieNumber: item.movieNumber,
-      mediaId: item.mediaId > 0 ? item.mediaId : null,
-      positionSeconds: item.offsetSeconds,
-    ).push(context);
+    unawaited(
+      launchMoviePlayback(
+        context,
+        movieNumber: item.movieNumber,
+        mediaId: item.mediaId > 0 ? item.mediaId : null,
+        positionSeconds: item.offsetSeconds,
+      ),
+    );
   }
 
   void _openMovieDetailForMoment(MomentListItem item) {
