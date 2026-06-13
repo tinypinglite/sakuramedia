@@ -21,6 +21,7 @@ class TagSelectorPanel extends StatefulWidget {
     required this.onToggleExpanded,
     required this.onMatchModeChanged,
     required this.onRetry,
+    this.showMatchModeToggle = true,
   });
 
   final TagSelectionController selection;
@@ -31,6 +32,10 @@ class TagSelectorPanel extends StatefulWidget {
   final VoidCallback onToggleExpanded;
   final ValueChanged<TagMatchMode> onMatchModeChanged;
   final VoidCallback onRetry;
+
+  /// 是否展示「任一/全部」匹配模式开关。视频域多标签固定为 OR（后端无 tag_match），
+  /// 传 `false` 以隐藏该开关，避免出现无效控件。
+  final bool showMatchModeToggle;
 
   @override
   State<TagSelectorPanel> createState() => _TagSelectorPanelState();
@@ -212,7 +217,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
               ),
             ),
             const Spacer(),
-            _buildMatchModeToggle(context),
+            if (widget.showMatchModeToggle) _buildMatchModeToggle(context),
           ],
         ),
         SizedBox(height: spacing.sm),

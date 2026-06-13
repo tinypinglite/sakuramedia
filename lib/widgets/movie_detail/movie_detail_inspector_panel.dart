@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/features/clips/presentation/create_clip_dialog.dart';
 import 'package:sakuramedia/features/downloads/data/download_candidate_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
@@ -26,6 +27,7 @@ import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/clips/clip_selection_status_bar.dart';
 import 'package:sakuramedia/widgets/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/media/thumbnail_grid_column_resolver.dart';
@@ -156,6 +158,29 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
       return;
     }
     await _handleThumbnailAction(thumbnail, action, point);
+  }
+
+  Future<void> _handleCreateClip() async {
+    final start = _thumbnailController.clipStartThumbnail;
+    final end = _thumbnailController.clipEndThumbnail;
+    if (start == null || end == null || start.mediaId <= 0) {
+      return;
+    }
+    final created = await showCreateClipDialog(
+      context,
+      mediaId: start.mediaId,
+      movieNumber: widget.movieNumber,
+      startThumbnailId: start.thumbnailId,
+      endThumbnailId: end.thumbnailId,
+      startSeconds: start.offsetSeconds,
+      endSeconds: end.offsetSeconds,
+    );
+    if (!mounted || created == null) {
+      return;
+    }
+    showToast('切片已生成');
+    // 退出圈选模式并清空已选点。
+    _thumbnailController.toggleClipSelectionMode();
   }
 
   List<AppImageActionDescriptor> _buildThumbnailActionDescriptors(
@@ -346,6 +371,7 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
                     thumbnailPreviewPresentation:
                         widget.thumbnailPreviewPresentation,
                     onThumbnailMenuRequested: _showThumbnailActions,
+                    onCreateClip: _handleCreateClip,
                   );
                 },
               ),
@@ -1119,12 +1145,14 @@ class _MovieDetailThumbnailTab extends StatelessWidget {
     required this.controller,
     required this.thumbnailPreviewPresentation,
     this.onThumbnailMenuRequested,
+    this.onCreateClip,
   });
 
   final MovieDetailThumbnailController controller;
   final MoviePlotPreviewPresentation thumbnailPreviewPresentation;
   final void Function(int index, Offset globalPosition)?
   onThumbnailMenuRequested;
+  final VoidCallback? onCreateClip;
 
   @override
   Widget build(BuildContext context) {
@@ -1161,6 +1189,7 @@ class _MovieDetailThumbnailTab extends StatelessWidget {
                 key: const Key('movie-detail-thumbnail-toolbar'),
                 spacing: _MovieDetailThumbnailControlGroup.groupSpacing,
                 runSpacing: context.appSpacing.xs,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   _MovieDetailThumbnailIntervalSelector(
                     keyPrefix: 'movie-detail-thumbnail',
@@ -1174,8 +1203,32 @@ class _MovieDetailThumbnailTab extends StatelessWidget {
                     selectedColumns: resolvedColumns,
                     onSelect: controller.setColumns,
                   ),
+                  if (onCreateClip != null)
+                    AppIconButton(
+                      key: const Key('movie-detail-thumbnail-clip-toggle'),
+                      tooltip:
+                          controller.clipSelectionMode ? '退出切片圈选' : '圈选切片',
+                      isSelected: controller.clipSelectionMode,
+                      size: AppIconButtonSize.mini,
+                      selectedIconColor:
+                          Theme.of(context).colorScheme.primary,
+                      onPressed: controller.toggleClipSelectionMode,
+                      icon: const Icon(Icons.content_cut_rounded),
+                    ),
                 ],
               ),
+              if (controller.clipSelectionMode) ...[
+                SizedBox(height: context.appSpacing.sm),
+                ClipSelectionStatusBar(
+                  keyPrefix: 'movie-detail-thumbnail',
+                  startSeconds: controller.clipStartThumbnail?.offsetSeconds,
+                  endSeconds: controller.clipEndThumbnail?.offsetSeconds,
+                  durationSeconds: controller.clipSelectionDurationSeconds,
+                  canCreate: controller.canCreateClip,
+                  onCreate: onCreateClip,
+                  onClear: controller.clearClipSelection,
+                ),
+              ],
               SizedBox(height: context.appSpacing.md),
               Expanded(
                 child: MovieMediaThumbnailGrid(
@@ -1187,7 +1240,13 @@ class _MovieDetailThumbnailTab extends StatelessWidget {
                   isScrollLocked: false,
                   onRetry: controller.retry,
                   onThumbnailMenuRequested: onThumbnailMenuRequested,
+                  clipStartIndex: controller.clipStartIndex,
+                  clipEndIndex: controller.clipEndIndex,
                   onThumbnailTap: (index) {
+                    if (controller.clipSelectionMode) {
+                      controller.handleClipSelectionTap(index);
+                      return;
+                    }
                     controller.selectIndex(index);
                     showMoviePlotPreviewOverlay(
                       context: context,

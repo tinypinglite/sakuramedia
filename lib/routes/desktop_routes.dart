@@ -10,7 +10,14 @@ import 'package:sakuramedia/features/image_search/presentation/image_search_draf
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_series_movies_page.dart';
+import 'package:sakuramedia/features/videos/presentation/desktop_video_detail_page.dart';
+import 'package:sakuramedia/features/videos/presentation/desktop_video_player_page.dart';
+import 'package:sakuramedia/features/videos/presentation/desktop_person_detail_page.dart';
+import 'package:sakuramedia/features/videos/presentation/desktop_video_collection_detail_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlist_detail_page.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/desktop_clip_collections_page.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/desktop_clip_collection_detail_page.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/desktop_clip_collection_play_page.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/desktop_follow_page.dart';
 import 'package:sakuramedia/features/tags/presentation/desktop_tags_page.dart';
 import 'package:sakuramedia/routes/app_route_helpers.dart';
@@ -88,6 +95,105 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
   }
 }
 
+@TypedGoRoute<DesktopVideoPlayerRouteData>(
+  path: '/desktop/library/videos/:videoId/player',
+)
+class DesktopVideoPlayerRouteData extends _DesktopNoTransitionRouteData
+    with $DesktopVideoPlayerRouteData {
+  const DesktopVideoPlayerRouteData({
+    required this.videoId,
+    this.mediaId,
+    this.collectionId,
+    this.playlist,
+  });
+
+  final int videoId;
+  final int? mediaId;
+  final int? collectionId;
+  final String? playlist;
+
+  @override
+  String get pageName => 'desktop-video-player';
+
+  @override
+  String get location => buildRouteLocation(
+    path: '/desktop/library/videos/$videoId/player',
+    queryParameters: <String, String?>{
+      if (mediaId != null) 'mediaId': '$mediaId',
+      if (collectionId != null) 'collectionId': '$collectionId',
+      if (playlist != null && playlist!.isNotEmpty) 'playlist': playlist,
+    },
+  );
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    final playlistRaw = resolveStringQueryParameter(
+      state,
+      names: const <String>['playlist'],
+      fallback: playlist,
+    );
+    final playlistIds = playlistRaw == null || playlistRaw.isEmpty
+        ? null
+        : playlistRaw
+            .split(',')
+            .map((value) => int.tryParse(value.trim()))
+            .whereType<int>()
+            .toList(growable: false);
+    return DesktopVideoPlayerPage(
+      videoId: videoId,
+      initialMediaId: resolveIntQueryParameter(
+        state,
+        names: const <String>['mediaId', 'media-id'],
+        fallback: mediaId,
+      ),
+      collectionId: resolveIntQueryParameter(
+        state,
+        names: const <String>['collectionId', 'collection-id'],
+        fallback: collectionId,
+      ),
+      playlistVideoIds: playlistIds,
+    );
+  }
+}
+
+@TypedGoRoute<DesktopClipCollectionPlayRouteData>(
+  path: '/desktop/library/clip-collections/:collectionId/play',
+)
+class DesktopClipCollectionPlayRouteData extends _DesktopNoTransitionRouteData
+    with $DesktopClipCollectionPlayRouteData {
+  const DesktopClipCollectionPlayRouteData({
+    required this.collectionId,
+    this.startIndex = 0,
+  });
+
+  final int collectionId;
+  final int startIndex;
+
+  @override
+  String get pageName => 'desktop-clip-collection-play';
+
+  @override
+  String get location => buildRouteLocation(
+    path: '/desktop/library/clip-collections/$collectionId/play',
+    queryParameters: <String, String?>{
+      if (startIndex > 0) 'startIndex': '$startIndex',
+    },
+  );
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return DesktopClipCollectionPlayPage(
+      collectionId: collectionId,
+      startIndex: resolveIntQueryParameter(
+            state,
+            names: const <String>['startIndex', 'start-index'],
+            fallback: startIndex,
+          ) ??
+          0,
+    );
+  }
+}
+
 @TypedShellRoute<DesktopShellRouteData>(
   routes: <TypedRoute<RouteData>>[
     TypedGoRoute<DesktopOverviewRouteData>(path: desktopOverviewPath),
@@ -104,6 +210,12 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     TypedGoRoute<DesktopTagsRouteData>(path: desktopTagsPath),
     TypedGoRoute<DesktopMomentsRouteData>(path: desktopMomentsPath),
     TypedGoRoute<DesktopPlaylistsRouteData>(path: desktopPlaylistsPath),
+    TypedGoRoute<DesktopClipsRouteData>(path: desktopClipsPath),
+    TypedGoRoute<DesktopVideosRouteData>(path: desktopVideosPath),
+    TypedGoRoute<DesktopPersonsRouteData>(path: desktopPersonsPath),
+    TypedGoRoute<DesktopVideoCollectionsRouteData>(
+      path: desktopVideoCollectionsPath,
+    ),
     TypedGoRoute<DesktopRankingsRouteData>(path: desktopRankingsPath),
     TypedGoRoute<DesktopHotReviewsRouteData>(path: desktopHotReviewsPath),
     TypedGoRoute<DesktopActivityRouteData>(path: desktopActivityPath),
@@ -127,11 +239,26 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     TypedGoRoute<DesktopPlaylistDetailRouteData>(
       path: '/desktop/library/playlists/:playlistId',
     ),
+    TypedGoRoute<DesktopClipCollectionsRouteData>(
+      path: desktopClipCollectionsPath,
+    ),
+    TypedGoRoute<DesktopClipCollectionDetailRouteData>(
+      path: '$desktopClipCollectionsPath/:collectionId',
+    ),
     TypedGoRoute<DesktopActorDetailRouteData>(
       path: '/desktop/library/actors/:actorId',
     ),
     TypedGoRoute<DesktopTagMoviesRouteData>(
       path: '$desktopTagsPath/:tagId',
+    ),
+    TypedGoRoute<DesktopVideoDetailRouteData>(
+      path: '$desktopVideosPath/:videoId',
+    ),
+    TypedGoRoute<DesktopPersonDetailRouteData>(
+      path: '$desktopPersonsPath/:personId',
+    ),
+    TypedGoRoute<DesktopVideoCollectionDetailRouteData>(
+      path: '$desktopVideoCollectionsPath/:collectionId',
     ),
   ],
 )
@@ -233,6 +360,11 @@ class DesktopMomentsRouteData extends _DesktopShellSpecRouteData
 class DesktopPlaylistsRouteData extends _DesktopShellSpecRouteData
     with $DesktopPlaylistsRouteData {
   const DesktopPlaylistsRouteData() : super(desktopPlaylistsPath);
+}
+
+class DesktopClipsRouteData extends _DesktopShellSpecRouteData
+    with $DesktopClipsRouteData {
+  const DesktopClipsRouteData() : super(desktopClipsPath);
 }
 
 class DesktopRankingsRouteData extends _DesktopShellSpecRouteData
@@ -447,6 +579,34 @@ class DesktopPlaylistDetailRouteData extends _DesktopShellPageRouteData
   }
 }
 
+class DesktopClipCollectionsRouteData extends _DesktopShellPageRouteData
+    with $DesktopClipCollectionsRouteData {
+  const DesktopClipCollectionsRouteData();
+
+  @override
+  String get pageName => 'desktop-clip-collections';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return const DesktopClipCollectionsPage();
+  }
+}
+
+class DesktopClipCollectionDetailRouteData extends _DesktopShellPageRouteData
+    with $DesktopClipCollectionDetailRouteData {
+  const DesktopClipCollectionDetailRouteData({required this.collectionId});
+
+  final int collectionId;
+
+  @override
+  String get pageName => 'desktop-clip-collection-detail';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return DesktopClipCollectionDetailPage(collectionId: collectionId);
+  }
+}
+
 class DesktopActorDetailRouteData extends _DesktopShellPageRouteData
     with $DesktopActorDetailRouteData {
   const DesktopActorDetailRouteData({required this.actorId});
@@ -474,6 +634,72 @@ class DesktopTagMoviesRouteData extends _DesktopShellPageRouteData
   @override
   Widget buildContent(BuildContext context, GoRouterState state) {
     return DesktopTagsPage(initialTagId: tagId);
+  }
+}
+
+class DesktopVideosRouteData extends _DesktopShellSpecRouteData
+    with $DesktopVideosRouteData {
+  const DesktopVideosRouteData() : super(desktopVideosPath);
+}
+
+class DesktopPersonsRouteData extends _DesktopShellSpecRouteData
+    with $DesktopPersonsRouteData {
+  const DesktopPersonsRouteData() : super(desktopPersonsPath);
+}
+
+class DesktopVideoCollectionsRouteData extends _DesktopShellSpecRouteData
+    with $DesktopVideoCollectionsRouteData {
+  const DesktopVideoCollectionsRouteData() : super(desktopVideoCollectionsPath);
+}
+
+class DesktopVideoDetailRouteData extends _DesktopShellPageRouteData
+    with $DesktopVideoDetailRouteData {
+  const DesktopVideoDetailRouteData({required this.videoId});
+
+  final int videoId;
+
+  @override
+  String get pageName => 'desktop-video-detail';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return DesktopVideoDetailPage(
+      videoId: videoId,
+      fallbackPath: desktopVideosPath,
+    );
+  }
+}
+
+class DesktopPersonDetailRouteData extends _DesktopShellPageRouteData
+    with $DesktopPersonDetailRouteData {
+  const DesktopPersonDetailRouteData({required this.personId});
+
+  final int personId;
+
+  @override
+  String get pageName => 'desktop-person-detail';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return DesktopPersonDetailPage(
+      personId: personId,
+      fallbackPath: desktopPersonsPath,
+    );
+  }
+}
+
+class DesktopVideoCollectionDetailRouteData extends _DesktopShellPageRouteData
+    with $DesktopVideoCollectionDetailRouteData {
+  const DesktopVideoCollectionDetailRouteData({required this.collectionId});
+
+  final int collectionId;
+
+  @override
+  String get pageName => 'desktop-video-collection-detail';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return DesktopVideoCollectionDetailPage(collectionId: collectionId);
   }
 }
 

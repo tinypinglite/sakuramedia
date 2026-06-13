@@ -111,6 +111,7 @@ class ApiClient {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
+    Duration? receiveTimeout,
   }) async {
     final response = await _request<Map<String, dynamic>>(
       method: 'POST',
@@ -118,6 +119,7 @@ class ApiClient {
       data: data,
       queryParameters: queryParameters,
       requiresAuth: requiresAuth,
+      receiveTimeout: receiveTimeout,
     );
     return _asJsonMap(response.data);
   }

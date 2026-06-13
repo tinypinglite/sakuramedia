@@ -209,6 +209,19 @@ class _MovieFilterToolbarState extends State<MovieFilterToolbar> {
                                   ),
                                 ),
                           ),
+                          SizedBox(height: context.appSpacing.lg),
+                          _FilterSection<MovieNumberSourceFilter>(
+                            title: '番号来源',
+                            options: MovieNumberSourceFilter.values,
+                            selectedValue: widget.filterState.numberSource,
+                            labelBuilder: (value) => value.label,
+                            onSelected:
+                                (value) => widget.onChanged(
+                                  widget.filterState.copyWith(
+                                    numberSource: value,
+                                  ),
+                                ),
+                          ),
                           if (_shouldShowYearSection) ...[
                             SizedBox(height: context.appSpacing.lg),
                             _YearFilterSection(

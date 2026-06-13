@@ -68,6 +68,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     required this.movieDetailPlotPreviewThumbnailHeight,
     required this.playlistBannerHeight,
     required this.playlistDialogWidth,
+    required this.clipPlayerDialogWidth,
     required this.mobileBottomNavHeight,
     required this.mobileTopTabHeight,
     required this.mobileSubpageLeadingWidth,
@@ -142,6 +143,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
         movieDetailPlotPreviewThumbnailHeight = 72,
         playlistBannerHeight = 100,
         playlistDialogWidth = 520,
+        clipPlayerDialogWidth = 880,
         mobileBottomNavHeight = 52,
         mobileTopTabHeight = 48,
         mobileSubpageLeadingWidth = 40,
@@ -215,6 +217,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
         movieDetailPlotPreviewThumbnailHeight = 72,
         playlistBannerHeight = 104,
         playlistDialogWidth = 520,
+        clipPlayerDialogWidth = 880,
         mobileBottomNavHeight = 56,
         mobileTopTabHeight = 52,
         mobileSubpageLeadingWidth = 44,
@@ -287,6 +290,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
   final double movieDetailPlotPreviewThumbnailHeight;
   final double playlistBannerHeight;
   final double playlistDialogWidth;
+  final double clipPlayerDialogWidth;
   final double mobileBottomNavHeight;
   final double mobileTopTabHeight;
   final double mobileSubpageLeadingWidth;
@@ -361,6 +365,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     double? movieDetailPlotPreviewThumbnailHeight,
     double? playlistBannerHeight,
     double? playlistDialogWidth,
+    double? clipPlayerDialogWidth,
     double? mobileBottomNavHeight,
     double? mobileTopTabHeight,
     double? mobileSubpageLeadingWidth,
@@ -473,6 +478,8 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
               this.movieDetailPlotPreviewThumbnailHeight,
       playlistBannerHeight: playlistBannerHeight ?? this.playlistBannerHeight,
       playlistDialogWidth: playlistDialogWidth ?? this.playlistDialogWidth,
+      clipPlayerDialogWidth:
+          clipPlayerDialogWidth ?? this.clipPlayerDialogWidth,
       mobileBottomNavHeight:
           mobileBottomNavHeight ?? this.mobileBottomNavHeight,
       mobileTopTabHeight: mobileTopTabHeight ?? this.mobileTopTabHeight,
@@ -702,6 +709,8 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
           lerpDouble(playlistBannerHeight, other.playlistBannerHeight, t)!,
       playlistDialogWidth:
           lerpDouble(playlistDialogWidth, other.playlistDialogWidth, t)!,
+      clipPlayerDialogWidth:
+          lerpDouble(clipPlayerDialogWidth, other.clipPlayerDialogWidth, t)!,
       mobileBottomNavHeight:
           lerpDouble(mobileBottomNavHeight, other.mobileBottomNavHeight, t)!,
       mobileTopTabHeight:

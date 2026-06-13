@@ -141,6 +141,7 @@ mkdir -p docker-data/cache/assets
 mkdir -p docker-data/cache/subtitles
 mkdir -p docker-data/image-search-index
 mkdir -p docker-data/logs
+mkdir -p docker-data/media-clips
 mkdir -p docker-data/joytag
 
 mkdir -p /mnt/volume1/media/av
@@ -291,6 +292,7 @@ services:
       - ./docker-data/cache/assets:/data/cache/assets
       - ./docker-data/cache/subtitles:/data/cache/subtitles
       - ./docker-data/logs:/data/logs
+      - ./docker-data/media-clips:/data/media-clips
       - /mnt/volume1/media:/mnt/volume1/media
 
   joytag-infer:
@@ -351,6 +353,7 @@ compose.yaml
 - `sakuramedia-web` 是浏览器访问用的 Web 前端
 - `38000` 是后端端口，`38080` 是 Web 端口
 - `/mnt/volume1/media:/mnt/volume1/media` 这一行非常重要，它决定了容器能看到你的已有媒体和下载目录
+- `./docker-data/media-clips:/data/media-clips` 用来持久化你收藏的视频片段，**不挂这一行的话，容器重建或升级镜像后片段会全部丢失**（功能详见[视频片段收藏](/guide/clips)）
 
 这里特别建议宿主机路径和容器内路径保持一致，也就是都用：
 

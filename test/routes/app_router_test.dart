@@ -102,7 +102,7 @@ void main() {
   });
 
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 13);
+    expect(desktopNavGroups.length, 17);
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
       '发现',
@@ -110,11 +110,15 @@ void main() {
       '女优',
       '标签',
       '时刻',
+      '切片',
       '播放列表',
+      '非 JAV 视频',
+      '人物',
+      '视频合集',
       '排行榜',
       '热评',
       '系统设置',
-      '媒体导入',
+      'JAV 媒体导入',
       '活动中心',
       '通知',
     ]);
@@ -125,7 +129,11 @@ void main() {
       desktopActorsPath,
       desktopTagsPath,
       desktopMomentsPath,
+      desktopClipsPath,
       desktopPlaylistsPath,
+      desktopVideosPath,
+      desktopPersonsPath,
+      desktopVideoCollectionsPath,
       desktopRankingsPath,
       desktopHotReviewsPath,
       desktopConfigurationPath,

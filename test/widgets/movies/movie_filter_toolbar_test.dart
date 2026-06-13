@@ -93,4 +93,68 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'movie filter toolbar selects FC2 number source and resets to default',
+    (WidgetTester tester) async {
+      var filterState = MovieFilterState.initial;
+      MovieFilterState? changedState;
+
+      tester.view.physicalSize = const Size(420, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.topRight,
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  return MovieFilterToolbar(
+                    filterState: filterState,
+                    yearOptions: const <MovieFilterYearOption>[],
+                    onChanged: (nextState) {
+                      changedState = nextState;
+                      setState(() {
+                        filterState = nextState;
+                      });
+                    },
+                    onReset: () {
+                      setState(() {
+                        filterState = MovieFilterState.initial;
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+      await tester.pumpAndSettle();
+
+      // 默认筛选下「番号来源」分组存在且选中「全部」。
+      expect(find.text('番号来源'), findsOneWidget);
+      expect(filterState.numberSource, MovieNumberSourceFilter.all);
+
+      await tester.tap(find.text('FC2'));
+      await tester.pumpAndSettle();
+
+      expect(changedState?.numberSource, MovieNumberSourceFilter.fc2);
+      expect(filterState.isDefault, isFalse);
+      expect(find.text('重置'), findsOneWidget);
+
+      await tester.tap(find.text('重置'));
+      await tester.pumpAndSettle();
+
+      expect(filterState.numberSource, MovieNumberSourceFilter.all);
+      expect(filterState.isDefault, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

@@ -19,6 +19,7 @@ class MovieListPageStateEntry
             pageSize: pageSize,
             status: filterState.status,
             collectionType: filterState.collectionType,
+            numberSource: filterState.numberSource,
             sort: filterState.sortExpression,
           ),
       subscribeMovie: _moviesApi.subscribeMovie,

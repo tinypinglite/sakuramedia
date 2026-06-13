@@ -14,7 +14,7 @@ class MoviePlayerController extends ChangeNotifier {
     required this.baseUrl,
     required this.fetchMovieDetail,
     required this.fetchMediaThumbnails,
-    required this.fetchMovieSubtitles,
+    this.fetchMovieSubtitles,
     required this.updateMediaProgress,
     this.initialMediaId,
     this.initialPositionSeconds,
@@ -30,7 +30,9 @@ class MoviePlayerController extends ChangeNotifier {
   fetchMovieDetail;
   final Future<List<MovieMediaThumbnailDto>> Function({required int mediaId})
   fetchMediaThumbnails;
-  final Future<MovieSubtitleListDto> Function({required String movieNumber})
+  /// 字幕抓取来源；为 `null` 表示该来源不支持字幕（如非 JAV 视频），
+  /// [loadSubtitles] 会直接短路为 `unsupported` 状态。
+  final Future<MovieSubtitleListDto> Function({required String movieNumber})?
   fetchMovieSubtitles;
   final Future<MovieMediaProgressDto> Function({
     required int mediaId,
@@ -48,6 +50,9 @@ class MoviePlayerController extends ChangeNotifier {
   bool _isThumbnailScrollLocked = true;
   int? _thumbnailColumns;
   bool _hasManualThumbnailColumnOverride = false;
+  bool _clipSelectionMode = false;
+  int? _clipStartIndex;
+  int? _clipEndIndex;
   int _currentPlaybackSeconds = 0;
   final ValueNotifier<int?> _activeThumbnailIndexNotifier = ValueNotifier<int?>(
     null,
@@ -76,6 +81,30 @@ class MoviePlayerController extends ChangeNotifier {
   bool get isThumbnailScrollLocked => _isThumbnailScrollLocked;
   bool get usesAutoThumbnailColumns => !_hasManualThumbnailColumnOverride;
   int? get thumbnailColumns => _thumbnailColumns;
+  bool get clipSelectionMode => _clipSelectionMode;
+  int? get clipStartIndex => _clipStartIndex;
+  int? get clipEndIndex => _clipEndIndex;
+
+  MovieMediaThumbnailDto? get clipStartThumbnail =>
+      _thumbnailAt(_clipStartIndex);
+  MovieMediaThumbnailDto? get clipEndThumbnail => _thumbnailAt(_clipEndIndex);
+
+  /// 起止齐备且分别落在不同缩略图时才允许创建。
+  bool get canCreateClip {
+    final start = _clipStartIndex;
+    final end = _clipEndIndex;
+    return start != null && end != null && start != end;
+  }
+
+  /// 选区时长（秒），取两端 offset 之差的绝对值；未齐备时为 `null`。
+  int? get clipSelectionDurationSeconds {
+    final start = clipStartThumbnail;
+    final end = clipEndThumbnail;
+    if (start == null || end == null) {
+      return null;
+    }
+    return (end.offsetSeconds - start.offsetSeconds).abs();
+  }
   int get currentPlaybackSeconds => _currentPlaybackSeconds;
   int? get activeThumbnailIndex => _activeThumbnailIndexNotifier.value;
   List<MoviePlayerSubtitleOption> get subtitleOptions => _subtitleOptions;
@@ -158,6 +187,8 @@ class MoviePlayerController extends ChangeNotifier {
 
     _isThumbnailLoading = true;
     _thumbnailErrorMessage = null;
+    _clipStartIndex = null;
+    _clipEndIndex = null;
     notifyListeners();
 
     try {
@@ -174,6 +205,14 @@ class MoviePlayerController extends ChangeNotifier {
   }
 
   Future<void> loadSubtitles() async {
+    final fetch = fetchMovieSubtitles;
+    if (fetch == null) {
+      // 该来源不支持字幕（非 JAV 视频）：直接落到无字幕的稳定态。
+      _resetSubtitleState();
+      _subtitleFetchStatus = 'unsupported';
+      notifyListeners();
+      return;
+    }
     final previousSelectedSubtitleId = _selectedSubtitleId;
     debugPrint(
       '[player-debug] subtitle_state_load_begin movie=$movieNumber previousSelected=$previousSelectedSubtitleId',
@@ -183,7 +222,7 @@ class MoviePlayerController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await fetchMovieSubtitles(movieNumber: movieNumber);
+      final result = await fetch(movieNumber: movieNumber);
       _subtitleFetchStatus =
           result.fetchStatus.trim().isEmpty
               ? 'pending'
@@ -236,6 +275,53 @@ class MoviePlayerController extends ChangeNotifier {
   void toggleThumbnailScrollLock() {
     _isThumbnailScrollLocked = !_isThumbnailScrollLocked;
     notifyListeners();
+  }
+
+  /// 切换「圈选切片」模式：进入时解开滚动跟随、清空已选点，退出时清空已选点。
+  void toggleClipSelectionMode() {
+    _clipSelectionMode = !_clipSelectionMode;
+    _clipStartIndex = null;
+    _clipEndIndex = null;
+    if (_clipSelectionMode) {
+      _isThumbnailScrollLocked = false;
+    }
+    notifyListeners();
+  }
+
+  /// 圈选模式下点击缩略图：第 1 次设起点，第 2 次设终点，第 3 次重置为新起点。
+  void handleClipSelectionTap(int index) {
+    if (index < 0 || index >= _thumbnails.length) {
+      return;
+    }
+    if (_clipStartIndex == null) {
+      _clipStartIndex = index;
+      _clipEndIndex = null;
+    } else if (_clipEndIndex == null) {
+      if (index == _clipStartIndex) {
+        return;
+      }
+      _clipEndIndex = index;
+    } else {
+      _clipStartIndex = index;
+      _clipEndIndex = null;
+    }
+    notifyListeners();
+  }
+
+  void clearClipSelection() {
+    if (_clipStartIndex == null && _clipEndIndex == null) {
+      return;
+    }
+    _clipStartIndex = null;
+    _clipEndIndex = null;
+    notifyListeners();
+  }
+
+  MovieMediaThumbnailDto? _thumbnailAt(int? index) {
+    if (index == null || index < 0 || index >= _thumbnails.length) {
+      return null;
+    }
+    return _thumbnails[index];
   }
 
   void setSelectedSubtitleId(int? subtitleId) {

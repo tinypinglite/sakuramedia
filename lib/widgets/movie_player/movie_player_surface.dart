@@ -26,6 +26,7 @@ class MoviePlayerSurface extends StatefulWidget {
     this.initialPosition,
     this.onPositionChanged,
     this.onPlayingChanged,
+    this.onCompleted,
     this.subtitleState = MoviePlayerSubtitleState.empty,
     this.onSubtitleSelectionChanged,
     this.onSubtitleReloadRequested,
@@ -39,6 +40,10 @@ class MoviePlayerSurface extends StatefulWidget {
   final Duration? initialPosition;
   final ValueChanged<Duration>? onPositionChanged;
   final ValueChanged<bool>? onPlayingChanged;
+
+  /// 当前媒体播放至自然结束时回调一次，供调用方实现合集连播等续播逻辑。
+  /// 不传则无副作用（JAV 单片播放器即不传）。
+  final VoidCallback? onCompleted;
   final MoviePlayerSubtitleState subtitleState;
   final ValueChanged<int?>? onSubtitleSelectionChanged;
   final Future<void> Function()? onSubtitleReloadRequested;
@@ -179,7 +184,6 @@ Widget buildMoviePlayerDesktopVideoControls(VideoState state) {
   return MaterialDesktopVideoControls(state);
 }
 
-@visibleForTesting
 Widget Function(VideoState state) resolveMoviePlayerVideoControlsBuilder({
   required bool useTouchOptimizedControls,
 }) {
@@ -188,7 +192,6 @@ Widget Function(VideoState state) resolveMoviePlayerVideoControlsBuilder({
       : buildMoviePlayerDesktopVideoControls;
 }
 
-@visibleForTesting
 MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
   required ThemeData theme,
   required List<Widget> topControls,
@@ -224,7 +227,6 @@ MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
   );
 }
 
-@visibleForTesting
 MaterialDesktopVideoControlsThemeData buildMoviePlayerDesktopControlsThemeData({
   required ThemeData theme,
   required List<Widget> topControls,
@@ -291,6 +293,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   StreamSubscription<void>? _playSubscription;
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<bool>? _playingSubscription;
+  StreamSubscription<bool>? _completedSubscription;
   StreamSubscription<double>? _rateSubscription;
   StreamSubscription<Track>? _trackSubscription;
   StreamSubscription<VideoParams>? _videoParamsSubscription;
@@ -380,6 +383,11 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     });
     _playingSubscription = _player.stream.playing.listen((playing) {
       widget.onPlayingChanged?.call(playing);
+    });
+    _completedSubscription = _player.stream.completed.listen((completed) {
+      if (completed) {
+        widget.onCompleted?.call();
+      }
     });
     _trackSubscription = _player.stream.track.listen((track) {
       _currentTrack = track;
@@ -474,6 +482,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     _playSubscription?.cancel();
     _positionSubscription?.cancel();
     _playingSubscription?.cancel();
+    _completedSubscription?.cancel();
     _rateSubscription?.cancel();
     _trackSubscription?.cancel();
     _videoParamsSubscription?.cancel();
@@ -1062,7 +1071,6 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   }
 }
 
-@visibleForTesting
 List<Widget> buildMoviePlayerTopControls({
   required String movieNumber,
   required VoidCallback? onBackPressed,

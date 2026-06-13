@@ -20,6 +20,8 @@ class MovieMediaThumbnailGrid extends StatefulWidget {
     required this.onThumbnailTap,
     required this.onRetry,
     this.onThumbnailMenuRequested,
+    this.clipStartIndex,
+    this.clipEndIndex,
     this.keyPrefix = 'movie-media',
   });
 
@@ -29,6 +31,8 @@ class MovieMediaThumbnailGrid extends StatefulWidget {
   final int columns;
   final int? activeIndex;
   final bool isScrollLocked;
+  final int? clipStartIndex;
+  final int? clipEndIndex;
   final ValueChanged<int> onThumbnailTap;
   final VoidCallback onRetry;
   final void Function(int index, Offset globalPosition)?
@@ -420,6 +424,17 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     return true;
   }
 
+  bool _isWithinClipBand(int index) {
+    final start = widget.clipStartIndex;
+    final end = widget.clipEndIndex;
+    if (start == null || end == null) {
+      return false;
+    }
+    final lo = start < end ? start : end;
+    final hi = start < end ? end : start;
+    return index >= lo && index <= hi;
+  }
+
   bool _isWithinVisibleRange(int index) {
     final visibleStartIndex = _visibleStartIndex;
     final visibleEndIndex = _visibleEndIndex;
@@ -498,6 +513,47 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
             itemBuilder: (context, index) {
               final thumbnail = widget.thumbnails[index];
               final isActive = widget.activeIndex == index;
+              final isClipStart = widget.clipStartIndex == index;
+              final isClipEnd = widget.clipEndIndex == index;
+              final isClipEndpoint = isClipStart || isClipEnd;
+              final isInClipBand = _isWithinClipBand(index);
+              final primary = Theme.of(context).colorScheme.primary;
+
+              final Color tileColor;
+              final Color borderColor;
+              final double borderWidth;
+              if (isClipEndpoint) {
+                tileColor = primary.withValues(alpha: 0.18);
+                borderColor = primary;
+                borderWidth = 2.5;
+              } else if (isInClipBand) {
+                tileColor = primary.withValues(alpha: 0.10);
+                borderColor = primary.withValues(alpha: 0.45);
+                borderWidth = 1.5;
+              } else if (isActive) {
+                tileColor = primary.withValues(alpha: 0.08);
+                borderColor = primary;
+                borderWidth = 1.5;
+              } else {
+                tileColor = context.appColors.surfaceCard;
+                borderColor = context.appColors.borderSubtle;
+                borderWidth = 1;
+              }
+
+              final image =
+                  _shouldBuildImageForIndex(index)
+                      ? LayoutBuilder(
+                        builder: (context, constraints) {
+                          final decodeHint = _resolveDecodeHint(constraints);
+                          return MaskedImage(
+                            url: thumbnail.image.bestAvailableUrl,
+                            fit: BoxFit.cover,
+                            memCacheWidth: decodeHint.width,
+                            memCacheHeight: decodeHint.height,
+                          );
+                        },
+                      )
+                      : const _MovieMediaThumbnailImagePlaceholder();
 
               final child = KeyedSubtree(
                 key: Key('${widget.keyPrefix}-thumb-$index'),
@@ -506,40 +562,32 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
                     '${widget.keyPrefix}-thumbnail-tile-$index-decoration',
                   ),
                   decoration: BoxDecoration(
-                    color:
-                        isActive
-                            ? Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.08)
-                            : context.appColors.surfaceCard,
+                    color: tileColor,
                     borderRadius: context.appRadius.xsBorder,
-                    border: Border.all(
-                      color:
-                          isActive
-                              ? Theme.of(context).colorScheme.primary
-                              : context.appColors.borderSubtle,
-                      width: isActive ? 1.5 : 1,
-                    ),
-                    boxShadow: isActive ? context.appShadows.panel : null,
+                    border: Border.all(color: borderColor, width: borderWidth),
+                    boxShadow:
+                        (isActive || isClipEndpoint)
+                            ? context.appShadows.panel
+                            : null,
                   ),
                   child: ClipRRect(
                     borderRadius: context.appRadius.xsBorder,
                     child:
-                        _shouldBuildImageForIndex(index)
-                            ? LayoutBuilder(
-                              builder: (context, constraints) {
-                                final decodeHint = _resolveDecodeHint(
-                                  constraints,
-                                );
-                                return MaskedImage(
-                                  url: thumbnail.image.bestAvailableUrl,
-                                  fit: BoxFit.cover,
-                                  memCacheWidth: decodeHint.width,
-                                  memCacheHeight: decodeHint.height,
-                                );
-                              },
+                        isClipEndpoint
+                            ? Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                image,
+                                Positioned(
+                                  top: 4,
+                                  left: 4,
+                                  child: _ClipEndpointBadge(
+                                    label: isClipStart ? '起' : '终',
+                                  ),
+                                ),
+                              ],
                             )
-                            : const _MovieMediaThumbnailImagePlaceholder(),
+                            : image,
                   ),
                 ),
               );
@@ -562,6 +610,33 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
           ),
         );
       },
+    );
+  }
+}
+
+class _ClipEndpointBadge extends StatelessWidget {
+  const _ClipEndpointBadge({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: EdgeInsets.all(context.appSpacing.xs),
+      decoration: BoxDecoration(
+        color: primary,
+        borderRadius: context.appRadius.xsBorder,
+      ),
+      child: Text(
+        label,
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          weight: AppTextWeight.semibold,
+          tone: AppTextTone.primary,
+        ).copyWith(color: Theme.of(context).colorScheme.onPrimary),
+      ),
     );
   }
 }

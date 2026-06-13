@@ -105,6 +105,27 @@ extension AppNavigationActions on BuildContext {
     ).push(this);
   }
 
+  void pushDesktopClipCollections() {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    const DesktopClipCollectionsRouteData().push(this);
+  }
+
+  void pushDesktopClipCollectionDetail({required int collectionId}) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopClipCollectionDetailRouteData(collectionId: collectionId).push(this);
+  }
+
+  void pushDesktopClipCollectionPlay({
+    required int collectionId,
+    int startIndex = 0,
+  }) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopClipCollectionPlayRouteData(
+      collectionId: collectionId,
+      startIndex: startIndex,
+    ).push(this);
+  }
+
   void pushDesktopSearch({
     required String query,
     String? fallbackPath,

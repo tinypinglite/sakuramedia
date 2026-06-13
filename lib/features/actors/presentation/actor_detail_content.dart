@@ -118,6 +118,7 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
             pageSize: pageSize,
             status: _filterState.status,
             collectionType: _filterState.collectionType,
+            numberSource: _filterState.numberSource,
             sort: _filterState.sortExpression,
             year: _filterState.year,
           ),

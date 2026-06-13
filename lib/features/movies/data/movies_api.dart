@@ -22,6 +22,7 @@ class MoviesApi {
   Future<PaginatedResponseDto<MovieListItemDto>> getMovies({
     MovieStatusFilter? status,
     MovieCollectionTypeFilter? collectionType,
+    MovieNumberSourceFilter? numberSource,
     String? sort,
     int? actorId,
     int? year,
@@ -39,6 +40,9 @@ class MoviesApi {
     }
     if (collectionType != null) {
       queryParameters['collection_type'] = collectionType.apiValue;
+    }
+    if (numberSource != null) {
+      queryParameters['number_source'] = numberSource.apiValue;
     }
     if (sort != null && sort.isNotEmpty) {
       queryParameters['sort'] = sort;

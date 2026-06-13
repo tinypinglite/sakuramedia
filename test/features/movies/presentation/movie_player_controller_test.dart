@@ -711,4 +711,89 @@ void main() {
     expect(progressReports, hasLength(1));
     expect(progressReports.single['positionSeconds'], 42);
   });
+
+  group('clip selection', () {
+    Future<MoviePlayerController> buildLoadedController() async {
+      final controller = MoviePlayerController(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles:
+            ({required movieNumber}) async => buildSubtitleList(),
+        updateMediaProgress: ({
+          required mediaId,
+          required positionSeconds,
+        }) async =>
+            MovieMediaProgressDto(
+              lastPositionSeconds: positionSeconds,
+              lastWatchedAt: null,
+            ),
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      return controller;
+    }
+
+    test('toggling enters mode, releases scroll lock, clears on exit', () async {
+      final controller = await buildLoadedController();
+      expect(controller.clipSelectionMode, isFalse);
+
+      controller.toggleClipSelectionMode();
+      expect(controller.clipSelectionMode, isTrue);
+      expect(controller.isThumbnailScrollLocked, isFalse);
+
+      controller.handleClipSelectionTap(0);
+      controller.toggleClipSelectionMode();
+      expect(controller.clipSelectionMode, isFalse);
+      expect(controller.clipStartIndex, isNull);
+      expect(controller.clipEndIndex, isNull);
+    });
+
+    test('first/second/third tap cycle start and end points', () async {
+      final controller = await buildLoadedController();
+      controller.toggleClipSelectionMode();
+
+      controller.handleClipSelectionTap(0);
+      expect(controller.clipStartIndex, 0);
+      expect(controller.clipEndIndex, isNull);
+      expect(controller.canCreateClip, isFalse);
+
+      controller.handleClipSelectionTap(2);
+      expect(controller.clipStartIndex, 0);
+      expect(controller.clipEndIndex, 2);
+      expect(controller.canCreateClip, isTrue);
+      // 缩略图 offset 10 与 35 → 时长 25 秒。
+      expect(controller.clipSelectionDurationSeconds, 25);
+      expect(controller.clipStartThumbnail?.thumbnailId, 1);
+      expect(controller.clipEndThumbnail?.thumbnailId, 3);
+
+      controller.handleClipSelectionTap(1);
+      expect(controller.clipStartIndex, 1);
+      expect(controller.clipEndIndex, isNull);
+      expect(controller.canCreateClip, isFalse);
+    });
+
+    test('tapping the same thumbnail twice does not complete a range', () async {
+      final controller = await buildLoadedController();
+      controller.toggleClipSelectionMode();
+
+      controller.handleClipSelectionTap(1);
+      controller.handleClipSelectionTap(1);
+      expect(controller.clipStartIndex, 1);
+      expect(controller.clipEndIndex, isNull);
+      expect(controller.canCreateClip, isFalse);
+    });
+
+    test('clearClipSelection resets both endpoints', () async {
+      final controller = await buildLoadedController();
+      controller.toggleClipSelectionMode();
+      controller.handleClipSelectionTap(0);
+      controller.handleClipSelectionTap(2);
+
+      controller.clearClipSelection();
+      expect(controller.clipStartIndex, isNull);
+      expect(controller.clipEndIndex, isNull);
+    });
+  });
 }

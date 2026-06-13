@@ -12,6 +12,7 @@ import 'package:sakuramedia/features/movies/data/missav_thumbnail_stream_update.
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_inspector_panel.dart';
 
@@ -474,6 +475,59 @@ void main() {
       expect(find.byKey(const Key('movie-plot-preview-dialog')), findsNothing);
       expect(_thumbnailBorderWidth(tester, 'movie-detail-missav', 0), 1.0);
       expect(_thumbnailBorderWidth(tester, 'movie-detail-missav', 1), 1.5);
+    },
+  );
+
+  testWidgets(
+    'movie detail inspector thumbnail tab toggles clip selection mode',
+    (WidgetTester tester) async {
+      await _pumpInspectorPanel(
+        tester,
+        panelHeight: 520,
+        fetchMovieReviews: ({
+          required String movieNumber,
+          required int page,
+          required int pageSize,
+          required MovieReviewSort sort,
+        }) async {
+          return const <MovieReviewDto>[];
+        },
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('缩略图'));
+      await tester.pumpAndSettle();
+
+      final toggleFinder = find.byKey(
+        const Key('movie-detail-thumbnail-clip-toggle'),
+      );
+      expect(toggleFinder, findsOneWidget);
+      expect(
+        find.byKey(const Key('movie-detail-thumbnail-clip-selection-status')),
+        findsNothing,
+      );
+
+      await tester.tap(toggleFinder);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('movie-detail-thumbnail-clip-selection-status')),
+        findsOneWidget,
+      );
+      expect(find.text('点击缩略图设为起点'), findsOneWidget);
+      // 未选起止点时「创建」按钮禁用。
+      final createButton = tester.widget<AppButton>(
+        find.byKey(const Key('movie-detail-thumbnail-clip-create')),
+      );
+      expect(createButton.onPressed, isNull);
+
+      await tester.tap(toggleFinder);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('movie-detail-thumbnail-clip-selection-status')),
+        findsNothing,
+      );
     },
   );
 

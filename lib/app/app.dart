@@ -27,9 +27,15 @@ import 'package:sakuramedia/features/external_player/data/external_player_store.
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
+import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/tags/data/tags_api.dart';
+import 'package:sakuramedia/features/videos/data/videos_api.dart';
+import 'package:sakuramedia/features/videos/data/persons_api.dart';
+import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
+import 'package:sakuramedia/features/videos/data/video_imports_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
@@ -210,6 +216,20 @@ class _MyAppState extends State<MyApp> {
         Provider<TagsApi>(
           create: (context) => TagsApi(apiClient: context.read<ApiClient>()),
         ),
+        Provider<VideosApi>(
+          create: (context) => VideosApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<PersonsApi>(
+          create: (context) => PersonsApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<VideoCollectionsApi>(
+          create: (context) =>
+              VideoCollectionsApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<VideoImportsApi>(
+          create: (context) =>
+              VideoImportsApi(apiClient: context.read<ApiClient>()),
+        ),
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
         ),
@@ -230,6 +250,14 @@ class _MyAppState extends State<MyApp> {
         ),
         Provider<MediaApi>(
           create: (context) => MediaApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<ClipsApi>(
+          create: (context) => ClipsApi(apiClient: context.read<ApiClient>()),
+        ),
+        Provider<ClipCollectionsApi>(
+          create:
+              (context) =>
+                  ClipCollectionsApi(apiClient: context.read<ApiClient>()),
         ),
         Provider<ImageSearchApi>(
           create:

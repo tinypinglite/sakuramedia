@@ -209,6 +209,9 @@ allowed_min_video_file_size = 1073741824
 import_image_root_path = "/data/cache/assets"
 subtitle_root_path = "/data/cache/subtitles"
 max_thumbnail_process_count = 4
+media_clip_root_path = "/data/media-clips"
+media_clip_max_duration_seconds = 900
+media_clip_ffmpeg_timeout_seconds = 120
 ```
 
 字段说明：
@@ -224,6 +227,9 @@ max_thumbnail_process_count = 4
 | `import_image_root_path` | 导入时缓存图片的目录 |
 | `subtitle_root_path` | 字幕目录，用于整理导入时从影片资源同级目录识别到的字幕文件 |
 | `max_thumbnail_process_count` | 缩略图生成任务的最大并发数 |
+| `media_clip_root_path` | 用户片段（ffmpeg 切出的独立 mp4）的存储目录；与来源媒体解耦，删除媒体不会删除片段文件，建议单独挂卷持久化 |
+| `media_clip_max_duration_seconds` | 用户可圈选的片段最大时长（秒），仅约束圈选区间长度 |
+| `media_clip_ffmpeg_timeout_seconds` | 单次 ffmpeg 切片的墙钟超时（秒），坏文件 / 慢挂载卡死时杀进程回收 |
 
 建议：
 
@@ -579,6 +585,13 @@ import_image_root_path = "/data/cache/assets"
 subtitle_root_path = "/data/cache/subtitles"
 # 媒体缩略图生成任务的最大并发数。
 max_thumbnail_process_count = 4
+# 用户片段（ffmpeg 切出的独立 mp4）的存储目录。建议作为独立 docker 卷映射到本地持久化，
+# 目录需被容器运行用户可写。片段与来源媒体解耦，删除媒体不会删除片段文件。
+media_clip_root_path = "/data/media-clips"
+# 用户可圈选的片段最大时长（秒），仅约束圈选区间长度，不等于 ffmpeg 进程耗时。
+media_clip_max_duration_seconds = 900
+# 单次 ffmpeg 切片的墙钟超时（秒），兜住坏文件 / 慢挂载导致的进程卡死，超时即杀进程回收。
+media_clip_ffmpeg_timeout_seconds = 120
 
 [metadata]
 # JavDB API 域名，不带协议头。

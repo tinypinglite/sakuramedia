@@ -177,6 +177,96 @@ void main() {
       expect(controller.thumbnails.first.offsetSeconds, 10);
     },
   );
+
+  test('clip selection tap cycle picks start, end, then resets', () async {
+    final controller = MovieDetailThumbnailController(
+      mediaId: 100,
+      fetchMediaThumbnails:
+          ({required mediaId}) async =>
+              _thumbnails(mediaId: mediaId, offsets: <int>[10, 20, 30, 40]),
+    );
+    addTearDown(controller.dispose);
+    await controller.loadIfNeeded();
+
+    controller.toggleClipSelectionMode();
+    expect(controller.clipSelectionMode, isTrue);
+
+    controller.handleClipSelectionTap(0);
+    expect(controller.clipStartIndex, 0);
+    expect(controller.clipEndIndex, isNull);
+    expect(controller.canCreateClip, isFalse);
+
+    controller.handleClipSelectionTap(2);
+    expect(controller.clipStartIndex, 0);
+    expect(controller.clipEndIndex, 2);
+    expect(controller.canCreateClip, isTrue);
+    expect(controller.clipSelectionDurationSeconds, 20);
+
+    controller.handleClipSelectionTap(3);
+    expect(controller.clipStartIndex, 3);
+    expect(controller.clipEndIndex, isNull);
+    expect(controller.canCreateClip, isFalse);
+  });
+
+  test('tapping the same thumbnail twice does not complete a range', () async {
+    final controller = MovieDetailThumbnailController(
+      mediaId: 100,
+      fetchMediaThumbnails:
+          ({required mediaId}) async => _thumbnails(mediaId: mediaId),
+    );
+    addTearDown(controller.dispose);
+    await controller.loadIfNeeded();
+    controller.toggleClipSelectionMode();
+
+    controller.handleClipSelectionTap(1);
+    controller.handleClipSelectionTap(1);
+
+    expect(controller.clipStartIndex, 1);
+    expect(controller.clipEndIndex, isNull);
+    expect(controller.canCreateClip, isFalse);
+  });
+
+  test('toggling clip selection mode clears endpoints', () async {
+    final controller = MovieDetailThumbnailController(
+      mediaId: 100,
+      fetchMediaThumbnails:
+          ({required mediaId}) async => _thumbnails(mediaId: mediaId),
+    );
+    addTearDown(controller.dispose);
+    await controller.loadIfNeeded();
+
+    controller.toggleClipSelectionMode();
+    controller.handleClipSelectionTap(0);
+    controller.handleClipSelectionTap(1);
+    expect(controller.canCreateClip, isTrue);
+
+    controller.toggleClipSelectionMode();
+    expect(controller.clipSelectionMode, isFalse);
+    expect(controller.clipStartIndex, isNull);
+    expect(controller.clipEndIndex, isNull);
+  });
+
+  test('changing interval clears an in-progress clip selection', () async {
+    final controller = MovieDetailThumbnailController(
+      mediaId: 100,
+      fetchMediaThumbnails:
+          ({required mediaId}) async =>
+              _thumbnails(mediaId: mediaId, offsets: <int>[10, 20, 30, 40]),
+    );
+    addTearDown(controller.dispose);
+    await controller.loadIfNeeded();
+
+    controller.toggleClipSelectionMode();
+    controller.handleClipSelectionTap(0);
+    controller.handleClipSelectionTap(2);
+    expect(controller.canCreateClip, isTrue);
+
+    controller.setIntervalSeconds(20);
+
+    expect(controller.clipStartIndex, isNull);
+    expect(controller.clipEndIndex, isNull);
+    expect(controller.clipSelectionMode, isTrue);
+  });
 }
 
 List<MovieMediaThumbnailDto> _thumbnails({

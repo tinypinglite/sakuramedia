@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:provider/provider.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/clips/presentation/create_clip_dialog.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_launcher.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
@@ -196,6 +198,10 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
           onColumnsChanged: _controller.setThumbnailColumns,
           onToggleScrollLock: _controller.toggleThumbnailScrollLock,
           onThumbnailTap: (index) {
+            if (_controller.clipSelectionMode) {
+              _controller.handleClipSelectionTap(index);
+              return;
+            }
             _controller.handleThumbnailTap(index);
             final item = _controller.thumbnails[index];
             _surfaceController.seekTo(Duration(seconds: item.offsetSeconds));
@@ -203,9 +209,43 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
           onThumbnailMenuRequested:
               widget.enableThumbnailActionMenu ? _showThumbnailActions : null,
           onRetry: _controller.loadThumbnails,
+          clipSelectionMode: _controller.clipSelectionMode,
+          clipStartIndex: _controller.clipStartIndex,
+          clipEndIndex: _controller.clipEndIndex,
+          clipStartSeconds: _controller.clipStartThumbnail?.offsetSeconds,
+          clipEndSeconds: _controller.clipEndThumbnail?.offsetSeconds,
+          clipDurationSeconds: _controller.clipSelectionDurationSeconds,
+          canCreateClip: _controller.canCreateClip,
+          onToggleClipSelectionMode: _controller.toggleClipSelectionMode,
+          onCreateClip: _handleCreateClip,
+          onClearClipSelection: _controller.clearClipSelection,
         );
       },
     );
+  }
+
+  Future<void> _handleCreateClip() async {
+    final media = _controller.selectedMedia;
+    final start = _controller.clipStartThumbnail;
+    final end = _controller.clipEndThumbnail;
+    if (media == null || start == null || end == null) {
+      return;
+    }
+    final created = await showCreateClipDialog(
+      context,
+      mediaId: media.mediaId,
+      movieNumber: widget.movieNumber,
+      startThumbnailId: start.thumbnailId,
+      endThumbnailId: end.thumbnailId,
+      startSeconds: start.offsetSeconds,
+      endSeconds: end.offsetSeconds,
+    );
+    if (!mounted || created == null) {
+      return;
+    }
+    showToast('切片已生成');
+    // 退出圈选模式并清空已选点。
+    _controller.toggleClipSelectionMode();
   }
 
   void _handleBack() {

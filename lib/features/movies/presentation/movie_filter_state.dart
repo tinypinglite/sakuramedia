@@ -14,6 +14,22 @@ extension MovieStatusFilterX on MovieStatusFilter {
       };
 }
 
+enum MovieNumberSourceFilter { all, regular, fc2 }
+
+extension MovieNumberSourceFilterX on MovieNumberSourceFilter {
+  String get apiValue => switch (this) {
+        MovieNumberSourceFilter.all => 'all',
+        MovieNumberSourceFilter.regular => 'regular',
+        MovieNumberSourceFilter.fc2 => 'fc2',
+      };
+
+  String get label => switch (this) {
+        MovieNumberSourceFilter.all => '全部',
+        MovieNumberSourceFilter.regular => '常规',
+        MovieNumberSourceFilter.fc2 => 'FC2',
+      };
+}
+
 enum MovieCollectionTypeFilter { all, single }
 
 extension MovieCollectionTypeFilterX on MovieCollectionTypeFilter {
@@ -132,6 +148,7 @@ class MovieFilterState {
   const MovieFilterState({
     this.status = MovieStatusFilter.all,
     this.collectionType = MovieCollectionTypeFilter.single,
+    this.numberSource = MovieNumberSourceFilter.all,
     this.sortField = MovieSortField.releaseDate,
     this.sortDirection = SortDirection.desc,
     this.year,
@@ -139,6 +156,7 @@ class MovieFilterState {
 
   final MovieStatusFilter status;
   final MovieCollectionTypeFilter collectionType;
+  final MovieNumberSourceFilter numberSource;
   final MovieSortField sortField;
   final SortDirection sortDirection;
   final int? year;
@@ -148,18 +166,24 @@ class MovieFilterState {
   bool get isDefault =>
       status == MovieStatusFilter.all &&
       collectionType == MovieCollectionTypeFilter.single &&
+      numberSource == MovieNumberSourceFilter.all &&
       sortField == MovieSortField.releaseDate &&
       sortDirection == SortDirection.desc &&
       year == null;
 
   String get sortExpression =>
       '${sortField.apiValue}:${sortDirection.apiValue}';
-  String get triggerLabel =>
-      year == null ? status.label : '$year · ${status.label}';
+  String get triggerLabel {
+    final base = year == null ? status.label : '$year · ${status.label}';
+    return numberSource == MovieNumberSourceFilter.all
+        ? base
+        : '$base · ${numberSource.label}';
+  }
 
   bool matches(MovieFilterState other) =>
       status == other.status &&
       collectionType == other.collectionType &&
+      numberSource == other.numberSource &&
       sortField == other.sortField &&
       sortDirection == other.sortDirection &&
       year == other.year;
@@ -169,6 +193,7 @@ class MovieFilterState {
   MovieFilterState copyWith({
     MovieStatusFilter? status,
     MovieCollectionTypeFilter? collectionType,
+    MovieNumberSourceFilter? numberSource,
     MovieSortField? sortField,
     SortDirection? sortDirection,
     Object? year = _movieFilterUnset,
@@ -176,6 +201,7 @@ class MovieFilterState {
     return MovieFilterState(
       status: status ?? this.status,
       collectionType: collectionType ?? this.collectionType,
+      numberSource: numberSource ?? this.numberSource,
       sortField: sortField ?? this.sortField,
       sortDirection: sortDirection ?? this.sortDirection,
       year: identical(year, _movieFilterUnset) ? this.year : year as int?,

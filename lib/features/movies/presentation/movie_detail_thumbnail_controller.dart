@@ -25,6 +25,9 @@ class MovieDetailThumbnailController extends ChangeNotifier {
   int? _activeIndex;
   String? _errorMessage;
   int _selectedIntervalSeconds = defaultIntervalSeconds;
+  bool _clipSelectionMode = false;
+  int? _clipStartIndex;
+  int? _clipEndIndex;
 
   List<MovieMediaThumbnailDto> get thumbnails => _thumbnails;
   bool get isLoading => _isLoading;
@@ -34,6 +37,29 @@ class MovieDetailThumbnailController extends ChangeNotifier {
   int? get activeIndex => _activeIndex;
   String? get errorMessage => _errorMessage;
   int get selectedIntervalSeconds => _selectedIntervalSeconds;
+
+  bool get clipSelectionMode => _clipSelectionMode;
+  int? get clipStartIndex => _clipStartIndex;
+  int? get clipEndIndex => _clipEndIndex;
+
+  MovieMediaThumbnailDto? get clipStartThumbnail =>
+      _thumbnailAt(_clipStartIndex);
+  MovieMediaThumbnailDto? get clipEndThumbnail => _thumbnailAt(_clipEndIndex);
+
+  bool get canCreateClip {
+    final start = _clipStartIndex;
+    final end = _clipEndIndex;
+    return start != null && end != null && start != end;
+  }
+
+  int? get clipSelectionDurationSeconds {
+    final start = clipStartThumbnail;
+    final end = clipEndThumbnail;
+    if (start == null || end == null) {
+      return null;
+    }
+    return (end.offsetSeconds - start.offsetSeconds).abs();
+  }
 
   Future<void> loadIfNeeded() async {
     if (_hasLoaded || _isLoading) {
@@ -80,8 +106,55 @@ class MovieDetailThumbnailController extends ChangeNotifier {
     }
     final preservedThumbnailId = _selectedThumbnailId;
     _selectedIntervalSeconds = seconds;
+    // 间隔变化会重建过滤后的缩略图列表，圈选索引随之失效，需清空已选点。
+    _clipStartIndex = null;
+    _clipEndIndex = null;
     _rebuildFilteredThumbnails(preservedThumbnailId: preservedThumbnailId);
     notifyListeners();
+  }
+
+  /// 切换「圈选切片」模式：进入与退出时均清空已选点。
+  void toggleClipSelectionMode() {
+    _clipSelectionMode = !_clipSelectionMode;
+    _clipStartIndex = null;
+    _clipEndIndex = null;
+    notifyListeners();
+  }
+
+  /// 圈选模式下点击缩略图：第 1 次设起点，第 2 次设终点，第 3 次重置为新起点。
+  void handleClipSelectionTap(int index) {
+    if (index < 0 || index >= _thumbnails.length) {
+      return;
+    }
+    if (_clipStartIndex == null) {
+      _clipStartIndex = index;
+      _clipEndIndex = null;
+    } else if (_clipEndIndex == null) {
+      if (index == _clipStartIndex) {
+        return;
+      }
+      _clipEndIndex = index;
+    } else {
+      _clipStartIndex = index;
+      _clipEndIndex = null;
+    }
+    notifyListeners();
+  }
+
+  void clearClipSelection() {
+    if (_clipStartIndex == null && _clipEndIndex == null) {
+      return;
+    }
+    _clipStartIndex = null;
+    _clipEndIndex = null;
+    notifyListeners();
+  }
+
+  MovieMediaThumbnailDto? _thumbnailAt(int? index) {
+    if (index == null || index < 0 || index >= _thumbnails.length) {
+      return null;
+    }
+    return _thumbnails[index];
   }
 
   Future<void> _load() async {

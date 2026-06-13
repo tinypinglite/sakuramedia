@@ -106,6 +106,54 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
     );
   }
 
+  if (currentPath.startsWith('$desktopVideosPath/')) {
+    return DesktopTopBarConfig(
+      title: '视频详情',
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra, currentPath: currentPath) ??
+          AppBackDestination.defaultLocationForPath(currentPath),
+      isBackEnabled: true,
+    );
+  }
+
+  if (currentPath.startsWith('$desktopPersonsPath/')) {
+    return DesktopTopBarConfig(
+      title: '人物详情',
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra, currentPath: currentPath) ??
+          AppBackDestination.defaultLocationForPath(currentPath),
+      isBackEnabled: true,
+    );
+  }
+
+  if (currentPath.startsWith('$desktopVideoCollectionsPath/')) {
+    return DesktopTopBarConfig(
+      title: '合集详情',
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra, currentPath: currentPath) ??
+          AppBackDestination.defaultLocationForPath(currentPath),
+      isBackEnabled: true,
+    );
+  }
+
+  if (currentPath == desktopClipCollectionsPath) {
+    return const DesktopTopBarConfig(
+      title: '切片合集',
+      fallbackPath: desktopClipsPath,
+      isBackEnabled: true,
+    );
+  }
+
+  if (currentPath.startsWith('$desktopClipCollectionsPath/')) {
+    return DesktopTopBarConfig(
+      title: '合集详情',
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra, currentPath: currentPath) ??
+          desktopClipCollectionsPath,
+      isBackEnabled: true,
+    );
+  }
+
   if (currentPath == desktopImageSearchPath) {
     return DesktopTopBarConfig(
       title: '以图搜图',
@@ -208,6 +256,17 @@ AppShellLayout resolveDesktopShellLayout({
   }
 
   if (currentPath.startsWith('/desktop/library/playlists/')) {
+    return AppShellLayout.standard;
+  }
+
+  if (currentPath.startsWith('$desktopVideosPath/') ||
+      currentPath.startsWith('$desktopPersonsPath/') ||
+      currentPath.startsWith('$desktopVideoCollectionsPath/')) {
+    return AppShellLayout.standard;
+  }
+
+  if (currentPath == desktopClipCollectionsPath ||
+      currentPath.startsWith('$desktopClipCollectionsPath/')) {
     return AppShellLayout.standard;
   }
 

@@ -152,6 +152,42 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands import-m
 - 现在想把它们导入 SakuraMedia 管理
 - 你确认源目录不是媒体库目录，并希望导入后自动清理源视频文件
 
+### 导入非 JAV 视频（无番号）
+
+针对没有番号、也没有外部元数据的普通视频（比如自己录制、剪辑或杂项视频），可以用 `import-videos` 收进来管理：
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands import-videos --source-path /mnt/volume1/media/clips
+```
+
+也可以只导入单个文件，并在导入时一并打标签 / 关联人物 / 归入合集：
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands import-videos --source-path /mnt/volume1/media/clips/one.mp4 --collection-id 1 --tag-ids 2,3 --person-ids 5
+```
+
+参数说明：
+
+| 参数 | 是否必填 | 说明 |
+|---|---:|---|
+| `--source-path` | 是 | 一个目录或单个视频文件，必须是 SakuraMedia 容器内能访问到的路径 |
+| `--collection-id` | 否 | 把本批视频一并归入指定的视频合集 ID |
+| `--tag-ids` | 否 | 逗号分隔的标签 ID，关联到本批全部视频 |
+| `--person-ids` | 否 | 逗号分隔的人物 ID，关联到本批全部视频 |
+| `--library-id` | 否 | 归库分组用的媒体库 ID |
+
+和 `import-media` 的关键区别：
+
+- `import-videos` 是**就地索引，不搬运文件**：只为每个视频建立一条记录，文件仍留在原位置，所以源路径不需要满足“不能是媒体库目录”这类限制。
+- 标题默认取文件名，不抓取任何番号 / JavDB / DMM 元数据。
+- 已经按路径登记过的文件会自动跳过，可以放心重复执行。
+- 缩略图不需要手动生成，会由 `aps generate-media-thumbnails` 任务自动补齐。
+
+适合场景：
+
+- 你有一批没有番号、不属于 JAV 体系的普通视频
+- 只想把它们纳入 SakuraMedia 统一浏览、打标签、做片段，而不需要元数据抓取
+
 ### 回填媒体元信息
 
 ```bash

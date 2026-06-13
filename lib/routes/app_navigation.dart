@@ -14,9 +14,13 @@ import 'package:sakuramedia/features/movies/presentation/desktop_movies_page.dar
 import 'package:sakuramedia/features/movies/presentation/mobile_movies_page.dart';
 import 'package:sakuramedia/features/overview/presentation/desktop_overview_page.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_skeleton_page.dart';
+import 'package:sakuramedia/features/clips/presentation/desktop_clips_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/desktop_playlists_page.dart';
 import 'package:sakuramedia/features/rankings/presentation/desktop_rankings_page.dart';
 import 'package:sakuramedia/features/rankings/presentation/mobile_rankings_page.dart';
+import 'package:sakuramedia/features/videos/presentation/desktop_video_list_page.dart';
+import 'package:sakuramedia/features/videos/presentation/desktop_persons_page.dart';
+import 'package:sakuramedia/features/videos/presentation/desktop_video_collections_page.dart';
 import 'package:sakuramedia/features/workbench/workbench_placeholder_page.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
@@ -163,6 +167,20 @@ const List<_NavSeed> _desktopNavSeeds = [
     ],
   ),
   _NavSeed(
+    id: 'clips',
+    label: '切片',
+    icon: Icons.content_cut_outlined,
+    section: '浏览',
+    items: [
+      _NavItemSeed(
+        slug: 'library/clips',
+        label: '切片',
+        icon: Icons.content_cut_outlined,
+        description: '圈选生成的切片与切片合集的统一入口：浏览、悬停预览、加入合集与连播。',
+      ),
+    ],
+  ),
+  _NavSeed(
     id: 'playlists',
     label: '播放列表',
     icon: Icons.playlist_play_outlined,
@@ -173,6 +191,48 @@ const List<_NavSeed> _desktopNavSeeds = [
         label: '播放列表',
         icon: Icons.playlist_play_outlined,
         description: '播放列表浏览、维护与影片归档的统一入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'videos',
+    label: '非 JAV 视频',
+    icon: Icons.video_library_outlined,
+    section: '浏览',
+    items: [
+      _NavItemSeed(
+        slug: 'library/videos',
+        label: '非 JAV 视频',
+        icon: Icons.video_library_outlined,
+        description: '非 JAV 视频的列表、筛选、详情与播放统一入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'persons',
+    label: '人物',
+    icon: Icons.people_outline,
+    section: '浏览',
+    items: [
+      _NavItemSeed(
+        slug: 'library/persons',
+        label: '人物',
+        icon: Icons.people_outline,
+        description: '非 JAV 视频人物的浏览与维护入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'video-collections',
+    label: '视频合集',
+    icon: Icons.video_collection_outlined,
+    section: '浏览',
+    items: [
+      _NavItemSeed(
+        slug: 'library/video-collections',
+        label: '视频合集',
+        icon: Icons.video_collection_outlined,
+        description: '非 JAV 视频合集的浏览、重排与连播入口。',
       ),
     ],
   ),
@@ -220,15 +280,15 @@ const List<_NavSeed> _desktopNavSeeds = [
   ),
   _NavSeed(
     id: 'media-import',
-    label: '媒体导入',
+    label: 'JAV 媒体导入',
     icon: Icons.drive_folder_upload_outlined,
     section: '管理',
     items: [
       _NavItemSeed(
         slug: 'system/media-import',
-        label: '媒体导入',
+        label: 'JAV 媒体导入',
         icon: Icons.drive_folder_upload_outlined,
-        description: '浏览后端目录、导入已有媒体到媒体库，并管理导入进度与失败文件。',
+        description: '按番号导入 JAV 影片到媒体库（抓取元数据建影片记录），并管理导入进度与失败文件。非 JAV 视频请用「非 JAV 视频」页的导入。',
       ),
     ],
   ),
@@ -271,6 +331,10 @@ final Map<String, WidgetBuilder> _desktopRouteBuilders =
       desktopTagsPath: (_) => const DesktopTagsPage(),
       desktopMomentsPath: (_) => const DesktopMomentsPage(),
       desktopPlaylistsPath: (_) => const DesktopPlaylistsPage(),
+      desktopClipsPath: (_) => const DesktopClipsPage(),
+      desktopVideosPath: (_) => const DesktopVideoListPage(),
+      desktopPersonsPath: (_) => const DesktopPersonsPage(),
+      desktopVideoCollectionsPath: (_) => const DesktopVideoCollectionsPage(),
       desktopRankingsPath: (_) => const DesktopRankingsPage(),
       desktopHotReviewsPath: (_) => const DesktopHotReviewsPage(),
       desktopActivityPath: (_) => const DesktopActivityPage(),

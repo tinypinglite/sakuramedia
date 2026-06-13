@@ -142,6 +142,7 @@ volumes:
     ├── cache
     ├── image-search-index
     ├── logs
+    ├── media-clips
     └── joytag
 
 /mnt/volume1/media
@@ -162,6 +163,8 @@ volumes:
   Qdrant 向量数据库存储目录，务必放 SSD
 - `docker-data/logs`
   存日志
+- `docker-data/media-clips`
+  存用户片段（ffmpeg 切出的独立 mp4）。与来源媒体解耦，删除媒体不会删除片段；**务必单独挂卷持久化，否则容器重建后片段会丢失**
 - `docker-data/joytag`
   存 JoyTag 模型
 - `/mnt/volume1/media/av`
@@ -207,6 +210,7 @@ services:
       - ./docker-data/cache/assets:/data/cache/assets
       - ./docker-data/cache/subtitles:/data/cache/subtitles
       - ./docker-data/logs:/data/logs
+      - ./docker-data/media-clips:/data/media-clips
       - /mnt/volume1/media:/mnt/volume1/media
 
   joytag-infer:
@@ -268,6 +272,8 @@ services:
   Qdrant 向量数据库存储（图片搜索向量数据）
 - `./docker-data/logs:/data/logs`
   日志
+- `./docker-data/media-clips:/data/media-clips`
+  用户片段（ffmpeg 切出的独立 mp4）。和来源媒体解耦，删媒体不删片段；不挂这个卷的话，容器重建 / 升级镜像后片段会全部丢失
 - `/mnt/volume1/media:/mnt/volume1/media`
   历史媒体、下载目录和新媒体库的统一挂载
 - `./docker-data/joytag:/data/lib/joytag`

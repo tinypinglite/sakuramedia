@@ -6,6 +6,11 @@ String mobileActorsPageStateKey() => 'mobile:actors:list';
 
 String desktopTagsPageStateKey() => 'desktop:tags:list';
 
+String desktopVideosPageStateKey() => 'desktop:videos:list';
+String desktopPersonsPageStateKey() => 'desktop:persons:list';
+String desktopVideoCollectionsPageStateKey() =>
+    'desktop:video-collections:list';
+
 String desktopRankingsPageStateKey() => 'desktop:rankings:list';
 String mobileRankingsPageStateKey() => 'mobile:rankings:list';
 
