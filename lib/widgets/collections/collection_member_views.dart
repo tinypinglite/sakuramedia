@@ -104,7 +104,7 @@ class CollectionMemberRow extends StatelessWidget {
     required this.onTap,
     required this.menuKey,
     required this.dragHandleKey,
-    required this.onRemove,
+    this.onRemove,
     this.subtitle,
     this.onOpenSource,
     this.openSourceLabel,
@@ -126,7 +126,9 @@ class CollectionMemberRow extends StatelessWidget {
   final VoidCallback onTap;
   final Key menuKey;
   final Key dragHandleKey;
-  final VoidCallback onRemove;
+
+  /// 「移出合集」动作；为 `null` 时整行不渲染「···」菜单（移动端改为整行点击弹抽屉）。
+  final VoidCallback? onRemove;
   final String? subtitle;
   final VoidCallback? onOpenSource;
   final String? openSourceLabel;
@@ -264,14 +266,16 @@ class CollectionMemberRow extends StatelessWidget {
                   ),
                   SizedBox(width: spacing.sm),
                 ],
-                CollectionMemberMenu(
-                  menuKey: menuKey,
-                  onCover: false,
-                  onOpenSource: onOpenSource,
-                  openSourceLabel: openSourceLabel,
-                  onRemove: onRemove,
-                ),
-                SizedBox(width: spacing.sm),
+                if (onRemove != null) ...[
+                  CollectionMemberMenu(
+                    menuKey: menuKey,
+                    onCover: false,
+                    onOpenSource: onOpenSource,
+                    openSourceLabel: openSourceLabel,
+                    onRemove: onRemove!,
+                  ),
+                  SizedBox(width: spacing.sm),
+                ],
               ],
             ],
           ),
@@ -295,7 +299,7 @@ class CollectionMemberCard extends StatelessWidget {
     required this.title,
     required this.onTap,
     required this.menuKey,
-    required this.onRemove,
+    this.onRemove,
     this.subtitle,
     this.onOpenSource,
     this.openSourceLabel,
@@ -313,7 +317,9 @@ class CollectionMemberCard extends StatelessWidget {
   final String title;
   final VoidCallback onTap;
   final Key menuKey;
-  final VoidCallback onRemove;
+
+  /// 「移出合集」动作；为 `null` 时封面不渲染「···」菜单（移动端改为整卡点击弹抽屉）。
+  final VoidCallback? onRemove;
   final String? subtitle;
   final VoidCallback? onOpenSource;
   final String? openSourceLabel;
@@ -386,13 +392,13 @@ class CollectionMemberCard extends StatelessWidget {
     );
   }
 
-  Widget _buildMenu() => selectionMode
+  Widget _buildMenu() => selectionMode || onRemove == null
       ? const SizedBox.shrink()
       : CollectionMemberMenu(
           menuKey: menuKey,
           onOpenSource: onOpenSource,
           openSourceLabel: openSourceLabel,
-          onRemove: onRemove,
+          onRemove: onRemove!,
         );
 
   /// 上图下文：封面在上、标题/副信息在下。

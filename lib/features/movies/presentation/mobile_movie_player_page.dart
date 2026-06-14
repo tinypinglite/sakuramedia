@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/widgets/movie_player/landscape_player_system_ui.dart';
 
 const double _mobilePlayerDividerHandleBuffer = 12;
 
@@ -32,37 +32,13 @@ class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage> {
     debugPrint(
       '[player-debug] mobile_player_page_init movie=${widget.movieNumber} initialMediaId=${widget.initialMediaId} initialPositionSeconds=${widget.initialPositionSeconds}',
     );
-    unawaited(_enterPlayerSystemUi());
+    unawaited(enterLandscapePlayerSystemUi());
   }
 
   @override
   void dispose() {
-    unawaited(_restoreSystemUi());
+    unawaited(restoreSystemUiAfterLandscapePlayer());
     super.dispose();
-  }
-
-  Future<void> _enterPlayerSystemUi() async {
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    await SystemChrome.setPreferredOrientations(const <DeviceOrientation>[
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-  }
-
-  Future<void> _restoreSystemUi() async {
-    await SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: SystemUiOverlay.values,
-    );
-    await SystemChrome.setPreferredOrientations(const <DeviceOrientation>[]);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(
-        SystemChrome.setEnabledSystemUIMode(
-          SystemUiMode.manual,
-          overlays: SystemUiOverlay.values,
-        ),
-      );
-    });
   }
 
   @override

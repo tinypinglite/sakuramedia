@@ -38,6 +38,9 @@ import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
+import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
+import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
@@ -1348,6 +1351,39 @@ void main() {
     );
     expect(
       find.byKey(const Key('mobile-media-libraries-notice-card')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('mobile clip collections route renders real page content', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/clip-collections',
+      body: const <Map<String, dynamic>>[],
+    );
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileClipCollectionsPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-clip-collections-page')), findsOneWidget);
+    expect(
+      find.byKey(const Key('mobile-clip-collections-create-button')),
       findsOneWidget,
     );
   });
@@ -3540,6 +3576,13 @@ Future<void> _pumpRouterApp(
     ChangeNotifierProvider(create: (_) => MovieCollectionTypeChangeNotifier()),
     ChangeNotifierProvider(create: (_) => MovieSubscriptionChangeNotifier()),
     Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
+    Provider<ClipsApi>(create: (_) => ClipsApi(apiClient: bundle.apiClient)),
+    Provider<ClipCollectionsApi>(
+      create: (_) => ClipCollectionsApi(apiClient: bundle.apiClient),
+    ),
+    ChangeNotifierProvider<ClipMutationChangeNotifier>(
+      create: (_) => ClipMutationChangeNotifier(),
+    ),
     Provider<RankingsApi>.value(value: bundle.rankingsApi),
     Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
     Provider<CollectionNumberFeaturesApi>.value(

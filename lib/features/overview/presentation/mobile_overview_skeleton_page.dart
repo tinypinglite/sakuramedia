@@ -6,6 +6,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/discovery/presentation/mobile_overview_discover_tab.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/clips/presentation/mobile_overview_clips_tab.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_follow_tab.dart';
@@ -39,7 +40,7 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
     final colors = context.appColors;
 
     return DefaultTabController(
-      length: 5,
+      length: 6,
       child: ColoredBox(
         key: const Key('mobile-overview-skeleton-page'),
         color: colors.surfaceCard,
@@ -52,6 +53,7 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
                 key: const Key('mobile-overview-tab-view'),
                 children: [
                   _MobileOverviewMyTab(playlistOrderStore: playlistOrderStore),
+                  const MobileOverviewClipsTab(),
                   const MobileOverviewFollowTab(),
                   const MobileOverviewDiscoverTab(),
                   const MobileOverviewMomentsTab(),
@@ -104,6 +106,7 @@ class _MobileOverviewHeader extends StatelessWidget {
                 key: Key('mobile-overview-tabs'),
                 tabs: [
                   Tab(text: '我的'),
+                  Tab(text: '切片'),
                   Tab(text: '关注'),
                   Tab(text: '发现'),
                   Tab(text: '时刻'),

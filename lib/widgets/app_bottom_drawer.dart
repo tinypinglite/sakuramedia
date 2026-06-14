@@ -63,7 +63,6 @@ class AppBottomDrawerSurface extends StatelessWidget {
   static const double _handleWidth = 28;
   static const double _handleHeight = 3;
   static const double _handleTopSpacing = 6;
-  static const double _handleBottomSpacing = 6;
 
   final Widget child;
   final double heightFactor;
@@ -75,10 +74,6 @@ class AppBottomDrawerSurface extends StatelessWidget {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final colors = context.appColors;
     final resolvedContentPadding = EdgeInsets.all(context.appSpacing.lg);
-    final handleContentTopInset =
-        showHandle
-            ? _handleTopSpacing + _handleHeight + _handleBottomSpacing
-            : 0.0;
 
     final content = Material(
       color: colors.surfaceCard,

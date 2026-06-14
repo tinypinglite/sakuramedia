@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
-import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/add_clips_to_collection_dialog.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collection_detail_controller.dart';
@@ -22,7 +21,10 @@ enum _ClipLayout { list, grid }
 
 /// 切片合集详情页：有序切片列表，支持拖序、移除、添加切片、改名与播放。
 class DesktopClipCollectionDetailPage extends StatefulWidget {
-  const DesktopClipCollectionDetailPage({super.key, required this.collectionId});
+  const DesktopClipCollectionDetailPage({
+    super.key,
+    required this.collectionId,
+  });
 
   final int collectionId;
 
@@ -36,7 +38,7 @@ class _DesktopClipCollectionDetailPageState
   late final ClipCollectionDetailController _controller;
   late final ClipMutationChangeNotifier _mutationNotifier;
   int? _hoveredClipId;
-  _ClipLayout _layout = _ClipLayout.list;
+  _ClipLayout _layout = _ClipLayout.grid;
 
   @override
   void initState() {
@@ -208,21 +210,11 @@ class _DesktopClipCollectionDetailPageState
       onReorder: _onReorder,
       // 默认 proxyDecorator 会给拖动项叠加带阴影的 Material（主题色偏粉），
       // 这里换成无阴影透明包装，去掉拖动时的粉色投影。
-      proxyDecorator: (child, index, animation) => Material(
-        type: MaterialType.transparency,
-        child: child,
-      ),
+      proxyDecorator:
+          (child, index, animation) =>
+              Material(type: MaterialType.transparency, child: child),
       itemBuilder: (context, index) {
         final clip = clips[index];
-        final title = clip.title.trim();
-        final metaParts = <String>[
-          if (clip.movieNumber != null && clip.movieNumber!.isNotEmpty)
-            clip.movieNumber!
-          else
-            '无番号',
-          formatMediaTimecode(clip.durationSeconds),
-          if (clip.fileSizeBytes > 0) formatFileSize(clip.fileSizeBytes),
-        ];
         return Padding(
           key: ValueKey<int>(clip.clipId),
           padding: EdgeInsets.only(bottom: context.appSpacing.sm),
@@ -238,8 +230,8 @@ class _DesktopClipCollectionDetailPageState
               coverUrl: clip.coverImage?.bestAvailableUrl,
               coverWidth: 120,
               coverAspectRatio: 16 / 9,
-              title: title.isEmpty ? '未命名切片' : title,
-              subtitle: metaParts.join(' · '),
+              title: clip.displayTitle,
+              subtitle: clip.metaLine,
               isHovered: _hoveredClipId == clip.clipId,
               onTap: () => _playFrom(index),
               menuKey: Key('clip-collection-menu-${clip.clipId}'),
@@ -273,9 +265,10 @@ class _DesktopClipCollectionDetailPageState
         final number =
             clip.movieNumber?.isNotEmpty == true ? clip.movieNumber! : '无番号';
         // 时长已在封面徽标显示，下方元信息保留番号与大小，和列表视图信息对齐。
-        final subtitle = clip.fileSizeBytes > 0
-            ? '$number · ${formatFileSize(clip.fileSizeBytes)}'
-            : number;
+        final subtitle =
+            clip.fileSizeBytes > 0
+                ? '$number · ${formatFileSize(clip.fileSizeBytes)}'
+                : number;
         return CollectionMemberCard(
           key: ValueKey<int>(clip.clipId),
           coverUrl: clip.coverImage?.bestAvailableUrl,
@@ -363,8 +356,7 @@ class _DesktopClipCollectionDetailPageState
     await showAddClipsToCollectionDialog(
       context,
       collectionId: widget.collectionId,
-      memberClipIds:
-          _controller.clips.map((clip) => clip.clipId).toSet(),
+      memberClipIds: _controller.clips.map((clip) => clip.clipId).toSet(),
     );
     if (!mounted) {
       return;

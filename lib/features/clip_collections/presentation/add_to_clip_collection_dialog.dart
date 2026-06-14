@@ -8,26 +8,51 @@ import 'package:sakuramedia/features/clip_collections/presentation/create_clip_c
 import 'package:sakuramedia/features/clips/data/clips_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 
+/// 「加入合集」选择器的呈现形态：桌面弹窗 / 移动端底部抽屉。
+enum AddToClipCollectionPresentation { dialog, bottomDrawer }
+
 /// 弹出「加入合集」选择器，勾选切换切片与合集的归属（即时生效）。
 ///
-/// 关闭方式不固定（X / 点遮罩），不依赖返回值传递结果；调用方关闭后统一刷新合集即可。
+/// 关闭方式不固定（X / 点遮罩 / 下滑），不依赖返回值传递结果；调用方关闭后统一刷新合集即可。
 Future<void> showAddToClipCollectionDialog(
   BuildContext context, {
   required int clipId,
+  AddToClipCollectionPresentation presentation =
+      AddToClipCollectionPresentation.dialog,
 }) {
-  return showDialog<void>(
-    context: context,
-    builder: (dialogContext) => AddToClipCollectionDialog(clipId: clipId),
-  );
+  switch (presentation) {
+    case AddToClipCollectionPresentation.dialog:
+      return showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AddToClipCollectionDialog(clipId: clipId),
+      );
+    case AddToClipCollectionPresentation.bottomDrawer:
+      return showAppBottomDrawer<void>(
+        context: context,
+        drawerKey: const Key('add-to-clip-collection-bottom-sheet'),
+        heightFactor: 0.7,
+        builder:
+            (sheetContext) => AddToClipCollectionDialog(
+              clipId: clipId,
+              presentation: AddToClipCollectionPresentation.bottomDrawer,
+            ),
+      );
+  }
 }
 
 class AddToClipCollectionDialog extends StatefulWidget {
-  const AddToClipCollectionDialog({super.key, required this.clipId});
+  const AddToClipCollectionDialog({
+    super.key,
+    required this.clipId,
+    this.presentation = AddToClipCollectionPresentation.dialog,
+  });
 
   final int clipId;
+  final AddToClipCollectionPresentation presentation;
 
   @override
   State<AddToClipCollectionDialog> createState() =>
@@ -42,6 +67,9 @@ class _AddToClipCollectionDialogState extends State<AddToClipCollectionDialog> {
   final Set<int> _updatingIds = <int>{};
   bool _isLoading = true;
   String? _errorMessage;
+
+  bool get _isBottomDrawer =>
+      widget.presentation == AddToClipCollectionPresentation.bottomDrawer;
 
   @override
   void initState() {
@@ -79,59 +107,69 @@ class _AddToClipCollectionDialogState extends State<AddToClipCollectionDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    final isAnyUpdating = _updatingIds.isNotEmpty;
-
+    final maxListHeight =
+        _isBottomDrawer ? MediaQuery.sizeOf(context).height * 0.5 : 320.0;
+    final content = _buildContent(context, maxListHeight: maxListHeight);
+    if (_isBottomDrawer) {
+      return content;
+    }
     return AppDesktopDialog(
       dialogKey: const Key('add-to-clip-collection-dialog'),
       width: context.appComponentTokens.playlistDialogWidth,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          AbsorbPointer(
-            absorbing: isAnyUpdating,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '加入合集',
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s16,
-                          weight: AppTextWeight.medium,
-                          tone: AppTextTone.secondary,
-                        ),
-                      ),
-                    ),
-                    AppIconButton(
-                      key: const Key('add-to-clip-collection-create-button'),
-                      tooltip: '新建合集',
-                      onPressed: _createCollection,
-                      icon: const Icon(Icons.add_rounded),
-                    ),
-                  ],
-                ),
-                SizedBox(height: spacing.lg),
-                _buildList(context),
-              ],
-            ),
-          ),
-          if (isAnyUpdating)
-            const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator.adaptive(strokeWidth: 2),
-            ),
-        ],
-      ),
+      child: content,
     );
   }
 
-  Widget _buildList(BuildContext context) {
+  Widget _buildContent(BuildContext context, {required double maxListHeight}) {
+    final spacing = context.appSpacing;
+    final isAnyUpdating = _updatingIds.isNotEmpty;
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        AbsorbPointer(
+          absorbing: isAnyUpdating,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '加入合集',
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s16,
+                        weight: AppTextWeight.medium,
+                        tone: AppTextTone.secondary,
+                      ),
+                    ),
+                  ),
+                  AppIconButton(
+                    key: const Key('add-to-clip-collection-create-button'),
+                    tooltip: '新建合集',
+                    onPressed: _createCollection,
+                    icon: const Icon(Icons.add_rounded),
+                  ),
+                ],
+              ),
+              SizedBox(height: spacing.lg),
+              _buildList(context, maxListHeight: maxListHeight),
+            ],
+          ),
+        ),
+        if (isAnyUpdating)
+          const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildList(BuildContext context, {required double maxListHeight}) {
     if (_isLoading) {
       return const SizedBox(
         key: Key('add-to-clip-collection-loading'),
@@ -152,7 +190,7 @@ class _AddToClipCollectionDialogState extends State<AddToClipCollectionDialog> {
     final spacing = context.appSpacing;
     final isAnyUpdating = _updatingIds.isNotEmpty;
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 320),
+      constraints: BoxConstraints(maxHeight: maxListHeight),
       child: ListView.separated(
         key: const Key('add-to-clip-collection-list'),
         shrinkWrap: true,
@@ -260,7 +298,13 @@ class _AddToClipCollectionDialogState extends State<AddToClipCollectionDialog> {
   }
 
   Future<void> _createCollection() async {
-    final created = await showCreateClipCollectionDialog(context);
+    final created = await showCreateClipCollectionDialog(
+      context,
+      presentation:
+          _isBottomDrawer
+              ? ClipCollectionEditPresentation.bottomDrawer
+              : ClipCollectionEditPresentation.dialog,
+    );
     if (!mounted || created == null) {
       return;
     }

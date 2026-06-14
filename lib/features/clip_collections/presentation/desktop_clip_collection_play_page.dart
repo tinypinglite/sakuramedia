@@ -146,18 +146,14 @@ class _DesktopClipCollectionPlayPageState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: _buildBody(context),
-    );
+    return Scaffold(backgroundColor: Colors.black, body: _buildBody(context));
   }
 
   String _currentClipTitle() {
     if (_currentIndex < 0 || _currentIndex >= _clips.length) {
       return '连播';
     }
-    final title = _clips[_currentIndex].title.trim();
-    return title.isEmpty ? '未命名切片' : title;
+    return _clips[_currentIndex].displayTitle;
   }
 
   Widget _buildBody(BuildContext context) {
@@ -265,7 +261,8 @@ class _DesktopClipCollectionPlayPageState
               key: const Key('clip-collection-play-queue'),
               padding: EdgeInsets.symmetric(horizontal: spacing.sm),
               itemCount: _clips.length,
-              separatorBuilder: (context, index) => SizedBox(height: spacing.xs),
+              separatorBuilder:
+                  (context, index) => SizedBox(height: spacing.xs),
               itemBuilder: (context, index) {
                 return _QueueItem(
                   clip: _clips[index],
@@ -300,7 +297,6 @@ class _QueueItem extends StatelessWidget {
     final spacing = context.appSpacing;
     final colors = context.appColors;
     final coverUrl = clip.coverImage?.bestAvailableUrl;
-    final title = clip.title.trim();
     return Material(
       color: isCurrent ? colors.surfaceMuted : Colors.transparent,
       borderRadius: context.appRadius.smBorder,
@@ -331,7 +327,7 @@ class _QueueItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title.isEmpty ? '未命名切片' : title,
+                      clip.displayTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: resolveAppTextStyle(

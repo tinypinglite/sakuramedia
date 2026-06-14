@@ -22,6 +22,9 @@ import 'package:sakuramedia/features/configuration/presentation/mobile_downloade
 import 'package:sakuramedia/features/configuration/presentation/mobile_indexers_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/mobile_llm_settings_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/mobile_media_libraries_page.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/mobile_clip_collection_detail_page.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/mobile_clip_collection_play_page.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/mobile_clip_collections_page.dart';
 import 'package:sakuramedia/features/external_player/presentation/mobile_external_player_settings_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
@@ -533,6 +536,89 @@ class MobileTagMoviesRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobileTagsPage(initialTagId: tagId);
+  }
+}
+
+@TypedGoRoute<MobileClipCollectionsRouteData>(path: mobileClipCollectionsPath)
+class MobileClipCollectionsRouteData extends _MobileSubpageRouteData
+    with $MobileClipCollectionsRouteData {
+  const MobileClipCollectionsRouteData();
+
+  @override
+  String get pageName => 'mobile-clip-collections';
+
+  @override
+  String get title => '切片合集';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileClipCollectionsPage();
+  }
+}
+
+@TypedGoRoute<MobileClipCollectionDetailRouteData>(
+  path: '$mobileClipCollectionsPath/:collectionId',
+)
+class MobileClipCollectionDetailRouteData extends _MobileSubpageRouteData
+    with $MobileClipCollectionDetailRouteData {
+  const MobileClipCollectionDetailRouteData({required this.collectionId});
+
+  final int collectionId;
+
+  @override
+  String get pageName => 'mobile-clip-collection-detail';
+
+  @override
+  String get title => '合集';
+
+  @override
+  String get defaultLocation => mobileClipCollectionsPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return MobileClipCollectionDetailPage(collectionId: collectionId);
+  }
+}
+
+@TypedGoRoute<MobileClipCollectionPlayRouteData>(
+  path: '$mobileClipCollectionsPath/:collectionId/play',
+)
+class MobileClipCollectionPlayRouteData extends _MobileCupertinoRouteData
+    with $MobileClipCollectionPlayRouteData {
+  const MobileClipCollectionPlayRouteData({
+    required this.collectionId,
+    this.startIndex = 0,
+  });
+
+  final int collectionId;
+  final int startIndex;
+
+  @override
+  String get pageName => 'mobile-clip-collection-play';
+
+  @override
+  String get location => buildRouteLocation(
+    path: '$mobileClipCollectionsPath/$collectionId/play',
+    queryParameters: <String, String?>{
+      if (startIndex > 0) 'startIndex': '$startIndex',
+    },
+  );
+
+  @override
+  Widget buildCupertino(BuildContext context, GoRouterState state) {
+    return MobileClipCollectionPlayPage(
+      collectionId: collectionId,
+      startIndex:
+          resolveIntQueryParameter(
+            state,
+            names: const <String>['startIndex', 'start-index'],
+            fallback: startIndex,
+          ) ??
+          0,
+    );
   }
 }
 

@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/format/file_size.dart';
+import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 
 /// 视频切片资源（后端 `MediaClipResource`）。
@@ -139,4 +141,26 @@ class ClipCollectionSummaryDto {
       name: json['name'] as String? ?? '',
     );
   }
+}
+
+/// 切片在列表 / 卡片 / 操作面板等处的统一展示文案，集中维护避免各页面重复拼接。
+extension MediaClipDisplay on MediaClipDto {
+  /// 标题去空白后的展示值，为空时回退占位「未命名切片」。
+  String get displayTitle {
+    final trimmed = title.trim();
+    return trimmed.isEmpty ? '未命名切片' : trimmed;
+  }
+
+  /// 番号展示值，缺失时回退「无番号」。
+  String get displayNumber {
+    final number = movieNumber;
+    return number != null && number.isNotEmpty ? number : '无番号';
+  }
+
+  /// 「番号 · 时长 · 大小」信息行；文件大小未知（为 0）时省略大小段。
+  String get metaLine => <String>[
+    displayNumber,
+    formatMediaTimecode(durationSeconds),
+    if (fileSizeBytes > 0) formatFileSize(fileSizeBytes),
+  ].join(' · ');
 }

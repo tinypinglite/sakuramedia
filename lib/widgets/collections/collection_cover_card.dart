@@ -190,40 +190,46 @@ class _MoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.black.withValues(alpha: 0.45),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: PopupMenuButton<_CollectionMenuAction>(
-        key: menuKey,
-        tooltip: '更多',
-        padding: EdgeInsets.zero,
-        position: PopupMenuPosition.under,
-        icon: const Padding(
-          padding: EdgeInsets.all(4),
-          child: Icon(Icons.more_horiz_rounded, color: Colors.white, size: 18),
+    return SizedBox(
+      width: 26,
+      height: 26,
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.45),
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: PopupMenuButton<_CollectionMenuAction>(
+          key: menuKey,
+          tooltip: '更多',
+          padding: EdgeInsets.zero,
+          iconSize: 16,
+          position: PopupMenuPosition.under,
+          icon: const Icon(
+            Icons.more_horiz_rounded,
+            color: Colors.white,
+            size: 16,
+          ),
+          onSelected: (action) {
+            switch (action) {
+              case _CollectionMenuAction.edit:
+                onEdit?.call();
+              case _CollectionMenuAction.delete:
+                onDelete?.call();
+            }
+          },
+          itemBuilder:
+              (context) => <PopupMenuEntry<_CollectionMenuAction>>[
+                if (onEdit != null)
+                  const PopupMenuItem<_CollectionMenuAction>(
+                    value: _CollectionMenuAction.edit,
+                    child: Text('编辑'),
+                  ),
+                if (onDelete != null)
+                  const PopupMenuItem<_CollectionMenuAction>(
+                    value: _CollectionMenuAction.delete,
+                    child: Text('删除'),
+                  ),
+              ],
         ),
-        onSelected: (action) {
-          switch (action) {
-            case _CollectionMenuAction.edit:
-              onEdit?.call();
-            case _CollectionMenuAction.delete:
-              onDelete?.call();
-          }
-        },
-        itemBuilder:
-            (context) => <PopupMenuEntry<_CollectionMenuAction>>[
-              if (onEdit != null)
-                const PopupMenuItem<_CollectionMenuAction>(
-                  value: _CollectionMenuAction.edit,
-                  child: Text('编辑'),
-                ),
-              if (onDelete != null)
-                const PopupMenuItem<_CollectionMenuAction>(
-                  value: _CollectionMenuAction.delete,
-                  child: Text('删除'),
-                ),
-            ],
       ),
     );
   }

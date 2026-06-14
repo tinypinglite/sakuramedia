@@ -23,6 +23,9 @@ List<RouteBase> get $appRoutes => [
   $mobileMoviePlayerRouteData,
   $mobileTagsRouteData,
   $mobileTagMoviesRouteData,
+  $mobileClipCollectionsRouteData,
+  $mobileClipCollectionDetailRouteData,
+  $mobileClipCollectionPlayRouteData,
   $mobileRootShellRouteData,
 ];
 
@@ -526,6 +529,109 @@ mixin $MobileTagMoviesRouteData on GoRouteData {
   @override
   String get location => GoRouteData.$location(
     '/mobile/library/tags/${Uri.encodeComponent(_self.tagId.toString())}',
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileClipCollectionsRouteData => GoRouteData.$route(
+  path: '/mobile/library/clip-collections',
+  factory: $MobileClipCollectionsRouteData._fromState,
+);
+
+mixin $MobileClipCollectionsRouteData on GoRouteData {
+  static MobileClipCollectionsRouteData _fromState(GoRouterState state) =>
+      const MobileClipCollectionsRouteData();
+
+  @override
+  String get location =>
+      GoRouteData.$location('/mobile/library/clip-collections');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileClipCollectionDetailRouteData => GoRouteData.$route(
+  path: '/mobile/library/clip-collections/:collectionId',
+  factory: $MobileClipCollectionDetailRouteData._fromState,
+);
+
+mixin $MobileClipCollectionDetailRouteData on GoRouteData {
+  static MobileClipCollectionDetailRouteData _fromState(GoRouterState state) =>
+      MobileClipCollectionDetailRouteData(
+        collectionId: int.parse(state.pathParameters['collectionId']!),
+      );
+
+  MobileClipCollectionDetailRouteData get _self =>
+      this as MobileClipCollectionDetailRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/mobile/library/clip-collections/${Uri.encodeComponent(_self.collectionId.toString())}',
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileClipCollectionPlayRouteData => GoRouteData.$route(
+  path: '/mobile/library/clip-collections/:collectionId/play',
+  factory: $MobileClipCollectionPlayRouteData._fromState,
+);
+
+mixin $MobileClipCollectionPlayRouteData on GoRouteData {
+  static MobileClipCollectionPlayRouteData _fromState(GoRouterState state) =>
+      MobileClipCollectionPlayRouteData(
+        collectionId: int.parse(state.pathParameters['collectionId']!),
+        startIndex:
+            _$convertMapValue(
+              'start-index',
+              state.uri.queryParameters,
+              int.parse,
+            ) ??
+            0,
+      );
+
+  MobileClipCollectionPlayRouteData get _self =>
+      this as MobileClipCollectionPlayRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/mobile/library/clip-collections/${Uri.encodeComponent(_self.collectionId.toString())}/play',
+    queryParams: {
+      if (_self.startIndex != 0) 'start-index': _self.startIndex.toString(),
+    },
   );
 
   @override

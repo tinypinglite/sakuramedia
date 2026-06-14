@@ -13,6 +13,9 @@ import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
+import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
+import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
@@ -596,6 +599,7 @@ void main() {
     WidgetTester tester,
   ) async {
     _enqueueOverviewResponses(bundle);
+    _enqueueClipsTabResponses(bundle);
 
     await tester.pumpWidget(
       _buildTestApp(
@@ -611,14 +615,19 @@ void main() {
     expect(find.text('暂无关注影片'), findsNothing);
     expect(find.text('开发中'), findsNothing);
 
+    // 「我的」→「切片」（新插入在第二位）
     await tester.fling(find.byType(PageView), const Offset(-600, 0), 1200);
     await tester.pumpAndSettle();
+    expect(find.text('全部切片'), findsOneWidget);
 
+    // 「切片」→「关注」
+    await tester.fling(find.byType(PageView), const Offset(-600, 0), 1200);
+    await tester.pumpAndSettle();
     expect(find.text('暂无关注影片'), findsOneWidget);
 
+    // 「关注」→「发现」
     await tester.fling(find.byType(PageView), const Offset(-600, 0), 1200);
     await tester.pumpAndSettle();
-
     expect(find.text('今日推荐'), findsOneWidget);
     expect(find.text('推荐时刻'), findsOneWidget);
   });
@@ -1761,6 +1770,13 @@ Widget _buildTestApp({
       Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
       Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
       Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
+      Provider<ClipsApi>(create: (_) => ClipsApi(apiClient: bundle.apiClient)),
+      Provider<ClipCollectionsApi>(
+        create: (_) => ClipCollectionsApi(apiClient: bundle.apiClient),
+      ),
+      ChangeNotifierProvider<ClipMutationChangeNotifier>(
+        create: (_) => ClipMutationChangeNotifier(),
+      ),
       Provider<AppPlatform>.value(value: AppPlatform.mobile),
     ],
     child: OKToast(
@@ -1807,10 +1823,37 @@ Widget _buildRouterApp({
       Provider<HotReviewsApi>.value(value: bundle.hotReviewsApi),
       Provider<ImageSearchDraftStore>.value(value: draftStore),
       Provider<MediaApi>(create: (_) => MediaApi(apiClient: bundle.apiClient)),
+      Provider<ClipsApi>(create: (_) => ClipsApi(apiClient: bundle.apiClient)),
+      Provider<ClipCollectionsApi>(
+        create: (_) => ClipCollectionsApi(apiClient: bundle.apiClient),
+      ),
+      ChangeNotifierProvider<ClipMutationChangeNotifier>(
+        create: (_) => ClipMutationChangeNotifier(),
+      ),
     ],
     child: OKToast(
       child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
     ),
+  );
+}
+
+void _enqueueClipsTabResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/clip-collections',
+    statusCode: 200,
+    body: const <Map<String, dynamic>>[],
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/media-clips',
+    statusCode: 200,
+    body: <String, dynamic>{
+      'items': <Map<String, dynamic>>[],
+      'page': 1,
+      'page_size': 24,
+      'total': 0,
+    },
   );
 }
 

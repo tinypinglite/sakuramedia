@@ -35,6 +35,7 @@ const String mobileMoviesPath = '/mobile/library/movies';
 const String mobileMovieSeriesPathPrefix = '$mobileMoviesPath/series';
 const String mobileActorsPath = '/mobile/library/actors';
 const String mobileTagsPath = '/mobile/library/tags';
+const String mobileClipCollectionsPath = '/mobile/library/clip-collections';
 const String mobileRankingsPath = '/mobile/rankings';
 const String mobileSettingsMediaLibrariesPath =
     '/mobile/settings/media-libraries';
