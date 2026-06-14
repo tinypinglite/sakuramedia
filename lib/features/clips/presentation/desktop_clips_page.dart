@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/clip_collections/data/clip_collection_dto.dart';
 import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/add_to_clip_collection_dialog.dart';
@@ -12,13 +15,15 @@ import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/clips_overview_controller.dart';
 import 'package:sakuramedia/features/clips/presentation/rename_clip_dialog.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/clip_collections/clip_collection_card.dart';
+import 'package:sakuramedia/widgets/collections/collection_card.dart';
 import 'package:sakuramedia/widgets/clips/clip_grid_card.dart';
 import 'package:sakuramedia/widgets/clips/clip_player_dialog.dart';
+import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 
 /// 切片首页：上方「我的合集」横滑区 + 下方「全部切片」网格（悬停预览、加入合集）。
 class DesktopClipsPage extends StatefulWidget {
@@ -31,7 +36,9 @@ class DesktopClipsPage extends StatefulWidget {
 class _DesktopClipsPageState extends State<DesktopClipsPage> {
   late final ClipsOverviewController _clipsController;
   late final ClipCollectionsOverviewController _collectionsController;
+  late final ClipMutationChangeNotifier _mutationNotifier;
   final ScrollController _scrollController = ScrollController();
+  bool _railRefreshScheduled = false;
 
   Listenable get _pageListenable =>
       Listenable.merge(<Listenable>[_clipsController, _collectionsController]);
@@ -41,6 +48,7 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
     super.initState();
     final clipsApi = context.read<ClipsApi>();
     final collectionsApi = context.read<ClipCollectionsApi>();
+    _mutationNotifier = context.read<ClipMutationChangeNotifier>();
     _clipsController = ClipsOverviewController(
       fetchClips:
           ({
@@ -54,16 +62,42 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
       fetchCollections: collectionsApi.getCollections,
     )..load();
     _scrollController.addListener(_onScroll);
+    _mutationNotifier.addListener(_onMutation);
   }
 
   @override
   void dispose() {
+    _mutationNotifier.removeListener(_onMutation);
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
     _clipsController.dispose();
     _collectionsController.dispose();
     super.dispose();
+  }
+
+  /// 切片删除 / 合集成员变化都可能改变合集横滑区的封面与计数；用微任务把一轮内
+  /// 的多次信号（如详情页批量改动）合并成一次刷新，避免 N 次请求。切片本身被删除
+  /// 时再从「全部切片」网格精准移除。
+  void _onMutation() {
+    final change = _mutationNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    if (change.kind == ClipMutationKind.deleted && change.clipId != null) {
+      _clipsController.removeClip(change.clipId!);
+    }
+    if (_railRefreshScheduled) {
+      return;
+    }
+    _railRefreshScheduled = true;
+    scheduleMicrotask(() {
+      _railRefreshScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      _collectionsController.refresh();
+    });
   }
 
   void _onScroll() {
@@ -146,7 +180,7 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
                 label: '查看全部',
                 size: AppTextButtonSize.small,
                 emphasis: AppTextButtonEmphasis.accent,
-                onPressed: () => context.pushDesktopClipCollections(),
+                onPressed: _viewAllCollections,
               ),
             ],
           ],
@@ -186,7 +220,7 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
           final collection = collections[index];
           return SizedBox(
             width: 210,
-            child: ClipCollectionCard(
+            child: CollectionCard.clip(
               key: Key('clip-collection-card-${collection.id}'),
               collection: collection,
               onTap:
@@ -271,6 +305,7 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
       ),
       delegate: SliverChildBuilderDelegate((context, index) {
         final clip = clips[index];
+        final movieNumber = clip.movieNumber;
         return ClipGridCard(
           key: Key('clip-grid-card-${clip.clipId}'),
           clip: clip,
@@ -278,11 +313,10 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
           onRename: () => _renameClip(clip),
           onDelete: () => _deleteClip(clip),
           onAddToCollection: () => _addToCollection(clip),
-          loadPreviewFrames:
-              () => context
-                  .read<ClipsApi>()
-                  .getClipDetail(clipId: clip.clipId)
-                  .then((detail) => detail.previewFrames),
+          onOpenMovie:
+              movieNumber != null && movieNumber.isNotEmpty
+                  ? () => _openMovie(movieNumber)
+                  : null,
         );
       }, childCount: clips.length),
     );
@@ -324,6 +358,13 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
     showClipPlayerDialog(context, streamUrl: clip.streamUrl, title: clip.title);
   }
 
+  void _openMovie(String movieNumber) {
+    context.pushDesktopMovieDetail(
+      movieNumber: movieNumber,
+      fallbackPath: desktopClipsPath,
+    );
+  }
+
   Future<void> _renameClip(MediaClipDto clip) async {
     final newTitle = await showRenameClipDialog(
       context,
@@ -347,16 +388,22 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
   }
 
   Future<void> _deleteClip(MediaClipDto clip) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => _DeleteClipConfirmDialog(clip: clip),
+    final title = clip.title.trim().isEmpty ? '该切片' : '“${clip.title.trim()}”';
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '删除切片',
+      message: '确认删除$title？切片文件会被一并删除，该操作不可恢复。',
+      danger: true,
+      confirmLabel: '删除',
+      confirmKey: const Key('clip-delete-confirm-button'),
     );
-    if (!mounted || confirmed != true) {
+    if (!mounted || !confirmed) {
       return;
     }
     try {
       await context.read<ClipsApi>().deleteClip(clipId: clip.clipId);
-      _clipsController.removeClip(clip.clipId);
+      // 广播删除信号：本页监听后从网格精准移除，并刷新合集横滑区（封面 / 计数可能变化）。
+      _mutationNotifier.reportDeleted(clip.clipId);
       if (mounted) {
         showToast('已删除切片');
       }
@@ -370,8 +417,8 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
     if (!mounted) {
       return;
     }
-    // 合集归属可能变化（含新建），统一刷新合集区。
-    await _collectionsController.refresh();
+    // 合集归属可能变化（含新建）：广播信号，由本页监听统一刷新合集横滑区。
+    _mutationNotifier.reportCollectionMembershipChanged(clipId: clip.clipId);
   }
 
   Future<void> _createCollection() async {
@@ -381,6 +428,15 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
     }
     _collectionsController.insertCollection(created);
     showToast('已创建合集');
+  }
+
+  Future<void> _viewAllCollections() async {
+    await context.pushDesktopClipCollections();
+    if (!mounted) {
+      return;
+    }
+    // 全部合集页内可能重命名/删除合集，返回后刷新首页合集横滑区。
+    await _collectionsController.refresh();
   }
 }
 
@@ -408,55 +464,6 @@ class _HintBox extends StatelessWidget {
           tone: AppTextTone.secondary,
         ),
       ),
-    );
-  }
-}
-
-class _DeleteClipConfirmDialog extends StatelessWidget {
-  const _DeleteClipConfirmDialog({required this.clip});
-
-  final MediaClipDto clip;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    final title = clip.title.trim().isEmpty ? '该切片' : '“${clip.title.trim()}”';
-    return AlertDialog(
-      backgroundColor: context.appColors.surfaceCard,
-      actionsOverflowButtonSpacing: spacing.sm,
-      title: Text(
-        '删除切片',
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s16,
-          weight: AppTextWeight.semibold,
-          tone: AppTextTone.primary,
-        ),
-      ),
-      content: Text(
-        '确认删除$title？切片文件会被一并删除，该操作不可恢复。',
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s14,
-          weight: AppTextWeight.regular,
-          tone: AppTextTone.secondary,
-        ),
-      ),
-      actions: [
-        AppButton(
-          label: '取消',
-          size: AppButtonSize.small,
-          onPressed: () => Navigator.of(context).pop(false),
-        ),
-        SizedBox(width: spacing.sm),
-        AppButton(
-          key: const Key('clip-delete-confirm-button'),
-          label: '删除',
-          variant: AppButtonVariant.danger,
-          size: AppButtonSize.small,
-          onPressed: () => Navigator.of(context).pop(true),
-        ),
-      ],
     );
   }
 }

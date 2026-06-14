@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 class ActivityNotificationDto {
   const ActivityNotificationDto({
     required this.id,
@@ -73,39 +75,17 @@ class ActivityNotificationDto {
 
   factory ActivityNotificationDto.fromJson(Map<String, dynamic> json) {
     return ActivityNotificationDto(
-      id: _toInt(json['id']),
+      id: asInt(json['id']),
       category: json['category'] as String? ?? '',
       title: json['title'] as String? ?? '',
       content: json['content'] as String? ?? '',
       isRead: json['is_read'] as bool? ?? false,
-      createdAt: _parseDateTime(json['created_at']),
-      updatedAt: _parseDateTime(json['updated_at']),
-      relatedTaskRunId: _tryInt(json['related_task_run_id']),
+      createdAt: asDateTime(json['created_at']),
+      updatedAt: asDateTime(json['updated_at']),
+      relatedTaskRunId: asIntOrNull(json['related_task_run_id']),
       relatedResourceType: json['related_resource_type'] as String?,
-      relatedResourceId: _tryInt(json['related_resource_id']),
+      relatedResourceId: asIntOrNull(json['related_resource_id']),
     );
-  }
-
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value is! String || value.trim().isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(value);
-  }
-
-  static int _toInt(dynamic value) => _tryInt(value) ?? 0;
-
-  static int? _tryInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value);
-    }
-    return null;
   }
 }
 

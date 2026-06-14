@@ -27,6 +27,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/media/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_inspector_dialog.dart';
@@ -327,61 +328,25 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
   }
 
   Future<bool?> _confirmDeleteMedia(MovieMediaItemDto mediaItem) {
-    return showDialog<bool>(
-      context: context,
-      builder:
-          (dialogContext) => AppDesktopDialog(
-            dialogKey: const Key('movie-media-delete-confirm-dialog'),
-            width: dialogContext.appLayoutTokens.dialogWidthSm,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '删除媒体文件',
-                  style: resolveAppTextStyle(
-                    dialogContext,
-                    size: AppTextSize.s18,
-                  ),
-                ),
-                SizedBox(height: dialogContext.appSpacing.lg),
-                Text(
-                  '确认删除媒体“${_buildMediaDeleteLabel(mediaItem)}”？该操作会删除本地媒体文件且不可恢复。',
-                ),
-                SizedBox(height: dialogContext.appSpacing.sm),
-                Text(
-                  mediaItem.path,
-                  key: const Key('movie-media-delete-path'),
-                  style: resolveAppTextStyle(
-                    dialogContext,
-                    size: AppTextSize.s12,
-                    tone: AppTextTone.muted,
-                  ),
-                ),
-                SizedBox(height: dialogContext.appSpacing.xl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        key: const Key('movie-media-delete-cancel'),
-                        onPressed: () => Navigator.of(dialogContext).pop(false),
-                        label: '取消',
-                      ),
-                    ),
-                    SizedBox(width: dialogContext.appSpacing.md),
-                    Expanded(
-                      child: AppButton(
-                        key: const Key('movie-media-delete-confirm'),
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
-                        label: '删除',
-                        variant: AppButtonVariant.danger,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+    return showAppConfirmDialog(
+      context,
+      title: '删除媒体文件',
+      message:
+          '确认删除媒体“${_buildMediaDeleteLabel(mediaItem)}”？该操作会删除本地媒体文件且不可恢复。',
+      confirmLabel: '删除',
+      danger: true,
+      dialogKey: const Key('movie-media-delete-confirm-dialog'),
+      confirmKey: const Key('movie-media-delete-confirm'),
+      cancelKey: const Key('movie-media-delete-cancel'),
+      extraContent: Text(
+        mediaItem.path,
+        key: const Key('movie-media-delete-path'),
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          tone: AppTextTone.muted,
+        ),
+      ),
     );
   }
 

@@ -4,20 +4,23 @@ import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart
 export 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart'
     show SortDirection, SortDirectionX;
 
-/// 非 JAV 视频列表的排序字段，对齐后端 `sort=created_at|release_date|title`。
-enum VideoSortField { createdAt, releaseDate, title }
+/// 非 JAV 视频列表的排序字段，对齐后端 `sort=created_at|title|duration|file_size`。
+/// 时长/文件大小取条目第一条媒体，无媒体按 0 参与排序。
+enum VideoSortField { createdAt, title, duration, fileSize }
 
 extension VideoSortFieldX on VideoSortField {
   String get apiValue => switch (this) {
     VideoSortField.createdAt => 'created_at',
-    VideoSortField.releaseDate => 'release_date',
     VideoSortField.title => 'title',
+    VideoSortField.duration => 'duration',
+    VideoSortField.fileSize => 'file_size',
   };
 
   String get label => switch (this) {
     VideoSortField.createdAt => '入库时间',
-    VideoSortField.releaseDate => '发布时间',
     VideoSortField.title => '标题',
+    VideoSortField.duration => '时长',
+    VideoSortField.fileSize => '文件大小',
   };
 }
 

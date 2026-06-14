@@ -8,12 +8,17 @@ import 'package:sakuramedia/features/clip_collections/presentation/add_clips_to_
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collection_detail_controller.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/create_clip_collection_dialog.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
+import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/clips/clip_cover_overlays.dart';
+import 'package:sakuramedia/widgets/collections/collection_member_views.dart';
+
+/// 合集详情的切片排布方式：纵向列表（可拖序）或网格（侧重浏览）。
+enum _ClipLayout { list, grid }
 
 /// 切片合集详情页：有序切片列表，支持拖序、移除、添加切片、改名与播放。
 class DesktopClipCollectionDetailPage extends StatefulWidget {
@@ -29,11 +34,14 @@ class DesktopClipCollectionDetailPage extends StatefulWidget {
 class _DesktopClipCollectionDetailPageState
     extends State<DesktopClipCollectionDetailPage> {
   late final ClipCollectionDetailController _controller;
+  late final ClipMutationChangeNotifier _mutationNotifier;
   int? _hoveredClipId;
+  _ClipLayout _layout = _ClipLayout.list;
 
   @override
   void initState() {
     super.initState();
+    _mutationNotifier = context.read<ClipMutationChangeNotifier>();
     _controller = ClipCollectionDetailController(
       collectionId: widget.collectionId,
       api: context.read<ClipCollectionsApi>(),
@@ -51,6 +59,13 @@ class _DesktopClipCollectionDetailPageState
       return;
     }
     setState(() => _hoveredClipId = clipId);
+  }
+
+  void _toggleLayout() {
+    setState(() {
+      _layout =
+          _layout == _ClipLayout.list ? _ClipLayout.grid : _ClipLayout.list;
+    });
   }
 
   @override
@@ -138,6 +153,21 @@ class _DesktopClipCollectionDetailPageState
             ],
           ),
         ),
+        // 空合集没有可排布的内容，隐藏视图切换。
+        if (_controller.clips.isNotEmpty) ...[
+          AppIconButton(
+            key: const Key('clip-collection-layout-toggle'),
+            tooltip: _layout == _ClipLayout.list ? '网格视图' : '列表视图',
+            onPressed: _toggleLayout,
+            icon: Icon(
+              _layout == _ClipLayout.list
+                  ? Icons.grid_view_rounded
+                  : Icons.view_agenda_outlined,
+              size: context.appComponentTokens.iconSizeSm,
+            ),
+          ),
+          SizedBox(width: context.appSpacing.sm),
+        ],
         AppTextButton(
           key: const Key('clip-collection-add-clips-button'),
           label: '添加切片',
@@ -164,6 +194,12 @@ class _DesktopClipCollectionDetailPageState
     if (_controller.clips.isEmpty) {
       return const AppEmptyState(message: '合集还没有切片，去「全部切片」里加入吧');
     }
+    return _layout == _ClipLayout.grid
+        ? _buildGrid(context)
+        : _buildList(context);
+  }
+
+  Widget _buildList(BuildContext context) {
     final clips = _controller.clips;
     return ReorderableListView.builder(
       key: const Key('clip-collection-detail-list'),
@@ -178,6 +214,15 @@ class _DesktopClipCollectionDetailPageState
       ),
       itemBuilder: (context, index) {
         final clip = clips[index];
+        final title = clip.title.trim();
+        final metaParts = <String>[
+          if (clip.movieNumber != null && clip.movieNumber!.isNotEmpty)
+            clip.movieNumber!
+          else
+            '无番号',
+          formatMediaTimecode(clip.durationSeconds),
+          if (clip.fileSizeBytes > 0) formatFileSize(clip.fileSizeBytes),
+        ];
         return Padding(
           key: ValueKey<int>(clip.clipId),
           padding: EdgeInsets.only(bottom: context.appSpacing.sm),
@@ -188,14 +233,61 @@ class _DesktopClipCollectionDetailPageState
                 _setHovered(null);
               }
             },
-            child: _ClipRow(
-              clip: clip,
+            child: CollectionMemberRow(
               index: index,
+              coverUrl: clip.coverImage?.bestAvailableUrl,
+              coverWidth: 120,
+              coverAspectRatio: 16 / 9,
+              title: title.isEmpty ? '未命名切片' : title,
+              subtitle: metaParts.join(' · '),
               isHovered: _hoveredClipId == clip.clipId,
               onTap: () => _playFrom(index),
+              menuKey: Key('clip-collection-menu-${clip.clipId}'),
+              dragHandleKey: Key('clip-reorder-handle-${clip.clipId}'),
+              onOpenSource: _openMovieCallback(clip),
+              openSourceLabel: '影片',
               onRemove: () => _removeClip(clip),
             ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildGrid(BuildContext context) {
+    final clips = _controller.clips;
+    final spacing = context.appSpacing;
+    return GridView.builder(
+      key: const Key('clip-collection-detail-grid'),
+      padding: EdgeInsets.zero,
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 260,
+        mainAxisSpacing: spacing.md,
+        crossAxisSpacing: spacing.md,
+        childAspectRatio: 1.15,
+      ),
+      itemCount: clips.length,
+      itemBuilder: (context, index) {
+        final clip = clips[index];
+        final title = clip.title.trim();
+        final number =
+            clip.movieNumber?.isNotEmpty == true ? clip.movieNumber! : '无番号';
+        // 时长已在封面徽标显示，下方元信息保留番号与大小，和列表视图信息对齐。
+        final subtitle = clip.fileSizeBytes > 0
+            ? '$number · ${formatFileSize(clip.fileSizeBytes)}'
+            : number;
+        return CollectionMemberCard(
+          key: ValueKey<int>(clip.clipId),
+          coverUrl: clip.coverImage?.bestAvailableUrl,
+          coverAspectRatio: 16 / 9,
+          title: title.isEmpty ? '未命名切片' : title,
+          subtitle: subtitle,
+          onTap: () => _playFrom(index),
+          menuKey: Key('clip-collection-grid-menu-${clip.clipId}'),
+          onOpenSource: _openMovieCallback(clip),
+          openSourceLabel: '影片',
+          onRemove: () => _removeClip(clip),
+          coverBadge: ClipDurationBadge(seconds: clip.durationSeconds),
         );
       },
     );
@@ -208,18 +300,41 @@ class _DesktopClipCollectionDetailPageState
     );
   }
 
+  /// 切片有番号时返回跳转来源影片详情的回调，否则为 `null`（菜单项隐藏）。
+  VoidCallback? _openMovieCallback(MediaClipDto clip) {
+    final movieNumber = clip.movieNumber;
+    if (movieNumber == null || movieNumber.isEmpty) {
+      return null;
+    }
+    return () => context.pushDesktopMovieDetail(movieNumber: movieNumber);
+  }
+
   Future<void> _onReorder(int oldIndex, int newIndex) async {
     final error = await _controller.reorder(oldIndex, newIndex);
-    if (!mounted || error == null) {
+    if (!mounted) {
       return;
     }
-    showToast(error);
+    if (error != null) {
+      showToast(error);
+      return;
+    }
+    // 重排可能换掉合集首图（封面取自首个切片）；广播给上层合集列表刷新封面。
+    _mutationNotifier.reportCollectionMembershipChanged(
+      collectionId: widget.collectionId,
+    );
   }
 
   Future<void> _removeClip(MediaClipDto clip) async {
     final error = await _controller.removeClip(clip.clipId);
     if (!mounted) {
       return;
+    }
+    if (error == null) {
+      // 合集封面 / 计数可能变化，广播给上层合集列表（首页横滑区、全部合集页）。
+      _mutationNotifier.reportCollectionMembershipChanged(
+        clipId: clip.clipId,
+        collectionId: widget.collectionId,
+      );
     }
     showToast(error ?? '已从合集移除');
   }
@@ -237,6 +352,10 @@ class _DesktopClipCollectionDetailPageState
       return;
     }
     _controller.applyCollectionMeta(updated);
+    // 合集名称变化，广播给上层合集列表刷新卡片标题。
+    _mutationNotifier.reportCollectionMembershipChanged(
+      collectionId: widget.collectionId,
+    );
     showToast('已保存');
   }
 
@@ -252,146 +371,12 @@ class _DesktopClipCollectionDetailPageState
     }
     // 选择器内可能增删了成员，回来统一刷新切片列表与计数。
     await _controller.refresh();
-  }
-}
-
-class _ClipRow extends StatelessWidget {
-  const _ClipRow({
-    required this.clip,
-    required this.index,
-    required this.isHovered,
-    required this.onTap,
-    required this.onRemove,
-  });
-
-  final MediaClipDto clip;
-  final int index;
-  final bool isHovered;
-  final VoidCallback onTap;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final coverUrl = clip.coverImage?.bestAvailableUrl;
-    final title = clip.title.trim();
-    final metaParts = <String>[
-      if (clip.movieNumber != null && clip.movieNumber!.isNotEmpty)
-        clip.movieNumber!
-      else
-        '无番号',
-      formatMediaTimecode(clip.durationSeconds),
-      if (clip.fileSizeBytes > 0) formatFileSize(clip.fileSizeBytes),
-    ];
-
-    return Material(
-      color: colors.surfaceCard,
-      borderRadius: context.appRadius.mdBorder,
-      child: InkWell(
-        borderRadius: context.appRadius.mdBorder,
-        onTap: onTap,
-        child: Ink(
-          decoration: BoxDecoration(
-            borderRadius: context.appRadius.mdBorder,
-            border: Border.all(color: colors.borderSubtle),
-          ),
-          padding: EdgeInsets.all(spacing.sm),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: context.appRadius.smBorder,
-                child: SizedBox(
-                  width: 120,
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child:
-                        coverUrl != null && coverUrl.isNotEmpty
-                            ? MaskedImage(url: coverUrl, fit: BoxFit.cover)
-                            : ColoredBox(color: colors.surfaceMuted),
-                  ),
-                ),
-              ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      title.isEmpty ? '未命名切片' : title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s14,
-                        weight: AppTextWeight.semibold,
-                        tone: AppTextTone.primary,
-                      ),
-                    ),
-                    SizedBox(height: spacing.xs),
-                    Text(
-                      metaParts.join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        weight: AppTextWeight.regular,
-                        tone: AppTextTone.secondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              // 拖拽手柄：悬停时显现，参照「播放列表」页的右侧圆形手柄。
-              Visibility(
-                visible: isHovered,
-                maintainSize: true,
-                maintainAnimation: true,
-                maintainState: true,
-                child: IgnorePointer(
-                  ignoring: !isHovered,
-                  child: ReorderableDragStartListener(
-                    index: index,
-                    child: MouseRegion(
-                      cursor: SystemMouseCursors.grab,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: colors.surfaceCard.withValues(alpha: 0.92),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: colors.borderSubtle),
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.all(spacing.xs),
-                          child: Icon(
-                            Icons.unfold_more_rounded,
-                            key: Key('clip-reorder-handle-${clip.clipId}'),
-                            size: context.appComponentTokens.iconSizeMd,
-                            color: context.appTextPalette.primary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              AppIconButton(
-                key: Key('clip-collection-remove-${clip.clipId}'),
-                tooltip: '移出合集',
-                iconColor: context.appTextPalette.error,
-                onPressed: onRemove,
-                icon: Icon(
-                  Icons.remove_circle_outline_rounded,
-                  size: context.appComponentTokens.iconSizeSm,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    if (!mounted) {
+      return;
+    }
+    // 成员 / 封面 / 计数可能变化，广播给上层合集列表。
+    _mutationNotifier.reportCollectionMembershipChanged(
+      collectionId: widget.collectionId,
     );
   }
 }

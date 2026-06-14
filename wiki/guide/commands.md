@@ -100,93 +100,30 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands add-medi
 
 ### 导入已有媒体
 
-```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands import-media --library-id 1 --source-path /mnt/volume1/media/av
-```
+::: tip 导入已经改到 Web 界面，不再是命令
+旧的 `import-media` / `import-videos` 命令行入口已下线。导入历史影片和 PornBox 视频，统一在 Web 界面的 **「媒体导入」页**（管理 → 媒体导入）完成。
+:::
 
-如果你想明确使用默认传输模式，也可以写成：
+「媒体导入」页内置两个标签，对应两类内容：
 
-```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands import-media --library-id 1 --source-path /mnt/volume1/media/av --transfer-mode auto
-```
+- **JAV 影片**：浏览后端白名单目录选源 → 选「导入到媒体库」与「导入方式」→ 按番号抓元数据、建影片记录。
+- **PornBox 影片**：同样浏览选源 + 选媒体库 + 选「导入方式」，并**必须选一个合集**（可现场新建）；不抓元数据，标题默认取文件名。
 
-如果你希望“导入成功后清理源视频文件”，可以显式使用 `cleanup-source`：
+两类导入都在后台异步运行，可在该页查看实时进度，并对失败文件「重导 / 重命名 / 删除」。已按路径或内容指纹登记过的文件会自动跳过，可以放心重复导入。
 
-```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands import-media --library-id 1 --source-path /mnt/volume1/media/av --transfer-mode cleanup-source
-```
+导入方式（传输模式）的实际行为，两类导入一致：
 
-说明：
-
-- `--library-id` 是目标媒体库 ID
-- `--source-path` 是你已有影片所在目录
-- 命令会扫描目录、识别影片、导入到指定媒体库
-- 这里的 `/mnt/volume1/media/av` 仍然是 SakuraMedia 容器内路径
-
-参数说明：
-
-| 参数 | 是否必填 | 说明 |
-|---|---:|---|
-| `--library-id` | 是 | 目标媒体库 ID，影片会导入到这个媒体库的根目录下 |
-| `--source-path` | 是 | 源文件或源目录，必须是 SakuraMedia 容器内能访问到的路径 |
-| `--transfer-mode` | 否 | 文件传输模式，可选 `auto` / `cleanup-source`，默认是 `auto` |
-
-实际行为：
-
-- `auto` 是默认模式，会优先尝试硬链接，硬链接失败后再复制，源视频和源字幕都会保留。
-- `cleanup-source` 会复制新入库媒体，确认入库成功后删除对应源视频文件。
-- `cleanup-source` 只删除源视频文件，不删除源字幕、目录、非媒体文件、番号解析失败文件、过小文件。
-- 扫描阶段如果发现源视频内容已经在媒体库中存在，并且已有媒体文件真实存在，`cleanup-source` 会删除这个重复源视频，并把它计入跳过数量。
-- 如果数据库里有重复记录，但记录指向的媒体文件已经不存在，系统不会把源视频当作重复项删除，而是继续按普通待导入文件处理。
+- `auto`（默认）：优先尝试硬链接，硬链接失败后再复制；源视频和源字幕都会保留。
+- `cleanup-source`：复制新入库媒体，确认入库成功后删除对应源视频文件——只删源视频，不删源字幕、目录、非媒体文件、解析失败文件、过小文件。
+- 扫描阶段若发现源内容已在媒体库中、且已有媒体文件真实存在，`cleanup-source` 会删除这个重复源视频并计入跳过；若库内记录指向的文件已不存在，则继续按普通待导入文件处理。
 
 安全限制与失败表现：
 
-- `cleanup-source` 不允许把任一媒体库根目录或媒体库子目录作为 `--source-path`，避免误删已经入库的文件。
-- 如果你把更外层目录作为 `--source-path`，而这个目录下面刚好包含已配置的媒体库目录，递归扫描会跳过这些媒体库目录树，只处理其他源文件。
-- 删除源视频失败时，任务会记录 `source_delete_failed`，最终状态会变成 `failed`；已经成功入库的媒体记录仍然保留，删除失败的源文件也会留在原位置。
-- 旧写法 `--transfer-mode copy-delete-source` 不存在；需要清理源视频时请使用 `--transfer-mode cleanup-source`。
+- `cleanup-source` 不允许把任一媒体库根目录或其子目录作为导入源，避免误删已经入库的文件。
+- 删除源视频失败时会记录 `source_delete_failed`，作业终态变为 `failed`；已成功入库的记录仍保留，删除失败的源文件也留在原位，可在导入页对其重导 / 重命名 / 删除。
+- 目录浏览只能从 `/mnt` 根往下，确保媒体目录挂在 `/mnt` 下，否则在导入页选不到。详见 [历史媒体导入 FAQ](/faq#历史媒体导入)。
 
-适合场景：
-
-- 你原来已经有一批历史影片
-- 现在想把它们导入 SakuraMedia 管理
-- 你确认源目录不是媒体库目录，并希望导入后自动清理源视频文件
-
-### 导入非 JAV 视频（无番号）
-
-针对没有番号、也没有外部元数据的普通视频（比如自己录制、剪辑或杂项视频），可以用 `import-videos` 收进来管理：
-
-```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands import-videos --source-path /mnt/volume1/media/clips
-```
-
-也可以只导入单个文件，并在导入时一并打标签 / 关联人物 / 归入合集：
-
-```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands import-videos --source-path /mnt/volume1/media/clips/one.mp4 --collection-id 1 --tag-ids 2,3 --person-ids 5
-```
-
-参数说明：
-
-| 参数 | 是否必填 | 说明 |
-|---|---:|---|
-| `--source-path` | 是 | 一个目录或单个视频文件，必须是 SakuraMedia 容器内能访问到的路径 |
-| `--collection-id` | 否 | 把本批视频一并归入指定的视频合集 ID |
-| `--tag-ids` | 否 | 逗号分隔的标签 ID，关联到本批全部视频 |
-| `--person-ids` | 否 | 逗号分隔的人物 ID，关联到本批全部视频 |
-| `--library-id` | 否 | 归库分组用的媒体库 ID |
-
-和 `import-media` 的关键区别：
-
-- `import-videos` 是**就地索引，不搬运文件**：只为每个视频建立一条记录，文件仍留在原位置，所以源路径不需要满足“不能是媒体库目录”这类限制。
-- 标题默认取文件名，不抓取任何番号 / JavDB / DMM 元数据。
-- 已经按路径登记过的文件会自动跳过，可以放心重复执行。
-- 缩略图不需要手动生成，会由 `aps generate-media-thumbnails` 任务自动补齐。
-
-适合场景：
-
-- 你有一批没有番号、不属于 JAV 体系的普通视频
-- 只想把它们纳入 SakuraMedia 统一浏览、打标签、做片段，而不需要元数据抓取
+> PornBox 视频的功能说明见 [PornBox 视频管理](/guide/videos)。
 
 ### 回填媒体元信息
 

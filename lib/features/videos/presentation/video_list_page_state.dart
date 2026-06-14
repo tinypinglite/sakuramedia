@@ -1,49 +1,48 @@
 import 'dart:async';
 
 import 'package:sakuramedia/app/app_page_state_cache.dart';
-import 'package:sakuramedia/features/tags/data/tags_api.dart';
-import 'package:sakuramedia/features/tags/presentation/tag_selection_controller.dart';
-import 'package:sakuramedia/features/videos/data/persons_api.dart';
 import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/features/videos/presentation/paged_video_summary_controller.dart';
-import 'package:sakuramedia/features/videos/presentation/person_selection_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
+import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
 
-/// 视频列表页的可缓存状态：分页控制器 + 排序状态 + 标签/人物选择器 + 关键词。
+/// 视频列表页的可缓存状态：分页控制器 + 排序状态。
 ///
-/// 标签选择器直接复用 catalog 的 [TagSelectionController]（视频与影片共享 Tag），
-/// 人物选择器为视频域专属的 [PersonSelectionController]。任一「已选项」变化时由页面
-/// 调用 [reloadVideos] 重新拉取列表（搜索词变化只影响各自面板、不触发列表重载）。
+/// 排序变化时由页面调用 [reloadVideos] 重新拉取列表；并监听全局
+/// [VideoMutationChangeNotifier]，在别处删除视频时把对应项就地移除，保持跨页一致。
 class VideoListPageStateEntry implements AppPageStateEntry {
   VideoListPageStateEntry({
     required VideosApi videosApi,
-    required TagsApi tagsApi,
-    required PersonsApi personsApi,
+    required this.mutationNotifier,
   }) {
-    tagSelection = TagSelectionController(tagsApi: tagsApi, popularLimit: 30);
-    personSelection = PersonSelectionController(personsApi: personsApi);
     controller = PagedVideoSummaryController(
       fetchPage: (page, pageSize) => videosApi.getVideos(
         page: page,
         pageSize: pageSize,
-        query: query,
-        tagIds: tagSelection.selectedTagIds,
-        personIds: personSelection.selectedPersonIds,
         sort: filterState.sortExpression,
       ),
       pageSize: 24,
     );
-    unawaited(tagSelection.load());
-    unawaited(personSelection.load());
+    mutationNotifier.addListener(_onMutation);
     controller.attachScrollListener();
     controller.initialize();
   }
 
+  final VideoMutationChangeNotifier mutationNotifier;
   late final PagedVideoSummaryController controller;
-  late final TagSelectionController tagSelection;
-  late final PersonSelectionController personSelection;
   VideoFilterState filterState = VideoFilterState.initial;
-  String query = '';
+
+  void _onMutation() {
+    final change = mutationNotifier.lastChange;
+    if (change == null) {
+      return;
+    }
+    // 视频被删除（无论在哪个页面触发）→ 从本地分页列表精准移除。
+    // 合集归属变化不影响视频网格本身，忽略（横滑区由页面层另行刷新）。
+    if (change.kind == VideoMutationKind.deleted) {
+      controller.removeItem(change.videoId);
+    }
+  }
 
   /// 应用一次筛选/排序/关键词变化：回到顶部并重载列表。
   void reloadVideos() {
@@ -55,8 +54,7 @@ class VideoListPageStateEntry implements AppPageStateEntry {
 
   @override
   void dispose() {
+    mutationNotifier.removeListener(_onMutation);
     controller.dispose();
-    tagSelection.dispose();
-    personSelection.dispose();
   }
 }

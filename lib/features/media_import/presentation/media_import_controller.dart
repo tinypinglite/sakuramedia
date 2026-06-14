@@ -8,12 +8,14 @@ import 'package:sakuramedia/features/activity/data/activity_stream_event.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/media_import/data/import_job_dto.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
+import 'package:sakuramedia/features/media_import/presentation/import_jobs_view_controller.dart';
 
 /// 媒体导入后台作业的 task_run task_key。
 const String kMediaImportTaskKey = 'media_directory_import';
 
 /// 媒体导入页状态：作业分页列表 + 失败文件详情懒加载 + task_run SSE 实时进度。
-class MediaImportController extends ChangeNotifier {
+class MediaImportController extends ChangeNotifier
+    implements ImportJobsViewController {
   MediaImportController({
     required MediaImportApi mediaImportApi,
     required ActivityApi activityApi,
@@ -60,15 +62,21 @@ class MediaImportController extends ChangeNotifier {
   ];
   int _reconnectAttempt = 0;
 
+  @override
   List<ImportJobListItemDto> get jobs => _jobs;
+  @override
   bool get isInitialLoading => _isInitialLoading;
+  @override
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
+  @override
   String? get initialError => _initialError;
+  @override
   String? get loadMoreError => _loadMoreError;
   bool get isEmpty => !_isInitialLoading && _initialError == null && _jobs.isEmpty;
 
   /// 返回某作业关联的实时 task_run（若有）。
+  @override
   TaskRunDto? taskRunFor(int? taskRunId) {
     if (taskRunId == null) {
       return null;
@@ -76,8 +84,11 @@ class MediaImportController extends ChangeNotifier {
     return _taskRunsById[taskRunId];
   }
 
+  @override
   ImportJobDto? detailFor(int jobId) => _details[jobId];
+  @override
   bool isDetailLoading(int jobId) => _detailLoading.contains(jobId);
+  @override
   String? detailError(int jobId) => _detailErrors[jobId];
 
   Future<void> initialize() async {
@@ -86,6 +97,7 @@ class MediaImportController extends ChangeNotifier {
     unawaited(_ensureStreamConnected());
   }
 
+  @override
   Future<void> loadFirstPage() async {
     _isInitialLoading = true;
     _initialError = null;
@@ -110,6 +122,7 @@ class MediaImportController extends ChangeNotifier {
   /// 用户主动刷新：重置分页、只保留第一页（丢弃已滚动加载的后续页）。
   ///
   /// 实时进度引发的列表更新走 [_reconcileFirstPage]，不会塌缩已加载的后续页。
+  @override
   Future<void> refresh() async {
     if (_isRefreshing) {
       return;
@@ -133,6 +146,7 @@ class MediaImportController extends ChangeNotifier {
     }
   }
 
+  @override
   Future<void> loadMore() async {
     if (_isLoadingMore || !_hasMore || _isInitialLoading) {
       return;
@@ -162,6 +176,7 @@ class MediaImportController extends ChangeNotifier {
   }
 
   /// 懒加载作业详情（失败文件）。[force] 为 true 时忽略缓存重新拉取。
+  @override
   Future<void> ensureDetail(int jobId, {bool force = false}) async {
     if (!force && _details.containsKey(jobId)) {
       return;
@@ -204,6 +219,7 @@ class MediaImportController extends ChangeNotifier {
   }
 
   /// 重导失败文件。[files] 为空表示重导全部可重导失败文件。成功返回 `null`。
+  @override
   Future<String?> retryFailedFiles(int jobId, {List<String>? files}) async {
     try {
       await _mediaImportApi.retryFailedFiles(jobId, files: files);
@@ -215,6 +231,7 @@ class MediaImportController extends ChangeNotifier {
   }
 
   /// 删除失败源文件。成功返回 `null`。
+  @override
   Future<String?> deleteFailedFile(int jobId, {required String path}) async {
     try {
       final detail = await _mediaImportApi.deleteFailedFile(jobId, path: path);
@@ -228,6 +245,7 @@ class MediaImportController extends ChangeNotifier {
   }
 
   /// 重命名失败源文件。成功返回 `null`。
+  @override
   Future<String?> renameFailedFile(
     int jobId, {
     required String path,

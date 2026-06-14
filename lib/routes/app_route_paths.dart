@@ -16,7 +16,6 @@ const String desktopPlaylistsPath = '/desktop/library/playlists';
 const String desktopClipsPath = '/desktop/library/clips';
 const String desktopClipCollectionsPath = '/desktop/library/clip-collections';
 const String desktopVideosPath = '/desktop/library/videos';
-const String desktopPersonsPath = '/desktop/library/persons';
 const String desktopVideoCollectionsPath = '/desktop/library/video-collections';
 const String desktopRankingsPath = '/desktop/library/rankings';
 const String desktopHotReviewsPath = '/desktop/library/hot-reviews';

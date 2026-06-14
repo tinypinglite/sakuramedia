@@ -46,11 +46,18 @@ class VideoCollectionsApi {
     return _apiClient.deleteNoContent('/video-collections/$collectionId');
   }
 
+  /// 拉取合集成员。[sort] 形如 `field:direction`：
+  /// `position`(默认手动顺序) / `created_at` / `title` / `duration` / `file_size`；
+  /// 传 `null` 时后端按 `position:asc` 返回，与拖拽重排的手动顺序一致。
   Future<List<VideoCollectionItemDto>> getCollectionItems({
     required int collectionId,
+    String? sort,
   }) async {
     final response = await _apiClient.getList(
       '/video-collections/$collectionId/items',
+      queryParameters: (sort != null && sort.isNotEmpty)
+          ? <String, dynamic>{'sort': sort}
+          : null,
     );
     return response
         .map(VideoCollectionItemDto.fromJson)
@@ -79,7 +86,7 @@ class VideoCollectionsApi {
   /// 按 [orderedItemIds] 重写成员 `position`。须恰好覆盖全部成员，否则后端返回 422。
   ///
   /// 端点返回重排后的成员列表，但前端走乐观重排、不消费返回体，故用
-  /// `postNoContent`；调用方在成功后保留本地顺序、失败时回滚并重载。
+  /// `postNoContent`；调用方在成功后保留本地顺序、失败时回滚到提交前的本地顺序。
   Future<void> reorderCollectionItems({
     required int collectionId,
     required List<int> orderedItemIds,

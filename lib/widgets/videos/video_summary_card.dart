@@ -4,7 +4,7 @@ import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 
-/// 非 JAV 视频列表卡片：封面 + 标题，右上角标媒体数、左上角可播放标记。
+/// 非 JAV 视频列表卡片：封面 + 标题，中部播放按钮，右上角「···」菜单（加入合集 / 删除）。
 ///
 /// 与 `MovieSummaryCard` 平行，但去掉订阅/热度/番号等 JAV 概念，主键为 [VideoItemListItemDto.id]。
 class VideoSummaryCard extends StatelessWidget {
@@ -12,14 +12,32 @@ class VideoSummaryCard extends StatelessWidget {
     super.key,
     required this.video,
     this.onTap,
-    this.onRequestMenu,
-    this.showStatusBadges = true,
+    this.onAddToCollection,
+    this.onDelete,
+    this.selectionMode = false,
+    this.isSelected = false,
+    this.onSelectedChanged,
   });
 
   final VideoItemListItemDto video;
+
+  /// 点击卡片（弹窗快速播放）。中部播放 icon 仅作视觉提示，点击落在整卡上同样触发。
   final VoidCallback? onTap;
-  final ValueChanged<Offset>? onRequestMenu;
-  final bool showStatusBadges;
+
+  /// 「···」菜单的「加入合集」动作；与 [onDelete] 任一非空时展示菜单。
+  final VoidCallback? onAddToCollection;
+
+  /// 「···」菜单的「删除」动作。
+  final VoidCallback? onDelete;
+
+  /// 选择模式：整卡点击改为切换选中，隐藏播放浮层与「···」菜单，叠加勾选标记。
+  final bool selectionMode;
+
+  /// 当前是否被选中（仅 [selectionMode] 下有意义）。
+  final bool isSelected;
+
+  /// 选择模式下切换选中态的回调，入参为切换后的目标值。
+  final ValueChanged<bool>? onSelectedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -27,12 +45,18 @@ class VideoSummaryCard extends StatelessWidget {
     final componentTokens = context.appComponentTokens;
     final spacing = context.appSpacing;
 
-    final card = Container(
+    final borderColor =
+        selectionMode && isSelected ? colors.selectionBorder : colors.borderSubtle;
+
+    return Container(
       key: Key('video-summary-card-${video.id}'),
       decoration: BoxDecoration(
         color: colors.surfaceCard,
         borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: colors.borderSubtle),
+        border: Border.all(
+          color: borderColor,
+          width: selectionMode && isSelected ? 2 : 1,
+        ),
         boxShadow: context.appShadows.card,
       ),
       clipBehavior: Clip.antiAlias,
@@ -43,112 +67,111 @@ class VideoSummaryCard extends StatelessWidget {
           children: [
             _VideoCover(videoId: video.id, coverImage: video.coverImage),
             const _VideoCardBottomShade(),
+            // 选择模式：整卡点击切换选中；非选择模式：整卡点击播放（落在浮层之下，避免吃掉菜单点击）。
+            if (selectionMode)
+              Positioned.fill(
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: InkWell(
+                    key: Key('video-summary-card-select-${video.id}'),
+                    onTap: () => onSelectedChanged?.call(!isSelected),
+                  ),
+                ),
+              )
+            else if (onTap != null)
+              Positioned.fill(
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: InkWell(
+                    key: Key('video-summary-card-tap-${video.id}'),
+                    onTap: onTap,
+                  ),
+                ),
+              ),
+            if (!selectionMode) const _PlayOverlay(),
             Positioned(
               left: spacing.md,
               right: spacing.md,
               bottom: spacing.md,
-              child: Text(
-                video.preferredTitle,
-                key: Key('video-summary-card-title-${video.id}'),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.onMedia,
+              child: IgnorePointer(
+                child: Text(
+                  video.preferredTitle,
+                  key: Key('video-summary-card-title-${video.id}'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.onMedia,
+                  ),
                 ),
               ),
             ),
+            if (selectionMode)
+              Positioned(
+                top: spacing.xs,
+                left: spacing.xs,
+                child: IgnorePointer(
+                  child: _SelectionCheck(isSelected: isSelected),
+                ),
+              )
+            else if (onAddToCollection != null || onDelete != null)
+              Positioned(
+                top: spacing.xs,
+                right: spacing.xs,
+                child: _VideoCardMenu(
+                  menuKey: Key('video-summary-card-menu-${video.id}'),
+                  onAddToCollection: onAddToCollection,
+                  onDelete: onDelete,
+                ),
+              ),
           ],
         ),
       ),
     );
+  }
+}
 
-    final interactiveCard = onTap == null && onRequestMenu == null
-        ? card
-        : MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onTap,
-              onLongPressStart: onRequestMenu == null
-                  ? null
-                  : (details) => onRequestMenu!(details.globalPosition),
-              onSecondaryTapDown: onRequestMenu == null
-                  ? null
-                  : (details) => onRequestMenu!(details.globalPosition),
-              child: card,
-            ),
-          );
+/// 选择模式下卡片左上角的勾选标记：选中为实心对勾，未选为半透明空心圈。
+class _SelectionCheck extends StatelessWidget {
+  const _SelectionCheck({required this.isSelected});
 
-    if (!showStatusBadges) {
-      return interactiveCard;
-    }
+  final bool isSelected;
 
-    return Stack(
-      children: [
-        interactiveCard,
-        if (video.mediaCount > 0)
-          Positioned(
-            top: spacing.xs,
-            right: spacing.xs,
-            child: Container(
-              key: Key('video-summary-card-media-count-${video.id}'),
-              padding: EdgeInsets.symmetric(
-                horizontal: spacing.sm,
-                vertical: spacing.xs,
-              ),
-              decoration: BoxDecoration(
-                color: colors.mediaOverlayStrong,
-                borderRadius: context.appRadius.pillBorder,
-                border: Border.all(
-                  color: colors.borderSubtle.withValues(alpha: 0.42),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.video_library_rounded,
-                    size: componentTokens.iconSizeXs,
-                    color: context.appTextPalette.onMedia,
-                  ),
-                  SizedBox(width: spacing.xs),
-                  Text(
-                    '${video.mediaCount}',
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s10,
-                      weight: AppTextWeight.regular,
-                      tone: AppTextTone.onMedia,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        if (video.canPlay)
-          Positioned(
-            top: spacing.xs,
-            left: spacing.xs,
-            child: Container(
-              key: Key('video-summary-card-status-playable-${video.id}'),
-              width: componentTokens.movieCardStatusBadgeSize,
-              height: componentTokens.movieCardStatusBadgeSize,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: colors.movieCardPlayableBadgeBackground,
-                borderRadius: context.appRadius.pillBorder,
-              ),
-              child: Icon(
-                Icons.play_arrow_rounded,
-                size: componentTokens.iconSizeXl,
-                color: context.appTextPalette.onMedia,
-              ),
-            ),
-          ),
-      ],
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isSelected
+            ? colors.selectionBorder
+            : Colors.black.withValues(alpha: 0.35),
+        border: Border.all(color: Colors.white, width: 1.5),
+      ),
+      child: isSelected
+          ? const Icon(Icons.check, color: Colors.white, size: 14)
+          : null,
+    );
+  }
+}
+
+class _PlayOverlay extends StatelessWidget {
+  const _PlayOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Center(
+        child: Icon(
+          Icons.play_circle_outline_rounded,
+          color: Colors.white.withValues(alpha: 0.92),
+          size: context.appComponentTokens.iconSize4xl,
+        ),
+      ),
     );
   }
 }
@@ -212,6 +235,66 @@ class _VideoCardBottomShade extends StatelessWidget {
             colors.mediaOverlayStrong,
           ],
           stops: const [0.45, 0.72, 1],
+        ),
+      ),
+    );
+  }
+}
+
+enum _VideoCardAction { addToCollection, delete }
+
+class _VideoCardMenu extends StatelessWidget {
+  const _VideoCardMenu({
+    required this.menuKey,
+    this.onAddToCollection,
+    this.onDelete,
+  });
+
+  final Key menuKey;
+  final VoidCallback? onAddToCollection;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 26,
+      height: 26,
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.45),
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: PopupMenuButton<_VideoCardAction>(
+          key: menuKey,
+          tooltip: '更多',
+          padding: EdgeInsets.zero,
+          iconSize: 16,
+          position: PopupMenuPosition.under,
+          icon: const Icon(
+            Icons.more_horiz_rounded,
+            color: Colors.white,
+            size: 16,
+          ),
+          onSelected: (action) {
+            switch (action) {
+              case _VideoCardAction.addToCollection:
+                onAddToCollection?.call();
+              case _VideoCardAction.delete:
+                onDelete?.call();
+            }
+          },
+          itemBuilder:
+              (context) => <PopupMenuEntry<_VideoCardAction>>[
+                if (onAddToCollection != null)
+                  const PopupMenuItem<_VideoCardAction>(
+                    value: _VideoCardAction.addToCollection,
+                    child: Text('加入合集'),
+                  ),
+                if (onDelete != null)
+                  const PopupMenuItem<_VideoCardAction>(
+                    value: _VideoCardAction.delete,
+                    child: Text('删除'),
+                  ),
+              ],
         ),
       ),
     );

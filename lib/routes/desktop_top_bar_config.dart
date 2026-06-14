@@ -116,16 +116,6 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
     );
   }
 
-  if (currentPath.startsWith('$desktopPersonsPath/')) {
-    return DesktopTopBarConfig(
-      title: '人物详情',
-      fallbackPath:
-          _fallbackPathFromExtra(routeExtra, currentPath: currentPath) ??
-          AppBackDestination.defaultLocationForPath(currentPath),
-      isBackEnabled: true,
-    );
-  }
-
   if (currentPath.startsWith('$desktopVideoCollectionsPath/')) {
     return DesktopTopBarConfig(
       title: '合集详情',
@@ -260,7 +250,6 @@ AppShellLayout resolveDesktopShellLayout({
   }
 
   if (currentPath.startsWith('$desktopVideosPath/') ||
-      currentPath.startsWith('$desktopPersonsPath/') ||
       currentPath.startsWith('$desktopVideoCollectionsPath/')) {
     return AppShellLayout.standard;
   }

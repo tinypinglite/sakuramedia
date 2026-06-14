@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 class DownloadClientDto {
   const DownloadClientDto({
     required this.id,
@@ -33,16 +35,9 @@ class DownloadClientDto {
       localRootPath: json['local_root_path'] as String? ?? '',
       mediaLibraryId: json['media_library_id'] as int? ?? 0,
       hasPassword: json['has_password'] as bool? ?? false,
-      createdAt: _parseDateTime(json['created_at']),
-      updatedAt: _parseDateTime(json['updated_at']),
+      createdAt: asDateTime(json['created_at']),
+      updatedAt: asDateTime(json['updated_at']),
     );
-  }
-
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value is! String || value.isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(value);
   }
 }
 

@@ -1,3 +1,4 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
@@ -178,12 +179,12 @@ class ActivityApi {
         id: event.id,
         event: event.event,
         notificationIds: _parseIds(payload['ids']),
-        unreadCount: _tryInt(payload['unread_count']),
+        unreadCount: asIntOrNull(payload['unread_count']),
       ),
       'notifications_read_all' => ActivityStreamEvent(
         id: event.id,
         event: event.event,
-        unreadCount: _tryInt(payload['unread_count']),
+        unreadCount: asIntOrNull(payload['unread_count']),
       ),
       'task_run_created' || 'task_run_updated' => ActivityStreamEvent(
         id: event.id,
@@ -200,24 +201,11 @@ class ActivityApi {
     }
     final ids = <int>[];
     for (final item in value) {
-      final parsed = _tryInt(item);
+      final parsed = asIntOrNull(item);
       if (parsed != null) {
         ids.add(parsed);
       }
     }
     return ids;
-  }
-
-  int? _tryInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value);
-    }
-    return null;
   }
 }

@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 class TaskRunDto {
   const TaskRunDto({
     required this.id,
@@ -145,56 +147,22 @@ class TaskRunDto {
 
   factory TaskRunDto.fromJson(Map<String, dynamic> json) {
     return TaskRunDto(
-      id: _toInt(json['id']),
+      id: asInt(json['id']),
       taskKey: json['task_key'] as String? ?? '',
       taskName: json['task_name'] as String? ?? '',
       triggerType: json['trigger_type'] as String? ?? '',
       state: json['state'] as String? ?? '',
-      progressCurrent: _tryInt(json['progress_current']),
-      progressTotal: _tryInt(json['progress_total']),
+      progressCurrent: asIntOrNull(json['progress_current']),
+      progressTotal: asIntOrNull(json['progress_total']),
       progressText: json['progress_text'] as String?,
       resultText: json['result_text'] as String?,
-      resultSummary: _toLooseMap(json['result_summary']),
+      resultSummary: asMapOrNull(json['result_summary']),
       errorMessage: json['error_message'] as String?,
-      startedAt: _parseDateTime(json['started_at']),
-      finishedAt: _parseDateTime(json['finished_at']),
-      createdAt: _parseDateTime(json['created_at']),
-      updatedAt: _parseDateTime(json['updated_at']),
+      startedAt: asDateTime(json['started_at']),
+      finishedAt: asDateTime(json['finished_at']),
+      createdAt: asDateTime(json['created_at']),
+      updatedAt: asDateTime(json['updated_at']),
     );
-  }
-
-  static Map<String, dynamic>? _toLooseMap(dynamic value) {
-    if (value is Map<String, dynamic>) {
-      return value;
-    }
-    if (value is Map) {
-      return value.map(
-        (dynamic key, dynamic data) => MapEntry(key.toString(), data),
-      );
-    }
-    return null;
-  }
-
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value is! String || value.trim().isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(value);
-  }
-
-  static int _toInt(dynamic value) => _tryInt(value) ?? 0;
-
-  static int? _tryInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value);
-    }
-    return null;
   }
 }
 

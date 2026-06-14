@@ -40,6 +40,12 @@ class AppBackDestination {
     if (path.startsWith('/desktop/library/playlists/')) {
       return desktopPlaylistsPath;
     }
+    if (path.startsWith('$desktopVideoCollectionsPath/')) {
+      return desktopVideoCollectionsPath;
+    }
+    if (path.startsWith('$desktopVideosPath/')) {
+      return desktopVideosPath;
+    }
     if (path.startsWith('/desktop/search')) {
       return desktopOverviewPath;
     }

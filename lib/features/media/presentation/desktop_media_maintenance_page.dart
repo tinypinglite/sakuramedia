@@ -10,11 +10,11 @@ import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/presentation/invalid_media_controller.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_page_frame.dart';
+import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 
 class DesktopMediaMaintenancePage extends StatefulWidget {
@@ -192,51 +192,16 @@ class _DesktopMediaMaintenancePageState
   }
 
   Future<bool?> _confirmDeleteMedia(InvalidMediaDto item) {
-    return showDialog<bool>(
-      context: context,
-      builder:
-          (dialogContext) => AppDesktopDialog(
-            dialogKey: const Key('invalid-media-delete-confirm-dialog'),
-            width: dialogContext.appLayoutTokens.dialogWidthSm,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '删除失效媒体',
-                  style: resolveAppTextStyle(
-                    dialogContext,
-                    size: AppTextSize.s18,
-                  ),
-                ),
-                SizedBox(height: dialogContext.appSpacing.lg),
-                Text(
-                  '确认删除“${item.movieNumber}”的这条失效媒体记录和本地媒体文件？该操作不可恢复。请确认刚才复查后文件仍不可用。',
-                ),
-                SizedBox(height: dialogContext.appSpacing.xl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        key: const Key('invalid-media-delete-cancel-button'),
-                        onPressed: () => Navigator.of(dialogContext).pop(false),
-                        label: '取消',
-                      ),
-                    ),
-                    SizedBox(width: dialogContext.appSpacing.md),
-                    Expanded(
-                      child: AppButton(
-                        key: const Key('invalid-media-delete-confirm-button'),
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
-                        label: '删除',
-                        variant: AppButtonVariant.danger,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+    return showAppConfirmDialog(
+      context,
+      title: '删除失效媒体',
+      message:
+          '确认删除“${item.movieNumber}”的这条失效媒体记录和本地媒体文件？该操作不可恢复。请确认刚才复查后文件仍不可用。',
+      confirmLabel: '删除',
+      danger: true,
+      dialogKey: const Key('invalid-media-delete-confirm-dialog'),
+      confirmKey: const Key('invalid-media-delete-confirm-button'),
+      cancelKey: const Key('invalid-media-delete-cancel-button'),
     );
   }
 }

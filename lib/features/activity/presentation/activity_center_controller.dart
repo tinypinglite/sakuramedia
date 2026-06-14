@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
@@ -242,7 +243,7 @@ class ActivityCenterController extends ChangeNotifier {
       return response;
     } on ApiException catch (error) {
       if (error.statusCode == 409 && error.error?.code == 'task_conflict') {
-        final blockingTaskRunId = _tryInt(
+        final blockingTaskRunId = asIntOrNull(
           error.error?.details?['blocking_task_run_id'],
         );
         if (blockingTaskRunId != null) {
@@ -537,19 +538,6 @@ class ActivityCenterController extends ChangeNotifier {
       return false;
     }
     return true;
-  }
-
-  int? _tryInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value);
-    }
-    return null;
   }
 
   List<TaskRunDto> _sortActiveTasks(List<TaskRunDto> items) {

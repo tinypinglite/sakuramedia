@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
@@ -6,12 +8,13 @@ import 'package:sakuramedia/features/clip_collections/data/clip_collection_dto.d
 import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collections_overview_controller.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/create_clip_collection_dialog.dart';
+import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/clip_collections/clip_collection_card.dart';
 import 'package:sakuramedia/widgets/clip_collections/clip_collection_delete_dialog.dart';
+import 'package:sakuramedia/widgets/collections/collection_card.dart';
 
 /// 切片合集列表页：全部合集网格 + 新建 / 编辑 / 删除。
 class DesktopClipCollectionsPage extends StatefulWidget {
@@ -25,20 +28,41 @@ class DesktopClipCollectionsPage extends StatefulWidget {
 class _DesktopClipCollectionsPageState
     extends State<DesktopClipCollectionsPage> {
   late final ClipCollectionsOverviewController _controller;
+  late final ClipMutationChangeNotifier _mutationNotifier;
+  bool _refreshScheduled = false;
 
   @override
   void initState() {
     super.initState();
     final api = context.read<ClipCollectionsApi>();
+    _mutationNotifier = context.read<ClipMutationChangeNotifier>();
     _controller = ClipCollectionsOverviewController(
       fetchCollections: api.getCollections,
     )..load();
+    _mutationNotifier.addListener(_onMutation);
   }
 
   @override
   void dispose() {
+    _mutationNotifier.removeListener(_onMutation);
     _controller.dispose();
     super.dispose();
+  }
+
+  /// 详情页（压在本页之上）增删 / 拖序 / 改名后，合集卡的封面、计数、名称可能变化；
+  /// 用微任务合并一轮内的多次信号成一次整列表刷新。
+  void _onMutation() {
+    if (_refreshScheduled) {
+      return;
+    }
+    _refreshScheduled = true;
+    scheduleMicrotask(() {
+      _refreshScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      _controller.refresh();
+    });
   }
 
   @override
@@ -113,7 +137,7 @@ class _DesktopClipCollectionsPageState
       itemCount: collections.length,
       itemBuilder: (context, index) {
         final collection = collections[index];
-        return ClipCollectionCard(
+        return CollectionCard.clip(
           key: Key('clip-collection-card-${collection.id}'),
           collection: collection,
           onTap:

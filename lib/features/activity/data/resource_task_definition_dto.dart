@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 class ResourceTaskStateCountsDto {
   const ResourceTaskStateCountsDto({
     required this.pending,
@@ -22,24 +24,11 @@ class ResourceTaskStateCountsDto {
 
   factory ResourceTaskStateCountsDto.fromJson(Map<String, dynamic> json) {
     return ResourceTaskStateCountsDto(
-      pending: _toInt(json['pending']),
-      running: _toInt(json['running']),
-      succeeded: _toInt(json['succeeded']),
-      failed: _toInt(json['failed']),
+      pending: asInt(json['pending']),
+      running: asInt(json['running']),
+      succeeded: asInt(json['succeeded']),
+      failed: asInt(json['failed']),
     );
-  }
-
-  static int _toInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value) ?? 0;
-    }
-    return 0;
   }
 }
 
@@ -66,7 +55,7 @@ class ResourceTaskDefinitionDto {
       taskKey: json['task_key'] as String? ?? '',
       resourceType: json['resource_type'] as String? ?? '',
       displayName: json['display_name'] as String? ?? '',
-      defaultSort: _trimmedStringOrNull(json['default_sort']),
+      defaultSort: asStringOrNull(json['default_sort'], trim: true),
       allowReset: json['allow_reset'] as bool? ?? false,
       stateCounts:
           rawCounts is Map
@@ -78,13 +67,5 @@ class ResourceTaskDefinitionDto {
               )
               : ResourceTaskStateCountsDto.empty,
     );
-  }
-
-  static String? _trimmedStringOrNull(dynamic value) {
-    if (value is! String) {
-      return null;
-    }
-    final trimmed = value.trim();
-    return trimmed.isEmpty ? null : trimmed;
   }
 }

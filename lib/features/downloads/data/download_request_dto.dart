@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 class DownloadTaskDto {
   const DownloadTaskDto({
     required this.id,
@@ -36,16 +38,9 @@ class DownloadTaskDto {
       progress: (json['progress'] as num?)?.toDouble() ?? 0,
       downloadState: json['download_state'] as String? ?? '',
       importStatus: json['import_status'] as String? ?? '',
-      createdAt: _parseDateTime(json['created_at']),
-      updatedAt: _parseDateTime(json['updated_at']),
+      createdAt: asDateTime(json['created_at']),
+      updatedAt: asDateTime(json['updated_at']),
     );
-  }
-
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value is! String || value.isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(value);
   }
 }
 
@@ -57,20 +52,8 @@ class DownloadRequestResponseDto {
 
   factory DownloadRequestResponseDto.fromJson(Map<String, dynamic> json) {
     return DownloadRequestResponseDto(
-      task: DownloadTaskDto.fromJson(_toMap(json['task'])),
+      task: DownloadTaskDto.fromJson(asMap(json['task'])),
       created: json['created'] as bool? ?? false,
     );
-  }
-
-  static Map<String, dynamic> _toMap(dynamic value) {
-    if (value is Map<String, dynamic>) {
-      return value;
-    }
-    if (value is Map) {
-      return value.map(
-        (dynamic key, dynamic data) => MapEntry(key.toString(), data),
-      );
-    }
-    return const <String, dynamic>{};
   }
 }

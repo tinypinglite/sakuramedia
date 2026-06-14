@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 class MediaValidityCheckResultDto {
   const MediaValidityCheckResultDto({
     required this.id,
@@ -23,7 +25,7 @@ class MediaValidityCheckResultDto {
 
   factory MediaValidityCheckResultDto.fromJson(Map<String, dynamic> json) {
     return MediaValidityCheckResultDto(
-      id: _toInt(json['id']),
+      id: asInt(json['id']),
       path: json['path'] as String? ?? '',
       fileExists: json['file_exists'] as bool? ?? false,
       validBefore: json['valid_before'] as bool? ?? false,
@@ -31,27 +33,7 @@ class MediaValidityCheckResultDto {
       updated: json['updated'] as bool? ?? false,
       invalidated: json['invalidated'] as bool? ?? false,
       revived: json['revived'] as bool? ?? false,
-      checkedAt: _parseDateTime(json['checked_at']),
+      checkedAt: asDateTime(json['checked_at']),
     );
-  }
-
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value is! String || value.trim().isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(value);
-  }
-
-  static int _toInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value) ?? 0;
-    }
-    return 0;
   }
 }

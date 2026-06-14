@@ -1,3 +1,4 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 
 class JobMetadataDto {
@@ -62,22 +63,9 @@ class ManualJobTriggerResponseDto {
 
   factory ManualJobTriggerResponseDto.fromJson(Map<String, dynamic> json) {
     return ManualJobTriggerResponseDto(
-      taskRunId: _toInt(json['task_run_id']),
+      taskRunId: asInt(json['task_run_id']),
       taskKey: json['task_key'] as String? ?? '',
       state: json['state'] as String? ?? '',
     );
-  }
-
-  static int _toInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value) ?? 0;
-    }
-    return 0;
   }
 }

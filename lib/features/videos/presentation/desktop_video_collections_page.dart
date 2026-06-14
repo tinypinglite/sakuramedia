@@ -12,6 +12,8 @@ import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/collections/collection_card.dart';
+import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 
 class DesktopVideoCollectionsPage extends StatefulWidget {
   const DesktopVideoCollectionsPage({super.key});
@@ -56,24 +58,14 @@ class _DesktopVideoCollectionsPageState
   }
 
   Future<void> _delete(VideoCollectionDto collection) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('删除合集'),
-        content: Text('确定删除合集「${collection.name}」吗？合集内的视频不会被删除。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '删除合集',
+      message: '确定删除合集「${collection.name}」吗？合集内的视频不会被删除。',
+      danger: true,
+      confirmLabel: '删除',
     );
-    if (confirmed != true) {
+    if (!confirmed) {
       return;
     }
     try {
@@ -134,13 +126,16 @@ class _DesktopVideoCollectionsPageState
                   runSpacing: context.appSpacing.md,
                   children: [
                     for (final collection in _controller.collections)
-                      _CollectionCard(
-                        collection: collection,
-                        onTap: () => context.go(
-                          '$desktopVideoCollectionsPath/${collection.id}',
+                      SizedBox(
+                        width: 280,
+                        child: CollectionCard.video(
+                          collection: collection,
+                          onTap: () => context.go(
+                            '$desktopVideoCollectionsPath/${collection.id}',
+                          ),
+                          onEdit: () => _edit(collection),
+                          onDelete: () => _delete(collection),
                         ),
-                        onEdit: () => _edit(collection),
-                        onDelete: () => _delete(collection),
                       ),
                   ],
                 );
@@ -153,100 +148,3 @@ class _DesktopVideoCollectionsPageState
   }
 }
 
-class _CollectionCard extends StatelessWidget {
-  const _CollectionCard({
-    required this.collection,
-    required this.onTap,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final VideoCollectionDto collection;
-  final VoidCallback onTap;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 280,
-      child: Container(
-        key: Key('video-collection-card-${collection.id}'),
-        padding: EdgeInsets.all(context.appSpacing.md),
-        decoration: BoxDecoration(
-          color: context.appColors.surfaceCard,
-          borderRadius: context.appRadius.lgBorder,
-          border: Border.all(color: context.appColors.borderSubtle),
-          boxShadow: context.appShadows.card,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.video_collection_outlined,
-                  size: context.appComponentTokens.iconSizeMd,
-                  color: context.appTextPalette.secondary,
-                ),
-                SizedBox(width: context.appSpacing.sm),
-                Expanded(
-                  child: InkWell(
-                    onTap: onTap,
-                    child: Text(
-                      collection.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s14,
-                        weight: AppTextWeight.medium,
-                        tone: AppTextTone.primary,
-                      ),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  iconSize: context.appComponentTokens.iconSizeSm,
-                  tooltip: '编辑',
-                  onPressed: onEdit,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  iconSize: context.appComponentTokens.iconSizeSm,
-                  tooltip: '删除',
-                  onPressed: onDelete,
-                ),
-              ],
-            ),
-            if (collection.description.trim().isNotEmpty) ...[
-              SizedBox(height: context.appSpacing.xs),
-              Text(
-                collection.description,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
-            ],
-            SizedBox(height: context.appSpacing.sm),
-            Text(
-              '${collection.itemCount} 个视频',
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.muted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

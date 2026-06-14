@@ -1,12 +1,16 @@
+import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
 
 /// 视频合集资源（`VideoCollectionResource`）。成员顺序见 [VideoCollectionItemDto]。
+///
+/// - `coverImage`：取按顺序排在最前的视频封面；空合集或来源缺失时为 `null`。
 class VideoCollectionDto {
   const VideoCollectionDto({
     required this.id,
     required this.name,
     this.description = '',
     this.itemCount = 0,
+    this.coverImage,
     this.createdAt,
     this.updatedAt,
   });
@@ -15,6 +19,7 @@ class VideoCollectionDto {
   final String name;
   final String description;
   final int itemCount;
+  final MovieImageDto? coverImage;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -24,10 +29,23 @@ class VideoCollectionDto {
       name: json['name'] as String? ?? '',
       description: json['description'] as String? ?? '',
       itemCount: _intFromJson(json['item_count']) ?? 0,
+      coverImage: _coverImageFromJson(json['cover_image']),
       createdAt: videoDateFromJson(json['created_at']),
       updatedAt: videoDateFromJson(json['updated_at']),
     );
   }
+}
+
+MovieImageDto? _coverImageFromJson(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return MovieImageDto.fromJson(value);
+  }
+  if (value is Map) {
+    return MovieImageDto.fromJson(
+      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
+    );
+  }
+  return null;
 }
 
 /// 视频合集成员项（`VideoCollectionItemResource`）：含排序位 [position] 与内嵌视频概要。

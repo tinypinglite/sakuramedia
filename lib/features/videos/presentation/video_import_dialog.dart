@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
@@ -7,27 +5,36 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_library_dto.dart';
 import 'package:sakuramedia/features/media_import/data/filesystem_entry_dto.dart';
+import 'package:sakuramedia/features/media_import/data/import_job_dto.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
-import 'package:sakuramedia/features/tags/data/tags_api.dart';
-import 'package:sakuramedia/features/tags/presentation/tag_selection_controller.dart';
-import 'package:sakuramedia/features/tags/presentation/tag_selector_panel.dart';
-import 'package:sakuramedia/features/videos/data/persons_api.dart';
 import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
-import 'package:sakuramedia/features/videos/data/video_import_result_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_imports_api.dart';
-import 'package:sakuramedia/features/videos/presentation/person_selection_controller.dart';
-import 'package:sakuramedia/features/videos/presentation/person_selector_panel.dart';
+import 'package:sakuramedia/features/videos/presentation/create_video_collection_dialog.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/forms/app_select_field.dart';
 
-/// 打开视频导入对话框：浏览后端目录选取源路径，按需关联库/标签/人物/合集并就地索引。
-/// 返回导入结果 [VideoImportResultDto]，取消返回 `null`。
-Future<VideoImportResultDto?> showVideoImportDialog(BuildContext context) {
-  return showDialog<VideoImportResultDto>(
+/// PornBox 视频导入的表单结果：浏览后端目录选取源路径，选定媒体库、合集（必选）与导入方式。
+class VideoImportRequest {
+  const VideoImportRequest({
+    required this.libraryId,
+    required this.sourcePath,
+    required this.transferMode,
+    required this.collectionId,
+  });
+
+  final int libraryId;
+  final String sourcePath;
+  final TransferMode transferMode;
+  final int collectionId;
+}
+
+/// 打开视频导入对话框；用户确认后返回 [VideoImportRequest]，取消返回 `null`。
+Future<VideoImportRequest?> showVideoImportDialog(BuildContext context) {
+  return showDialog<VideoImportRequest>(
     context: context,
     builder: (dialogContext) => const VideoImportDialog(),
   );
@@ -42,8 +49,7 @@ class VideoImportDialog extends StatefulWidget {
 
 class _VideoImportDialogState extends State<VideoImportDialog> {
   late final MediaImportApi _filesystemApi;
-  late final TagSelectionController _tagSelection;
-  late final PersonSelectionController _personSelection;
+  late final MediaLibrariesApi _librariesApi;
 
   FilesystemListResponseDto? _listing;
   bool _isBrowsing = true;
@@ -52,30 +58,19 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
 
   List<MediaLibraryDto> _libraries = const <MediaLibraryDto>[];
   int? _libraryId;
+  TransferMode _transferMode = TransferMode.auto;
+
   List<VideoCollectionDto> _collections = const <VideoCollectionDto>[];
   int? _collectionId;
-  bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     _filesystemApi = context.read<MediaImportApi>();
-    _tagSelection =
-        TagSelectionController(tagsApi: context.read<TagsApi>(), popularLimit: 20);
-    _personSelection =
-        PersonSelectionController(personsApi: context.read<PersonsApi>());
-    unawaited(_tagSelection.load());
-    unawaited(_personSelection.load());
+    _librariesApi = context.read<MediaLibrariesApi>();
     _browse(null);
     _loadLibraries();
     _loadCollections();
-  }
-
-  @override
-  void dispose() {
-    _tagSelection.dispose();
-    _personSelection.dispose();
-    super.dispose();
   }
 
   Future<void> _browse(String? path) async {
@@ -105,12 +100,16 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
 
   Future<void> _loadLibraries() async {
     try {
-      final libraries = await context.read<MediaLibrariesApi>().getLibraries();
-      if (mounted) {
-        setState(() => _libraries = libraries);
+      final libraries = await _librariesApi.getLibraries();
+      if (!mounted) {
+        return;
       }
+      setState(() {
+        _libraries = libraries;
+        _libraryId ??= libraries.isNotEmpty ? libraries.first.id : null;
+      });
     } catch (_) {
-      // 库列表为可选项，加载失败不阻塞导入。
+      // 媒体库加载失败时下拉为空，开始导入按钮校验时给出提示。
     }
   }
 
@@ -122,48 +121,58 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
         setState(() => _collections = collections);
       }
     } catch (_) {
-      // 合集为可选项，加载失败不阻塞导入。
+      // 合集加载失败不阻塞浏览，用户仍可现场「新建合集」后再导入。
     }
   }
 
-  Future<void> _submit() async {
+  Future<void> _createCollection() async {
+    final created = await showVideoCollectionDialog(context);
+    if (created == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _collections = <VideoCollectionDto>[..._collections, created];
+      _collectionId = created.id;
+    });
+  }
+
+  void _submit() {
     final sourcePath = _sourcePath;
     if (sourcePath == null || sourcePath.isEmpty) {
       showToast('请先选择要导入的目录或视频文件');
       return;
     }
-    setState(() => _isSubmitting = true);
-    try {
-      final result = await context.read<VideoImportsApi>().createVideoImport(
-            sourcePath: sourcePath,
-            libraryId: _libraryId,
-            tagIds: _tagSelection.selectedTagIds,
-            personIds: _personSelection.selectedPersonIds,
-            collectionId: _collectionId,
-          );
-      if (!mounted) {
-        return;
-      }
-      Navigator.of(context).pop(result);
-    } catch (error) {
-      showToast(apiErrorMessage(error, fallback: '导入失败'));
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
+    final libraryId = _libraryId;
+    if (libraryId == null) {
+      showToast('请选择导入到的媒体库');
+      return;
     }
+    final collectionId = _collectionId;
+    if (collectionId == null) {
+      showToast('请选择或新建一个合集');
+      return;
+    }
+    Navigator.of(context).pop(
+      VideoImportRequest(
+        libraryId: libraryId,
+        sourcePath: sourcePath,
+        transferMode: _transferMode,
+        collectionId: collectionId,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     return AppDesktopDialog(
-      width: 640,
+      width: context.appLayoutTokens.dialogWidthMd,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '导入视频',
+            '导入 PornBox 视频',
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s16,
@@ -171,69 +180,42 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
               tone: AppTextTone.primary,
             ),
           ),
-          SizedBox(height: spacing.md),
+          SizedBox(height: spacing.lg),
           Flexible(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _buildFieldLabel(context, '选择来源'),
                   _buildBrowser(context),
-                  SizedBox(height: spacing.md),
-                  _buildSelectedPath(context),
-                  SizedBox(height: spacing.md),
-                  _buildLibrarySelect(context),
                   SizedBox(height: spacing.sm),
-                  _buildCollectionSelect(context),
-                  SizedBox(height: spacing.md),
-                  AnimatedBuilder(
-                    animation: _tagSelection,
-                    builder: (context, _) => TagSelectorPanel(
-                      selection: _tagSelection,
-                      onToggleTag: _tagSelection.toggle,
-                      onRemoveTag: _tagSelection.remove,
-                      onClear: _tagSelection.clear,
-                      onQueryChanged: _tagSelection.setQuery,
-                      onToggleExpanded: _tagSelection.toggleExpanded,
-                      onMatchModeChanged: (_) {},
-                      showMatchModeToggle: false,
-                      onRetry: () => unawaited(_tagSelection.retry()),
-                    ),
-                  ),
-                  SizedBox(height: spacing.md),
-                  AnimatedBuilder(
-                    animation: _personSelection,
-                    builder: (context, _) => PersonSelectorPanel(
-                      selection: _personSelection,
-                      onTogglePerson: _personSelection.toggle,
-                      onRemovePerson: _personSelection.remove,
-                      onClear: _personSelection.clear,
-                      onQueryChanged: _personSelection.setQuery,
-                      onRetry: () => unawaited(_personSelection.retry()),
-                    ),
-                  ),
+                  _buildSelectedPath(context),
+                  SizedBox(height: spacing.xl),
+                  _buildLibraryField(context),
+                  SizedBox(height: spacing.lg),
+                  _buildCollectionField(context),
+                  SizedBox(height: spacing.lg),
+                  _buildTransferModeField(context),
                 ],
               ),
             ),
           ),
-          SizedBox(height: spacing.md),
+          SizedBox(height: spacing.xl),
           Row(
             children: [
-              Expanded(
-                child: AppButton(
-                  label: '取消',
-                  onPressed:
-                      _isSubmitting ? null : () => Navigator.of(context).pop(),
-                ),
+              const Spacer(),
+              AppButton(
+                label: '取消',
+                size: AppButtonSize.small,
+                onPressed: () => Navigator.of(context).pop(),
               ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: AppButton(
-                  key: const Key('video-import-submit-button'),
-                  label: '开始导入',
-                  variant: AppButtonVariant.primary,
-                  isLoading: _isSubmitting,
-                  onPressed: _submit,
-                ),
+              SizedBox(width: spacing.sm),
+              AppButton(
+                key: const Key('video-import-submit-button'),
+                label: '开始导入',
+                variant: AppButtonVariant.primary,
+                size: AppButtonSize.small,
+                onPressed: _submit,
               ),
             ],
           ),
@@ -242,10 +224,26 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
     );
   }
 
+  Widget _buildFieldLabel(BuildContext context, String label) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: context.appSpacing.sm),
+      child: Text(
+        label,
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          tone: AppTextTone.secondary,
+        ),
+      ),
+    );
+  }
+
   Widget _buildBrowser(BuildContext context) {
     final listing = _listing;
+    final spacing = context.appSpacing;
     return Container(
-      height: 240,
+      height: 220,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: context.appColors.surfaceCard,
         borderRadius: context.appRadius.mdBorder,
@@ -253,21 +251,23 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
       ),
       child: Column(
         children: [
-          Padding(
+          Container(
+            color: context.appColors.surfaceMuted,
             padding: EdgeInsets.symmetric(
-              horizontal: context.appSpacing.sm,
-              vertical: context.appSpacing.xs,
+              horizontal: spacing.sm,
+              vertical: spacing.xs,
             ),
             child: Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_upward),
-                  iconSize: context.appComponentTokens.iconSizeSm,
+                AppIconButton(
+                  size: AppIconButtonSize.mini,
                   tooltip: '上级目录',
+                  icon: const Icon(Icons.arrow_upward_rounded),
                   onPressed: listing?.parent == null
                       ? null
                       : () => _browse(listing!.parent),
                 ),
+                SizedBox(width: spacing.xs),
                 Expanded(
                   child: Text(
                     listing == null || listing.isRootsOverview
@@ -278,7 +278,7 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
                     style: resolveAppTextStyle(
                       context,
                       size: AppTextSize.s12,
-                      weight: AppTextWeight.regular,
+                      weight: AppTextWeight.medium,
                       tone: AppTextTone.secondary,
                     ),
                   ),
@@ -294,7 +294,7 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
               ],
             ),
           ),
-          const Divider(height: 1),
+          Divider(height: 1, color: context.appColors.divider),
           Expanded(child: _buildBrowserBody(context)),
         ],
       ),
@@ -374,29 +374,28 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
   }
 
   Widget _buildSelectedPath(BuildContext context) {
+    final selected = _sourcePath != null;
     return Row(
       children: [
         Text(
-          '导入源：',
+          '已选',
           style: resolveAppTextStyle(
             context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.secondary,
+            size: AppTextSize.s12,
+            tone: AppTextTone.muted,
           ),
         ),
+        SizedBox(width: context.appSpacing.sm),
         Expanded(
           child: Text(
-            _sourcePath ?? '尚未选择',
+            _sourcePath ?? '尚未选择，请在上方选取目录或视频文件',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: resolveAppTextStyle(
               context,
-              size: AppTextSize.s14,
-              weight: AppTextWeight.medium,
-              tone: _sourcePath == null
-                  ? AppTextTone.muted
-                  : AppTextTone.primary,
+              size: AppTextSize.s12,
+              weight: selected ? AppTextWeight.medium : AppTextWeight.regular,
+              tone: selected ? AppTextTone.primary : AppTextTone.muted,
             ),
           ),
         ),
@@ -404,37 +403,82 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
     );
   }
 
-  Widget _buildLibrarySelect(BuildContext context) {
-    return AppSelectField<int?>(
-      label: '媒体库（可选）',
+  Widget _buildLibraryField(BuildContext context) {
+    return AppSelectField<int>(
+      key: const Key('video-import-library-select'),
+      label: '导入到媒体库',
+      placeholder:
+          _libraries.isEmpty ? '暂无媒体库，请先在系统设置中添加' : '请选择媒体库',
       value: _libraryId,
-      placeholder: '不指定',
-      items: <DropdownMenuItem<int?>>[
-        const DropdownMenuItem<int?>(value: null, child: Text('不指定')),
-        for (final library in _libraries)
-          DropdownMenuItem<int?>(
-            value: library.id,
-            child: Text(library.name),
-          ),
-      ],
+      items: _libraries
+          .map(
+            (library) => DropdownMenuItem<int>(
+              value: library.id,
+              child: Text(library.name),
+            ),
+          )
+          .toList(growable: false),
       onChanged: (value) => setState(() => _libraryId = value),
     );
   }
 
-  Widget _buildCollectionSelect(BuildContext context) {
-    return AppSelectField<int?>(
-      label: '加入合集（可选）',
-      value: _collectionId,
-      placeholder: '不指定',
-      items: <DropdownMenuItem<int?>>[
-        const DropdownMenuItem<int?>(value: null, child: Text('不指定')),
-        for (final collection in _collections)
-          DropdownMenuItem<int?>(
-            value: collection.id,
-            child: Text(collection.name),
-          ),
+  Widget _buildCollectionField(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              '加入合集',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                tone: AppTextTone.secondary,
+              ),
+            ),
+            const Spacer(),
+            AppTextButton(
+              key: const Key('video-import-create-collection-button'),
+              label: '新建合集',
+              size: AppTextButtonSize.small,
+              emphasis: AppTextButtonEmphasis.accent,
+              onPressed: _createCollection,
+            ),
+          ],
+        ),
+        SizedBox(height: context.appSpacing.sm),
+        AppSelectField<int?>(
+          value: _collectionId,
+          placeholder:
+              _collections.isEmpty ? '暂无合集，点右上「新建合集」' : '请选择合集',
+          items: <DropdownMenuItem<int?>>[
+            for (final collection in _collections)
+              DropdownMenuItem<int?>(
+                value: collection.id,
+                child: Text(collection.name),
+              ),
+          ],
+          onChanged: (value) => setState(() => _collectionId = value),
+        ),
       ],
-      onChanged: (value) => setState(() => _collectionId = value),
+    );
+  }
+
+  Widget _buildTransferModeField(BuildContext context) {
+    return AppSelectField<TransferMode>(
+      key: const Key('video-import-transfer-mode-select'),
+      label: '导入方式',
+      value: _transferMode,
+      items: TransferMode.values
+          .map(
+            (mode) => DropdownMenuItem<TransferMode>(
+              value: mode,
+              child: Text(mode.label),
+            ),
+          )
+          .toList(growable: false),
+      onChanged: (value) =>
+          setState(() => _transferMode = value ?? TransferMode.auto),
     );
   }
 }

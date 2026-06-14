@@ -105,9 +105,11 @@ extension AppNavigationActions on BuildContext {
     ).push(this);
   }
 
-  void pushDesktopClipCollections() {
+  /// 返回的 Future 在「全部切片合集」页出栈后完成，调用方可据此刷新首页合集横滑区
+  /// （页内可能重命名/删除合集）。
+  Future<void> pushDesktopClipCollections() {
     GoRouter.optionURLReflectsImperativeAPIs = true;
-    const DesktopClipCollectionsRouteData().push(this);
+    return const DesktopClipCollectionsRouteData().push<void>(this);
   }
 
   void pushDesktopClipCollectionDetail({required int collectionId}) {
@@ -123,6 +125,31 @@ extension AppNavigationActions on BuildContext {
     DesktopClipCollectionPlayRouteData(
       collectionId: collectionId,
       startIndex: startIndex,
+    ).push(this);
+  }
+
+  /// 返回的 Future 在「全部视频合集」页出栈后完成，调用方可据此刷新首页合集横滑区
+  /// （页内可能重命名/删除合集）。
+  Future<void> pushDesktopVideoCollections() {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    return const DesktopVideoCollectionsRouteData().push<void>(this);
+  }
+
+  void pushDesktopVideoCollectionDetail({required int collectionId}) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopVideoCollectionDetailRouteData(collectionId: collectionId).push(this);
+  }
+
+  void pushDesktopVideoCollectionPlay({
+    required int collectionId,
+    int startIndex = 0,
+    String? sort,
+  }) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopVideoCollectionPlayRouteData(
+      collectionId: collectionId,
+      startIndex: startIndex,
+      sort: sort,
     ).push(this);
   }
 

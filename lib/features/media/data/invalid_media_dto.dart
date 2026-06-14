@@ -1,3 +1,4 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 
 class InvalidMediaDto {
@@ -52,16 +53,16 @@ class InvalidMediaDto {
 
   factory InvalidMediaDto.fromJson(Map<String, dynamic> json) {
     return InvalidMediaDto(
-      id: _toInt(json['id']),
+      id: asInt(json['id']),
       movieNumber: json['movie_number'] as String? ?? '',
       movieTitle: json['movie_title'] as String?,
       coverImage: _movieImageFromJson(json['cover_image']),
       thinCoverImage: _movieImageFromJson(json['thin_cover_image']),
       path: json['path'] as String? ?? '',
-      libraryId: _tryInt(json['library_id']),
+      libraryId: asIntOrNull(json['library_id']),
       libraryName: json['library_name'] as String?,
-      fileSizeBytes: _toInt(json['file_size_bytes']),
-      updatedAt: _parseDateTime(json['updated_at']),
+      fileSizeBytes: asInt(json['file_size_bytes']),
+      updatedAt: asDateTime(json['updated_at']),
     );
   }
 
@@ -75,28 +76,6 @@ class InvalidMediaDto {
           (dynamic key, dynamic data) => MapEntry(key.toString(), data),
         ),
       );
-    }
-    return null;
-  }
-
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value is! String || value.trim().isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(value);
-  }
-
-  static int _toInt(dynamic value) => _tryInt(value) ?? 0;
-
-  static int? _tryInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value);
     }
     return null;
   }

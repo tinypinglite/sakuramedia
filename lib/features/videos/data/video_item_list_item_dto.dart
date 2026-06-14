@@ -11,6 +11,8 @@ class VideoItemListItemDto {
     this.summary = '',
     this.coverImage,
     this.releaseDate,
+    this.durationSeconds = 0,
+    this.fileSizeBytes = 0,
     required this.mediaCount,
     required this.canPlay,
     this.createdAt,
@@ -22,6 +24,10 @@ class VideoItemListItemDto {
   final String summary;
   final MovieImageDto? coverImage;
   final DateTime? releaseDate;
+
+  /// 时长（秒）/文件大小（字节）：取条目第一条媒体，无媒体时为 0。供时长/大小排序与展示。
+  final int durationSeconds;
+  final int fileSizeBytes;
   final int mediaCount;
   final bool canPlay;
   final DateTime? createdAt;

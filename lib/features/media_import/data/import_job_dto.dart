@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 /// 导入方式：`auto` 硬链接优先，`cleanup-source` 复制后删除源文件。
 enum TransferMode { auto, cleanupSource }
 
@@ -56,8 +58,32 @@ class FailedFileDto {
   }
 }
 
+/// 导入作业卡片所需的统一视图（JAV 与 PornBox 两类作业共用同一张卡片）。
+abstract class ImportJobCardData {
+  int get id;
+  String get sourcePath;
+  int? get taskRunId;
+  String get state;
+  TransferMode get transferMode;
+  int get importedCount;
+  int get skippedCount;
+  int get failedCount;
+  DateTime? get createdAt;
+  DateTime? get finishedAt;
+
+  /// 终态（completed / failed）才允许失败文件的删除/重命名/重导。
+  bool get isTerminal;
+}
+
+/// 导入作业详情（失败文件）所需的统一视图。
+abstract class ImportJobCardDetailData {
+  List<FailedFileDto> get failedFiles;
+  List<FailedFileDto> get actionableFailedFiles;
+  bool get isTerminal;
+}
+
 /// 导入作业列表项。
-class ImportJobListItemDto {
+class ImportJobListItemDto implements ImportJobCardData {
   const ImportJobListItemDto({
     required this.id,
     required this.sourcePath,
@@ -75,68 +101,57 @@ class ImportJobListItemDto {
     required this.updatedAt,
   });
 
+  @override
   final int id;
+  @override
   final String sourcePath;
   final int libraryId;
   final int? downloadTaskId;
+  @override
   final int? taskRunId;
+  @override
   final String state;
+  @override
   final TransferMode transferMode;
+  @override
   final int importedCount;
+  @override
   final int skippedCount;
+  @override
   final int failedCount;
   final DateTime? startedAt;
+  @override
   final DateTime? finishedAt;
+  @override
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
   /// 终态（completed / failed）才允许失败文件的删除/重命名/重导。
+  @override
   bool get isTerminal => state == 'completed' || state == 'failed';
 
   factory ImportJobListItemDto.fromJson(Map<String, dynamic> json) {
     return ImportJobListItemDto(
-      id: _toInt(json['id']),
+      id: asInt(json['id']),
       sourcePath: json['source_path'] as String? ?? '',
-      libraryId: _toInt(json['library_id']),
-      downloadTaskId: _tryInt(json['download_task_id']),
-      taskRunId: _tryInt(json['task_run_id']),
+      libraryId: asInt(json['library_id']),
+      downloadTaskId: asIntOrNull(json['download_task_id']),
+      taskRunId: asIntOrNull(json['task_run_id']),
       state: json['state'] as String? ?? '',
       transferMode: TransferModeX.fromWire(json['transfer_mode']),
-      importedCount: _toInt(json['imported_count']),
-      skippedCount: _toInt(json['skipped_count']),
-      failedCount: _toInt(json['failed_count']),
-      startedAt: _parseDateTime(json['started_at']),
-      finishedAt: _parseDateTime(json['finished_at']),
-      createdAt: _parseDateTime(json['created_at']),
-      updatedAt: _parseDateTime(json['updated_at']),
+      importedCount: asInt(json['imported_count']),
+      skippedCount: asInt(json['skipped_count']),
+      failedCount: asInt(json['failed_count']),
+      startedAt: asDateTime(json['started_at']),
+      finishedAt: asDateTime(json['finished_at']),
+      createdAt: asDateTime(json['created_at']),
+      updatedAt: asDateTime(json['updated_at']),
     );
-  }
-
-  static int _toInt(dynamic value) => _tryInt(value) ?? 0;
-
-  static int? _tryInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value);
-    }
-    return null;
-  }
-
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value is! String || value.trim().isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(value);
   }
 }
 
 /// 导入作业详情（含失败文件清单）。
-class ImportJobDto extends ImportJobListItemDto {
+class ImportJobDto extends ImportJobListItemDto implements ImportJobCardDetailData {
   const ImportJobDto({
     required super.id,
     required super.sourcePath,
@@ -155,9 +170,11 @@ class ImportJobDto extends ImportJobListItemDto {
     required this.failedFiles,
   });
 
+  @override
   final List<FailedFileDto> failedFiles;
 
   /// 可操作（可重导/删除/重命名）的失败文件。
+  @override
   List<FailedFileDto> get actionableFailedFiles =>
       failedFiles.where((file) => file.isActionable).toList(growable: false);
 
@@ -213,8 +230,8 @@ class ImportJobTriggerResponseDto {
 
   factory ImportJobTriggerResponseDto.fromJson(Map<String, dynamic> json) {
     return ImportJobTriggerResponseDto(
-      importJobId: ImportJobListItemDto._toInt(json['import_job_id']),
-      taskRunId: ImportJobListItemDto._toInt(json['task_run_id']),
+      importJobId: asInt(json['import_job_id']),
+      taskRunId: asInt(json['task_run_id']),
       status: json['status'] as String? ?? '',
     );
   }

@@ -1,3 +1,4 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
@@ -35,42 +36,17 @@ class ActivityBootstrapDto {
             : const <TaskRunDto>[];
 
     return ActivityBootstrapDto(
-      latestEventId: _toInt(json['latest_event_id']),
+      latestEventId: asInt(json['latest_event_id']),
       notifications: PaginatedResponseDto<ActivityNotificationDto>.fromJson(
-        _toMap(json['notifications']),
+        asMap(json['notifications']),
         ActivityNotificationDto.fromJson,
       ),
-      unreadCount: _toInt(json['unread_count']),
+      unreadCount: asInt(json['unread_count']),
       activeTaskRuns: activeTaskRuns,
       taskRuns: PaginatedResponseDto<TaskRunDto>.fromJson(
-        _toMap(json['task_runs']),
+        asMap(json['task_runs']),
         TaskRunDto.fromJson,
       ),
     );
-  }
-
-  static Map<String, dynamic> _toMap(dynamic value) {
-    if (value is Map<String, dynamic>) {
-      return value;
-    }
-    if (value is Map) {
-      return value.map(
-        (dynamic key, dynamic data) => MapEntry(key.toString(), data),
-      );
-    }
-    return const <String, dynamic>{};
-  }
-
-  static int _toInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value) ?? 0;
-    }
-    return 0;
   }
 }

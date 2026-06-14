@@ -3,6 +3,7 @@ import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/presentation/video_collection_detail_controller.dart';
+import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
 
 import '../../../support/fake_http_client_adapter.dart';
 
@@ -95,12 +96,18 @@ void main() {
       collectionsApi: collectionsApi,
     );
     await controller.load();
-    expect(controller.orderedVideoIds, <int>[1, 2]);
+    expect(
+      controller.items.map((item) => item.video.id).toList(),
+      <int>[1, 2],
+    );
 
     // 把第二个成员拖到最前。
     await controller.reorder(1, 0);
 
-    expect(controller.orderedVideoIds, <int>[2, 1]);
+    expect(
+      controller.items.map((item) => item.video.id).toList(),
+      <int>[2, 1],
+    );
     final reorderRequest = adapter.requests.last;
     expect(reorderRequest.path, '/video-collections/3/items/reorder');
     final body = reorderRequest.body as Map<String, dynamic>;
@@ -109,7 +116,7 @@ void main() {
     controller.dispose();
   });
 
-  test('reorder 失败时回滚为服务端顺序', () async {
+  test('reorder 失败时回滚为提交前的本地顺序', () async {
     enqueueLoad();
     // reorder 失败（500）。
     adapter.enqueueJson(
@@ -120,8 +127,6 @@ void main() {
         'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
       },
     );
-    // 失败后控制器重载，回到服务端真实顺序。
-    enqueueLoad();
 
     final controller = VideoCollectionDetailController(
       collectionId: 3,
@@ -131,8 +136,156 @@ void main() {
 
     await controller.reorder(1, 0);
 
-    // 重载后顺序回到服务端的 [1, 2]。
-    expect(controller.orderedVideoIds, <int>[1, 2]);
+    // 失败回滚到提交前顺序 [1, 2]，不再触发重载。
+    expect(
+      controller.items.map((item) => item.video.id).toList(),
+      <int>[1, 2],
+    );
+    expect(controller.isMutating, isFalse);
+
+    controller.dispose();
+  });
+
+  test('removeItem 成功：乐观移除并返回 null', () async {
+    enqueueLoad();
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/video-collections/3/items/100',
+      statusCode: 204,
+      body: const <String, dynamic>{},
+    );
+
+    final controller = VideoCollectionDetailController(
+      collectionId: 3,
+      collectionsApi: collectionsApi,
+    );
+    await controller.load();
+
+    final error = await controller.removeItem(100);
+
+    expect(error, isNull);
+    expect(
+      controller.items.map((item) => item.itemId).toList(),
+      <int>[101],
+    );
+    expect(controller.isMutating, isFalse);
+
+    controller.dispose();
+  });
+
+  test('removeItem 失败：回滚并返回错误消息', () async {
+    enqueueLoad();
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/video-collections/3/items/100',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+      },
+    );
+
+    final controller = VideoCollectionDetailController(
+      collectionId: 3,
+      collectionsApi: collectionsApi,
+    );
+    await controller.load();
+
+    final error = await controller.removeItem(100);
+
+    expect(error, isNotNull);
+    // 失败回滚，成员仍在。
+    expect(
+      controller.items.map((item) => item.itemId).toList(),
+      <int>[100, 101],
+    );
+    expect(controller.isMutating, isFalse);
+
+    controller.dispose();
+  });
+
+  test('默认手动顺序：load 不带 sort 参数', () async {
+    enqueueLoad();
+
+    final controller = VideoCollectionDetailController(
+      collectionId: 3,
+      collectionsApi: collectionsApi,
+    );
+    await controller.load();
+
+    expect(controller.isManualOrder, isTrue);
+    expect(controller.sortField, isNull);
+    // 手动顺序下排序表达式为 null，「播放全部」据此不附加 sort（连播沿用 position:asc）。
+    expect(controller.sortExpression, isNull);
+    final itemsRequest = adapter.requests.firstWhere(
+      (request) => request.path == '/video-collections/3/items',
+    );
+    expect(itemsRequest.uri.queryParameters.containsKey('sort'), isFalse);
+
+    controller.dispose();
+  });
+
+  test('applySort 切到非手动字段：带 sort 查询且退出手动顺序', () async {
+    enqueueLoad();
+    // 切到「时长降序」后按新排序重拉成员。
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-collections/3/items',
+      body: itemsBody(),
+    );
+
+    final controller = VideoCollectionDetailController(
+      collectionId: 3,
+      collectionsApi: collectionsApi,
+    );
+    await controller.load();
+
+    await controller.applySort(
+      field: VideoSortField.duration,
+      direction: SortDirection.desc,
+    );
+
+    expect(controller.isManualOrder, isFalse);
+    expect(controller.sortField, VideoSortField.duration);
+    expect(controller.sortDirection, SortDirection.desc);
+    // 「播放全部」透传给连播页的排序表达式，与拉取成员时使用的一致。
+    expect(controller.sortExpression, 'duration:desc');
+    expect(
+      adapter.requests.last.uri.queryParameters['sort'],
+      'duration:desc',
+    );
+
+    controller.dispose();
+  });
+
+  test('applySort 切回手动顺序：去掉 sort 查询并恢复手动顺序', () async {
+    enqueueLoad();
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-collections/3/items',
+      body: itemsBody(),
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-collections/3/items',
+      body: itemsBody(),
+    );
+
+    final controller = VideoCollectionDetailController(
+      collectionId: 3,
+      collectionsApi: collectionsApi,
+    );
+    await controller.load();
+    await controller.applySort(field: VideoSortField.title);
+    expect(controller.isManualOrder, isFalse);
+
+    await controller.applySort(field: null);
+
+    expect(controller.isManualOrder, isTrue);
+    expect(controller.sortField, isNull);
+    expect(
+      adapter.requests.last.uri.queryParameters.containsKey('sort'),
+      isFalse,
+    );
 
     controller.dispose();
   });

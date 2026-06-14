@@ -44,6 +44,7 @@ import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_router.dart';
+import 'package:sakuramedia/routes/desktop_routes.dart';
 import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/routes/desktop_search_route_state.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
@@ -102,7 +103,7 @@ void main() {
   });
 
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 17);
+    expect(desktopNavGroups.length, 15);
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
       '发现',
@@ -112,16 +113,16 @@ void main() {
       '时刻',
       '切片',
       '播放列表',
-      '非 JAV 视频',
-      '人物',
-      '视频合集',
+      'PornBox',
       '排行榜',
       '热评',
       '系统设置',
-      'JAV 媒体导入',
+      '媒体导入',
       '活动中心',
       '通知',
     ]);
+    // 人物已彻底移除、视频合集并入 PornBox 页（不再独占侧栏 seed），
+    // 故两者均不在 nav 生成的 route spec 列表中。
     expect(desktopRouteSpecs.map((spec) => spec.path), [
       desktopOverviewPath,
       desktopDiscoverPath,
@@ -132,8 +133,6 @@ void main() {
       desktopClipsPath,
       desktopPlaylistsPath,
       desktopVideosPath,
-      desktopPersonsPath,
-      desktopVideoCollectionsPath,
       desktopRankingsPath,
       desktopHotReviewsPath,
       desktopConfigurationPath,
@@ -573,6 +572,31 @@ void main() {
     expect(
       buildDesktopMoviePlayerRoutePath('ABC-001'),
       '/desktop/library/movies/ABC-001/player',
+    );
+  });
+
+  test('desktop video collection play route 透传详情页排序到 URL', () {
+    // 手动顺序：无 startIndex、无 sort。
+    expect(
+      const DesktopVideoCollectionPlayRouteData(collectionId: 3).location,
+      '/desktop/library/video-collections/3/play',
+    );
+    // 选了排序后「播放全部」：sort 编码进 query（连播页据此与详情页同序）。
+    expect(
+      const DesktopVideoCollectionPlayRouteData(
+        collectionId: 3,
+        startIndex: 2,
+        sort: 'duration:desc',
+      ).location,
+      '/desktop/library/video-collections/3/play?startIndex=2&sort=duration%3Adesc',
+    );
+    // sort 为 null 时不出现在 URL。
+    expect(
+      const DesktopVideoCollectionPlayRouteData(
+        collectionId: 3,
+        sort: null,
+      ).location,
+      '/desktop/library/video-collections/3/play',
     );
   });
 

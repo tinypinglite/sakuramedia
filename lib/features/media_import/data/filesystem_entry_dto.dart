@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 /// 后端文件系统浏览条目类型。
 enum FilesystemEntryType { dir, video, file }
 
@@ -35,22 +37,9 @@ class FilesystemEntryDto {
       name: json['name'] as String? ?? '',
       path: json['path'] as String? ?? '',
       type: _parseEntryType(json['type']),
-      size: _toInt(json['size']),
+      size: asInt(json['size']),
       isVideo: json['is_video'] as bool? ?? false,
     );
-  }
-
-  static int _toInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value) ?? 0;
-    }
-    return 0;
   }
 }
 

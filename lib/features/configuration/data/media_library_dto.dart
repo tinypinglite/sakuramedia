@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 class MediaLibraryDto {
   const MediaLibraryDto({
     required this.id,
@@ -18,16 +20,9 @@ class MediaLibraryDto {
       id: json['id'] as int? ?? 0,
       name: json['name'] as String? ?? '',
       rootPath: json['root_path'] as String? ?? '',
-      createdAt: _parseDateTime(json['created_at']),
-      updatedAt: _parseDateTime(json['updated_at']),
+      createdAt: asDateTime(json['created_at']),
+      updatedAt: asDateTime(json['updated_at']),
     );
-  }
-
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value is! String || value.isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(value);
   }
 }
 

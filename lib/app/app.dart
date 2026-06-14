@@ -33,11 +33,12 @@ import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/tags/data/tags_api.dart';
 import 'package:sakuramedia/features/videos/data/videos_api.dart';
-import 'package:sakuramedia/features/videos/data/persons_api.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/video_imports_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
+import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
+import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
@@ -219,9 +220,6 @@ class _MyAppState extends State<MyApp> {
         Provider<VideosApi>(
           create: (context) => VideosApi(apiClient: context.read<ApiClient>()),
         ),
-        Provider<PersonsApi>(
-          create: (context) => PersonsApi(apiClient: context.read<ApiClient>()),
-        ),
         Provider<VideoCollectionsApi>(
           create: (context) =>
               VideoCollectionsApi(apiClient: context.read<ApiClient>()),
@@ -235,6 +233,12 @@ class _MyAppState extends State<MyApp> {
         ),
         ChangeNotifierProvider(
           create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => VideoMutationChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ClipMutationChangeNotifier(),
         ),
         Provider<PlaylistsApi>(
           create:

@@ -33,7 +33,7 @@ void main() {
     apiClient.dispose();
   });
 
-  test('getVideos 把 tag_id/person_id 编码为可重复 key 并解析分页', () async {
+  test('getVideos 编码 query/sort 并解析分页', () async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/videos',
@@ -58,8 +58,7 @@ void main() {
     );
 
     final result = await videosApi.getVideos(
-      tagIds: <int>[1, 2],
-      personIds: <int>[5],
+      query: '关键词',
       sort: 'created_at:desc',
     );
 
@@ -70,11 +69,11 @@ void main() {
     expect(result.items.first.canPlay, isTrue);
 
     final recorded = adapter.requests.single;
-    // FastAPI `tag_id: List[int]` 期望重复 key（?tag_id=1&tag_id=2），dio 默认
-    // ListFormat.multiCompatible 应当如此编码——这里把它钉成回归保护。
-    expect(recorded.uri.queryParametersAll['tag_id'], <String>['1', '2']);
-    expect(recorded.uri.queryParametersAll['person_id'], <String>['5']);
+    expect(recorded.uri.queryParameters['query'], '关键词');
     expect(recorded.uri.queryParameters['sort'], 'created_at:desc');
+    // 后端已移除 videos 域标签/人物筛选，不应再下发这两个 key。
+    expect(recorded.uri.queryParameters.containsKey('tag_id'), isFalse);
+    expect(recorded.uri.queryParameters.containsKey('person_id'), isFalse);
   });
 
   test('getVideoDetail 复用 MovieMediaItemDto 解析 media_items（含进度与时刻）',
@@ -92,16 +91,6 @@ void main() {
         'can_play': true,
         'created_at': '2026-01-02T03:04:05',
         'updated_at': '2026-01-02T03:04:05',
-        'tags': <dynamic>[
-          <String, dynamic>{'tag_id': 11, 'name': '标签A'},
-        ],
-        'persons': <dynamic>[
-          <String, dynamic>{
-            'id': 21,
-            'name': '人物甲',
-            'avatar_image': null,
-          },
-        ],
         'media_items': <dynamic>[
           <String, dynamic>{
             'media_id': 31,
@@ -136,8 +125,6 @@ void main() {
 
     expect(detail, isA<VideoItemDetailDto>());
     expect(detail.id, 7);
-    expect(detail.tags.single.name, '标签A');
-    expect(detail.persons.single.name, '人物甲');
     expect(detail.mediaItems, hasLength(1));
 
     final media = detail.mediaItems.single;
@@ -149,38 +136,7 @@ void main() {
     expect(media.points.single.offsetSeconds, 90);
   });
 
-  test('createVideo 下发 tag_ids/person_ids 数组 body', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/videos',
-      statusCode: 201,
-      body: <String, dynamic>{
-        'id': 9,
-        'title': '新建视频',
-        'summary': '',
-        'media_count': 0,
-        'can_play': false,
-        'created_at': '2026-01-02T03:04:05',
-        'updated_at': '2026-01-02T03:04:05',
-        'tags': <dynamic>[],
-        'persons': <dynamic>[],
-        'media_items': <dynamic>[],
-      },
-    );
-
-    await videosApi.createVideo(
-      title: '  新建视频  ',
-      tagIds: <int>[3],
-      personIds: <int>[4, 5],
-    );
-
-    final body = adapter.requests.single.body as Map<String, dynamic>;
-    expect(body['title'], '新建视频');
-    expect(body['tag_ids'], <int>[3]);
-    expect(body['person_ids'], <int>[4, 5]);
-  });
-
-  test('updateVideo 仅下发 payload 中非空字段（关联整体替换）', () async {
+  test('updateVideo 仅下发 payload 中非空字段', () async {
     adapter.enqueueJson(
       method: 'PATCH',
       path: '/videos/9',
@@ -192,26 +148,22 @@ void main() {
         'can_play': false,
         'created_at': '2026-01-02T03:04:05',
         'updated_at': '2026-01-02T03:04:05',
-        'tags': <dynamic>[],
-        'persons': <dynamic>[],
         'media_items': <dynamic>[],
       },
     );
 
     await videosApi.updateVideo(
       videoId: 9,
-      payload: const VideoItemUpdatePayload(
-        title: '改后标题',
-        tagIds: <int>[],
-      ),
+      payload: const VideoItemUpdatePayload(title: '改后标题'),
     );
 
     final body = adapter.requests.single.body as Map<String, dynamic>;
     expect(body.containsKey('title'), isTrue);
-    expect(body['tag_ids'], <int>[]);
+    expect(body['title'], '改后标题');
     // 未传的字段不应出现，避免误清空。
     expect(body.containsKey('summary'), isFalse);
-    expect(body.containsKey('person_ids'), isFalse);
     expect(body.containsKey('release_date'), isFalse);
+    expect(body.containsKey('tag_ids'), isFalse);
+    expect(body.containsKey('person_ids'), isFalse);
   });
 }

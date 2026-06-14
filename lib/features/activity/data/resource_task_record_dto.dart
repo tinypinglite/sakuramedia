@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 class ResourceTaskResourceSummaryDto {
   const ResourceTaskResourceSummaryDto({
     required this.resourceId,
@@ -15,25 +17,12 @@ class ResourceTaskResourceSummaryDto {
 
   factory ResourceTaskResourceSummaryDto.fromJson(Map<String, dynamic> json) {
     return ResourceTaskResourceSummaryDto(
-      resourceId: _toInt(json['resource_id']),
+      resourceId: asInt(json['resource_id']),
       movieNumber: _stringOrNull(json['movie_number']),
       title: _stringOrNull(json['title']),
       path: _stringOrNull(json['path']),
       valid: json['valid'] as bool?,
     );
-  }
-
-  static int _toInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value) ?? 0;
-    }
-    return 0;
   }
 
   static String? _stringOrNull(dynamic value) {
@@ -89,17 +78,17 @@ class ResourceTaskRecordDto {
     return ResourceTaskRecordDto(
       taskKey: json['task_key'] as String? ?? '',
       resourceType: json['resource_type'] as String? ?? '',
-      resourceId: _toInt(json['resource_id']),
+      resourceId: asInt(json['resource_id']),
       state: json['state'] as String? ?? '',
-      attemptCount: _toInt(json['attempt_count']),
-      lastAttemptedAt: _parseDateTime(json['last_attempted_at']),
-      lastSucceededAt: _parseDateTime(json['last_succeeded_at']),
+      attemptCount: asInt(json['attempt_count']),
+      lastAttemptedAt: asDateTime(json['last_attempted_at']),
+      lastSucceededAt: asDateTime(json['last_succeeded_at']),
       lastError: _stringOrNull(json['last_error']),
-      lastErrorAt: _parseDateTime(json['last_error_at']),
-      lastTaskRunId: _tryInt(json['last_task_run_id']),
+      lastErrorAt: asDateTime(json['last_error_at']),
+      lastTaskRunId: asIntOrNull(json['last_task_run_id']),
       lastTriggerType: _stringOrNull(json['last_trigger_type']),
-      createdAt: _parseDateTime(json['created_at']),
-      updatedAt: _parseDateTime(json['updated_at']),
+      createdAt: asDateTime(json['created_at']),
+      updatedAt: asDateTime(json['updated_at']),
       resource:
           rawResource is Map
               ? ResourceTaskResourceSummaryDto.fromJson(
@@ -110,28 +99,6 @@ class ResourceTaskRecordDto {
               )
               : null,
     );
-  }
-
-  static DateTime? _parseDateTime(dynamic value) {
-    if (value is! String || value.trim().isEmpty) {
-      return null;
-    }
-    return DateTime.tryParse(value);
-  }
-
-  static int _toInt(dynamic value) => _tryInt(value) ?? 0;
-
-  static int? _tryInt(dynamic value) {
-    if (value is int) {
-      return value;
-    }
-    if (value is num) {
-      return value.toInt();
-    }
-    if (value is String) {
-      return int.tryParse(value);
-    }
-    return null;
   }
 
   static String? _stringOrNull(dynamic value) {

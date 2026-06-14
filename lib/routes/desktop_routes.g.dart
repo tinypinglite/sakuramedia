@@ -9,8 +9,8 @@ part of 'desktop_routes.dart';
 List<RouteBase> get $appRoutes => [
   $desktopLoginRouteData,
   $desktopMoviePlayerRouteData,
-  $desktopVideoPlayerRouteData,
   $desktopClipCollectionPlayRouteData,
+  $desktopVideoCollectionPlayRouteData,
   $desktopShellRouteData,
 ];
 
@@ -96,55 +96,6 @@ T? _$convertMapValue<T>(
   return value == null ? null : converter(value);
 }
 
-RouteBase get $desktopVideoPlayerRouteData => GoRouteData.$route(
-  path: '/desktop/library/videos/:videoId/player',
-  factory: $DesktopVideoPlayerRouteData._fromState,
-);
-
-mixin $DesktopVideoPlayerRouteData on GoRouteData {
-  static DesktopVideoPlayerRouteData _fromState(GoRouterState state) =>
-      DesktopVideoPlayerRouteData(
-        videoId: int.parse(state.pathParameters['videoId']!),
-        mediaId: _$convertMapValue(
-          'media-id',
-          state.uri.queryParameters,
-          int.tryParse,
-        ),
-        collectionId: _$convertMapValue(
-          'collection-id',
-          state.uri.queryParameters,
-          int.tryParse,
-        ),
-        playlist: state.uri.queryParameters['playlist'],
-      );
-
-  DesktopVideoPlayerRouteData get _self => this as DesktopVideoPlayerRouteData;
-
-  @override
-  String get location => GoRouteData.$location(
-    '/desktop/library/videos/${Uri.encodeComponent(_self.videoId.toString())}/player',
-    queryParams: {
-      if (_self.mediaId != null) 'media-id': _self.mediaId!.toString(),
-      if (_self.collectionId != null)
-        'collection-id': _self.collectionId!.toString(),
-      if (_self.playlist != null) 'playlist': _self.playlist,
-    },
-  );
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
 RouteBase get $desktopClipCollectionPlayRouteData => GoRouteData.$route(
   path: '/desktop/library/clip-collections/:collectionId/play',
   factory: $DesktopClipCollectionPlayRouteData._fromState,
@@ -171,6 +122,51 @@ mixin $DesktopClipCollectionPlayRouteData on GoRouteData {
     '/desktop/library/clip-collections/${Uri.encodeComponent(_self.collectionId.toString())}/play',
     queryParams: {
       if (_self.startIndex != 0) 'start-index': _self.startIndex.toString(),
+    },
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $desktopVideoCollectionPlayRouteData => GoRouteData.$route(
+  path: '/desktop/library/video-collections/:collectionId/play',
+  factory: $DesktopVideoCollectionPlayRouteData._fromState,
+);
+
+mixin $DesktopVideoCollectionPlayRouteData on GoRouteData {
+  static DesktopVideoCollectionPlayRouteData _fromState(GoRouterState state) =>
+      DesktopVideoCollectionPlayRouteData(
+        collectionId: int.parse(state.pathParameters['collectionId']!),
+        startIndex:
+            _$convertMapValue(
+              'start-index',
+              state.uri.queryParameters,
+              int.parse,
+            ) ??
+            0,
+        sort: state.uri.queryParameters['sort'],
+      );
+
+  DesktopVideoCollectionPlayRouteData get _self =>
+      this as DesktopVideoCollectionPlayRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/desktop/library/video-collections/${Uri.encodeComponent(_self.collectionId.toString())}/play',
+    queryParams: {
+      if (_self.startIndex != 0) 'start-index': _self.startIndex.toString(),
+      if (_self.sort != null) 'sort': _self.sort,
     },
   );
 
@@ -241,10 +237,6 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
       factory: $DesktopVideosRouteData._fromState,
     ),
     GoRouteData.$route(
-      path: '/desktop/library/persons',
-      factory: $DesktopPersonsRouteData._fromState,
-    ),
-    GoRouteData.$route(
       path: '/desktop/library/video-collections',
       factory: $DesktopVideoCollectionsRouteData._fromState,
     ),
@@ -311,14 +303,6 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
     GoRouteData.$route(
       path: '/desktop/library/tags/:tagId',
       factory: $DesktopTagMoviesRouteData._fromState,
-    ),
-    GoRouteData.$route(
-      path: '/desktop/library/videos/:videoId',
-      factory: $DesktopVideoDetailRouteData._fromState,
-    ),
-    GoRouteData.$route(
-      path: '/desktop/library/persons/:personId',
-      factory: $DesktopPersonDetailRouteData._fromState,
     ),
     GoRouteData.$route(
       path: '/desktop/library/video-collections/:collectionId',
@@ -571,27 +555,6 @@ mixin $DesktopVideosRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/desktop/library/videos');
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
-mixin $DesktopPersonsRouteData on GoRouteData {
-  static DesktopPersonsRouteData _fromState(GoRouterState state) =>
-      const DesktopPersonsRouteData();
-
-  @override
-  String get location => GoRouteData.$location('/desktop/library/persons');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -1041,61 +1004,6 @@ mixin $DesktopTagMoviesRouteData on GoRouteData {
   @override
   String get location => GoRouteData.$location(
     '/desktop/library/tags/${Uri.encodeComponent(_self.tagId.toString())}',
-  );
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
-mixin $DesktopVideoDetailRouteData on GoRouteData {
-  static DesktopVideoDetailRouteData _fromState(GoRouterState state) =>
-      DesktopVideoDetailRouteData(
-        videoId: int.parse(state.pathParameters['videoId']!),
-      );
-
-  DesktopVideoDetailRouteData get _self => this as DesktopVideoDetailRouteData;
-
-  @override
-  String get location => GoRouteData.$location(
-    '/desktop/library/videos/${Uri.encodeComponent(_self.videoId.toString())}',
-  );
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
-mixin $DesktopPersonDetailRouteData on GoRouteData {
-  static DesktopPersonDetailRouteData _fromState(GoRouterState state) =>
-      DesktopPersonDetailRouteData(
-        personId: int.parse(state.pathParameters['personId']!),
-      );
-
-  DesktopPersonDetailRouteData get _self =>
-      this as DesktopPersonDetailRouteData;
-
-  @override
-  String get location => GoRouteData.$location(
-    '/desktop/library/persons/${Uri.encodeComponent(_self.personId.toString())}',
   );
 
   @override

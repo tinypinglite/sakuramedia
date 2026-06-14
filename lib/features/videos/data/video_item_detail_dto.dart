@@ -1,13 +1,11 @@
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
-import 'package:sakuramedia/features/videos/data/person_dto.dart';
 import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
 
 /// 非 JAV 视频条目的详情资源（`VideoItemDetailResource`）。
 ///
-/// 在列表项字段之上追加 [tags]、[persons] 与 [mediaItems]。其中 `media_items`
-/// 后端复用「影片媒体资源」结构，因此直接复用 [MovieMediaItemDto.fromJson] 解析，
-/// 不再另立平行 DTO；标签同样复用 [MovieTagDto]（`tag_id`/`name` 同形）。
+/// 在列表项字段之上追加 [mediaItems]。其中 `media_items` 后端复用「影片媒体资源」
+/// 结构，因此直接复用 [MovieMediaItemDto.fromJson] 解析，不再另立平行 DTO。
 class VideoItemDetailDto {
   const VideoItemDetailDto({
     required this.id,
@@ -15,12 +13,12 @@ class VideoItemDetailDto {
     this.summary = '',
     this.coverImage,
     this.releaseDate,
+    this.durationSeconds = 0,
+    this.fileSizeBytes = 0,
     required this.mediaCount,
     required this.canPlay,
     this.createdAt,
     this.updatedAt,
-    this.tags = const <MovieTagDto>[],
-    this.persons = const <PersonDto>[],
     this.mediaItems = const <MovieMediaItemDto>[],
   });
 
@@ -29,12 +27,14 @@ class VideoItemDetailDto {
   final String summary;
   final MovieImageDto? coverImage;
   final DateTime? releaseDate;
+
+  /// 时长（秒）/文件大小（字节）：取条目第一条媒体，无媒体时为 0。
+  final int durationSeconds;
+  final int fileSizeBytes;
   final int mediaCount;
   final bool canPlay;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final List<MovieTagDto> tags;
-  final List<PersonDto> persons;
   final List<MovieMediaItemDto> mediaItems;
 
   String get preferredTitle {
@@ -71,8 +71,6 @@ class VideoItemDetailDto {
       canPlay: json['can_play'] as bool? ?? false,
       createdAt: videoDateFromJson(json['created_at']),
       updatedAt: videoDateFromJson(json['updated_at']),
-      tags: _listFromJson(json['tags'], MovieTagDto.fromJson),
-      persons: _listFromJson(json['persons'], PersonDto.fromJson),
       mediaItems: _listFromJson(json['media_items'], MovieMediaItemDto.fromJson),
     );
   }
@@ -80,23 +78,18 @@ class VideoItemDetailDto {
 
 /// `PATCH /videos/{id}` 的局部更新载荷。
 ///
-/// 字段为 `null` 表示「不传该键、保持原值」；[tagIds]/[personIds] 一旦非 `null`
-/// （含空列表）即「整体替换」该关联（对齐后端 `VideoItemUpdateRequest` 语义）。
-/// [releaseDate] 仅在非 `null` 时下发，phase 1 不支持经此清空发布时间。
+/// 字段为 `null` 表示「不传该键、保持原值」。[releaseDate] 仅在非 `null` 时下发，
+/// phase 1 不支持经此清空发布时间。
 class VideoItemUpdatePayload {
   const VideoItemUpdatePayload({
     this.title,
     this.summary,
     this.releaseDate,
-    this.tagIds,
-    this.personIds,
   });
 
   final String? title;
   final String? summary;
   final DateTime? releaseDate;
-  final List<int>? tagIds;
-  final List<int>? personIds;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
@@ -104,8 +97,6 @@ class VideoItemUpdatePayload {
       if (summary != null) 'summary': summary,
       if (releaseDate != null)
         'release_date': releaseDate!.toIso8601String(),
-      if (tagIds != null) 'tag_ids': tagIds,
-      if (personIds != null) 'person_ids': personIds,
     };
   }
 }

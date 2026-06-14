@@ -14,7 +14,11 @@ class VideoSummaryGrid extends StatelessWidget {
     required this.isLoading,
     this.errorMessage,
     this.onVideoTap,
-    this.onVideoMenuRequest,
+    this.onVideoAddToCollection,
+    this.onVideoDelete,
+    this.selectionMode = false,
+    this.selectedIds = const <int>{},
+    this.onVideoToggleSelect,
     this.emptyMessage = '当前没有可展示的视频数据。',
     this.placeholderCount = 8,
   });
@@ -23,8 +27,18 @@ class VideoSummaryGrid extends StatelessWidget {
   final bool isLoading;
   final String? errorMessage;
   final ValueChanged<VideoItemListItemDto>? onVideoTap;
-  final void Function(VideoItemListItemDto video, Offset globalPosition)?
-  onVideoMenuRequest;
+  final ValueChanged<VideoItemListItemDto>? onVideoAddToCollection;
+  final ValueChanged<VideoItemListItemDto>? onVideoDelete;
+
+  /// 选择模式：卡片切换为多选交互。
+  final bool selectionMode;
+
+  /// 已选视频 id 集合（仅 [selectionMode] 下有意义）。
+  final Set<int> selectedIds;
+
+  /// 选择模式下切换某个视频选中态的回调。
+  final ValueChanged<VideoItemListItemDto>? onVideoToggleSelect;
+
   final String emptyMessage;
   final int placeholderCount;
 
@@ -54,10 +68,21 @@ class VideoSummaryGrid extends StatelessWidget {
           .map(
             (video) => VideoSummaryCard(
               video: video,
-              onTap: onVideoTap == null ? null : () => onVideoTap!(video),
-              onRequestMenu: onVideoMenuRequest == null
+              // 整卡点击 = 弹窗快速播放；不可播放的视频不响应点击。
+              onTap: (onVideoTap == null || !video.canPlay)
                   ? null
-                  : (globalPosition) => onVideoMenuRequest!(video, globalPosition),
+                  : () => onVideoTap!(video),
+              onAddToCollection: onVideoAddToCollection == null
+                  ? null
+                  : () => onVideoAddToCollection!(video),
+              onDelete: onVideoDelete == null
+                  ? null
+                  : () => onVideoDelete!(video),
+              selectionMode: selectionMode,
+              isSelected: selectedIds.contains(video.id),
+              onSelectedChanged: onVideoToggleSelect == null
+                  ? null
+                  : (_) => onVideoToggleSelect!(video),
             ),
           )
           .toList(growable: false),

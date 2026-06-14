@@ -20,7 +20,12 @@ class VideoListContent extends StatelessWidget {
     required this.filterState,
     required this.onFilterChanged,
     required this.onVideoTap,
-    this.onVideoMenuRequest,
+    this.onVideoAddToCollection,
+    this.onVideoDelete,
+    this.selectionMode = false,
+    this.selectedIds = const <int>{},
+    this.onVideoToggleSelect,
+    this.headerTrailingBuilder,
     this.sectionSpacing = 0,
     this.contentKey,
     this.totalKey,
@@ -31,8 +36,24 @@ class VideoListContent extends StatelessWidget {
   final VideoFilterState filterState;
   final ValueChanged<VideoFilterState> onFilterChanged;
   final ValueChanged<VideoItemListItemDto> onVideoTap;
-  final void Function(VideoItemListItemDto video, Offset globalPosition)?
-  onVideoMenuRequest;
+  final ValueChanged<VideoItemListItemDto>? onVideoAddToCollection;
+  final ValueChanged<VideoItemListItemDto>? onVideoDelete;
+
+  /// 选择模式：网格切换为多选交互。
+  final bool selectionMode;
+
+  /// 已选视频 id 集合。
+  final Set<int> selectedIds;
+
+  /// 选择模式下切换某个视频选中态的回调。
+  final ValueChanged<VideoItemListItemDto>? onVideoToggleSelect;
+
+  /// 总数行下方的尾随区域（如「选择」入口 / 批量操作栏）。
+  ///
+  /// 用 builder 而非现成 widget，使其在列表分页加载（controller 变化）后能拿到
+  /// 最新的 `controller.items`（决定「选择」入口可见性与「全选」状态）。
+  final WidgetBuilder? headerTrailingBuilder;
+
   final double sectionSpacing;
   final Key? contentKey;
   final Key? totalKey;
@@ -57,13 +78,21 @@ class VideoListContent extends StatelessWidget {
               totalText: '${controller.total} 个',
               totalKey: totalKey ?? const Key('videos-page-total'),
             ),
+            if (headerTrailingBuilder != null) ...[
+              SizedBox(height: context.appSpacing.sm),
+              headerTrailingBuilder!(context),
+            ],
             SizedBox(height: sectionSpacing),
             VideoSummaryGrid(
               items: controller.items,
               isLoading: controller.isInitialLoading,
               errorMessage: controller.initialErrorMessage,
               onVideoTap: onVideoTap,
-              onVideoMenuRequest: onVideoMenuRequest,
+              onVideoAddToCollection: onVideoAddToCollection,
+              onVideoDelete: onVideoDelete,
+              selectionMode: selectionMode,
+              selectedIds: selectedIds,
+              onVideoToggleSelect: onVideoToggleSelect,
               emptyMessage: emptyMessage,
             ),
             if (showFooter) ...[

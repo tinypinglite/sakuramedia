@@ -28,6 +28,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
 import 'package:sakuramedia/widgets/app_shell/app_settings_group.dart';
@@ -329,49 +330,15 @@ class _MediaLibrariesTabState extends State<_MediaLibrariesTab> {
   }
 
   Future<void> _deleteLibrary(MediaLibraryDto library) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (dialogContext) => AppDesktopDialog(
-            width: dialogContext.appLayoutTokens.dialogWidthSm,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '删除媒体库',
-                  style: resolveAppTextStyle(
-                    dialogContext,
-                    size: AppTextSize.s18,
-                  ),
-                ),
-                SizedBox(height: dialogContext.appSpacing.lg),
-                Text('确认删除媒体库“${library.name}”？该操作不可恢复。'),
-                SizedBox(height: dialogContext.appSpacing.xl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(false),
-                        label: '取消',
-                      ),
-                    ),
-                    SizedBox(width: dialogContext.appSpacing.md),
-                    Expanded(
-                      child: AppButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
-                        label: '删除',
-                        variant: AppButtonVariant.danger,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '删除媒体库',
+      message: '确认删除媒体库“${library.name}”？该操作不可恢复。',
+      danger: true,
+      confirmLabel: '删除',
     );
 
-    if (!mounted || confirmed != true) {
+    if (!mounted || !confirmed) {
       return;
     }
 
@@ -1428,49 +1395,15 @@ class _DownloadClientsTabState extends State<_DownloadClientsTab> {
 
   Future<void> _deleteClient(DownloadClientDto client) async {
     final api = context.read<DownloadClientsApi>();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (dialogContext) => AppDesktopDialog(
-            width: dialogContext.appLayoutTokens.dialogWidthSm,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '删除下载器',
-                  style: resolveAppTextStyle(
-                    dialogContext,
-                    size: AppTextSize.s18,
-                  ),
-                ),
-                SizedBox(height: dialogContext.appSpacing.lg),
-                Text('确认删除下载器“${client.name}”？该操作不会删除下载任务。'),
-                SizedBox(height: dialogContext.appSpacing.xl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(false),
-                        label: '取消',
-                      ),
-                    ),
-                    SizedBox(width: dialogContext.appSpacing.md),
-                    Expanded(
-                      child: AppButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
-                        label: '删除',
-                        variant: AppButtonVariant.danger,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '删除下载器',
+      message: '确认删除下载器“${client.name}”？该操作不会删除下载任务。',
+      danger: true,
+      confirmLabel: '删除',
     );
 
-    if (!mounted || confirmed != true) {
+    if (!mounted || !confirmed) {
       return;
     }
 
@@ -1766,48 +1699,14 @@ class _PlaylistsTabState extends State<_PlaylistsTab> {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder:
-          (dialogContext) => AppDesktopDialog(
-            width: dialogContext.appLayoutTokens.dialogWidthSm,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '删除播放列表',
-                  style: resolveAppTextStyle(
-                    dialogContext,
-                    size: AppTextSize.s18,
-                  ),
-                ),
-                SizedBox(height: dialogContext.appSpacing.lg),
-                Text('确认删除播放列表“${playlist.name}”？该操作不可恢复。'),
-                SizedBox(height: dialogContext.appSpacing.xl),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(false),
-                        label: '取消',
-                      ),
-                    ),
-                    SizedBox(width: dialogContext.appSpacing.md),
-                    Expanded(
-                      child: AppButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(true),
-                        label: '删除',
-                        variant: AppButtonVariant.danger,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '删除播放列表',
+      message: '确认删除播放列表“${playlist.name}”？该操作不可恢复。',
+      danger: true,
+      confirmLabel: '删除',
     );
-    if (!mounted || confirmed != true) {
+    if (!mounted || !confirmed) {
       return;
     }
 

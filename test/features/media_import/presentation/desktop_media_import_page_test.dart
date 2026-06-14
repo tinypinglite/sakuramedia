@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
 import 'package:sakuramedia/features/media_import/presentation/desktop_media_import_page.dart';
+import 'package:sakuramedia/features/videos/data/video_imports_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 
@@ -28,6 +29,7 @@ void main() {
 
     _enqueueJobsPage(bundle, jobs: const <Map<String, dynamic>>[], total: 0);
     _enqueueBootstrapAndStream(bundle);
+    _enqueueVideoJobsPage(bundle);
 
     await _pumpPage(tester, bundle: bundle);
 
@@ -51,6 +53,7 @@ void main() {
       total: 1,
     );
     _enqueueBootstrapAndStream(bundle);
+    _enqueueVideoJobsPage(bundle);
 
     await _pumpPage(tester, bundle: bundle);
 
@@ -75,20 +78,25 @@ void main() {
       ],
       total: 1,
     );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/activity/bootstrap',
-      body: _bootstrapBody(latestEventId: 120),
-    );
-    bundle.adapter.enqueueSse(
-      method: 'GET',
-      path: '/system/events/stream',
-      chunks: <String>[
-        'id: 121\n'
-            'event: task_run_updated\n'
-            'data: ${jsonEncode(_taskRunJson(id: 42, current: 3, total: 10))}\n\n',
-      ],
-    );
+    _enqueueVideoJobsPage(bundle);
+    // 两个 controller 各连一路 SSE；两路都带同一条 JAV task_run 事件，
+    // 保证无论 FIFO 出队顺序如何，JAV controller 都能拿到事件流（task_key 不匹配的 PornBox 流会忽略它）。
+    for (var i = 0; i < 2; i++) {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/activity/bootstrap',
+        body: _bootstrapBody(latestEventId: 120),
+      );
+      bundle.adapter.enqueueSse(
+        method: 'GET',
+        path: '/system/events/stream',
+        chunks: <String>[
+          'id: 121\n'
+              'event: task_run_updated\n'
+              'data: ${jsonEncode(_taskRunJson(id: 42, current: 3, total: 10))}\n\n',
+        ],
+      );
+    }
 
     await _pumpPage(tester, bundle: bundle);
 
@@ -117,6 +125,7 @@ void main() {
       total: 1,
     );
     _enqueueBootstrapAndStream(bundle);
+    _enqueueVideoJobsPage(bundle);
     bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/import-jobs/3',
@@ -160,6 +169,7 @@ Future<void> _pumpPage(
         ),
         Provider<ActivityApi>.value(value: bundle.activityApi),
         Provider<MediaImportApi>.value(value: bundle.mediaImportApi),
+        Provider<VideoImportsApi>.value(value: bundle.videoImportsApi),
       ],
       child: OKToast(
         child: MaterialApp(
@@ -216,20 +226,42 @@ void _enqueueJobsPage(
   );
 }
 
+/// 媒体导入页同时持有 JAV 与 PornBox 两个 controller，各自连一次 bootstrap + SSE。
+/// 两路响应内容一致（FIFO 按 path 出队），因此每个共享端点入队两次。
 void _enqueueBootstrapAndStream(TestApiBundle bundle) {
+  for (var i = 0; i < 2; i++) {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/activity/bootstrap',
+      body: _bootstrapBody(latestEventId: 120),
+    );
+    bundle.adapter.enqueueSse(
+      method: 'GET',
+      path: '/system/events/stream',
+      chunks: const <String>[
+        'id: 1\n'
+            'event: heartbeat\n'
+            'data: {}\n\n',
+      ],
+    );
+  }
+}
+
+/// PornBox 标签作业列表（`/video-imports`）；JAV 聚焦用例下默认空列表即可。
+void _enqueueVideoJobsPage(
+  TestApiBundle bundle, {
+  List<Map<String, dynamic>> jobs = const <Map<String, dynamic>>[],
+  int total = 0,
+}) {
   bundle.adapter.enqueueJson(
     method: 'GET',
-    path: '/system/activity/bootstrap',
-    body: _bootstrapBody(latestEventId: 120),
-  );
-  bundle.adapter.enqueueSse(
-    method: 'GET',
-    path: '/system/events/stream',
-    chunks: const <String>[
-      'id: 1\n'
-          'event: heartbeat\n'
-          'data: {}\n\n',
-    ],
+    path: '/video-imports',
+    body: <String, dynamic>{
+      'items': jobs,
+      'page': 1,
+      'page_size': 20,
+      'total': total,
+    },
   );
 }
 
