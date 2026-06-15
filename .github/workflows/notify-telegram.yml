@@ -1,7 +1,7 @@
 name: Notify Telegram
 
 # 可复用工作流：由 release.yml 在所有平台构建成功后调用。
-# 拉取「后端最新 release」+「前端本次 tag 的 release」说明，合并成一条公告发到电报群。
+# 拉取「前端本次 tag 的 release」说明 +「后端最新版本号」，合并成一条公告发到电报群。
 # workflow_dispatch 仅用于手动验证 Bot/Secret 接通情况（此时前端说明可能为空，属正常）。
 on:
   workflow_call:
@@ -54,18 +54,15 @@ jobs:
             sleep 15
           done
 
-          # --- 后端：最新一条 release ---
-          be_resp="$(api "https://api.github.com/repos/${BACKEND_REPO}/releases/latest")"
-          be_tag="$(printf '%s' "$be_resp" | jq -r '.tag_name // ""')"
-          be_notes="$(printf '%s' "$be_resp" | jq -r '.body // ""')"
-          be_url="$(printf '%s' "$be_resp" | jq -r '.html_url // ""')"
+          # --- 后端：仅取最新版本号（不再拉取 release 说明 / 链接）---
+          be_tag="$(api "https://api.github.com/repos/${BACKEND_REPO}/releases/latest" | jq -r '.tag_name // ""')"
 
           # 用 jq 组装公告并构造请求体：
           #  - jq 的 length / 切片按 Unicode 码点计算，截断中文不会切坏字符
           #  - 每段限 1500 码点，加标题/链接后稳在 Telegram 4096 上限内
           payload="$(jq -n \
             --arg chat_id "$TELEGRAM_CHAT_ID" \
-            --arg betag "$be_tag" --arg benotes "$be_notes" --arg beurl "$be_url" \
+            --arg betag "$be_tag" \
             --arg fetag "$FE_TAG" --arg fenotes "$fe_notes" --arg feurl "$fe_url" \
             '
             def trim(n): if (length) > n then (.[0:n] + "\n…（完整说明见下方链接）") else . end;
@@ -74,10 +71,9 @@ jobs:
               disable_web_page_preview: true,
               text: (
                 "🌸 SakuraMedia 新版本发布\n\n"
-                + "【后端 " + $betag + "】\n" + ($benotes | trim(1500))
-                + "\n\n【前端 " + $fetag + "】\n" + ($fenotes | trim(1500))
+                + "【前端 " + $fetag + "】\n" + ($fenotes | trim(1500))
+                + (if ($betag | length) > 0 then "\n\n本次更新依赖后端 " + $betag + " 版本" else "" end)
                 + "\n\n📥 前端下载 / 完整说明：" + $feurl
-                + "\n🔧 后端镜像 / 完整说明：" + $beurl
               )
             }')"
 
