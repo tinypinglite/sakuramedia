@@ -1,24 +1,8 @@
 # 配置说明
-
-这页按当前后端代码实现，整理 `config.toml` 中所有主要配置组的作用和常见使用方式。
+这是一份完整的配置文件说明， 配置文件在`sakuramedia-data/config/config.toml`
 
 如果你还没有把服务跑起来，建议先看“快速开始”。这页更适合已经完成第一次部署、准备继续理解系统行为的用户。
 
-## 先知道这几件事
-
-### 配置文件放在哪里
-
-在 Docker 部署场景下，SakuraMedia 读取的是容器内的：
-
-```bash
-/data/config/config.toml
-```
-
-通常它对应宿主机上的：
-
-```bash
-./docker-data/config/config.toml
-```
 
 ### 路径都要写容器内路径
 
@@ -29,20 +13,6 @@
 - 正确：`/data/db/sakuramedia.db`
 - 正确：`/mnt/volume1/media/sakuramedia`
 - 错误：`/Users/xxx/...`
-
-### 哪些配置第一次最值得关心
-
-第一次部署时，通常优先关注这几组：
-
-- `enable_docs`
-- `database`
-- `auth`
-- `metadata`
-- `movie_info_translation`（如果你准备启用影片信息翻译）
-- `image_search`
-- `scheduler`
-
-其他配置组大多偏进阶，不建议一上来就改。
 
 ## 配置总览
 
@@ -55,8 +25,9 @@
 - `[metadata]`（包含元数据代理）
 - `[movie_info_translation]`
 - `[scheduler]`
+- `[downloads]`
+- `[media_import]`
 - `[logging]`
-- `[indexer_settings]`
 - `[image_search]`
 - `[qdrant]`
 
@@ -176,7 +147,6 @@ refresh_token_expire_minutes = 10080
 |---|---|---|
 | `username` | `account` | 默认登录用户名 |
 | `password` | `account` | 默认登录密码 |
-| `secret_key` | 内置默认值 | JWT 签名密钥，必须改 |
 | `algorithm` | `HS256` | JWT 签名算法 |
 | `access_token_expire_minutes` | `43200` | Access Token 过期时间，单位分钟 |
 | `refresh_token_expire_minutes` | `10080` | Refresh Token 过期时间，单位分钟 |
@@ -185,14 +155,8 @@ refresh_token_expire_minutes = 10080
 
 - `username` 和 `password` 主要用于第一次登录
 - 登录后建议在 app 里修改账号密码
-- `secret_key` 一定要换成自己的随机字符串，建议至少 32 位
-- `algorithm`、token 过期时间一般不需要第一次就改
 
-补充：
 
-- 代码里还有一个 `file_signature_secret`
-- 这个值默认由系统自动生成，通常不需要手动配置
-- app 内更新设置时，这个字段也不会按普通配置项一样写回 `config.toml`
 
 ## `[media]`
 
@@ -201,6 +165,7 @@ refresh_token_expire_minutes = 10080
 ```toml
 [media]
 others_number_features = ["OFJE", "CJOB", "DVAJ", "REBD"]
+collection_duration_threshold_minutes = 300
 inner_sub_tags = ["中字", "中文", "字幕组", "-UC", "-C"]
 blueray_tags = ["蓝光", "4K", "4k"]
 uncensored_tags = ["流出", "uncensored", "無码", "無修正", "UC", "无码", "破解", "UNCENSORED", "-UC", "-U"]
@@ -219,6 +184,7 @@ media_clip_ffmpeg_timeout_seconds = 120
 | 字段 | 作用 |
 |---|---|
 | `others_number_features` | 合集影片番号特征关键词 |
+| `collection_duration_threshold_minutes` | 合集影片时长判定阈值（分钟），仅当影片时长严格大于该值时才按时长判定为合集 |
 | `inner_sub_tags` | 识别“内嵌字幕”的标签关键词 |
 | `blueray_tags` | 识别“蓝光 / 高清版本”的标签关键词 |
 | `uncensored_tags` | 识别“无码资源”的标签关键词 |
@@ -280,7 +246,7 @@ enabled = false
 base_url = "https://ollama.com"
 api_key = "填入ollama的api key"
 model = "gemma4:31b-cloud"
-timeout_seconds = 120
+timeout_seconds = 300
 connect_timeout_seconds = 3
 ```
 
@@ -315,6 +281,7 @@ actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
 download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "*/3 * * * *"
+download_small_file_cleanup_cron = "*/5 * * * *"
 movie_collection_sync_cron = "0 1 * * *"
 movie_heat_cron = "15 0 * * *"
 movie_interaction_sync_cron = "0 * * * *"
@@ -323,10 +290,17 @@ hot_review_sync_cron = "20 1 * * *"
 media_file_scan_cron = "0 */6 * * *"
 movie_desc_sync_cron = "0 4 * * *"
 movie_desc_translation_cron = "15 4 * * *"
+movie_title_translation_cron = "20 4 * * *"
 media_thumbnail_cron = "*/5 * * * *"
 image_search_index_cron = "0 0 * * *"
 image_search_optimize_cron = "0 3 * * *"
 movie_similarity_recompute_cron = "30 3 * * *"
+moment_recommendation_generate_cron = "0 4 * * *"
+daily_recommendation_generate_cron = "0 5 * * *"
+activity_cleanup_cron = "30 5 * * *"
+activity_event_retention_days = 1
+activity_task_run_retention_per_key = 200
+activity_notification_read_retention_days = 3
 ```
 
 字段说明：
@@ -348,13 +322,50 @@ movie_similarity_recompute_cron = "30 3 * * *"
 | `media_file_scan_cron` | 媒体文件巡检频率 |
 | `movie_desc_sync_cron` | 影片原文描述回填频率 |
 | `movie_desc_translation_cron` | 影片中文简介翻译频率 |
+| `movie_title_translation_cron` | 影片标题翻译频率 |
 | `media_thumbnail_cron` | 缩略图生成频率 |
 | `image_search_index_cron` | 图片搜索索引生成频率 |
 | `image_search_optimize_cron` | 图片搜索索引优化频率 |
 | `movie_similarity_recompute_cron` | 影片相似度离线重算频率 |
+| `moment_recommendation_generate_cron` | 推荐时刻生成频率 |
+| `daily_recommendation_generate_cron` | 每日推荐快照生成频率 |
+| `activity_cleanup_cron` | 活动中心数据清理频率 |
+| `activity_event_retention_days` | 活动事件保留天数 |
+| `activity_task_run_retention_per_key` | 每个任务键保留的运行记录条数 |
+| `activity_notification_read_retention_days` | 已读通知保留天数 |
 
 这组配置已经单独拆成了[后台任务](/guide/tasks)页面。  
 如果你想看“每个任务具体在做什么、哪些最关键、默认多久跑一次”，建议直接去那一页。
+
+## `[downloads]`
+
+这一组控制下载链路里的小文件清理行为。
+
+```toml
+[downloads]
+small_file_cleanup_threshold_mb = 256
+```
+
+字段说明：
+
+| 字段 | 默认值 | 作用 |
+|---|---|---|
+| `small_file_cleanup_threshold_mb` | `256` | 下载任务里小于该体积（MB）的文件会被当作无效文件清理，配合 `[scheduler].download_small_file_cleanup_cron` 定时执行 |
+
+## `[media_import]`
+
+这一组控制可视化导入历史媒体时，目录浏览允许进入的根目录白名单。
+
+```toml
+[media_import]
+browse_roots = ["/mnt"]
+```
+
+字段说明：
+
+| 字段 | 默认值 | 作用 |
+|---|---|---|
+| `browse_roots` | `["/mnt"]` | 导入已有媒体时，目录浏览 API 能访问的根目录白名单。这也是为什么媒体目录必须挂到容器内的 `/mnt` 下——挂到其他位置，在导入界面里就看不到、也选不到 |
 
 ## `[logging]`
 
@@ -375,40 +386,6 @@ level = "INFO"
 
 - 平时保持 `INFO`
 - 排查问题时再临时改成 `DEBUG`
-
-## `[indexer_settings]`
-
-这一组控制当前使用的索引器类型和 Jackett API Key。
-
-```toml
-[indexer_settings]
-type = "jackett"
-api_key = "change-me"
-```
-
-字段说明：
-
-| 字段 | 默认值 | 作用 |
-|---|---|---|
-| `type` | `jackett` | 索引器类型，当前只支持 `jackett` |
-| `api_key` | `change-me` | Jackett API Key |
-
-需要注意：
-
-- `type` 和 `api_key` 持久化在 `config.toml`
-- `indexers` 明细本身主要存储在数据库里
-- 这组配置可以在 app 里修改，修改后会覆盖掉 `config.toml` 中的对应内容
-
-完整示例里可能还会看到：
-
-```toml
-[[indexer_settings.indexers]]
-name = "mteam"
-url = "http://127.0.0.1:9117/api/v2.0/indexers/mteam/results/torznab/"
-kind = "pt"
-```
-
-这些属于具体 indexer 列表，不是第一次部署阶段必须手写的内容，通常更适合在 app 里维护。
 
 ## `[image_search]`
 
@@ -471,254 +448,6 @@ api_key = ""
 
 | 字段 | 作用 |
 |---|---|
-| `url` | Qdrant HTTP API 地址；compose 部署默认走容器内部服务名 `qdrant` |
+| `url` | Qdrant HTTP API 地址；compose 部署时默认走容器内部服务名 `qdrant` |
 | `api_key` | Qdrant API Key；未启用鉴权时留空 |
 
-建议：
-
-- Compose 部署时保持默认 `http://qdrant:6333` 即可
-- 仅当你独立部署 Qdrant 或开启了 Qdrant 鉴权时才需要改
-
-## 哪些配置第一次先别动
-
-如果你现在还处于“刚跑通”的阶段，通常不建议一上来就改：
-
-- `[media]`
-- `[qdrant]`
-- `[image_search]` 里的批量参数和优化参数
-- `[scheduler]` 里的 cron
-- `[auth]` 里的 token 过期时间和签名算法
-- `[logging]` 以外的大部分高级项
-
-更稳的节奏是：
-
-1. 先把服务跑起来
-2. 先确认登录、搜索、下载器配置、在线搜索都正常
-3. 再按实际问题去改配置
-
-## 完整配置示例
-
-下面这份示例按当前后端代码默认值整理，适合拿来做完整参考模板。
-
-```toml
-# !!!! 注意配置文件中所有涉及到路径的配置项都应该是用容器内的实际路径，不是宿主机的路径 !!!!
-
-# 是否启 Swagger / ReDoc 文档页面。
-enable_docs = false
-
-[database]
-# 数据库类型，可选值：sqlite、mysql、postgres。
-engine = "sqlite"
-# SQLite 数据库文件路径；仅当 engine=sqlite 时生效。
-path = "/data/db/sakuramedia.db"
-# MySQL 连接字符集；仅当 engine=mysql 时生效。
-charset = "utf8mb4"
-# MySQL / Postgres 连接串；仅当 engine=mysql 或 postgres 时生效。
-# 示例：
-# mysql://user:password@127.0.0.1:3306/sakuramedia
-# postgresql://user:password@127.0.0.1:5432/sakuramedia
-url = ""
-
-[auth]
-# 默认登录用户名。
-username = "account"
-# 默认登录密码。
-password = "account"
-# JWT 签名密钥，必须改成你自己的随机字符串。
-secret_key = "replace-with-a-random-secret-key"
-# JWT 签名算法。
-algorithm = "HS256"
-# Access Token 过期时间，单位：分钟。
-access_token_expire_minutes = 43200
-# Refresh Token 过期时间，单位：分钟。
-refresh_token_expire_minutes = 10080
-
-[media]
-# 合集影片的“番号特征”的关键词列表，比如 OFJE 等。
-others_number_features = ["OFJE", "CJOB", "DVAJ", "REBD"]
-# 识别为“内嵌字幕”的标签关键词。
-inner_sub_tags = ["中字", "-C", "-UC", "字幕组", "中文"]
-# 识别为“蓝光 / 高清版本”的标签关键词。
-blueray_tags = ["4K", "4k", "蓝光"]
-# 识别为“无码资源”的标签关键词。
-uncensored_tags = [
-  "無修正",
-  "UC",
-  "-UC",
-  "UNCENSORED",
-  "-U",
-  "流出",
-  "uncensored",
-  "无码",
-  "無码",
-  "破解",
-]
-# 识别为“无码资源”的番号前缀。
-uncensored_prefix = [
-  "CWDV",
-  "MK3D2DBD",
-  "RHJ",
-  "CWP",
-  "MMDV",
-  "LAF",
-  "SMD",
-  "SMBD",
-  "MKD",
-  "MCB3DBD",
-  "MKBD",
-  "CWBD",
-  "S2M",
-  "CW3D2DBD",
-  "MXBD",
-  "SM3D2DBD",
-  "PT-",
-  "BT",
-  "SKYHD",
-  "SKY-",
-  "MCBD",
-]
-# 允许导入的视频最小文件大小，单位：字节；设为 0 表示不限制。
-allowed_min_video_file_size = 1073741824
-# 导入时缓存图片的目录。
-import_image_root_path = "/data/cache/assets"
-# 字幕目录，用于整理导入时从影片资源同级目录识别到的字幕文件。
-subtitle_root_path = "/data/cache/subtitles"
-# 媒体缩略图生成任务的最大并发数。
-max_thumbnail_process_count = 4
-# 用户切片（ffmpeg 切出的独立 mp4）的存储目录。建议作为独立 docker 卷映射到本地持久化，
-# 目录需被容器运行用户可写。切片与来源媒体解耦，删除媒体不会删除切片文件。
-media_clip_root_path = "/data/media-clips"
-# 用户可圈选的切片最大时长（秒），仅约束圈选区间长度，不等于 ffmpeg 进程耗时。
-media_clip_max_duration_seconds = 900
-# 单次 ffmpeg 切片的墙钟超时（秒），兜住坏文件 / 慢挂载导致的进程卡死，超时即杀进程回收。
-media_clip_ffmpeg_timeout_seconds = 120
-
-[metadata]
-# JavDB API 域名，不带协议头。
-javdb_host = "jdforrepam.com"
-# DMM、MissAV 与 GFriends 共用的代理地址；JavDB 默认直连。不需要代理时留空。
-# 示例：http://192.168.1.1:7890；DMM 通常需要可访问日本站点的代理。
-proxy = ""
-# GFriends 文件树索引地址。
-gfriends_filetree_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends/Filetree.json"
-# GFriends CDN 根地址，用于拼接演员图片资源链接。
-gfriends_cdn_base_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends"
-# GFriends 文件树本地缓存路径。
-gfriends_filetree_cache_path = "/data/cache/gfriends/gfriends-filetree.json"
-# GFriends 文件树缓存有效期，单位：小时。
-gfriends_filetree_cache_ttl_hours = 168
-# 导入本地影片时，按番号抓取 JavDB 元数据的并发线程数。
-import_metadata_max_workers = 3
-
-[scheduler]
-# 是否启用定时任务。
-enabled = true
-# 定时任务日志目录。
-log_dir = "/data/logs"
-# 订阅女优影片同步任务 cron 表达式。
-actor_subscription_sync_cron = "0 2 * * *"
-# 已订阅缺失影片自动下载 cron 表达式。
-subscribed_movie_auto_download_cron = "30 2 * * *"
-# 下载任务状态同步 cron 表达式。
-download_task_sync_cron = "* * * * *"
-# 已完成下载自动导入 cron 表达式。
-download_task_auto_import_cron = "*/3 * * * *"
-# 下载小文件清理 cron 表达式。
-download_small_file_cleanup_cron = "*/5 * * * *"
-# 合集影片同步 cron 表达式。
-movie_collection_sync_cron = "0 1 * * *"
-# 影片热度重算 cron 表达式。
-movie_heat_cron = "15 0 * * *"
-# 影片互动数同步 cron 表达式。
-movie_interaction_sync_cron = "0 * * * *"
-# 榜单同步 cron 表达式。
-ranking_sync_cron = "45 1 * * *"
-# JavDB 热评同步 cron 表达式。
-hot_review_sync_cron = "20 1 * * *"
-# 巡检 media 记录对应文件并补视频信息。
-media_file_scan_cron = "0 */6 * * *"
-# 回填历史影片 DMM 原文描述。
-movie_desc_sync_cron = "0 4 * * *"
-# 翻译影片简介为中文。
-movie_desc_translation_cron = "15 4 * * *"
-# 翻译影片标题为中文。
-movie_title_translation_cron = "20 4 * * *"
-# 生成媒体资源缩略图。
-media_thumbnail_cron = "*/5 * * * *"
-# 生成以图搜图缩略图向量。
-image_search_index_cron = "0 0 * * *"
-# 优化以图搜图索引。
-image_search_optimize_cron = "0 3 * * *"
-# 影片相似度离线重算。
-movie_similarity_recompute_cron = "30 3 * * *"
-
-[movie_info_translation]
-# 是否启用影片信息翻译任务（简介翻译、标题翻译共用）。
-enabled = false
-# OpenAI 兼容服务地址。
-base_url = "https://ollama.com"
-# OpenAI 兼容服务 API Key；未启用时可留空。
-api_key = ""
-# 翻译使用的模型名称。
-model = "gemma4:31b-cloud"
-# 翻译请求总超时秒数。
-timeout_seconds = 120
-# 翻译请求建连超时秒数。
-connect_timeout_seconds = 3
-
-[image_search]
-# JoyTag 独立推理服务地址。
-inference_base_url = "http://joytag-infer:8001"
-# 推理服务总超时秒数。
-inference_timeout_seconds = 30
-# 推理服务建连超时秒数。
-inference_connect_timeout_seconds = 3
-# 推理服务 Bearer Token；未启用时留空。
-inference_api_key = ""
-# 索引任务调用远端推理时的批大小。
-inference_batch_size = 16
-# 搜索会话有效期，单位：秒。
-session_ttl_seconds = 600
-# 默认每页结果数。
-default_page_size = 20
-# 最大每页结果数。
-max_page_size = 100
-# 为凑满一页结果时，每次向量库扫描的批大小。
-search_scan_batch_size = 100
-# JoyTag 索引任务每次批量写入 Qdrant 的条数。
-index_upsert_batch_size = 100
-# JoyTag 索引任务每处理多少条成功记录后触发一次分段 optimize。
-optimize_every_records = 5000
-# JoyTag 索引任务距离上次 optimize 超过多少秒后触发一次分段 optimize。
-optimize_every_seconds = 1800
-# JoyTag 索引任务结束后是否再执行一次兜底 optimize。
-optimize_on_job_end = true
-
-[qdrant]
-# Qdrant 服务地址；compose 部署默认使用内部服务名 qdrant。
-url = "http://qdrant:6333"
-# Qdrant API Key；未启用鉴权时留空。
-api_key = ""
-
-[logging]
-# 全局日志等级。可选值：DEBUG、INFO、WARNING、ERROR、CRITICAL。
-level = "INFO"
-
-[indexer_settings]
-# 索引器类型，目前仅支持 jackett。这里的配置可以在 app 修改。
-type = "jackett"
-# Jackett API Key。
-api_key = "change-me"
-
-[[indexer_settings.indexers]]
-# 索引器显示名称，需保持唯一。
-name = "mteam"
-# Jackett Torznab 接口地址。
-url = "http://127.0.0.1:9117/api/v2.0/indexers/mteam/results/torznab/"
-# 索引器资源类型，可选值：pt、bt。
-kind = "pt"
-
-[database.pragmas]
-# SQLite 外键约束开关；仅当 engine=sqlite 时生效。
-foreign_keys = 1
-```
