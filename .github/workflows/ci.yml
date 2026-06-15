@@ -94,7 +94,9 @@ jobs:
 
   windows-build-checks:
     name: Windows analyze and build
-    runs-on: windows-latest
+    # 固定到 windows-2022:windows-latest 已升级到 VS2026(v18),
+    # 而 Flutter 3.29.3 不认识该版本会回退到 "Visual Studio 16 2019" 生成器导致构建失败。
+    runs-on: windows-2022
     if: github.event_name == 'workflow_dispatch'
 
     steps:
