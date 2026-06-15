@@ -6,8 +6,8 @@ hero:
     src: /brand/sakuramedia-logo.png
     alt: SakuraMedia logo
   name: SakuraMedia
-  text: 面向 NAS 用户的 Jav 观影平台
-  tagline: 提供以影片为中心，整合订阅、自动下载、观影、影片信息翻译与相似画面探索的一体化体验。
+  text: 面向 NAS 用户的 NSFW 观影平台
+  tagline: 提供以Jav影片为中心，整合订阅、自动下载、观影、影片信息翻译与相似画面探索的一体化体验，同时可用于非Jav影片的管理和观看。
   actions:
     - theme: brand
       text: 快速开始
