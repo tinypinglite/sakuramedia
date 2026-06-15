@@ -26,6 +26,9 @@ import 'package:sakuramedia/features/clip_collections/presentation/mobile_clip_c
 import 'package:sakuramedia/features/clip_collections/presentation/mobile_clip_collection_play_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/mobile_clip_collections_page.dart';
 import 'package:sakuramedia/features/external_player/presentation/mobile_external_player_settings_page.dart';
+import 'package:sakuramedia/features/videos/presentation/mobile_video_collection_detail_page.dart';
+import 'package:sakuramedia/features/videos/presentation/mobile_video_collection_play_page.dart';
+import 'package:sakuramedia/features/videos/presentation/mobile_video_collections_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_movie_player_page.dart';
 import 'package:sakuramedia/features/movies/presentation/mobile_series_movies_page.dart';
@@ -53,6 +56,8 @@ final GlobalKey<NavigatorState> mobileActorsNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'mobile-actors-navigator');
 final GlobalKey<NavigatorState> mobileRankingsNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'mobile-rankings-navigator');
+final GlobalKey<NavigatorState> mobilePornboxNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'mobile-pornbox-navigator');
 AppPlatform currentMobileRoutePlatform = AppPlatform.mobile;
 
 @TypedGoRoute<MobileLoginRouteData>(path: loginPath)
@@ -622,6 +627,97 @@ class MobileClipCollectionPlayRouteData extends _MobileCupertinoRouteData
   }
 }
 
+@TypedGoRoute<MobileVideoCollectionsRouteData>(path: mobileVideoCollectionsPath)
+class MobileVideoCollectionsRouteData extends _MobileSubpageRouteData
+    with $MobileVideoCollectionsRouteData {
+  const MobileVideoCollectionsRouteData();
+
+  @override
+  String get pageName => 'mobile-video-collections';
+
+  @override
+  String get title => '视频合集';
+
+  @override
+  String get defaultLocation => mobilePornboxPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileVideoCollectionsPage();
+  }
+}
+
+@TypedGoRoute<MobileVideoCollectionDetailRouteData>(
+  path: '$mobileVideoCollectionsPath/:collectionId',
+)
+class MobileVideoCollectionDetailRouteData extends _MobileSubpageRouteData
+    with $MobileVideoCollectionDetailRouteData {
+  const MobileVideoCollectionDetailRouteData({required this.collectionId});
+
+  final int collectionId;
+
+  @override
+  String get pageName => 'mobile-video-collection-detail';
+
+  @override
+  String get title => '合集';
+
+  @override
+  String get defaultLocation => mobileVideoCollectionsPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return MobileVideoCollectionDetailPage(collectionId: collectionId);
+  }
+}
+
+@TypedGoRoute<MobileVideoCollectionPlayRouteData>(
+  path: '$mobileVideoCollectionsPath/:collectionId/play',
+)
+class MobileVideoCollectionPlayRouteData extends _MobileCupertinoRouteData
+    with $MobileVideoCollectionPlayRouteData {
+  const MobileVideoCollectionPlayRouteData({
+    required this.collectionId,
+    this.startIndex = 0,
+    this.sort,
+  });
+
+  final int collectionId;
+  final int startIndex;
+  final String? sort;
+
+  @override
+  String get pageName => 'mobile-video-collection-play';
+
+  @override
+  String get location => buildRouteLocation(
+    path: '$mobileVideoCollectionsPath/$collectionId/play',
+    queryParameters: <String, String?>{
+      if (startIndex > 0) 'startIndex': '$startIndex',
+      if (sort != null && sort!.isNotEmpty) 'sort': sort,
+    },
+  );
+
+  @override
+  Widget buildCupertino(BuildContext context, GoRouterState state) {
+    return MobileVideoCollectionPlayPage(
+      collectionId: collectionId,
+      startIndex:
+          resolveIntQueryParameter(
+            state,
+            names: const <String>['startIndex', 'start-index'],
+            fallback: startIndex,
+          ) ??
+          0,
+      sort: resolveStringQueryParameter(
+        state,
+        names: const <String>['sort'],
+        fallback: sort,
+      ),
+    );
+  }
+}
+
 @TypedStatefulShellRoute<MobileRootShellRouteData>(
   branches: <TypedStatefulShellBranch<StatefulShellBranchData>>[
     TypedStatefulShellBranch<MobileOverviewBranchData>(
@@ -666,6 +762,11 @@ class MobileClipCollectionPlayRouteData extends _MobileCupertinoRouteData
     TypedStatefulShellBranch<MobileRankingsBranchData>(
       routes: <TypedRoute<RouteData>>[
         TypedGoRoute<MobileRankingsRouteData>(path: mobileRankingsPath),
+      ],
+    ),
+    TypedStatefulShellBranch<MobilePornboxBranchData>(
+      routes: <TypedRoute<RouteData>>[
+        TypedGoRoute<MobilePornboxRouteData>(path: mobilePornboxPath),
       ],
     ),
   ],
@@ -1230,6 +1331,13 @@ class MobileRankingsBranchData extends StatefulShellBranchData {
       mobileRankingsNavigatorKey;
 }
 
+class MobilePornboxBranchData extends StatefulShellBranchData {
+  const MobilePornboxBranchData();
+
+  static final GlobalKey<NavigatorState> $navigatorKey =
+      mobilePornboxNavigatorKey;
+}
+
 class MobileOverviewRouteData extends _MobilePrimarySpecRouteData
     with $MobileOverviewRouteData {
   const MobileOverviewRouteData() : super(mobileOverviewPath);
@@ -1248,6 +1356,11 @@ class MobileActorsRouteData extends _MobilePrimarySpecRouteData
 class MobileRankingsRouteData extends _MobilePrimarySpecRouteData
     with $MobileRankingsRouteData {
   const MobileRankingsRouteData() : super(mobileRankingsPath);
+}
+
+class MobilePornboxRouteData extends _MobilePrimarySpecRouteData
+    with $MobilePornboxRouteData {
+  const MobilePornboxRouteData() : super(mobilePornboxPath);
 }
 
 class MobilePlaylistDetailRouteData extends _MobileSubpageRouteData

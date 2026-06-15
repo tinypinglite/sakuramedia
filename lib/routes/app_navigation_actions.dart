@@ -48,6 +48,8 @@ extension AppNavigationActions on BuildContext {
         return const MobileActorsRouteData().go(this);
       case mobileRankingsPath:
         return const MobileRankingsRouteData().go(this);
+      case mobilePornboxPath:
+        return const MobilePornboxRouteData().go(this);
       default:
         return go(path);
     }

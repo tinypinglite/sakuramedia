@@ -146,18 +146,20 @@ void main() {
   });
 
   test('mobile navigation tree contains expected skeleton entries', () {
-    expect(mobileNavGroups.length, 4);
+    expect(mobileNavGroups.length, 5);
     expect(mobileNavGroups.map((group) => group.label), [
       '概览',
       '影片',
       '女优',
       '榜单',
+      'PornBox',
     ]);
     expect(mobileRouteSpecs.map((spec) => spec.path), [
       mobileOverviewPath,
       mobileMoviesPath,
       mobileActorsPath,
       mobileRankingsPath,
+      mobilePornboxPath,
     ]);
   });
 

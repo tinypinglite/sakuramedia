@@ -7,6 +7,7 @@ String mobileActorsPageStateKey() => 'mobile:actors:list';
 String desktopTagsPageStateKey() => 'desktop:tags:list';
 
 String desktopVideosPageStateKey() => 'desktop:videos:list';
+String mobilePornboxPageStateKey() => 'mobile:pornbox:list';
 String desktopVideoCollectionsPageStateKey() =>
     'desktop:video-collections:list';
 

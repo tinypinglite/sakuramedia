@@ -1,0 +1,192 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
+import 'package:provider/provider.dart';
+import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
+import 'package:sakuramedia/features/videos/data/videos_api.dart';
+import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/movie_player/landscape_player_system_ui.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
+
+/// 移动端单视频全屏横屏播放页：进入锁定横屏沉浸式、退出恢复原方向。
+///
+/// 与切片不同，视频列表项不含播放地址，需先 `GET /videos/{id}` 解析首个可播 media
+/// （与桌面 `video_quick_play_dialog` 一致）；本页放弃缩略图 / 进度上报，播放控件去掉
+/// 上一首 / 下一首，对齐切片全屏播放页。
+class MobileVideoPlayerPage extends StatefulWidget {
+  const MobileVideoPlayerPage({
+    super.key,
+    required this.videoId,
+    required this.title,
+  });
+
+  final int videoId;
+  final String title;
+
+  @override
+  State<MobileVideoPlayerPage> createState() => _MobileVideoPlayerPageState();
+}
+
+class _MobileVideoPlayerPageState extends State<MobileVideoPlayerPage> {
+  Player? _player;
+  VideoController? _controller;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(enterLandscapePlayerSystemUi());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    unawaited(restoreSystemUiAfterLandscapePlayer());
+    _player?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    if (!mounted) {
+      return;
+    }
+    final videosApi = context.read<VideosApi>();
+    final baseUrl = context.read<SessionStore>().baseUrl;
+    try {
+      final detail = await videosApi.getVideoDetail(videoId: widget.videoId);
+      if (!mounted) {
+        return;
+      }
+      final resolvedUrl = _resolvePlayableUrl(detail.mediaItems, baseUrl);
+      if (resolvedUrl == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = '暂无可播放的媒体';
+        });
+        return;
+      }
+      final player = Player();
+      final controller = VideoController(
+        player,
+        configuration: const VideoControllerConfiguration(hwdec: 'auto'),
+      );
+      setState(() {
+        _isLoading = false;
+        _player = player;
+        _controller = controller;
+      });
+      await player.open(Media(resolvedUrl));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _errorMessage = apiErrorMessage(error, fallback: '加载失败，请重试');
+      });
+    }
+  }
+
+  /// 从媒体列表挑首个可播放的 url 并解析为绝对地址，无可播放项返回 `null`。
+  String? _resolvePlayableUrl(
+    List<MovieMediaItemDto> mediaItems,
+    String? baseUrl,
+  ) {
+    for (final media in mediaItems) {
+      if (!media.hasPlayableUrl) {
+        continue;
+      }
+      final url = resolveMediaUrl(rawUrl: media.playUrl, baseUrl: baseUrl ?? '');
+      if (url != null && url.isNotEmpty) {
+        return url;
+      }
+    }
+    return null;
+  }
+
+  void _handleBack() {
+    // 本页用 Navigator.push（rootNavigator）推入、不在 go_router 栈内，
+    // 故用 Navigator 自身 pop，而非 go_router 的 context.pop。
+    Navigator.of(context).maybePop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(backgroundColor: Colors.black, body: _buildBody(context));
+  }
+
+  Widget _buildBody(BuildContext context) {
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppEmptyState(message: _errorMessage!),
+            const SizedBox(height: 12),
+            TextButton(
+              key: const Key('mobile-video-player-back-button'),
+              onPressed: _handleBack,
+              child: const Text('返回'),
+            ),
+          ],
+        ),
+      );
+    }
+    final controller = _controller;
+    if (_isLoading || controller == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return _buildPlayerSurface(context, controller);
+  }
+
+  Widget _buildPlayerSurface(
+    BuildContext context,
+    VideoController videoController,
+  ) {
+    final theme = Theme.of(context);
+    final title = widget.title.trim();
+    final topControls = buildMoviePlayerTopControls(
+      movieNumber: title.isEmpty ? '视频' : title,
+      onBackPressed: _handleBack,
+    );
+    const bottomControls = <Widget>[
+      MaterialPlayOrPauseButton(),
+      MaterialPositionIndicator(),
+      Spacer(),
+      MaterialFullscreenButton(),
+    ];
+    final desktopThemeData = buildMoviePlayerDesktopControlsThemeData(
+      theme: theme,
+      topControls: topControls,
+      bottomControls: bottomControls,
+    );
+    final mobileThemeData = buildMoviePlayerMobileControlsThemeData(
+      theme: theme,
+      topControls: topControls,
+      bottomControls: bottomControls,
+    );
+    return MaterialVideoControlsTheme(
+      normal: mobileThemeData,
+      fullscreen: mobileThemeData,
+      child: MaterialDesktopVideoControlsTheme(
+        normal: desktopThemeData,
+        fullscreen: desktopThemeData,
+        child: Video(
+          key: const Key('mobile-video-player-video'),
+          controller: videoController,
+          fit: BoxFit.contain,
+          fill: Colors.black,
+          controls: resolveMoviePlayerVideoControlsBuilder(
+            useTouchOptimizedControls: true,
+          ),
+        ),
+      ),
+    );
+  }
+}

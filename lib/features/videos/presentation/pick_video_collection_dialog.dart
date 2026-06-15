@@ -6,24 +6,46 @@ import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/presentation/create_video_collection_dialog.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+
+/// 目标合集选择器的呈现形态：桌面弹窗 / 移动端底部抽屉。
+enum PickVideoCollectionPresentation { dialog, bottomDrawer }
 
 /// 选择一个目标视频合集（批量加入合集用）。返回选中的合集；取消返回 `null`。
 ///
 /// 与单条即时加入的 [showAddToVideoCollectionDialog] 不同：本弹窗只负责「选中并返回」，
 /// 实际加入动作由调用方批量执行。
 Future<VideoCollectionDto?> showPickVideoCollectionDialog(
-  BuildContext context,
-) {
-  return showDialog<VideoCollectionDto>(
-    context: context,
-    builder: (dialogContext) => const _PickVideoCollectionDialog(),
-  );
+  BuildContext context, {
+  PickVideoCollectionPresentation presentation =
+      PickVideoCollectionPresentation.dialog,
+}) {
+  switch (presentation) {
+    case PickVideoCollectionPresentation.dialog:
+      return showDialog<VideoCollectionDto>(
+        context: context,
+        builder: (dialogContext) => const _PickVideoCollectionDialog(),
+      );
+    case PickVideoCollectionPresentation.bottomDrawer:
+      return showAppBottomDrawer<VideoCollectionDto>(
+        context: context,
+        drawerKey: const Key('pick-video-collection-bottom-sheet'),
+        maxHeightFactor: 0.7,
+        builder: (sheetContext) => const _PickVideoCollectionDialog(
+          presentation: PickVideoCollectionPresentation.bottomDrawer,
+        ),
+      );
+  }
 }
 
 class _PickVideoCollectionDialog extends StatefulWidget {
-  const _PickVideoCollectionDialog();
+  const _PickVideoCollectionDialog({
+    this.presentation = PickVideoCollectionPresentation.dialog,
+  });
+
+  final PickVideoCollectionPresentation presentation;
 
   @override
   State<_PickVideoCollectionDialog> createState() =>
@@ -36,6 +58,9 @@ class _PickVideoCollectionDialogState
   List<VideoCollectionDto> _collections = const <VideoCollectionDto>[];
   bool _isLoading = true;
   String? _error;
+
+  bool get _isBottomDrawer =>
+      widget.presentation == PickVideoCollectionPresentation.bottomDrawer;
 
   @override
   void initState() {
@@ -70,7 +95,12 @@ class _PickVideoCollectionDialogState
   }
 
   Future<void> _createAndPick() async {
-    final created = await showVideoCollectionDialog(context);
+    final created = await showVideoCollectionDialog(
+      context,
+      presentation: _isBottomDrawer
+          ? VideoCollectionEditPresentation.bottomDrawer
+          : VideoCollectionEditPresentation.dialog,
+    );
     if (created != null && mounted) {
       Navigator.of(context).pop(created);
     }
@@ -78,46 +108,56 @@ class _PickVideoCollectionDialogState
 
   @override
   Widget build(BuildContext context) {
+    final content = _buildContent(context);
+    if (_isBottomDrawer) {
+      return content;
+    }
+    return AppDesktopDialog(width: 420, child: content);
+  }
+
+  Widget _buildContent(BuildContext context) {
     final spacing = context.appSpacing;
-    return AppDesktopDialog(
-      width: 420,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '加入合集',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s16,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
-            ),
-          ),
-          SizedBox(height: spacing.md),
-          ConstrainedBox(
+    // 抽屉形态：列表占据抽屉剩余空间并内部滚动，表头/按钮常驻，整体由抽屉 maxHeightFactor
+    // 约束，避免矮屏上「表头 + 固定高列表 + 按钮」超过抽屉封顶导致溢出。桌面弹窗仍用固定上限。
+    final listSection = _isBottomDrawer
+        ? Flexible(child: _buildBody(context))
+        : ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 320),
             child: _buildBody(context),
+          );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '加入合集',
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s16,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
           ),
-          SizedBox(height: spacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  label: '新建合集并加入',
-                  onPressed: _createAndPick,
-                ),
+        ),
+        SizedBox(height: spacing.md),
+        listSection,
+        SizedBox(height: spacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: AppButton(
+                label: '新建合集并加入',
+                onPressed: _createAndPick,
               ),
-              SizedBox(width: spacing.md),
-              AppButton(
-                label: '关闭',
-                variant: AppButtonVariant.secondary,
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          ),
-        ],
-      ),
+            ),
+            SizedBox(width: spacing.md),
+            AppButton(
+              label: '关闭',
+              variant: AppButtonVariant.secondary,
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

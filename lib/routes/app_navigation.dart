@@ -19,6 +19,7 @@ import 'package:sakuramedia/features/playlists/presentation/desktop_playlists_pa
 import 'package:sakuramedia/features/rankings/presentation/desktop_rankings_page.dart';
 import 'package:sakuramedia/features/rankings/presentation/mobile_rankings_page.dart';
 import 'package:sakuramedia/features/videos/presentation/desktop_video_list_page.dart';
+import 'package:sakuramedia/features/videos/presentation/mobile_pornbox_page.dart';
 import 'package:sakuramedia/features/workbench/workbench_placeholder_page.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
@@ -75,6 +76,19 @@ const List<_NavSeed> _mobileNavSeeds = [
         label: '榜单',
         icon: Icons.local_fire_department_outlined,
         description: '移动端榜单骨架与后续推荐入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
+    id: 'pornbox',
+    label: 'PornBox',
+    icon: Icons.video_library_outlined,
+    items: [
+      _NavItemSeed(
+        slug: 'pornbox',
+        label: 'PornBox',
+        icon: Icons.video_library_outlined,
+        description: '移动端 PornBox 视频列表、合集与播放入口。',
       ),
     ],
   ),
@@ -316,6 +330,7 @@ final Map<String, WidgetBuilder> _mobileRouteBuilders = <String, WidgetBuilder>{
   mobileMoviesPath: (_) => const MobileMoviesPage(),
   mobileActorsPath: (_) => const MobileActorsPage(),
   mobileRankingsPath: (_) => const MobileRankingsPage(),
+  mobilePornboxPath: (_) => const MobilePornboxPage(),
 };
 
 List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
