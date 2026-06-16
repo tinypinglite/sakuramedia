@@ -209,6 +209,8 @@ media_clip_ffmpeg_timeout_seconds = 120
 ```toml
 [metadata]
 javdb_host = "jdforrepam.com"
+javdb_username = ""
+javdb_password = ""
 proxy = ""
 gfriends_filetree_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends/Filetree.json"
 gfriends_cdn_base_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends"
@@ -222,6 +224,8 @@ import_metadata_max_workers = 3
 | 字段 | 作用 |
 |---|---|
 | `javdb_host` | JavDB API 域名，不带协议头 |
+| `javdb_username` | JavDB 账号，用于抓取需登录的 TOP250 榜单（全部 / 有码 / 无码 / FC2 / 各年度）；留空则不抓 TOP250 |
+| `javdb_password` | JavDB 账号密码，与 `javdb_username` 配套使用 |
 | `proxy` | DMM、MissAV 与 GFriends 共用的 HTTP 代理地址；JavDB 默认直连 |
 | `gfriends_filetree_url` | GFriends 文件树索引地址 |
 | `gfriends_cdn_base_url` | GFriends CDN 根地址 |
@@ -234,6 +238,7 @@ import_metadata_max_workers = 3
 - 大多数元数据抓取场景只需要配置 `proxy`
 - `proxy` 同时用于 DMM 描述抓取、MissAV 页面访问和 GFriends 头像资源访问，DMM 需要你自行分流到日本代理节点
 - `javdb_host`、GFriends 相关地址通常不建议随便改
+- `javdb_username` / `javdb_password` 是可选项，只在需要 JavDB TOP250 榜单时填写；两者都留空时 TOP250 不会被抓取，填错时会在通知中心收到一条登录失败提醒
 
 ## `[movie_info_translation]`
 
