@@ -189,7 +189,7 @@ media_clip_ffmpeg_timeout_seconds = 120
 | `blueray_tags` | 识别“蓝光 / 高清版本”的标签关键词 |
 | `uncensored_tags` | 识别“无码资源”的标签关键词 |
 | `uncensored_prefix` | 识别“无码资源”的番号前缀 |
-| `allowed_min_video_file_size` | 允许导入的视频最小文件大小，单位字节 |
+| `allowed_min_video_file_size` | 允许导入的视频最小文件大小，单位**字节**。小于该值的文件会被判定为“文件太小”并跳过导入。默认 `1073741824`（= 1 GiB），即小于 1GB 的视频不会导入。常见换算：256MB = `268435456`、512MB = `536870912`、1GB = `1073741824`。若导入时提示“文件太小”，按需把该值调小即可。**不建议设为 `0` 或调得过低**：BT 种子常夹带大量垃圾小视频，阈值太低会把它们一并尝试导入，建议不要低于 256MB |
 | `import_image_root_path` | 导入时缓存图片的目录 |
 | `subtitle_root_path` | 字幕目录，用于整理导入时从影片资源同级目录识别到的字幕文件 |
 | `max_thumbnail_process_count` | 缩略图生成任务的最大并发数 |
