@@ -4,10 +4,10 @@
 
 <h1 align="center">SakuraMedia</h1>
 
-<p align="center">面向 NAS 用户的 NSFW 观影平台</p>
+<p align="center">面向 NAS 用户的 NSFW 观影平台 - 一个足以杀死Jav比赛的项目</p>
 
 <p align="center">
-提供以Jav影片为中心，整合订阅、自动下载、观影、影片信息翻译与相似画面探索的一体化体验，同时可用于非Jav影片的管理和观看。
+提供以Jav影片为中心，整合订阅、自动下载、观影、影片信息翻译与相似画面探索的一体化体验，同时可用于非Jav影片的管理和观看。**由Flutter开发提供全平台支持**
 </p>
 
 <p align="center">
