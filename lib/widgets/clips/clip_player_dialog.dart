@@ -7,6 +7,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/movie_player/themed_video_player.dart';
 
 /// 轻量切片播放弹层：用 media_kit 直接播放切片的签名 `stream_url`。
 ///
@@ -123,11 +124,17 @@ class _ClipPlayerDialogState extends State<ClipPlayerDialog> {
     if (controller == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    return Video(
-      key: const Key('clip-player-video'),
-      controller: controller,
-      fit: BoxFit.contain,
-      fill: Colors.black,
+    return ThemedVideoPlayer(
+      videoController: controller,
+      useTouchOptimizedControls: false,
+      videoKey: const Key('clip-player-video'),
+      bottomControls: const <Widget>[
+        MaterialPlayOrPauseButton(),
+        MaterialDesktopVolumeButton(),
+        MaterialPositionIndicator(),
+        Spacer(),
+        MaterialFullscreenButton(),
+      ],
     );
   }
 }

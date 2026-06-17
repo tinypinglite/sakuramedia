@@ -45,6 +45,7 @@ class _MobileVideoCollectionPlayPageState
       collectionId: widget.collectionId,
       startIndex: widget.startIndex,
       sort: widget.sort,
+      useTouchOptimizedControls: true,
     );
   }
 }

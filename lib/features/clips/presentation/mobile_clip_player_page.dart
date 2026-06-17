@@ -9,6 +9,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movie_player/landscape_player_system_ui.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
+import 'package:sakuramedia/widgets/movie_player/themed_video_player.dart';
 
 /// 移动端单切片全屏横屏播放页：进入锁定横屏沉浸式、退出恢复原方向。
 ///
@@ -111,44 +112,21 @@ class _MobileClipPlayerPageState extends State<MobileClipPlayerPage> {
     BuildContext context,
     VideoController videoController,
   ) {
-    final theme = Theme.of(context);
     final title = widget.title.trim();
-    final topControls = buildMoviePlayerTopControls(
-      movieNumber: title.isEmpty ? '切片' : title,
-      onBackPressed: _handleBack,
-    );
-    const bottomControls = <Widget>[
-      MaterialPlayOrPauseButton(),
-      MaterialPositionIndicator(),
-      Spacer(),
-      MaterialFullscreenButton(),
-    ];
-    final desktopThemeData = buildMoviePlayerDesktopControlsThemeData(
-      theme: theme,
-      topControls: topControls,
-      bottomControls: bottomControls,
-    );
-    final mobileThemeData = buildMoviePlayerMobileControlsThemeData(
-      theme: theme,
-      topControls: topControls,
-      bottomControls: bottomControls,
-    );
-    return MaterialVideoControlsTheme(
-      normal: mobileThemeData,
-      fullscreen: mobileThemeData,
-      child: MaterialDesktopVideoControlsTheme(
-        normal: desktopThemeData,
-        fullscreen: desktopThemeData,
-        child: Video(
-          key: const Key('mobile-clip-player-video'),
-          controller: videoController,
-          fit: BoxFit.contain,
-          fill: Colors.black,
-          controls: resolveMoviePlayerVideoControlsBuilder(
-            useTouchOptimizedControls: true,
-          ),
-        ),
+    return ThemedVideoPlayer(
+      videoController: videoController,
+      useTouchOptimizedControls: true,
+      videoKey: const Key('mobile-clip-player-video'),
+      topControls: buildMoviePlayerTopControls(
+        movieNumber: title.isEmpty ? '切片' : title,
+        onBackPressed: _handleBack,
       ),
+      bottomControls: const <Widget>[
+        MaterialPlayOrPauseButton(),
+        MaterialPositionIndicator(),
+        Spacer(),
+        MaterialFullscreenButton(),
+      ],
     );
   }
 }

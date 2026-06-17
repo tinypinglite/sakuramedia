@@ -30,7 +30,12 @@
 - **网格四态容器**(actor/video/ranked/moment/movie 等 Grid 一致):`LayoutBuilder` 按 `((w+spacing)/(target+spacing)).floor()` 算列数并钳位 + `shrinkWrap` + `NeverScrollableScrollPhysics`(外层滚动);四态顺序固定 **骨架→错误→空态(`AppEmptyState`)→内容**。列宽多用 token `movieCardTargetWidth`(image_search/moment 例外用裸值 220/280/300)。
 - **批量选择**:卡片约定 `selectionMode`+`isSelected`(选中换 `selectionBorder`、宽度 1→2、叠勾选标记、隐藏菜单/拖拽手柄);Grid 持 `Set<int> selectedIds`。多选状态机复用 `selection/multi_select_state_mixin.dart`。
 - **卡片「···」菜单**:右上角圆形 + 半透明黑底 + `PopupMenuButton`,菜单项靠回调是否 `null` 决定显隐。
-- **弹窗**:顶层 `showXxxDialog(...)` 函数包 `showDialog`/`showAppBottomDrawer`,内部 media_kit 播放弹窗(`ClipPlayerDialog`/`VideoQuickPlayDialog`)平行实现、不复用重型 `MoviePlayerSurface`。
+- **弹窗**:顶层 `showXxxDialog(...)` 函数包 `showDialog`/`showAppBottomDrawer`。media_kit 播放弹窗(`ClipPlayerDialog`/`VideoQuickPlayDialog`)仍用 `showDialog` + `AppDesktopDialog` 包壳,但**播放器本体统一走 `movie_player/themed_video_player.dart` 的 `ThemedVideoPlayer`**(见下)。
+- **播放器控制组件两层复用(统一入口)**:所有视频播放只走这两层之一,别再写裸 `Video` / 自己嵌三层控制主题。
+  - **层级一(重)`MoviePlayerSurface`**:仅影片应用内播放页用,自持 Player + 字幕 / 进度上报 / 缩略图圈选 / 播放信息。
+  - **层级二(轻)`ThemedVideoPlayer`**:其余全部播放入口(快播弹窗、单切片 / 单视频全屏页、切片 / 视频合集连播页)。调用方自建 `Player`/`VideoController` 传入,顶 / 底控制条按场景拼(合集有上一首 / 下一首,单片 / 弹窗没有);组件内部复用 `movie_player_surface.dart` 的 `buildMoviePlayerXxxControlsThemeData` + `resolveMoviePlayerVideoControlsBuilder` 套统一主题(进度条 / 全屏 / 音量样式一致)。
+  - `useTouchOptimizedControls`:**移动壳传 `true`(点击唤出控制条)、桌面 / 桌面弹窗传 `false`(hover 唤出)**。移动连播页是桌面连播页的薄壳,必须把该参数透传为 `true`,否则触摸端 hover 唤不出进度条(历史 bug)。改控制条样式 / 按钮只改 `ThemedVideoPlayer` 或那两个 themeData 构建函数,一处生效。
+- **合集连播「选集」浮层 `movie_player/episode_selector_overlay.dart`**:切片 / 视频合集连播页**不再用右侧常驻队列**,改为底栏(全屏按钮左侧)的「选集」按钮(`MaterialCustomButton`/`MaterialDesktopCustomButton`)唤出 `EpisodeSelectorOverlay`——右侧滑出剧集面板、点遮罩或选集关闭、展开时自动滚动定位当前集。两个合集页共用此组件,各传 `itemBuilder`(封面 + 名称 + 高亮 + 点击跳转)。**与影片播放器右侧的「视频信息」抽屉(`buildMoviePlayerInfoSideDrawerOverlay`)是两回事,互不复用、勿混改。**「选集」浮层是**页面级**的(Video 的兄弟节点),media_kit 全屏会 push 独立路由把它盖住——故底栏「选集」按钮**只在窗口态出现**(`ThemedVideoPlayer.fullscreenBottomControls` 传一份去掉该按钮的列表),全屏态不放,避免死按钮;换集需先退出全屏。`EpisodeSelectorOverlay` 行高(`itemExtent`)随系统字体缩放放大,防双行标题在放大字号下溢出。
 
 ## ⚠️ 重复实现多(copy-paste 警告)
 

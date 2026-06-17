@@ -40,6 +40,7 @@ class _MobileClipCollectionPlayPageState
     return DesktopClipCollectionPlayPage(
       collectionId: widget.collectionId,
       startIndex: widget.startIndex,
+      useTouchOptimizedControls: true,
     );
   }
 }
