@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/movie_player/themed_video_player.dart';
 
 /// 列表卡片「播放」icon 的轻量弹窗播放器：拉一次详情取默认（首个可播）媒体源，
 /// 用 media_kit 直接播放，无缩略图/字幕/进度上报。完整观看仍走详情页的独立播放页。
@@ -154,11 +155,17 @@ class _VideoQuickPlayDialogState extends State<VideoQuickPlayDialog> {
     if (_loading || controller == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    return Video(
-      key: const Key('video-quick-play-video'),
-      controller: controller,
-      fit: BoxFit.contain,
-      fill: Colors.black,
+    return ThemedVideoPlayer(
+      videoController: controller,
+      useTouchOptimizedControls: false,
+      videoKey: const Key('video-quick-play-video'),
+      bottomControls: const <Widget>[
+        MaterialPlayOrPauseButton(),
+        MaterialDesktopVolumeButton(),
+        MaterialPositionIndicator(),
+        Spacer(),
+        MaterialFullscreenButton(),
+      ],
     );
   }
 }

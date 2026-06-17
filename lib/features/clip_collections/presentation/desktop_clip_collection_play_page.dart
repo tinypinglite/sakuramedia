@@ -14,19 +14,25 @@ import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/movie_player/episode_selector_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
+import 'package:sakuramedia/widgets/movie_player/themed_video_player.dart';
 
-/// 切片合集连播独立页面：左侧 media_kit 播放器（原生 Playlist 自动连播），
-/// 右侧切片队列（当前高亮 / 点击跳转）。
+/// 切片合集连播独立页面：media_kit 播放器（原生 Playlist 自动连播）占满画面，
+/// 底部控制条「选集」按钮唤出右侧滑出的剧集面板（当前高亮 / 点击跳转）。
 class DesktopClipCollectionPlayPage extends StatefulWidget {
   const DesktopClipCollectionPlayPage({
     super.key,
     required this.collectionId,
     this.startIndex = 0,
+    this.useTouchOptimizedControls = false,
   });
 
   final int collectionId;
   final int startIndex;
+
+  /// 触摸优化控件开关：移动壳传 `true`（点击唤出控制条），桌面默认 `false`（hover 唤出）。
+  final bool useTouchOptimizedControls;
 
   @override
   State<DesktopClipCollectionPlayPage> createState() =>
@@ -43,6 +49,7 @@ class _DesktopClipCollectionPlayPageState
   bool _isLoading = true;
   String? _errorMessage;
   int _currentIndex = 0;
+  bool _isEpisodePanelOpen = false;
 
   @override
   void initState() {
@@ -174,11 +181,27 @@ class _DesktopClipCollectionPlayPageState
     if (videoController == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Stack(
       children: [
-        Expanded(child: _buildPlayerSurface(context, videoController)),
-        _buildQueue(context),
+        Positioned.fill(child: _buildPlayerSurface(context, videoController)),
+        EpisodeSelectorOverlay(
+          isOpen: _isEpisodePanelOpen,
+          itemCount: _clips.length,
+          currentIndex: _currentIndex,
+          title: '选集 · ${_clips.length}',
+          onClose: _closeEpisodePanel,
+          itemBuilder: (context, index) {
+            return _QueueItem(
+              clip: _clips[index],
+              index: index,
+              isCurrent: index == _currentIndex,
+              onTap: () {
+                _closeEpisodePanel();
+                _jumpTo(index);
+              },
+            );
+          },
+        ),
       ],
     );
   }
@@ -187,95 +210,67 @@ class _DesktopClipCollectionPlayPageState
     BuildContext context,
     VideoController videoController,
   ) {
-    final theme = Theme.of(context);
-    final topControls = buildMoviePlayerTopControls(
-      movieNumber: _currentClipTitle(),
-      onBackPressed: _handleBack,
-    );
-    final desktopThemeData = buildMoviePlayerDesktopControlsThemeData(
-      theme: theme,
-      topControls: topControls,
-      bottomControls: const <Widget>[
-        MaterialDesktopSkipPreviousButton(),
-        MaterialPlayOrPauseButton(),
-        MaterialDesktopSkipNextButton(),
-        MaterialDesktopVolumeButton(),
-        MaterialPositionIndicator(),
-        Spacer(),
-        MaterialFullscreenButton(),
-      ],
-    );
-    final mobileThemeData = buildMoviePlayerMobileControlsThemeData(
-      theme: theme,
-      topControls: topControls,
-      bottomControls: const <Widget>[
-        MaterialSkipPreviousButton(),
-        MaterialPlayOrPauseButton(),
-        MaterialSkipNextButton(),
-        MaterialPositionIndicator(),
-        Spacer(),
-        MaterialFullscreenButton(),
-      ],
-    );
-    return MaterialVideoControlsTheme(
-      normal: mobileThemeData,
-      fullscreen: mobileThemeData,
-      child: MaterialDesktopVideoControlsTheme(
-        normal: desktopThemeData,
-        fullscreen: desktopThemeData,
-        child: Video(
-          key: const Key('clip-collection-play-video'),
-          controller: videoController,
-          fit: BoxFit.contain,
-          fill: Colors.black,
-          controls: resolveMoviePlayerVideoControlsBuilder(
-            useTouchOptimizedControls: false,
-          ),
-        ),
+    return ThemedVideoPlayer(
+      videoController: videoController,
+      useTouchOptimizedControls: widget.useTouchOptimizedControls,
+      videoKey: const Key('clip-collection-play-video'),
+      topControls: buildMoviePlayerTopControls(
+        movieNumber: _currentClipTitle(),
+        onBackPressed: _handleBack,
+      ),
+      bottomControls: _buildBottomControls(),
+      // 全屏由 media_kit push 独立路由，页面级「选集」浮层不在其内，按钮点了
+      // 也看不到——全屏态去掉该按钮，避免死按钮。换集需先退出全屏。
+      fullscreenBottomControls: _buildBottomControls(
+        includeEpisodeButton: false,
       ),
     );
   }
 
-  Widget _buildQueue(BuildContext context) {
-    final spacing = context.appSpacing;
-    return Container(
-      width: 320,
-      color: context.appColors.surfaceElevated,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.all(spacing.md),
-            child: Text(
-              '播放队列 · ${_clips.length}',
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.semibold,
-                tone: AppTextTone.primary,
-              ),
-            ),
+  /// 合集连播底栏：含上一首 / 下一首 + 全屏左侧的「选集」按钮。按平台选对应控件
+  /// 变体——移动用触摸版、桌面用 Desktop 版（多一个音量按钮）。
+  /// [includeEpisodeButton] 为 `false` 时省略「选集」按钮（全屏态用，浮层在全屏不可见）。
+  List<Widget> _buildBottomControls({bool includeEpisodeButton = true}) {
+    if (widget.useTouchOptimizedControls) {
+      return <Widget>[
+        const MaterialSkipPreviousButton(),
+        const MaterialPlayOrPauseButton(),
+        const MaterialSkipNextButton(),
+        const MaterialPositionIndicator(),
+        const Spacer(),
+        if (includeEpisodeButton)
+          MaterialCustomButton(
+            onPressed: _openEpisodePanel,
+            icon: const Icon(Icons.playlist_play_rounded),
           ),
-          Expanded(
-            child: ListView.separated(
-              key: const Key('clip-collection-play-queue'),
-              padding: EdgeInsets.symmetric(horizontal: spacing.sm),
-              itemCount: _clips.length,
-              separatorBuilder:
-                  (context, index) => SizedBox(height: spacing.xs),
-              itemBuilder: (context, index) {
-                return _QueueItem(
-                  clip: _clips[index],
-                  index: index,
-                  isCurrent: index == _currentIndex,
-                  onTap: () => _jumpTo(index),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
+        const MaterialFullscreenButton(),
+      ];
+    }
+    return <Widget>[
+      const MaterialDesktopSkipPreviousButton(),
+      const MaterialPlayOrPauseButton(),
+      const MaterialDesktopSkipNextButton(),
+      const MaterialDesktopVolumeButton(),
+      const MaterialPositionIndicator(),
+      const Spacer(),
+      if (includeEpisodeButton)
+        MaterialDesktopCustomButton(
+          onPressed: _openEpisodePanel,
+          icon: const Icon(Icons.playlist_play_rounded),
+        ),
+      const MaterialFullscreenButton(),
+    ];
+  }
+
+  void _openEpisodePanel() {
+    setState(() => _isEpisodePanelOpen = true);
+  }
+
+  void _closeEpisodePanel() {
+    if (!_isEpisodePanelOpen) {
+      return;
+    }
+    setState(() => _isEpisodePanelOpen = false);
   }
 }
 
