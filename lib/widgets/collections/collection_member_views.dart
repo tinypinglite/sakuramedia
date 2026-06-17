@@ -21,6 +21,8 @@ class CollectionMemberMenu extends StatelessWidget {
     this.onOpenSource,
     this.openSourceLabel,
     this.removeLabel = '移出合集',
+    this.onDelete,
+    this.deleteLabel = '删除视频',
     this.onCover = true,
   });
 
@@ -31,12 +33,18 @@ class CollectionMemberMenu extends StatelessWidget {
   final VoidCallback? onOpenSource;
   final String? openSourceLabel;
   final String removeLabel;
+
+  /// 「删除本体」动作（如视频合集的「删除视频」，连同文件不可恢复）；为 `null` 时该
+  /// 菜单项隐藏（切片合集等不提供本体删除的场景）。
+  final VoidCallback? onDelete;
+  final String deleteLabel;
   final bool onCover;
 
   @override
   Widget build(BuildContext context) {
     final label = openSourceLabel;
     final openSource = onOpenSource;
+    final delete = onDelete;
     final menuButton = PopupMenuButton<_MemberMenuAction>(
       key: menuKey,
       tooltip: '更多',
@@ -54,6 +62,8 @@ class CollectionMemberMenu extends StatelessWidget {
             openSource?.call();
           case _MemberMenuAction.remove:
             onRemove();
+          case _MemberMenuAction.delete:
+            delete?.call();
         }
       },
       itemBuilder: (context) => <PopupMenuEntry<_MemberMenuAction>>[
@@ -64,11 +74,23 @@ class CollectionMemberMenu extends StatelessWidget {
           ),
         PopupMenuItem<_MemberMenuAction>(
           value: _MemberMenuAction.remove,
+          // 无「删除本体」时（如切片合集）「移出合集」保持原有 error 强调色；与红色
+          // 删除项并列时退为常规色，让破坏性的「删除」独占红色、层级清晰。
           child: Text(
             removeLabel,
-            style: TextStyle(color: context.appTextPalette.error),
+            style: delete == null
+                ? TextStyle(color: context.appTextPalette.error)
+                : null,
           ),
         ),
+        if (delete != null)
+          PopupMenuItem<_MemberMenuAction>(
+            value: _MemberMenuAction.delete,
+            child: Text(
+              deleteLabel,
+              style: TextStyle(color: context.appTextPalette.error),
+            ),
+          ),
       ],
     );
 
@@ -88,7 +110,7 @@ class CollectionMemberMenu extends StatelessWidget {
   }
 }
 
-enum _MemberMenuAction { openSource, remove }
+enum _MemberMenuAction { openSource, remove, delete }
 
 /// 合集成员的列表行：封面贴满左侧 + 标题/副信息，悬停显现拖拽手柄与更多菜单。
 /// 整行点击触发 [onTap]（通常为从该位置连播整个合集）。
@@ -105,6 +127,7 @@ class CollectionMemberRow extends StatelessWidget {
     required this.menuKey,
     required this.dragHandleKey,
     this.onRemove,
+    this.onDelete,
     this.subtitle,
     this.onOpenSource,
     this.openSourceLabel,
@@ -129,6 +152,9 @@ class CollectionMemberRow extends StatelessWidget {
 
   /// 「移出合集」动作；为 `null` 时整行不渲染「···」菜单（移动端改为整行点击弹抽屉）。
   final VoidCallback? onRemove;
+
+  /// 「删除本体」动作（如视频合集的「删除视频」）；为 `null` 时菜单不含该项。
+  final VoidCallback? onDelete;
   final String? subtitle;
   final VoidCallback? onOpenSource;
   final String? openSourceLabel;
@@ -273,6 +299,7 @@ class CollectionMemberRow extends StatelessWidget {
                     onOpenSource: onOpenSource,
                     openSourceLabel: openSourceLabel,
                     onRemove: onRemove!,
+                    onDelete: onDelete,
                   ),
                   SizedBox(width: spacing.sm),
                 ],
@@ -300,6 +327,7 @@ class CollectionMemberCard extends StatelessWidget {
     required this.onTap,
     required this.menuKey,
     this.onRemove,
+    this.onDelete,
     this.subtitle,
     this.onOpenSource,
     this.openSourceLabel,
@@ -320,6 +348,9 @@ class CollectionMemberCard extends StatelessWidget {
 
   /// 「移出合集」动作；为 `null` 时封面不渲染「···」菜单（移动端改为整卡点击弹抽屉）。
   final VoidCallback? onRemove;
+
+  /// 「删除本体」动作（如视频合集的「删除视频」）；为 `null` 时菜单不含该项。
+  final VoidCallback? onDelete;
   final String? subtitle;
   final VoidCallback? onOpenSource;
   final String? openSourceLabel;
@@ -399,6 +430,7 @@ class CollectionMemberCard extends StatelessWidget {
           onOpenSource: onOpenSource,
           openSourceLabel: openSourceLabel,
           onRemove: onRemove!,
+          onDelete: onDelete,
         );
 
   /// 上图下文：封面在上、标题/副信息在下。

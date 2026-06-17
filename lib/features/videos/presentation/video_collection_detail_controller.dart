@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
+import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
 
 /// 视频合集详情控制器：加载合集与有序成员，支持排序、乐观重排与移除。
@@ -13,10 +14,12 @@ class VideoCollectionDetailController extends ChangeNotifier {
   VideoCollectionDetailController({
     required this.collectionId,
     required this.collectionsApi,
+    required this.videosApi,
   });
 
   final int collectionId;
   final VideoCollectionsApi collectionsApi;
+  final VideosApi videosApi;
 
   VideoCollectionDto? _collection;
   List<VideoCollectionItemDto> _items = const <VideoCollectionItemDto>[];
@@ -164,6 +167,30 @@ class VideoCollectionDetailController extends ChangeNotifier {
     } catch (error) {
       _items = previous;
       return apiErrorMessage(error, fallback: '移除失败，请重试');
+    } finally {
+      _isMutating = false;
+      notifyListeners();
+    }
+  }
+
+  /// 彻底删除视频本体（连同文件，不可恢复，乐观更新）；成功返回 `null`，失败回滚并
+  /// 返回错误消息。与 [removeItem] 区别：调用 `videosApi.deleteVideo` 删除视频本身，
+  /// 而非仅解除合集归属，因此调用方成功后应广播 `reportDeleted`（而非成员变化）。
+  Future<String?> deleteVideo(int itemId, int videoId) async {
+    if (_isMutating) {
+      return null;
+    }
+    final previous = _items;
+    _items =
+        _items.where((item) => item.itemId != itemId).toList(growable: false);
+    _isMutating = true;
+    notifyListeners();
+    try {
+      await videosApi.deleteVideo(videoId);
+      return null;
+    } catch (error) {
+      _items = previous;
+      return apiErrorMessage(error, fallback: '删除失败，请重试');
     } finally {
       _isMutating = false;
       notifyListeners();

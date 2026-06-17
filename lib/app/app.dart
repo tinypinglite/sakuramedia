@@ -47,6 +47,22 @@ import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
 
+/// 允许发起拖拽滚动的指针类型集合(应用全局 [ScrollConfiguration] 使用)。
+///
+/// 必须为 [PointerDeviceKind] 全集 —— 尤其不能漏掉 [PointerDeviceKind.unknown]:
+/// 无障碍服务 / 远程控制工具(如 Android VoiceAccess、RustDesk 经
+/// `AccessibilityService.dispatchGesture` 注入的滑动手势)上报的 pointer kind
+/// 即为 unknown,缺它会导致这类来源只能点击、无法滚动(Flutter 框架默认集合
+/// `_kTouchLikeDeviceTypes` 同样包含 unknown,原因一致)。
+const Set<PointerDeviceKind> kAppScrollDragDevices = <PointerDeviceKind>{
+  PointerDeviceKind.touch,
+  PointerDeviceKind.mouse,
+  PointerDeviceKind.stylus,
+  PointerDeviceKind.invertedStylus,
+  PointerDeviceKind.trackpad,
+  PointerDeviceKind.unknown,
+};
+
 class MyApp extends StatefulWidget {
   const MyApp({super.key, this.platformOverride, this.sessionStore});
 
@@ -285,13 +301,7 @@ class _MyAppState extends State<MyApp> {
             return AppImageFullscreenHost(
               child: ScrollConfiguration(
                 behavior: const MaterialScrollBehavior().copyWith(
-                  dragDevices: const {
-                    PointerDeviceKind.mouse,
-                    PointerDeviceKind.touch,
-                    PointerDeviceKind.trackpad,
-                    PointerDeviceKind.stylus,
-                    PointerDeviceKind.invertedStylus,
-                  },
+                  dragDevices: kAppScrollDragDevices,
                 ),
                 child: child ?? const SizedBox.shrink(),
               ),

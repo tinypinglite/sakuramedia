@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
+import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/features/videos/presentation/video_collection_detail_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
 
@@ -13,6 +14,7 @@ void main() {
   late SessionStore sessionStore;
   late ApiClient apiClient;
   late VideoCollectionsApi collectionsApi;
+  late VideosApi videosApi;
   late FakeHttpClientAdapter adapter;
 
   setUp(() async {
@@ -25,6 +27,7 @@ void main() {
     );
     apiClient = ApiClient(sessionStore: sessionStore);
     collectionsApi = VideoCollectionsApi(apiClient: apiClient);
+    videosApi = VideosApi(apiClient: apiClient);
     adapter = FakeHttpClientAdapter();
     apiClient.rawDio.httpClientAdapter = adapter;
     apiClient.rawRefreshDio.httpClientAdapter = adapter;
@@ -94,6 +97,7 @@ void main() {
     final controller = VideoCollectionDetailController(
       collectionId: 3,
       collectionsApi: collectionsApi,
+      videosApi: videosApi,
     );
     await controller.load();
     expect(
@@ -131,6 +135,7 @@ void main() {
     final controller = VideoCollectionDetailController(
       collectionId: 3,
       collectionsApi: collectionsApi,
+      videosApi: videosApi,
     );
     await controller.load();
 
@@ -158,6 +163,7 @@ void main() {
     final controller = VideoCollectionDetailController(
       collectionId: 3,
       collectionsApi: collectionsApi,
+      videosApi: videosApi,
     );
     await controller.load();
 
@@ -187,10 +193,72 @@ void main() {
     final controller = VideoCollectionDetailController(
       collectionId: 3,
       collectionsApi: collectionsApi,
+      videosApi: videosApi,
     );
     await controller.load();
 
     final error = await controller.removeItem(100);
+
+    expect(error, isNotNull);
+    // 失败回滚，成员仍在。
+    expect(
+      controller.items.map((item) => item.itemId).toList(),
+      <int>[100, 101],
+    );
+    expect(controller.isMutating, isFalse);
+
+    controller.dispose();
+  });
+
+  test('deleteVideo 成功：乐观移除该成员并返回 null', () async {
+    enqueueLoad();
+    // 删除的是视频本体（itemId 100 对应 video.id 1）。
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/videos/1',
+      statusCode: 204,
+      body: const <String, dynamic>{},
+    );
+
+    final controller = VideoCollectionDetailController(
+      collectionId: 3,
+      collectionsApi: collectionsApi,
+      videosApi: videosApi,
+    );
+    await controller.load();
+
+    final error = await controller.deleteVideo(100, 1);
+
+    expect(error, isNull);
+    expect(
+      controller.items.map((item) => item.itemId).toList(),
+      <int>[101],
+    );
+    expect(adapter.requests.last.path, '/videos/1');
+    expect(controller.isMutating, isFalse);
+
+    controller.dispose();
+  });
+
+  test('deleteVideo 失败：回滚并返回错误消息', () async {
+    enqueueLoad();
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/videos/1',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+      },
+    );
+
+    final controller = VideoCollectionDetailController(
+      collectionId: 3,
+      collectionsApi: collectionsApi,
+      videosApi: videosApi,
+    );
+    await controller.load();
+
+    final error = await controller.deleteVideo(100, 1);
 
     expect(error, isNotNull);
     // 失败回滚，成员仍在。
@@ -209,6 +277,7 @@ void main() {
     final controller = VideoCollectionDetailController(
       collectionId: 3,
       collectionsApi: collectionsApi,
+      videosApi: videosApi,
     );
     await controller.load();
 
@@ -236,6 +305,7 @@ void main() {
     final controller = VideoCollectionDetailController(
       collectionId: 3,
       collectionsApi: collectionsApi,
+      videosApi: videosApi,
     );
     await controller.load();
 
@@ -273,6 +343,7 @@ void main() {
     final controller = VideoCollectionDetailController(
       collectionId: 3,
       collectionsApi: collectionsApi,
+      videosApi: videosApi,
     );
     await controller.load();
     await controller.applySort(field: VideoSortField.title);

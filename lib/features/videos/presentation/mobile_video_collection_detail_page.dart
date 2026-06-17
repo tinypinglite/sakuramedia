@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
+import 'package:sakuramedia/features/clips/presentation/mobile_clip_confirm_drawer.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
+import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/features/videos/presentation/mobile_video_actions_sheet.dart';
 import 'package:sakuramedia/features/videos/presentation/video_collection_detail_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
@@ -52,6 +54,7 @@ class _MobileVideoCollectionDetailPageState
     _controller = VideoCollectionDetailController(
       collectionId: widget.collectionId,
       collectionsApi: context.read<VideoCollectionsApi>(),
+      videosApi: context.read<VideosApi>(),
     )..load();
   }
 
@@ -245,6 +248,7 @@ class _MobileVideoCollectionDetailPageState
       video: video,
       onPlay: () => _playFrom(index),
       onRemoveFromCollection: () => _removeItem(itemId, video.id),
+      onDelete: () => _deleteVideo(itemId, video),
     );
   }
 
@@ -269,5 +273,31 @@ class _MobileVideoCollectionDetailPageState
       );
     }
     showToast(error ?? '已从合集移除');
+  }
+
+  /// 彻底删除视频本体（含文件，不可恢复）：先弹底部确认抽屉，再走控制器乐观删除并广播
+  /// [VideoMutationChangeNotifier.reportDeleted]，与「全部视频」页的删除一致。
+  Future<void> _deleteVideo(int itemId, VideoItemListItemDto video) async {
+    final title = video.preferredTitle.trim();
+    final label = title.isEmpty ? '该视频' : '“$title”';
+    final confirmed = await showMobileClipConfirmDrawer(
+      context,
+      title: '删除视频',
+      message: '确认删除$label？该操作不可恢复。',
+      confirmLabel: '删除',
+      drawerKey: const Key('mobile-video-collection-delete-drawer'),
+      confirmButtonKey: const Key('mobile-video-collection-delete-confirm-button'),
+    );
+    if (!mounted || confirmed != true) {
+      return;
+    }
+    final error = await _controller.deleteVideo(itemId, video.id);
+    if (!mounted) {
+      return;
+    }
+    if (error == null) {
+      _mutationNotifier.reportDeleted(video.id);
+    }
+    showToast(error ?? '已删除视频');
   }
 }

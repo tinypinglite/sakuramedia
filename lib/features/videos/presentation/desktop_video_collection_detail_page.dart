@@ -54,6 +54,7 @@ class _DesktopVideoCollectionDetailPageState
     _controller = VideoCollectionDetailController(
       collectionId: widget.collectionId,
       collectionsApi: context.read<VideoCollectionsApi>(),
+      videosApi: context.read<VideosApi>(),
     )..load();
   }
 
@@ -107,6 +108,43 @@ class _DesktopVideoCollectionDetailPageState
       );
     }
     showToast(error ?? '已从合集移除');
+  }
+
+  /// 彻底删除视频本体（含文件，不可恢复）：先确认，再走控制器乐观删除并广播
+  /// [VideoMutationChangeNotifier.reportDeleted]，让列表页网格精准移除、合集横滑区刷新。
+  Future<void> _deleteVideo(int itemId) async {
+    int? videoId;
+    var title = '';
+    for (final item in _controller.items) {
+      if (item.itemId == itemId) {
+        videoId = item.video.id;
+        title = item.video.preferredTitle.trim();
+        break;
+      }
+    }
+    if (videoId == null) {
+      return;
+    }
+    final label = title.isEmpty ? '该视频' : '“$title”';
+    final ok = await showAppConfirmDialog(
+      context,
+      title: '删除视频',
+      message: '确认删除$label？该操作不可恢复。',
+      danger: true,
+      confirmLabel: '删除',
+      confirmKey: const Key('video-collection-delete-confirm-button'),
+    );
+    if (!mounted || !ok) {
+      return;
+    }
+    final error = await _controller.deleteVideo(itemId, videoId);
+    if (!mounted) {
+      return;
+    }
+    if (error == null) {
+      _mutationNotifier.reportDeleted(videoId);
+    }
+    showToast(error ?? '已删除视频');
   }
 
   List<VideoCollectionItemDto> _selectedItems() => _controller.items
@@ -436,6 +474,7 @@ class _DesktopVideoCollectionDetailPageState
         menuKey: Key('video-collection-menu-${item.itemId}'),
         dragHandleKey: Key('video-reorder-handle-${item.itemId}'),
         onRemove: () => _removeItem(item.itemId),
+        onDelete: () => _deleteVideo(item.itemId),
         placeholderIcon: Icons.video_library_outlined,
         titleMaxLines: 2,
         reorderable: canReorder,
@@ -511,6 +550,7 @@ class _DesktopVideoCollectionDetailPageState
               : () => _playFrom(index),
           menuKey: Key('video-collection-grid-menu-${item.itemId}'),
           onRemove: () => _removeItem(item.itemId),
+          onDelete: () => _deleteVideo(item.itemId),
           placeholderIcon: Icons.video_library_outlined,
           titleMaxLines: 2,
           overlayCaption: true,
