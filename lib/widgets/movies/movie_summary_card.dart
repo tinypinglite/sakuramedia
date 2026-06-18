@@ -230,6 +230,9 @@ class _RankBadge extends StatelessWidget {
   }
 }
 
+/// 封面按「图源 + 番号」择优渲染:FC2- 番号用主封面 + [BoxFit.contain](其封面多为横图,
+/// cover 会裁切);其余优先用瘦封面(竖图,默认 cover 铺满),无瘦封面再退主封面 + contain;
+/// 都缺失则渲染占位渐变。
 class _MovieCover extends StatelessWidget {
   const _MovieCover({
     required this.movieNumber,
@@ -247,6 +250,11 @@ class _MovieCover extends StatelessWidget {
     final componentTokens = context.appComponentTokens;
     final thinCoverUrl = _resolveMovieImageUrl(thinCoverImage);
     final coverUrl = _resolveMovieImageUrl(coverImage);
+
+    // FC2- 番号统一用主封面 + contain 完整展示(其封面多为横图,cover 会裁切)。
+    if (movieNumber.startsWith('FC2-') && coverUrl != null) {
+      return MaskedImage(url: coverUrl, fit: BoxFit.contain);
+    }
 
     if (thinCoverUrl != null) {
       return MaskedImage(url: thinCoverUrl);

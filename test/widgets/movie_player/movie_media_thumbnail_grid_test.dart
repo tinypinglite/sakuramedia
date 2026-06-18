@@ -76,13 +76,8 @@ void main() {
       maskedImage.memCacheWidth,
       _expectedDecodeDimension(extent: renderedSize.width, devicePixelRatio: 2),
     );
-    expect(
-      maskedImage.memCacheHeight,
-      _expectedDecodeDimension(
-        extent: renderedSize.height,
-        devicePixelRatio: 2,
-      ),
-    );
+    // 只按宽给解码提示（保宽高比、不拉伸），不给高。
+    expect(maskedImage.memCacheHeight, isNull);
   });
 
   testWidgets('thumbnail grid caps decode hints at 2x device pixel ratio', (
@@ -108,13 +103,7 @@ void main() {
         devicePixelRatio: 3.5,
       ),
     );
-    expect(
-      maskedImage.memCacheHeight,
-      _expectedDecodeDimension(
-        extent: renderedSize.height,
-        devicePixelRatio: 3.5,
-      ),
-    );
+    expect(maskedImage.memCacheHeight, isNull);
   });
 
   testWidgets('thumbnail grid caps decode hints to 1024 upper bound', (
@@ -140,7 +129,7 @@ void main() {
     );
 
     expect(maskedImage.memCacheWidth, 1024);
-    expect(maskedImage.memCacheHeight, 1024);
+    expect(maskedImage.memCacheHeight, isNull);
   });
 
   testWidgets('thumbnail grid shows retry action when loading fails', (
@@ -553,6 +542,42 @@ void main() {
 
     expect(requestedIndex, 1);
     expect(requestedPosition, equals(center));
+  });
+
+  group('adaptive thumbnail fit', () {
+    test('portrait / squarish (ratio < 1.5) uses contain', () {
+      expect(resolveAdaptiveThumbnailFit(720 / 1280), BoxFit.contain); // 0.5625
+      expect(resolveAdaptiveThumbnailFit(1.49), BoxFit.contain);
+    });
+
+    test('landscape / wide (ratio >= 1.5) uses cover', () {
+      expect(resolveAdaptiveThumbnailFit(16 / 9), BoxFit.cover); // 1.777
+      expect(resolveAdaptiveThumbnailFit(1.5), BoxFit.cover); // 边界含等于 → cover
+    });
+
+    test('null or non-positive ratio defaults to cover', () {
+      expect(resolveAdaptiveThumbnailFit(null), BoxFit.cover);
+      expect(resolveAdaptiveThumbnailFit(0), BoxFit.cover);
+      expect(resolveAdaptiveThumbnailFit(-1), BoxFit.cover);
+    });
+  });
+
+  testWidgets('thumbnail image defaults to cover before ratio resolves', (
+    WidgetTester tester,
+  ) async {
+    await _pumpGrid(tester, thumbnails: _thumbnails());
+    await tester.pump();
+
+    final maskedImage = tester.widget<MaskedImage>(
+      find
+          .descendant(
+            of: find.byKey(const Key('movie-media-thumb-0')),
+            matching: find.byType(MaskedImage),
+          )
+          .first,
+    );
+
+    expect(maskedImage.fit, BoxFit.cover);
   });
 }
 

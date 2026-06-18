@@ -180,4 +180,46 @@ void main() {
 
     expect(adapter.hitCount('DELETE', '/media-clips/12'), 1);
   });
+
+  test('getClipThumbnails maps GET /media-clips/{clip_id}/thumbnails', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-clips/12/thumbnails',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'clip_id': 12,
+          'thumbnail_id': 201,
+          'offset_seconds': 0,
+          'image': <String, dynamic>{
+            'id': 2,
+            'origin': '/clips/12-f0.webp',
+            'small': '/clips/12-f0-s.webp',
+            'medium': '/clips/12-f0-m.webp',
+            'large': '/clips/12-f0-l.webp',
+          },
+        },
+        <String, dynamic>{
+          'clip_id': 12,
+          'thumbnail_id': 202,
+          'offset_seconds': 10,
+          'image': <String, dynamic>{
+            'id': 3,
+            'origin': '/clips/12-f1.webp',
+            'small': '/clips/12-f1-s.webp',
+            'medium': '/clips/12-f1-m.webp',
+            'large': '/clips/12-f1-l.webp',
+          },
+        },
+      ],
+    );
+
+    final thumbnails = await clipsApi.getClipThumbnails(clipId: 12);
+
+    expect(thumbnails, hasLength(2));
+    expect(thumbnails.first.thumbnailId, 201);
+    expect(thumbnails.first.offsetSeconds, 0);
+    expect(thumbnails.last.offsetSeconds, 10);
+    expect(thumbnails.last.image.bestAvailableUrl, '/clips/12-f1-l.webp');
+    expect(adapter.hitCount('GET', '/media-clips/12/thumbnails'), 1);
+  });
 }

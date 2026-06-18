@@ -10,12 +10,17 @@ import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_filmstrip_controller.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_play_split_layout.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_playback_page_mixin.dart';
 import 'package:sakuramedia/widgets/movie_player/episode_selector_overlay.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/movie_player/themed_video_player.dart';
 
@@ -41,34 +46,30 @@ class DesktopClipCollectionPlayPage extends StatefulWidget {
 }
 
 class _DesktopClipCollectionPlayPageState
-    extends State<DesktopClipCollectionPlayPage> {
-  Player? _player;
-  VideoController? _videoController;
-  StreamSubscription<Playlist>? _playlistSub;
-
+    extends State<DesktopClipCollectionPlayPage>
+    with CollectionPlaybackPageMixin<DesktopClipCollectionPlayPage> {
   List<MediaClipDto> _clips = const <MediaClipDto>[];
   bool _isLoading = true;
   String? _errorMessage;
-  int _currentIndex = 0;
   bool _isEpisodePanelOpen = false;
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.startIndex;
+    currentIndex = widget.startIndex;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   @override
   void dispose() {
-    _playlistSub?.cancel();
-    _player?.dispose();
+    disposePlayback();
     super.dispose();
   }
 
   Future<void> _load() async {
     final handoff = context.read<CollectionPlaybackHandoff>();
     final api = context.read<ClipCollectionsApi>();
+    final clipsApi = context.read<ClipsApi>();
     final baseUrl = context.read<SessionStore>().baseUrl;
     try {
       // 优先用详情页「交接」来的切片（自带 streamUrl）：详情→连播零额外请求、秒开；
@@ -104,18 +105,36 @@ class _DesktopClipCollectionPlayPageState
         player,
         configuration: const VideoControllerConfiguration(hwdec: 'auto'),
       );
-      _playlistSub = player.stream.playlist.listen((playlist) {
-        if (mounted && playlist.index != _currentIndex) {
-          setState(() => _currentIndex = playlist.index);
-        }
-      });
+      // 「整部合集」关键帧面板：按可播切片顺序逐集拉关键帧（切片自身时间轴 offset）。
+      final clipIds =
+          playableClips.map((clip) => clip.clipId).toList(growable: false);
+      final filmstrip = CollectionFilmstripController(
+        episodeCount: clipIds.length,
+        frameLoader: (episodeIndex) async {
+          final thumbnails =
+              await clipsApi.getClipThumbnails(clipId: clipIds[episodeIndex]);
+          return thumbnails
+              .map(
+                (thumbnail) => (
+                  offsetSeconds: thumbnail.offsetSeconds,
+                  image: thumbnail.image,
+                ),
+              )
+              .toList();
+        },
+      );
       setState(() {
         _clips = playableClips;
-        _player = player;
-        _videoController = videoController;
-        _currentIndex = startIndex;
+        attachPlayback(
+          player: player,
+          videoController: videoController,
+          filmstrip: filmstrip,
+          startIndex: startIndex,
+        );
         _isLoading = false;
       });
+      // 优先拉起播集的关键帧，当前集高亮立即可用。
+      unawaited(filmstrip.start(priorityEpisode: startIndex));
       await player.open(Playlist(medias, index: startIndex));
     } catch (error) {
       if (!mounted) {
@@ -134,66 +153,72 @@ class _DesktopClipCollectionPlayPageState
     }
   }
 
-  Future<void> _jumpTo(int index) async {
-    final player = _player;
-    if (player == null) {
-      return;
-    }
-    await player.jump(index);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(backgroundColor: Colors.black, body: _buildBody(context));
   }
 
   String _currentClipTitle() {
-    if (_currentIndex < 0 || _currentIndex >= _clips.length) {
+    if (currentIndex < 0 || currentIndex >= _clips.length) {
       return '连播';
     }
-    return _clips[_currentIndex].displayTitle;
+    return _clips[currentIndex].displayTitle;
   }
 
   Widget _buildBody(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: SizedBox(
-          key: Key('clip-collection-play-loading'),
-          width: 40,
-          height: 40,
-          child: CircularProgressIndicator(),
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        child: const Center(
+          child: SizedBox(
+            key: Key('clip-collection-play-loading'),
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(),
+          ),
         ),
       );
     }
     if (_errorMessage != null) {
-      return Center(child: AppEmptyState(message: _errorMessage!));
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        child: Center(child: AppEmptyState(message: _errorMessage!)),
+      );
     }
-    final videoController = _videoController;
+    final videoController = this.videoController;
     if (videoController == null) {
-      return const Center(child: CircularProgressIndicator());
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        child: const Center(child: CircularProgressIndicator()),
+      );
     }
-    return Stack(
-      children: [
-        Positioned.fill(child: _buildPlayerSurface(context, videoController)),
-        EpisodeSelectorOverlay(
-          isOpen: _isEpisodePanelOpen,
-          itemCount: _clips.length,
-          currentIndex: _currentIndex,
-          title: '选集 · ${_clips.length}',
-          onClose: _closeEpisodePanel,
-          itemBuilder: (context, index) {
-            return _QueueItem(
-              clip: _clips[index],
-              index: index,
-              isCurrent: index == _currentIndex,
-              onTap: () {
-                _closeEpisodePanel();
-                _jumpTo(index);
-              },
-            );
-          },
-        ),
-      ],
+    // 左：原沉浸式播放器 + 「选集」浮层（原样保留）；右：「整部合集」关键帧面板。
+    return CollectionPlaySplitLayout(
+      keyPrefix: 'clip-collection',
+      left: Stack(
+        children: [
+          Positioned.fill(child: _buildPlayerSurface(context, videoController)),
+          EpisodeSelectorOverlay(
+            isOpen: _isEpisodePanelOpen,
+            itemCount: _clips.length,
+            currentIndex: currentIndex,
+            title: '选集 · ${_clips.length}',
+            onClose: _closeEpisodePanel,
+            itemBuilder: (context, index) {
+              return _QueueItem(
+                clip: _clips[index],
+                index: index,
+                isCurrent: index == currentIndex,
+                onTap: () {
+                  _closeEpisodePanel();
+                  jumpTo(index);
+                },
+              );
+            },
+          ),
+        ],
+      ),
+      right: buildFilmstripPanel(),
     );
   }
 
@@ -209,48 +234,18 @@ class _DesktopClipCollectionPlayPageState
         movieNumber: _currentClipTitle(),
         onBackPressed: _handleBack,
       ),
-      bottomControls: _buildBottomControls(),
+      bottomControls: buildCollectionPlayBottomControls(
+        useTouchOptimizedControls: widget.useTouchOptimizedControls,
+        onOpenEpisodes: _openEpisodePanel,
+      ),
       // 全屏由 media_kit push 独立路由，页面级「选集」浮层不在其内，按钮点了
       // 也看不到——全屏态去掉该按钮，避免死按钮。换集需先退出全屏。
-      fullscreenBottomControls: _buildBottomControls(
+      fullscreenBottomControls: buildCollectionPlayBottomControls(
+        useTouchOptimizedControls: widget.useTouchOptimizedControls,
+        onOpenEpisodes: _openEpisodePanel,
         includeEpisodeButton: false,
       ),
     );
-  }
-
-  /// 合集连播底栏：含上一首 / 下一首 + 全屏左侧的「选集」按钮。按平台选对应控件
-  /// 变体——移动用触摸版、桌面用 Desktop 版（多一个音量按钮）。
-  /// [includeEpisodeButton] 为 `false` 时省略「选集」按钮（全屏态用，浮层在全屏不可见）。
-  List<Widget> _buildBottomControls({bool includeEpisodeButton = true}) {
-    if (widget.useTouchOptimizedControls) {
-      return <Widget>[
-        const MaterialSkipPreviousButton(),
-        const MaterialPlayOrPauseButton(),
-        const MaterialSkipNextButton(),
-        const MaterialPositionIndicator(),
-        const Spacer(),
-        if (includeEpisodeButton)
-          MaterialCustomButton(
-            onPressed: _openEpisodePanel,
-            icon: const Icon(Icons.playlist_play_rounded),
-          ),
-        const MaterialFullscreenButton(),
-      ];
-    }
-    return <Widget>[
-      const MaterialDesktopSkipPreviousButton(),
-      const MaterialPlayOrPauseButton(),
-      const MaterialDesktopSkipNextButton(),
-      const MaterialDesktopVolumeButton(),
-      const MaterialPositionIndicator(),
-      const Spacer(),
-      if (includeEpisodeButton)
-        MaterialDesktopCustomButton(
-          onPressed: _openEpisodePanel,
-          icon: const Icon(Icons.playlist_play_rounded),
-        ),
-      const MaterialFullscreenButton(),
-    ];
   }
 
   void _openEpisodePanel() {

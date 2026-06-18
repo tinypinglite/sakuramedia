@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_surface_readiness.dart';
 
 void main() {
   group('MoviePlayerBackButton', () {
@@ -137,6 +138,119 @@ void main() {
       expect(material.type, MaterialType.transparency);
       expect(material.elevation, 0);
       expect(material.color, isNull);
+    });
+  });
+
+  group('MoviePlayerBackOverlay', () {
+    testWidgets('stays a small top-left button even under forced-fill '
+        '(StackFit.expand) constraints', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: SizedBox(
+              width: 800,
+              height: 600,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  const ColoredBox(color: Colors.black),
+                  MoviePlayerBackOverlay(onPressed: () {}),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final backSize = tester.getSize(
+        find.byKey(const Key('movie-player-back-button')),
+      );
+      // 回归守卫：tight 约束下若未收口，按钮会被撑满（≈800×600）、箭头居中。
+      expect(backSize.width, lessThan(100));
+      expect(backSize.height, lessThan(100));
+
+      final backTopLeft = tester.getTopLeft(
+        find.byKey(const Key('movie-player-back-button')),
+      );
+      expect(backTopLeft.dx, lessThan(60));
+      expect(backTopLeft.dy, lessThan(80));
+    });
+  });
+
+  group('wrapWithMoviePlayerBackButton', () {
+    testWidgets('renders child plus a tappable top-left back button', (
+      WidgetTester tester,
+    ) async {
+      var tapped = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: wrapWithMoviePlayerBackButton(
+              onBackPressed: () => tapped += 1,
+              backButtonKey: const Key('unit-back-overlay'),
+              child: const Center(child: Text('loading-content')),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('loading-content'), findsOneWidget);
+      expect(find.byKey(const Key('unit-back-overlay')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('movie-player-back-button')));
+      await tester.pump();
+      expect(tapped, 1);
+    });
+  });
+
+  group('MoviePlayerSurfaceFrame', () {
+    testWidgets('shows back button over the not-ready mask and hides it once '
+        'ready', (WidgetTester tester) async {
+      Widget frame(bool isReady) => MaterialApp(
+        theme: sakuraThemeData,
+        home: Scaffold(
+          body: MoviePlayerSurfaceFrame(
+            isReady: isReady,
+            onBackPressed: () {},
+            child: const Text('player'),
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(frame(false));
+      expect(
+        find.byKey(const Key('movie-player-surface-ready-mask')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('movie-player-back-button')), findsOneWidget);
+
+      await tester.pumpWidget(frame(true));
+      expect(
+        find.byKey(const Key('movie-player-surface-ready-mask')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('movie-player-back-button')), findsNothing);
+    });
+
+    testWidgets('omits back button when onBackPressed is null', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: const Scaffold(
+            body: MoviePlayerSurfaceFrame(isReady: false, child: Text('player')),
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('movie-player-surface-ready-mask')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('movie-player-back-button')), findsNothing);
     });
   });
 

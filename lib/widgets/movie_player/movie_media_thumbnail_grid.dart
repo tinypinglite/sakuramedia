@@ -1,12 +1,31 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
+
+/// pornbox 关键帧多为竖图；宽高比 < 此阈值时用 contain 完整展示，否则 cover 填满 tile。
+const double _kAdaptiveFitAspectThreshold = 1.5;
+
+/// 按图片真实宽高比（宽/高）选填充方式：竖/方图（< 1.5）用 contain 完整展示，
+/// 横图（>= 1.5）用 cover 填满。测得前（null）或无效（<=0）回退 cover，等同原行为、不闪烁。
+@visibleForTesting
+BoxFit resolveAdaptiveThumbnailFit(double? aspectRatio) {
+  if (aspectRatio == null || aspectRatio <= 0) {
+    return BoxFit.cover;
+  }
+  return aspectRatio < _kAdaptiveFitAspectThreshold
+      ? BoxFit.contain
+      : BoxFit.cover;
+}
 
 class MovieMediaThumbnailGrid extends StatefulWidget {
   const MovieMediaThumbnailGrid({
@@ -464,10 +483,10 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     final cacheWidth = ((constraints.maxWidth * effectiveDevicePixelRatio)
         .round()
         .clamp(1, _decodeSizeUpperBound));
-    final cacheHeight = ((constraints.maxHeight * effectiveDevicePixelRatio)
-        .round()
-        .clamp(1, _decodeSizeUpperBound));
-    return (width: cacheWidth, height: cacheHeight);
+    // 只按宽给解码提示、不给高：ResizeImage 默认 exact 策略下同时给宽高会把位图
+    // **强制拉伸**成 tile 的 16:9（既毁了竖图渲染，也让宽高比检测恒为 ~1.78）。
+    // 单边宽 → 保持原图宽高比，cover/contain 与自适应 fit 检测才正确。
+    return (width: cacheWidth, height: null);
   }
 
   @override
@@ -545,9 +564,8 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
                       ? LayoutBuilder(
                         builder: (context, constraints) {
                           final decodeHint = _resolveDecodeHint(constraints);
-                          return MaskedImage(
+                          return _AdaptiveFitThumbnailImage(
                             url: thumbnail.image.bestAvailableUrl,
-                            fit: BoxFit.cover,
                             memCacheWidth: decodeHint.width,
                             memCacheHeight: decodeHint.height,
                           );
@@ -637,6 +655,132 @@ class _ClipEndpointBadge extends StatelessWidget {
           tone: AppTextTone.primary,
         ).copyWith(color: Theme.of(context).colorScheme.onPrimary),
       ),
+    );
+  }
+}
+
+/// 关键帧缩略图：测得真实宽高比后选 cover/contain，再交标准入口 [MaskedImage] 渲染。
+///
+/// 单独起一个测量 provider（与 [MaskedImage] 同 url、同 decode 提示 → 共享解码缓存键，
+/// 不触发额外整图解码），用既有「`ImageStreamListener` 读 `ImageInfo` 真实尺寸」范式
+/// （对齐 `MoviePlotThumbnail`）。blur / 占位 / URL 解析仍全部走 [MaskedImage]。
+class _AdaptiveFitThumbnailImage extends StatefulWidget {
+  const _AdaptiveFitThumbnailImage({
+    required this.url,
+    required this.memCacheWidth,
+    required this.memCacheHeight,
+  });
+
+  final String url;
+  final int? memCacheWidth;
+  final int? memCacheHeight;
+
+  @override
+  State<_AdaptiveFitThumbnailImage> createState() =>
+      _AdaptiveFitThumbnailImageState();
+}
+
+class _AdaptiveFitThumbnailImageState
+    extends State<_AdaptiveFitThumbnailImage> {
+  ImageStream? _imageStream;
+  ImageStreamListener? _imageStreamListener;
+  ImageProvider<Object>? _measureProvider;
+  double? _aspectRatio;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _resolveMeasureProvider();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AdaptiveFitThumbnailImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url ||
+        oldWidget.memCacheWidth != widget.memCacheWidth ||
+        oldWidget.memCacheHeight != widget.memCacheHeight) {
+      _resolveMeasureProvider();
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopListening();
+    super.dispose();
+  }
+
+  void _resolveMeasureProvider() {
+    final provider = _buildMeasureProvider();
+    if (_measureProvider == provider) {
+      return;
+    }
+    _measureProvider = provider;
+    // 换 url：先回退 cover，待新图测得再切。
+    _aspectRatio = null;
+    _listen(provider);
+  }
+
+  ImageProvider<Object>? _buildMeasureProvider() {
+    final baseUrl = context.read<SessionStore>().baseUrl;
+    final resolvedUrl = resolveMediaUrl(rawUrl: widget.url, baseUrl: baseUrl);
+    if (resolvedUrl == null) {
+      // 与 MaskedImage 的 null 处理一致：不测量，由 MaskedImage 自渲占位。
+      return null;
+    }
+    final base = CachedNetworkImageProvider(resolvedUrl);
+    // 镜像 CachedNetworkImage 传入 memCacheWidth/Height 时的内部 ResizeImage 包装，
+    // 用相同尺寸 → 与 MaskedImage 共享同一解码缓存键。
+    if (widget.memCacheWidth == null && widget.memCacheHeight == null) {
+      return base;
+    }
+    return ResizeImage(
+      base,
+      width: widget.memCacheWidth,
+      height: widget.memCacheHeight,
+      allowUpscaling: false,
+    );
+  }
+
+  void _listen(ImageProvider<Object>? provider) {
+    _stopListening();
+    if (provider == null) {
+      return;
+    }
+    final stream = provider.resolve(createLocalImageConfiguration(context));
+    final listener = ImageStreamListener((ImageInfo info, bool _) {
+      final width = info.image.width.toDouble();
+      final height = info.image.height.toDouble();
+      if (!mounted || width <= 0 || height <= 0) {
+        return;
+      }
+      final ratio = width / height;
+      if (_aspectRatio == ratio) {
+        return;
+      }
+      setState(() => _aspectRatio = ratio);
+    });
+    stream.addListener(listener);
+    _imageStream = stream;
+    _imageStreamListener = listener;
+  }
+
+  void _stopListening() {
+    final stream = _imageStream;
+    final listener = _imageStreamListener;
+    if (stream != null && listener != null) {
+      stream.removeListener(listener);
+    }
+    _imageStream = null;
+    _imageStreamListener = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaskedImage(
+      url: widget.url,
+      fit: resolveAdaptiveThumbnailFit(_aspectRatio),
+      memCacheWidth: widget.memCacheWidth,
+      memCacheHeight: widget.memCacheHeight,
     );
   }
 }

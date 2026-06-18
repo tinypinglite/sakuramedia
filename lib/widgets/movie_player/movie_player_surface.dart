@@ -1037,6 +1037,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
           builder: (context, child) {
             return MoviePlayerSurfaceFrame(
               isReady: _readiness.isReady,
+              onBackPressed: widget.onBackPressed,
               child: child!,
             );
           },

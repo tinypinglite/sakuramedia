@@ -8,6 +8,7 @@ import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movie_player/landscape_player_system_ui.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/movie_player/themed_video_player.dart';
 
@@ -86,24 +87,19 @@ class _MobileClipPlayerPageState extends State<MobileClipPlayerPage> {
 
   Widget _buildBody(BuildContext context) {
     if (!_hasResolvedUrl) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const AppEmptyState(message: '无效的播放地址'),
-            const SizedBox(height: 12),
-            TextButton(
-              key: const Key('mobile-clip-player-back-button'),
-              onPressed: _handleBack,
-              child: const Text('返回'),
-            ),
-          ],
-        ),
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        backButtonKey: const Key('mobile-clip-player-back-button'),
+        child: const Center(child: AppEmptyState(message: '无效的播放地址')),
       );
     }
     final controller = _controller;
     if (controller == null) {
-      return const Center(child: CircularProgressIndicator());
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        backButtonKey: const Key('mobile-clip-player-back-button'),
+        child: const Center(child: CircularProgressIndicator()),
+      );
     }
     return _buildPlayerSurface(context, controller);
   }
