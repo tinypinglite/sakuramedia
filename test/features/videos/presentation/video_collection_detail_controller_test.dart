@@ -46,32 +46,39 @@ void main() {
     'updated_at': '2026-01-02T03:04:05',
   };
 
-  List<dynamic> itemsBody() => <dynamic>[
-    <String, dynamic>{
-      'item_id': 100,
-      'position': 0,
-      'video': <String, dynamic>{
-        'id': 1,
-        'title': '第一段',
-        'media_count': 1,
-        'can_play': true,
-        'created_at': '2026-01-02T03:04:05',
-        'updated_at': '2026-01-02T03:04:05',
+  // 成员端点已分页：返回 {items, page, page_size, total} 信封。两条成员、total=2，
+  // getAllCollectionItems 一次请求即取满（不再翻页）。
+  Map<String, dynamic> itemsBody() => <String, dynamic>{
+    'page': 1,
+    'page_size': 100,
+    'total': 2,
+    'items': <dynamic>[
+      <String, dynamic>{
+        'item_id': 100,
+        'position': 0,
+        'video': <String, dynamic>{
+          'id': 1,
+          'title': '第一段',
+          'media_count': 1,
+          'can_play': true,
+          'created_at': '2026-01-02T03:04:05',
+          'updated_at': '2026-01-02T03:04:05',
+        },
       },
-    },
-    <String, dynamic>{
-      'item_id': 101,
-      'position': 1,
-      'video': <String, dynamic>{
-        'id': 2,
-        'title': '第二段',
-        'media_count': 1,
-        'can_play': true,
-        'created_at': '2026-01-02T03:04:05',
-        'updated_at': '2026-01-02T03:04:05',
+      <String, dynamic>{
+        'item_id': 101,
+        'position': 1,
+        'video': <String, dynamic>{
+          'id': 2,
+          'title': '第二段',
+          'media_count': 1,
+          'can_play': true,
+          'created_at': '2026-01-02T03:04:05',
+          'updated_at': '2026-01-02T03:04:05',
+        },
       },
-    },
-  ];
+    ],
+  };
 
   void enqueueLoad() {
     adapter.enqueueJson(

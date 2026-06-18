@@ -38,7 +38,10 @@ class ClipCollectionDetailController extends ChangeNotifier {
     notifyListeners();
     try {
       final detail = await api.getCollectionDetail(collectionId: collectionId);
-      final clips = await _fetchAllClips();
+      final clips = await api.getAllCollectionClips(
+        collectionId: collectionId,
+        pageSize: pageSize,
+      );
       _collection = detail;
       _clips = clips;
       _errorMessage = null;
@@ -51,24 +54,6 @@ class ClipCollectionDetailController extends ChangeNotifier {
   }
 
   Future<void> refresh() => load();
-
-  Future<List<MediaClipDto>> _fetchAllClips() async {
-    final result = <MediaClipDto>[];
-    var page = 1;
-    while (true) {
-      final response = await api.getCollectionClips(
-        collectionId: collectionId,
-        page: page,
-        pageSize: pageSize,
-      );
-      result.addAll(response.items.map((item) => item.clip));
-      if (result.length >= response.total || response.items.isEmpty) {
-        break;
-      }
-      page += 1;
-    }
-    return result;
-  }
 
   /// 本地重排并提交完整有序列表；失败时回滚并返回错误消息。
   Future<String?> reorder(int oldIndex, int newIndex) async {

@@ -52,7 +52,8 @@
 
 与 movies 平行但裁掉了订阅/下载/番号筛选。易踩:
 - **三种分页实现并存**:videos 列表继承 `PagedLoadController`;**clips 列表自写**(别假设有基类方法);合集详情/导入各自手写。
-- **video 合集成员只有概要、无播放地址**:连播前必须逐集 `getVideoDetail` 解析首个可播 media,并把 `startIndex` 重映射到实际可播列表(不可播项被跳过,索引不能直接用下标)。clip 合集成员自带 `streamUrl`,简单。
+- **video 合集成员端点已分页**:`getCollectionItems` 返回 `PaginatedResponseDto`;`getAllCollectionItems` **并发翻页拉全**(先取第 1 页拿 `total`,其余页按并发上限 6 `Future.wait`、批内保序拼接;`page_size` 上限 100),墙钟从串行 O(N) 降到 ~O(N/6)。连播页传 `includePlayUrl: true`,后端为每个成员**内联「首个媒体(Media.id 升序)」的签名 `playUrl`**(对称于 clip 成员自带 `streamUrl`),前端据此直接组装播放列表,**不再逐集 `getVideoDetail`**(已删 N+1 的 `Future.wait`)。`playUrl` 为空=不可播,跳过并把 `startIndex` 重映射到实际可播列表(索引不能直接用下标)。clip 合集成员自带 `streamUrl`,详情页与连播页共用 `ClipCollectionsApi.getAllCollectionClips`(同样并发翻页)。
+- **合集详情页 → 连播页 走「交接信箱」`CollectionPlaybackHandoff`**(`features/shared/presentation/`,在 `app.dart` 注册的普通 Provider):详情页 `_playFrom` 跳转前 `offerVideoItems/offerClips`(传当前已排序、带播放地址的成员),连播页 `_load` 先 `takeVideoItems/takeClips`(**一次性,取后清空**)、取不到再自行拉取。常规「详情页点某集进连播」路径下连播页**零额外请求、秒开**;深链/刷新回退到上面的并发拉取。**video 详情控制器因此改为 `includePlayUrl: true` 加载**(成员带 `playUrl` 才能交接直用)。
 - **video 合集 reorder 必须提交全部成员**否则后端 422;clip 合集无 reorder 端点,拖序走 `setCollectionClips` 全量覆盖。
 - **clips 的 `createClip` 同步切片**,前端超时 130s(后端 ffmpeg 120s);**超时≠失败**,关对话框让用户去"我的切片"查看。
 - 这些域**直接复用 movies 的 `MovieImageDto`/`MovieMediaItemDto`**——改 movies 这些 DTO 会波及它们。

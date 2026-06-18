@@ -8,10 +8,9 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
+import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
-import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
@@ -75,24 +74,23 @@ class _DesktopVideoCollectionPlayPageState
   }
 
   Future<void> _load() async {
+    final handoff = context.read<CollectionPlaybackHandoff>();
     final collectionsApi = context.read<VideoCollectionsApi>();
-    final videosApi = context.read<VideosApi>();
     final baseUrl = context.read<SessionStore>().baseUrl;
     try {
-      final items = await collectionsApi.getCollectionItems(
-        collectionId: widget.collectionId,
-        sort: widget.sort,
-      );
-      // 成员仅含概要，需逐集拉详情解析首选可播 media 的 url；并发拉取，失败的成员跳过。
-      final details = await Future.wait(
-        items.map((item) async {
-          try {
-            return await videosApi.getVideoDetail(videoId: item.video.id);
-          } catch (_) {
-            return null;
-          }
-        }),
-      );
+      // 优先用详情页「交接」来的成员（已带播放地址）：常规的「详情页点某集进连播」
+      // 路径下零额外请求、秒开。取不到（深链/刷新）才自行并发分页拉全——后端已内联
+      // 「首个媒体」播放地址，免去逐集 getVideoDetail 的 N+1 风暴。
+      final items =
+          handoff.takeVideoItems(
+            collectionId: widget.collectionId,
+            sort: widget.sort,
+          ) ??
+          await collectionsApi.getAllCollectionItems(
+            collectionId: widget.collectionId,
+            sort: widget.sort,
+            includePlayUrl: true,
+          );
       final medias = <Media>[];
       final playableVideos = <VideoItemListItemDto>[];
       // startIndex 基于原始成员顺序；若该项不可播或前面有项被跳过，索引需重新映射到
@@ -102,12 +100,13 @@ class _DesktopVideoCollectionPlayPageState
         if (i == widget.startIndex) {
           resolvedStartIndex = medias.length;
         }
-        final detail = details[i];
-        if (detail == null) {
+        final rawUrl = items[i].playUrl;
+        if (rawUrl == null || rawUrl.isEmpty) {
+          // 无媒体/不可播成员（后端 play_url 为空）跳过，索引随重映射自然落位。
           continue;
         }
-        final playUrl = _resolvePlayableUrl(detail.mediaItems, baseUrl);
-        if (playUrl == null) {
+        final playUrl = resolveMediaUrl(rawUrl: rawUrl, baseUrl: baseUrl);
+        if (playUrl == null || playUrl.isEmpty) {
           continue;
         }
         medias.add(Media(playUrl));
@@ -151,23 +150,6 @@ class _DesktopVideoCollectionPlayPageState
         _errorMessage = apiErrorMessage(error, fallback: '合集加载失败，请稍后重试');
       });
     }
-  }
-
-  /// 从媒体列表挑首个可播放的 url 并解析为绝对地址，无可播放项返回 `null`。
-  String? _resolvePlayableUrl(
-    List<MovieMediaItemDto> mediaItems,
-    String? baseUrl,
-  ) {
-    for (final media in mediaItems) {
-      if (!media.hasPlayableUrl) {
-        continue;
-      }
-      final url = resolveMediaUrl(rawUrl: media.playUrl, baseUrl: baseUrl ?? '');
-      if (url != null && url.isNotEmpty) {
-        return url;
-      }
-    }
-    return null;
   }
 
   void _handleBack() {

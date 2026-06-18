@@ -32,45 +32,111 @@ void main() {
     apiClient.dispose();
   });
 
-  test('getCollectionItems 解析 position 与内嵌视频概要', () async {
+  test('getCollectionItems 分页解析 position/内嵌视频/playUrl 并拼分页参数', () async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/video-collections/3/items',
-      body: <dynamic>[
-        <String, dynamic>{
-          'item_id': 100,
-          'position': 0,
-          'video': <String, dynamic>{
-            'id': 1,
-            'title': '第一段',
-            'media_count': 1,
-            'can_play': true,
-            'created_at': '2026-01-02T03:04:05',
-            'updated_at': '2026-01-02T03:04:05',
+      body: <String, dynamic>{
+        'page': 1,
+        'page_size': 100,
+        'total': 2,
+        'items': <dynamic>[
+          <String, dynamic>{
+            'item_id': 100,
+            'position': 0,
+            'play_url': '/media/9/stream?sig=a',
+            'video': <String, dynamic>{
+              'id': 1,
+              'title': '第一段',
+              'media_count': 1,
+              'can_play': true,
+              'created_at': '2026-01-02T03:04:05',
+              'updated_at': '2026-01-02T03:04:05',
+            },
           },
-        },
-        <String, dynamic>{
-          'item_id': 101,
-          'position': 1,
-          'video': <String, dynamic>{
-            'id': 2,
-            'title': '第二段',
-            'media_count': 1,
-            'can_play': true,
-            'created_at': '2026-01-02T03:04:05',
-            'updated_at': '2026-01-02T03:04:05',
+          <String, dynamic>{
+            'item_id': 101,
+            'position': 1,
+            'video': <String, dynamic>{
+              'id': 2,
+              'title': '第二段',
+              'media_count': 1,
+              'can_play': true,
+              'created_at': '2026-01-02T03:04:05',
+              'updated_at': '2026-01-02T03:04:05',
+            },
           },
-        },
-      ],
+        ],
+      },
     );
 
-    final items = await collectionsApi.getCollectionItems(collectionId: 3);
+    final result = await collectionsApi.getCollectionItems(
+      collectionId: 3,
+      includePlayUrl: true,
+    );
 
-    expect(items, hasLength(2));
-    expect(items.first.itemId, 100);
-    expect(items.first.position, 0);
-    expect(items.first.video.title, '第一段');
-    expect(items.last.video.id, 2);
+    expect(result.items, hasLength(2));
+    expect(result.total, 2);
+    expect(result.items.first.itemId, 100);
+    expect(result.items.first.position, 0);
+    expect(result.items.first.video.title, '第一段');
+    expect(result.items.first.playUrl, '/media/9/stream?sig=a');
+    expect(result.items.last.video.id, 2);
+    // 后端未内联（无媒体）的成员 playUrl 为 null。
+    expect(result.items.last.playUrl, isNull);
+
+    // 分页与 include_play_url 查询参数正确下发。
+    final query = adapter.requests.single.uri.queryParameters;
+    expect(query['page'], '1');
+    expect(query['page_size'], '100');
+    expect(query['include_play_url'], 'true');
+  });
+
+  test('getAllCollectionItems 循环翻页拉全部成员', () async {
+    Map<String, dynamic> pageBody(int page, List<int> ids, int total) {
+      return <String, dynamic>{
+        'page': page,
+        'page_size': 2,
+        'total': total,
+        'items': ids
+            .map(
+              (id) => <String, dynamic>{
+                'item_id': id + 100,
+                'position': id,
+                'video': <String, dynamic>{
+                  'id': id,
+                  'title': '片$id',
+                  'media_count': 1,
+                  'can_play': true,
+                  'created_at': '2026-01-02T03:04:05',
+                  'updated_at': '2026-01-02T03:04:05',
+                },
+              },
+            )
+            .toList(),
+      };
+    }
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-collections/7/items',
+      body: pageBody(1, <int>[0, 1], 3),
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-collections/7/items',
+      body: pageBody(2, <int>[2], 3),
+    );
+
+    final items = await collectionsApi.getAllCollectionItems(
+      collectionId: 7,
+      pageSize: 2,
+    );
+
+    expect(items, hasLength(3));
+    expect(items.map((it) => it.video.id), <int>[0, 1, 2]);
+    // 翻了两页直至取满 total。
+    expect(adapter.hitCount('GET', '/video-collections/7/items'), 2);
   });
 
   test('reorderCollectionItems 以有序 item_id 列表 POST', () async {

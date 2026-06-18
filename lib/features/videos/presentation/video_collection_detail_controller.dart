@@ -62,9 +62,12 @@ class VideoCollectionDetailController extends ChangeNotifier {
     try {
       final collection =
           await collectionsApi.getCollection(collectionId: collectionId);
-      final items = await collectionsApi.getCollectionItems(
+      final items = await collectionsApi.getAllCollectionItems(
         collectionId: collectionId,
         sort: sortExpression,
+        // 带上播放地址：成员既供详情列表展示，也可经「交接信箱」直接交给连播页
+        // 组装播放列表，省去连播页二次全量拉取。
+        includePlayUrl: true,
       );
       _collection = collection;
       _items = items;
@@ -92,9 +95,12 @@ class VideoCollectionDetailController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      final items = await collectionsApi.getCollectionItems(
+      final items = await collectionsApi.getAllCollectionItems(
         collectionId: collectionId,
         sort: sortExpression,
+        // 带上播放地址：成员既供详情列表展示，也可经「交接信箱」直接交给连播页
+        // 组装播放列表，省去连播页二次全量拉取。
+        includePlayUrl: true,
       );
       _items = items;
     } catch (error) {

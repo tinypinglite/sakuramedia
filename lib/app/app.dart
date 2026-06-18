@@ -35,6 +35,7 @@ import 'package:sakuramedia/features/tags/data/tags_api.dart';
 import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/video_imports_api.dart';
+import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
@@ -255,6 +256,11 @@ class _MyAppState extends State<MyApp> {
         ),
         ChangeNotifierProvider(
           create: (_) => ClipMutationChangeNotifier(),
+        ),
+        // 合集详情页 → 连播页 的一次性成员交接信箱（详情 offer、连播 take），
+        // 免去连播页重复全量拉取。无依赖，纯被动存取。
+        Provider<CollectionPlaybackHandoff>(
+          create: (_) => CollectionPlaybackHandoff(),
         ),
         Provider<PlaylistsApi>(
           create:

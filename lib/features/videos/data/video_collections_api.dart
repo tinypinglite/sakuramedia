@@ -1,7 +1,9 @@
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
 
-/// 视频合集接口（`/video-collections`）。合集列表与成员均为非分页 `List`。
+/// 视频合集接口（`/video-collections`）。合集列表为非分页 `List`；成员端点已分页
+/// （`page`/`page_size`），万级成员合集靠分页避免单请求超时。
 class VideoCollectionsApi {
   const VideoCollectionsApi({required ApiClient apiClient})
     : _apiClient = apiClient;
@@ -46,22 +48,79 @@ class VideoCollectionsApi {
     return _apiClient.deleteNoContent('/video-collections/$collectionId');
   }
 
-  /// 拉取合集成员。[sort] 形如 `field:direction`：
+  /// 分页拉取合集成员。[sort] 形如 `field:direction`：
   /// `position`(默认手动顺序) / `created_at` / `title` / `duration` / `file_size`；
   /// 传 `null` 时后端按 `position:asc` 返回，与拖拽重排的手动顺序一致。
-  Future<List<VideoCollectionItemDto>> getCollectionItems({
+  ///
+  /// [includePlayUrl] 为 true 时，后端为每个成员内联「首个媒体」的签名播放地址
+  /// （`playUrl`），供连播页直接组装播放列表，免逐集拉详情。
+  Future<PaginatedResponseDto<VideoCollectionItemDto>> getCollectionItems({
     required int collectionId,
     String? sort,
+    int page = 1,
+    int pageSize = 100,
+    bool includePlayUrl = false,
   }) async {
-    final response = await _apiClient.getList(
+    final queryParameters = <String, dynamic>{
+      'page': page,
+      'page_size': pageSize,
+    };
+    if (sort != null && sort.isNotEmpty) {
+      queryParameters['sort'] = sort;
+    }
+    if (includePlayUrl) {
+      queryParameters['include_play_url'] = true;
+    }
+    final response = await _apiClient.get(
       '/video-collections/$collectionId/items',
-      queryParameters: (sort != null && sort.isNotEmpty)
-          ? <String, dynamic>{'sort': sort}
-          : null,
+      queryParameters: queryParameters,
     );
-    return response
-        .map(VideoCollectionItemDto.fromJson)
-        .toList(growable: false);
+    return PaginatedResponseDto<VideoCollectionItemDto>.fromJson(
+      response,
+      VideoCollectionItemDto.fromJson,
+    );
+  }
+
+  /// 拉取合集**全部**成员：先取第 1 页拿到 `total`，其余页按并发上限 [concurrency]
+  /// 并发拉取（批内 `Future.wait` 保序、批次按页序拼接），墙钟从串行的 O(N) 降到
+  /// ~O(N/并发)。详情页/连播页都用它替代旧的一次性全返。
+  Future<List<VideoCollectionItemDto>> getAllCollectionItems({
+    required int collectionId,
+    String? sort,
+    bool includePlayUrl = false,
+    int pageSize = 100,
+    int concurrency = 6,
+  }) async {
+    final first = await getCollectionItems(
+      collectionId: collectionId,
+      sort: sort,
+      page: 1,
+      pageSize: pageSize,
+      includePlayUrl: includePlayUrl,
+    );
+    final result = <VideoCollectionItemDto>[...first.items];
+    if (result.length >= first.total || first.items.isEmpty) {
+      return result;
+    }
+    final lastPage = (first.total / pageSize).ceil();
+    for (var start = 2; start <= lastPage; start += concurrency) {
+      final batch = <Future<PaginatedResponseDto<VideoCollectionItemDto>>>[];
+      for (var page = start; page < start + concurrency && page <= lastPage; page++) {
+        batch.add(
+          getCollectionItems(
+            collectionId: collectionId,
+            sort: sort,
+            page: page,
+            pageSize: pageSize,
+            includePlayUrl: includePlayUrl,
+          ),
+        );
+      }
+      for (final response in await Future.wait(batch)) {
+        result.addAll(response.items);
+      }
+    }
+    return result;
   }
 
   Future<void> addCollectionItem({

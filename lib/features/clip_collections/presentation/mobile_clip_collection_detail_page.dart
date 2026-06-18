@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/clip_collections/presentation/create_clip_c
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/clips/presentation/mobile_clip_actions_sheet.dart';
+import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
@@ -262,6 +263,11 @@ class _MobileClipCollectionDetailPageState
   }
 
   void _playFrom(int index) {
+    // 切片自带 streamUrl，把当前列表交给连播页直接用，免其二次全量拉取。
+    context.read<CollectionPlaybackHandoff>().offerClips(
+      collectionId: widget.collectionId,
+      clips: _controller.clips,
+    );
     MobileClipCollectionPlayRouteData(
       collectionId: widget.collectionId,
       startIndex: index,

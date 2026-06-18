@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/videos_api.dart';
+import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/features/videos/presentation/video_collection_detail_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
@@ -80,6 +81,12 @@ class _DesktopVideoCollectionDetailPageState
 
   /// 进入合集连播页：从第 [index] 集开始，原生 Playlist 自动连播（与切片合集一致）。
   void _playFrom(int index) {
+    // 把当前已排序、带播放地址的成员交给连播页直接用，免其二次全量拉取。
+    context.read<CollectionPlaybackHandoff>().offerVideoItems(
+      collectionId: widget.collectionId,
+      sort: _controller.sortExpression,
+      items: _controller.items,
+    );
     context.pushDesktopVideoCollectionPlay(
       collectionId: widget.collectionId,
       startIndex: index,

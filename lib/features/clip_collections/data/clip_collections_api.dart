@@ -1,6 +1,7 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/clip_collections/data/clip_collection_dto.dart';
+import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 
 /// 切片合集接口：合集增删改查 + 成员增删与有序重排。
 ///
@@ -68,6 +69,46 @@ class ClipCollectionsApi {
       response,
       ClipCollectionClipItemDto.fromJson,
     );
+  }
+
+  /// 拉取合集**全部**切片：先取第 1 页拿 `total`，其余页按并发上限 [concurrency] 并发
+  /// 拉取（批内 `Future.wait` 保序、批次按页序拼接）。详情页与连播页共用，替代各自
+  /// 手写的串行翻页循环，墙钟从 O(N) 降到 ~O(N/并发)。
+  Future<List<MediaClipDto>> getAllCollectionClips({
+    required int collectionId,
+    int pageSize = 50,
+    int concurrency = 6,
+  }) async {
+    final first = await getCollectionClips(
+      collectionId: collectionId,
+      page: 1,
+      pageSize: pageSize,
+    );
+    final result = <MediaClipDto>[
+      for (final item in first.items) item.clip,
+    ];
+    if (result.length >= first.total || first.items.isEmpty) {
+      return result;
+    }
+    final lastPage = (first.total / pageSize).ceil();
+    for (var start = 2; start <= lastPage; start += concurrency) {
+      final batch = <Future<PaginatedResponseDto<ClipCollectionClipItemDto>>>[];
+      for (var page = start; page < start + concurrency && page <= lastPage; page++) {
+        batch.add(
+          getCollectionClips(
+            collectionId: collectionId,
+            page: page,
+            pageSize: pageSize,
+          ),
+        );
+      }
+      for (final response in await Future.wait(batch)) {
+        for (final item in response.items) {
+          result.add(item.clip);
+        }
+      }
+    }
+    return result;
   }
 
   /// 把切片追加到合集末尾（后端幂等，已存在则无副作用）。

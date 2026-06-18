@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/clips/presentation/mobile_clip_confirm_draw
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/videos_api.dart';
+import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/features/videos/presentation/mobile_video_actions_sheet.dart';
 import 'package:sakuramedia/features/videos/presentation/video_collection_detail_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
@@ -253,6 +254,12 @@ class _MobileVideoCollectionDetailPageState
   }
 
   void _playFrom(int index) {
+    // 把当前已排序、带播放地址的成员交给连播页直接用，免其二次全量拉取。
+    context.read<CollectionPlaybackHandoff>().offerVideoItems(
+      collectionId: widget.collectionId,
+      sort: _controller.sortExpression,
+      items: _controller.items,
+    );
     MobileVideoCollectionPlayRouteData(
       collectionId: widget.collectionId,
       startIndex: index,

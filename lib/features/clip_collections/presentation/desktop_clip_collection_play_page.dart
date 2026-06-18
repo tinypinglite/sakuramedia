@@ -11,6 +11,7 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
+import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
@@ -66,10 +67,18 @@ class _DesktopClipCollectionPlayPageState
   }
 
   Future<void> _load() async {
+    final handoff = context.read<CollectionPlaybackHandoff>();
     final api = context.read<ClipCollectionsApi>();
     final baseUrl = context.read<SessionStore>().baseUrl;
     try {
-      final clips = await _fetchAllClips(api);
+      // 优先用详情页「交接」来的切片（自带 streamUrl）：详情→连播零额外请求、秒开；
+      // 取不到（深链/刷新）才自行并发分页拉全。
+      final clips =
+          handoff.takeClips(collectionId: widget.collectionId) ??
+          await api.getAllCollectionClips(
+            collectionId: widget.collectionId,
+            pageSize: 50,
+          );
       final medias = <Media>[];
       final playableClips = <MediaClipDto>[];
       for (final clip in clips) {
@@ -117,24 +126,6 @@ class _DesktopClipCollectionPlayPageState
         _errorMessage = apiErrorMessage(error, fallback: '合集加载失败，请稍后重试');
       });
     }
-  }
-
-  Future<List<MediaClipDto>> _fetchAllClips(ClipCollectionsApi api) async {
-    final result = <MediaClipDto>[];
-    var page = 1;
-    while (true) {
-      final response = await api.getCollectionClips(
-        collectionId: widget.collectionId,
-        page: page,
-        pageSize: 50,
-      );
-      result.addAll(response.items.map((item) => item.clip));
-      if (result.length >= response.total || response.items.isEmpty) {
-        break;
-      }
-      page += 1;
-    }
-    return result;
   }
 
   void _handleBack() {

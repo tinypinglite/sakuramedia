@@ -155,6 +155,42 @@ void main() {
     });
   });
 
+  test('getAllCollectionClips 并发翻页拉全部并保序', () async {
+    Map<String, dynamic> pageBody(int page, List<int> clipIds, int total) {
+      return <String, dynamic>{
+        'page': page,
+        'page_size': 2,
+        'total': total,
+        'items': <Map<String, dynamic>>[
+          for (var i = 0; i < clipIds.length; i++)
+            _clipItemJson(clipId: clipIds[i], position: (page - 1) * 2 + i),
+        ],
+      };
+    }
+
+    // total=5 → 3 页（pageSize 2）；第 2/3 页落在同一并发批次，需保持页序拼接。
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/clip-collections/7/clips',
+      body: pageBody(1, <int>[12, 13], 5),
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/clip-collections/7/clips',
+      body: pageBody(2, <int>[14, 15], 5),
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/clip-collections/7/clips',
+      body: pageBody(3, <int>[16], 5),
+    );
+
+    final clips = await api.getAllCollectionClips(collectionId: 7, pageSize: 2);
+
+    expect(clips.map((c) => c.clipId), <int>[12, 13, 14, 15, 16]);
+    expect(adapter.hitCount('GET', '/clip-collections/7/clips'), 3);
+  });
+
   test('addClipToCollection maps PUT /clip-collections/{id}/clips/{clipId}', () async {
     adapter.enqueueJson(
       method: 'PUT',
