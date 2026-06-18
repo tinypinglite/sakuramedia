@@ -1,4 +1,5 @@
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/network/fetch_all_pages.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
 
@@ -81,46 +82,33 @@ class VideoCollectionsApi {
     );
   }
 
-  /// 拉取合集**全部**成员：先取第 1 页拿到 `total`，其余页按并发上限 [concurrency]
-  /// 并发拉取（批内 `Future.wait` 保序、批次按页序拼接），墙钟从串行的 O(N) 降到
-  /// ~O(N/并发)。详情页/连播页都用它替代旧的一次性全返。
+  /// 拉取合集**全部**成员：并发翻页（见 [fetchAllPagesConcurrently]），墙钟从串行的
+  /// O(N) 降到 ~O(N/并发)。详情页/连播页都用它替代旧的一次性全返。并发期间集合被并发
+  /// 增删导致页窗口错位时，按 `itemId` 去重避免重复成员进播放列表。
   Future<List<VideoCollectionItemDto>> getAllCollectionItems({
     required int collectionId,
     String? sort,
     bool includePlayUrl = false,
     int pageSize = 100,
     int concurrency = 6,
-  }) async {
-    final first = await getCollectionItems(
-      collectionId: collectionId,
-      sort: sort,
-      page: 1,
-      pageSize: pageSize,
-      includePlayUrl: includePlayUrl,
-    );
-    final result = <VideoCollectionItemDto>[...first.items];
-    if (result.length >= first.total || first.items.isEmpty) {
-      return result;
-    }
-    final lastPage = (first.total / pageSize).ceil();
-    for (var start = 2; start <= lastPage; start += concurrency) {
-      final batch = <Future<PaginatedResponseDto<VideoCollectionItemDto>>>[];
-      for (var page = start; page < start + concurrency && page <= lastPage; page++) {
-        batch.add(
-          getCollectionItems(
+  }) {
+    return fetchAllPagesConcurrently<
+      VideoCollectionItemDto,
+      VideoCollectionItemDto
+    >(
+      fetchPage:
+          (page) => getCollectionItems(
             collectionId: collectionId,
             sort: sort,
             page: page,
             pageSize: pageSize,
             includePlayUrl: includePlayUrl,
           ),
-        );
-      }
-      for (final response in await Future.wait(batch)) {
-        result.addAll(response.items);
-      }
-    }
-    return result;
+      extractItems: (response) => response.items,
+      pageSize: pageSize,
+      concurrency: concurrency,
+      keyOf: (item) => item.itemId,
+    );
   }
 
   Future<void> addCollectionItem({

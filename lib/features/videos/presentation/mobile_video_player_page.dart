@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movie_player/landscape_player_system_ui.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/movie_player/themed_video_player.dart';
 
@@ -124,24 +125,19 @@ class _MobileVideoPlayerPageState extends State<MobileVideoPlayerPage> {
 
   Widget _buildBody(BuildContext context) {
     if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppEmptyState(message: _errorMessage!),
-            const SizedBox(height: 12),
-            TextButton(
-              key: const Key('mobile-video-player-back-button'),
-              onPressed: _handleBack,
-              child: const Text('返回'),
-            ),
-          ],
-        ),
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        backButtonKey: const Key('mobile-video-player-back-button'),
+        child: Center(child: AppEmptyState(message: _errorMessage!)),
       );
     }
     final controller = _controller;
     if (_isLoading || controller == null) {
-      return const Center(child: CircularProgressIndicator());
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        backButtonKey: const Key('mobile-video-player-back-button'),
+        child: const Center(child: CircularProgressIndicator()),
+      );
     }
     return _buildPlayerSurface(context, controller);
   }

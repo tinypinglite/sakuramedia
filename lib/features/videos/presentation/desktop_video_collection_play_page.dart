@@ -8,22 +8,29 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_filmstrip_controller.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_play_split_layout.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_playback_page_mixin.dart';
 import 'package:sakuramedia/widgets/movie_player/episode_selector_overlay.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/movie_player/themed_video_player.dart';
 
 /// 视频合集连播独立页面：media_kit 播放器（原生 Playlist 自动连播）占满画面，
 /// 底部控制条「选集」按钮唤出右侧滑出的剧集面板（当前高亮 / 点击跳转）。
 ///
-/// 与切片合集播放页 [DesktopClipCollectionPlayPage] 对齐。区别在于视频成员只携带
-/// 概要信息（无播放地址），需先逐集 `getVideoDetail` 解析首选可播 media 的 url 才能
-/// 组装 [Playlist]；故此页放弃单集进度上报与缩略图 seek，单集全功能播放仍走视频详情页。
+/// 与切片合集播放页 [DesktopClipCollectionPlayPage] 对齐（共用 [CollectionPlaybackPageMixin]、
+/// 分栏壳与右侧关键帧面板）。区别在于视频成员不自带播放地址，靠后端 `include_play_url`
+/// 内联「首个媒体」的签名 url 组装 [Playlist]（切片则自带 streamUrl）；右侧「整部合集」
+/// 关键帧面板按成员的 `firstMediaId` 逐集拉缩略图。
 class DesktopVideoCollectionPlayPage extends StatefulWidget {
   const DesktopVideoCollectionPlayPage({
     super.key,
@@ -48,34 +55,30 @@ class DesktopVideoCollectionPlayPage extends StatefulWidget {
 }
 
 class _DesktopVideoCollectionPlayPageState
-    extends State<DesktopVideoCollectionPlayPage> {
-  Player? _player;
-  VideoController? _videoController;
-  StreamSubscription<Playlist>? _playlistSub;
-
+    extends State<DesktopVideoCollectionPlayPage>
+    with CollectionPlaybackPageMixin<DesktopVideoCollectionPlayPage> {
   List<VideoItemListItemDto> _videos = const <VideoItemListItemDto>[];
   bool _isLoading = true;
   String? _errorMessage;
-  int _currentIndex = 0;
   bool _isEpisodePanelOpen = false;
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.startIndex;
+    currentIndex = widget.startIndex;
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   @override
   void dispose() {
-    _playlistSub?.cancel();
-    _player?.dispose();
+    disposePlayback();
     super.dispose();
   }
 
   Future<void> _load() async {
     final handoff = context.read<CollectionPlaybackHandoff>();
     final collectionsApi = context.read<VideoCollectionsApi>();
+    final moviesApi = context.read<MoviesApi>();
     final baseUrl = context.read<SessionStore>().baseUrl;
     try {
       // 优先用详情页「交接」来的成员（已带播放地址）：常规的「详情页点某集进连播」
@@ -93,6 +96,8 @@ class _DesktopVideoCollectionPlayPageState
           );
       final medias = <Media>[];
       final playableVideos = <VideoItemListItemDto>[];
+      // 与 playableVideos 平行：每集「首个媒体」id（可空），供右侧关键帧面板逐集拉缩略图。
+      final playableFirstMediaIds = <int?>[];
       // startIndex 基于原始成员顺序；若该项不可播或前面有项被跳过，索引需重新映射到
       // 实际可播列表。记录「即将加入的位置」即可自然落到 startIndex 或其后首个可播项。
       var resolvedStartIndex = 0;
@@ -111,6 +116,7 @@ class _DesktopVideoCollectionPlayPageState
         }
         medias.add(Media(playUrl));
         playableVideos.add(items[i].video);
+        playableFirstMediaIds.add(items[i].firstMediaId);
       }
       if (!mounted) {
         return;
@@ -128,18 +134,39 @@ class _DesktopVideoCollectionPlayPageState
         player,
         configuration: const VideoControllerConfiguration(hwdec: 'auto'),
       );
-      _playlistSub = player.stream.playlist.listen((playlist) {
-        if (mounted && playlist.index != _currentIndex) {
-          setState(() => _currentIndex = playlist.index);
-        }
-      });
+      // 「整部合集」关键帧面板：按可播成员顺序逐集拉「首个媒体」的缩略图（媒体自身时间轴
+      // offset，整段从 0 起播）；无媒体的集（firstMediaId 为空）帧段为空、自然跳过。
+      final firstMediaIds = List<int?>.unmodifiable(playableFirstMediaIds);
+      final filmstrip = CollectionFilmstripController(
+        episodeCount: firstMediaIds.length,
+        frameLoader: (episodeIndex) async {
+          final mediaId = firstMediaIds[episodeIndex];
+          if (mediaId == null) {
+            return const <({int offsetSeconds, MovieImageDto image})>[];
+          }
+          final thumbnails = await moviesApi.getMediaThumbnails(mediaId: mediaId);
+          return thumbnails
+              .map(
+                (thumbnail) => (
+                  offsetSeconds: thumbnail.offsetSeconds,
+                  image: thumbnail.image,
+                ),
+              )
+              .toList();
+        },
+      );
       setState(() {
         _videos = playableVideos;
-        _player = player;
-        _videoController = videoController;
-        _currentIndex = startIndex;
+        attachPlayback(
+          player: player,
+          videoController: videoController,
+          filmstrip: filmstrip,
+          startIndex: startIndex,
+        );
         _isLoading = false;
       });
+      // 优先拉起播集的关键帧，当前集高亮立即可用。
+      unawaited(filmstrip.start(priorityEpisode: startIndex));
       await player.open(Playlist(medias, index: startIndex));
     } catch (error) {
       if (!mounted) {
@@ -158,19 +185,11 @@ class _DesktopVideoCollectionPlayPageState
     }
   }
 
-  Future<void> _jumpTo(int index) async {
-    final player = _player;
-    if (player == null) {
-      return;
-    }
-    await player.jump(index);
-  }
-
   String _currentVideoTitle() {
-    if (_currentIndex < 0 || _currentIndex >= _videos.length) {
+    if (currentIndex < 0 || currentIndex >= _videos.length) {
       return '连播';
     }
-    return _videos[_currentIndex].preferredTitle;
+    return _videos[currentIndex].preferredTitle;
   }
 
   @override
@@ -183,44 +202,58 @@ class _DesktopVideoCollectionPlayPageState
 
   Widget _buildBody(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: SizedBox(
-          key: Key('video-collection-play-loading'),
-          width: 40,
-          height: 40,
-          child: CircularProgressIndicator(),
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        child: const Center(
+          child: SizedBox(
+            key: Key('video-collection-play-loading'),
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(),
+          ),
         ),
       );
     }
     if (_errorMessage != null) {
-      return Center(child: AppEmptyState(message: _errorMessage!));
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        child: Center(child: AppEmptyState(message: _errorMessage!)),
+      );
     }
-    final videoController = _videoController;
+    final videoController = this.videoController;
     if (videoController == null) {
-      return const Center(child: CircularProgressIndicator());
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        child: const Center(child: CircularProgressIndicator()),
+      );
     }
-    return Stack(
-      children: [
-        Positioned.fill(child: _buildPlayerSurface(context, videoController)),
-        EpisodeSelectorOverlay(
-          isOpen: _isEpisodePanelOpen,
-          itemCount: _videos.length,
-          currentIndex: _currentIndex,
-          title: '选集 · ${_videos.length}',
-          onClose: _closeEpisodePanel,
-          itemBuilder: (context, index) {
-            return _QueueItem(
-              video: _videos[index],
-              index: index,
-              isCurrent: index == _currentIndex,
-              onTap: () {
-                _closeEpisodePanel();
-                _jumpTo(index);
-              },
-            );
-          },
-        ),
-      ],
+    // 左：原沉浸式播放器 + 「选集」浮层（原样保留）；右：「整部合集」关键帧面板。
+    return CollectionPlaySplitLayout(
+      keyPrefix: 'video-collection',
+      left: Stack(
+        children: [
+          Positioned.fill(child: _buildPlayerSurface(context, videoController)),
+          EpisodeSelectorOverlay(
+            isOpen: _isEpisodePanelOpen,
+            itemCount: _videos.length,
+            currentIndex: currentIndex,
+            title: '选集 · ${_videos.length}',
+            onClose: _closeEpisodePanel,
+            itemBuilder: (context, index) {
+              return _QueueItem(
+                video: _videos[index],
+                index: index,
+                isCurrent: index == currentIndex,
+                onTap: () {
+                  _closeEpisodePanel();
+                  jumpTo(index);
+                },
+              );
+            },
+          ),
+        ],
+      ),
+      right: buildFilmstripPanel(),
     );
   }
 
@@ -236,48 +269,18 @@ class _DesktopVideoCollectionPlayPageState
         movieNumber: _currentVideoTitle(),
         onBackPressed: _handleBack,
       ),
-      bottomControls: _buildBottomControls(),
+      bottomControls: buildCollectionPlayBottomControls(
+        useTouchOptimizedControls: widget.useTouchOptimizedControls,
+        onOpenEpisodes: _openEpisodePanel,
+      ),
       // 全屏由 media_kit push 独立路由，页面级「选集」浮层不在其内，按钮点了
       // 也看不到——全屏态去掉该按钮，避免死按钮。换集需先退出全屏。
-      fullscreenBottomControls: _buildBottomControls(
+      fullscreenBottomControls: buildCollectionPlayBottomControls(
+        useTouchOptimizedControls: widget.useTouchOptimizedControls,
+        onOpenEpisodes: _openEpisodePanel,
         includeEpisodeButton: false,
       ),
     );
-  }
-
-  /// 合集连播底栏：含上一首 / 下一首 + 全屏左侧的「选集」按钮。按平台选对应控件
-  /// 变体——移动用触摸版、桌面用 Desktop 版（多一个音量按钮）。
-  /// [includeEpisodeButton] 为 `false` 时省略「选集」按钮（全屏态用，浮层在全屏不可见）。
-  List<Widget> _buildBottomControls({bool includeEpisodeButton = true}) {
-    if (widget.useTouchOptimizedControls) {
-      return <Widget>[
-        const MaterialSkipPreviousButton(),
-        const MaterialPlayOrPauseButton(),
-        const MaterialSkipNextButton(),
-        const MaterialPositionIndicator(),
-        const Spacer(),
-        if (includeEpisodeButton)
-          MaterialCustomButton(
-            onPressed: _openEpisodePanel,
-            icon: const Icon(Icons.playlist_play_rounded),
-          ),
-        const MaterialFullscreenButton(),
-      ];
-    }
-    return <Widget>[
-      const MaterialDesktopSkipPreviousButton(),
-      const MaterialPlayOrPauseButton(),
-      const MaterialDesktopSkipNextButton(),
-      const MaterialDesktopVolumeButton(),
-      const MaterialPositionIndicator(),
-      const Spacer(),
-      if (includeEpisodeButton)
-        MaterialDesktopCustomButton(
-          onPressed: _openEpisodePanel,
-          icon: const Icon(Icons.playlist_play_rounded),
-        ),
-      const MaterialFullscreenButton(),
-    ];
   }
 
   void _openEpisodePanel() {

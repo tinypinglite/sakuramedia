@@ -1,6 +1,7 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
+import 'package:sakuramedia/features/clips/data/media_clip_thumbnail_dto.dart';
 
 class ClipsApi {
   const ClipsApi({required ApiClient apiClient}) : _apiClient = apiClient;
@@ -77,5 +78,17 @@ class ClipsApi {
 
   Future<void> deleteClip({required int clipId}) {
     return _apiClient.deleteNoContent('/media-clips/$clipId');
+  }
+
+  /// 切片区间内的关键帧缩略图（按切片自身时间轴的相对 offset 升序）。
+  ///
+  /// 供合集连播页右侧「整部合集」关键帧面板拉单集的帧序列；来源媒体已删的切片返回空。
+  Future<List<MediaClipThumbnailDto>> getClipThumbnails({
+    required int clipId,
+  }) async {
+    final response = await _apiClient.getList('/media-clips/$clipId/thumbnails');
+    return response
+        .map(MediaClipThumbnailDto.fromJson)
+        .toList(growable: false);
   }
 }

@@ -20,6 +20,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface_controller.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_thumbnail_panel.dart';
@@ -119,27 +120,41 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
           animation: _controller,
           builder: (context, child) {
             if (_controller.isLoading) {
-              return _MoviePlayerLoadingState(
-                dividerHandleBuffer: widget.dividerHandleBuffer,
+              return wrapWithMoviePlayerBackButton(
+                onBackPressed: _handleBack,
+                child: const _MoviePlayerLoadingState(),
               );
             }
 
             if (_controller.errorMessage != null) {
-              return _MoviePlayerErrorState(
-                message: _controller.errorMessage!,
-                onRetry: _controller.load,
-                dividerHandleBuffer: widget.dividerHandleBuffer,
+              return wrapWithMoviePlayerBackButton(
+                onBackPressed: _handleBack,
+                child: _MoviePlayerErrorState(
+                  message: _controller.errorMessage!,
+                  onRetry: _controller.load,
+                ),
               );
             }
 
             final resolvedUrl = _controller.resolvedPlayUrl;
+            if (resolvedUrl == null) {
+              return wrapWithMoviePlayerBackButton(
+                onBackPressed: _handleBack,
+                child: _MoviePlayerSplitLayout(
+                  controller: _splitController,
+                  dividerHandleBuffer: widget.dividerHandleBuffer,
+                  leftChild: const _MoviePlayerEmptyState(),
+                  rightChild:
+                      _controller.selectedMedia == null
+                          ? const SizedBox.expand()
+                          : _buildThumbnailPanel(),
+                ),
+              );
+            }
             return _MoviePlayerSplitLayout(
               controller: _splitController,
               dividerHandleBuffer: widget.dividerHandleBuffer,
-              leftChild:
-                  resolvedUrl == null
-                      ? const _MoviePlayerEmptyState()
-                      : _buildPlayerSurface(context, resolvedUrl),
+              leftChild: _buildPlayerSurface(context, resolvedUrl),
               rightChild:
                   _controller.selectedMedia == null
                       ? const SizedBox.expand()
@@ -489,20 +504,13 @@ class _MoviePlayerSidePanel extends StatelessWidget {
 }
 
 class _MoviePlayerLoadingState extends StatelessWidget {
-  const _MoviePlayerLoadingState({required this.dividerHandleBuffer});
-
-  final double dividerHandleBuffer;
+  const _MoviePlayerLoadingState();
 
   @override
   Widget build(BuildContext context) {
-    return _MoviePlayerSplitLayout(
-      controller: MultiSplitViewController(
-        areas: [Area(flex: 0.72), Area(flex: 0.28)],
-      ),
-      dividerHandleBuffer: dividerHandleBuffer,
-      leftChild: const _MoviePlayerLoadingPanel(),
-      rightChild: const SizedBox.expand(),
-    );
+    // 未就绪态全屏铺满单面板，不走左右分栏——否则右侧 28% 会露出一块空的纯白
+    // `surfaceCard` 占位卡（surfaceCard = 0xFFFFFFFF），在黑底上显示成突兀的白条。
+    return const _MoviePlayerLoadingPanel();
   }
 }
 
@@ -520,31 +528,20 @@ class _MoviePlayerLoadingPanel extends StatelessWidget {
 }
 
 class _MoviePlayerErrorState extends StatelessWidget {
-  const _MoviePlayerErrorState({
-    required this.message,
-    required this.onRetry,
-    required this.dividerHandleBuffer,
-  });
+  const _MoviePlayerErrorState({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
-  final double dividerHandleBuffer;
 
   @override
   Widget build(BuildContext context) {
-    return _MoviePlayerSplitLayout(
-      controller: MultiSplitViewController(
-        areas: [Area(flex: 0.72), Area(flex: 0.28)],
-      ),
-      dividerHandleBuffer: dividerHandleBuffer,
-      leftChild: _MoviePlayerPanelMessage(
-        title: '播放器加载失败',
-        message: message,
-        icon: Icons.play_disabled_outlined,
-        actionLabel: '重试',
-        onAction: onRetry,
-      ),
-      rightChild: const SizedBox.expand(),
+    // 同加载态：全屏单面板，避免右侧空白 surfaceCard 卡片露出成白条。
+    return _MoviePlayerPanelMessage(
+      title: '播放器加载失败',
+      message: message,
+      icon: Icons.play_disabled_outlined,
+      actionLabel: '重试',
+      onAction: onRetry,
     );
   }
 }
