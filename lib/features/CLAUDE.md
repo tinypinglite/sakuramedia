@@ -58,7 +58,7 @@
 - **clips 的 `createClip` 同步切片**,前端超时 130s(后端 ffmpeg 120s);**超时≠失败**,关对话框让用户去"我的切片"查看。
 - 这些域**直接复用 movies 的 `MovieImageDto`/`MovieMediaItemDto`**——改 movies 这些 DTO 会波及它们。
 - 移动连播页 body 直接 `return` 桌面连播页(改桌面同时影响移动)。
-- **连播页右侧「整部合集」关键帧面板**(`CollectionFilmstripController` + `CollectionPlaySplitLayout`,详见 `lib/widgets/CLAUDE.md`):把合集拉平成一部长片的逐帧进度条。两侧各注入「按集取帧」闭包——切片用 `ClipsApi.getClipThumbnails(clipId)`(`GET /media-clips/{id}/thumbnails`,offset 相对切片起点);pornbox 用 `MoviesApi.getMediaThumbnails(firstMediaId)`(`VideoCollectionItemDto.firstMediaId`,后端与 `playUrl` 同源但**恒返回、不依赖 `include_play_url`**;offset 相对媒体起点)。集索引须对齐**实际可播列表**(不可播/无 firstMediaId 的集帧段为空、自然跳过),pornbox 侧用与 `playableVideos` 平行的 `firstMediaId` 列表喂控制器。两个连播页的**播放器/跨集 seek/面板接线逐字相同部分已抽到** `CollectionPlaybackPageMixin`(`lib/widgets/movie_player/`),各页只剩 `_load`/剧集列表/底栏/`_QueueItem`——改 seek 补偿或面板接线只动 mixin 一处。
+- **连播页右侧「整部合集」关键帧面板**(`CollectionFilmstripController` + `CollectionPlaySplitLayout`,详见 `lib/widgets/CLAUDE.md`):把合集拉平成一部长片的逐帧进度条。两侧各注入「按集取帧」闭包——切片用 `ClipsApi.getClipThumbnails(clipId)`(`GET /media-clips/{id}/thumbnails`,offset 相对切片起点);pornbox 用 `MoviesApi.getMediaThumbnails(firstMediaId)`(`VideoCollectionItemDto.firstMediaId`,后端与 `playUrl` 同源但**恒返回、不依赖 `include_play_url`**;offset 相对媒体起点)。集索引须对齐**实际可播列表**(不可播/无 firstMediaId 的集帧段为空、自然跳过),pornbox 侧用与 `playableVideos` 平行的 `firstMediaId` 列表喂控制器。**pornbox 帧右键/长按可「添加时刻」**(MediaPoint,经媒体缩略图透传的真实 `mediaId/thumbnailId`);切片帧无对应 media、填 0,不支持时刻。两个连播页的**播放器/跨集 seek/面板接线逐字相同部分已抽到** `CollectionPlaybackPageMixin`(`lib/widgets/movie_player/`),各页只剩 `_load`/剧集列表/底栏/`_QueueItem`——改 seek 补偿或面板接线只动 mixin 一处。
 
 ## 与测试的关系
 

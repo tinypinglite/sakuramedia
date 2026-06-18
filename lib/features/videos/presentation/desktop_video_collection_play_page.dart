@@ -4,17 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 import 'package:sakuramedia/widgets/movie_player/collection_filmstrip_controller.dart';
 import 'package:sakuramedia/widgets/movie_player/collection_play_split_layout.dart';
@@ -142,7 +147,12 @@ class _DesktopVideoCollectionPlayPageState
         frameLoader: (episodeIndex) async {
           final mediaId = firstMediaIds[episodeIndex];
           if (mediaId == null) {
-            return const <({int offsetSeconds, MovieImageDto image})>[];
+            return const <({
+              int offsetSeconds,
+              MovieImageDto image,
+              int mediaId,
+              int thumbnailId,
+            })>[];
           }
           final thumbnails = await moviesApi.getMediaThumbnails(mediaId: mediaId);
           return thumbnails
@@ -150,6 +160,9 @@ class _DesktopVideoCollectionPlayPageState
                 (thumbnail) => (
                   offsetSeconds: thumbnail.offsetSeconds,
                   image: thumbnail.image,
+                  // 透传真实 id 供右面板「添加时刻」（创建 MediaPoint）。
+                  mediaId: thumbnail.mediaId,
+                  thumbnailId: thumbnail.thumbnailId,
                 ),
               )
               .toList();
@@ -190,6 +203,84 @@ class _DesktopVideoCollectionPlayPageState
       return '连播';
     }
     return _videos[currentIndex].preferredTitle;
+  }
+
+  /// 右键/长按「整部合集」某帧 → 弹「添加/删除时刻」菜单（桌面定位弹窗、移动底部抽屉）。
+  /// 时刻即 MediaPoint，故仅 pornbox（每帧带真实 media/thumbnail id）支持；无媒体的帧静默忽略。
+  Future<void> _showThumbnailActions(int index, Offset globalPosition) async {
+    final thumbnails = filmstrip?.thumbnails ?? const <MovieMediaThumbnailDto>[];
+    if (index < 0 || index >= thumbnails.length) {
+      return;
+    }
+    final thumbnail = thumbnails[index];
+    if (thumbnail.mediaId <= 0 || thumbnail.thumbnailId <= 0) {
+      return;
+    }
+    final mediaApi = context.read<MediaApi>();
+    // 先查该帧是否已是时刻，决定菜单展示「添加」还是「删除」。
+    final existingPoint = await _findMatchingPoint(mediaApi, thumbnail);
+    if (!mounted) {
+      return;
+    }
+    final action = await showAppImageActionMenu(
+      context: context,
+      actions: <AppImageActionDescriptor>[
+        AppImageActionDescriptor(
+          type: AppImageActionType.toggleMark,
+          label: existingPoint == null ? '添加时刻' : '删除时刻',
+          icon:
+              existingPoint == null
+                  ? Icons.bookmark_add_outlined
+                  : Icons.bookmark_remove_outlined,
+          destructive: existingPoint != null,
+        ),
+      ],
+      globalPosition: globalPosition,
+      // 触摸端用底部抽屉、桌面用定位弹窗，对齐图片菜单的两端范式。
+      presentation:
+          widget.useTouchOptimizedControls
+              ? AppImageActionMenuPresentation.bottomDrawer
+              : AppImageActionMenuPresentation.popup,
+    );
+    if (!mounted || action != AppImageActionType.toggleMark) {
+      return;
+    }
+    try {
+      if (existingPoint == null) {
+        await mediaApi.createMediaPoint(
+          mediaId: thumbnail.mediaId,
+          thumbnailId: thumbnail.thumbnailId,
+        );
+        if (mounted) showToast('已添加时刻');
+      } else {
+        await mediaApi.deleteMediaPoint(
+          mediaId: thumbnail.mediaId,
+          pointId: existingPoint.pointId,
+        );
+        if (mounted) showToast('已删除时刻');
+      }
+    } catch (_) {
+      if (mounted) showToast('更新时刻失败，请稍后重试');
+    }
+  }
+
+  /// 与 jav 播放器 `_loadMatchingPoint` 同构（有意各写一份：jav 菜单含
+  /// 相似图片/保存/播放 + 失败抛出，本页只 toggleMark + 失败静默）。
+  Future<MediaPointDto?> _findMatchingPoint(
+    MediaApi mediaApi,
+    MovieMediaThumbnailDto thumbnail,
+  ) async {
+    try {
+      final points = await mediaApi.getMediaPoints(mediaId: thumbnail.mediaId);
+      for (final point in points) {
+        if (point.thumbnailId == thumbnail.thumbnailId) {
+          return point;
+        }
+      }
+    } catch (_) {
+      // 查询失败按「未标记」处理：菜单仍可点「添加时刻」，由创建接口兜底报错。
+    }
+    return null;
   }
 
   @override
@@ -253,7 +344,9 @@ class _DesktopVideoCollectionPlayPageState
           ),
         ],
       ),
-      right: buildFilmstripPanel(),
+      right: buildFilmstripPanel(
+        onThumbnailMenuRequested: _showThumbnailActions,
+      ),
     );
   }
 

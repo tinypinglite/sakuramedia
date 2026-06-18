@@ -7,7 +7,11 @@ import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart'
 /// 某集（按「实际可播列表」下标）的原始关键帧：`offsetSeconds` 是**该集自身播放时间轴**
 /// 的相对秒数（切片相对切片起点、pornbox 相对媒体起点，两者都对应「该集从 0 起播」）。
 /// 切片缩略图 / 媒体缩略图两种数据源归一成此形状后喂入控制器。
-typedef CollectionEpisodeFrames = List<({int offsetSeconds, MovieImageDto image})>;
+///
+/// `mediaId` / `thumbnailId` 供右面板「添加时刻」用（创建 MediaPoint 需二者）：pornbox 帧
+/// 来自媒体缩略图，填真实 id；切片帧无对应 media（时刻基于 media），填 `0` 即不支持时刻。
+typedef CollectionEpisodeFrames =
+    List<({int offsetSeconds, MovieImageDto image, int mediaId, int thumbnailId})>;
 
 /// 取某集关键帧的注入闭包；失败或无帧时返回空（控制器静默跳过该集帧段）。
 typedef CollectionEpisodeFrameLoader =
@@ -20,11 +24,17 @@ class CollectionFrame {
     required this.episodeIndex,
     required this.offsetInEpisodeSeconds,
     required this.image,
+    required this.mediaId,
+    required this.thumbnailId,
   });
 
   final int episodeIndex;
   final int offsetInEpisodeSeconds;
   final MovieImageDto image;
+
+  /// 帧所属媒体与缩略图 id（供「添加时刻」创建 MediaPoint）；切片帧均为 `0`（不支持时刻）。
+  final int mediaId;
+  final int thumbnailId;
 }
 
 /// 把整个合集的关键帧聚合成「一部完整长片」的全局缩略图序列：按集顺序无缝拼接第 1…N 集
@@ -78,13 +88,15 @@ class CollectionFilmstripController extends ChangeNotifier {
   bool _usesAutoColumns = true;
   bool _isScrollLocked = true;
 
-  /// 惰性构建并缓存：从 `_frames` 投影成网格要的占位 DTO（`thumbnailId/mediaId=0`）。
+  /// 惰性构建并缓存：从 `_frames` 投影成网格要的 DTO。`mediaId/thumbnailId` 透传帧的真实
+  /// id（pornbox 真值、切片为 0）——网格用 index 定位、不依赖 id 渲染，但「添加时刻」据此创建
+  /// MediaPoint。`offsetSeconds` 为集内相对秒（仅供网格内部展示，跨集 seek 走 `resolveTarget`）。
   List<MovieMediaThumbnailDto> get thumbnails =>
       _thumbnailsCache ??= _frames
           .map(
             (frame) => MovieMediaThumbnailDto(
-              thumbnailId: 0,
-              mediaId: 0,
+              thumbnailId: frame.thumbnailId,
+              mediaId: frame.mediaId,
               offsetSeconds: frame.offsetInEpisodeSeconds,
               image: frame.image,
             ),
@@ -129,7 +141,12 @@ class CollectionFilmstripController extends ChangeNotifier {
       raw = await _frameLoader(episodeIndex);
     } catch (_) {
       // 单集失败静默跳过：该集帧段为空，不影响其它集与播放。
-      raw = const <({int offsetSeconds, MovieImageDto image})>[];
+      raw = const <({
+        int offsetSeconds,
+        MovieImageDto image,
+        int mediaId,
+        int thumbnailId,
+      })>[];
     }
     if (_isDisposed) {
       return;
@@ -141,6 +158,8 @@ class CollectionFilmstripController extends ChangeNotifier {
                 episodeIndex: episodeIndex,
                 offsetInEpisodeSeconds: frame.offsetSeconds,
                 image: frame.image,
+                mediaId: frame.mediaId,
+                thumbnailId: frame.thumbnailId,
               ),
             )
             .toList(growable: false)

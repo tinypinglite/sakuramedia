@@ -156,7 +156,13 @@ mixin CollectionPlaybackPageMixin<T extends StatefulWidget> on State<T> {
   }
 
   /// 右面板「整部合集」关键帧网格（纯展示 + 高亮 + 点击跳转；失败静默降级）。
-  Widget buildFilmstripPanel() {
+  ///
+  /// [onThumbnailMenuRequested]：右键/长按某帧的菜单回调（index 为 [filmstrip] 全局帧下标，
+  /// 与 `thumbnails` 同坐标系）。传 `null`（默认）则不挂菜单——切片合集无 media 不支持时刻，
+  /// 故只 pornbox 页传入「添加时刻」菜单。仍不传圈选回调 → 圈选 UI 始终隐藏。
+  Widget buildFilmstripPanel({
+    void Function(int index, Offset globalPosition)? onThumbnailMenuRequested,
+  }) {
     final activeFilmstrip = filmstrip;
     if (activeFilmstrip == null) {
       return const SizedBox.expand();
@@ -180,9 +186,10 @@ mixin CollectionPlaybackPageMixin<T extends StatefulWidget> on State<T> {
               onColumnsChanged: activeFilmstrip.setColumns,
               onToggleScrollLock: activeFilmstrip.toggleScrollLock,
               onThumbnailTap: seekToFrame,
+              onThumbnailMenuRequested: onThumbnailMenuRequested,
               // filmstrip 失败静默降级、不暴露错误态，retry 不会被触发。
               onRetry: () {},
-              // 不传圈选 / 右键菜单回调 → 圈选与菜单 UI 自动隐藏。
+              // 不传圈选回调 → 圈选 UI 始终隐藏。
             );
           },
         );

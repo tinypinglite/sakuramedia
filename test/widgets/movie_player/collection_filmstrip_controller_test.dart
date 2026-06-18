@@ -21,12 +21,15 @@ CollectionEpisodeFrameLoader _loaderFrom(
     }
     final offsets = offsetsPerEpisode[episodeIndex];
     var imageId = episodeIndex * 100;
-    return offsets
-        .map(
-          (offset) =>
-              (offsetSeconds: offset, image: _img(imageId++)),
-        )
-        .toList();
+    return offsets.map((offset) {
+      final id = imageId++;
+      return (
+        offsetSeconds: offset,
+        image: _img(id),
+        mediaId: episodeIndex + 1,
+        thumbnailId: id,
+      );
+    }).toList();
   };
 }
 
@@ -59,14 +62,47 @@ void main() {
     expect(controller.resolveTarget(9), isNull);
   });
 
+  test('thumbnails 透传每帧的 mediaId / thumbnailId（供「添加时刻」）', () async {
+    final controller = CollectionFilmstripController(
+      episodeCount: 2,
+      frameLoader: _loaderFrom(<List<int>>[
+        <int>[0, 10],
+        <int>[0],
+      ]),
+    );
+    addTearDown(controller.dispose);
+
+    await controller.start();
+
+    // _loaderFrom：mediaId = 集下标 + 1；thumbnailId = 该集帧计数器（集*100 起）。
+    final thumbnails = controller.thumbnails;
+    expect(thumbnails, hasLength(3));
+    expect(thumbnails[0].mediaId, 1);
+    expect(thumbnails[0].thumbnailId, 0);
+    expect(thumbnails[1].mediaId, 1);
+    expect(thumbnails[1].thumbnailId, 1);
+    expect(thumbnails[2].mediaId, 2);
+    expect(thumbnails[2].thumbnailId, 100);
+  });
+
   test('start(priorityEpisode) 优先加载起播集，其余集再按下标补齐', () async {
     final loadOrder = <int>[];
     final controller = CollectionFilmstripController(
       episodeCount: 4,
       frameLoader: (episodeIndex) async {
         loadOrder.add(episodeIndex);
-        return <({int offsetSeconds, MovieImageDto image})>[
-          (offsetSeconds: 0, image: _img(episodeIndex)),
+        return <({
+          int offsetSeconds,
+          MovieImageDto image,
+          int mediaId,
+          int thumbnailId,
+        })>[
+          (
+            offsetSeconds: 0,
+            image: _img(episodeIndex),
+            mediaId: episodeIndex + 1,
+            thumbnailId: episodeIndex,
+          ),
         ];
       },
     );

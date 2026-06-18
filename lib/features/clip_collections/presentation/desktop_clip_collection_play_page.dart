@@ -118,6 +118,9 @@ class _DesktopClipCollectionPlayPageState
                 (thumbnail) => (
                   offsetSeconds: thumbnail.offsetSeconds,
                   image: thumbnail.image,
+                  // 切片帧无对应 media（时刻基于 media），id 填 0 即不支持「添加时刻」。
+                  mediaId: 0,
+                  thumbnailId: 0,
                 ),
               )
               .toList();
