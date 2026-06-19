@@ -3,118 +3,90 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 import 'package:sakuramedia/widgets/selection/selection_check_badge.dart';
 
-/// 合集「成员」（切片 / 视频）在详情页的共享展示组件：列表行 [CollectionMemberRow]、
-/// 网格卡 [CollectionMemberCard] 与「···」菜单 [CollectionMemberMenu]。
+/// 合集「成员」（切片 / 视频）在详情页的共享展示组件：列表行 [CollectionMemberRow]
+/// 与网格卡 [CollectionMemberCard]。
+///
+/// 「打开来源 / 移出合集 / 删除本体」走**右键 / 长按**弹出的上下文菜单（与
+/// [ClipGridCard]、`VideoSummaryCard` 等的右键菜单形式对齐），封面右上角与
+/// 列表行尾不再渲染常显的「···」按钮。
 ///
 /// 切片合集与视频合集详情页结构一致，仅在 DTO、封面比例、副信息、占位图标、
 /// 菜单项与 key 前缀上有差异，由各详情页把差异以参数喂入，避免两份近乎相同的实现重复。
 /// 与「合集封面卡」[CollectionCoverCard] 同属一套范式。
+enum _MemberMenuAction { openSource, remove, delete }
 
-/// 合集成员的「更多」菜单：可选「打开来源」（切片 → 影片，视频 → 详情）+「移出合集」。
+/// 在 [globalPosition] 处弹出合集成员的上下文菜单。
 ///
-/// [onCover] 为 `true` 时用于网格封面右上角，沿用半透明黑底白字圆形徽标样式；
-/// 为 `false` 时用于列表行，渲染为贴合卡片表面的普通图标按钮。
-class CollectionMemberMenu extends StatelessWidget {
-  const CollectionMemberMenu({
-    super.key,
-    required this.menuKey,
-    required this.onRemove,
-    this.onOpenSource,
-    this.openSourceLabel,
-    this.removeLabel = '移出合集',
-    this.onDelete,
-    this.deleteLabel = '删除视频',
-    this.onCover = true,
-  });
-
-  final Key menuKey;
-  final VoidCallback onRemove;
-
-  /// 「打开来源」动作；为 `null`（或缺少 [openSourceLabel]）时该菜单项隐藏。
-  final VoidCallback? onOpenSource;
-  final String? openSourceLabel;
-  final String removeLabel;
-
-  /// 「删除本体」动作（如视频合集的「删除视频」，连同文件不可恢复）；为 `null` 时该
-  /// 菜单项隐藏（切片合集等不提供本体删除的场景）。
-  final VoidCallback? onDelete;
-  final String deleteLabel;
-  final bool onCover;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = openSourceLabel;
-    final openSource = onOpenSource;
-    final delete = onDelete;
-    final menuButton = PopupMenuButton<_MemberMenuAction>(
-      key: menuKey,
-      tooltip: '更多',
-      padding: EdgeInsets.zero,
-      iconSize: 16,
-      position: PopupMenuPosition.under,
-      icon: Icon(
-        Icons.more_horiz_rounded,
-        color: onCover ? Colors.white : context.appTextPalette.secondary,
-        size: 16,
-      ),
-      onSelected: (action) {
-        switch (action) {
-          case _MemberMenuAction.openSource:
-            openSource?.call();
-          case _MemberMenuAction.remove:
-            onRemove();
-          case _MemberMenuAction.delete:
-            delete?.call();
-        }
-      },
-      itemBuilder: (context) => <PopupMenuEntry<_MemberMenuAction>>[
-        if (openSource != null && label != null)
-          PopupMenuItem<_MemberMenuAction>(
-            value: _MemberMenuAction.openSource,
-            child: Text(label),
-          ),
+/// 由 [CollectionMemberCard] / [CollectionMemberRow] 的右键 / 长按手势触发；
+/// 任一动作回调为 `null` 时对应菜单项隐藏。`onRemove` 必须非空（无可移出动作时
+/// 上层根本不该接右键 / 长按）。
+Future<void> _showCollectionMemberContextMenu(
+  BuildContext context, {
+  required Offset globalPosition,
+  required VoidCallback onRemove,
+  required String removeLabel,
+  VoidCallback? onOpenSource,
+  String? openSourceLabel,
+  VoidCallback? onDelete,
+  String deleteLabel = '删除视频',
+}) async {
+  final navigator = Navigator.of(context);
+  final overlay = navigator.overlay!.context.findRenderObject() as RenderBox;
+  final localPosition = overlay.globalToLocal(globalPosition);
+  final position = RelativeRect.fromRect(
+    Rect.fromPoints(localPosition, localPosition),
+    Offset.zero & overlay.size,
+  );
+  final openSource = onOpenSource;
+  final label = openSourceLabel;
+  final delete = onDelete;
+  final action = await showMenu<_MemberMenuAction>(
+    context: context,
+    position: position,
+    useRootNavigator: false,
+    items: <PopupMenuEntry<_MemberMenuAction>>[
+      if (openSource != null && label != null)
         PopupMenuItem<_MemberMenuAction>(
-          value: _MemberMenuAction.remove,
-          // 无「删除本体」时（如切片合集）「移出合集」保持原有 error 强调色；与红色
-          // 删除项并列时退为常规色，让破坏性的「删除」独占红色、层级清晰。
+          value: _MemberMenuAction.openSource,
+          child: Text(label),
+        ),
+      PopupMenuItem<_MemberMenuAction>(
+        value: _MemberMenuAction.remove,
+        // 无「删除本体」时（如切片合集）「移出合集」保持原有 error 强调色；与红色
+        // 删除项并列时退为常规色，让破坏性的「删除」独占红色、层级清晰。
+        child: Text(
+          removeLabel,
+          style: delete == null
+              ? TextStyle(color: context.appTextPalette.error)
+              : null,
+        ),
+      ),
+      if (delete != null)
+        PopupMenuItem<_MemberMenuAction>(
+          value: _MemberMenuAction.delete,
           child: Text(
-            removeLabel,
-            style: delete == null
-                ? TextStyle(color: context.appTextPalette.error)
-                : null,
+            deleteLabel,
+            style: TextStyle(color: context.appTextPalette.error),
           ),
         ),
-        if (delete != null)
-          PopupMenuItem<_MemberMenuAction>(
-            value: _MemberMenuAction.delete,
-            child: Text(
-              deleteLabel,
-              style: TextStyle(color: context.appTextPalette.error),
-            ),
-          ),
-      ],
-    );
-
-    // 封面上用半透明黑底圆形徽标，列表行内贴合卡片表面、无额外底色。
-    return SizedBox(
-      width: 26,
-      height: 26,
-      child: onCover
-          ? Material(
-              color: Colors.black.withValues(alpha: 0.45),
-              shape: const CircleBorder(),
-              clipBehavior: Clip.antiAlias,
-              child: menuButton,
-            )
-          : menuButton,
-    );
+    ],
+  );
+  if (action == null) {
+    return;
+  }
+  switch (action) {
+    case _MemberMenuAction.openSource:
+      openSource?.call();
+    case _MemberMenuAction.remove:
+      onRemove();
+    case _MemberMenuAction.delete:
+      delete?.call();
   }
 }
 
-enum _MemberMenuAction { openSource, remove, delete }
-
-/// 合集成员的列表行：封面贴满左侧 + 标题/副信息，悬停显现拖拽手柄与更多菜单。
-/// 整行点击触发 [onTap]（通常为从该位置连播整个合集）。
+/// 合集成员的列表行：封面贴满左侧 + 标题/副信息，悬停显现拖拽手柄。
+/// 整行点击触发 [onTap]（通常为从该位置连播整个合集）；
+/// 整行右键 / 长按弹「打开来源 / 移出合集 / 删除本体」上下文菜单。
 class CollectionMemberRow extends StatelessWidget {
   const CollectionMemberRow({
     super.key,
@@ -149,10 +121,12 @@ class CollectionMemberRow extends StatelessWidget {
   final String title;
   final bool isHovered;
   final VoidCallback onTap;
+
+  /// 包裹整行、接右键 / 长按手势的外层节点 key，供测试 / 自动化触发上下文菜单。
   final Key menuKey;
   final Key dragHandleKey;
 
-  /// 「移出合集」动作；为 `null` 时整行不渲染「···」菜单（移动端改为整行点击弹抽屉）。
+  /// 「移出合集」动作；为 `null` 时整行不接右键 / 长按（移动端整行点击弹抽屉的场景）。
   final VoidCallback? onRemove;
 
   /// 「删除本体」动作（如视频合集的「删除视频」）；为 `null` 时菜单不含该项。
@@ -171,7 +145,7 @@ class CollectionMemberRow extends StatelessWidget {
   /// `true`，否则手柄的 `ReorderableDragStartListener` 找不到上层控制器会报错）。
   final bool reorderable;
 
-  /// 选择模式：整行点击切换选中，左侧显示复选框，隐藏拖拽手柄与「···」菜单。
+  /// 选择模式：整行点击切换选中，左侧显示复选框，隐藏拖拽手柄；屏蔽右键 / 长按菜单。
   final bool selectionMode;
 
   /// 当前是否被选中（仅 [selectionMode] 下有意义）。
@@ -187,7 +161,7 @@ class CollectionMemberRow extends StatelessWidget {
         ? colors.selectionBorder
         : colors.borderSubtle;
 
-    return Material(
+    final row = Material(
       color: colors.surfaceCard,
       borderRadius: context.appRadius.mdBorder,
       clipBehavior: Clip.antiAlias,
@@ -259,61 +233,77 @@ class CollectionMemberRow extends StatelessWidget {
                 ),
               ),
               SizedBox(width: spacing.sm),
-              // 选择模式下隐藏拖拽手柄与「···」菜单，避免与多选交互冲突。
-              if (!selectionMode) ...[
+              // 选择模式下隐藏拖拽手柄，避免与多选交互冲突。
+              if (!selectionMode && reorderable) ...[
                 // 拖拽手柄：仅手动顺序（[reorderable]）下渲染，悬停时显现，
                 // 参照「播放列表」页的右侧圆形手柄。
-                if (reorderable) ...[
-                  Visibility(
-                    visible: isHovered,
-                    maintainSize: true,
-                    maintainAnimation: true,
-                    maintainState: true,
-                    child: IgnorePointer(
-                      ignoring: !isHovered,
-                      child: ReorderableDragStartListener(
-                        index: index,
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.grab,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: colors.surfaceCard.withValues(alpha: 0.92),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: colors.borderSubtle),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(spacing.xs),
-                              child: Icon(
-                                Icons.unfold_more_rounded,
-                                key: dragHandleKey,
-                                size: context.appComponentTokens.iconSizeMd,
-                                color: context.appTextPalette.primary,
-                              ),
+                Visibility(
+                  visible: isHovered,
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: IgnorePointer(
+                    ignoring: !isHovered,
+                    child: ReorderableDragStartListener(
+                      index: index,
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.grab,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: colors.surfaceCard.withValues(alpha: 0.92),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: colors.borderSubtle),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.all(spacing.xs),
+                            child: Icon(
+                              Icons.unfold_more_rounded,
+                              key: dragHandleKey,
+                              size: context.appComponentTokens.iconSizeMd,
+                              color: context.appTextPalette.primary,
                             ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                  SizedBox(width: spacing.sm),
-                ],
-                if (onRemove != null) ...[
-                  CollectionMemberMenu(
-                    menuKey: menuKey,
-                    onCover: false,
-                    onOpenSource: onOpenSource,
-                    openSourceLabel: openSourceLabel,
-                    onRemove: onRemove!,
-                    onDelete: onDelete,
-                    deleteLabel: deleteLabel,
-                  ),
-                  SizedBox(width: spacing.sm),
-                ],
+                ),
+                SizedBox(width: spacing.sm),
               ],
             ],
           ),
         ),
       ),
+    );
+
+    final remove = onRemove;
+    if (selectionMode || remove == null) {
+      return row;
+    }
+    return GestureDetector(
+      key: menuKey,
+      behavior: HitTestBehavior.deferToChild,
+      onSecondaryTapDown: (details) => _showCollectionMemberContextMenu(
+        context,
+        globalPosition: details.globalPosition,
+        onRemove: remove,
+        removeLabel: '移出合集',
+        onOpenSource: onOpenSource,
+        openSourceLabel: openSourceLabel,
+        onDelete: onDelete,
+        deleteLabel: deleteLabel,
+      ),
+      onLongPressStart: (details) => _showCollectionMemberContextMenu(
+        context,
+        globalPosition: details.globalPosition,
+        onRemove: remove,
+        removeLabel: '移出合集',
+        onOpenSource: onOpenSource,
+        openSourceLabel: openSourceLabel,
+        onDelete: onDelete,
+        deleteLabel: deleteLabel,
+      ),
+      child: row,
     );
   }
 }
@@ -323,8 +313,9 @@ class CollectionMemberRow extends StatelessWidget {
 /// - `overlayCaption: true`（标题压图）：整卡即封面、标题/副信息浮在底部渐变上，适合竖版海报，无下方留白；
 /// - `clipOverlay: true`（切片风格）：整卡即封面、底部半透明黑条展示左番号右时长，与 [ClipGridCard] 风格统一。
 ///
-/// 封面含播放遮罩 + 右上角更多菜单；上图下文模式还可选右下角徽标 [coverBadge]。
-/// 点按触发 [onTap]（通常为从该位置连播整个合集）。
+/// 封面含播放遮罩；上图下文模式还可选右下角徽标 [coverBadge]。
+/// 整卡点击触发 [onTap]（通常为从该位置连播整个合集）；
+/// 整卡右键 / 长按弹「打开来源 / 移出合集 / 删除本体」上下文菜单。
 class CollectionMemberCard extends StatelessWidget {
   const CollectionMemberCard({
     super.key,
@@ -353,9 +344,11 @@ class CollectionMemberCard extends StatelessWidget {
   final double coverAspectRatio;
   final String title;
   final VoidCallback onTap;
+
+  /// 包裹整卡、接右键 / 长按手势的外层节点 key，供测试 / 自动化触发上下文菜单。
   final Key menuKey;
 
-  /// 「移出合集」动作；为 `null` 时封面不渲染「···」菜单（移动端改为整卡点击弹抽屉）。
+  /// 「移出合集」动作；为 `null` 时整卡不接右键 / 长按（移动端整卡点击弹抽屉的场景）。
   final VoidCallback? onRemove;
 
   /// 「删除本体」动作（如视频合集的「删除视频」）；为 `null` 时菜单不含该项。
@@ -379,7 +372,7 @@ class CollectionMemberCard extends StatelessWidget {
   /// 是否使用切片风格（底部半透明黑条 + 左番号右时长，与 [ClipGridCard] 统一）。
   final bool clipOverlay;
 
-  /// 选择模式：整卡点击切换选中，左上角显示勾选标记，隐藏「···」菜单。
+  /// 选择模式：整卡点击切换选中，左上角显示勾选标记；屏蔽右键 / 长按菜单。
   final bool selectionMode;
 
   /// 当前是否被选中（仅 [selectionMode] 下有意义）。
@@ -400,7 +393,7 @@ class CollectionMemberCard extends StatelessWidget {
     final radius =
         clipOverlay ? context.appRadius.lgBorder : context.appRadius.mdBorder;
     final shadow = clipOverlay ? context.appShadows.card : null;
-    return Material(
+    final card = Material(
       color: colors.surfaceCard,
       borderRadius: radius,
       clipBehavior: Clip.antiAlias,
@@ -432,6 +425,36 @@ class CollectionMemberCard extends StatelessWidget {
         ),
       ),
     );
+
+    final remove = onRemove;
+    if (selectionMode || remove == null) {
+      return card;
+    }
+    return GestureDetector(
+      key: menuKey,
+      behavior: HitTestBehavior.deferToChild,
+      onSecondaryTapDown: (details) => _showCollectionMemberContextMenu(
+        context,
+        globalPosition: details.globalPosition,
+        onRemove: remove,
+        removeLabel: '移出合集',
+        onOpenSource: onOpenSource,
+        openSourceLabel: openSourceLabel,
+        onDelete: onDelete,
+        deleteLabel: deleteLabel,
+      ),
+      onLongPressStart: (details) => _showCollectionMemberContextMenu(
+        context,
+        globalPosition: details.globalPosition,
+        onRemove: remove,
+        removeLabel: '移出合集',
+        onOpenSource: onOpenSource,
+        openSourceLabel: openSourceLabel,
+        onDelete: onDelete,
+        deleteLabel: deleteLabel,
+      ),
+      child: card,
+    );
   }
 
   Widget _buildCover(BuildContext context) {
@@ -444,17 +467,6 @@ class CollectionMemberCard extends StatelessWidget {
       iconSize: context.appComponentTokens.iconSize3xl,
     );
   }
-
-  Widget _buildMenu() => selectionMode || onRemove == null
-      ? const SizedBox.shrink()
-      : CollectionMemberMenu(
-          menuKey: menuKey,
-          onOpenSource: onOpenSource,
-          openSourceLabel: openSourceLabel,
-          onRemove: onRemove!,
-          onDelete: onDelete,
-          deleteLabel: deleteLabel,
-        );
 
   /// 上图下文：封面在上、标题/副信息在下。
   Widget _buildBelow(BuildContext context) {
@@ -474,11 +486,6 @@ class CollectionMemberCard extends StatelessWidget {
               const _MemberPlayOverlay(),
               if (badge != null)
                 Positioned(right: spacing.xs, bottom: spacing.xs, child: badge),
-              Positioned(
-                right: spacing.xs,
-                top: spacing.xs,
-                child: _buildMenu(),
-              ),
             ],
           ),
         ),
@@ -570,11 +577,6 @@ class CollectionMemberCard extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned(
-              right: spacing.xs,
-              top: spacing.xs,
-              child: _buildMenu(),
-            ),
           ],
         ),
       ),
@@ -630,11 +632,6 @@ class CollectionMemberCard extends StatelessWidget {
                 ],
               ),
             ),
-          ),
-          Positioned(
-            right: spacing.xs,
-            top: spacing.xs,
-            child: _buildMenu(),
           ),
         ],
       ),

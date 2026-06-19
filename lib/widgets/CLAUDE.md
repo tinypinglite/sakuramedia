@@ -29,7 +29,7 @@
 
 - **网格四态容器**(actor/video/ranked/moment/movie 等 Grid 一致):`LayoutBuilder` 按 `((w+spacing)/(target+spacing)).floor()` 算列数并钳位 + `shrinkWrap` + `NeverScrollableScrollPhysics`(外层滚动);四态顺序固定 **骨架→错误→空态(`AppEmptyState`)→内容**。列宽多用 token `movieCardTargetWidth`(image_search/moment 例外用裸值 220/280/300)。
 - **批量选择**:卡片约定 `selectionMode`+`isSelected`(选中换 `selectionBorder`、宽度 1→2、叠勾选标记、隐藏菜单/拖拽手柄);Grid 持 `Set<int> selectedIds`。多选状态机复用 `selection/multi_select_state_mixin.dart`。
-- **卡片「···」菜单**:右上角圆形 + 半透明黑底 + `PopupMenuButton`,菜单项靠回调是否 `null` 决定显隐。
+- **卡片上下文菜单**:统一走**右键 / 长按**——外层 `GestureDetector(onSecondaryTapDown + onLongPressStart)` → `showMenu(position: globalPosition)`,菜单项靠回调是否 `null` 决定显隐(`ClipGridCard` / `VideoSummaryCard` / `CollectionCoverCard` / `CollectionMemberCard` / `CollectionMemberRow` 形式一致)。**封面右上角不再放常显「···」按钮**——选择模式 / 移动端不传菜单回调即不接手势,自然兜底为整卡点击进抽屉。
 - **弹窗**:顶层 `showXxxDialog(...)` 函数包 `showDialog`/`showAppBottomDrawer`。media_kit 播放弹窗(`ClipPlayerDialog`/`VideoQuickPlayDialog`)仍用 `showDialog` + `AppDesktopDialog` 包壳,但**播放器本体统一走 `movie_player/themed_video_player.dart` 的 `ThemedVideoPlayer`**(见下)。
 - **播放器控制组件两层复用(统一入口)**:所有视频播放只走这两层之一,别再写裸 `Video` / 自己嵌三层控制主题。
   - **层级一(重)`MoviePlayerSurface`**:仅影片应用内播放页用,自持 Player + 字幕 / 进度上报 / 缩略图圈选 / 播放信息。
@@ -43,7 +43,7 @@
 
 ## ⚠️ 重复实现多(copy-paste 警告)
 
-封面「···」菜单(clip/collection/video/member 四份)、Overlay 筛选骨架(`ActorFilterToolbar`/`RankingFilterToolbar` 两份高度雷同)、网格列数自适应(5+ 份)、URL/文件大小 helper(多份)**均为复制粘贴**。改观感/行为要**逐处同步**。注意 `collections/CollectionMemberMenu` 已抽公共版而其它三处未抽,别误以为同一组件。**选择勾选标记已抽公共组件** `selection/selection_check_badge.dart` `SelectionCheckBadge`(clip 网格/封面卡、合集成员卡共用),新增选择模式卡片直接复用,别再就地复制。
+卡片上下文菜单(clip / collection 封面 / collection 成员 / video 四处)**仍是复制粘贴**——各自一份 `_showContextMenu(...)` + 私有 enum,改观感 / 行为要**逐处同步**(`clip_grid_card.dart`、`videos/video_summary_card.dart`、`collections/collection_cover_card.dart`、`collections/collection_member_views.dart` 内的 `_showCollectionMemberContextMenu`)。Overlay 筛选骨架(`ActorFilterToolbar`/`RankingFilterToolbar` 两份高度雷同)、网格列数自适应(5+ 份)、URL/文件大小 helper(多份)同理。**选择勾选标记已抽公共组件** `selection/selection_check_badge.dart` `SelectionCheckBadge`(clip 网格/封面卡、合集成员卡共用),新增选择模式卡片直接复用,别再就地复制。
 
 ## Widget Key 约定(强约束)
 
