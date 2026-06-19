@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/core/network/fetch_all_pages.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
@@ -11,11 +10,6 @@ import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_source_dto.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/rankings/presentation/paged_ranked_movie_controller.dart';
-import 'package:sakuramedia/features/rankings/presentation/ranking_sort_mode.dart';
-
-/// 全量拉取榜单时的单页大小：常见榜单（数十~上百条）一次请求即可拿全，
-/// 仅 top250 等超过此值时才并发翻页补齐。
-const int _rankingLoadPageSize = 100;
 
 class RankingsListPageStateEntry extends ChangeNotifier
     implements AppPageStateEntry {
@@ -53,37 +47,6 @@ class RankingsListPageStateEntry extends ChangeNotifier
   RankingSourceDto? selectedSource;
   RankingBoardDto? selectedBoard;
   String? selectedPeriod;
-  RankingSortMode sortMode = RankingSortMode.byRank;
-
-  /// 按当前 [sortMode] 排序后的榜单条目（全量数据本地排序，不触发请求）。
-  ///
-  /// 热度相同时回退到名次升序，保证排序稳定。
-  List<RankedMovieListItemDto> get sortedItems {
-    final items = controller.items;
-    switch (sortMode) {
-      case RankingSortMode.byRank:
-        return items;
-      case RankingSortMode.heatDesc:
-        return [...items]..sort((a, b) {
-          final byHeat = b.heat.compareTo(a.heat);
-          return byHeat != 0 ? byHeat : a.rank.compareTo(b.rank);
-        });
-      case RankingSortMode.heatAsc:
-        return [...items]..sort((a, b) {
-          final byHeat = a.heat.compareTo(b.heat);
-          return byHeat != 0 ? byHeat : a.rank.compareTo(b.rank);
-        });
-    }
-  }
-
-  void setSortMode(RankingSortMode mode) {
-    if (mode == sortMode) {
-      return;
-    }
-    sortMode = mode;
-    _resetListScroll();
-    _safeNotifyListeners();
-  }
 
   void _onMovieSubscriptionChanged() {
     final change = _subscriptionChangeNotifier.lastChange;
@@ -237,60 +200,31 @@ class RankingsListPageStateEntry extends ChangeNotifier
     return controller.toggleSubscription(movieNumber: movieNumber);
   }
 
-  /// 一次性拉取整张榜单（不向用户暴露翻页）：先取第 1 页，单页即覆盖全部时
-  /// 直接返回（保留 `syncedAt`）；超过单页（如 top250）才并发翻页补齐。
-  /// 全量返回后由 [sortedItems] 在本地排序。
   Future<PaginatedResponseDto<RankedMovieListItemDto>> _fetchRankingPage(
     int page,
     int pageSize,
-  ) async {
+  ) {
     final source = selectedSource;
     final board = selectedBoard;
     final period = selectedPeriod;
 
     if (source == null || board == null || period == null) {
-      return PaginatedResponseDto<RankedMovieListItemDto>(
-        items: const <RankedMovieListItemDto>[],
-        page: page,
-        pageSize: pageSize,
-        total: 0,
+      return Future.value(
+        PaginatedResponseDto<RankedMovieListItemDto>(
+          items: const <RankedMovieListItemDto>[],
+          page: page,
+          pageSize: pageSize,
+          total: 0,
+        ),
       );
     }
 
-    final firstPage = await _rankingsApi.getRankingItems(
+    return _rankingsApi.getRankingItems(
       sourceKey: source.sourceKey,
       boardKey: board.boardKey,
       period: period,
-      page: 1,
-      pageSize: _rankingLoadPageSize,
-    );
-    if (firstPage.items.length >= firstPage.total) {
-      return firstPage;
-    }
-
-    final allItems =
-        await fetchAllPagesConcurrently<
-          RankedMovieListItemDto,
-          RankedMovieListItemDto
-        >(
-          fetchPage:
-              (p) => _rankingsApi.getRankingItems(
-                sourceKey: source.sourceKey,
-                boardKey: board.boardKey,
-                period: period,
-                page: p,
-                pageSize: _rankingLoadPageSize,
-              ),
-          extractItems: (resp) => resp.items,
-          pageSize: _rankingLoadPageSize,
-          keyOf: (item) => item.movieNumber,
-        );
-    return PaginatedResponseDto<RankedMovieListItemDto>(
-      items: allItems,
-      page: 1,
-      pageSize: allItems.length,
-      total: allItems.length,
-      syncedAt: firstPage.syncedAt,
+      page: page,
+      pageSize: pageSize,
     );
   }
 

@@ -49,7 +49,7 @@ void main() {
         responder: (options, body) async {
           await completer.future;
           return ResponseBody.fromString(
-            jsonEncode(_rankingItemsJson(total: 1)),
+            jsonEncode(_rankingItemsJson(total: 2)),
             200,
             headers: const <String, List<String>>{
               Headers.contentTypeHeader: <String>[Headers.jsonContentType],
@@ -345,20 +345,30 @@ void main() {
   );
 
   testWidgets(
-    'desktop rankings page sorts by heat locally without extra requests',
+    'desktop rankings page retries failed load-more without clearing items',
     (WidgetTester tester) async {
       _enqueueDefaultSourcesAndBoards(bundle);
       bundle.adapter.enqueueJson(
         method: 'GET',
         path: '/ranking-sources/javdb/boards/censored/items',
         body: _rankingItemsJson(
-          total: 3,
-          items: <Map<String, dynamic>>[
-            _rankingItem(rank: 1, movieNumber: 'ABC-001', heat: 500),
-            _rankingItem(rank: 2, movieNumber: 'ABC-002', heat: 900),
-            _rankingItem(rank: 3, movieNumber: 'ABC-003', heat: 100),
-          ],
+          total: 30,
+          items: List<Map<String, dynamic>>.generate(
+            24,
+            (index) => _rankingItem(
+              rank: index + 1,
+              movieNumber: 'ABC-${(index + 1).toString().padLeft(3, '0')}',
+            ),
+          ),
         ),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/javdb/boards/censored/items',
+        statusCode: 500,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+        },
       );
 
       await _pumpRankingsPage(
@@ -368,27 +378,44 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 全量一次拉回：仅 sources + boards + items 三次请求。
-      final requestsAfterLoad = bundle.adapter.requests.length;
-      expect(requestsAfterLoad, 3);
-
-      // 默认按名次：ABC-001(rank1) 在 ABC-003(rank3) 之前。
-      expect(_readingPos(tester, 'ABC-001'), lessThan(_readingPos(tester, 'ABC-003')));
-
-      // 点「热度」→ 降序：热度最高的 ABC-002 排在最前。
-      await tester.tap(find.byKey(const Key('rankings-sort-heat')));
+      await tester.drag(
+        find.byType(SingleChildScrollView),
+        const Offset(0, -2800),
+      );
+      await tester.pump();
       await tester.pumpAndSettle();
-      expect(_readingPos(tester, 'ABC-002'), lessThan(_readingPos(tester, 'ABC-001')));
-      expect(_readingPos(tester, 'ABC-001'), lessThan(_readingPos(tester, 'ABC-003')));
 
-      // 再点「热度」→ 升序：热度最低的 ABC-003 排在最前。
-      await tester.tap(find.byKey(const Key('rankings-sort-heat')));
+      expect(
+        find.byKey(const Key('movie-summary-card-ABC-001')),
+        findsOneWidget,
+      );
+      expect(find.text('加载更多失败，请点击重试'), findsOneWidget);
+
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/javdb/boards/censored/items',
+        body: _rankingItemsJson(
+          page: 2,
+          total: 30,
+          items: List<Map<String, dynamic>>.generate(
+            6,
+            (index) => _rankingItem(
+              rank: index + 25,
+              movieNumber: 'ABC-${(index + 25).toString().padLeft(3, '0')}',
+            ),
+          ),
+        ),
+      );
+
+      await tester.ensureVisible(find.widgetWithText(TextButton, '重试'));
+      await tester.tap(find.widgetWithText(TextButton, '重试'));
+      await tester.pump();
       await tester.pumpAndSettle();
-      expect(_readingPos(tester, 'ABC-003'), lessThan(_readingPos(tester, 'ABC-001')));
-      expect(_readingPos(tester, 'ABC-001'), lessThan(_readingPos(tester, 'ABC-002')));
 
-      // 本地排序不触发任何额外请求。
-      expect(bundle.adapter.requests.length, requestsAfterLoad);
+      expect(
+        find.byKey(const Key('movie-summary-card-ABC-025')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -511,15 +538,6 @@ void _enqueueDefaultSourcesAndBoards(TestApiBundle bundle) {
       },
     ],
   );
-}
-
-/// 卡片在网格内的「阅读顺序」位置（先按行后按列），用于断言排序结果，
-/// 不受网格列数影响。
-double _readingPos(WidgetTester tester, String movieNumber) {
-  final topLeft = tester.getTopLeft(
-    find.byKey(Key('movie-summary-card-$movieNumber')),
-  );
-  return topLeft.dy * 100000 + topLeft.dx;
 }
 
 String? _queryValue(TestApiBundle bundle, int requestIndex, String key) {
