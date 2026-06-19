@@ -4,7 +4,7 @@ import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 
-/// 非 JAV 视频列表卡片：封面 + 标题，中部播放按钮，右上角「···」菜单（加入合集 / 删除）。
+/// 非 JAV 视频列表卡片：封面 + 标题，中部播放按钮，右键 / 长按弹菜单（加入合集 / 删除）。
 ///
 /// 与 `MovieSummaryCard` 平行，但去掉订阅/热度/番号等 JAV 概念，主键为 [VideoItemListItemDto.id]。
 class VideoSummaryCard extends StatelessWidget {
@@ -24,13 +24,13 @@ class VideoSummaryCard extends StatelessWidget {
   /// 点击卡片（弹窗快速播放）。中部播放 icon 仅作视觉提示，点击落在整卡上同样触发。
   final VoidCallback? onTap;
 
-  /// 「···」菜单的「加入合集」动作；与 [onDelete] 任一非空时展示菜单。
+  /// 右键 / 长按菜单的「加入合集」动作；与 [onDelete] 任一非空时启用菜单。
   final VoidCallback? onAddToCollection;
 
-  /// 「···」菜单的「删除」动作。
+  /// 右键 / 长按菜单的「删除」动作。
   final VoidCallback? onDelete;
 
-  /// 选择模式：整卡点击改为切换选中，隐藏播放浮层与「···」菜单，叠加勾选标记。
+  /// 选择模式:整卡点击改为切换选中,隐藏播放浮层与右键菜单,叠加勾选标记。
   final bool selectionMode;
 
   /// 当前是否被选中（仅 [selectionMode] 下有意义）。
@@ -48,7 +48,7 @@ class VideoSummaryCard extends StatelessWidget {
     final borderColor =
         selectionMode && isSelected ? colors.selectionBorder : colors.borderSubtle;
 
-    return Container(
+    final card = Container(
       key: Key('video-summary-card-${video.id}'),
       decoration: BoxDecoration(
         color: colors.surfaceCard,
@@ -115,23 +115,70 @@ class VideoSummaryCard extends StatelessWidget {
                 child: IgnorePointer(
                   child: _SelectionCheck(isSelected: isSelected),
                 ),
-              )
-            else if (onAddToCollection != null || onDelete != null)
-              Positioned(
-                top: spacing.xs,
-                right: spacing.xs,
-                child: _VideoCardMenu(
-                  menuKey: Key('video-summary-card-menu-${video.id}'),
-                  onAddToCollection: onAddToCollection,
-                  onDelete: onDelete,
-                ),
               ),
           ],
         ),
       ),
     );
+
+    final hasMenuActions =
+        !selectionMode && (onAddToCollection != null || onDelete != null);
+    if (!hasMenuActions) {
+      return card;
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.deferToChild,
+      onSecondaryTapDown: (details) =>
+          _showContextMenu(context, details.globalPosition),
+      onLongPressStart: (details) =>
+          _showContextMenu(context, details.globalPosition),
+      child: card,
+    );
+  }
+
+  Future<void> _showContextMenu(
+    BuildContext context,
+    Offset globalPosition,
+  ) async {
+    final navigator = Navigator.of(context);
+    final overlay =
+        navigator.overlay!.context.findRenderObject() as RenderBox;
+    final localPosition = overlay.globalToLocal(globalPosition);
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(localPosition, localPosition),
+      Offset.zero & overlay.size,
+    );
+    final action = await showMenu<_VideoCardAction>(
+      context: context,
+      position: position,
+      useRootNavigator: false,
+      items: <PopupMenuEntry<_VideoCardAction>>[
+        if (onAddToCollection != null)
+          const PopupMenuItem<_VideoCardAction>(
+            value: _VideoCardAction.addToCollection,
+            child: Text('加入合集'),
+          ),
+        if (onDelete != null)
+          const PopupMenuItem<_VideoCardAction>(
+            value: _VideoCardAction.delete,
+            child: Text('删除'),
+          ),
+      ],
+    );
+    if (action == null) {
+      return;
+    }
+    switch (action) {
+      case _VideoCardAction.addToCollection:
+        onAddToCollection?.call();
+      case _VideoCardAction.delete:
+        onDelete?.call();
+    }
   }
 }
+
+enum _VideoCardAction { addToCollection, delete }
 
 /// 选择模式下卡片左上角的勾选标记：选中为实心对勾，未选为半透明空心圈。
 class _SelectionCheck extends StatelessWidget {
@@ -235,66 +282,6 @@ class _VideoCardBottomShade extends StatelessWidget {
             colors.mediaOverlayStrong,
           ],
           stops: const [0.45, 0.72, 1],
-        ),
-      ),
-    );
-  }
-}
-
-enum _VideoCardAction { addToCollection, delete }
-
-class _VideoCardMenu extends StatelessWidget {
-  const _VideoCardMenu({
-    required this.menuKey,
-    this.onAddToCollection,
-    this.onDelete,
-  });
-
-  final Key menuKey;
-  final VoidCallback? onAddToCollection;
-  final VoidCallback? onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 26,
-      height: 26,
-      child: Material(
-        color: Colors.black.withValues(alpha: 0.45),
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: PopupMenuButton<_VideoCardAction>(
-          key: menuKey,
-          tooltip: '更多',
-          padding: EdgeInsets.zero,
-          iconSize: 16,
-          position: PopupMenuPosition.under,
-          icon: const Icon(
-            Icons.more_horiz_rounded,
-            color: Colors.white,
-            size: 16,
-          ),
-          onSelected: (action) {
-            switch (action) {
-              case _VideoCardAction.addToCollection:
-                onAddToCollection?.call();
-              case _VideoCardAction.delete:
-                onDelete?.call();
-            }
-          },
-          itemBuilder:
-              (context) => <PopupMenuEntry<_VideoCardAction>>[
-                if (onAddToCollection != null)
-                  const PopupMenuItem<_VideoCardAction>(
-                    value: _VideoCardAction.addToCollection,
-                    child: Text('加入合集'),
-                  ),
-                if (onDelete != null)
-                  const PopupMenuItem<_VideoCardAction>(
-                    value: _VideoCardAction.delete,
-                    child: Text('删除'),
-                  ),
-              ],
         ),
       ),
     );

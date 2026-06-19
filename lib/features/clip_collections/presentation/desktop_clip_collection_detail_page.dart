@@ -368,7 +368,7 @@ class _DesktopClipCollectionDetailPageState
             crossAxisCount: columns,
             mainAxisSpacing: spacing.md,
             crossAxisSpacing: spacing.md,
-            childAspectRatio: 16 / 10,
+            childAspectRatio: 16 / 9,
           ),
           itemCount: clips.length,
           itemBuilder: (context, index) {
@@ -381,7 +381,7 @@ class _DesktopClipCollectionDetailPageState
             return CollectionMemberCard(
               key: ValueKey<int>(clip.clipId),
               coverUrl: clip.coverImage?.bestAvailableUrl,
-              coverAspectRatio: 16 / 10,
+              coverAspectRatio: 16 / 9,
               title: number,
               subtitle: duration,
               clipOverlay: true,
