@@ -29,8 +29,9 @@ class MovieClipStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cardWidth =
-        context.appComponentTokens.movieDetailPlotThumbnailWidth;
+    final cardHeight =
+        context.appComponentTokens.movieDetailPlotThumbnailHeight;
+    final cardWidth = cardHeight * (16 / 10);
 
     if (isLoading) {
       return _MovieClipStripScroller(
@@ -39,7 +40,7 @@ class MovieClipStrip extends StatelessWidget {
           4,
           (index) => _MovieClipSkeleton(
             key: Key('movie-clip-strip-skeleton-$index'),
-            width: cardWidth,
+            height: cardHeight,
           ),
         ),
       );
@@ -163,14 +164,14 @@ class _MovieClipFeedback extends StatelessWidget {
 }
 
 class _MovieClipSkeleton extends StatelessWidget {
-  const _MovieClipSkeleton({super.key, required this.width});
+  const _MovieClipSkeleton({super.key, required this.height});
 
-  final double width;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: width,
+      width: height * (16 / 10),
       decoration: BoxDecoration(
         color: context.appColors.surfaceCard,
         borderRadius: context.appRadius.mdBorder,

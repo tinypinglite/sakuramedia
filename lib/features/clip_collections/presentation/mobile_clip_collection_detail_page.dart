@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
@@ -233,26 +235,35 @@ class _MobileClipCollectionDetailPageState
   Widget _buildGrid(BuildContext context) {
     final spacing = context.appSpacing;
     final clips = _controller.clips;
-    return GridView.builder(
-      key: const Key('mobile-clip-collection-detail-grid'),
-      padding: EdgeInsets.fromLTRB(spacing.md, 0, spacing.md, spacing.lg),
-      // 纯封面缩略卡，无下方文字，纵横比即封面 16:9，从根上避免底部溢出。
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 200,
-        mainAxisSpacing: spacing.md,
-        crossAxisSpacing: spacing.sm,
-        childAspectRatio: 16 / 9,
-      ),
-      itemCount: clips.length,
-      itemBuilder: (context, index) {
-        final clip = clips[index];
-        return ClipCoverCard(
-          key: ValueKey<int>(clip.clipId),
-          clip: clip,
-          onTap: () => _openClipSheet(index, clip),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = _resolveColumnCount(constraints.maxWidth, spacing.md);
+        return GridView.builder(
+          key: const Key('mobile-clip-collection-detail-grid'),
+          padding: EdgeInsets.fromLTRB(spacing.md, 0, spacing.md, spacing.lg),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: spacing.md,
+            crossAxisSpacing: spacing.md,
+            childAspectRatio: 16 / 10,
+          ),
+          itemCount: clips.length,
+          itemBuilder: (context, index) {
+            final clip = clips[index];
+            return ClipCoverCard(
+              key: ValueKey<int>(clip.clipId),
+              clip: clip,
+              onTap: () => _openClipSheet(index, clip),
+            );
+          },
         );
       },
     );
+  }
+
+  int _resolveColumnCount(double width, double spacing) {
+    final columns = ((width + spacing) / (280 + spacing)).floor();
+    return math.max(2, math.min(4, columns));
   }
 
   void _openClipSheet(int index, MediaClipDto clip) {

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
@@ -314,23 +315,35 @@ class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab> {
       );
     }
     final spacing = context.appSpacing;
-    return SliverGrid(
-      // 仿「时刻」版式的纯封面卡（底部一条：左番号、右时长），纵横比对齐时刻卡 16:10。
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 200,
-        mainAxisSpacing: spacing.md,
-        crossAxisSpacing: spacing.sm,
-        childAspectRatio: 16 / 10,
-      ),
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final clip = clips[index];
-        return ClipCoverCard(
-          key: Key('mobile-clip-grid-card-${clip.clipId}'),
-          clip: clip,
-          onTap: () => _openClipSheet(clip),
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        final columns = _resolveColumnCount(
+          constraints.crossAxisExtent,
+          spacing.md,
         );
-      }, childCount: clips.length),
+        return SliverGrid(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: spacing.md,
+            crossAxisSpacing: spacing.md,
+            childAspectRatio: 16 / 10,
+          ),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final clip = clips[index];
+            return ClipCoverCard(
+              key: Key('mobile-clip-grid-card-${clip.clipId}'),
+              clip: clip,
+              onTap: () => _openClipSheet(clip),
+            );
+          }, childCount: clips.length),
+        );
+      },
     );
+  }
+
+  int _resolveColumnCount(double width, double spacing) {
+    final columns = ((width + spacing) / (280 + spacing)).floor();
+    return math.max(2, math.min(4, columns));
   }
 
   Widget _buildFooter(BuildContext context) {

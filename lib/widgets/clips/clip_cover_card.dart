@@ -58,8 +58,8 @@ class ClipCoverCard extends StatelessWidget {
                       ),
                       child: Padding(
                         padding: EdgeInsets.symmetric(
-                          horizontal: spacing.sm,
-                          vertical: spacing.xs,
+                          horizontal: spacing.md,
+                          vertical: spacing.sm,
                         ),
                         child: Row(
                           children: [

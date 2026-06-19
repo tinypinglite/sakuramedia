@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
@@ -296,30 +297,43 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
       );
     }
     final spacing = context.appSpacing;
-    return SliverGrid(
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 260,
-        mainAxisSpacing: spacing.md,
-        crossAxisSpacing: spacing.md,
-        childAspectRatio: 16 / 10,
-      ),
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final clip = clips[index];
-        final movieNumber = clip.movieNumber;
-        return ClipGridCard(
-          key: Key('clip-grid-card-${clip.clipId}'),
-          clip: clip,
-          onPlay: () => _playClip(clip),
-          onRename: () => _renameClip(clip),
-          onDelete: () => _deleteClip(clip),
-          onAddToCollection: () => _addToCollection(clip),
-          onOpenMovie:
-              movieNumber != null && movieNumber.isNotEmpty
-                  ? () => _openMovie(movieNumber)
-                  : null,
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        final columns = _resolveColumnCount(
+          constraints.crossAxisExtent,
+          spacing.md,
         );
-      }, childCount: clips.length),
+        return SliverGrid(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: spacing.md,
+            crossAxisSpacing: spacing.md,
+            childAspectRatio: 16 / 10,
+          ),
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final clip = clips[index];
+            final movieNumber = clip.movieNumber;
+            return ClipGridCard(
+              key: Key('clip-grid-card-${clip.clipId}'),
+              clip: clip,
+              onPlay: () => _playClip(clip),
+              onRename: () => _renameClip(clip),
+              onDelete: () => _deleteClip(clip),
+              onAddToCollection: () => _addToCollection(clip),
+              onOpenMovie:
+                  movieNumber != null && movieNumber.isNotEmpty
+                      ? () => _openMovie(movieNumber)
+                      : null,
+            );
+          }, childCount: clips.length),
+        );
+      },
     );
+  }
+
+  int _resolveColumnCount(double width, double spacing) {
+    final columns = ((width + spacing) / (280 + spacing)).floor();
+    return math.max(2, math.min(4, columns));
   }
 
   Widget _buildFooter(BuildContext context) {

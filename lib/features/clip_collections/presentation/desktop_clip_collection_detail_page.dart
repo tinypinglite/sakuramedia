@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
@@ -356,42 +358,54 @@ class _DesktopClipCollectionDetailPageState
   Widget _buildGrid(BuildContext context) {
     final clips = _controller.clips;
     final spacing = context.appSpacing;
-    return GridView.builder(
-      key: const Key('clip-collection-detail-grid'),
-      padding: EdgeInsets.zero,
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 260,
-        mainAxisSpacing: spacing.md,
-        crossAxisSpacing: spacing.md,
-        childAspectRatio: 1.15,
-      ),
-      itemCount: clips.length,
-      itemBuilder: (context, index) {
-        final clip = clips[index];
-        final number =
-            clip.movieNumber?.isNotEmpty == true ? clip.movieNumber! : '无番号';
-        final duration = formatMediaTimecode(clip.durationSeconds);
-        return CollectionMemberCard(
-          key: ValueKey<int>(clip.clipId),
-          coverUrl: clip.coverImage?.bestAvailableUrl,
-          coverAspectRatio: 16 / 10,
-          title: number,
-          subtitle: duration,
-          clipOverlay: true,
-          onTap: selectionMode
-              ? () => toggleSelect(clip.clipId)
-              : () => _playFrom(index),
-          menuKey: Key('clip-collection-grid-menu-${clip.clipId}'),
-          onOpenSource: _openMovieCallback(clip),
-          openSourceLabel: '影片',
-          onRemove: () => _removeClip(clip),
-          onDelete: () => _deleteClip(clip),
-          deleteLabel: '删除切片',
-          selectionMode: selectionMode,
-          isSelected: isSelected(clip.clipId),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = _resolveColumnCount(constraints.maxWidth, spacing.md);
+        return GridView.builder(
+          key: const Key('clip-collection-detail-grid'),
+          padding: EdgeInsets.zero,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: spacing.md,
+            crossAxisSpacing: spacing.md,
+            childAspectRatio: 16 / 10,
+          ),
+          itemCount: clips.length,
+          itemBuilder: (context, index) {
+            final clip = clips[index];
+            final number =
+                clip.movieNumber?.isNotEmpty == true
+                    ? clip.movieNumber!
+                    : '无番号';
+            final duration = formatMediaTimecode(clip.durationSeconds);
+            return CollectionMemberCard(
+              key: ValueKey<int>(clip.clipId),
+              coverUrl: clip.coverImage?.bestAvailableUrl,
+              coverAspectRatio: 16 / 10,
+              title: number,
+              subtitle: duration,
+              clipOverlay: true,
+              onTap: selectionMode
+                  ? () => toggleSelect(clip.clipId)
+                  : () => _playFrom(index),
+              menuKey: Key('clip-collection-grid-menu-${clip.clipId}'),
+              onOpenSource: _openMovieCallback(clip),
+              openSourceLabel: '影片',
+              onRemove: () => _removeClip(clip),
+              onDelete: () => _deleteClip(clip),
+              deleteLabel: '删除切片',
+              selectionMode: selectionMode,
+              isSelected: isSelected(clip.clipId),
+            );
+          },
         );
       },
     );
+  }
+
+  int _resolveColumnCount(double width, double spacing) {
+    final columns = ((width + spacing) / (280 + spacing)).floor();
+    return math.max(2, math.min(4, columns));
   }
 
   void _playFrom(int index) {
