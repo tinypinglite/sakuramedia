@@ -28,19 +28,19 @@ class ClipCoverCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         key: Key('clip-cover-card-${clip.clipId}'),
-        borderRadius: context.appRadius.lgBorder,
+        borderRadius: context.appRadius.mdBorder,
         onTap: onTap,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: colors.surfaceCard,
-            borderRadius: context.appRadius.lgBorder,
+            borderRadius: context.appRadius.mdBorder,
             border: Border.all(color: colors.borderSubtle),
             boxShadow: context.appShadows.card,
           ),
           child: ClipRRect(
-            borderRadius: context.appRadius.lgBorder,
+            borderRadius: context.appRadius.mdBorder,
             child: AspectRatio(
-              aspectRatio: 16 / 10,
+              aspectRatio: 16 / 9,
               child: Stack(
                 fit: StackFit.expand,
                 children: [

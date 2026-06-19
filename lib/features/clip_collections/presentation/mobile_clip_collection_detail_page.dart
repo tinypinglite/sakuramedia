@@ -245,7 +245,7 @@ class _MobileClipCollectionDetailPageState
             crossAxisCount: columns,
             mainAxisSpacing: spacing.md,
             crossAxisSpacing: spacing.md,
-            childAspectRatio: 16 / 10,
+            childAspectRatio: 16 / 9,
           ),
           itemCount: clips.length,
           itemBuilder: (context, index) {

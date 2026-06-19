@@ -31,7 +31,7 @@ class MovieClipStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final cardHeight =
         context.appComponentTokens.movieDetailPlotThumbnailHeight;
-    final cardWidth = cardHeight * (16 / 10);
+    final cardWidth = cardHeight * (16 / 9);
 
     if (isLoading) {
       return _MovieClipStripScroller(
@@ -171,7 +171,7 @@ class _MovieClipSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: height * (16 / 10),
+      width: height * (16 / 9),
       decoration: BoxDecoration(
         color: context.appColors.surfaceCard,
         borderRadius: context.appRadius.mdBorder,
@@ -179,7 +179,7 @@ class _MovieClipSkeleton extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: AspectRatio(
-        aspectRatio: 16 / 10,
+        aspectRatio: 16 / 9,
         child: DecoratedBox(
           decoration: BoxDecoration(color: context.appColors.surfaceMuted),
         ),
