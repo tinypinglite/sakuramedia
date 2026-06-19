@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.
 import 'package:sakuramedia/features/clip_collections/presentation/add_to_clip_collection_dialog.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collections_overview_controller.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/create_clip_collection_dialog.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/pick_clip_collection_dialog.dart';
 import 'package:sakuramedia/features/clips/data/clips_api.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/clips_overview_controller.dart';
@@ -21,12 +22,17 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/collections/collection_card.dart';
 import 'package:sakuramedia/widgets/clips/clip_grid_card.dart';
 import 'package:sakuramedia/widgets/clips/clip_player_dialog.dart';
 import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
 
 /// 切片首页：上方「我的合集」横滑区 + 下方「全部切片」网格（悬停预览、加入合集）。
+///
+/// 「全部切片」表头右侧的「选择」入口进入多选模式后，网格切换为多选交互；选择栏支持
+/// 「加入合集 / 删除」两个批量动作，逻辑对齐 PornBox 桌面页。
 class DesktopClipsPage extends StatefulWidget {
   const DesktopClipsPage({super.key});
 
@@ -34,7 +40,8 @@ class DesktopClipsPage extends StatefulWidget {
   State<DesktopClipsPage> createState() => _DesktopClipsPageState();
 }
 
-class _DesktopClipsPageState extends State<DesktopClipsPage> {
+class _DesktopClipsPageState extends State<DesktopClipsPage>
+    with MultiSelectStateMixin<DesktopClipsPage, int> {
   late final ClipsOverviewController _clipsController;
   late final ClipCollectionsOverviewController _collectionsController;
   late final ClipMutationChangeNotifier _mutationNotifier;
@@ -238,34 +245,55 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
   // ----------------------------------------------------------- 切片区
 
   Widget _buildClipsHeader(BuildContext context) {
+    final spacing = context.appSpacing;
+    final hasClips = _clipsController.clips.isNotEmpty;
     return Padding(
-      padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-      child: Row(
+      padding: EdgeInsets.only(bottom: spacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '全部切片',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s16,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
-            ),
+          Row(
+            children: [
+              Text(
+                '全部切片',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s16,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.primary,
+                ),
+              ),
+              const Spacer(),
+              // 与「时刻」页保持一致：最新/最早并排，选中高亮。
+              _buildSortAction(
+                context,
+                actionKey: const Key('clips-sort-latest'),
+                label: '最新',
+                sort: 'created_at:desc',
+              ),
+              SizedBox(width: spacing.sm),
+              _buildSortAction(
+                context,
+                actionKey: const Key('clips-sort-earliest'),
+                label: '最早',
+                sort: 'created_at:asc',
+              ),
+              if (!selectionMode && hasClips) ...[
+                SizedBox(width: spacing.sm),
+                AppTextButton(
+                  key: const Key('clips-enter-selection-button'),
+                  label: '选择',
+                  size: AppTextButtonSize.small,
+                  icon: const Icon(Icons.check_circle_outline, size: 16),
+                  onPressed: enterSelection,
+                ),
+              ],
+            ],
           ),
-          const Spacer(),
-          // 与「时刻」页保持一致：最新/最早并排，选中高亮。
-          _buildSortAction(
-            context,
-            actionKey: const Key('clips-sort-latest'),
-            label: '最新',
-            sort: 'created_at:desc',
-          ),
-          SizedBox(width: context.appSpacing.sm),
-          _buildSortAction(
-            context,
-            actionKey: const Key('clips-sort-earliest'),
-            label: '最早',
-            sort: 'created_at:asc',
-          ),
+          if (selectionMode) ...[
+            SizedBox(height: spacing.sm),
+            _buildSelectionBar(context),
+          ],
         ],
       ),
     );
@@ -283,6 +311,58 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
       size: AppTextButtonSize.xSmall,
       isSelected: _clipsController.sort == sort,
       onPressed: () => _clipsController.setSort(sort),
+    );
+  }
+
+  /// 选择模式下的批量操作栏：已选数 / 全选 / 加入合集 / 删除 / 取消。
+  Widget _buildSelectionBar(BuildContext context) {
+    final spacing = context.appSpacing;
+    final loaded = _clipsController.clips;
+    final clipIds = loaded.map((c) => c.clipId);
+    final allSelected = isAllSelected(clipIds);
+    final hasSelection = selectedCount > 0;
+    return Row(
+      children: [
+        Text(
+          '已选 $selectedCount 个',
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.medium,
+            tone: AppTextTone.primary,
+          ),
+        ),
+        const Spacer(),
+        AppTextButton(
+          key: const Key('clips-select-all-button'),
+          label: allSelected ? '取消全选' : '全选',
+          size: AppTextButtonSize.small,
+          onPressed: () => toggleSelectAll(clipIds),
+        ),
+        SizedBox(width: spacing.sm),
+        AppButton(
+          key: const Key('clips-batch-add-collection-button'),
+          label: '加入合集',
+          variant: AppButtonVariant.secondary,
+          size: AppButtonSize.small,
+          onPressed: hasSelection ? _batchAddToCollection : null,
+        ),
+        SizedBox(width: spacing.sm),
+        AppButton(
+          key: const Key('clips-batch-delete-button'),
+          label: '删除',
+          variant: AppButtonVariant.danger,
+          size: AppButtonSize.small,
+          onPressed: hasSelection ? _batchDelete : null,
+        ),
+        SizedBox(width: spacing.sm),
+        AppTextButton(
+          key: const Key('clips-exit-selection-button'),
+          label: '取消',
+          size: AppTextButtonSize.small,
+          onPressed: exitSelection,
+        ),
+      ],
     );
   }
 
@@ -324,6 +404,9 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
                   movieNumber != null && movieNumber.isNotEmpty
                       ? () => _openMovie(movieNumber)
                       : null,
+              selectionMode: selectionMode,
+              isSelected: isSelected(clip.clipId),
+              onSelectedChanged: (_) => toggleSelect(clip.clipId),
             );
           }, childCount: clips.length),
         );
@@ -366,7 +449,7 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
     return SizedBox(height: context.appSpacing.lg);
   }
 
-  // ----------------------------------------------------------- 动作
+  // ----------------------------------------------------------- 单条动作
 
   void _playClip(MediaClipDto clip) {
     showClipPlayerDialog(context, streamUrl: clip.streamUrl, title: clip.title);
@@ -451,6 +534,89 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
     }
     // 全部合集页内可能重命名/删除合集，返回后刷新首页合集横滑区。
     await _collectionsController.refresh();
+  }
+
+  // ----------------------------------------------------------- 批量动作
+
+  List<MediaClipDto> _selectedClips() => _clipsController.clips
+      .where((c) => isSelected(c.clipId))
+      .toList(growable: false);
+
+  void _showBatchToast(String verb, BatchRunResult<dynamic> result) {
+    if (result.failed.isEmpty) {
+      showToast('已$verb ${result.succeeded.length} 个切片');
+    } else {
+      showToast(
+        '$verb完成：成功 ${result.succeeded.length} 个，失败 ${result.failed.length} 个',
+      );
+    }
+  }
+
+  Future<void> _batchAddToCollection() async {
+    final selected = _selectedClips();
+    if (selected.isEmpty) {
+      return;
+    }
+    final target = await showPickClipCollectionDialog(context);
+    if (!mounted || target == null) {
+      return;
+    }
+    final api = context.read<ClipCollectionsApi>();
+    final result = await runBatchOperation<MediaClipDto>(
+      context,
+      title: '正在加入「${target.name}」',
+      items: selected,
+      action: (clip) => api.addClipToCollection(
+        collectionId: target.id,
+        clipId: clip.clipId,
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    // 合集成员/封面变化：逐条广播，由页面监听合并刷新合集横滑区。
+    for (final clip in result.succeeded) {
+      _mutationNotifier.reportCollectionMembershipChanged(
+        clipId: clip.clipId,
+        collectionId: target.id,
+      );
+    }
+    _showBatchToast('加入合集', result);
+    exitSelection();
+  }
+
+  Future<void> _batchDelete() async {
+    final selected = _selectedClips();
+    if (selected.isEmpty) {
+      return;
+    }
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '删除切片',
+      message: '确认删除选中的 ${selected.length} 个切片？切片文件会被一并删除，该操作不可恢复。',
+      danger: true,
+      confirmLabel: '删除',
+      confirmKey: const Key('clips-batch-delete-confirm-button'),
+    );
+    if (!mounted || !confirmed) {
+      return;
+    }
+    final api = context.read<ClipsApi>();
+    final result = await runBatchOperation<MediaClipDto>(
+      context,
+      title: '正在删除切片',
+      items: selected,
+      action: (clip) => api.deleteClip(clipId: clip.clipId),
+    );
+    if (!mounted) {
+      return;
+    }
+    // 逐条广播删除信号：本页监听从网格精准移除，并合并刷新合集横滑区。
+    for (final clip in result.succeeded) {
+      _mutationNotifier.reportDeleted(clip.clipId);
+    }
+    _showBatchToast('删除', result);
+    exitSelection();
   }
 }
 

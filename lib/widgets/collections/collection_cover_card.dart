@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 
-/// 合集封面卡的共享实现：16:9 封面 + 底部标题 + 封面右下角计数角标，
-/// 右上角可选「···」菜单（编辑 / 删除）。
+/// 合集封面卡的共享实现：16:9 封面 + 底部标题 + 封面右下角计数角标。
+///
+/// 「编辑 / 删除」走**右键 / 长按**弹出的上下文菜单（与 [ClipGridCard]
+/// `VideoSummaryCard` 等的右键菜单形式对齐），封面右上角不再渲染常显
+/// 的「···」按钮。
 ///
 /// 切片「我的合集」与视频合集结构完全一致，仅在 DTO、计数字段、占位图标、
 /// 封面 `fit` 与 key 前缀上有差异，故由 [CollectionCard] 的 `.clip` / `.video`
@@ -37,7 +40,7 @@ class CollectionCoverCard extends StatelessWidget {
   /// 整卡点击层（InkWell）的 key，供测试 / 自动化定位。
   final Key? tapKey;
 
-  /// 右上角「···」菜单按钮的 key。
+  /// 包裹整卡、接右键 / 长按手势的外层节点 key，供测试 / 自动化触发上下文菜单。
   final Key? menuKey;
 
   /// 封面填充方式。横图缩略图用 [BoxFit.cover] 铺满；可能为竖图的封面用
@@ -47,10 +50,10 @@ class CollectionCoverCard extends StatelessWidget {
   /// 无封面时的占位图标。
   final IconData placeholderIcon;
 
-  /// 右上角「更多」菜单的编辑动作；与 [onDelete] 任一非空时展示「···」菜单。
+  /// 右键 / 长按菜单的「编辑」动作；与 [onDelete] 同为 `null` 时整卡不再接右键 / 长按。
   final VoidCallback? onEdit;
 
-  /// 右上角「更多」菜单的删除动作。
+  /// 右键 / 长按菜单的「删除」动作。
   final VoidCallback? onDelete;
 
   @override
@@ -59,7 +62,7 @@ class CollectionCoverCard extends StatelessWidget {
     final colors = context.appColors;
     final cover = coverUrl;
 
-    return Material(
+    final card = Material(
       color: colors.surfaceCard,
       borderRadius: context.appRadius.mdBorder,
       child: InkWell(
@@ -101,16 +104,6 @@ class CollectionCoverCard extends StatelessWidget {
                         bottom: spacing.xs,
                         child: _CountBadge(count: count),
                       ),
-                      if (onEdit != null || onDelete != null)
-                        Positioned(
-                          right: spacing.xs,
-                          top: spacing.xs,
-                          child: _MoreMenu(
-                            menuKey: menuKey,
-                            onEdit: onEdit,
-                            onDelete: onDelete,
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -134,6 +127,60 @@ class CollectionCoverCard extends StatelessWidget {
         ),
       ),
     );
+
+    if (onEdit == null && onDelete == null) {
+      return card;
+    }
+    return GestureDetector(
+      key: menuKey,
+      behavior: HitTestBehavior.deferToChild,
+      onSecondaryTapDown: (details) =>
+          _showContextMenu(context, details.globalPosition),
+      onLongPressStart: (details) =>
+          _showContextMenu(context, details.globalPosition),
+      child: card,
+    );
+  }
+
+  Future<void> _showContextMenu(
+    BuildContext context,
+    Offset globalPosition,
+  ) async {
+    final navigator = Navigator.of(context);
+    final overlay = navigator.overlay!.context.findRenderObject() as RenderBox;
+    final localPosition = overlay.globalToLocal(globalPosition);
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(localPosition, localPosition),
+      Offset.zero & overlay.size,
+    );
+    final edit = onEdit;
+    final delete = onDelete;
+    final action = await showMenu<_CollectionMenuAction>(
+      context: context,
+      position: position,
+      useRootNavigator: false,
+      items: <PopupMenuEntry<_CollectionMenuAction>>[
+        if (edit != null)
+          const PopupMenuItem<_CollectionMenuAction>(
+            value: _CollectionMenuAction.edit,
+            child: Text('编辑'),
+          ),
+        if (delete != null)
+          const PopupMenuItem<_CollectionMenuAction>(
+            value: _CollectionMenuAction.delete,
+            child: Text('删除'),
+          ),
+      ],
+    );
+    if (action == null) {
+      return;
+    }
+    switch (action) {
+      case _CollectionMenuAction.edit:
+        edit?.call();
+      case _CollectionMenuAction.delete:
+        delete?.call();
+    }
   }
 }
 
@@ -180,57 +227,3 @@ class _CountBadge extends StatelessWidget {
 }
 
 enum _CollectionMenuAction { edit, delete }
-
-class _MoreMenu extends StatelessWidget {
-  const _MoreMenu({required this.menuKey, this.onEdit, this.onDelete});
-
-  final Key? menuKey;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 26,
-      height: 26,
-      child: Material(
-        color: Colors.black.withValues(alpha: 0.45),
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: PopupMenuButton<_CollectionMenuAction>(
-          key: menuKey,
-          tooltip: '更多',
-          padding: EdgeInsets.zero,
-          iconSize: 16,
-          position: PopupMenuPosition.under,
-          icon: const Icon(
-            Icons.more_horiz_rounded,
-            color: Colors.white,
-            size: 16,
-          ),
-          onSelected: (action) {
-            switch (action) {
-              case _CollectionMenuAction.edit:
-                onEdit?.call();
-              case _CollectionMenuAction.delete:
-                onDelete?.call();
-            }
-          },
-          itemBuilder:
-              (context) => <PopupMenuEntry<_CollectionMenuAction>>[
-                if (onEdit != null)
-                  const PopupMenuItem<_CollectionMenuAction>(
-                    value: _CollectionMenuAction.edit,
-                    child: Text('编辑'),
-                  ),
-                if (onDelete != null)
-                  const PopupMenuItem<_CollectionMenuAction>(
-                    value: _CollectionMenuAction.delete,
-                    child: Text('删除'),
-                  ),
-              ],
-        ),
-      ),
-    );
-  }
-}

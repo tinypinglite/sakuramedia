@@ -272,6 +272,7 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
               selectedIds: selectedIds,
               onVideoToggleSelect: (video) => toggleSelect(video.id),
               headerTrailingBuilder: _buildSelectionControls,
+              headerInlineTrailingBuilder: _buildInlineSelectionTrigger,
             ),
           ],
         ),
@@ -279,22 +280,24 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
     );
   }
 
-  /// 总数行下方的选择控制区：非选择模式为「选择」入口，选择模式为批量操作栏。
-  Widget _buildSelectionControls(BuildContext context) {
+  /// 总数行右侧的「选择」入口：仅在非选择模式且有数据时显示。
+  Widget? _buildInlineSelectionTrigger(BuildContext context) {
+    if (selectionMode || _loadedVideos.isEmpty) {
+      return null;
+    }
+    return AppTextButton(
+      key: const Key('videos-enter-selection-button'),
+      label: '选择',
+      size: AppTextButtonSize.small,
+      icon: const Icon(Icons.check_circle_outline, size: 16),
+      onPressed: enterSelection,
+    );
+  }
+
+  /// 总数行下方的批量操作栏：仅选择模式下显示。
+  Widget? _buildSelectionControls(BuildContext context) {
     if (!selectionMode) {
-      if (_loadedVideos.isEmpty) {
-        return const SizedBox.shrink();
-      }
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: AppTextButton(
-          key: const Key('videos-enter-selection-button'),
-          label: '选择',
-          size: AppTextButtonSize.small,
-          icon: const Icon(Icons.check_circle_outline, size: 16),
-          onPressed: enterSelection,
-        ),
-      );
+      return null;
     }
 
     final loaded = _loadedVideos;

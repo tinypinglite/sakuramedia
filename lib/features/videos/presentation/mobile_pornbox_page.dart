@@ -25,6 +25,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
@@ -419,12 +420,8 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
   Widget _buildVideosHeader(BuildContext context) {
     final spacing = context.appSpacing;
     final filter = _pageState.filterState;
-    final isLatest =
-        filter.sortField == VideoSortField.createdAt &&
-        filter.sortDirection == SortDirection.desc;
-    final isEarliest =
-        filter.sortField == VideoSortField.createdAt &&
-        filter.sortDirection == SortDirection.asc;
+    final arrow =
+        filter.sortDirection == SortDirection.desc ? '↓' : '↑';
     return Padding(
       padding: EdgeInsets.fromLTRB(spacing.md, 0, spacing.md, spacing.sm),
       child: Row(
@@ -440,29 +437,12 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
           ),
           const Spacer(),
           AppTextButton(
-            key: const Key('mobile-pornbox-sort-latest'),
-            label: '最新',
+            key: const Key('mobile-pornbox-sort-button'),
+            label: '${filter.sortField.label} $arrow',
             size: AppTextButtonSize.xSmall,
-            isSelected: isLatest,
-            onPressed: () => _applySort(
-              const VideoFilterState(
-                sortField: VideoSortField.createdAt,
-                sortDirection: SortDirection.desc,
-              ),
-            ),
-          ),
-          SizedBox(width: spacing.sm),
-          AppTextButton(
-            key: const Key('mobile-pornbox-sort-earliest'),
-            label: '最早',
-            size: AppTextButtonSize.xSmall,
-            isSelected: isEarliest,
-            onPressed: () => _applySort(
-              const VideoFilterState(
-                sortField: VideoSortField.createdAt,
-                sortDirection: SortDirection.asc,
-              ),
-            ),
+            backgroundStyle: AppTextButtonBackgroundStyle.muted,
+            icon: const Icon(Icons.swap_vert_rounded, size: 14),
+            onPressed: _openSortDrawer,
           ),
           if (_loadedVideos.isNotEmpty) ...[
             SizedBox(width: spacing.sm),
@@ -477,6 +457,22 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
         ],
       ),
     );
+  }
+
+  Future<void> _openSortDrawer() async {
+    final result = await showAppBottomDrawer<VideoFilterState>(
+      context: context,
+      heightFactor: 0.42,
+      drawerKey: const Key('mobile-pornbox-sort-drawer'),
+      builder: (drawerContext) => _VideoSortPicker(
+        current: _pageState.filterState,
+        onSelected: (next) => Navigator.of(drawerContext).pop(next),
+      ),
+    );
+    if (!mounted || result == null) {
+      return;
+    }
+    _applySort(result);
   }
 
   Widget _buildVideosSliver(BuildContext context) {
@@ -637,6 +633,126 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 移动端 PornBox 排序抽屉：列出全部 [VideoSortField]，点击未选字段切换字段（保持
+/// 方向），再次点击已选字段切换升降序。选完即关闭抽屉返回新 filter。
+class _VideoSortPicker extends StatelessWidget {
+  const _VideoSortPicker({required this.current, required this.onSelected});
+
+  final VideoFilterState current;
+  final ValueChanged<VideoFilterState> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '排序方式',
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s16,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ),
+        ),
+        SizedBox(height: spacing.xs),
+        Text(
+          '点击切换字段；再次点击当前字段切换升降序。',
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.muted,
+          ),
+        ),
+        SizedBox(height: spacing.sm),
+        for (final field in VideoSortField.values)
+          _SortRow(
+            field: field,
+            isSelected: field == current.sortField,
+            direction: current.sortDirection,
+            onTap: () {
+              if (field == current.sortField) {
+                onSelected(
+                  current.copyWith(
+                    sortDirection:
+                        current.sortDirection == SortDirection.desc
+                            ? SortDirection.asc
+                            : SortDirection.desc,
+                  ),
+                );
+              } else {
+                onSelected(current.copyWith(sortField: field));
+              }
+            },
+          ),
+      ],
+    );
+  }
+}
+
+class _SortRow extends StatelessWidget {
+  const _SortRow({
+    required this.field,
+    required this.isSelected,
+    required this.direction,
+    required this.onTap,
+  });
+
+  final VideoSortField field;
+  final bool isSelected;
+  final SortDirection direction;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: Key('mobile-pornbox-sort-field-${field.apiValue}'),
+        onTap: onTap,
+        borderRadius: context.appRadius.mdBorder,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            vertical: spacing.md,
+            horizontal: spacing.xs,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  field.label,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    weight: isSelected
+                        ? AppTextWeight.medium
+                        : AppTextWeight.regular,
+                    tone: isSelected
+                        ? AppTextTone.accent
+                        : AppTextTone.secondary,
+                  ),
+                ),
+              ),
+              if (isSelected)
+                Icon(
+                  direction == SortDirection.desc
+                      ? Icons.arrow_downward_rounded
+                      : Icons.arrow_upward_rounded,
+                  size: 18,
+                  color: resolveAppTextToneColor(context, AppTextTone.accent),
+                ),
+            ],
+          ),
         ),
       ),
     );

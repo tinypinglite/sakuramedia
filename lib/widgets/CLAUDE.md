@@ -43,7 +43,7 @@
 
 ## ⚠️ 重复实现多(copy-paste 警告)
 
-封面「···」菜单(clip/collection/video/member 四份)、选择勾选标记(两份)、Overlay 筛选骨架(`ActorFilterToolbar`/`RankingFilterToolbar` 两份高度雷同)、网格列数自适应(5+ 份)、URL/文件大小 helper(多份)**均为复制粘贴**。改观感/行为要**逐处同步**。注意 `collections/CollectionMemberMenu` 已抽公共版而其它三处未抽,别误以为同一组件。
+封面「···」菜单(clip/collection/video/member 四份)、Overlay 筛选骨架(`ActorFilterToolbar`/`RankingFilterToolbar` 两份高度雷同)、网格列数自适应(5+ 份)、URL/文件大小 helper(多份)**均为复制粘贴**。改观感/行为要**逐处同步**。注意 `collections/CollectionMemberMenu` 已抽公共版而其它三处未抽,别误以为同一组件。**选择勾选标记已抽公共组件** `selection/selection_check_badge.dart` `SelectionCheckBadge`(clip 网格/封面卡、合集成员卡共用),新增选择模式卡片直接复用,别再就地复制。
 
 ## Widget Key 约定(强约束)
 

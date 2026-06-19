@@ -3,12 +3,16 @@ import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/selection/selection_check_badge.dart';
 
 enum _ClipCardAction { openMovie, addToCollection, rename, delete }
 
 /// 切片网格卡：封面 + 底部一条信息条（左番号、右时长）。
 /// 左键 / 单击播放，右键 / 长按弹菜单（影片 / 加入合集 / 重命名 / 删除），
 /// 与「时刻」卡的右键菜单形式对齐。
+///
+/// 选择模式下整卡点击切换选中、屏蔽右键菜单与播放、左上角叠勾选；与
+/// [VideoSummaryCard] 的多选交互对齐。
 class ClipGridCard extends StatelessWidget {
   const ClipGridCard({
     super.key,
@@ -18,6 +22,9 @@ class ClipGridCard extends StatelessWidget {
     required this.onDelete,
     required this.onAddToCollection,
     this.onOpenMovie,
+    this.selectionMode = false,
+    this.isSelected = false,
+    this.onSelectedChanged,
   });
 
   final MediaClipDto clip;
@@ -28,6 +35,15 @@ class ClipGridCard extends StatelessWidget {
 
   /// 跳转到切片来源影片详情；切片无番号时为 `null`，对应菜单项隐藏。
   final VoidCallback? onOpenMovie;
+
+  /// 选择模式：整卡点击改为切换选中，屏蔽右键菜单与播放点击，叠加勾选标记。
+  final bool selectionMode;
+
+  /// 当前是否被选中（仅 [selectionMode] 下有意义）。
+  final bool isSelected;
+
+  /// 选择模式下切换选中态的回调，入参为切换后的目标值。
+  final ValueChanged<bool>? onSelectedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -44,73 +60,93 @@ class ClipGridCard extends StatelessWidget {
       weight: AppTextWeight.regular,
       tone: AppTextTone.onMedia,
     );
+    final selected = selectionMode && isSelected;
 
+    final card = Material(
+      color: colors.surfaceCard,
+      borderRadius: context.appRadius.mdBorder,
+      child: InkWell(
+        key: Key('clip-grid-card-tap-${clip.clipId}'),
+        borderRadius: context.appRadius.mdBorder,
+        onTap: selectionMode
+            ? () => onSelectedChanged?.call(!isSelected)
+            : onPlay,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: context.appRadius.mdBorder,
+            border: Border.all(
+              color: selected ? colors.selectionBorder : colors.borderSubtle,
+              width: selected ? 2 : 1,
+            ),
+            boxShadow: context.appShadows.card,
+          ),
+          child: ClipRRect(
+            borderRadius: context.appRadius.mdBorder,
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (coverUrl != null && coverUrl.isNotEmpty)
+                    MaskedImage(url: coverUrl, fit: BoxFit.cover)
+                  else
+                    ColoredBox(color: colors.surfaceMuted),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.44),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: spacing.md,
+                          vertical: spacing.sm,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                number,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: labelTextStyle,
+                              ),
+                            ),
+                            SizedBox(width: spacing.sm),
+                            Text(duration, style: labelTextStyle),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (selectionMode)
+                    Positioned(
+                      top: spacing.xs,
+                      left: spacing.xs,
+                      child: IgnorePointer(
+                        child: SelectionCheckBadge(isSelected: isSelected),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (selectionMode) {
+      return card;
+    }
     return GestureDetector(
       behavior: HitTestBehavior.deferToChild,
       onSecondaryTapDown: (details) =>
           _showContextMenu(context, details.globalPosition),
       onLongPressStart: (details) =>
           _showContextMenu(context, details.globalPosition),
-      child: Material(
-        color: colors.surfaceCard,
-        borderRadius: context.appRadius.mdBorder,
-        child: InkWell(
-          key: Key('clip-grid-card-tap-${clip.clipId}'),
-          borderRadius: context.appRadius.mdBorder,
-          onTap: onPlay,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: context.appRadius.mdBorder,
-              boxShadow: context.appShadows.card,
-            ),
-            child: ClipRRect(
-              borderRadius: context.appRadius.mdBorder,
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (coverUrl != null && coverUrl.isNotEmpty)
-                      MaskedImage(url: coverUrl, fit: BoxFit.cover)
-                    else
-                      ColoredBox(color: colors.surfaceMuted),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.44),
-                        ),
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: spacing.md,
-                            vertical: spacing.sm,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  number,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: labelTextStyle,
-                                ),
-                              ),
-                              SizedBox(width: spacing.sm),
-                              Text(duration, style: labelTextStyle),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+      child: card,
     );
   }
 

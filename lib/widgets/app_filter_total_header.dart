@@ -7,16 +7,21 @@ class AppFilterTotalHeader extends StatelessWidget {
     required this.leading,
     required this.totalText,
     this.totalKey,
+    this.trailing,
   });
 
   final Widget leading;
   final String totalText;
   final Key? totalKey;
 
+  /// 「N 个」总数右侧的尾随内容（同一行），可选。
+  final Widget? trailing;
+
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final componentTokens = context.appComponentTokens;
+    final trailingWidget = trailing;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,6 +44,10 @@ class AppFilterTotalHeader extends StatelessWidget {
             ),
           ),
         ),
+        if (trailingWidget != null) ...[
+          SizedBox(width: spacing.sm),
+          trailingWidget,
+        ],
       ],
     );
   }

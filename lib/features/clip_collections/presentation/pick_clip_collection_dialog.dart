@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
-import 'package:sakuramedia/features/videos/presentation/create_video_collection_dialog.dart';
+import 'package:sakuramedia/features/clip_collections/data/clip_collection_dto.dart';
+import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/create_clip_collection_dialog.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
@@ -11,69 +11,60 @@ import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 
 /// 目标合集选择器的呈现形态：桌面弹窗 / 移动端底部抽屉。
-enum PickVideoCollectionPresentation { dialog, bottomDrawer }
+enum PickClipCollectionPresentation { dialog, bottomDrawer }
 
-/// 选择一个目标视频合集（批量加入合集用）。返回选中的合集；取消返回 `null`。
+/// 选择一个目标切片合集（批量加入合集用）。返回选中的合集；取消返回 `null`。
 ///
-/// 与单条即时加入的 [showAddToVideoCollectionDialog] 不同：本弹窗只负责「选中并返回」，
-/// 实际加入动作由调用方批量执行。
-Future<VideoCollectionDto?> showPickVideoCollectionDialog(
+/// 与单条即时加入的 [showAddToClipCollectionDialog] 不同：本弹窗只负责「选中并返回」，
+/// 实际加入动作由调用方批量执行。与 `showPickVideoCollectionDialog` 对称。
+Future<ClipCollectionDto?> showPickClipCollectionDialog(
   BuildContext context, {
-  PickVideoCollectionPresentation presentation =
-      PickVideoCollectionPresentation.dialog,
-  int? excludedCollectionId,
+  PickClipCollectionPresentation presentation =
+      PickClipCollectionPresentation.dialog,
 }) {
   switch (presentation) {
-    case PickVideoCollectionPresentation.dialog:
-      return showDialog<VideoCollectionDto>(
+    case PickClipCollectionPresentation.dialog:
+      return showDialog<ClipCollectionDto>(
         context: context,
-        builder: (dialogContext) => _PickVideoCollectionDialog(
-          excludedCollectionId: excludedCollectionId,
-        ),
+        builder: (dialogContext) => const _PickClipCollectionDialog(),
       );
-    case PickVideoCollectionPresentation.bottomDrawer:
-      return showAppBottomDrawer<VideoCollectionDto>(
+    case PickClipCollectionPresentation.bottomDrawer:
+      return showAppBottomDrawer<ClipCollectionDto>(
         context: context,
-        drawerKey: const Key('pick-video-collection-bottom-sheet'),
+        drawerKey: const Key('pick-clip-collection-bottom-sheet'),
         maxHeightFactor: 0.7,
-        builder: (sheetContext) => _PickVideoCollectionDialog(
-          presentation: PickVideoCollectionPresentation.bottomDrawer,
-          excludedCollectionId: excludedCollectionId,
+        builder: (sheetContext) => const _PickClipCollectionDialog(
+          presentation: PickClipCollectionPresentation.bottomDrawer,
         ),
       );
   }
 }
 
-class _PickVideoCollectionDialog extends StatefulWidget {
-  const _PickVideoCollectionDialog({
-    this.presentation = PickVideoCollectionPresentation.dialog,
-    this.excludedCollectionId,
+class _PickClipCollectionDialog extends StatefulWidget {
+  const _PickClipCollectionDialog({
+    this.presentation = PickClipCollectionPresentation.dialog,
   });
 
-  final PickVideoCollectionPresentation presentation;
-
-  /// 不在列表中显示的合集 id（用于「加入到另一个合集」时排除当前合集自身）。
-  final int? excludedCollectionId;
+  final PickClipCollectionPresentation presentation;
 
   @override
-  State<_PickVideoCollectionDialog> createState() =>
-      _PickVideoCollectionDialogState();
+  State<_PickClipCollectionDialog> createState() =>
+      _PickClipCollectionDialogState();
 }
 
-class _PickVideoCollectionDialogState
-    extends State<_PickVideoCollectionDialog> {
-  late final VideoCollectionsApi _api;
-  List<VideoCollectionDto> _collections = const <VideoCollectionDto>[];
+class _PickClipCollectionDialogState extends State<_PickClipCollectionDialog> {
+  late final ClipCollectionsApi _api;
+  List<ClipCollectionDto> _collections = const <ClipCollectionDto>[];
   bool _isLoading = true;
   String? _error;
 
   bool get _isBottomDrawer =>
-      widget.presentation == PickVideoCollectionPresentation.bottomDrawer;
+      widget.presentation == PickClipCollectionPresentation.bottomDrawer;
 
   @override
   void initState() {
     super.initState();
-    _api = context.read<VideoCollectionsApi>();
+    _api = context.read<ClipCollectionsApi>();
     _load();
   }
 
@@ -87,13 +78,8 @@ class _PickVideoCollectionDialogState
       if (!mounted) {
         return;
       }
-      final excluded = widget.excludedCollectionId;
       setState(() {
-        _collections = excluded == null
-            ? collections
-            : collections
-                .where((c) => c.id != excluded)
-                .toList(growable: false);
+        _collections = collections;
         _isLoading = false;
       });
     } catch (error) {
@@ -108,11 +94,11 @@ class _PickVideoCollectionDialogState
   }
 
   Future<void> _createAndPick() async {
-    final created = await showVideoCollectionDialog(
+    final created = await showCreateClipCollectionDialog(
       context,
       presentation: _isBottomDrawer
-          ? VideoCollectionEditPresentation.bottomDrawer
-          : VideoCollectionEditPresentation.dialog,
+          ? ClipCollectionEditPresentation.bottomDrawer
+          : ClipCollectionEditPresentation.dialog,
     );
     if (created != null && mounted) {
       Navigator.of(context).pop(created);
@@ -196,9 +182,9 @@ class _PickVideoCollectionDialogState
       itemBuilder: (context, index) {
         final collection = _collections[index];
         return ListTile(
-          key: Key('pick-collection-${collection.id}'),
+          key: Key('pick-clip-collection-${collection.id}'),
           title: Text(collection.name),
-          subtitle: Text('${collection.itemCount} 个视频'),
+          subtitle: Text('${collection.clipCount} 个切片'),
           trailing: const Icon(Icons.add),
           onTap: () => Navigator.of(context).pop(collection),
         );

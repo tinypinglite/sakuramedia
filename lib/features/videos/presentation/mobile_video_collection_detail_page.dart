@@ -3,19 +3,24 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/clips/presentation/mobile_clip_confirm_drawer.dart';
+import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/features/videos/presentation/mobile_video_actions_sheet.dart';
+import 'package:sakuramedia/features/videos/presentation/pick_video_collection_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/video_collection_detail_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/collections/collection_member_views.dart';
+import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
 
 /// 合集详情的成员排布方式：纵向列表或网格（侧重浏览）。
 enum _VideoLayout { list, grid }
@@ -25,6 +30,9 @@ enum _VideoLayout { list, grid }
 /// 列表复用桌面端同款行物料 [CollectionMemberRow]（关闭悬停与拖序）；网格用竖版海报卡
 /// [CollectionMemberCard]（标题压图）。点击成员走动作抽屉（播放 / 移出合集）。
 /// 添加成员仍走视频列表的「加入合集」，故此页不设「添加」入口（与桌面对齐）。
+///
+/// 长按成员进入多选模式：上方「选择栏」（取消 / 已选 N 个 / 全选），下方「批量栏」
+/// （加入合集 / 移除 / 删除），与移动 PornBox 主页对齐。
 class MobileVideoCollectionDetailPage extends StatefulWidget {
   const MobileVideoCollectionDetailPage({super.key, required this.collectionId});
 
@@ -36,7 +44,8 @@ class MobileVideoCollectionDetailPage extends StatefulWidget {
 }
 
 class _MobileVideoCollectionDetailPageState
-    extends State<MobileVideoCollectionDetailPage> {
+    extends State<MobileVideoCollectionDetailPage>
+    with MultiSelectStateMixin<MobileVideoCollectionDetailPage, int> {
   late final VideoCollectionDetailController _controller;
   late final VideoMutationChangeNotifier _mutationNotifier;
   _VideoLayout _layout = _VideoLayout.grid;
@@ -89,15 +98,21 @@ class _MobileVideoCollectionDetailPageState
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(context),
+              if (selectionMode)
+                _buildSelectionBar(context)
+              else
+                _buildHeader(context),
               SizedBox(height: context.appSpacing.md),
               Expanded(child: _buildBody(context)),
+              if (selectionMode) _buildBatchBar(context),
             ],
           );
         },
       ),
     );
   }
+
+  // --------------------------------------------------------- 头部
 
   Widget _buildHeader(BuildContext context) {
     final spacing = context.appSpacing;
@@ -138,6 +153,14 @@ class _MobileVideoCollectionDetailPageState
             ),
           ),
           if (items.isNotEmpty) ...[
+            AppTextButton(
+              key: const Key('mobile-video-collection-enter-selection-button'),
+              label: '选择',
+              size: AppTextButtonSize.small,
+              icon: const Icon(Icons.check_circle_outline, size: 14),
+              onPressed: enterSelection,
+            ),
+            SizedBox(width: spacing.xs),
             AppIconButton(
               key: const Key('mobile-video-collection-layout-toggle'),
               tooltip: _layout == _VideoLayout.list ? '网格视图' : '列表视图',
@@ -163,6 +186,8 @@ class _MobileVideoCollectionDetailPageState
     );
   }
 
+  // --------------------------------------------------------- body
+
   Widget _buildBody(BuildContext context) {
     if (_controller.items.isEmpty) {
       return const AppEmptyState(message: '合集还没有视频，去视频列表用「加入合集」添加吧');
@@ -182,23 +207,35 @@ class _MobileVideoCollectionDetailPageState
       separatorBuilder: (context, index) => SizedBox(height: spacing.sm),
       itemBuilder: (context, index) {
         final item = items[index];
-        return CollectionMemberRow(
-          key: ValueKey<int>(item.itemId),
-          index: index,
-          coverUrl: item.video.coverImage?.bestAvailableUrl,
-          coverWidth: 64,
-          coverAspectRatio: context.appComponentTokens.movieCardAspectRatio,
-          coverFit: BoxFit.contain,
-          title: item.video.preferredTitle,
-          subtitle: _subtitleFor(item.video),
-          placeholderIcon: Icons.video_library_outlined,
-          titleMaxLines: 2,
-          // 移动端无悬停、不支持拖序，关闭手柄与 hover 显隐逻辑。
-          isHovered: false,
-          reorderable: false,
-          onTap: () => _openSheet(index, item.video),
-          menuKey: Key('mobile-video-collection-menu-${item.itemId}'),
-          dragHandleKey: Key('mobile-video-reorder-handle-${item.itemId}'),
+        return GestureDetector(
+          onLongPress: selectionMode
+              ? null
+              : () {
+                  enterSelection();
+                  toggleSelect(item.itemId);
+                },
+          child: CollectionMemberRow(
+            key: ValueKey<int>(item.itemId),
+            index: index,
+            coverUrl: item.video.coverImage?.bestAvailableUrl,
+            coverWidth: 64,
+            coverAspectRatio: context.appComponentTokens.movieCardAspectRatio,
+            coverFit: BoxFit.contain,
+            title: item.video.preferredTitle,
+            subtitle: _subtitleFor(item.video),
+            placeholderIcon: Icons.video_library_outlined,
+            titleMaxLines: 2,
+            // 移动端无悬停、不支持拖序，关闭手柄与 hover 显隐逻辑。
+            isHovered: false,
+            reorderable: false,
+            selectionMode: selectionMode,
+            isSelected: isSelected(item.itemId),
+            onTap: selectionMode
+                ? () => toggleSelect(item.itemId)
+                : () => _openSheet(index, item.video),
+            menuKey: Key('mobile-video-collection-menu-${item.itemId}'),
+            dragHandleKey: Key('mobile-video-reorder-handle-${item.itemId}'),
+          ),
         );
       },
     );
@@ -219,17 +256,29 @@ class _MobileVideoCollectionDetailPageState
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
-        return CollectionMemberCard(
-          key: ValueKey<int>(item.itemId),
-          coverUrl: item.video.coverImage?.bestAvailableUrl,
-          coverAspectRatio: context.appComponentTokens.movieCardAspectRatio,
-          title: item.video.preferredTitle,
-          subtitle: _subtitleFor(item.video),
-          placeholderIcon: Icons.video_library_outlined,
-          titleMaxLines: 2,
-          overlayCaption: true,
-          onTap: () => _openSheet(index, item.video),
-          menuKey: Key('mobile-video-collection-grid-menu-${item.itemId}'),
+        return GestureDetector(
+          onLongPress: selectionMode
+              ? null
+              : () {
+                  enterSelection();
+                  toggleSelect(item.itemId);
+                },
+          child: CollectionMemberCard(
+            key: ValueKey<int>(item.itemId),
+            coverUrl: item.video.coverImage?.bestAvailableUrl,
+            coverAspectRatio: context.appComponentTokens.movieCardAspectRatio,
+            title: item.video.preferredTitle,
+            subtitle: _subtitleFor(item.video),
+            placeholderIcon: Icons.video_library_outlined,
+            titleMaxLines: 2,
+            overlayCaption: true,
+            selectionMode: selectionMode,
+            isSelected: isSelected(item.itemId),
+            onTap: selectionMode
+                ? () => toggleSelect(item.itemId)
+                : () => _openSheet(index, item.video),
+            menuKey: Key('mobile-video-collection-grid-menu-${item.itemId}'),
+          ),
         );
       },
     );
@@ -241,6 +290,8 @@ class _MobileVideoCollectionDetailPageState
     }
     return formatMediaTimecode(video.durationSeconds);
   }
+
+  // --------------------------------------------------------- 单条动作
 
   void _openSheet(int index, VideoItemListItemDto video) {
     final itemId = _controller.items[index].itemId;
@@ -306,5 +357,240 @@ class _MobileVideoCollectionDetailPageState
       _mutationNotifier.reportDeleted(video.id);
     }
     showToast(error ?? '已删除视频');
+  }
+
+  // --------------------------------------------------------- 选择 / 批量
+
+  List<VideoCollectionItemDto> _selectedItems() => _controller.items
+      .where((it) => isSelected(it.itemId))
+      .toList(growable: false);
+
+  void _showBatchToast(String verb, BatchRunResult<dynamic> result) {
+    if (result.failed.isEmpty) {
+      showToast('已$verb ${result.succeeded.length} 个视频');
+    } else {
+      showToast(
+        '$verb完成：成功 ${result.succeeded.length} 个，失败 ${result.failed.length} 个',
+      );
+    }
+  }
+
+  Future<void> _batchAddToOtherCollection() async {
+    final selected = _selectedItems();
+    if (selected.isEmpty) {
+      return;
+    }
+    final target = await showPickVideoCollectionDialog(
+      context,
+      presentation: PickVideoCollectionPresentation.bottomDrawer,
+      excludedCollectionId: widget.collectionId,
+    );
+    if (!mounted || target == null) {
+      return;
+    }
+    final api = context.read<VideoCollectionsApi>();
+    final result = await runBatchOperation<VideoCollectionItemDto>(
+      context,
+      title: '正在加入「${target.name}」',
+      items: selected,
+      action: (item) => api.addCollectionItem(
+        collectionId: target.id,
+        videoItemId: item.video.id,
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    for (final item in result.succeeded) {
+      _mutationNotifier.reportCollectionMembershipChanged(
+        videoId: item.video.id,
+        collectionId: target.id,
+      );
+    }
+    _showBatchToast('加入合集', result);
+    exitSelection();
+  }
+
+  Future<void> _batchRemove() async {
+    final selected = _selectedItems();
+    if (selected.isEmpty) {
+      return;
+    }
+    final confirmed = await showMobileClipConfirmDrawer(
+      context,
+      title: '从合集移除',
+      message: '确认从合集移除选中的 ${selected.length} 个视频？视频本身不会被删除。',
+      confirmLabel: '移除',
+      drawerKey: const Key('mobile-video-collection-batch-remove-drawer'),
+      confirmButtonKey: const Key(
+        'mobile-video-collection-batch-remove-confirm-button',
+      ),
+    );
+    if (!mounted || confirmed != true) {
+      return;
+    }
+    final result = await runBatchOperation<VideoCollectionItemDto>(
+      context,
+      title: '正在从合集移除',
+      items: selected,
+      action: (item) async {
+        final error = await _controller.removeItem(item.itemId);
+        if (error != null) {
+          throw Exception(error);
+        }
+      },
+    );
+    if (!mounted) {
+      return;
+    }
+    await _controller.refresh();
+    if (!mounted) {
+      return;
+    }
+    for (final item in result.succeeded) {
+      _mutationNotifier.reportCollectionMembershipChanged(
+        videoId: item.video.id,
+        collectionId: widget.collectionId,
+      );
+    }
+    _showBatchToast('移除', result);
+    exitSelection();
+  }
+
+  Future<void> _batchDelete() async {
+    final selected = _selectedItems();
+    if (selected.isEmpty) {
+      return;
+    }
+    final confirmed = await showMobileClipConfirmDrawer(
+      context,
+      title: '删除视频',
+      message: '确认删除选中的 ${selected.length} 个视频？该操作不可恢复。',
+      confirmLabel: '删除',
+      drawerKey: const Key('mobile-video-collection-batch-delete-drawer'),
+      confirmButtonKey: const Key(
+        'mobile-video-collection-batch-delete-confirm-button',
+      ),
+    );
+    if (!mounted || confirmed != true) {
+      return;
+    }
+    final api = context.read<VideosApi>();
+    final result = await runBatchOperation<VideoCollectionItemDto>(
+      context,
+      title: '正在删除视频',
+      items: selected,
+      action: (item) => api.deleteVideo(item.video.id),
+    );
+    if (!mounted) {
+      return;
+    }
+    await _controller.refresh();
+    if (!mounted) {
+      return;
+    }
+    for (final item in result.succeeded) {
+      _mutationNotifier.reportDeleted(item.video.id);
+    }
+    _showBatchToast('删除', result);
+    exitSelection();
+  }
+
+  Widget _buildSelectionBar(BuildContext context) {
+    final spacing = context.appSpacing;
+    final colors = context.appColors;
+    final itemIds = _controller.items.map((it) => it.itemId);
+    final allSelected = isAllSelected(itemIds);
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.md,
+        vertical: spacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
+        border: Border(bottom: BorderSide(color: colors.divider)),
+      ),
+      child: Row(
+        children: [
+          AppTextButton(
+            key: const Key(
+              'mobile-video-collection-exit-selection-button',
+            ),
+            label: '取消',
+            size: AppTextButtonSize.small,
+            onPressed: exitSelection,
+          ),
+          SizedBox(width: spacing.sm),
+          Text(
+            '已选 $selectedCount 个',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.medium,
+              tone: AppTextTone.primary,
+            ),
+          ),
+          const Spacer(),
+          AppTextButton(
+            key: const Key('mobile-video-collection-select-all-button'),
+            label: allSelected ? '取消全选' : '全选',
+            size: AppTextButtonSize.small,
+            onPressed: () => toggleSelectAll(itemIds),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBatchBar(BuildContext context) {
+    final spacing = context.appSpacing;
+    final colors = context.appColors;
+    final hasSelection = selectedCount > 0;
+    return Container(
+      padding: EdgeInsets.all(spacing.md),
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
+        border: Border(top: BorderSide(color: colors.divider)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(
+              child: AppButton(
+                key: const Key(
+                  'mobile-video-collection-batch-add-collection-button',
+                ),
+                label: '加入合集',
+                variant: AppButtonVariant.secondary,
+                onPressed: hasSelection ? _batchAddToOtherCollection : null,
+              ),
+            ),
+            SizedBox(width: spacing.sm),
+            Expanded(
+              child: AppButton(
+                key: const Key(
+                  'mobile-video-collection-batch-remove-button',
+                ),
+                label: '移除',
+                variant: AppButtonVariant.secondary,
+                onPressed: hasSelection ? _batchRemove : null,
+              ),
+            ),
+            SizedBox(width: spacing.sm),
+            Expanded(
+              child: AppButton(
+                key: const Key(
+                  'mobile-video-collection-batch-delete-button',
+                ),
+                label: '删除',
+                variant: AppButtonVariant.danger,
+                onPressed: hasSelection ? _batchDelete : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

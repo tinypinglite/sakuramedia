@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/selection/selection_check_badge.dart';
 
 /// 合集「成员」（切片 / 视频）在详情页的共享展示组件：列表行 [CollectionMemberRow]、
 /// 网格卡 [CollectionMemberCard] 与「···」菜单 [CollectionMemberMenu]。
@@ -422,7 +423,7 @@ class CollectionMemberCard extends StatelessWidget {
                       top: spacing.xs,
                       left: spacing.xs,
                       child: IgnorePointer(
-                        child: _MemberSelectionCheck(isSelected: isSelected),
+                        child: SelectionCheckBadge(isSelected: isSelected),
                       ),
                     ),
                   ],
@@ -689,32 +690,6 @@ class _CoverPlaceholder extends StatelessWidget {
                 color: context.appTextPalette.muted,
               ),
             ),
-    );
-  }
-}
-
-/// 选择模式下网格卡左上角的勾选标记：选中为实心对勾，未选为半透明空心圈。
-class _MemberSelectionCheck extends StatelessWidget {
-  const _MemberSelectionCheck({required this.isSelected});
-
-  final bool isSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isSelected
-            ? colors.selectionBorder
-            : Colors.black.withValues(alpha: 0.35),
-        border: Border.all(color: Colors.white, width: 1.5),
-      ),
-      child: isSelected
-          ? const Icon(Icons.check, color: Colors.white, size: 14)
-          : null,
     );
   }
 }

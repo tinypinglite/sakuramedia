@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
+import 'package:sakuramedia/features/videos/presentation/pick_video_collection_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/video_collection_detail_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
@@ -176,6 +177,42 @@ class _DesktopVideoCollectionDetailPageState
       danger: true,
       confirmKey: const Key('video-collection-batch-confirm-button'),
     );
+  }
+
+  Future<void> _batchAddToOtherCollection() async {
+    final selected = _selectedItems();
+    if (selected.isEmpty) {
+      return;
+    }
+    final target = await showPickVideoCollectionDialog(
+      context,
+      excludedCollectionId: widget.collectionId,
+    );
+    if (!mounted || target == null) {
+      return;
+    }
+    final api = context.read<VideoCollectionsApi>();
+    final result = await runBatchOperation<VideoCollectionItemDto>(
+      context,
+      title: '正在加入「${target.name}」',
+      items: selected,
+      action: (item) => api.addCollectionItem(
+        collectionId: target.id,
+        videoItemId: item.video.id,
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    // 合集封面/计数变化：逐条广播给列表页的合集横滑区。
+    for (final item in result.succeeded) {
+      _mutationNotifier.reportCollectionMembershipChanged(
+        videoId: item.video.id,
+        collectionId: target.id,
+      );
+    }
+    _showBatchToast('加入合集', result);
+    exitSelection();
   }
 
   Future<void> _batchRemove() async {
@@ -423,6 +460,14 @@ class _DesktopVideoCollectionDetailPageState
           label: allSelected ? '取消全选' : '全选',
           size: AppTextButtonSize.small,
           onPressed: () => toggleSelectAll(itemIds),
+        ),
+        SizedBox(width: spacing.sm),
+        AppButton(
+          key: const Key('video-collection-batch-add-collection-button'),
+          label: '加入合集',
+          variant: AppButtonVariant.secondary,
+          size: AppButtonSize.small,
+          onPressed: hasSelection ? _batchAddToOtherCollection : null,
         ),
         SizedBox(width: spacing.sm),
         AppButton(

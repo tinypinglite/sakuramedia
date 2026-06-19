@@ -26,6 +26,7 @@ class VideoListContent extends StatelessWidget {
     this.selectedIds = const <int>{},
     this.onVideoToggleSelect,
     this.headerTrailingBuilder,
+    this.headerInlineTrailingBuilder,
     this.sectionSpacing = 0,
     this.contentKey,
     this.totalKey,
@@ -48,11 +49,15 @@ class VideoListContent extends StatelessWidget {
   /// 选择模式下切换某个视频选中态的回调。
   final ValueChanged<VideoItemListItemDto>? onVideoToggleSelect;
 
-  /// 总数行下方的尾随区域（如「选择」入口 / 批量操作栏）。
+  /// 总数行下方的尾随区域（如批量操作栏）。返回 `null` 不渲染（也不留间距）。
   ///
   /// 用 builder 而非现成 widget，使其在列表分页加载（controller 变化）后能拿到
-  /// 最新的 `controller.items`（决定「选择」入口可见性与「全选」状态）。
-  final WidgetBuilder? headerTrailingBuilder;
+  /// 最新的 `controller.items`（决定可见性与「全选」状态）。
+  final Widget? Function(BuildContext context)? headerTrailingBuilder;
+
+  /// 总数（「N 个」）右侧、同一行的尾随区域（如「选择」入口）。返回 `null` 不渲染。
+  /// 用 builder 让 controller 变化时拿到最新 `controller.items`。
+  final Widget? Function(BuildContext context)? headerInlineTrailingBuilder;
 
   final double sectionSpacing;
   final Key? contentKey;
@@ -66,6 +71,8 @@ class VideoListContent extends StatelessWidget {
       builder: (context, _) {
         final showFooter = controller.items.isNotEmpty &&
             (controller.isLoadingMore || controller.loadMoreErrorMessage != null);
+        final inlineTrailing = headerInlineTrailingBuilder?.call(context);
+        final trailingBelow = headerTrailingBuilder?.call(context);
         return Column(
           key: contentKey,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,10 +84,11 @@ class VideoListContent extends StatelessWidget {
               ),
               totalText: '${controller.total} 个',
               totalKey: totalKey ?? const Key('videos-page-total'),
+              trailing: inlineTrailing,
             ),
-            if (headerTrailingBuilder != null) ...[
+            if (trailingBelow != null) ...[
               SizedBox(height: context.appSpacing.sm),
-              headerTrailingBuilder!(context),
+              trailingBelow,
             ],
             SizedBox(height: sectionSpacing),
             VideoSummaryGrid(

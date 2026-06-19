@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.
 import 'package:sakuramedia/features/clip_collections/presentation/add_to_clip_collection_dialog.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collections_overview_controller.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/create_clip_collection_dialog.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/pick_clip_collection_dialog.dart';
 import 'package:sakuramedia/features/clips/data/clips_api.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
@@ -24,13 +25,16 @@ import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/clips/clip_cover_card.dart';
 import 'package:sakuramedia/widgets/collections/collection_card.dart';
+import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
 
 /// 概览页「切片」tab：上方「我的合集」横滑区 + 下方「全部切片」网格。
 ///
 /// 数据层与桌面 `DesktopClipsPage` 完全一致（复用同一组 controller 与 mutation
-/// 广播），仅在布局上改为移动端竖屏网格 + 底部抽屉形态的编辑交互。
+/// 广播），仅在布局上改为移动端竖屏网格 + 底部抽屉形态的编辑交互；长按切片卡进入
+/// 多选模式，支持批量加入合集 / 删除（与移动 PornBox 对齐）。
 class MobileOverviewClipsTab extends StatefulWidget {
   const MobileOverviewClipsTab({super.key});
 
@@ -38,7 +42,8 @@ class MobileOverviewClipsTab extends StatefulWidget {
   State<MobileOverviewClipsTab> createState() => _MobileOverviewClipsTabState();
 }
 
-class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab> {
+class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab>
+    with MultiSelectStateMixin<MobileOverviewClipsTab, int> {
   late final ClipsOverviewController _clipsController;
   late final ClipCollectionsOverviewController _collectionsController;
   late final ClipMutationChangeNotifier _mutationNotifier;
@@ -121,20 +126,34 @@ class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab> {
     ]);
   }
 
+  List<MediaClipDto> _selectedClips() => _clipsController.clips
+      .where((c) => isSelected(c.clipId))
+      .toList(growable: false);
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _pageListenable,
       builder: (context, _) {
-        return AppAdaptiveRefreshScrollView(
-          key: const Key('mobile-clips-tab-scroll'),
-          controller: _scrollController,
-          onRefresh: _refresh,
-          slivers: <Widget>[
-            SliverToBoxAdapter(child: _buildCollectionsSection(context)),
-            SliverToBoxAdapter(child: _buildClipsHeader(context)),
-            _buildClipsSliver(context),
-            SliverToBoxAdapter(child: _buildFooter(context)),
+        return Column(
+          children: [
+            if (selectionMode) _buildSelectionBar(context),
+            Expanded(
+              child: AppAdaptiveRefreshScrollView(
+                key: const Key('mobile-clips-tab-scroll'),
+                controller: _scrollController,
+                onRefresh: _refresh,
+                slivers: <Widget>[
+                  // 选择模式下隐藏合集横滑区，只剩切片网格，与移动 PornBox 一致。
+                  if (!selectionMode)
+                    SliverToBoxAdapter(child: _buildCollectionsSection(context)),
+                  SliverToBoxAdapter(child: _buildClipsHeader(context)),
+                  _buildClipsSliver(context),
+                  SliverToBoxAdapter(child: _buildFooter(context)),
+                ],
+              ),
+            ),
+            if (selectionMode) _buildBatchBar(context),
           ],
         );
       },
@@ -234,8 +253,10 @@ class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab> {
   // ----------------------------------------------------------- 切片区
 
   Widget _buildClipsHeader(BuildContext context) {
+    final spacing = context.appSpacing;
+    final hasClips = _clipsController.clips.isNotEmpty;
     return Padding(
-      padding: EdgeInsets.only(bottom: context.appSpacing.sm),
+      padding: EdgeInsets.only(bottom: spacing.sm),
       child: Row(
         children: [
           Text(
@@ -254,13 +275,23 @@ class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab> {
             label: '最新',
             sort: 'created_at:desc',
           ),
-          SizedBox(width: context.appSpacing.sm),
+          SizedBox(width: spacing.sm),
           _buildSortAction(
             context,
             actionKey: const Key('mobile-clips-sort-earliest'),
             label: '最早',
             sort: 'created_at:asc',
           ),
+          if (!selectionMode && hasClips) ...[
+            SizedBox(width: spacing.sm),
+            AppTextButton(
+              key: const Key('mobile-clips-enter-selection-button'),
+              label: '选择',
+              size: AppTextButtonSize.xSmall,
+              icon: const Icon(Icons.check_circle_outline, size: 14),
+              onPressed: enterSelection,
+            ),
+          ],
         ],
       ),
     );
@@ -330,10 +361,21 @@ class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab> {
           ),
           delegate: SliverChildBuilderDelegate((context, index) {
             final clip = clips[index];
-            return ClipCoverCard(
-              key: Key('mobile-clip-grid-card-${clip.clipId}'),
-              clip: clip,
-              onTap: () => _openClipSheet(clip),
+            return GestureDetector(
+              onLongPress: selectionMode
+                  ? null
+                  : () {
+                      enterSelection();
+                      toggleSelect(clip.clipId);
+                    },
+              child: ClipCoverCard(
+                key: Key('mobile-clip-grid-card-${clip.clipId}'),
+                clip: clip,
+                onTap: () => _openClipSheet(clip),
+                selectionMode: selectionMode,
+                isSelected: isSelected(clip.clipId),
+                onSelectedChanged: (_) => toggleSelect(clip.clipId),
+              ),
             );
           }, childCount: clips.length),
         );
@@ -376,7 +418,87 @@ class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab> {
     return SizedBox(height: context.appSpacing.lg);
   }
 
-  // ----------------------------------------------------------- 动作
+  // ----------------------------------------------------------- 选择栏
+
+  Widget _buildSelectionBar(BuildContext context) {
+    final spacing = context.appSpacing;
+    final colors = context.appColors;
+    final clipIds = _clipsController.clips.map((c) => c.clipId);
+    final allSelected = isAllSelected(clipIds);
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: spacing.md, vertical: spacing.sm),
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
+        border: Border(bottom: BorderSide(color: colors.divider)),
+      ),
+      child: Row(
+        children: [
+          AppTextButton(
+            key: const Key('mobile-clips-exit-selection-button'),
+            label: '取消',
+            size: AppTextButtonSize.small,
+            onPressed: exitSelection,
+          ),
+          SizedBox(width: spacing.sm),
+          Text(
+            '已选 $selectedCount 个',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.medium,
+              tone: AppTextTone.primary,
+            ),
+          ),
+          const Spacer(),
+          AppTextButton(
+            key: const Key('mobile-clips-select-all-button'),
+            label: allSelected ? '取消全选' : '全选',
+            size: AppTextButtonSize.small,
+            onPressed: () => toggleSelectAll(clipIds),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBatchBar(BuildContext context) {
+    final spacing = context.appSpacing;
+    final colors = context.appColors;
+    final hasSelection = selectedCount > 0;
+    return Container(
+      padding: EdgeInsets.all(spacing.md),
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
+        border: Border(top: BorderSide(color: colors.divider)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(
+              child: AppButton(
+                key: const Key('mobile-clips-batch-add-collection-button'),
+                label: '加入合集',
+                variant: AppButtonVariant.secondary,
+                onPressed: hasSelection ? _batchAddToCollection : null,
+              ),
+            ),
+            SizedBox(width: spacing.md),
+            Expanded(
+              child: AppButton(
+                key: const Key('mobile-clips-batch-delete-button'),
+                label: '删除',
+                variant: AppButtonVariant.danger,
+                onPressed: hasSelection ? _batchDelete : null,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ----------------------------------------------------------- 单条动作
 
   void _openClipSheet(MediaClipDto clip) {
     final movieNumber = clip.movieNumber;
@@ -485,6 +607,86 @@ class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab> {
 
   void _viewAllCollections() {
     MobileClipCollectionsRouteData().push(context);
+  }
+
+  // ----------------------------------------------------------- 批量动作
+
+  void _showBatchToast(String verb, BatchRunResult<dynamic> result) {
+    if (result.failed.isEmpty) {
+      showToast('已$verb ${result.succeeded.length} 个切片');
+    } else {
+      showToast(
+        '$verb完成：成功 ${result.succeeded.length} 个，失败 ${result.failed.length} 个',
+      );
+    }
+  }
+
+  Future<void> _batchAddToCollection() async {
+    final selected = _selectedClips();
+    if (selected.isEmpty) {
+      return;
+    }
+    final target = await showPickClipCollectionDialog(
+      context,
+      presentation: PickClipCollectionPresentation.bottomDrawer,
+    );
+    if (!mounted || target == null) {
+      return;
+    }
+    final api = context.read<ClipCollectionsApi>();
+    final result = await runBatchOperation<MediaClipDto>(
+      context,
+      title: '正在加入「${target.name}」',
+      items: selected,
+      action: (clip) => api.addClipToCollection(
+        collectionId: target.id,
+        clipId: clip.clipId,
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    for (final clip in result.succeeded) {
+      _mutationNotifier.reportCollectionMembershipChanged(
+        clipId: clip.clipId,
+        collectionId: target.id,
+      );
+    }
+    _showBatchToast('加入合集', result);
+    exitSelection();
+  }
+
+  Future<void> _batchDelete() async {
+    final selected = _selectedClips();
+    if (selected.isEmpty) {
+      return;
+    }
+    final confirmed = await showMobileClipConfirmDrawer(
+      context,
+      title: '删除切片',
+      message: '确认删除选中的 ${selected.length} 个切片？切片文件会被一并删除，该操作不可恢复。',
+      confirmLabel: '删除',
+      drawerKey: const Key('mobile-clips-batch-delete-drawer'),
+      confirmButtonKey: const Key('mobile-clips-batch-delete-confirm-button'),
+    );
+    if (!mounted || confirmed != true) {
+      return;
+    }
+    final api = context.read<ClipsApi>();
+    final result = await runBatchOperation<MediaClipDto>(
+      context,
+      title: '正在删除切片',
+      items: selected,
+      action: (clip) => api.deleteClip(clipId: clip.clipId),
+    );
+    if (!mounted) {
+      return;
+    }
+    for (final clip in result.succeeded) {
+      _mutationNotifier.reportDeleted(clip.clipId);
+    }
+    _showBatchToast('删除', result);
+    exitSelection();
   }
 }
 
