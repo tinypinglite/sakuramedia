@@ -133,13 +133,17 @@ class _MobileVideoCollectionsPageState
               )
             else
               SliverPadding(
-                padding: EdgeInsets.all(spacing.md),
+                // 横向缩进由 shell 8px body padding 统一提供，此处只补上下留白。
+                padding: EdgeInsets.symmetric(vertical: spacing.md),
                 sliver: SliverGrid(
                   gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 180,
                     mainAxisSpacing: spacing.md,
                     crossAxisSpacing: spacing.sm,
-                    childAspectRatio: 0.78,
+                    // [CollectionCoverCard] = 16:9 封面 + 标题(s14, 单行) + sm 内边距,
+                    // 实际内容高度约 (0.5625×W + 34)px。aspectRatio 1.25 让 cell 高度刚好
+                    // 贴合内容，对齐桌面合集卡的紧凑观感（此前 0.78 会留 ~80px 底部空白）。
+                    childAspectRatio: 1.25,
                   ),
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final collection = collections[index];

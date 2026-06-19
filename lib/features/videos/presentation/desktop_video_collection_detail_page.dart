@@ -4,6 +4,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
+import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/features/videos/presentation/pick_video_collection_dialog.dart';
@@ -20,6 +21,7 @@ import 'package:sakuramedia/widgets/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/videos/video_collection_sort_bar.dart';
+import 'package:sakuramedia/widgets/videos/video_quick_play_dialog.dart';
 
 /// 合集详情的成员排布方式：纵向列表（可拖序）或网格（侧重浏览）。
 enum _VideoLayout { list, grid }
@@ -93,6 +95,16 @@ class _DesktopVideoCollectionDetailPageState
       startIndex: index,
       // 把详情页当前排序带进连播页，使连播顺序与详情页一致（手动顺序为 null）。
       sort: _controller.sortExpression,
+    );
+  }
+
+  /// 点单条卡片：只播这一个视频（对齐桌面 PornBox 主页 `onVideoTap`），不进合集连播。
+  /// 头部「播放全部」按钮仍走 [_playFrom] 走整张合集连播。
+  void _playVideoSingle(VideoItemListItemDto video) {
+    showVideoQuickPlayDialog(
+      context,
+      videoId: video.id,
+      title: video.preferredTitle,
     );
   }
 
@@ -317,27 +329,27 @@ class _DesktopVideoCollectionDetailPageState
               ],
             );
           }
-          return Padding(
-            padding: EdgeInsets.all(context.appSpacing.lg),
-            child: Column(
-              key: const Key('video-collection-detail-page'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context),
-                // 排序工具条：选择模式下隐藏（与其它头部控件一致），空合集无需排序。
-                if (!selectionMode && _controller.items.isNotEmpty) ...[
-                  SizedBox(height: context.appSpacing.md),
-                  VideoCollectionSortBar(
-                    sortField: _controller.sortField,
-                    sortDirection: _controller.sortDirection,
-                    onChanged: ({required field, direction}) =>
-                        _controller.applySort(field: field, direction: direction),
-                  ),
-                ],
-                SizedBox(height: context.appSpacing.lg),
-                Expanded(child: _buildBody(context)),
+          // 页面边距由桌面 shell 的 AppPageInsets.desktopStandard (24px) 统一提供，
+          // 此处不再叠加 EdgeInsets.all(spacing.lg)，否则合计 40px 比切片合集详情等
+          // 同类页明显宽。
+          return Column(
+            key: const Key('video-collection-detail-page'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
+              // 排序工具条：选择模式下隐藏（与其它头部控件一致），空合集无需排序。
+              if (!selectionMode && _controller.items.isNotEmpty) ...[
+                SizedBox(height: context.appSpacing.md),
+                VideoCollectionSortBar(
+                  sortField: _controller.sortField,
+                  sortDirection: _controller.sortDirection,
+                  onChanged: ({required field, direction}) =>
+                      _controller.applySort(field: field, direction: direction),
+                ),
               ],
-            ),
+              SizedBox(height: context.appSpacing.lg),
+              Expanded(child: _buildBody(context)),
+            ],
           );
         },
       ),
@@ -522,7 +534,7 @@ class _DesktopVideoCollectionDetailPageState
         isHovered: _hoveredItemId == item.itemId,
         onTap: selectionMode
             ? () => toggleSelect(item.itemId)
-            : () => _playFrom(index),
+            : () => _playVideoSingle(item.video),
         menuKey: Key('video-collection-menu-${item.itemId}'),
         dragHandleKey: Key('video-reorder-handle-${item.itemId}'),
         onRemove: () => _removeItem(item.itemId),
@@ -599,7 +611,7 @@ class _DesktopVideoCollectionDetailPageState
           subtitle: _formatReleaseDate(item.video.releaseDate),
           onTap: selectionMode
               ? () => toggleSelect(item.itemId)
-              : () => _playFrom(index),
+              : () => _playVideoSingle(item.video),
           menuKey: Key('video-collection-grid-menu-${item.itemId}'),
           onRemove: () => _removeItem(item.itemId),
           onDelete: () => _deleteVideo(item.itemId),
