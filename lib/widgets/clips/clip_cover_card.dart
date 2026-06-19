@@ -40,7 +40,7 @@ class ClipCoverCard extends StatelessWidget {
           child: ClipRRect(
             borderRadius: context.appRadius.lgBorder,
             child: AspectRatio(
-              aspectRatio: 16 / 9,
+              aspectRatio: 16 / 10,
               child: Stack(
                 fit: StackFit.expand,
                 children: [

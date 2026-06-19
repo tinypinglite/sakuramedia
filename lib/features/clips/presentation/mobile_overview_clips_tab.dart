@@ -315,12 +315,12 @@ class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab> {
     }
     final spacing = context.appSpacing;
     return SliverGrid(
-      // 仿「时刻」版式的纯封面卡（底部一条：左番号、右时长），纵横比即封面 16:9。
+      // 仿「时刻」版式的纯封面卡（底部一条：左番号、右时长），纵横比对齐时刻卡 16:10。
       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 200,
         mainAxisSpacing: spacing.md,
         crossAxisSpacing: spacing.sm,
-        childAspectRatio: 16 / 9,
+        childAspectRatio: 16 / 10,
       ),
       delegate: SliverChildBuilderDelegate((context, index) {
         final clip = clips[index];

@@ -301,7 +301,7 @@ class _DesktopClipsPageState extends State<DesktopClipsPage> {
         maxCrossAxisExtent: 260,
         mainAxisSpacing: spacing.md,
         crossAxisSpacing: spacing.md,
-        childAspectRatio: 1.15,
+        childAspectRatio: 16 / 10,
       ),
       delegate: SliverChildBuilderDelegate((context, index) {
         final clip = clips[index];

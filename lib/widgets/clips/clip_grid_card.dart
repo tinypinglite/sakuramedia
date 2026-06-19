@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/clips/clip_cover_overlays.dart';
@@ -6,7 +7,7 @@ import 'package:sakuramedia/widgets/media/masked_image.dart';
 
 enum _ClipCardAction { openMovie, addToCollection, rename, delete }
 
-/// 切片网格卡：静态封面 + 标题 + 元信息。点击播放，右上角菜单可跳转影片 / 加入合集 / 改名 / 删除。
+/// 切片网格卡：封面上压底部信息条（左番号、右时长），与时刻卡风格统一。
 class ClipGridCard extends StatelessWidget {
   const ClipGridCard({
     super.key,
@@ -32,92 +33,85 @@ class ClipGridCard extends StatelessWidget {
     final spacing = context.appSpacing;
     final colors = context.appColors;
     final coverUrl = clip.coverImage?.bestAvailableUrl;
-    final title = clip.title.trim();
+    final number = clip.movieNumber?.isNotEmpty == true
+        ? clip.movieNumber!
+        : '无番号';
+    final duration = formatMediaTimecode(clip.durationSeconds);
+    final labelTextStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s12,
+      weight: AppTextWeight.regular,
+      tone: AppTextTone.onMedia,
+    );
 
     return Material(
       color: colors.surfaceCard,
-      borderRadius: context.appRadius.mdBorder,
+      borderRadius: context.appRadius.lgBorder,
       child: InkWell(
         key: Key('clip-grid-card-tap-${clip.clipId}'),
-        borderRadius: context.appRadius.mdBorder,
+        borderRadius: context.appRadius.lgBorder,
         onTap: onPlay,
-        child: Ink(
+        child: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: context.appRadius.mdBorder,
-            border: Border.all(color: colors.borderSubtle),
+            borderRadius: context.appRadius.lgBorder,
+            boxShadow: context.appShadows.card,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(context.appRadius.md),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (coverUrl != null && coverUrl.isNotEmpty)
-                        MaskedImage(url: coverUrl, fit: BoxFit.cover)
-                      else
-                        ColoredBox(color: colors.surfaceMuted),
-                      const ClipPlayOverlay(),
-                      Positioned(
-                        right: spacing.xs,
-                        bottom: spacing.xs,
-                        child: ClipDurationBadge(seconds: clip.durationSeconds),
+          child: ClipRRect(
+            borderRadius: context.appRadius.lgBorder,
+            child: AspectRatio(
+              aspectRatio: 16 / 10,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (coverUrl != null && coverUrl.isNotEmpty)
+                    MaskedImage(url: coverUrl, fit: BoxFit.cover)
+                  else
+                    ColoredBox(color: colors.surfaceMuted),
+                  const ClipPlayOverlay(),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.44),
                       ),
-                      Positioned(
-                        right: spacing.xs,
-                        top: spacing.xs,
-                        child: _ClipMenu(
-                          menuKey: Key('clip-grid-menu-${clip.clipId}'),
-                          onOpenMovie: onOpenMovie,
-                          onAddToCollection: onAddToCollection,
-                          onRename: onRename,
-                          onDelete: onDelete,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: spacing.md,
+                          vertical: spacing.sm,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                number,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: labelTextStyle,
+                              ),
+                            ),
+                            SizedBox(width: spacing.sm),
+                            Text(duration, style: labelTextStyle),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(spacing.sm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title.isEmpty ? '未命名切片' : title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s14,
-                        weight: AppTextWeight.semibold,
-                        tone: AppTextTone.primary,
-                      ),
+                  Positioned(
+                    right: spacing.xs,
+                    top: spacing.xs,
+                    child: _ClipMenu(
+                      menuKey: Key('clip-grid-menu-${clip.clipId}'),
+                      onOpenMovie: onOpenMovie,
+                      onAddToCollection: onAddToCollection,
+                      onRename: onRename,
+                      onDelete: onDelete,
                     ),
-                    SizedBox(height: spacing.xs),
-                    Text(
-                      clip.movieNumber?.isNotEmpty == true
-                          ? clip.movieNumber!
-                          : '无番号',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        weight: AppTextWeight.regular,
-                        tone: AppTextTone.secondary,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

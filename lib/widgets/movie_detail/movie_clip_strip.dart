@@ -3,8 +3,6 @@ import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/clips/clip_grid_card.dart';
 
-const double _clipStripCardWidthFactor = 0.75;
-
 /// 影片详情页「切片」区块：横向滚动的切片卡条，四态与「相似影片」一致
 /// （骨架 → 错误+重试 → 空态 → 内容），内层复用 [ClipGridCard] 完整菜单。
 class MovieClipStrip extends StatelessWidget {
@@ -32,8 +30,7 @@ class MovieClipStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cardWidth =
-        context.appComponentTokens.movieCardTargetWidth *
-        _clipStripCardWidthFactor;
+        context.appComponentTokens.movieDetailPlotThumbnailWidth;
 
     if (isLoading) {
       return _MovieClipStripScroller(
@@ -181,7 +178,7 @@ class _MovieClipSkeleton extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: AspectRatio(
-        aspectRatio: 16 / 9,
+        aspectRatio: 16 / 10,
         child: DecoratedBox(
           decoration: BoxDecoration(color: context.appColors.surfaceMuted),
         ),

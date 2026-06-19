@@ -317,9 +317,10 @@ class CollectionMemberRow extends StatelessWidget {
   }
 }
 
-/// 合集成员的网格卡。两种模式由 [overlayCaption] 切换：
-/// - `false`（默认，上图下文）：横版封面在上、标题/副信息在下，适合 16:9 切片封面；
-/// - `true`（标题压图）：整卡即封面、标题/副信息浮在底部渐变上，适合竖版海报，无下方留白。
+/// 合集成员的网格卡。三种模式由 [overlayCaption] / [clipOverlay] 切换：
+/// - `false` / `false`（默认，上图下文）：横版封面在上、标题/副信息在下，适合 16:9 切片封面；
+/// - `overlayCaption: true`（标题压图）：整卡即封面、标题/副信息浮在底部渐变上，适合竖版海报，无下方留白；
+/// - `clipOverlay: true`（切片风格）：整卡即封面、底部半透明黑条展示左番号右时长，与 [ClipGridCard] 风格统一。
 ///
 /// 封面含播放遮罩 + 右上角更多菜单；上图下文模式还可选右下角徽标 [coverBadge]。
 /// 点按触发 [onTap]（通常为从该位置连播整个合集）。
@@ -342,6 +343,7 @@ class CollectionMemberCard extends StatelessWidget {
     this.coverBadge,
     this.titleMaxLines = 1,
     this.overlayCaption = false,
+    this.clipOverlay = false,
     this.selectionMode = false,
     this.isSelected = false,
   });
@@ -373,6 +375,9 @@ class CollectionMemberCard extends StatelessWidget {
   /// 是否把标题/副信息压在封面底部（竖版海报用，整卡即封面、无下方留白）。
   final bool overlayCaption;
 
+  /// 是否使用切片风格（底部半透明黑条 + 左番号右时长，与 [ClipGridCard] 统一）。
+  final bool clipOverlay;
+
   /// 选择模式：整卡点击切换选中，左上角显示勾选标记，隐藏「···」菜单。
   final bool selectionMode;
 
@@ -386,21 +391,28 @@ class CollectionMemberCard extends StatelessWidget {
     final borderColor = selectionMode && isSelected
         ? colors.selectionBorder
         : colors.borderSubtle;
-    final content =
-        overlayCaption ? _buildOverlay(context) : _buildBelow(context);
+    final content = clipOverlay
+        ? _buildClipOverlay(context)
+        : overlayCaption
+            ? _buildOverlay(context)
+            : _buildBelow(context);
+    final radius =
+        clipOverlay ? context.appRadius.lgBorder : context.appRadius.mdBorder;
+    final shadow = clipOverlay ? context.appShadows.card : null;
     return Material(
       color: colors.surfaceCard,
-      borderRadius: context.appRadius.mdBorder,
+      borderRadius: radius,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Ink(
           decoration: BoxDecoration(
-            borderRadius: context.appRadius.mdBorder,
+            borderRadius: radius,
             border: Border.all(
               color: borderColor,
               width: selectionMode && isSelected ? 2 : 1,
             ),
+            boxShadow: shadow,
           ),
           child: selectionMode
               ? Stack(
@@ -503,6 +515,68 @@ class CollectionMemberCard extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// 切片风格：整卡即封面，番号/时长浮在底部半透明黑条上。
+  Widget _buildClipOverlay(BuildContext context) {
+    final spacing = context.appSpacing;
+    final sub = subtitle?.trim();
+    final labelTextStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s12,
+      weight: AppTextWeight.regular,
+      tone: AppTextTone.onMedia,
+    );
+    return ClipRRect(
+      borderRadius: context.appRadius.lgBorder,
+      child: AspectRatio(
+        aspectRatio: coverAspectRatio,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildCover(context),
+            const _MemberPlayOverlay(),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.44),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: spacing.md,
+                    vertical: spacing.sm,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: labelTextStyle,
+                        ),
+                      ),
+                      if (sub != null && sub.isNotEmpty) ...[
+                        SizedBox(width: spacing.sm),
+                        Text(sub, style: labelTextStyle),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: spacing.xs,
+              top: spacing.xs,
+              child: _buildMenu(),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

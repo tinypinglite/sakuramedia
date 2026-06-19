@@ -7,6 +7,8 @@ import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
+import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
@@ -16,6 +18,8 @@ import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_action_menu.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_action_support.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_clip_section_mixin.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_clips_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_page_content.dart';
@@ -47,8 +51,10 @@ class MobileMovieDetailPage extends StatefulWidget {
   State<MobileMovieDetailPage> createState() => _MobileMovieDetailPageState();
 }
 
-class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
+class _MobileMovieDetailPageState extends State<MobileMovieDetailPage>
+    with MovieClipSectionMixin {
   late final MovieDetailController _controller;
+  late final MovieClipsController _movieClipsController;
   late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
   var _ownsSubscriptionChangeNotifier = false;
   final Map<int, List<MovieMediaPointDto>> _pointOverrides =
@@ -67,6 +73,9 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
       _activeMovieAction != null;
 
   @override
+  MovieClipsController get movieClipsController => _movieClipsController;
+
+  @override
   void initState() {
     super.initState();
     final binding = resolveMovieSubscriptionNotifier(context);
@@ -77,12 +86,18 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
       fetchMovieDetail: context.read<MoviesApi>().getMovieDetail,
       fetchSimilarMovies: context.read<MoviesApi>().getSimilarMovies,
     )..load();
+    _movieClipsController = MovieClipsController(
+      movieNumber: widget.movieNumber,
+      fetchClips: context.read<ClipsApi>().getClipsByMovieNumber,
+      mutationNotifier: context.read<ClipMutationChangeNotifier>(),
+    )..load();
     _loadMovieCollectionStatus();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _movieClipsController.dispose();
     if (_ownsSubscriptionChangeNotifier) {
       _subscriptionChangeNotifier.dispose();
     }
@@ -119,7 +134,10 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
                   .firstOrNull ??
               (mediaItems.isNotEmpty ? mediaItems.first : null);
 
-          return MovieDetailPageContent(
+          return AnimatedBuilder(
+            animation: _movieClipsController,
+            builder: (context, child) {
+              return MovieDetailPageContent(
             movie: movie,
             mediaItemsOverride: mediaItems,
             selectedPreviewKey: _controller.selectedPreviewKey,
@@ -259,7 +277,17 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
                         positionSeconds: thumbnail.offsetSeconds,
                       ),
                 ),
-          );
+              clips: _movieClipsController.clips,
+              isClipsLoading: _movieClipsController.isLoading,
+              clipsErrorMessage: _movieClipsController.errorMessage,
+              onRetryClips: _movieClipsController.retry,
+              onPlayClip: playMovieClip,
+              onRenameClip: renameMovieClip,
+              onDeleteClip: deleteMovieClip,
+              onAddClipToCollection: addMovieClipToCollection,
+            );
+          },
+        );
         },
       ),
     );
@@ -425,6 +453,7 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage> {
         _resetDetailOverridesAfterRefresh();
       }
       await _loadMovieCollectionStatus();
+      unawaited(_movieClipsController.load());
     } catch (_) {
       if (mounted) {
         showToast('刷新失败');

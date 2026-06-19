@@ -59,6 +59,30 @@ class ClipsApi {
     return response.map(MediaClipDto.fromJson).toList(growable: false);
   }
 
+  /// 按番号拉取影片的切片（命中后端 `MediaClip.movie_number` 快照列）。
+  ///
+  /// Media 源删除后 `movie_number` 仍保留，故影片仍可查到其切片。
+  Future<List<MediaClipDto>> getClipsByMovieNumber({
+    required String movieNumber,
+    int limit = 30,
+  }) async {
+    final response = await _apiClient.get(
+      '/media-clips',
+      queryParameters: <String, dynamic>{
+        'movie_number': movieNumber,
+        'limit': limit,
+      },
+    );
+    final items = (response['items'] as List<dynamic>?)
+            ?.map(
+              (dynamic e) =>
+                  MediaClipDto.fromJson(e as Map<String, dynamic>),
+            )
+            .toList(growable: false) ??
+        <MediaClipDto>[];
+    return items;
+  }
+
   /// 切片详情：含 `previewFrames`（悬停预览）与 `collections`（所属合集回显）。
   Future<MediaClipDto> getClipDetail({required int clipId}) async {
     final response = await _apiClient.get('/media-clips/$clipId');
