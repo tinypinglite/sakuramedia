@@ -3,6 +3,7 @@ import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collection_detail_controller.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
 
 import '../../../support/fake_http_client_adapter.dart';
 
@@ -36,6 +37,7 @@ void main() {
   late ApiClient apiClient;
   late FakeHttpClientAdapter adapter;
   late ClipCollectionsApi api;
+  late ClipsApi clipsApi;
 
   setUp(() async {
     sessionStore = SessionStore.inMemory();
@@ -50,6 +52,7 @@ void main() {
     apiClient.rawDio.httpClientAdapter = adapter;
     apiClient.rawRefreshDio.httpClientAdapter = adapter;
     api = ClipCollectionsApi(apiClient: apiClient);
+    clipsApi = ClipsApi(apiClient: apiClient);
   });
 
   tearDown(() => apiClient.dispose());
@@ -78,7 +81,11 @@ void main() {
 
   test('load fetches collection meta and all clips in order', () async {
     enqueueLoad();
-    final controller = ClipCollectionDetailController(collectionId: 7, api: api);
+    final controller = ClipCollectionDetailController(
+      collectionId: 7,
+      api: api,
+      clipsApi: clipsApi,
+    );
     addTearDown(controller.dispose);
 
     await controller.load();
@@ -92,7 +99,11 @@ void main() {
 
   test('reorder moves item and PUTs full ordered ids', () async {
     enqueueLoad();
-    final controller = ClipCollectionDetailController(collectionId: 7, api: api);
+    final controller = ClipCollectionDetailController(
+      collectionId: 7,
+      api: api,
+      clipsApi: clipsApi,
+    );
     addTearDown(controller.dispose);
     await controller.load();
 
@@ -117,7 +128,11 @@ void main() {
 
   test('reorder rolls back on failure', () async {
     enqueueLoad();
-    final controller = ClipCollectionDetailController(collectionId: 7, api: api);
+    final controller = ClipCollectionDetailController(
+      collectionId: 7,
+      api: api,
+      clipsApi: clipsApi,
+    );
     addTearDown(controller.dispose);
     await controller.load();
 
@@ -141,7 +156,11 @@ void main() {
 
   test('removeClip optimistically drops then confirms', () async {
     enqueueLoad();
-    final controller = ClipCollectionDetailController(collectionId: 7, api: api);
+    final controller = ClipCollectionDetailController(
+      collectionId: 7,
+      api: api,
+      clipsApi: clipsApi,
+    );
     addTearDown(controller.dispose);
     await controller.load();
 
@@ -159,5 +178,60 @@ void main() {
       <int>[10, 12],
     );
     expect(controller.collection?.clipCount, 2);
+  });
+
+  test('deleteClip optimistically drops then confirms via media-clips DELETE',
+      () async {
+    enqueueLoad();
+    final controller = ClipCollectionDetailController(
+      collectionId: 7,
+      api: api,
+      clipsApi: clipsApi,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/media-clips/11',
+      statusCode: 204,
+    );
+
+    final error = await controller.deleteClip(11);
+
+    expect(error, isNull);
+    expect(
+      controller.clips.map((clip) => clip.clipId).toList(),
+      <int>[10, 12],
+    );
+    expect(controller.collection?.clipCount, 2);
+  });
+
+  test('deleteClip rolls back on failure', () async {
+    enqueueLoad();
+    final controller = ClipCollectionDetailController(
+      collectionId: 7,
+      api: api,
+      clipsApi: clipsApi,
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/media-clips/11',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+      },
+    );
+
+    final error = await controller.deleteClip(11);
+
+    expect(error, isNotNull);
+    expect(
+      controller.clips.map((clip) => clip.clipId).toList(),
+      <int>[10, 11, 12],
+    );
   });
 }

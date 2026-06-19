@@ -5,9 +5,11 @@ import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.
 import 'package:sakuramedia/features/clip_collections/presentation/add_clips_to_collection_dialog.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collection_detail_controller.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/create_clip_collection_dialog.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/clips/presentation/mobile_clip_actions_sheet.dart';
+import 'package:sakuramedia/features/clips/presentation/mobile_clip_confirm_drawer.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
@@ -55,6 +57,7 @@ class _MobileClipCollectionDetailPageState
     _controller = ClipCollectionDetailController(
       collectionId: widget.collectionId,
       api: context.read<ClipCollectionsApi>(),
+      clipsApi: context.read<ClipsApi>(),
     )..load();
   }
 
@@ -259,6 +262,7 @@ class _MobileClipCollectionDetailPageState
       onPlay: () => _playFrom(index),
       onOpenMovie: _openMovieCallback(clip),
       onRemoveFromCollection: () => _removeClip(clip),
+      onDelete: () => _deleteClip(clip),
     );
   }
 
@@ -315,6 +319,34 @@ class _MobileClipCollectionDetailPageState
       );
     }
     showToast(error ?? '已从合集移除');
+  }
+
+  /// 彻底删除切片本体（含文件，不可恢复）：先弹底部确认抽屉，再走控制器乐观删除并广播
+  /// [ClipMutationChangeNotifier.reportDeleted]，与「全部切片」页的删除一致。
+  Future<void> _deleteClip(MediaClipDto clip) async {
+    final title = clip.displayTitle.trim();
+    final label = title.isEmpty ? '该切片' : '“$title”';
+    final confirmed = await showMobileClipConfirmDrawer(
+      context,
+      title: '删除切片',
+      message: '确认删除$label？切片文件会被一并删除，该操作不可恢复。',
+      confirmLabel: '删除',
+      drawerKey: const Key('mobile-clip-collection-delete-drawer'),
+      confirmButtonKey: const Key(
+        'mobile-clip-collection-delete-confirm-button',
+      ),
+    );
+    if (!mounted || confirmed != true) {
+      return;
+    }
+    final error = await _controller.deleteClip(clip.clipId);
+    if (!mounted) {
+      return;
+    }
+    if (error == null) {
+      _mutationNotifier.reportDeleted(clip.clipId);
+    }
+    showToast(error ?? '已删除切片');
   }
 
   Future<void> _addClips() async {

@@ -16,10 +16,10 @@ import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/rankings/ranked_movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/rankings/ranking_filter_toolbar.dart';
+import 'package:sakuramedia/widgets/rankings/ranking_sort_control.dart';
 
 class MobileRankingsPage extends StatefulWidget {
   const MobileRankingsPage({super.key});
@@ -79,10 +79,7 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
             child: AnimatedBuilder(
               animation: Listenable.merge([_pageState, _pageState.controller]),
               builder: (context, _) {
-                final showFooter =
-                    _pageState.controller.items.isNotEmpty &&
-                    (_pageState.controller.isLoadingMore ||
-                        _pageState.controller.loadMoreErrorMessage != null);
+                final hasItems = _pageState.controller.items.isNotEmpty;
                 return Column(
                   key: const Key('mobile-rankings-page'),
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,13 +115,20 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
                       ),
                       SizedBox(height: context.appSpacing.md),
                     ],
+                    if (hasItems) ...[
+                      RankingSortControl(
+                        mode: _pageState.sortMode,
+                        onChanged: _pageState.setSortMode,
+                      ),
+                      SizedBox(height: context.appSpacing.md),
+                    ],
                     if (_pageState.sources.isEmpty &&
                         !_pageState.isFilterLoading &&
                         _pageState.filterErrorMessage == null)
                       const AppEmptyState(message: '暂无可用排行榜')
                     else
                       RankedMovieSummaryGrid(
-                        items: _pageState.controller.items,
+                        items: _pageState.sortedItems,
                         isLoading:
                             _pageState.isFilterLoading
                                 ? _pageState.controller.items.isEmpty
@@ -142,15 +146,6 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
                                 .isSubscriptionUpdating(movie.movieNumber),
                         emptyMessage: '暂无榜单数据',
                       ),
-                    if (showFooter) ...[
-                      SizedBox(height: context.appSpacing.md),
-                      AppPagedLoadMoreFooter(
-                        isLoading: _pageState.controller.isLoadingMore,
-                        errorMessage:
-                            _pageState.controller.loadMoreErrorMessage,
-                        onRetry: _pageState.controller.loadMore,
-                      ),
-                    ],
                   ],
                 );
               },

@@ -2,9 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clip_collections/data/clip_collection_dto.dart';
 import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 
-/// 合集详情控制器：加载合集元信息 + 全量有序切片，支持拖序与移除。
+/// 合集详情控制器：加载合集元信息 + 全量有序切片，支持拖序、移除与删除本体。
 ///
 /// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
 /// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
@@ -12,11 +13,15 @@ class ClipCollectionDetailController extends ChangeNotifier {
   ClipCollectionDetailController({
     required this.collectionId,
     required this.api,
+    required this.clipsApi,
     this.pageSize = 50,
   });
 
   final int collectionId;
   final ClipCollectionsApi api;
+
+  /// 删除切片本体（硬删，连同文件）所需的切片 API；与「移出合集」走不同端点。
+  final ClipsApi clipsApi;
   final int pageSize;
 
   ClipCollectionDto? _collection;
@@ -107,6 +112,30 @@ class ClipCollectionDetailController extends ChangeNotifier {
     } catch (error) {
       _clips = previous;
       return apiErrorMessage(error, fallback: '移除失败，请重试');
+    } finally {
+      _isMutating = false;
+      notifyListeners();
+    }
+  }
+
+  /// 删除切片本体（硬删，连同文件，并由后端从所有合集级联移除）；乐观更新，
+  /// 失败时回滚并返回错误消息。与 [removeClip]（仅解除本合集关联）语义不同。
+  Future<String?> deleteClip(int clipId) async {
+    if (_isMutating) {
+      return null;
+    }
+    final previous = _clips;
+    _clips =
+        _clips.where((clip) => clip.clipId != clipId).toList(growable: false);
+    _isMutating = true;
+    notifyListeners();
+    try {
+      await clipsApi.deleteClip(clipId: clipId);
+      _syncCount();
+      return null;
+    } catch (error) {
+      _clips = previous;
+      return apiErrorMessage(error, fallback: '删除失败，请重试');
     } finally {
       _isMutating = false;
       notifyListeners();

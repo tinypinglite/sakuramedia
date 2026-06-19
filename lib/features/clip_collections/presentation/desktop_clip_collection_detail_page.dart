@@ -6,16 +6,21 @@ import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.
 import 'package:sakuramedia/features/clip_collections/presentation/add_clips_to_collection_dialog.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collection_detail_controller.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/create_clip_collection_dialog.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/clips/clip_cover_overlays.dart';
 import 'package:sakuramedia/widgets/collections/collection_member_views.dart';
+import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
 
 /// 合集详情的切片排布方式：纵向列表（可拖序）或网格（侧重浏览）。
 enum _ClipLayout { list, grid }
@@ -35,7 +40,8 @@ class DesktopClipCollectionDetailPage extends StatefulWidget {
 }
 
 class _DesktopClipCollectionDetailPageState
-    extends State<DesktopClipCollectionDetailPage> {
+    extends State<DesktopClipCollectionDetailPage>
+    with MultiSelectStateMixin<DesktopClipCollectionDetailPage, int> {
   late final ClipCollectionDetailController _controller;
   late final ClipMutationChangeNotifier _mutationNotifier;
   int? _hoveredClipId;
@@ -48,6 +54,7 @@ class _DesktopClipCollectionDetailPageState
     _controller = ClipCollectionDetailController(
       collectionId: widget.collectionId,
       api: context.read<ClipCollectionsApi>(),
+      clipsApi: context.read<ClipsApi>(),
     )..load();
   }
 
@@ -108,87 +115,161 @@ class _DesktopClipCollectionDetailPageState
   Widget _buildHeader(BuildContext context) {
     final collection = _controller.collection;
     final count = collection?.clipCount ?? _controller.clips.length;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Flexible(
-                    child: Text(
-                      collection?.name ?? '合集',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s18,
-                        weight: AppTextWeight.semibold,
-                        tone: AppTextTone.primary,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          collection?.name ?? '合集',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s18,
+                            weight: AppTextWeight.semibold,
+                            tone: AppTextTone.primary,
+                          ),
+                        ),
                       ),
-                    ),
+                      // 选择模式下隐藏「编辑合集」，避免与多选交互混淆。
+                      if (!selectionMode) ...[
+                        SizedBox(width: context.appSpacing.xs),
+                        AppIconButton(
+                          key: const Key('clip-collection-rename-button'),
+                          tooltip: '编辑合集',
+                          onPressed:
+                              collection == null ? null : _editCollection,
+                          icon: Icon(
+                            Icons.edit_outlined,
+                            size: context.appComponentTokens.iconSizeSm,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  SizedBox(width: context.appSpacing.xs),
-                  AppIconButton(
-                    key: const Key('clip-collection-rename-button'),
-                    tooltip: '编辑合集',
-                    onPressed: collection == null ? null : _editCollection,
-                    icon: Icon(
-                      Icons.edit_outlined,
-                      size: context.appComponentTokens.iconSizeSm,
+                  SizedBox(height: context.appSpacing.xs),
+                  Text(
+                    '$count 个切片',
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s14,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.secondary,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: context.appSpacing.xs),
-              Text(
-                '$count 个切片',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s14,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-        // 空合集没有可排布的内容，隐藏视图切换。
-        if (_controller.clips.isNotEmpty) ...[
-          AppIconButton(
-            key: const Key('clip-collection-layout-toggle'),
-            tooltip: _layout == _ClipLayout.list ? '网格视图' : '列表视图',
-            onPressed: _toggleLayout,
-            icon: Icon(
-              _layout == _ClipLayout.list
-                  ? Icons.grid_view_rounded
-                  : Icons.view_agenda_outlined,
-              size: context.appComponentTokens.iconSizeSm,
             ),
-          ),
-          SizedBox(width: context.appSpacing.sm),
-        ],
-        AppTextButton(
-          key: const Key('clip-collection-add-clips-button'),
-          label: '添加切片',
-          size: AppTextButtonSize.small,
-          emphasis: AppTextButtonEmphasis.accent,
-          onPressed: _addClips,
+            // 选择模式下隐藏「选择 / 视图切换 / 添加切片 / 播放」，仅保留标题与下方选择栏。
+            if (!selectionMode) ...[
+              if (_controller.clips.isNotEmpty) ...[
+                AppTextButton(
+                  key: const Key('clip-collection-enter-selection-button'),
+                  label: '选择',
+                  size: AppTextButtonSize.small,
+                  icon: const Icon(Icons.check_circle_outline, size: 16),
+                  onPressed: enterSelection,
+                ),
+                SizedBox(width: context.appSpacing.sm),
+                AppIconButton(
+                  key: const Key('clip-collection-layout-toggle'),
+                  tooltip: _layout == _ClipLayout.list ? '网格视图' : '列表视图',
+                  onPressed: _toggleLayout,
+                  icon: Icon(
+                    _layout == _ClipLayout.list
+                        ? Icons.grid_view_rounded
+                        : Icons.view_agenda_outlined,
+                    size: context.appComponentTokens.iconSizeSm,
+                  ),
+                ),
+                SizedBox(width: context.appSpacing.sm),
+              ],
+              AppTextButton(
+                key: const Key('clip-collection-add-clips-button'),
+                label: '添加切片',
+                size: AppTextButtonSize.small,
+                emphasis: AppTextButtonEmphasis.accent,
+                onPressed: _addClips,
+              ),
+              // 无切片时无可播放内容，直接隐藏播放按钮。
+              if (_controller.clips.isNotEmpty) ...[
+                SizedBox(width: context.appSpacing.sm),
+                AppTextButton(
+                  key: const Key('clip-collection-play-all-button'),
+                  label: '播放',
+                  size: AppTextButtonSize.small,
+                  emphasis: AppTextButtonEmphasis.accent,
+                  onPressed: () => _playFrom(0),
+                ),
+              ],
+            ],
+          ],
         ),
-        // 无切片时无可播放内容，直接隐藏播放按钮。
-        if (_controller.clips.isNotEmpty) ...[
-          SizedBox(width: context.appSpacing.sm),
-          AppTextButton(
-            key: const Key('clip-collection-play-all-button'),
-            label: '播放',
-            size: AppTextButtonSize.small,
-            emphasis: AppTextButtonEmphasis.accent,
-            onPressed: () => _playFrom(0),
-          ),
+        if (selectionMode) ...[
+          SizedBox(height: context.appSpacing.md),
+          _buildSelectionBar(context),
         ],
+      ],
+    );
+  }
+
+  Widget _buildSelectionBar(BuildContext context) {
+    final clipIds = _controller.clips.map((clip) => clip.clipId);
+    final allSelected = isAllSelected(clipIds);
+    final hasSelection = selectedCount > 0;
+    final spacing = context.appSpacing;
+
+    return Row(
+      children: [
+        Text(
+          '已选 $selectedCount 个',
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.medium,
+            tone: AppTextTone.primary,
+          ),
+        ),
+        const Spacer(),
+        AppTextButton(
+          key: const Key('clip-collection-select-all-button'),
+          label: allSelected ? '取消全选' : '全选',
+          size: AppTextButtonSize.small,
+          onPressed: () => toggleSelectAll(clipIds),
+        ),
+        SizedBox(width: spacing.sm),
+        AppButton(
+          key: const Key('clip-collection-batch-remove-button'),
+          label: '从合集移除',
+          variant: AppButtonVariant.secondary,
+          size: AppButtonSize.small,
+          onPressed: hasSelection ? _batchRemove : null,
+        ),
+        SizedBox(width: spacing.sm),
+        AppButton(
+          key: const Key('clip-collection-batch-delete-button'),
+          label: '删除切片',
+          variant: AppButtonVariant.danger,
+          size: AppButtonSize.small,
+          onPressed: hasSelection ? _batchDelete : null,
+        ),
+        SizedBox(width: spacing.sm),
+        AppTextButton(
+          key: const Key('clip-collection-exit-selection-button'),
+          label: '取消',
+          size: AppTextButtonSize.small,
+          onPressed: exitSelection,
+        ),
       ],
     );
   }
@@ -204,6 +285,46 @@ class _DesktopClipCollectionDetailPageState
 
   Widget _buildList(BuildContext context) {
     final clips = _controller.clips;
+    // 选择模式下禁用拖拽重排，退化为普通列表，避免与多选交互冲突。
+    final canReorder = !selectionMode;
+
+    CollectionMemberRow buildRow(int index) {
+      final clip = clips[index];
+      return CollectionMemberRow(
+        index: index,
+        coverUrl: clip.coverImage?.bestAvailableUrl,
+        coverWidth: 120,
+        coverAspectRatio: 16 / 9,
+        title: clip.displayTitle,
+        subtitle: clip.metaLine,
+        isHovered: _hoveredClipId == clip.clipId,
+        onTap: selectionMode
+            ? () => toggleSelect(clip.clipId)
+            : () => _playFrom(index),
+        menuKey: Key('clip-collection-menu-${clip.clipId}'),
+        dragHandleKey: Key('clip-reorder-handle-${clip.clipId}'),
+        onOpenSource: _openMovieCallback(clip),
+        openSourceLabel: '影片',
+        onRemove: () => _removeClip(clip),
+        onDelete: () => _deleteClip(clip),
+        deleteLabel: '删除切片',
+        reorderable: canReorder,
+        selectionMode: selectionMode,
+        isSelected: isSelected(clip.clipId),
+      );
+    }
+
+    // 选择模式下退化为普通列表（无拖拽手柄）。
+    if (!canReorder) {
+      return ListView.separated(
+        key: const Key('clip-collection-detail-list'),
+        itemCount: clips.length,
+        separatorBuilder: (context, _) =>
+            SizedBox(height: context.appSpacing.sm),
+        itemBuilder: (context, index) => buildRow(index),
+      );
+    }
+
     return ReorderableListView.builder(
       key: const Key('clip-collection-detail-list'),
       buildDefaultDragHandles: false,
@@ -226,21 +347,7 @@ class _DesktopClipCollectionDetailPageState
                 _setHovered(null);
               }
             },
-            child: CollectionMemberRow(
-              index: index,
-              coverUrl: clip.coverImage?.bestAvailableUrl,
-              coverWidth: 120,
-              coverAspectRatio: 16 / 9,
-              title: clip.displayTitle,
-              subtitle: clip.metaLine,
-              isHovered: _hoveredClipId == clip.clipId,
-              onTap: () => _playFrom(index),
-              menuKey: Key('clip-collection-menu-${clip.clipId}'),
-              dragHandleKey: Key('clip-reorder-handle-${clip.clipId}'),
-              onOpenSource: _openMovieCallback(clip),
-              openSourceLabel: '影片',
-              onRemove: () => _removeClip(clip),
-            ),
+            child: buildRow(index),
           ),
         );
       },
@@ -276,12 +383,18 @@ class _DesktopClipCollectionDetailPageState
           coverAspectRatio: 16 / 9,
           title: title.isEmpty ? '未命名切片' : title,
           subtitle: subtitle,
-          onTap: () => _playFrom(index),
+          onTap: selectionMode
+              ? () => toggleSelect(clip.clipId)
+              : () => _playFrom(index),
           menuKey: Key('clip-collection-grid-menu-${clip.clipId}'),
           onOpenSource: _openMovieCallback(clip),
           openSourceLabel: '影片',
           onRemove: () => _removeClip(clip),
+          onDelete: () => _deleteClip(clip),
+          deleteLabel: '删除切片',
           coverBadge: ClipDurationBadge(seconds: clip.durationSeconds),
+          selectionMode: selectionMode,
+          isSelected: isSelected(clip.clipId),
         );
       },
     );
@@ -336,6 +449,134 @@ class _DesktopClipCollectionDetailPageState
       );
     }
     showToast(error ?? '已从合集移除');
+  }
+
+  /// 彻底删除切片本体（含文件，不可恢复，后端从所有合集级联移除）：先确认，再走
+  /// 控制器乐观删除并广播 [ClipMutationChangeNotifier.reportDeleted]，让「全部切片」
+  /// 网格精准移除、上层合集列表刷新封面 / 计数。与「移出合集」不同。
+  Future<void> _deleteClip(MediaClipDto clip) async {
+    final title = clip.displayTitle.trim();
+    final label = title.isEmpty ? '该切片' : '“$title”';
+    final ok = await showAppConfirmDialog(
+      context,
+      title: '删除切片',
+      message: '确认删除$label？切片文件会被一并删除，该操作不可恢复。',
+      danger: true,
+      confirmLabel: '删除',
+      confirmKey: const Key('clip-collection-delete-confirm-button'),
+    );
+    if (!mounted || !ok) {
+      return;
+    }
+    final error = await _controller.deleteClip(clip.clipId);
+    if (!mounted) {
+      return;
+    }
+    if (error == null) {
+      _mutationNotifier.reportDeleted(clip.clipId);
+    }
+    showToast(error ?? '已删除切片');
+  }
+
+  List<MediaClipDto> _selectedClips() => _controller.clips
+      .where((clip) => isSelected(clip.clipId))
+      .toList(growable: false);
+
+  void _showBatchToast(String verb, BatchRunResult<dynamic> result) {
+    if (result.failed.isEmpty) {
+      showToast('已$verb ${result.succeeded.length} 个切片');
+    } else {
+      showToast(
+        '$verb完成：成功 ${result.succeeded.length} 个，失败 ${result.failed.length} 个',
+      );
+    }
+  }
+
+  Future<bool> _confirmBatch(String title, String message) async {
+    return showAppConfirmDialog(
+      context,
+      title: title,
+      message: message,
+      danger: true,
+      confirmKey: const Key('clip-collection-batch-confirm-button'),
+    );
+  }
+
+  Future<void> _batchRemove() async {
+    final selected = _selectedClips();
+    if (selected.isEmpty) {
+      return;
+    }
+    final ok = await _confirmBatch(
+      '从合集移除',
+      '确认从合集移除选中的 ${selected.length} 个切片？切片本身不会被删除。',
+    );
+    if (!mounted || !ok) {
+      return;
+    }
+    final result = await runBatchOperation<MediaClipDto>(
+      context,
+      title: '正在从合集移除',
+      items: selected,
+      action: (clip) async {
+        final error = await _controller.removeClip(clip.clipId);
+        if (error != null) {
+          throw Exception(error);
+        }
+      },
+    );
+    if (!mounted) {
+      return;
+    }
+    // 重新拉取合集与切片，校准本页头部计数与列表。
+    await _controller.refresh();
+    if (!mounted) {
+      return;
+    }
+    // 合集封面 / 计数可能变化，广播给上层合集列表。
+    for (final clip in result.succeeded) {
+      _mutationNotifier.reportCollectionMembershipChanged(
+        clipId: clip.clipId,
+        collectionId: widget.collectionId,
+      );
+    }
+    _showBatchToast('移除', result);
+    exitSelection();
+  }
+
+  Future<void> _batchDelete() async {
+    final selected = _selectedClips();
+    if (selected.isEmpty) {
+      return;
+    }
+    final ok = await _confirmBatch(
+      '删除切片',
+      '确认删除选中的 ${selected.length} 个切片？切片文件会被一并删除，该操作不可恢复。',
+    );
+    if (!mounted || !ok) {
+      return;
+    }
+    final clipsApi = context.read<ClipsApi>();
+    final result = await runBatchOperation<MediaClipDto>(
+      context,
+      title: '正在删除切片',
+      items: selected,
+      action: (clip) => clipsApi.deleteClip(clipId: clip.clipId),
+    );
+    if (!mounted) {
+      return;
+    }
+    // 重新拉取合集与切片，校准本页头部计数与列表。
+    await _controller.refresh();
+    if (!mounted) {
+      return;
+    }
+    // 广播删除信号：「全部切片」网格精准移除 + 上层合集列表刷新。
+    for (final clip in result.succeeded) {
+      _mutationNotifier.reportDeleted(clip.clipId);
+    }
+    _showBatchToast('删除', result);
+    exitSelection();
   }
 
   Future<void> _editCollection() async {

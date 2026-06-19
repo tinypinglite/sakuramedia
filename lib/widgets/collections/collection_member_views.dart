@@ -128,6 +128,7 @@ class CollectionMemberRow extends StatelessWidget {
     required this.dragHandleKey,
     this.onRemove,
     this.onDelete,
+    this.deleteLabel = '删除视频',
     this.subtitle,
     this.onOpenSource,
     this.openSourceLabel,
@@ -155,6 +156,9 @@ class CollectionMemberRow extends StatelessWidget {
 
   /// 「删除本体」动作（如视频合集的「删除视频」）；为 `null` 时菜单不含该项。
   final VoidCallback? onDelete;
+
+  /// 「删除本体」菜单项文案（如切片合集传「删除切片」）；默认「删除视频」。
+  final String deleteLabel;
   final String? subtitle;
   final VoidCallback? onOpenSource;
   final String? openSourceLabel;
@@ -300,6 +304,7 @@ class CollectionMemberRow extends StatelessWidget {
                     openSourceLabel: openSourceLabel,
                     onRemove: onRemove!,
                     onDelete: onDelete,
+                    deleteLabel: deleteLabel,
                   ),
                   SizedBox(width: spacing.sm),
                 ],
@@ -328,6 +333,7 @@ class CollectionMemberCard extends StatelessWidget {
     required this.menuKey,
     this.onRemove,
     this.onDelete,
+    this.deleteLabel = '删除视频',
     this.subtitle,
     this.onOpenSource,
     this.openSourceLabel,
@@ -351,6 +357,9 @@ class CollectionMemberCard extends StatelessWidget {
 
   /// 「删除本体」动作（如视频合集的「删除视频」）；为 `null` 时菜单不含该项。
   final VoidCallback? onDelete;
+
+  /// 「删除本体」菜单项文案（如切片合集传「删除切片」）；默认「删除视频」。
+  final String deleteLabel;
   final String? subtitle;
   final VoidCallback? onOpenSource;
   final String? openSourceLabel;
@@ -431,6 +440,7 @@ class CollectionMemberCard extends StatelessWidget {
           openSourceLabel: openSourceLabel,
           onRemove: onRemove!,
           onDelete: onDelete,
+          deleteLabel: deleteLabel,
         );
 
   /// 上图下文：封面在上、标题/副信息在下。
