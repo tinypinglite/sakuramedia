@@ -475,6 +475,72 @@ void main() {
       expect(receivedExtra, isNull);
     },
   );
+
+  testWidgets(
+    'desktop rankings page does not send sort param by default',
+    (WidgetTester tester) async {
+      _enqueueDefaultSourcesAndBoards(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/javdb/boards/censored/items',
+        body: _rankingItemsJson(total: 1),
+      );
+
+      await _pumpRankingsPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      // 第三个请求（0=sources, 1=boards, 2=items）默认不带 sort 参数
+      expect(_queryValue(bundle, 2, 'sort'), isNull);
+    },
+  );
+
+  testWidgets(
+    'desktop rankings filter panel applies heat sort and toggles direction',
+    (WidgetTester tester) async {
+      _enqueueDefaultSourcesAndBoards(bundle);
+      // 初始加载
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/javdb/boards/censored/items',
+        body: _rankingItemsJson(total: 1),
+      );
+      // 选 heat 排序后重新加载
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/javdb/boards/censored/items',
+        body: _rankingItemsJson(total: 1),
+      );
+      // 切换方向后重新加载
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/javdb/boards/censored/items',
+        body: _rankingItemsJson(total: 1),
+      );
+
+      await _pumpRankingsPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      // 打开筛选面板
+      await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
+
+      // 选「热度」排序
+      await tester.tap(find.byKey(const Key('rankings-filter-sort-heat')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      // 默认降序
+      expect(_queryValue(bundle, 3, 'sort'), 'heat:desc');
+
+      // 面板保持打开，直接点方向按钮切换为升序
+      await tester.tap(find.byKey(const Key('rankings-filter-sort-direction')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(_queryValue(bundle, 4, 'sort'), 'heat:asc');
+    },
+  );
 }
 
 Future<void> _pumpRankingsPage(

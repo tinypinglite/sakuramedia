@@ -96,6 +96,10 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
                         (value) => unawaited(_pageState.selectBoard(value)),
                     onPeriodChanged:
                         (value) => unawaited(_pageState.selectPeriod(value)),
+                    selectedSortField: _pageState.selectedSortField,
+                    selectedSortDirection: _pageState.selectedSortDirection,
+                    onSortChanged: (field, dir) =>
+                        unawaited(_pageState.selectSort(field, dir)),
                   ),
                   totalText: composeTotalWithSyncedAt(
                     '${_pageState.controller.total} 部',

@@ -29,14 +29,19 @@ class RankingsApi {
     required String period,
     int page = 1,
     int pageSize = 20,
+    String? sort,
   }) async {
+    final queryParameters = <String, dynamic>{
+      'period': period,
+      'page': page,
+      'page_size': pageSize,
+    };
+    if (sort != null) {
+      queryParameters['sort'] = sort;
+    }
     final response = await _apiClient.get(
       '/ranking-sources/$sourceKey/boards/$boardKey/items',
-      queryParameters: <String, dynamic>{
-        'period': period,
-        'page': page,
-        'page_size': pageSize,
-      },
+      queryParameters: queryParameters,
     );
     return PaginatedResponseDto<RankedMovieListItemDto>.fromJson(
       response,

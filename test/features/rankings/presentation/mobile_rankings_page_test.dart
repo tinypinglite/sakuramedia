@@ -360,6 +360,63 @@ void main() {
       expect(receivedExtra, isNull);
     },
   );
+
+  testWidgets(
+    'mobile rankings page does not send sort param by default',
+    (WidgetTester tester) async {
+      _enqueueDefaultSourcesAndBoards(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/javdb/boards/censored/items',
+        body: _rankingItemsJson(total: 1),
+      );
+
+      await _pumpRankingsPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      // 初始请求不带 sort 参数
+      expect(
+        bundle.adapter.requests.last.uri.queryParameters.containsKey('sort'),
+        isFalse,
+      );
+    },
+  );
+
+  testWidgets(
+    'mobile rankings filter panel applies heat sort',
+    (WidgetTester tester) async {
+      _enqueueDefaultSourcesAndBoards(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/javdb/boards/censored/items',
+        body: _rankingItemsJson(total: 1),
+      );
+      // 选热度排序后重新加载
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/ranking-sources/javdb/boards/censored/items',
+        body: _rankingItemsJson(total: 1),
+      );
+
+      await _pumpRankingsPage(tester, sessionStore: sessionStore, bundle: bundle);
+      await tester.pumpAndSettle();
+
+      // 打开筛选面板
+      await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
+
+      // 选「热度」排序
+      await tester.tap(find.byKey(const Key('rankings-filter-sort-heat')));
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(
+        bundle.adapter.requests.last.uri.queryParameters['sort'],
+        'heat:desc',
+      );
+    },
+  );
 }
 
 Future<void> _pumpRankingsPage(

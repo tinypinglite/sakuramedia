@@ -7,6 +7,7 @@ import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_con
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
+import 'package:sakuramedia/features/rankings/data/ranking_sort.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_source_dto.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/rankings/presentation/paged_ranked_movie_controller.dart';
@@ -47,6 +48,9 @@ class RankingsListPageStateEntry extends ChangeNotifier
   RankingSourceDto? selectedSource;
   RankingBoardDto? selectedBoard;
   String? selectedPeriod;
+  // null = 不传 sort 参数，保持后端默认（榜单原始名次）
+  RankingSortField? selectedSortField;
+  SortDirection selectedSortDirection = SortDirection.desc;
 
   void _onMovieSubscriptionChanged() {
     final change = _subscriptionChangeNotifier.lastChange;
@@ -194,6 +198,21 @@ class RankingsListPageStateEntry extends ChangeNotifier
     await controller.reload();
   }
 
+  Future<void> selectSort(
+    RankingSortField? field,
+    SortDirection direction,
+  ) async {
+    if (field == selectedSortField && direction == selectedSortDirection) {
+      return;
+    }
+    selectedSortField = field;
+    selectedSortDirection = direction;
+    filterErrorMessage = null;
+    _safeNotifyListeners();
+    _resetListScroll();
+    await controller.reload();
+  }
+
   Future<MovieSubscriptionToggleResult> toggleMovieSubscription({
     required String movieNumber,
   }) {
@@ -219,12 +238,18 @@ class RankingsListPageStateEntry extends ChangeNotifier
       );
     }
 
+    final sortField = selectedSortField;
+    final sort = sortField == null
+        ? null
+        : '${sortField.apiValue}:${selectedSortDirection.apiValue}';
+
     return _rankingsApi.getRankingItems(
       sourceKey: source.sourceKey,
       boardKey: board.boardKey,
       period: period,
       page: page,
       pageSize: pageSize,
+      sort: sort,
     );
   }
 

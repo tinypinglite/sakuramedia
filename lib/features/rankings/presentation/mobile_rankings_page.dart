@@ -103,6 +103,10 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
                         onPeriodChanged:
                             (value) =>
                                 unawaited(_pageState.selectPeriod(value)),
+                        selectedSortField: _pageState.selectedSortField,
+                        selectedSortDirection: _pageState.selectedSortDirection,
+                        onSortChanged: (field, dir) =>
+                            unawaited(_pageState.selectSort(field, dir)),
                       ),
                       totalText: composeTotalWithSyncedAt(
                         '${_pageState.controller.total} 部',
