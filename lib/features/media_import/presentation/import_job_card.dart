@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
+import 'package:sakuramedia/features/media_import/data/failure_reason_descriptions.dart';
 import 'package:sakuramedia/features/media_import/data/import_job_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
@@ -109,10 +110,10 @@ class ImportJobCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (job.failedCount > 0)
+              if (job.failedCount > 0 || job.skippedCount > 0)
                 AppButton(
                   key: Key('media-import-job-toggle-${job.id}'),
-                  label: expanded ? '收起失败文件' : '查看失败文件',
+                  label: expanded ? '收起失败/跳过文件' : '查看失败/跳过文件',
                   size: AppButtonSize.small,
                   variant: AppButtonVariant.ghost,
                   onPressed: onToggle,
@@ -167,7 +168,7 @@ class ImportJobCard extends StatelessWidget {
     final loaded = detail;
     if (loaded == null || loaded.failedFiles.isEmpty) {
       return Text(
-        '没有失败文件记录。',
+        '没有失败/跳过文件记录。',
         style: resolveAppTextStyle(
           context,
           size: AppTextSize.s12,
@@ -393,7 +394,9 @@ class _FailedFileRow extends StatelessWidget {
           ),
           SizedBox(height: spacing.xs),
           Text(
-            file.detail.isNotEmpty ? '${file.reason} · ${file.detail}' : file.reason,
+            file.detail.isNotEmpty
+                ? '${describeFailureReason(file.reason)} · ${file.detail}'
+                : describeFailureReason(file.reason),
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s12,

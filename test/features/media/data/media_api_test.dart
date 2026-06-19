@@ -101,6 +101,8 @@ void main() {
     expect(page.items.single.pointId, 10);
     expect(page.items.single.mediaId, 100);
     expect(page.items.single.movieNumber, 'ABC-001');
+    expect(page.items.single.videoItemId, isNull);
+    expect(page.items.single.isVideo, isFalse);
     expect(page.items.single.thumbnailId, 88);
     expect(page.items.single.offsetSeconds, 120);
     expect(page.items.single.image?.bestAvailableUrl, '/points/88-large.webp');
@@ -110,6 +112,53 @@ void main() {
       'page': '1',
       'page_size': '20',
       'sort': 'created_at:desc',
+    });
+  });
+
+  test('getGlobalMediaPoints passes kind and parses video item moments', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-points',
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'point_id': 11,
+            'media_id': 200,
+            'movie_number': null,
+            'video_item_id': 999,
+            'thumbnail_id': 18,
+            'offset_seconds': 360,
+            'image': <String, dynamic>{
+              'id': 9100,
+              'origin': '/points/v18-origin.webp',
+              'small': '/points/v18-small.webp',
+              'medium': '/points/v18-medium.webp',
+              'large': '/points/v18-large.webp',
+            },
+            'created_at': '2026-03-12T11:00:00Z',
+          },
+        ],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
+    );
+
+    final page = await mediaApi.getGlobalMediaPoints(
+      page: 1,
+      pageSize: 20,
+      sort: 'created_at:desc',
+      kind: 'video',
+    );
+
+    expect(page.items.single.movieNumber, isNull);
+    expect(page.items.single.videoItemId, 999);
+    expect(page.items.single.isVideo, isTrue);
+    expect(adapter.requests.single.uri.queryParameters, <String, String>{
+      'page': '1',
+      'page_size': '20',
+      'sort': 'created_at:desc',
+      'kind': 'video',
     });
   });
 

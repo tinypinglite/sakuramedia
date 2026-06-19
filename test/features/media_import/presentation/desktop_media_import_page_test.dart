@@ -155,6 +155,79 @@ void main() {
     expect(find.byKey(const Key('media-import-retry-all-3')), findsOneWidget);
     expect(find.text('重导'), findsOneWidget);
   });
+
+  testWidgets(
+    '纯跳过作业（failed=0、skipped>0）也能展开，渲染中文原因 + 已跳过徽标',
+    (tester) async {
+      _setDesktopViewport(tester);
+      final sessionStore = await _createSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      addTearDown(sessionStore.dispose);
+
+      _enqueueJobsPage(
+        bundle,
+        jobs: <Map<String, dynamic>>[
+          _jobJson(
+            id: 7,
+            taskRunId: 99,
+            state: 'completed',
+            imported: 3,
+            skipped: 2,
+          ),
+        ],
+        total: 1,
+      );
+      _enqueueBootstrapAndStream(bundle);
+      _enqueueVideoJobsPage(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/import-jobs/7',
+        body: _jobJson(
+          id: 7,
+          taskRunId: 99,
+          state: 'completed',
+          imported: 3,
+          skipped: 2,
+          failedFiles: <Map<String, dynamic>>[
+            <String, dynamic>{
+              'path': '/mnt/incoming/movies/DUP-001.mp4',
+              'reason': 'already_indexed_path',
+              'detail': '',
+              'kind': 'skipped',
+            },
+            <String, dynamic>{
+              'path': '/mnt/incoming/movies/DUP-002.mp4',
+              'reason': 'duplicate_fingerprint',
+              'detail': '',
+              'kind': 'skipped',
+            },
+          ],
+        ),
+      );
+
+      await _pumpPage(tester, bundle: bundle);
+
+      // failedCount=0 但 skippedCount>0：展开按钮仍出现。
+      final toggle = find.byKey(const Key('media-import-job-toggle-7'));
+      expect(toggle, findsOneWidget);
+      expect(find.text('查看失败/跳过文件'), findsOneWidget);
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      expect(find.text('/mnt/incoming/movies/DUP-001.mp4'), findsOneWidget);
+      expect(find.text('/mnt/incoming/movies/DUP-002.mp4'), findsOneWidget);
+      expect(find.textContaining('已在库中'), findsOneWidget);
+      expect(find.textContaining('内容重复'), findsOneWidget);
+      // 两条都是 skipped → 两个「已跳过」徽标。
+      expect(find.text('已跳过'), findsNWidgets(2));
+      // actionable 为空 → 「重导全部失败」按钮不出现。
+      expect(find.byKey(const Key('media-import-retry-all-7')), findsNothing);
+      // 行内不应出现「重导」按钮（skipped 不可操作）。
+      expect(find.text('重导'), findsNothing);
+    },
+  );
 }
 
 Future<void> _pumpPage(

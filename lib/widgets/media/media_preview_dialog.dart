@@ -25,6 +25,7 @@ class MediaPreviewItem {
     required this.fileName,
     required this.mediaId,
     required this.movieNumber,
+    this.videoItemId,
     required this.thumbnailId,
     required this.offsetSeconds,
     this.scoreText,
@@ -33,10 +34,14 @@ class MediaPreviewItem {
   final String imageUrl;
   final String fileName;
   final int mediaId;
-  final String movieNumber;
+  // JAV 项带番号；视频项为 null，借 videoItemId 区分。
+  final String? movieNumber;
+  final int? videoItemId;
   final int thumbnailId;
   final int offsetSeconds;
   final String? scoreText;
+
+  bool get isVideo => videoItemId != null && videoItemId! > 0;
 }
 
 enum MediaPreviewPresentation { dialog, bottomDrawer }
@@ -94,13 +99,22 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
   }
 
   Future<void> _loadMovieDetail() async {
+    final movieNumber = widget.item.movieNumber;
+    if (widget.item.isVideo || movieNumber == null || movieNumber.isEmpty) {
+      // 视频时刻没有番号，直接跳过 JAV 详情拉取；UI 自然隐藏影片信息区。
+      setState(() {
+        _isLoadingMovieDetail = false;
+        _movieDetailErrorMessage = null;
+      });
+      return;
+    }
     setState(() {
       _isLoadingMovieDetail = true;
       _movieDetailErrorMessage = null;
     });
     try {
       final movieDetail = await context.read<MoviesApi>().getMovieDetail(
-        movieNumber: widget.item.movieNumber,
+        movieNumber: movieNumber,
       );
       if (!mounted) {
         return;
@@ -255,7 +269,7 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
         MediaPreviewActionItem(
           label: '影片详情',
           icon: Icons.info_outline_rounded,
-          visible: widget.onOpenMovieDetail != null,
+          visible: !widget.item.isVideo && widget.onOpenMovieDetail != null,
           onTap:
               widget.onOpenMovieDetail == null ? null : _handleOpenMovieDetail,
         ),
@@ -361,7 +375,12 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
     if (scoreText != null && scoreText.isNotEmpty) {
       fragments.add('相似度 $scoreText');
     }
-    fragments.add('番号 ${widget.item.movieNumber}');
+    final movieNumber = widget.item.movieNumber;
+    if (widget.item.isVideo) {
+      fragments.add('视频 #${widget.item.videoItemId}');
+    } else if (movieNumber != null && movieNumber.isNotEmpty) {
+      fragments.add('番号 $movieNumber');
+    }
     fragments.add('时间点 ${formatMediaTimecode(widget.item.offsetSeconds)}');
     return fragments.join(' | ');
   }

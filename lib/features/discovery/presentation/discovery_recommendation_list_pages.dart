@@ -433,8 +433,13 @@ class _DiscoveryMomentsPageState extends State<_DiscoveryMomentsPage> {
   }
 
   void _openPlayerForMoment(MomentListItem item) {
+    final movieNumber = item.movieNumber;
+    if (movieNumber == null || movieNumber.isEmpty) {
+      // discovery 推荐时刻仅 JAV，番号必有；视频时刻不会进入此列表。
+      return;
+    }
     final path = _moviePlayerPath(
-      item.movieNumber,
+      movieNumber,
       mediaId: item.mediaId > 0 ? item.mediaId : null,
       positionSeconds: item.offsetSeconds,
       isMobile: _isMobile,
@@ -443,7 +448,11 @@ class _DiscoveryMomentsPageState extends State<_DiscoveryMomentsPage> {
   }
 
   void _openMovieDetailForMoment(MomentListItem item) {
-    context.push(_movieDetailPath(item.movieNumber, isMobile: _isMobile));
+    final movieNumber = item.movieNumber;
+    if (movieNumber == null || movieNumber.isEmpty) {
+      return;
+    }
+    context.push(_movieDetailPath(movieNumber, isMobile: _isMobile));
   }
 }
 

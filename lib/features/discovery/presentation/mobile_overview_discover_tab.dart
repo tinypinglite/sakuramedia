@@ -206,17 +206,27 @@ class _MobileOverviewDiscoverTabState extends State<MobileOverviewDiscoverTab> {
         await _searchSimilarFromMoment(item);
         break;
       case _MomentPreviewAction.play:
+        final movieNumber = item.movieNumber;
+        if (movieNumber == null || movieNumber.isEmpty) {
+          break;
+        }
         unawaited(
           launchMoviePlayback(
             context,
-            movieNumber: item.movieNumber,
+            movieNumber: movieNumber,
             mediaId: item.mediaId > 0 ? item.mediaId : null,
             positionSeconds: item.offsetSeconds,
           ),
         );
         break;
       case _MomentPreviewAction.movieDetail:
-        MobileMovieDetailRouteData(movieNumber: item.movieNumber).push(context);
+        final movieNumberForDetail = item.movieNumber;
+        if (movieNumberForDetail == null || movieNumberForDetail.isEmpty) {
+          break;
+        }
+        MobileMovieDetailRouteData(
+          movieNumber: movieNumberForDetail,
+        ).push(context);
         break;
     }
   }

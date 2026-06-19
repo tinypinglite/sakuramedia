@@ -60,7 +60,7 @@ class MomentCard extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                item.movieNumber,
+                                item.displayLabel,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: labelTextStyle,

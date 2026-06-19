@@ -46,19 +46,25 @@ void main() {
 
     expect(find.byKey(const Key('moments-page')), findsOneWidget);
     expect(find.byKey(const Key('moments-page-total')), findsOneWidget);
-    expect(find.byType(AppTextButton), findsNWidgets(2));
+    // 2 个排序 chip + 2 个 kind chip。
+    expect(find.byType(AppTextButton), findsNWidgets(4));
     expect(
       tester
           .widget<AppTextButton>(find.byKey(const Key('moments-sort-latest')))
           .size,
       AppTextButtonSize.xSmall,
     );
+    expect(find.byKey(const Key('moments-kind-jav')), findsOneWidget);
+    expect(find.byKey(const Key('moments-kind-video')), findsOneWidget);
     expect(find.text('1 个时刻'), findsOneWidget);
     expect(find.text('最新'), findsOneWidget);
     expect(find.text('最早'), findsOneWidget);
+    expect(find.text('JAV'), findsOneWidget);
+    expect(find.text('视频'), findsOneWidget);
     expect(find.text('ABC-001'), findsOneWidget);
     expect(find.text('02:00'), findsOneWidget);
     expect(_mediaPointsQueryValue(bundle, 0, 'sort'), 'created_at:desc');
+    expect(_mediaPointsQueryValue(bundle, 0, 'kind'), 'jav');
     expect(bundle.adapter.hitCount('GET', '/media/456/thumbnails'), 0);
   });
 

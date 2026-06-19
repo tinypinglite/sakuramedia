@@ -300,8 +300,13 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
   }
 
   void _openPlayerForMoment(MomentListItem item) {
+    final movieNumber = item.movieNumber;
+    if (movieNumber == null || movieNumber.isEmpty) {
+      // discovery 推荐时刻当前后端只返 JAV，理论上 movieNumber 必然存在；兜底防御。
+      return;
+    }
     context.pushDesktopMoviePlayer(
-      movieNumber: item.movieNumber,
+      movieNumber: movieNumber,
       fallbackPath: desktopDiscoverPath,
       mediaId: item.mediaId > 0 ? item.mediaId : null,
       positionSeconds: item.offsetSeconds,
@@ -309,8 +314,12 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
   }
 
   void _openMovieDetailForMoment(MomentListItem item) {
+    final movieNumber = item.movieNumber;
+    if (movieNumber == null || movieNumber.isEmpty) {
+      return;
+    }
     context.pushDesktopMovieDetail(
-      movieNumber: item.movieNumber,
+      movieNumber: movieNumber,
       fallbackPath: desktopDiscoverPath,
     );
   }

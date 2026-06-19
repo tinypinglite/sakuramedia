@@ -14,14 +14,19 @@ class MediaApi {
     int page = 1,
     int pageSize = 20,
     String sort = 'created_at:desc',
+    String? kind,
   }) async {
+    final queryParameters = <String, dynamic>{
+      'page': page,
+      'page_size': pageSize,
+      'sort': sort,
+    };
+    if (kind != null && kind.isNotEmpty) {
+      queryParameters['kind'] = kind;
+    }
     final response = await _apiClient.get(
       '/media-points',
-      queryParameters: <String, dynamic>{
-        'page': page,
-        'page_size': pageSize,
-        'sort': sort,
-      },
+      queryParameters: queryParameters,
     );
     return PaginatedResponseDto<MediaPointListItemDto>.fromJson(
       response,

@@ -31,6 +31,7 @@ class MomentPreviewDialog extends StatelessWidget {
       fileName: buildMomentImageFileName(item, imageUrl),
       mediaId: item.mediaId,
       movieNumber: item.movieNumber,
+      videoItemId: item.videoItemId,
       thumbnailId: item.thumbnailId,
       offsetSeconds: item.offsetSeconds,
     );
@@ -61,5 +62,9 @@ String resolveMomentImageUrl(MomentListItem item) {
 
 String buildMomentImageFileName(MomentListItem item, String imageUrl) {
   final extension = guessImageFileExtension(imageUrl, fallback: 'webp');
-  return 'moment_${item.movieNumber}_${item.pointId}.$extension';
+  final movieNumber = item.movieNumber;
+  if (movieNumber != null && movieNumber.isNotEmpty) {
+    return 'moment_${movieNumber}_${item.pointId}.$extension';
+  }
+  return 'moment_video_${item.videoItemId ?? 0}_${item.pointId}.$extension';
 }

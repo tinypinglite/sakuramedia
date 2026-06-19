@@ -10,9 +10,10 @@ void main() {
     test('refresh replaces first page items', () async {
       var cycle = 0;
       final controller = PagedMomentController(
-        fetchPage: (page, pageSize, sort) async {
+        fetchPage: (page, pageSize, sort, kind) async {
           cycle += 1;
           expect(sort, MomentSortOrder.latest.apiValue);
+          expect(kind, MomentKindFilter.jav.apiValue);
           if (cycle == 1) {
             return PaginatedResponseDto<MediaPointListItemDto>(
               items: <MediaPointListItemDto>[_moment(1)],
@@ -44,7 +45,7 @@ void main() {
     test('refresh rethrows and keeps existing items on failure', () async {
       var cycle = 0;
       final controller = PagedMomentController(
-        fetchPage: (page, pageSize, sort) async {
+        fetchPage: (page, pageSize, sort, kind) async {
           cycle += 1;
           if (cycle == 1) {
             return PaginatedResponseDto<MediaPointListItemDto>(
@@ -68,14 +69,49 @@ void main() {
 
       controller.dispose();
     });
+
+    test('setKindFilter reloads with the new kind apiValue', () async {
+      final kindCalls = <String>[];
+      var cycle = 0;
+      final controller = PagedMomentController(
+        fetchPage: (page, pageSize, sort, kind) async {
+          kindCalls.add(kind);
+          cycle += 1;
+          return PaginatedResponseDto<MediaPointListItemDto>(
+            items: <MediaPointListItemDto>[
+              if (cycle == 1) _moment(1) else _moment(2, videoItemId: 42),
+            ],
+            page: 1,
+            pageSize: 20,
+            total: 1,
+          );
+        },
+      );
+
+      await controller.initialize();
+      expect(controller.kindFilter, MomentKindFilter.jav);
+
+      await controller.setKindFilter(MomentKindFilter.video);
+
+      expect(kindCalls, <String>['jav', 'video']);
+      expect(controller.kindFilter, MomentKindFilter.video);
+      expect(controller.items.single.isVideo, isTrue);
+
+      // 相等短路：不会发起新请求。
+      await controller.setKindFilter(MomentKindFilter.video);
+      expect(kindCalls, <String>['jav', 'video']);
+
+      controller.dispose();
+    });
   });
 }
 
-MediaPointListItemDto _moment(int pointId) {
+MediaPointListItemDto _moment(int pointId, {int? videoItemId}) {
   return MediaPointListItemDto(
     pointId: pointId,
     mediaId: 100,
-    movieNumber: 'ABC-001',
+    movieNumber: videoItemId == null ? 'ABC-001' : null,
+    videoItemId: videoItemId,
     thumbnailId: 10 + pointId,
     offsetSeconds: 120,
     image: null,

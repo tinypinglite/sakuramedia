@@ -7,6 +7,7 @@ import 'package:sakuramedia/features/image_search/presentation/desktop_image_sea
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_playback_launcher.dart';
+import 'package:sakuramedia/features/videos/presentation/mobile_video_player_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
@@ -35,9 +36,14 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
     super.initState();
     _controller = PagedMomentController(
       fetchPage:
-          (page, pageSize, sort) => context
+          (page, pageSize, sort, kind) => context
               .read<MediaApi>()
-              .getGlobalMediaPoints(page: page, pageSize: pageSize, sort: sort),
+              .getGlobalMediaPoints(
+                page: page,
+                pageSize: pageSize,
+                sort: sort,
+                kind: kind,
+              ),
       pageSize: 20,
       loadMoreTriggerOffset: 300,
     );
@@ -76,15 +82,21 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
                     MomentSortHeader(
                       total: _controller.total,
                       sortOrder: _controller.sortOrder,
+                      kindFilter: _controller.kindFilter,
                       variant: MomentSortHeaderVariant.mobileTagCompact,
                       latestSortKey: const Key('mobile-moments-sort-latest'),
                       earliestSortKey: const Key(
                         'mobile-moments-sort-earliest',
                       ),
                       totalKey: const Key('mobile-moments-page-total'),
+                      kindJavKey: const Key('mobile-moments-kind-jav'),
+                      kindVideoKey: const Key('mobile-moments-kind-video'),
                       onSortChanged:
                           (nextOrder) =>
                               unawaited(_controller.setSortOrder(nextOrder)),
+                      onKindChanged:
+                          (nextKind) =>
+                              unawaited(_controller.setKindFilter(nextKind)),
                     ),
                     SizedBox(height: context.appSpacing.md),
                     _buildBody(context),
@@ -151,7 +163,9 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
       },
       onPlay: () => selectedAction = _MomentPreviewAction.play,
       onOpenMovieDetail:
-          () => selectedAction = _MomentPreviewAction.movieDetail,
+          item.isVideo
+              ? null
+              : () => selectedAction = _MomentPreviewAction.movieDetail,
       onPointRemoved: () => unawaited(_controller.reload()),
       closeOnPointRemoved: true,
     );
@@ -201,10 +215,22 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
   }
 
   void _openPlayerForMoment(MomentListItem item) {
+    if (item.isVideo) {
+      // 与 mobile_pornbox_page 对齐：推到独立全屏播放页；不支持 startPosition。
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+          builder: (_) => MobileVideoPlayerPage(
+            videoId: item.videoItemId!,
+            title: item.displayLabel,
+          ),
+        ),
+      );
+      return;
+    }
     unawaited(
       launchMoviePlayback(
         context,
-        movieNumber: item.movieNumber,
+        movieNumber: item.movieNumber!,
         mediaId: item.mediaId > 0 ? item.mediaId : null,
         positionSeconds: item.offsetSeconds,
       ),
@@ -212,7 +238,11 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
   }
 
   void _openMovieDetailForMoment(MomentListItem item) {
-    MobileMovieDetailRouteData(movieNumber: item.movieNumber).push(context);
+    if (item.isVideo) {
+      // 视频域无详情页，对话框侧已隐藏入口，此处兜底。
+      return;
+    }
+    MobileMovieDetailRouteData(movieNumber: item.movieNumber!).push(context);
   }
 }
 
