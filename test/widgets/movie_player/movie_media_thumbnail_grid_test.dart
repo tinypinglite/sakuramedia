@@ -579,6 +579,226 @@ void main() {
 
     expect(maskedImage.fit, BoxFit.cover);
   });
+
+  group('computeStaggeredLayout', () {
+    test('按最短列优先放置（并列时取最左列），同 aspect 多列首行起平', () {
+      // 4 个等 aspect 的 tile（1:1）+ 3 列 + tileWidth=100、spacing=0 → 前 3 个分别落 0/1/2 列；
+      // 4 个 column 高度 (100,100,100)，最短列下标取最小 → 第 4 个落第 0 列。
+      final result = computeStaggeredLayout(
+        crossAxisCount: 3,
+        availableWidth: 300,
+        crossAxisSpacing: 0,
+        mainAxisSpacing: 0,
+        items: const [
+          (width: 100, height: 100),
+          (width: 100, height: 100),
+          (width: 100, height: 100),
+          (width: 100, height: 100),
+        ],
+      );
+
+      expect(result.tileWidth, 100);
+      expect(result.tiles, hasLength(4));
+      expect(result.tiles[0].columnIndex, 0);
+      expect(result.tiles[1].columnIndex, 1);
+      expect(result.tiles[2].columnIndex, 2);
+      expect(result.tiles[3].columnIndex, 0);
+      expect(result.tiles[3].topOffset, 100);
+      expect(result.tiles[3].height, 100);
+    });
+
+    test('混合横竖图：竖图（aspect<1）tile 更高', () {
+      // 3 列、availableWidth=300、无 spacing → tileWidth=100。
+      // 横图 16:9 → tileHeight≈56.25；竖图 9:16 → tileHeight≈177.78。
+      final result = computeStaggeredLayout(
+        crossAxisCount: 3,
+        availableWidth: 300,
+        crossAxisSpacing: 0,
+        mainAxisSpacing: 0,
+        items: const [
+          (width: 1920, height: 1080), // 横
+          (width: 1080, height: 1920), // 竖
+          (width: 1920, height: 1080), // 横
+          (width: 1920, height: 1080), // 横，应落到最矮的「横+横」列（不是竖图那列）
+        ],
+      );
+
+      expect(result.tiles[0].height, closeTo(56.25, 0.01));
+      expect(result.tiles[1].height, closeTo(177.78, 0.01));
+      expect(result.tiles[2].height, closeTo(56.25, 0.01));
+      // 0/2 列首行后高 ≈56.25，1 列首行后高 ≈177.78；最矮取 0 列。
+      expect(result.tiles[3].columnIndex, 0);
+      expect(result.tiles[3].topOffset, closeTo(56.25, 0.01));
+    });
+
+    test('缺 width/height（含部分缺、零、负）按 16:9 回退', () {
+      final result = computeStaggeredLayout(
+        crossAxisCount: 1,
+        availableWidth: 160,
+        crossAxisSpacing: 0,
+        mainAxisSpacing: 0,
+        items: const [
+          (width: null, height: null),
+          (width: 100, height: null),
+          (width: 0, height: 100),
+          (width: 100, height: -1),
+        ],
+      );
+
+      // 160 / (16/9) = 90
+      for (final tile in result.tiles) {
+        expect(tile.height, closeTo(90, 0.01));
+      }
+    });
+
+    test('crossAxisSpacing/mainAxisSpacing 正确减去 + 累计高度不含尾部 spacing', () {
+      final result = computeStaggeredLayout(
+        crossAxisCount: 2,
+        availableWidth: 220, // 2 列 + 1 个 20 间距 → tileWidth = (220-20)/2 = 100
+        crossAxisSpacing: 20,
+        mainAxisSpacing: 10,
+        items: const [
+          (width: 100, height: 100),
+          (width: 100, height: 100),
+          (width: 100, height: 100),
+        ],
+      );
+
+      expect(result.tileWidth, 100);
+      expect(result.tiles[0].topOffset, 0);
+      expect(result.tiles[1].topOffset, 0);
+      // 第 3 个落第 0 列：top = 100 + 10 = 110；列累计高度去掉尾部 spacing → 210。
+      expect(result.tiles[2].columnIndex, 0);
+      expect(result.tiles[2].topOffset, 110);
+      expect(result.columnHeights[0], 210);
+      expect(result.columnHeights[1], 100);
+      expect(result.totalHeight, 210);
+    });
+
+    test('空列表 / 0 列 / 负宽返回空 layout 而非抛', () {
+      expect(
+        computeStaggeredLayout(
+          crossAxisCount: 3,
+          availableWidth: 300,
+          crossAxisSpacing: 0,
+          mainAxisSpacing: 0,
+          items: const [],
+        ).tiles,
+        isEmpty,
+      );
+      expect(
+        computeStaggeredLayout(
+          crossAxisCount: 0,
+          availableWidth: 300,
+          crossAxisSpacing: 0,
+          mainAxisSpacing: 0,
+          items: const [(width: 1, height: 1)],
+        ).tiles,
+        isEmpty,
+      );
+      expect(
+        computeStaggeredLayout(
+          crossAxisCount: 3,
+          availableWidth: 0,
+          crossAxisSpacing: 0,
+          mainAxisSpacing: 0,
+          items: const [(width: 1, height: 1)],
+        ).tiles,
+        isEmpty,
+      );
+    });
+  });
+
+  testWidgets('staggered layout: 渲染 CustomScrollView + SliverMasonryGrid，按 dims 切 tile 高度', (
+    WidgetTester tester,
+  ) async {
+    await _pumpGrid(
+      tester,
+      layout: ThumbnailGridLayout.staggered,
+      columns: 2,
+      thumbnails: <MovieMediaThumbnailDto>[
+        // 横版
+        MovieMediaThumbnailDto(
+          thumbnailId: 1,
+          mediaId: 100,
+          offsetSeconds: 10,
+          image: const MovieImageDto(
+            id: 1,
+            origin: 'a.webp',
+            small: 'a.webp',
+            medium: 'a.webp',
+            large: 'a.webp',
+          ),
+          width: 1920,
+          height: 1080,
+        ),
+        // 竖版（同列宽下 tile 高度应明显大于横版）
+        MovieMediaThumbnailDto(
+          thumbnailId: 2,
+          mediaId: 200,
+          offsetSeconds: 20,
+          image: const MovieImageDto(
+            id: 2,
+            origin: 'b.webp',
+            small: 'b.webp',
+            medium: 'b.webp',
+            large: 'b.webp',
+          ),
+          width: 1080,
+          height: 1920,
+        ),
+      ],
+    );
+
+    // staggered 分支用 CustomScrollView，uniform 分支用 GridView。
+    expect(
+      find.byKey(const Key('movie-media-thumbnail-grid')),
+      findsOneWidget,
+    );
+    expect(find.byType(CustomScrollView), findsOneWidget);
+    expect(find.byType(GridView), findsNothing);
+
+    // 两个 AspectRatio 分别对应横/竖 → 高度差异应大约 16/9 vs 9/16。
+    final aspectRatios =
+        tester
+            .widgetList<AspectRatio>(find.byType(AspectRatio))
+            .map((w) => w.aspectRatio)
+            .toList();
+    expect(aspectRatios, contains(closeTo(16 / 9, 0.0001)));
+    expect(aspectRatios, contains(closeTo(1080 / 1920, 0.0001)));
+  });
+
+  testWidgets(
+    'staggered layout: width/height 缺失 tile 回退 16:9 占位',
+    (WidgetTester tester) async {
+      await _pumpGrid(
+        tester,
+        layout: ThumbnailGridLayout.staggered,
+        columns: 1,
+        thumbnails: <MovieMediaThumbnailDto>[
+          MovieMediaThumbnailDto(
+            thumbnailId: 1,
+            mediaId: 100,
+            offsetSeconds: 10,
+            image: const MovieImageDto(
+              id: 1,
+              origin: 'a.webp',
+              small: 'a.webp',
+              medium: 'a.webp',
+              large: 'a.webp',
+            ),
+          ),
+        ],
+      );
+
+      final aspectRatios =
+          tester
+              .widgetList<AspectRatio>(find.byType(AspectRatio))
+              .map((w) => w.aspectRatio)
+              .toList();
+      expect(aspectRatios, contains(closeTo(16 / 9, 0.0001)));
+    },
+  );
 }
 
 Future<void> _pumpGrid(
@@ -592,6 +812,7 @@ Future<void> _pumpGrid(
   String? errorMessage,
   VoidCallback? onRetry,
   void Function(int index, Offset globalPosition)? onThumbnailMenuRequested,
+  ThumbnailGridLayout layout = ThumbnailGridLayout.uniform16x9,
 }) async {
   final sessionStore = SessionStore.inMemory();
   await sessionStore.saveBaseUrl('https://api.example.com');
@@ -615,6 +836,7 @@ Future<void> _pumpGrid(
               onThumbnailTap: (_) {},
               onRetry: onRetry ?? () {},
               onThumbnailMenuRequested: onThumbnailMenuRequested,
+              layout: layout,
             ),
           ),
         ),

@@ -13,6 +13,7 @@ List<RouteBase> get $appRoutes => [
   $mobileSearchQueryRouteData,
   $mobileSettingsMediaLibrariesRouteData,
   $mobileSystemOverviewRouteData,
+  $mobileNotificationsRouteData,
   $mobileSettingsDownloadersRouteData,
   $mobileSettingsIndexersRouteData,
   $mobileSettingsLlmRouteData,
@@ -244,6 +245,32 @@ mixin $MobileSystemOverviewRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/mobile/system/overview');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileNotificationsRouteData => GoRouteData.$route(
+  path: '/mobile/system/notifications',
+  factory: $MobileNotificationsRouteData._fromState,
+);
+
+mixin $MobileNotificationsRouteData on GoRouteData {
+  static MobileNotificationsRouteData _fromState(GoRouterState state) =>
+      const MobileNotificationsRouteData();
+
+  @override
+  String get location => GoRouteData.$location('/mobile/system/notifications');
 
   @override
   void go(BuildContext context) => context.go(location);

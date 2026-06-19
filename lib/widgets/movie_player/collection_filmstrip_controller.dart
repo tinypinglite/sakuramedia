@@ -10,8 +10,20 @@ import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart'
 ///
 /// `mediaId` / `thumbnailId` 供右面板「添加时刻」用（创建 MediaPoint 需二者）：pornbox 帧
 /// 来自媒体缩略图，填真实 id；切片帧无对应 media（时刻基于 media），填 `0` 即不支持时刻。
+///
+/// `width` / `height` 为缩略图像素尺寸（= 所属媒体分辨率，同一集内一致；未知时为 null），
+/// 供瀑布流面板按真实比例预算 tile 高度。pornbox 由媒体缩略图返回；切片暂无，填 null。
 typedef CollectionEpisodeFrames =
-    List<({int offsetSeconds, MovieImageDto image, int mediaId, int thumbnailId})>;
+    List<
+      ({
+        int offsetSeconds,
+        MovieImageDto image,
+        int mediaId,
+        int thumbnailId,
+        int? width,
+        int? height,
+      })
+    >;
 
 /// 取某集关键帧的注入闭包；失败或无帧时返回空（控制器静默跳过该集帧段）。
 typedef CollectionEpisodeFrameLoader =
@@ -26,6 +38,8 @@ class CollectionFrame {
     required this.image,
     required this.mediaId,
     required this.thumbnailId,
+    this.width,
+    this.height,
   });
 
   final int episodeIndex;
@@ -35,6 +49,10 @@ class CollectionFrame {
   /// 帧所属媒体与缩略图 id（供「添加时刻」创建 MediaPoint）；切片帧均为 `0`（不支持时刻）。
   final int mediaId;
   final int thumbnailId;
+
+  /// 缩略图像素尺寸（瀑布流按此排版）；切片或媒体未探测出分辨率时为 null（回退 16:9）。
+  final int? width;
+  final int? height;
 }
 
 /// 把整个合集的关键帧聚合成「一部完整长片」的全局缩略图序列：按集顺序无缝拼接第 1…N 集
@@ -99,6 +117,8 @@ class CollectionFilmstripController extends ChangeNotifier {
               mediaId: frame.mediaId,
               offsetSeconds: frame.offsetInEpisodeSeconds,
               image: frame.image,
+              width: frame.width,
+              height: frame.height,
             ),
           )
           .toList(growable: false);
@@ -146,6 +166,8 @@ class CollectionFilmstripController extends ChangeNotifier {
         MovieImageDto image,
         int mediaId,
         int thumbnailId,
+        int? width,
+        int? height,
       })>[];
     }
     if (_isDisposed) {
@@ -160,6 +182,8 @@ class CollectionFilmstripController extends ChangeNotifier {
                 image: frame.image,
                 mediaId: frame.mediaId,
                 thumbnailId: frame.thumbnailId,
+                width: frame.width,
+                height: frame.height,
               ),
             )
             .toList(growable: false)

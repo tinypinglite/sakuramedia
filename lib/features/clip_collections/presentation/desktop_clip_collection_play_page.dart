@@ -82,12 +82,20 @@ class _DesktopClipCollectionPlayPageState
           );
       final medias = <Media>[];
       final playableClips = <MediaClipDto>[];
-      for (final clip in clips) {
-        final url = resolveMediaUrl(rawUrl: clip.streamUrl, baseUrl: baseUrl);
-        if (url != null && url.isNotEmpty) {
-          medias.add(Media(url));
-          playableClips.add(clip);
+      // startIndex 基于原始切片顺序；前面有不可播切片被跳过时，索引需重映射到实际
+      // 可播列表（与视频连播页 resolvedStartIndex 对齐，否则会起播错位的切片）。
+      var resolvedStartIndex = 0;
+      for (var i = 0; i < clips.length; i++) {
+        if (i == widget.startIndex) {
+          resolvedStartIndex = medias.length;
         }
+        final clip = clips[i];
+        final url = resolveMediaUrl(rawUrl: clip.streamUrl, baseUrl: baseUrl);
+        if (url == null || url.isEmpty) {
+          continue;
+        }
+        medias.add(Media(url));
+        playableClips.add(clip);
       }
       if (!mounted) {
         return;
@@ -99,7 +107,7 @@ class _DesktopClipCollectionPlayPageState
         });
         return;
       }
-      final startIndex = widget.startIndex.clamp(0, medias.length - 1);
+      final startIndex = resolvedStartIndex.clamp(0, medias.length - 1);
       final player = Player();
       final videoController = VideoController(
         player,
@@ -121,6 +129,9 @@ class _DesktopClipCollectionPlayPageState
                   // 切片帧无对应 media（时刻基于 media），id 填 0 即不支持「添加时刻」。
                   mediaId: 0,
                   thumbnailId: 0,
+                  // 切片缩略图后端暂未返尺寸；面板按 16:9 占位即可（与历史一致）。
+                  width: null,
+                  height: null,
                 ),
               )
               .toList();

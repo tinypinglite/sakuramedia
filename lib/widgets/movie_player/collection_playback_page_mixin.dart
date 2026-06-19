@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/widgets/movie_player/collection_filmstrip_controller.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_media_thumbnail_grid.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_thumbnail_panel.dart';
 
 /// 合集连播底栏：含上一首 / 下一首 + 全屏左侧的「选集」按钮。按平台选对应控件
@@ -136,14 +137,25 @@ mixin CollectionPlaybackPageMixin<T extends StatefulWidget> on State<T> {
     if (target == null || activePlayer == null) {
       return;
     }
-    // 同集直接 seek，并清掉任何在途的待办跨集 seek（避免被旧待办覆盖回跳）。
-    if (target.episodeIndex == activePlayer.state.playlist.index) {
-      _clearPendingSeek();
-      activePlayer.seek(Duration(seconds: target.offsetSeconds));
+    // 「有效当前集」：有在途跨集 jump 时，实时 playlist.index 仍是旧集、不可信，
+    // 真正即将到达的是待办的目标集；无待办时才用实时 index 判同集。
+    final currentEpisode =
+        _pendingSeek?.episodeIndex ?? activePlayer.state.playlist.index;
+    if (target.episodeIndex == currentEpisode) {
+      if (_pendingSeek != null) {
+        // 在途 jump 正是去这一集：只更新待办 offset，待该集首个 tick 再 seek。此刻
+        // 播放器还停在旧集，若立即 seek 会落到旧集的错误位置。
+        _pendingSeek = target;
+      } else {
+        // 真·同集：先清掉任何已 arm 的一次性跨集 seek 监听（_handlePlaylist 消费完待办后
+        // 会留下它等首个 tick），避免它在本次同集 seek 之后又把进度覆盖回旧 offset。
+        _clearPendingSeek();
+        activePlayer.seek(Duration(seconds: target.offsetSeconds));
+      }
       return;
     }
-    // 覆盖上一个未完成的待办，并取消其已 arm 的旧监听——否则旧监听会在新目标集的
-    // position tick 上 seek 到旧 offset，落到错误位置。
+    // 改跳到另一集（含「ep5 jump 在途时点回当前实播的 ep1」）：覆盖旧待办、取消其已
+    // arm 的旧监听，再 jump 到新目标集。否则旧监听会在新集 tick 上 seek 到旧 offset。
     _clearPendingSeek();
     _pendingSeek = target;
     unawaited(activePlayer.jump(target.episodeIndex));
@@ -160,8 +172,12 @@ mixin CollectionPlaybackPageMixin<T extends StatefulWidget> on State<T> {
   /// [onThumbnailMenuRequested]：右键/长按某帧的菜单回调（index 为 [filmstrip] 全局帧下标，
   /// 与 `thumbnails` 同坐标系）。传 `null`（默认）则不挂菜单——切片合集无 media 不支持时刻，
   /// 故只 pornbox 页传入「添加时刻」菜单。仍不传圈选回调 → 圈选 UI 始终隐藏。
+  ///
+  /// [layout]：默认统一 16:9 网格（与历史观感一致）；pornbox 合集页传 [ThumbnailGridLayout.staggered]
+  /// 走瀑布流，按帧自带 width/height 排版，混合横竖图不再两侧留底。
   Widget buildFilmstripPanel({
     void Function(int index, Offset globalPosition)? onThumbnailMenuRequested,
+    ThumbnailGridLayout layout = ThumbnailGridLayout.uniform16x9,
   }) {
     final activeFilmstrip = filmstrip;
     if (activeFilmstrip == null) {
@@ -190,6 +206,7 @@ mixin CollectionPlaybackPageMixin<T extends StatefulWidget> on State<T> {
               // filmstrip 失败静默降级、不暴露错误态，retry 不会被触发。
               onRetry: () {},
               // 不传圈选回调 → 圈选 UI 始终隐藏。
+              layout: layout,
             );
           },
         );

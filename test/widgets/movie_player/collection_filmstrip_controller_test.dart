@@ -28,6 +28,8 @@ CollectionEpisodeFrameLoader _loaderFrom(
         image: _img(id),
         mediaId: episodeIndex + 1,
         thumbnailId: id,
+        width: null,
+        height: null,
       );
     }).toList();
   };
@@ -96,12 +98,16 @@ void main() {
           MovieImageDto image,
           int mediaId,
           int thumbnailId,
+          int? width,
+          int? height,
         })>[
           (
             offsetSeconds: 0,
             image: _img(episodeIndex),
             mediaId: episodeIndex + 1,
             thumbnailId: episodeIndex,
+            width: null,
+            height: null,
           ),
         ];
       },

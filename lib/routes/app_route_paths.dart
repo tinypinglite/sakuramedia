@@ -29,6 +29,7 @@ const String mobileDiscoverMoviesPath = '$mobileOverviewPath/discover/movies';
 const String mobileDiscoverMomentsPath = '$mobileOverviewPath/discover/moments';
 const String mobilePlaylistDetailPathPrefix = '$mobileOverviewPath/playlists';
 const String mobileSystemOverviewPath = '/mobile/system/overview';
+const String mobileNotificationsPath = '/mobile/system/notifications';
 const String mobileSearchPath = '/mobile/search';
 const String mobileImageSearchPath = '/mobile/search/image';
 const String mobileMoviesPath = '/mobile/library/movies';

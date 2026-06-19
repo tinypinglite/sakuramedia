@@ -78,7 +78,7 @@ class NotificationCard extends StatelessWidget {
               children: [
                 AppBadge(
                   label: labelForNotificationCategory(notification.category),
-                  tone: _notificationCategoryTone(notification.category),
+                  tone: notificationCategoryTone(notification.category),
                 ),
                 Text(
                   _formatDate(notification.createdAt, dateFormat),
@@ -196,7 +196,7 @@ String _formatDate(DateTime? value, DateFormat formatter) {
   return formatter.format(value.toLocal());
 }
 
-AppBadgeTone _notificationCategoryTone(String category) {
+AppBadgeTone notificationCategoryTone(String category) {
   return switch (category) {
     'error' => AppBadgeTone.error,
     'warning' => AppBadgeTone.warning,

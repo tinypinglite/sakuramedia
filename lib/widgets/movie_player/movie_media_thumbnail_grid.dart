@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
@@ -12,8 +14,18 @@ import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 
+/// 缩略图网格的两种布局：
+/// - [uniform16x9]：所有 tile 统一 16:9，竖图运行时回退 `BoxFit.contain` 两侧留底（历史行为）。
+/// - [staggered]：按帧自带 `width`/`height` 排版的瀑布流，pornbox 合集连播页使用——同集内
+///   tile 等高、集与集之间自然错落，混合横竖图无两侧留底。
+enum ThumbnailGridLayout { uniform16x9, staggered }
+
 /// pornbox 关键帧多为竖图；宽高比 < 此阈值时用 contain 完整展示，否则 cover 填满 tile。
+/// 仅 [ThumbnailGridLayout.uniform16x9] 分支使用——瀑布流分支预先按真实比例切 tile，cover 即可。
 const double _kAdaptiveFitAspectThreshold = 1.5;
+
+/// 瀑布流缺 width/height 时按 16:9 占位（与 uniform 分支历史行为对齐）。
+const double _kStaggeredFallbackAspect = 16 / 9;
 
 /// 按图片真实宽高比（宽/高）选填充方式：竖/方图（< 1.5）用 contain 完整展示，
 /// 横图（>= 1.5）用 cover 填满。测得前（null）或无效（<=0）回退 cover，等同原行为、不闪烁。
@@ -25,6 +37,110 @@ BoxFit resolveAdaptiveThumbnailFit(double? aspectRatio) {
   return aspectRatio < _kAdaptiveFitAspectThreshold
       ? BoxFit.contain
       : BoxFit.cover;
+}
+
+/// 瀑布流单个 tile 的归位结果：所在列 + 顶端 y 偏移 + tile 高度。
+@immutable
+class StaggeredTilePlacement {
+  const StaggeredTilePlacement({
+    required this.columnIndex,
+    required this.topOffset,
+    required this.height,
+  });
+
+  final int columnIndex;
+  final double topOffset;
+  final double height;
+
+  double get bottomOffset => topOffset + height;
+}
+
+/// 瀑布流整组布局结果：每 tile 的归位 + 各列累计高度 + 单 tile 宽度。
+@immutable
+class StaggeredLayoutResult {
+  const StaggeredLayoutResult({
+    required this.tiles,
+    required this.columnHeights,
+    required this.tileWidth,
+  });
+
+  final List<StaggeredTilePlacement> tiles;
+  final List<double> columnHeights;
+  final double tileWidth;
+
+  /// 整组瀑布流总高 = 最长列高（不含尾部 mainAxisSpacing）。
+  double get totalHeight =>
+      columnHeights.isEmpty
+          ? 0
+          : columnHeights.reduce((a, b) => a > b ? a : b);
+}
+
+/// 计算瀑布流 tile 归位：**镜像** `SliverMasonryGrid.count` 的「当前最矮列优先」放置算法
+/// （并列时取最左列），同集内 tile 等高会自然形成整齐行；缺 w/h 的 tile 回退 16:9。
+///
+/// 暴露成纯函数供面板内部预算可视范围 / 自动滚动目标偏移用——只要算法与库一致，前端预算
+/// 的 `topOffset` 就等同库实际渲染位置；库换实现的小风险由 layout 单测覆盖。
+@visibleForTesting
+StaggeredLayoutResult computeStaggeredLayout({
+  required int crossAxisCount,
+  required double availableWidth,
+  required double crossAxisSpacing,
+  required double mainAxisSpacing,
+  required List<({int? width, int? height})> items,
+  double fallbackAspect = _kStaggeredFallbackAspect,
+}) {
+  final safeColumns = math.max(0, crossAxisCount);
+  if (safeColumns == 0 || items.isEmpty || availableWidth <= 0) {
+    return StaggeredLayoutResult(
+      tiles: const <StaggeredTilePlacement>[],
+      columnHeights: List<double>.filled(safeColumns, 0, growable: false),
+      tileWidth: 0,
+    );
+  }
+  final tileWidth =
+      (availableWidth - crossAxisSpacing * (safeColumns - 1)) / safeColumns;
+  if (tileWidth <= 0) {
+    return StaggeredLayoutResult(
+      tiles: const <StaggeredTilePlacement>[],
+      columnHeights: List<double>.filled(safeColumns, 0, growable: false),
+      tileWidth: 0,
+    );
+  }
+  final columnHeights = List<double>.filled(safeColumns, 0, growable: false);
+  final tiles = <StaggeredTilePlacement>[];
+  for (final item in items) {
+    final w = item.width;
+    final h = item.height;
+    final aspect =
+        (w != null && h != null && w > 0 && h > 0) ? w / h : fallbackAspect;
+    final tileHeight = tileWidth / aspect;
+    var bestColumn = 0;
+    for (var c = 1; c < safeColumns; c++) {
+      if (columnHeights[c] < columnHeights[bestColumn]) {
+        bestColumn = c;
+      }
+    }
+    final top = columnHeights[bestColumn];
+    tiles.add(
+      StaggeredTilePlacement(
+        columnIndex: bestColumn,
+        topOffset: top,
+        height: tileHeight,
+      ),
+    );
+    columnHeights[bestColumn] = top + tileHeight + mainAxisSpacing;
+  }
+  // 去掉尾部多记的 mainAxisSpacing，让 totalHeight 等于最后一行 tile 的底端。
+  for (var c = 0; c < safeColumns; c++) {
+    if (columnHeights[c] > 0) {
+      columnHeights[c] -= mainAxisSpacing;
+    }
+  }
+  return StaggeredLayoutResult(
+    tiles: List<StaggeredTilePlacement>.unmodifiable(tiles),
+    columnHeights: columnHeights,
+    tileWidth: tileWidth,
+  );
 }
 
 class MovieMediaThumbnailGrid extends StatefulWidget {
@@ -42,6 +158,7 @@ class MovieMediaThumbnailGrid extends StatefulWidget {
     this.clipStartIndex,
     this.clipEndIndex,
     this.keyPrefix = 'movie-media',
+    this.layout = ThumbnailGridLayout.uniform16x9,
   });
 
   final List<MovieMediaThumbnailDto> thumbnails;
@@ -57,6 +174,10 @@ class MovieMediaThumbnailGrid extends StatefulWidget {
   final void Function(int index, Offset globalPosition)?
   onThumbnailMenuRequested;
   final String keyPrefix;
+
+  /// 网格布局：默认走历史的统一 16:9；pornbox 合集连播页传 [ThumbnailGridLayout.staggered]
+  /// 走瀑布流，按帧自带 w/h 排版。
+  final ThumbnailGridLayout layout;
 
   @override
   State<MovieMediaThumbnailGrid> createState() =>
@@ -82,6 +203,15 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   int? _visibleStartIndex;
   int? _visibleEndIndex;
   final Set<int> _renderedImageIndices = <int>{};
+
+  /// 瀑布流分支：每 tile 归位（按当前 grid 宽 + 列数 + thumbnails 算出），随 layout 变化重算。
+  StaggeredLayoutResult? _staggeredLayout;
+
+  /// 算出 [_staggeredLayout] 时的 grid 宽度；宽度变化（分栏拖动 / 窗口缩放）即令缓存失效。
+  double? _staggeredLayoutWidth;
+
+  /// 瀑布流分支可视范围（不连续，故用 Set；uniform 分支继续走 start/end 双指针）。
+  final Set<int> _staggeredVisibleIndices = <int>{};
 
   @override
   void initState() {
@@ -113,7 +243,11 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     final shouldAutoScroll =
         widget.isScrollLocked && _shouldAutoScroll(oldWidget);
     if (oldWidget.thumbnails.length != widget.thumbnails.length ||
-        oldWidget.columns != widget.columns) {
+        oldWidget.columns != widget.columns ||
+        oldWidget.layout != widget.layout) {
+      // 瀑布流缓存的 layout 依赖 thumbnails/columns/layout 模式，任一变就失效重算。
+      _staggeredLayout = null;
+      _staggeredLayoutWidth = null;
       _scheduleVisibleRangeRefreshAfterLayout();
     }
     if (oldWidget.isScrollLocked && !widget.isScrollLocked) {
@@ -167,7 +301,9 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
           oldThumbnail.mediaId != nextThumbnail.mediaId ||
           oldThumbnail.offsetSeconds != nextThumbnail.offsetSeconds ||
           oldThumbnail.image.bestAvailableUrl !=
-              nextThumbnail.image.bestAvailableUrl) {
+              nextThumbnail.image.bestAvailableUrl ||
+          oldThumbnail.width != nextThumbnail.width ||
+          oldThumbnail.height != nextThumbnail.height) {
         return true;
       }
     }
@@ -249,16 +385,31 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     }
 
     final spacing = context.appSpacing.sm;
-    final aspectRatio =
-        context.appComponentTokens.moviePlayerThumbnailAspectRatio;
-    final tileWidth =
-        (gridSize.width - spacing * (widget.columns - 1)) / widget.columns;
-    final tileHeight = tileWidth / aspectRatio;
-    final rowExtent = tileHeight + spacing;
-    final rowIndex = activeIndex ~/ widget.columns;
     final viewportDimension = _scrollController.position.viewportDimension;
-    final centeredOffset =
-        (rowIndex * rowExtent) - (viewportDimension - tileHeight) / 2;
+
+    final double centeredOffset;
+    if (widget.layout == ThumbnailGridLayout.staggered) {
+      final layout = _ensureStaggeredLayout(gridSize.width, spacing);
+      if (layout == null ||
+          activeIndex < 0 ||
+          activeIndex >= layout.tiles.length) {
+        return;
+      }
+      final tile = layout.tiles[activeIndex];
+      centeredOffset =
+          tile.topOffset + tile.height / 2 - viewportDimension / 2;
+    } else {
+      final aspectRatio =
+          context.appComponentTokens.moviePlayerThumbnailAspectRatio;
+      final tileWidth =
+          (gridSize.width - spacing * (widget.columns - 1)) / widget.columns;
+      final tileHeight = tileWidth / aspectRatio;
+      final rowExtent = tileHeight + spacing;
+      final rowIndex = activeIndex ~/ widget.columns;
+      centeredOffset =
+          (rowIndex * rowExtent) - (viewportDimension - tileHeight) / 2;
+    }
+
     final targetOffset = centeredOffset.clamp(
       0.0,
       _scrollController.position.maxScrollExtent,
@@ -384,9 +535,12 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
 
   bool _updateVisibleIndexRange({ScrollMetrics? metrics}) {
     if (widget.thumbnails.isEmpty) {
-      final changed = _visibleStartIndex != null || _visibleEndIndex != null;
+      final changed = _visibleStartIndex != null ||
+          _visibleEndIndex != null ||
+          _staggeredVisibleIndices.isNotEmpty;
       _visibleStartIndex = null;
       _visibleEndIndex = null;
+      _staggeredVisibleIndices.clear();
       _renderedImageIndices.clear();
       return changed;
     }
@@ -400,17 +554,51 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     }
 
     final spacing = context.appSpacing.sm;
+    final viewportDimension = effectiveMetrics.viewportDimension;
+    final offset = effectiveMetrics.pixels.clamp(
+      effectiveMetrics.minScrollExtent,
+      effectiveMetrics.maxScrollExtent,
+    );
+
+    if (widget.layout == ThumbnailGridLayout.staggered) {
+      final layout = _ensureStaggeredLayout(gridSize.width, spacing);
+      if (layout == null) {
+        return false;
+      }
+      // 用 tile 自身高度算 buffer：buffer ~= _visibleRowBuffer 行 * 平均 tile 高。
+      // 平均高取「总高 / 平均每列 tile 数」，与 uniform 分支按行缓冲粗略对齐。
+      final averageTileHeight =
+          layout.tiles.isEmpty
+              ? 0.0
+              : layout.tiles
+                      .map((t) => t.height)
+                      .reduce((a, b) => a + b) /
+                  layout.tiles.length;
+      final buffer = (averageTileHeight + spacing) * _visibleRowBuffer;
+      final from = offset - buffer;
+      final to = offset + viewportDimension + buffer;
+      final nextVisible = <int>{};
+      for (var i = 0; i < layout.tiles.length; i++) {
+        final tile = layout.tiles[i];
+        if (tile.bottomOffset < from) continue;
+        if (tile.topOffset > to) continue;
+        nextVisible.add(i);
+      }
+      final changed =
+          nextVisible.length != _staggeredVisibleIndices.length ||
+              !nextVisible.containsAll(_staggeredVisibleIndices);
+      _staggeredVisibleIndices
+        ..clear()
+        ..addAll(nextVisible);
+      return changed;
+    }
+
     final aspectRatio =
         context.appComponentTokens.moviePlayerThumbnailAspectRatio;
     final tileWidth =
         (gridSize.width - spacing * (widget.columns - 1)) / widget.columns;
     final tileHeight = tileWidth / aspectRatio;
     final rowExtent = tileHeight + spacing;
-    final viewportDimension = effectiveMetrics.viewportDimension;
-    final offset = effectiveMetrics.pixels.clamp(
-      effectiveMetrics.minScrollExtent,
-      effectiveMetrics.maxScrollExtent,
-    );
 
     final startRow = (offset / rowExtent).floor();
     final endRow =
@@ -428,6 +616,39 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     _visibleStartIndex = nextStart;
     _visibleEndIndex = nextEnd;
     return changed;
+  }
+
+  /// 瀑布流 layout 缓存：依赖 gridWidth + spacing + columns + thumbnails。任一变化
+  /// 时由 `didUpdateWidget` 或 `_scheduleVisibleRangeRefreshAfterLayout` 清零，下次
+  /// 调用时按当前快照重算一次并复用。
+  StaggeredLayoutResult? _ensureStaggeredLayout(double gridWidth, double spacing) {
+    if (gridWidth <= 0 || widget.thumbnails.isEmpty) {
+      return null;
+    }
+    final cached = _staggeredLayout;
+    // 命中需同时满足帧数与 grid 宽度一致：宽度变了（分栏拖动 / 窗口缩放）即使帧数没变
+    // 也必须按新宽重算，否则 tile 的 topOffset/height 仍是旧宽算出、与实际渲染脱节。
+    if (cached != null &&
+        cached.tiles.length == widget.thumbnails.length &&
+        _staggeredLayoutWidth == gridWidth) {
+      return cached;
+    }
+    final items =
+        widget.thumbnails
+            .map(
+              (t) => (width: t.width, height: t.height),
+            )
+            .toList(growable: false);
+    final result = computeStaggeredLayout(
+      crossAxisCount: widget.columns,
+      availableWidth: gridWidth,
+      crossAxisSpacing: spacing,
+      mainAxisSpacing: spacing,
+      items: items,
+    );
+    _staggeredLayout = result;
+    _staggeredLayoutWidth = gridWidth;
+    return result;
   }
 
   bool _shouldBuildImageForIndex(int index) {
@@ -455,6 +676,13 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   }
 
   bool _isWithinVisibleRange(int index) {
+    if (widget.layout == ThumbnailGridLayout.staggered) {
+      // 首帧未算过 layout（_staggeredVisibleIndices 空且没失效标记）时放行，让首屏可见。
+      if (_staggeredVisibleIndices.isEmpty && _staggeredLayout == null) {
+        return true;
+      }
+      return _staggeredVisibleIndices.contains(index);
+    }
     final visibleStartIndex = _visibleStartIndex;
     final visibleEndIndex = _visibleEndIndex;
     if (visibleStartIndex == null || visibleEndIndex == null) {
@@ -513,121 +741,184 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
         _scheduleVisibleRangeRefreshIfLayoutChanged(constraints);
         return NotificationListener<ScrollNotification>(
           onNotification: _handleScrollNotification,
-          child: GridView.builder(
-            key: Key('${widget.keyPrefix}-thumbnail-grid'),
-            controller: _scrollController,
-            cacheExtent: 500,
-            physics:
-                widget.isScrollLocked
-                    ? const NeverScrollableScrollPhysics()
-                    : const ClampingScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: widget.columns,
-              crossAxisSpacing: context.appSpacing.sm,
-              mainAxisSpacing: context.appSpacing.sm,
-              childAspectRatio:
-                  context.appComponentTokens.moviePlayerThumbnailAspectRatio,
-            ),
-            itemCount: widget.thumbnails.length,
-            itemBuilder: (context, index) {
-              final thumbnail = widget.thumbnails[index];
-              final isActive = widget.activeIndex == index;
-              final isClipStart = widget.clipStartIndex == index;
-              final isClipEnd = widget.clipEndIndex == index;
-              final isClipEndpoint = isClipStart || isClipEnd;
-              final isInClipBand = _isWithinClipBand(index);
-              final primary = Theme.of(context).colorScheme.primary;
-
-              final Color tileColor;
-              final Color borderColor;
-              final double borderWidth;
-              if (isClipEndpoint) {
-                tileColor = primary.withValues(alpha: 0.18);
-                borderColor = primary;
-                borderWidth = 2.5;
-              } else if (isInClipBand) {
-                tileColor = primary.withValues(alpha: 0.10);
-                borderColor = primary.withValues(alpha: 0.45);
-                borderWidth = 1.5;
-              } else if (isActive) {
-                tileColor = primary.withValues(alpha: 0.08);
-                borderColor = primary;
-                borderWidth = 1.5;
-              } else {
-                tileColor = context.appColors.surfaceCard;
-                borderColor = context.appColors.borderSubtle;
-                borderWidth = 1;
-              }
-
-              final image =
-                  _shouldBuildImageForIndex(index)
-                      ? LayoutBuilder(
-                        builder: (context, constraints) {
-                          final decodeHint = _resolveDecodeHint(constraints);
-                          return _AdaptiveFitThumbnailImage(
-                            url: thumbnail.image.bestAvailableUrl,
-                            memCacheWidth: decodeHint.width,
-                            memCacheHeight: decodeHint.height,
-                          );
-                        },
-                      )
-                      : const _MovieMediaThumbnailImagePlaceholder();
-
-              final child = KeyedSubtree(
-                key: Key('${widget.keyPrefix}-thumb-$index'),
-                child: DecoratedBox(
-                  key: Key(
-                    '${widget.keyPrefix}-thumbnail-tile-$index-decoration',
-                  ),
-                  decoration: BoxDecoration(
-                    color: tileColor,
-                    borderRadius: context.appRadius.xsBorder,
-                    border: Border.all(color: borderColor, width: borderWidth),
-                    boxShadow:
-                        (isActive || isClipEndpoint)
-                            ? context.appShadows.panel
-                            : null,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: context.appRadius.xsBorder,
-                    child:
-                        isClipEndpoint
-                            ? Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                image,
-                                Positioned(
-                                  top: 4,
-                                  left: 4,
-                                  child: _ClipEndpointBadge(
-                                    label: isClipStart ? '起' : '终',
-                                  ),
-                                ),
-                              ],
-                            )
-                            : image,
-                  ),
-                ),
-              );
-
-              final menuHandler = widget.onThumbnailMenuRequested;
-              if (menuHandler == null) {
-                return GestureDetector(
-                  onTap: () => widget.onThumbnailTap(index),
-                  child: child,
-                );
-              }
-
-              return AppImageActionTrigger(
-                onTap: () => widget.onThumbnailTap(index),
-                onRequestMenu:
-                    (globalPosition) => menuHandler(index, globalPosition),
-                child: child,
-              );
-            },
-          ),
+          child:
+              widget.layout == ThumbnailGridLayout.staggered
+                  ? _buildStaggeredGrid(context)
+                  : _buildUniformGrid(context),
         );
       },
+    );
+  }
+
+  Widget _buildUniformGrid(BuildContext context) {
+    return GridView.builder(
+      key: Key('${widget.keyPrefix}-thumbnail-grid'),
+      controller: _scrollController,
+      cacheExtent: 500,
+      physics:
+          widget.isScrollLocked
+              ? const NeverScrollableScrollPhysics()
+              : const ClampingScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: widget.columns,
+        crossAxisSpacing: context.appSpacing.sm,
+        mainAxisSpacing: context.appSpacing.sm,
+        childAspectRatio:
+            context.appComponentTokens.moviePlayerThumbnailAspectRatio,
+      ),
+      itemCount: widget.thumbnails.length,
+      itemBuilder:
+          (context, index) =>
+              _buildTile(context, index, useAdaptiveFit: true, aspect: null),
+    );
+  }
+
+  Widget _buildStaggeredGrid(BuildContext context) {
+    final spacing = context.appSpacing.sm;
+    return CustomScrollView(
+      key: Key('${widget.keyPrefix}-thumbnail-grid'),
+      controller: _scrollController,
+      cacheExtent: 500,
+      physics:
+          widget.isScrollLocked
+              ? const NeverScrollableScrollPhysics()
+              : const ClampingScrollPhysics(),
+      slivers: [
+        SliverMasonryGrid.count(
+          crossAxisCount: widget.columns,
+          mainAxisSpacing: spacing,
+          crossAxisSpacing: spacing,
+          childCount: widget.thumbnails.length,
+          itemBuilder: (context, index) {
+            final thumbnail = widget.thumbnails[index];
+            final w = thumbnail.width;
+            final h = thumbnail.height;
+            final aspect =
+                (w != null && h != null && w > 0 && h > 0)
+                    ? w / h
+                    : _kStaggeredFallbackAspect;
+            // AspectRatio 让 SliverMasonryGrid 无须解码图片即可定 tile 高度，懒构建照常生效。
+            return AspectRatio(
+              aspectRatio: aspect,
+              child: _buildTile(
+                context,
+                index,
+                useAdaptiveFit: false,
+                aspect: aspect,
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  /// 单 tile：装饰边框 + 切片端点 badge + 图片或占位 + 点击/菜单交互。
+  /// [useAdaptiveFit]=true 走 uniform 分支的运行时测图选 fit；
+  /// [useAdaptiveFit]=false（staggered 分支）按已知 [aspect] 切 tile，图片直接 `BoxFit.cover`。
+  Widget _buildTile(
+    BuildContext context,
+    int index, {
+    required bool useAdaptiveFit,
+    required double? aspect,
+  }) {
+    final thumbnail = widget.thumbnails[index];
+    final isActive = widget.activeIndex == index;
+    final isClipStart = widget.clipStartIndex == index;
+    final isClipEnd = widget.clipEndIndex == index;
+    final isClipEndpoint = isClipStart || isClipEnd;
+    final isInClipBand = _isWithinClipBand(index);
+    final primary = Theme.of(context).colorScheme.primary;
+
+    final Color tileColor;
+    final Color borderColor;
+    final double borderWidth;
+    if (isClipEndpoint) {
+      tileColor = primary.withValues(alpha: 0.18);
+      borderColor = primary;
+      borderWidth = 2.5;
+    } else if (isInClipBand) {
+      tileColor = primary.withValues(alpha: 0.10);
+      borderColor = primary.withValues(alpha: 0.45);
+      borderWidth = 1.5;
+    } else if (isActive) {
+      tileColor = primary.withValues(alpha: 0.08);
+      borderColor = primary;
+      borderWidth = 1.5;
+    } else {
+      tileColor = context.appColors.surfaceCard;
+      borderColor = context.appColors.borderSubtle;
+      borderWidth = 1;
+    }
+
+    final image =
+        _shouldBuildImageForIndex(index)
+            ? LayoutBuilder(
+              builder: (context, constraints) {
+                final decodeHint = _resolveDecodeHint(constraints);
+                if (useAdaptiveFit) {
+                  return _AdaptiveFitThumbnailImage(
+                    url: thumbnail.image.bestAvailableUrl,
+                    memCacheWidth: decodeHint.width,
+                    memCacheHeight: decodeHint.height,
+                  );
+                }
+                // 瀑布流分支按真实比例切 tile，cover 不再裁掉关键内容。
+                return MaskedImage(
+                  url: thumbnail.image.bestAvailableUrl,
+                  fit: BoxFit.cover,
+                  memCacheWidth: decodeHint.width,
+                  memCacheHeight: decodeHint.height,
+                );
+              },
+            )
+            : const _MovieMediaThumbnailImagePlaceholder();
+
+    final child = KeyedSubtree(
+      key: Key('${widget.keyPrefix}-thumb-$index'),
+      child: DecoratedBox(
+        key: Key('${widget.keyPrefix}-thumbnail-tile-$index-decoration'),
+        decoration: BoxDecoration(
+          color: tileColor,
+          borderRadius: context.appRadius.xsBorder,
+          border: Border.all(color: borderColor, width: borderWidth),
+          boxShadow:
+              (isActive || isClipEndpoint) ? context.appShadows.panel : null,
+        ),
+        child: ClipRRect(
+          borderRadius: context.appRadius.xsBorder,
+          child:
+              isClipEndpoint
+                  ? Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      image,
+                      Positioned(
+                        top: 4,
+                        left: 4,
+                        child: _ClipEndpointBadge(
+                          label: isClipStart ? '起' : '终',
+                        ),
+                      ),
+                    ],
+                  )
+                  : image,
+        ),
+      ),
+    );
+
+    final menuHandler = widget.onThumbnailMenuRequested;
+    if (menuHandler == null) {
+      return GestureDetector(
+        onTap: () => widget.onThumbnailTap(index),
+        child: child,
+      );
+    }
+
+    return AppImageActionTrigger(
+      onTap: () => widget.onThumbnailTap(index),
+      onRequestMenu: (globalPosition) => menuHandler(index, globalPosition),
+      child: child,
     );
   }
 }

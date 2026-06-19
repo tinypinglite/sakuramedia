@@ -1607,6 +1607,8 @@ void main() {
             'medium': 'thumb-medium.webp',
             'large': 'thumb-large.webp',
           },
+          'width': 1280,
+          'height': 720,
         },
       ],
     );
@@ -1619,8 +1621,40 @@ void main() {
     expect(thumbnails.single.mediaId, 100);
     expect(thumbnails.single.offsetSeconds, 10);
     expect(thumbnails.single.image.bestAvailableUrl, 'thumb-large.webp');
+    expect(thumbnails.single.width, 1280);
+    expect(thumbnails.single.height, 720);
     expect(adapter.requests.single.path, '/media/100/thumbnails');
   });
+
+  test(
+    'getMediaThumbnails falls back to null width/height when backend omits them',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/thumbnails',
+        statusCode: 200,
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'thumbnail_id': 5,
+            'media_id': 100,
+            'offset_seconds': 10,
+            'image': <String, dynamic>{
+              'id': 88,
+              'origin': 'thumb-origin.webp',
+              'small': 'thumb-small.webp',
+              'medium': 'thumb-medium.webp',
+              'large': 'thumb-large.webp',
+            },
+          },
+        ],
+      );
+
+      final thumbnails = await moviesApi.getMediaThumbnails(mediaId: 100);
+
+      expect(thumbnails.single.width, isNull);
+      expect(thumbnails.single.height, isNull);
+    },
+  );
 
   test(
     'getMediaThumbnails returns empty list when backend has no thumbnails',

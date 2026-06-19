@@ -33,6 +33,7 @@ class MoviePlayerThumbnailPanel extends StatefulWidget {
     this.onToggleClipSelectionMode,
     this.onCreateClip,
     this.onClearClipSelection,
+    this.layout = ThumbnailGridLayout.uniform16x9,
   });
 
   final List<MovieMediaThumbnailDto> thumbnails;
@@ -59,6 +60,10 @@ class MoviePlayerThumbnailPanel extends StatefulWidget {
   final VoidCallback? onToggleClipSelectionMode;
   final VoidCallback? onCreateClip;
   final VoidCallback? onClearClipSelection;
+
+  /// 缩略图网格布局。pornbox 合集连播页传 [ThumbnailGridLayout.staggered] 走瀑布流；
+  /// 其余调用方默认 [ThumbnailGridLayout.uniform16x9]（统一 16:9 网格 + 运行时 fit 自适应）。
+  final ThumbnailGridLayout layout;
 
   @override
   State<MoviePlayerThumbnailPanel> createState() =>
@@ -171,6 +176,7 @@ class _MoviePlayerThumbnailPanelState extends State<MoviePlayerThumbnailPanel> {
                   clipStartIndex: widget.clipStartIndex,
                   clipEndIndex: widget.clipEndIndex,
                   keyPrefix: 'movie-player',
+                  layout: widget.layout,
                 ),
               ),
             ],

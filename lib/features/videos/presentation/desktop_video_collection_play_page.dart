@@ -25,6 +25,7 @@ import 'package:sakuramedia/widgets/movie_player/collection_filmstrip_controller
 import 'package:sakuramedia/widgets/movie_player/collection_play_split_layout.dart';
 import 'package:sakuramedia/widgets/movie_player/collection_playback_page_mixin.dart';
 import 'package:sakuramedia/widgets/movie_player/episode_selector_overlay.dart';
+import 'package:sakuramedia/widgets/movie_player/movie_media_thumbnail_grid.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/movie_player/themed_video_player.dart';
@@ -152,6 +153,8 @@ class _DesktopVideoCollectionPlayPageState
               MovieImageDto image,
               int mediaId,
               int thumbnailId,
+              int? width,
+              int? height,
             })>[];
           }
           final thumbnails = await moviesApi.getMediaThumbnails(mediaId: mediaId);
@@ -163,6 +166,9 @@ class _DesktopVideoCollectionPlayPageState
                   // 透传真实 id 供右面板「添加时刻」（创建 MediaPoint）。
                   mediaId: thumbnail.mediaId,
                   thumbnailId: thumbnail.thumbnailId,
+                  // 媒体分辨率（整组一致；未探测出时为 null），瀑布流面板据此预算 tile 高度。
+                  width: thumbnail.width,
+                  height: thumbnail.height,
                 ),
               )
               .toList();
@@ -346,6 +352,8 @@ class _DesktopVideoCollectionPlayPageState
       ),
       right: buildFilmstripPanel(
         onThumbnailMenuRequested: _showThumbnailActions,
+        // pornbox 帧自带 width/height（=媒体分辨率），按真实比例瀑布流排版，混合横竖图无两侧留底。
+        layout: ThumbnailGridLayout.staggered,
       ),
     );
   }

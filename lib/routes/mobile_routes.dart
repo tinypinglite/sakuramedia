@@ -11,6 +11,8 @@ import 'package:sakuramedia/app/app_version_info_controller.dart';
 import 'package:sakuramedia/features/account/presentation/mobile_change_password_page.dart';
 import 'package:sakuramedia/features/account/presentation/mobile_change_username_page.dart';
 import 'package:sakuramedia/features/actors/presentation/mobile_actor_detail_page.dart';
+import 'package:sakuramedia/features/activity/presentation/mobile_notifications_page.dart';
+import 'package:sakuramedia/features/activity/presentation/notification_center_controller.dart';
 import 'package:sakuramedia/features/auth/presentation/login_page.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -41,6 +43,7 @@ import 'package:sakuramedia/routes/app_route_helpers.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_shell.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_subpage_shell.dart';
 
@@ -301,6 +304,26 @@ class MobileSystemOverviewRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return const MobileSystemOverviewPage();
+  }
+}
+
+@TypedGoRoute<MobileNotificationsRouteData>(path: mobileNotificationsPath)
+class MobileNotificationsRouteData extends _MobileSubpageRouteData
+    with $MobileNotificationsRouteData {
+  const MobileNotificationsRouteData();
+
+  @override
+  String get pageName => 'mobile-notifications';
+
+  @override
+  String get title => '消息';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileNotificationsPage();
   }
 }
 
@@ -879,6 +902,7 @@ class _MobileOverviewDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = hostContext.appSpacing;
+    final unreadCount = _watchNotificationUnreadCount(context) ?? 0;
 
     return Drawer(
       key: const Key('mobile-overview-drawer'),
@@ -907,6 +931,44 @@ class _MobileOverviewDrawer extends StatelessWidget {
                           _buildMenuEntry(
                             context: context,
                             item: _overviewItem,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: spacing.md),
+                      _MobileOverviewDrawerSection(
+                        key: const Key(
+                          'mobile-overview-drawer-notifications-section',
+                        ),
+                        items: <Widget>[
+                          _MobileOverviewDrawerItem(
+                            key: const Key(
+                              'mobile-overview-drawer-notifications',
+                            ),
+                            icon: Icons.notifications_none_rounded,
+                            label: '消息',
+                            trailing: unreadCount > 0
+                                ? AppBadge(
+                                    key: const Key(
+                                      'mobile-overview-drawer-notifications-badge',
+                                    ),
+                                    label: unreadCount > 99
+                                        ? '99+'
+                                        : '$unreadCount',
+                                    tone: AppBadgeTone.error,
+                                    size: AppBadgeSize.compact,
+                                  )
+                                : null,
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (!hostContext.mounted) {
+                                  return;
+                                }
+                                const MobileNotificationsRouteData().push(
+                                  hostContext,
+                                );
+                              });
+                            },
                           ),
                         ],
                       ),
@@ -1163,6 +1225,14 @@ class _MobileDrawerVersionRow extends StatelessWidget {
   }
 }
 
+int? _watchNotificationUnreadCount(BuildContext context) {
+  try {
+    return context.watch<NotificationCenterController>().unreadCount;
+  } on ProviderNotFoundException {
+    return null;
+  }
+}
+
 AppVersionInfoController? _readVersionInfoController(BuildContext context) {
   try {
     return context.read<AppVersionInfoController>();
@@ -1246,11 +1316,13 @@ class _MobileOverviewDrawerItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.trailing,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -1295,6 +1367,10 @@ class _MobileOverviewDrawerItem extends StatelessWidget {
                   ),
                 ),
               ),
+              if (trailing != null) ...[
+                SizedBox(width: spacing.sm),
+                trailing!,
+              ],
             ],
           ),
         ),
