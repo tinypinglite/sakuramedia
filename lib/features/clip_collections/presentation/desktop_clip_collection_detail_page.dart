@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/core/format/file_size.dart';
+import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/add_clips_to_collection_dialog.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collection_detail_controller.dart';
@@ -17,7 +17,6 @@ import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
-import 'package:sakuramedia/widgets/clips/clip_cover_overlays.dart';
 import 'package:sakuramedia/widgets/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
@@ -369,20 +368,16 @@ class _DesktopClipCollectionDetailPageState
       itemCount: clips.length,
       itemBuilder: (context, index) {
         final clip = clips[index];
-        final title = clip.title.trim();
         final number =
             clip.movieNumber?.isNotEmpty == true ? clip.movieNumber! : '无番号';
-        // 时长已在封面徽标显示，下方元信息保留番号与大小，和列表视图信息对齐。
-        final subtitle =
-            clip.fileSizeBytes > 0
-                ? '$number · ${formatFileSize(clip.fileSizeBytes)}'
-                : number;
+        final duration = formatMediaTimecode(clip.durationSeconds);
         return CollectionMemberCard(
           key: ValueKey<int>(clip.clipId),
           coverUrl: clip.coverImage?.bestAvailableUrl,
-          coverAspectRatio: 16 / 9,
-          title: title.isEmpty ? '未命名切片' : title,
-          subtitle: subtitle,
+          coverAspectRatio: 16 / 10,
+          title: number,
+          subtitle: duration,
+          clipOverlay: true,
           onTap: selectionMode
               ? () => toggleSelect(clip.clipId)
               : () => _playFrom(index),
@@ -392,7 +387,6 @@ class _DesktopClipCollectionDetailPageState
           onRemove: () => _removeClip(clip),
           onDelete: () => _deleteClip(clip),
           deleteLabel: '删除切片',
-          coverBadge: ClipDurationBadge(seconds: clip.durationSeconds),
           selectionMode: selectionMode,
           isSelected: isSelected(clip.clipId),
         );

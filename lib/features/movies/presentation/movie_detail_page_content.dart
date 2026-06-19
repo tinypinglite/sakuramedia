@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
@@ -15,6 +16,7 @@ import 'package:sakuramedia/widgets/movie_detail/movie_detail_hero_card.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_section.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_stat_row.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_title.dart';
+import 'package:sakuramedia/widgets/movie_detail/movie_clip_strip.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_media_item_list.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_gallery.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_similar_movie_strip.dart';
@@ -61,6 +63,14 @@ class MovieDetailPageContent extends StatelessWidget {
     this.similarMoviesErrorMessage,
     this.onRetrySimilarMovies,
     this.onSimilarMovieTap,
+    this.clips = const <MediaClipDto>[],
+    this.isClipsLoading = false,
+    this.clipsErrorMessage,
+    this.onRetryClips,
+    this.onPlayClip,
+    this.onRenameClip,
+    this.onDeleteClip,
+    this.onAddClipToCollection,
     this.contentPadding = EdgeInsets.zero,
     this.bottomInfoBarVariant = MovieDetailBottomInfoBarVariant.desktopCard,
     this.scrollPhysics,
@@ -112,6 +122,14 @@ class MovieDetailPageContent extends StatelessWidget {
   final String? similarMoviesErrorMessage;
   final VoidCallback? onRetrySimilarMovies;
   final ValueChanged<MovieListItemDto>? onSimilarMovieTap;
+  final List<MediaClipDto> clips;
+  final bool isClipsLoading;
+  final String? clipsErrorMessage;
+  final VoidCallback? onRetryClips;
+  final ValueChanged<MediaClipDto>? onPlayClip;
+  final ValueChanged<MediaClipDto>? onRenameClip;
+  final ValueChanged<MediaClipDto>? onDeleteClip;
+  final ValueChanged<MediaClipDto>? onAddClipToCollection;
   final EdgeInsetsGeometry contentPadding;
   final MovieDetailBottomInfoBarVariant bottomInfoBarVariant;
   final ScrollPhysics? scrollPhysics;
@@ -298,6 +316,20 @@ class MovieDetailPageContent extends StatelessWidget {
               onRequestPointMenu: onRequestMediaPointMenu,
             ),
           ),
+        MovieDetailSection(
+          title: '切片',
+          titleKey: const Key('movie-clips-title'),
+          child: MovieClipStrip(
+            clips: clips,
+            isLoading: isClipsLoading,
+            errorMessage: clipsErrorMessage,
+            onRetry: onRetryClips,
+            onPlayClip: onPlayClip ?? (_) {},
+            onRenameClip: onRenameClip ?? (_) {},
+            onDeleteClip: onDeleteClip ?? (_) {},
+            onAddClipToCollection: onAddClipToCollection ?? (_) {},
+          ),
+        ),
         MovieDetailSection(
           title: '相似影片',
           titleKey: const Key('movie-similar-movies-title'),

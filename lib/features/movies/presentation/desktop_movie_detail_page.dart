@@ -8,12 +8,16 @@ import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_launcher.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
+import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_action_copy.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_action_menu.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_action_support.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_clip_section_mixin.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_clips_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_page_content.dart';
@@ -42,8 +46,10 @@ class DesktopMovieDetailPage extends StatefulWidget {
   State<DesktopMovieDetailPage> createState() => _DesktopMovieDetailPageState();
 }
 
-class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
+class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
+    with MovieClipSectionMixin {
   late final MovieDetailController _controller;
+  late final MovieClipsController _movieClipsController;
   late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
   var _ownsSubscriptionChangeNotifier = false;
   final Map<int, List<MovieMediaPointDto>> _pointOverrides =
@@ -62,6 +68,9 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
       _activeMovieAction != null;
 
   @override
+  MovieClipsController get movieClipsController => _movieClipsController;
+
+  @override
   void initState() {
     super.initState();
     final binding = resolveMovieSubscriptionNotifier(context);
@@ -72,12 +81,18 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
       fetchMovieDetail: context.read<MoviesApi>().getMovieDetail,
       fetchSimilarMovies: context.read<MoviesApi>().getSimilarMovies,
     )..load();
+    _movieClipsController = MovieClipsController(
+      movieNumber: widget.movieNumber,
+      fetchClips: context.read<ClipsApi>().getClipsByMovieNumber,
+      mutationNotifier: context.read<ClipMutationChangeNotifier>(),
+    )..load();
     _loadMovieCollectionStatus();
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _movieClipsController.dispose();
     if (_ownsSubscriptionChangeNotifier) {
       _subscriptionChangeNotifier.dispose();
     }
@@ -110,7 +125,10 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
                 .where((item) => item.mediaId == _selectedMediaId)
                 .firstOrNull ??
             (mediaItems.isNotEmpty ? mediaItems.first : null);
-        return MovieDetailPageContent(
+        return AnimatedBuilder(
+          animation: _movieClipsController,
+          builder: (context, child) {
+            return MovieDetailPageContent(
           movie: movie,
           mediaItemsOverride: mediaItems,
           selectedPreviewKey: _controller.selectedPreviewKey,
@@ -226,6 +244,16 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage> {
                 movieNumber: movie.movieNumber,
                 selectedMedia: selectedMedia,
               ),
+              clips: _movieClipsController.clips,
+              isClipsLoading: _movieClipsController.isLoading,
+              clipsErrorMessage: _movieClipsController.errorMessage,
+              onRetryClips: _movieClipsController.retry,
+              onPlayClip: playMovieClip,
+              onRenameClip: renameMovieClip,
+              onDeleteClip: deleteMovieClip,
+              onAddClipToCollection: addMovieClipToCollection,
+            );
+          },
         );
       },
     );
