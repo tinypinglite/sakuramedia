@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
@@ -159,7 +160,7 @@ class MovieMediaItemList extends StatelessWidget {
   String _buildLabel(MovieMediaItemDto item) {
     final parts = <String>[
       if (item.specialTags.trim().isNotEmpty) item.specialTags.trim(),
-      _formatFileSize(item.fileSizeBytes),
+      formatFileSize(item.fileSizeBytes),
     ];
     if (parts.isNotEmpty) {
       return parts.join(' ');
@@ -229,17 +230,5 @@ class MovieMediaItemList extends StatelessWidget {
         .replaceFirst(RegExp(r'0+$'), '')
         .replaceFirst(RegExp(r'\.$'), '');
     return '$formatted fps';
-  }
-
-  String _formatFileSize(int bytes) {
-    if (bytes <= 0) {
-      return '0 MB';
-    }
-    const bytesPerGb = 1024 * 1024 * 1024;
-    const bytesPerMb = 1024 * 1024;
-    if (bytes >= bytesPerGb) {
-      return '${(bytes / bytesPerGb).toStringAsFixed(1)} GB';
-    }
-    return '${(bytes / bytesPerMb).toStringAsFixed(1)} MB';
   }
 }

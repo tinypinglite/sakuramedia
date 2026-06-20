@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
+import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -1083,7 +1084,7 @@ class _MovieDetailMagnetCandidateCard extends StatelessWidget {
               _MagnetMetaText(label: '做种', value: '${candidate.seeders}'),
               _MagnetMetaText(
                 label: '体积',
-                value: _formatFileSize(candidate.sizeBytes),
+                value: formatFileSize(candidate.sizeBytes),
               ),
             ],
           ),
@@ -1623,16 +1624,4 @@ class _MovieDetailMissavLoadingState extends StatelessWidget {
       ),
     );
   }
-}
-
-String _formatFileSize(int bytes) {
-  if (bytes <= 0) {
-    return '0 MB';
-  }
-  const bytesPerGb = 1024 * 1024 * 1024;
-  const bytesPerMb = 1024 * 1024;
-  if (bytes >= bytesPerGb) {
-    return '${(bytes / bytesPerGb).toStringAsFixed(1)} GB';
-  }
-  return '${(bytes / bytesPerMb).toStringAsFixed(1)} MB';
 }
