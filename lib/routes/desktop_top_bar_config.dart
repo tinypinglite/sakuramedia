@@ -116,6 +116,14 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
     );
   }
 
+  if (currentPath == desktopVideoCollectionsPath) {
+    return const DesktopTopBarConfig(
+      title: '视频合集',
+      fallbackPath: desktopVideosPath,
+      isBackEnabled: true,
+    );
+  }
+
   if (currentPath.startsWith('$desktopVideoCollectionsPath/')) {
     return DesktopTopBarConfig(
       title: '合集详情',

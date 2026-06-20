@@ -21,20 +21,24 @@ Future<ClipCollectionDto?> showPickClipCollectionDialog(
   BuildContext context, {
   PickClipCollectionPresentation presentation =
       PickClipCollectionPresentation.dialog,
+  int? excludedCollectionId,
 }) {
   switch (presentation) {
     case PickClipCollectionPresentation.dialog:
       return showDialog<ClipCollectionDto>(
         context: context,
-        builder: (dialogContext) => const _PickClipCollectionDialog(),
+        builder: (dialogContext) => _PickClipCollectionDialog(
+          excludedCollectionId: excludedCollectionId,
+        ),
       );
     case PickClipCollectionPresentation.bottomDrawer:
       return showAppBottomDrawer<ClipCollectionDto>(
         context: context,
         drawerKey: const Key('pick-clip-collection-bottom-sheet'),
         maxHeightFactor: 0.7,
-        builder: (sheetContext) => const _PickClipCollectionDialog(
+        builder: (sheetContext) => _PickClipCollectionDialog(
           presentation: PickClipCollectionPresentation.bottomDrawer,
+          excludedCollectionId: excludedCollectionId,
         ),
       );
   }
@@ -43,9 +47,13 @@ Future<ClipCollectionDto?> showPickClipCollectionDialog(
 class _PickClipCollectionDialog extends StatefulWidget {
   const _PickClipCollectionDialog({
     this.presentation = PickClipCollectionPresentation.dialog,
+    this.excludedCollectionId,
   });
 
   final PickClipCollectionPresentation presentation;
+
+  /// 从合集详情页发起「移到另一合集」时传入当前合集 id，列表会把它过滤掉。
+  final int? excludedCollectionId;
 
   @override
   State<_PickClipCollectionDialog> createState() =>
@@ -78,8 +86,13 @@ class _PickClipCollectionDialogState extends State<_PickClipCollectionDialog> {
       if (!mounted) {
         return;
       }
+      final excluded = widget.excludedCollectionId;
       setState(() {
-        _collections = collections;
+        _collections = excluded == null
+            ? collections
+            : collections
+                .where((c) => c.id != excluded)
+                .toList(growable: false);
         _isLoading = false;
       });
     } catch (error) {

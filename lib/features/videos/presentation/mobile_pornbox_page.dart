@@ -332,39 +332,38 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(height: spacing.sm),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: spacing.md),
-          child: Row(
-            children: [
-              Text(
-                '视频合集',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s16,
-                  weight: AppTextWeight.semibold,
-                  tone: AppTextTone.primary,
-                ),
+        // 页面横向缩进由 AppMobileShell 的 8px body padding 统一提供，此处不再叠加，
+        // 否则左右合计 24px，比 movies / actors 等同类页明显宽。
+        Row(
+          children: [
+            Text(
+              '视频合集',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s16,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
               ),
-              const Spacer(),
+            ),
+            const Spacer(),
+            AppTextButton(
+              key: const Key('mobile-pornbox-create-collection-button'),
+              label: '新建',
+              size: AppTextButtonSize.small,
+              emphasis: AppTextButtonEmphasis.accent,
+              onPressed: _createCollection,
+            ),
+            if (collections.isNotEmpty) ...[
+              SizedBox(width: spacing.xs),
               AppTextButton(
-                key: const Key('mobile-pornbox-create-collection-button'),
-                label: '新建',
+                key: const Key('mobile-pornbox-view-all-collections-button'),
+                label: '查看全部',
                 size: AppTextButtonSize.small,
                 emphasis: AppTextButtonEmphasis.accent,
-                onPressed: _createCollection,
+                onPressed: _viewAllCollections,
               ),
-              if (collections.isNotEmpty) ...[
-                SizedBox(width: spacing.xs),
-                AppTextButton(
-                  key: const Key('mobile-pornbox-view-all-collections-button'),
-                  label: '查看全部',
-                  size: AppTextButtonSize.small,
-                  emphasis: AppTextButtonEmphasis.accent,
-                  onPressed: _viewAllCollections,
-                ),
-              ],
             ],
-          ),
+          ],
         ),
         SizedBox(height: spacing.sm),
         _buildCollectionsRow(context, collections),
@@ -395,7 +394,7 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
       child: ListView.separated(
         key: const Key('mobile-pornbox-collections-row'),
         scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: spacing.md),
+        // 横滑首尾内缩由 shell body padding 统一提供，此处不叠加额外 horizontal。
         itemCount: collections.length,
         separatorBuilder: (context, index) => SizedBox(width: spacing.sm),
         itemBuilder: (context, index) {
@@ -423,7 +422,8 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
     final arrow =
         filter.sortDirection == SortDirection.desc ? '↓' : '↑';
     return Padding(
-      padding: EdgeInsets.fromLTRB(spacing.md, 0, spacing.md, spacing.sm),
+      // 横向缩进由 shell 提供，此处只补底部留白。
+      padding: EdgeInsets.only(bottom: spacing.sm),
       child: Row(
         children: [
           Text(
@@ -510,34 +510,32 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
       );
     }
     final spacing = context.appSpacing;
-    return SliverPadding(
-      padding: EdgeInsets.symmetric(horizontal: spacing.md),
-      sliver: SliverGrid(
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 180,
-          mainAxisSpacing: spacing.md,
-          crossAxisSpacing: spacing.md,
-          childAspectRatio: context.appComponentTokens.movieCardAspectRatio,
-        ),
-        delegate: SliverChildBuilderDelegate((context, index) {
-          final video = videos[index];
-          return GestureDetector(
-            onLongPress: selectionMode
-                ? null
-                : () {
-                    enterSelection();
-                    toggleSelect(video.id);
-                  },
-            child: VideoSummaryCard(
-              video: video,
-              onTap: selectionMode ? null : () => _openSheet(video),
-              selectionMode: selectionMode,
-              isSelected: isSelected(video.id),
-              onSelectedChanged: (_) => toggleSelect(video.id),
-            ),
-          );
-        }, childCount: videos.length),
+    // 网格横向缩进由 shell 提供，此处不再叠加外层 SliverPadding。
+    return SliverGrid(
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 180,
+        mainAxisSpacing: spacing.md,
+        crossAxisSpacing: spacing.md,
+        childAspectRatio: context.appComponentTokens.movieCardAspectRatio,
       ),
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final video = videos[index];
+        return GestureDetector(
+          onLongPress: selectionMode
+              ? null
+              : () {
+                  enterSelection();
+                  toggleSelect(video.id);
+                },
+          child: VideoSummaryCard(
+            video: video,
+            onTap: selectionMode ? null : () => _openSheet(video),
+            selectionMode: selectionMode,
+            isSelected: isSelected(video.id),
+            onSelectedChanged: (_) => toggleSelect(video.id),
+          ),
+        );
+      }, childCount: videos.length),
     );
   }
 

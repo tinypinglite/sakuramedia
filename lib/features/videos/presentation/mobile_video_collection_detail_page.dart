@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/features/videos/presentation/mobile_video_actions_sheet.dart';
+import 'package:sakuramedia/features/videos/presentation/mobile_video_player_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pick_video_collection_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/video_collection_detail_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
@@ -120,7 +121,8 @@ class _MobileVideoCollectionDetailPageState
     final items = _controller.items;
     final count = collection?.itemCount ?? items.length;
     return Padding(
-      padding: EdgeInsets.fromLTRB(spacing.md, spacing.md, spacing.md, 0),
+      // 横向缩进由 AppMobileSubpageShell 的 8px body padding 统一提供。
+      padding: EdgeInsets.only(top: spacing.md),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -202,7 +204,8 @@ class _MobileVideoCollectionDetailPageState
     final items = _controller.items;
     return ListView.separated(
       key: const Key('mobile-video-collection-detail-list'),
-      padding: EdgeInsets.fromLTRB(spacing.md, 0, spacing.md, spacing.lg),
+      // 横向缩进由 shell 提供，此处只补底部留白。
+      padding: EdgeInsets.only(bottom: spacing.lg),
       itemCount: items.length,
       separatorBuilder: (context, index) => SizedBox(height: spacing.sm),
       itemBuilder: (context, index) {
@@ -246,7 +249,8 @@ class _MobileVideoCollectionDetailPageState
     final items = _controller.items;
     return GridView.builder(
       key: const Key('mobile-video-collection-detail-grid'),
-      padding: EdgeInsets.fromLTRB(spacing.md, 0, spacing.md, spacing.lg),
+      // 横向缩进由 shell 提供，此处只补底部留白。
+      padding: EdgeInsets.only(bottom: spacing.lg),
       gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 180,
         mainAxisSpacing: spacing.md,
@@ -298,7 +302,7 @@ class _MobileVideoCollectionDetailPageState
     showMobileVideoActionsSheet(
       context,
       video: video,
-      onPlay: () => _playFrom(index),
+      onPlay: () => _playVideoSingle(video),
       onRemoveFromCollection: () => _removeItem(itemId, video.id),
       onDelete: () => _deleteVideo(itemId, video),
     );
@@ -317,6 +321,20 @@ class _MobileVideoCollectionDetailPageState
       // 移动端详情页按手动顺序展示（sortExpression 为 null），连播顺序与之一致。
       sort: _controller.sortExpression,
     ).push(context);
+  }
+
+  /// 动作抽屉「播放」：只播这一条视频（对齐移动 PornBox 主页 `_playVideo`），不进合集连播。
+  /// 头部「播放」按钮仍走 [_playFrom] 走整张合集连播。
+  void _playVideoSingle(VideoItemListItemDto video) {
+    // 用根 Navigator 推全屏页，覆盖底部导航。
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        builder: (_) => MobileVideoPlayerPage(
+          videoId: video.id,
+          title: video.preferredTitle,
+        ),
+      ),
+    );
   }
 
   Future<void> _removeItem(int itemId, int videoId) async {

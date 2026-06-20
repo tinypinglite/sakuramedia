@@ -19,6 +19,7 @@ import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
+import 'package:sakuramedia/widgets/clips/clip_player_dialog.dart';
 import 'package:sakuramedia/widgets/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
@@ -301,7 +302,7 @@ class _DesktopClipCollectionDetailPageState
         isHovered: _hoveredClipId == clip.clipId,
         onTap: selectionMode
             ? () => toggleSelect(clip.clipId)
-            : () => _playFrom(index),
+            : () => _playClipSingle(clip),
         menuKey: Key('clip-collection-menu-${clip.clipId}'),
         dragHandleKey: Key('clip-reorder-handle-${clip.clipId}'),
         onOpenSource: _openMovieCallback(clip),
@@ -387,7 +388,7 @@ class _DesktopClipCollectionDetailPageState
               clipOverlay: true,
               onTap: selectionMode
                   ? () => toggleSelect(clip.clipId)
-                  : () => _playFrom(index),
+                  : () => _playClipSingle(clip),
               menuKey: Key('clip-collection-grid-menu-${clip.clipId}'),
               onOpenSource: _openMovieCallback(clip),
               openSourceLabel: '影片',
@@ -417,6 +418,16 @@ class _DesktopClipCollectionDetailPageState
     context.pushDesktopClipCollectionPlay(
       collectionId: widget.collectionId,
       startIndex: index,
+    );
+  }
+
+  /// 点单条卡片：只播这一个切片（对齐桌面切片主页 `_playClip`），不进合集连播。
+  /// 头部「播放」按钮仍走 [_playFrom] 走整张合集连播。
+  void _playClipSingle(MediaClipDto clip) {
+    showClipPlayerDialog(
+      context,
+      streamUrl: clip.streamUrl,
+      title: clip.title,
     );
   }
 
