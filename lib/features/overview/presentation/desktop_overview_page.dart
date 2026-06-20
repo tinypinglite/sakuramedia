@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
@@ -219,6 +222,8 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
                             movieNumber: movie.movieNumber,
                             fallbackPath: desktopOverviewPath,
                           ),
+                      onMovieMenuRequest: (movie, globalPosition) =>
+                          requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
                       onMovieSubscriptionTap:
                           (movie) =>
                               _toggleMovieSubscription(movie.movieNumber),

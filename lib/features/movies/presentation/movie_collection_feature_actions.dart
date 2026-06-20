@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
@@ -35,6 +37,22 @@ String? extractCollectionFeaturePrefix(String movieNumber) {
   }
 
   return prefix;
+}
+
+/// 列表页右键/长按菜单的便捷入口:免去各处重复的
+/// `unawaited(showMovieCollectionFeatureActionMenu(...))` 闭包。
+void requestMovieCollectionMenu(
+  BuildContext context,
+  String movieNumber,
+  Offset globalPosition,
+) {
+  unawaited(
+    showMovieCollectionFeatureActionMenu(
+      context: context,
+      movieNumber: movieNumber,
+      globalPosition: globalPosition,
+    ),
+  );
 }
 
 Future<void> showMovieCollectionFeatureActionMenu({

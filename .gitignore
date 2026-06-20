@@ -71,3 +71,6 @@ android.agents.md
 
 .claude
 .mcp.json
+
+# Serena MCP(符号级代码导航)本地缓存/配置/日志,不进版本库
+.serena/

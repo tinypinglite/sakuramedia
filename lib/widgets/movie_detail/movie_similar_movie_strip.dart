@@ -13,6 +13,7 @@ class MovieSimilarMovieStrip extends StatelessWidget {
     this.errorMessage,
     this.onRetry,
     this.onMovieTap,
+    this.onMovieMenuRequest,
   });
 
   final List<MovieListItemDto> movies;
@@ -20,6 +21,8 @@ class MovieSimilarMovieStrip extends StatelessWidget {
   final String? errorMessage;
   final VoidCallback? onRetry;
   final ValueChanged<MovieListItemDto>? onMovieTap;
+  final void Function(MovieListItemDto movie, Offset globalPosition)?
+  onMovieMenuRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +68,11 @@ class MovieSimilarMovieStrip extends StatelessWidget {
               child: MovieSummaryCard(
                 movie: movie,
                 onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
+                onRequestMenu:
+                    onMovieMenuRequest == null
+                        ? null
+                        : (globalPosition) =>
+                            onMovieMenuRequest!(movie, globalPosition),
               ),
             ),
           )

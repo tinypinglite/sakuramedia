@@ -21,6 +21,7 @@ class CatalogSearchContent extends StatelessWidget {
     required this.onSubmitSearch,
     required this.onTabSelected,
     required this.onMovieTap,
+    this.onMovieMenuRequest,
     required this.onActorTap,
     required this.onMovieSubscriptionTap,
     required this.onActorSubscriptionTap,
@@ -34,6 +35,8 @@ class CatalogSearchContent extends StatelessWidget {
   final VoidCallback onSubmitSearch;
   final ValueChanged<int> onTabSelected;
   final ValueChanged<MovieListItemDto> onMovieTap;
+  final void Function(MovieListItemDto movie, Offset globalPosition)?
+  onMovieMenuRequest;
   final ValueChanged<ActorListItemDto> onActorTap;
   final ValueChanged<MovieListItemDto> onMovieSubscriptionTap;
   final ValueChanged<ActorListItemDto> onActorSubscriptionTap;
@@ -100,6 +103,7 @@ class CatalogSearchContent extends StatelessWidget {
                   ? '在线源未找到该番号或未成功入库'
                   : '本地库中没有匹配该番号的影片。',
           onMovieTap: onMovieTap,
+          onMovieMenuRequest: onMovieMenuRequest,
           onMovieSubscriptionTap: onMovieSubscriptionTap,
           isMovieSubscriptionUpdating:
               (movie) =>

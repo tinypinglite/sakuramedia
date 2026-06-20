@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
@@ -154,6 +157,8 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
                 isLoading: _moviesController.isInitialLoading,
                 errorMessage: _moviesController.initialErrorMessage,
                 onMovieTap: widget.onMovieTap,
+                onMovieMenuRequest: (movie, globalPosition) =>
+                    requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
                 onMovieSubscriptionTap:
                     (movie) => _toggleMovieSubscription(movie.movieNumber),
                 isMovieSubscriptionUpdating:

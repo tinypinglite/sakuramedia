@@ -13,6 +13,7 @@ class RankedMovieSummaryGrid extends StatelessWidget {
     required this.isLoading,
     this.errorMessage,
     this.onMovieTap,
+    this.onMovieMenuRequest,
     this.onMovieSubscriptionTap,
     this.isMovieSubscriptionUpdating,
     this.emptyMessage = '暂无榜单数据',
@@ -23,6 +24,8 @@ class RankedMovieSummaryGrid extends StatelessWidget {
   final bool isLoading;
   final String? errorMessage;
   final ValueChanged<RankedMovieListItemDto>? onMovieTap;
+  final void Function(RankedMovieListItemDto movie, Offset globalPosition)?
+  onMovieMenuRequest;
   final ValueChanged<RankedMovieListItemDto>? onMovieSubscriptionTap;
   final bool Function(RankedMovieListItemDto movie)?
   isMovieSubscriptionUpdating;
@@ -58,6 +61,11 @@ class RankedMovieSummaryGrid extends StatelessWidget {
               movie: movie,
               rank: item.rank,
               onTap: onMovieTap == null ? null : () => onMovieTap!(item),
+              onRequestMenu:
+                  onMovieMenuRequest == null
+                      ? null
+                      : (globalPosition) =>
+                          onMovieMenuRequest!(item, globalPosition),
               onSubscriptionTap:
                   onMovieSubscriptionTap == null
                       ? null

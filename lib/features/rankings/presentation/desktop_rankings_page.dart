@@ -6,6 +6,7 @@ import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/core/format/synced_at_label.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/rankings/presentation/rankings_list_page_state.dart';
@@ -133,6 +134,8 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
                           movieNumber: movie.movieNumber,
                           fallbackPath: desktopRankingsPath,
                         ),
+                    onMovieMenuRequest: (movie, globalPosition) =>
+                        requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
                     onMovieSubscriptionTap:
                         (movie) => _toggleMovieSubscription(movie.movieNumber),
                     isMovieSubscriptionUpdating:

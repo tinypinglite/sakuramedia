@@ -164,15 +164,8 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
           isLoading: _followController.isInitialLoading,
           errorMessage: _followController.initialErrorMessage,
           onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
-          onMovieMenuRequest: (movie, globalPosition) {
-            unawaited(
-              showMovieCollectionFeatureActionMenu(
-                context: context,
-                movieNumber: movie.movieNumber,
-                globalPosition: globalPosition,
-              ),
-            );
-          },
+          onMovieMenuRequest: (movie, globalPosition) =>
+              requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
           onMovieSubscriptionTap:
               (movie) => _toggleFollowSubscription(movie.movieNumber),
           isMovieSubscriptionUpdating:
@@ -217,6 +210,8 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
       emptyMessage: '暂无每日推荐',
       placeholderCount: 6,
       onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
+      onMovieMenuRequest: (movie, globalPosition) =>
+          requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
     );
   }
 

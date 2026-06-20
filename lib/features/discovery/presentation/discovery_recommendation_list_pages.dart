@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/discovery/data/daily_recommendation_movie_d
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/discovery/data/moment_recommendation_dto.dart';
 import 'package:sakuramedia/features/discovery/presentation/discovery_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_launcher.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
 import 'package:sakuramedia/features/shared/presentation/paged_load_controller.dart';
@@ -191,6 +192,8 @@ class _DiscoveryMoviesPageState extends State<_DiscoveryMoviesPage> {
       emptyMessage: '暂无推荐影片',
       placeholderCount: _isMobile ? 6 : 12,
       onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
+      onMovieMenuRequest: (movie, globalPosition) =>
+          requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
     );
   }
 

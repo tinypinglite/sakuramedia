@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_detail_controller.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
@@ -316,20 +318,21 @@ class MovieDetailPageContent extends StatelessWidget {
               onRequestPointMenu: onRequestMediaPointMenu,
             ),
           ),
-        MovieDetailSection(
-          title: '切片',
-          titleKey: const Key('movie-clips-title'),
-          child: MovieClipStrip(
-            clips: clips,
-            isLoading: isClipsLoading,
-            errorMessage: clipsErrorMessage,
-            onRetry: onRetryClips,
-            onPlayClip: onPlayClip ?? (_) {},
-            onRenameClip: onRenameClip ?? (_) {},
-            onDeleteClip: onDeleteClip ?? (_) {},
-            onAddClipToCollection: onAddClipToCollection ?? (_) {},
+        if (isClipsLoading || clipsErrorMessage != null || clips.isNotEmpty)
+          MovieDetailSection(
+            title: '切片',
+            titleKey: const Key('movie-clips-title'),
+            child: MovieClipStrip(
+              clips: clips,
+              isLoading: isClipsLoading,
+              errorMessage: clipsErrorMessage,
+              onRetry: onRetryClips,
+              onPlayClip: onPlayClip ?? (_) {},
+              onRenameClip: onRenameClip ?? (_) {},
+              onDeleteClip: onDeleteClip ?? (_) {},
+              onAddClipToCollection: onAddClipToCollection ?? (_) {},
+            ),
           ),
-        ),
         MovieDetailSection(
           title: '相似影片',
           titleKey: const Key('movie-similar-movies-title'),
@@ -339,6 +342,8 @@ class MovieDetailPageContent extends StatelessWidget {
             errorMessage: similarMoviesErrorMessage,
             onRetry: onRetrySimilarMovies,
             onMovieTap: onSimilarMovieTap,
+            onMovieMenuRequest: (movie, globalPosition) =>
+                requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
           ),
         ),
       ],
