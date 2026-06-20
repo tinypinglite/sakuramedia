@@ -29,6 +29,8 @@ class RecordedRequest {
 class FakeHttpClientAdapter implements HttpClientAdapter {
   final Map<String, Queue<AdapterResponder>> _responderQueues =
       <String, Queue<AdapterResponder>>{};
+  final Map<String, AdapterResponder> _fallbackResponders =
+      <String, AdapterResponder>{};
   final List<RecordedRequest> requests = <RecordedRequest>[];
 
   void enqueueJson({
@@ -122,6 +124,37 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
     _responderQueues[key]!.add(responder);
   }
 
+  /// 注册某 `(method, path)` 的兜底响应器：当队列为空时按它返回，不出队，可被反复触发。
+  /// 用于详情页等隐式发出的非关键请求(如切片列表),避免每个用例都要 enqueue。
+  /// 显式 enqueue 优先;只有队列空才回落到 fallback。
+  void setFallbackJson({
+    required String method,
+    required String path,
+    int statusCode = 200,
+    dynamic body,
+    Map<String, List<String>>? headers,
+  }) {
+    final key = _routeKey(method, path);
+    _fallbackResponders[key] = (RequestOptions _, dynamic __) async {
+      if (statusCode == 204) {
+        return ResponseBody.fromBytes(
+          const <int>[],
+          statusCode,
+          headers: headers ?? const <String, List<String>>{},
+        );
+      }
+      return ResponseBody.fromString(
+        jsonEncode(body ?? const <String, dynamic>{}),
+        statusCode,
+        headers:
+            headers ??
+            const <String, List<String>>{
+              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+            },
+      );
+    };
+  }
+
   int hitCount(String method, String path) {
     return requests
         .where(
@@ -153,6 +186,10 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
     final key = _routeKey(options.method, options.path);
     final queue = _responderQueues[key];
     if (queue == null || queue.isEmpty) {
+      final fallback = _fallbackResponders[key];
+      if (fallback != null) {
+        return fallback.call(options, requestBody);
+      }
       throw StateError(
         'No queued response for ${options.method} ${options.path}',
       );
@@ -164,6 +201,7 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
   @override
   void close({bool force = false}) {
     _responderQueues.clear();
+    _fallbackResponders.clear();
     requests.clear();
   }
 

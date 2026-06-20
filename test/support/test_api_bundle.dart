@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dart';
@@ -32,6 +33,7 @@ class TestApiBundle {
     required this.activityEventStreamClient,
     required this.actorsApi,
     required this.authApi,
+    required this.clipsApi,
     required this.collectionNumberFeaturesApi,
     required this.downloadClientsApi,
     required this.discoveryApi,
@@ -56,6 +58,7 @@ class TestApiBundle {
   final ActivityEventStreamClient activityEventStreamClient;
   final ActorsApi actorsApi;
   final AuthApi authApi;
+  final ClipsApi clipsApi;
   final CollectionNumberFeaturesApi collectionNumberFeaturesApi;
   final DownloadClientsApi downloadClientsApi;
   final DiscoveryApi discoveryApi;
@@ -89,6 +92,14 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
   apiClient.rawDio.httpClientAdapter = adapter;
   apiClient.rawRefreshDio.httpClientAdapter = adapter;
 
+  // 影片详情页 init 会发 GET /media-clips 拉该片切片(列表非关键),
+  // 默认给空兜底,各用例无需逐个 enqueue;需要校验该端点的用例可显式 enqueue 覆盖。
+  adapter.setFallbackJson(
+    method: 'GET',
+    path: '/media-clips',
+    body: const <String, dynamic>{'items': <dynamic>[], 'total': 0},
+  );
+
   return TestApiBundle(
     apiClient: apiClient,
     accountApi: AccountApi(apiClient: apiClient),
@@ -99,6 +110,7 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     activityEventStreamClient: activityEventStreamClient,
     actorsApi: ActorsApi(apiClient: apiClient),
     authApi: AuthApi(apiClient: apiClient, sessionStore: sessionStore, credentialStore: InMemoryCredentialStore()),
+    clipsApi: ClipsApi(apiClient: apiClient),
     collectionNumberFeaturesApi: CollectionNumberFeaturesApi(
       apiClient: apiClient,
     ),

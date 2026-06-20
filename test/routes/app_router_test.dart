@@ -2122,6 +2122,10 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2158,6 +2162,10 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2192,6 +2200,10 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2228,6 +2240,10 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2541,6 +2557,10 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2591,6 +2611,10 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2664,6 +2688,10 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2817,6 +2845,10 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2863,6 +2895,10 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -2951,6 +2987,10 @@ void main() {
           Provider<ActorsApi>.value(value: bundle.actorsApi),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -3526,6 +3566,10 @@ void main() {
           Provider<CredentialStore>(create: (_) => CredentialStore()),
           Provider<StatusApi>.value(value: bundle.statusApi),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),

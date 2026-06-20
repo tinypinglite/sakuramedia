@@ -380,9 +380,14 @@ void main() {
 
     await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const Key('mobile-overview-drawer-media-libraries')),
+    // 新增「消息」入口后 drawer 长度增加,media-libraries 项可能滑出视区;
+    // 先 ensureVisible 再 tap,避免命中下方其它项。
+    final mediaLibrariesItem = find.byKey(
+      const Key('mobile-overview-drawer-media-libraries'),
     );
+    await tester.ensureVisible(mediaLibrariesItem);
+    await tester.pumpAndSettle();
+    await tester.tap(mediaLibrariesItem);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);

@@ -10,6 +10,8 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
+import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
@@ -1646,11 +1648,15 @@ Future<void> _pumpPage(
         Provider<ApiClient>.value(value: bundle.apiClient),
         Provider<MediaApi>.value(value: MediaApi(apiClient: bundle.apiClient)),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        Provider<ClipsApi>.value(value: bundle.clipsApi),
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
         ),
         ChangeNotifierProvider(
           create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ClipMutationChangeNotifier(),
         ),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         Provider<DownloadsApi>.value(value: bundle.downloadsApi),
@@ -1686,11 +1692,15 @@ Future<void> _pumpSubpage(
         Provider<ApiClient>.value(value: bundle.apiClient),
         Provider<MediaApi>.value(value: MediaApi(apiClient: bundle.apiClient)),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        Provider<ClipsApi>.value(value: bundle.clipsApi),
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
         ),
         ChangeNotifierProvider(
           create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ClipMutationChangeNotifier(),
         ),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         Provider<DownloadsApi>.value(value: bundle.downloadsApi),
@@ -1725,11 +1735,15 @@ Future<void> _pumpRouterPage(
         Provider<ApiClient>.value(value: bundle.apiClient),
         Provider<MediaApi>.value(value: MediaApi(apiClient: bundle.apiClient)),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        Provider<ClipsApi>.value(value: bundle.clipsApi),
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
         ),
         ChangeNotifierProvider(
           create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ClipMutationChangeNotifier(),
         ),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         Provider<DownloadsApi>.value(value: bundle.downloadsApi),
@@ -2071,3 +2085,4 @@ String? _queryValueForPath(TestApiBundle bundle, String path, String key) {
   );
   return request.uri.queryParameters[key];
 }
+

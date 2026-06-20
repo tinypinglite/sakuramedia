@@ -13,6 +13,8 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/clips/data/clips_api.dart';
+import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
@@ -667,6 +669,10 @@ void main() {
             value: MediaApi(apiClient: bundle.apiClient),
           ),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -744,6 +750,10 @@ void main() {
             value: MediaApi(apiClient: bundle.apiClient),
           ),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -825,6 +835,14 @@ void main() {
               value: MediaApi(apiClient: bundle.apiClient),
             ),
             Provider<MoviesApi>.value(value: bundle.moviesApi),
+            Provider<ClipsApi>.value(value: bundle.clipsApi),
+            ChangeNotifierProvider<ClipMutationChangeNotifier>(
+              create: (_) => ClipMutationChangeNotifier(),
+            ),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
             ChangeNotifierProvider(
               create: (_) => MovieCollectionTypeChangeNotifier(),
             ),
@@ -2466,6 +2484,14 @@ void main() {
               value: MediaApi(apiClient: bundle.apiClient),
             ),
             Provider<MoviesApi>.value(value: bundle.moviesApi),
+            Provider<ClipsApi>.value(value: bundle.clipsApi),
+            ChangeNotifierProvider<ClipMutationChangeNotifier>(
+              create: (_) => ClipMutationChangeNotifier(),
+            ),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
             ChangeNotifierProvider(
               create: (_) => MovieCollectionTypeChangeNotifier(),
             ),
@@ -2561,6 +2587,14 @@ void main() {
               value: MediaApi(apiClient: bundle.apiClient),
             ),
             Provider<MoviesApi>.value(value: bundle.moviesApi),
+            Provider<ClipsApi>.value(value: bundle.clipsApi),
+            ChangeNotifierProvider<ClipMutationChangeNotifier>(
+              create: (_) => ClipMutationChangeNotifier(),
+            ),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
             ChangeNotifierProvider(
               create: (_) => MovieCollectionTypeChangeNotifier(),
             ),
@@ -2822,6 +2856,14 @@ void main() {
               value: MediaApi(apiClient: bundle.apiClient),
             ),
             Provider<MoviesApi>.value(value: bundle.moviesApi),
+            Provider<ClipsApi>.value(value: bundle.clipsApi),
+            ChangeNotifierProvider<ClipMutationChangeNotifier>(
+              create: (_) => ClipMutationChangeNotifier(),
+            ),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
             ChangeNotifierProvider(
               create: (_) => MovieCollectionTypeChangeNotifier(),
             ),
@@ -2941,6 +2983,14 @@ void main() {
               value: MediaApi(apiClient: bundle.apiClient),
             ),
             Provider<MoviesApi>.value(value: bundle.moviesApi),
+            Provider<ClipsApi>.value(value: bundle.clipsApi),
+            ChangeNotifierProvider<ClipMutationChangeNotifier>(
+              create: (_) => ClipMutationChangeNotifier(),
+            ),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
             ChangeNotifierProvider(
               create: (_) => MovieCollectionTypeChangeNotifier(),
             ),
@@ -3077,6 +3127,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -3203,6 +3257,14 @@ void main() {
           providers: [
             ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
             Provider<MoviesApi>.value(value: bundle.moviesApi),
+            Provider<ClipsApi>.value(value: bundle.clipsApi),
+            ChangeNotifierProvider<ClipMutationChangeNotifier>(
+              create: (_) => ClipMutationChangeNotifier(),
+            ),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
             ChangeNotifierProvider(
               create: (_) => MovieCollectionTypeChangeNotifier(),
             ),
@@ -3352,6 +3414,10 @@ void main() {
         providers: [
           ChangeNotifierProvider<SessionStore>.value(value: sessionStore),
           Provider<MoviesApi>.value(value: bundle.moviesApi),
+          Provider<ClipsApi>.value(value: bundle.clipsApi),
+          ChangeNotifierProvider<ClipMutationChangeNotifier>(
+            create: (_) => ClipMutationChangeNotifier(),
+          ),
           ChangeNotifierProvider(
             create: (_) => MovieCollectionTypeChangeNotifier(),
           ),
@@ -3557,11 +3623,15 @@ Future<void> _pumpPage(
         Provider<ApiClient>.value(value: bundle.apiClient),
         Provider<MediaApi>.value(value: MediaApi(apiClient: bundle.apiClient)),
         Provider<MoviesApi>.value(value: bundle.moviesApi),
+        Provider<ClipsApi>.value(value: bundle.clipsApi),
         ChangeNotifierProvider(
           create: (_) => MovieCollectionTypeChangeNotifier(),
         ),
         ChangeNotifierProvider(
           create: (_) => MovieSubscriptionChangeNotifier(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ClipMutationChangeNotifier(),
         ),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         Provider<DownloadsApi>.value(value: bundle.downloadsApi),
