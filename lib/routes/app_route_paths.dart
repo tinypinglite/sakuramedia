@@ -86,11 +86,6 @@ String buildMobileMovieDetailRoutePath(String movieNumber) {
   return '$mobileMoviesPath/${Uri.encodeComponent(movieNumber)}';
 }
 
-@Deprecated('请改用 typed route，例如 DesktopActorDetailRoute。')
-String buildDesktopActorDetailRoutePath(int actorId) {
-  return '$desktopActorsPath/$actorId';
-}
-
 @Deprecated('请改用 typed route，例如 DesktopPlaylistDetailRoute。')
 String buildDesktopPlaylistDetailRoutePath(int playlistId) {
   return '$desktopPlaylistsPath/$playlistId';

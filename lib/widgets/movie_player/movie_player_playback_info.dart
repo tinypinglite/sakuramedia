@@ -250,17 +250,6 @@ String _buildDecodingModeLabel(
   };
 }
 
-@visibleForTesting
-MoviePlayerDecodingMode resolveMoviePlayerDecodingMode({
-  required String? hwdecCurrent,
-  required String? hwPixelformat,
-}) {
-  return _resolveDecodingMode(
-    hwdecCurrent: hwdecCurrent,
-    hwPixelformat: hwPixelformat,
-  );
-}
-
 MoviePlayerDecodingMode _resolveDecodingMode({
   required String? hwdecCurrent,
   required String? hwPixelformat,
@@ -390,13 +379,6 @@ String _normalizeTechnicalText(String? value) {
     return '--';
   }
   return normalized;
-}
-
-@visibleForTesting
-MoviePlayerDynamicRangeMode resolveMoviePlayerDynamicRangeMode(
-  VideoParams videoParams,
-) {
-  return _resolveDynamicRangeMode(videoParams);
 }
 
 MoviePlayerDynamicRangeMode _resolveDynamicRangeMode(VideoParams videoParams) {

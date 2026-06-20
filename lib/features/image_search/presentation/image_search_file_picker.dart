@@ -18,8 +18,6 @@ class ImageSearchPickedFile {
 }
 
 typedef ImageSearchFilePicker = Future<ImageSearchPickedFile?> Function();
-typedef ImageSearchSavePathPicker =
-    Future<String?> Function(String suggestedFileName, String? dialogTitle);
 typedef ImageSearchDirectoryProvider = Future<String?> Function();
 typedef ImageSearchDocumentsDirectoryProvider = Future<String?> Function();
 typedef ImageSearchEnvironmentLookup = String? Function(String name);
@@ -29,8 +27,6 @@ typedef ImageSearchDirectoryExists = bool Function(String path);
 ImageSearchFilePicker? debugImageSearchFilePicker;
 @visibleForTesting
 ImageSearchFilePicker? debugMobileImageSearchFilePicker;
-@visibleForTesting
-ImageSearchSavePathPicker? debugImageSearchSavePathPicker;
 @visibleForTesting
 ImageSearchDirectoryProvider? debugImageSearchDownloadsDirectoryProvider;
 @visibleForTesting
@@ -169,36 +165,6 @@ Future<String?> resolveImageSearchInitialDirectory() async {
       );
     case TargetPlatform.fuchsia:
       return null;
-  }
-}
-
-Future<String?> pickImageSearchSavePath({
-  required String suggestedFileName,
-  String? dialogTitle,
-}) async {
-  final override = debugImageSearchSavePathPicker;
-  if (override != null) {
-    return override(suggestedFileName, dialogTitle);
-  }
-
-  try {
-    final extension = guessImageFileExtension(suggestedFileName);
-    return await FilePicker.platform.saveFile(
-      dialogTitle: dialogTitle,
-      fileName: suggestedFileName,
-      type: FileType.custom,
-      allowedExtensions: <String>[extension],
-    );
-  } on MissingPluginException catch (error, stackTrace) {
-    debugPrint('Image search save file picker plugin is unavailable: $error');
-    debugPrintStack(stackTrace: stackTrace);
-    throw const ImageSearchFilePickerException('图片选择器尚未加载，请完整重启应用后再试');
-  } on PlatformException catch (error, stackTrace) {
-    debugPrint(
-      'Image search save file picker failed: ${error.message ?? error.code}',
-    );
-    debugPrintStack(stackTrace: stackTrace);
-    throw ImageSearchFilePickerException(error.message ?? '打开保存面板失败，请稍后再试');
   }
 }
 

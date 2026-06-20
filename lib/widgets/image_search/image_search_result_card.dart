@@ -87,7 +87,3 @@ class ImageSearchResultCard extends StatelessWidget {
 String formatImageSearchScore(double score) {
   return '${(score * 100).toStringAsFixed(1)}%';
 }
-
-String formatImageSearchOffset(int seconds) {
-  return formatMediaTimecode(seconds);
-}

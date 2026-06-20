@@ -27,5 +27,3 @@ class ApiErrorDto {
     };
   }
 }
-
-typedef ApiErrorPayload = ApiErrorDto;

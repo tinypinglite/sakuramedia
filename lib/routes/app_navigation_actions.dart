@@ -244,53 +244,9 @@ extension AppNavigationActions on BuildContext {
     ).push(this);
   }
 
-  void pushMobileActorDetail({required int actorId, String? fallbackPath}) {
-    GoRouter.optionURLReflectsImperativeAPIs = true;
-    MobileActorDetailRouteData(actorId: actorId).push(this);
-  }
-
   void pushMobileTags({required int tagId}) {
     GoRouter.optionURLReflectsImperativeAPIs = true;
     MobileTagMoviesRouteData(tagId: tagId).push(this);
-  }
-
-  void pushMobilePlaylistDetail({
-    required int playlistId,
-    String? fallbackPath,
-  }) {
-    GoRouter.optionURLReflectsImperativeAPIs = true;
-    MobilePlaylistDetailRouteData(playlistId: playlistId).push(this);
-  }
-
-  void pushMobileMoviePlayer({
-    required String movieNumber,
-    int? mediaId,
-    int? positionSeconds,
-    String? fallbackPath,
-  }) {
-    GoRouter.optionURLReflectsImperativeAPIs = true;
-    MobileMoviePlayerRouteData(
-      movieNumber: movieNumber,
-      mediaId: mediaId,
-      positionSeconds: positionSeconds,
-    ).push(this);
-  }
-
-  void pushMobileSearch({
-    required String query,
-    String? fallbackPath,
-    bool useOnlineSearch = false,
-  }) {
-    GoRouter.optionURLReflectsImperativeAPIs = true;
-    final trimmed = query.trim();
-    if (trimmed.isEmpty) {
-      MobileSearchRouteData(useOnlineSearch: useOnlineSearch).push(this);
-      return;
-    }
-    MobileSearchQueryRouteData(
-      query: trimmed,
-      useOnlineSearch: useOnlineSearch,
-    ).push(this);
   }
 
   void pushMobileImageSearch({

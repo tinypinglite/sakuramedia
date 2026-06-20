@@ -308,18 +308,6 @@ Color resolveAppTextToneColor(BuildContext context, AppTextTone tone) {
   return Theme.of(context).appTextPalette.colorFor(tone);
 }
 
-AppTextSize appTextSizeForStyle(TextStyle? style) {
-  final fontSize = style?.fontSize?.round();
-  return switch (fontSize) {
-    20 => AppTextSize.s20,
-    18 => AppTextSize.s18,
-    16 => AppTextSize.s16,
-    12 => AppTextSize.s12,
-    10 => AppTextSize.s10,
-    _ => AppTextSize.s14,
-  };
-}
-
 TextStyle resolveAppTextStyle(
   BuildContext context, {
   required AppTextSize size,
