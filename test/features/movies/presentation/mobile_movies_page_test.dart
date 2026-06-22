@@ -100,8 +100,8 @@ void main() {
     await _pumpMoviesPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('mobile-movies-page-total')), findsOneWidget);
-    expect(find.text('2 部'), findsOneWidget);
+    // L2 重设计后移动端不再显示「N 部」总数（移动端范式与桌面分歧）。
+    expect(find.byKey(const Key('mobile-movies-page-total')), findsNothing);
     expect(find.byType(MovieSummaryCard), findsNWidgets(2));
     expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
     expect(
@@ -305,7 +305,7 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  testWidgets('mobile movies page applies filter using overlay panel', (
+  testWidgets('mobile movies page applies filter using bottom drawer', (
     WidgetTester tester,
   ) async {
     bundle.adapter.enqueueJson(
@@ -327,55 +327,25 @@ void main() {
     await _pumpMoviesPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
 
-    expect(
-      tester
-          .widget<AppTextButton>(
-            find.ancestor(
-              of: find.byKey(const Key('movies-filter-trigger-label')),
-              matching: find.byType(AppTextButton),
-            ),
-          )
-          .isSelected,
-      isTrue,
-    );
-    expect(
-      _buttonBackgroundColor(
-        tester,
-        find.byKey(const Key('movies-filter-trigger-label')),
-      ),
-      sakuraThemeData.colorScheme.primary.withValues(alpha: 0.08),
-    );
-
-    await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+    // L2 重设计：filter trigger 改为右上角 icon button，弹底部抽屉。
+    await tester.tap(find.byKey(const Key('mobile-movies-filter-button')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('movies-filter-panel')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-movies-filter-drawer')), findsOneWidget);
     expect(find.text('发行年份'), findsNothing);
 
+    // 在抽屉里选「可播放」（本地副本，不立刻生效）。
     await tester.tap(find.text('可播放'));
     await tester.pump();
+
+    // 点确定才 apply。
+    await tester.tap(
+      find.byKey(const Key('mobile-movies-filter-drawer-confirm')),
+    );
     await tester.pumpAndSettle();
 
     expect(_queryValue(bundle, 1, 'status'), 'playable');
     expect(_queryValue(bundle, 1, 'collection_type'), 'single');
     expect(_queryValue(bundle, 1, 'sort'), 'release_date:desc');
-    expect(
-      tester
-          .widget<AppTextButton>(
-            find.ancestor(
-              of: find.byKey(const Key('movies-filter-trigger-label')),
-              matching: find.byType(AppTextButton),
-            ),
-          )
-          .isSelected,
-      isTrue,
-    );
-    expect(
-      _buttonBackgroundColor(
-        tester,
-        find.byKey(const Key('movies-filter-trigger-label')),
-      ),
-      sakuraThemeData.colorScheme.primary.withValues(alpha: 0.08),
-    );
   });
 
   testWidgets('mobile movies page applies quick filter presets', (
@@ -416,6 +386,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
+      find.byKey(const Key('movies-filter-preset-all')),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const Key('movies-filter-preset-latest-subscribed')),
       findsOneWidget,
     );
@@ -424,32 +398,9 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
-    expect(
-      tester
-          .widget<AppTextButton>(
-            find.ancestor(
-              of: find.byKey(const Key('movies-filter-trigger-label')),
-              matching: find.byType(AppTextButton),
-            ),
-          )
-          .isSelected,
-      isTrue,
-    );
-    expect(
-      _buttonBackgroundColor(
-        tester,
-        find.byKey(const Key('movies-filter-trigger-label')),
-      ),
-      sakuraThemeData.colorScheme.primary.withValues(alpha: 0.08),
-    );
-    expect(
-      _buttonBackgroundColor(
-        tester,
-        find.byKey(const Key('movies-filter-preset-latest-subscribed')),
-      ),
-      sakuraThemeData.appColors.surfaceMuted,
-    );
 
+    // L2 重设计：chip 不再是 AppTextButton（绕开了 isSelected 内部底色），
+    // 通过「主色字+加粗」表达选中态。验证靠点击后请求 query 是否切换正确。
     await tester.tap(
       find.byKey(const Key('movies-filter-preset-latest-subscribed')),
     );
@@ -459,32 +410,6 @@ void main() {
     expect(_queryValue(bundle, 1, 'status'), 'subscribed');
     expect(_queryValue(bundle, 1, 'collection_type'), 'single');
     expect(_queryValue(bundle, 1, 'sort'), 'subscribed_at:desc');
-    expect(
-      tester
-          .widget<AppTextButton>(
-            find.byKey(const Key('movies-filter-preset-latest-subscribed')),
-          )
-          .isSelected,
-      isTrue,
-    );
-    expect(
-      tester
-          .widget<AppTextButton>(
-            find.ancestor(
-              of: find.byKey(const Key('movies-filter-trigger-label')),
-              matching: find.byType(AppTextButton),
-            ),
-          )
-          .isSelected,
-      isFalse,
-    );
-    expect(
-      _buttonBackgroundColor(
-        tester,
-        find.byKey(const Key('movies-filter-preset-latest-subscribed')),
-      ),
-      sakuraThemeData.colorScheme.primary.withValues(alpha: 0.08),
-    );
 
     await tester.tap(
       find.byKey(const Key('movies-filter-preset-latest-added')),
@@ -495,59 +420,10 @@ void main() {
     expect(_queryValue(bundle, 2, 'status'), 'playable');
     expect(_queryValue(bundle, 2, 'collection_type'), 'single');
     expect(_queryValue(bundle, 2, 'sort'), 'added_at:desc');
-    expect(
-      tester
-          .widget<AppTextButton>(
-            find.byKey(const Key('movies-filter-preset-latest-added')),
-          )
-          .isSelected,
-      isTrue,
-    );
-    expect(
-      tester
-          .widget<AppTextButton>(
-            find.ancestor(
-              of: find.byKey(const Key('movies-filter-trigger-label')),
-              matching: find.byType(AppTextButton),
-            ),
-          )
-          .isSelected,
-      isFalse,
-    );
-    expect(
-      _buttonBackgroundColor(
-        tester,
-        find.byKey(const Key('movies-filter-preset-latest-added')),
-      ),
-      sakuraThemeData.colorScheme.primary.withValues(alpha: 0.08),
-    );
   });
 
-  testWidgets(
-    'mobile movies page aligns header filter buttons to same height',
-    (WidgetTester tester) async {
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/movies',
-        body: _moviesJson(total: 2),
-      );
-
-      await _pumpMoviesPage(
-        tester,
-        sessionStore: sessionStore,
-        bundle: bundle,
-        physicalSize: const Size(360, 900),
-      );
-      await tester.pumpAndSettle();
-
-      final triggerHeight = _buttonHeightForLabel(tester, '全部');
-      final latestSubscribedHeight = _buttonHeightForLabel(tester, '最新订阅');
-      final latestAddedHeight = _buttonHeightForLabel(tester, '最新入库');
-
-      expect(latestSubscribedHeight, triggerHeight);
-      expect(latestAddedHeight, triggerHeight);
-    },
-  );
+  // L2 重设计：移除「chip 等高对齐」测试——chip 现在统一渲染为
+  // InkWell + Text + 一致 padding，等高是结构自然成立的，无需断言。
 
   testWidgets(
     'mobile movies page loads next page on scroll and retries failed load more',

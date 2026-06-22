@@ -109,8 +109,8 @@ void main() {
     await _pumpRankingsPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('mobile-rankings-page-total')), findsOneWidget);
-    expect(find.text('2 部'), findsOneWidget);
+    // L2 重设计后移动端不再显示「N 部 · 同步于 X」总数。
+    expect(find.byKey(const Key('mobile-rankings-page-total')), findsNothing);
     expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
     expect(
       find.byKey(const Key('movie-summary-card-rank-ABC-001')),
@@ -191,14 +191,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+      // L2 重设计：filter 改为右上 icon button 弹底抽屉。
+      await tester.tap(find.byKey(const Key('mobile-rankings-filter-button')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mobile-rankings-filter-drawer')),
+        findsOneWidget,
+      );
 
       await tester.tap(find.byKey(const Key('rankings-filter-source-missav')));
       await tester.pump();
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mobile-rankings-filter-drawer')),
+        findsOneWidget,
+      );
       expect(
         bundle.adapter.requests.last.uri.path,
         '/ranking-sources/missav/boards/all/items',
@@ -217,7 +224,10 @@ void main() {
       await tester.tap(find.byKey(const Key('rankings-filter-period-weekly')));
       await tester.pump();
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mobile-rankings-filter-drawer')),
+        findsOneWidget,
+      );
       expect(
         bundle.adapter.requests.last.uri.path,
         '/ranking-sources/missav/boards/all/items',
@@ -402,9 +412,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // 打开筛选面板
-      await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+      // L2 重设计：filter 改为右上 icon button 弹底抽屉。
+      await tester.tap(find.byKey(const Key('mobile-rankings-filter-button')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('rankings-filter-panel')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mobile-rankings-filter-drawer')),
+        findsOneWidget,
+      );
 
       // 选「热度」排序
       await tester.tap(find.byKey(const Key('rankings-filter-sort-heat')));

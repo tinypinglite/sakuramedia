@@ -178,7 +178,6 @@ class _DesktopClipsPageState extends State<DesktopClipsPage>
               key: const Key('clips-create-collection-button'),
               label: '新建',
               size: AppTextButtonSize.small,
-              emphasis: AppTextButtonEmphasis.accent,
               onPressed: _createCollection,
             ),
             if (collections.isNotEmpty) ...[
@@ -187,7 +186,6 @@ class _DesktopClipsPageState extends State<DesktopClipsPage>
                 key: const Key('clips-view-all-collections-button'),
                 label: '查看全部',
                 size: AppTextButtonSize.small,
-                emphasis: AppTextButtonEmphasis.accent,
                 onPressed: _viewAllCollections,
               ),
             ],

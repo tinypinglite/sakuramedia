@@ -22,6 +22,25 @@ typedef MovieListBodyBuilder = Widget Function(
   Future<void> Function()? onRefresh,
 );
 
+typedef MovieListHeaderBuilder = Widget Function(
+  BuildContext context,
+  MovieListHeaderArgs args,
+);
+
+class MovieListHeaderArgs {
+  const MovieListHeaderArgs({
+    required this.filterState,
+    required this.onApply,
+    required this.onReset,
+    required this.total,
+  });
+
+  final MovieFilterState filterState;
+  final ValueChanged<MovieFilterState> onApply;
+  final VoidCallback onReset;
+  final int total;
+}
+
 class MovieListContent extends StatefulWidget {
   const MovieListContent({
     super.key,
@@ -35,6 +54,7 @@ class MovieListContent extends StatefulWidget {
     this.emptyMessage = '暂无影片数据',
     this.enableRefresh = false,
     this.onRefreshFailure,
+    this.headerBuilder,
   });
 
   final MovieListFilterablePageState pageState;
@@ -47,6 +67,10 @@ class MovieListContent extends StatefulWidget {
   final String emptyMessage;
   final bool enableRefresh;
   final void Function(BuildContext context)? onRefreshFailure;
+
+  /// 可选 header builder：传入则替代默认 `AppFilterTotalHeader + MovieFilterToolbar`。
+  /// 移动 tab 主页用它注入 `AppMobileTabHeader` + 底抽屉范式。
+  final MovieListHeaderBuilder? headerBuilder;
 
   @override
   State<MovieListContent> createState() => _MovieListContentState();
@@ -139,19 +163,31 @@ class _MovieListContentState extends State<MovieListContent> {
             final showFooter = controller.items.isNotEmpty &&
                 (controller.isLoadingMore ||
                     controller.loadMoreErrorMessage != null);
+            final headerBuilder = widget.headerBuilder;
+            final header = headerBuilder != null
+                ? headerBuilder(
+                    context,
+                    MovieListHeaderArgs(
+                      filterState: widget.pageState.filterState,
+                      onApply: _applyFilter,
+                      onReset: _resetFilters,
+                      total: controller.total,
+                    ),
+                  )
+                : AppFilterTotalHeader(
+                    leading: MovieFilterToolbar(
+                      filterState: widget.pageState.filterState,
+                      onChanged: _applyFilter,
+                      onReset: _resetFilters,
+                    ),
+                    totalText: '${controller.total} 部',
+                    totalKey: widget.totalKey,
+                  );
             return Column(
               key: widget.contentKey,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppFilterTotalHeader(
-                  leading: MovieFilterToolbar(
-                    filterState: widget.pageState.filterState,
-                    onChanged: _applyFilter,
-                    onReset: _resetFilters,
-                  ),
-                  totalText: '${controller.total} 部',
-                  totalKey: widget.totalKey,
-                ),
+                header,
                 SizedBox(height: widget.sectionSpacing),
                 MovieSummaryGrid(
                   items: controller.items,

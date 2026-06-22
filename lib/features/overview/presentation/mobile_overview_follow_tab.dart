@@ -205,20 +205,9 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
         child: Column(
           children: [
             SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-            Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  AppEmptyState(
-                    message: _moviesController.initialErrorMessage!,
-                  ),
-                  SizedBox(height: context.appSpacing.xs),
-                  TextButton(
-                    onPressed: _moviesController.reload,
-                    child: const Text('重试'),
-                  ),
-                ],
-              ),
+            AppEmptyState(
+              message: _moviesController.initialErrorMessage!,
+              onRetry: _moviesController.reload,
             ),
           ],
         ),

@@ -299,7 +299,7 @@ void main() {
         tester,
         find.byKey(const Key('movies-filter-trigger-label')),
       ),
-      sakuraThemeData.appColors.surfaceMuted,
+      Colors.transparent,
     );
     expect(
       tester
@@ -374,7 +374,7 @@ void main() {
         tester,
         find.byKey(const Key('movies-filter-preset-latest-subscribed')),
       ),
-      sakuraThemeData.appColors.surfaceMuted,
+      Colors.transparent,
     );
 
     await tester.tap(
@@ -410,7 +410,7 @@ void main() {
         tester,
         find.byKey(const Key('movies-filter-trigger-label')),
       ),
-      sakuraThemeData.appColors.surfaceMuted,
+      Colors.transparent,
     );
     expect(
       _buttonBackgroundColor(

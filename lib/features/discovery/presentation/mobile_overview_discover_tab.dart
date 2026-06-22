@@ -19,6 +19,7 @@ import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/moments/moment_grid.dart';
+import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/moments/moment_preview_dialog.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 
@@ -145,14 +146,7 @@ class _MobileOverviewDiscoverTabState extends State<MobileOverviewDiscoverTab> {
 
   Widget _buildMomentBody(BuildContext context) {
     if (_controller.isLoadingMoments) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: context.appLayoutTokens.emptySectionVerticalPadding,
-          ),
-          child: const CircularProgressIndicator(),
-        ),
-      );
+      return const AppMobileSkeletonList();
     }
     if (_controller.momentErrorMessage != null) {
       return _RetryEmptyState(

@@ -15,6 +15,7 @@ import 'package:sakuramedia/features/movies/presentation/movie_collection_type_c
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
@@ -136,7 +137,7 @@ void main() {
 
       expect(find.text('女优详情暂时无法加载，请稍后重试'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(TextButton, '重试'));
+      await tester.tap(find.widgetWithText(AppButton, '重试'));
       await tester.pumpAndSettle();
 
       expect(bundle.adapter.hitCount('GET', '/actors/1'), 2);

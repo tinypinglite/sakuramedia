@@ -200,7 +200,6 @@ class _DesktopClipCollectionDetailPageState
                 key: const Key('clip-collection-add-clips-button'),
                 label: '添加切片',
                 size: AppTextButtonSize.small,
-                emphasis: AppTextButtonEmphasis.accent,
                 onPressed: _addClips,
               ),
               // 无切片时无可播放内容，直接隐藏播放按钮。
@@ -210,7 +209,6 @@ class _DesktopClipCollectionDetailPageState
                   key: const Key('clip-collection-play-all-button'),
                   label: '播放',
                   size: AppTextButtonSize.small,
-                  emphasis: AppTextButtonEmphasis.accent,
                   onPressed: () => _playFrom(0),
                 ),
               ],

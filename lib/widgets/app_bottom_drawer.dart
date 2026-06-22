@@ -18,12 +18,14 @@ Future<T?> showAppBottomDrawer<T>({
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: isScrollControlled,
+    useRootNavigator: true,
     useSafeArea: shouldUseRouteSafeArea,
     showDragHandle: false,
     enableDrag: enableDrag,
+    backgroundColor: Colors.transparent,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(
-        top: Radius.circular(context.appRadius.sm),
+        top: Radius.circular(context.appRadius.lg),
       ),
     ),
     clipBehavior: Clip.antiAlias,

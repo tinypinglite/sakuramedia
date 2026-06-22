@@ -5,18 +5,19 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
+import 'package:sakuramedia/features/actors/presentation/actor_filter_preset.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_list_page_state.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_filter_state.dart';
+import 'package:sakuramedia/features/actors/presentation/mobile_actor_filter_drawer.dart';
 import 'package:sakuramedia/features/actors/presentation/paged_actor_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_filter_total_header.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/actors/actor_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/actors/actor_summary_grid.dart';
+import 'package:sakuramedia/widgets/navigation/app_mobile_tab_header.dart';
 
 class MobileActorsPage extends StatefulWidget {
   const MobileActorsPage({super.key});
@@ -66,10 +67,6 @@ class _MobileActorsPageState extends State<MobileActorsPage> {
     unawaited(_actorsController.reload());
   }
 
-  void _resetFilters() {
-    _applyFilter(ActorFilterState.initial);
-  }
-
   Future<void> _toggleActorSubscription(int actorId) async {
     final result = await _actorsController.toggleSubscription(actorId: actorId);
     if (!mounted) {
@@ -99,14 +96,23 @@ class _MobileActorsPageState extends State<MobileActorsPage> {
                   key: const Key('mobile-actors-page'),
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    AppFilterTotalHeader(
-                      leading: ActorFilterToolbar(
-                        filterState: _filterState,
-                        onChanged: _applyFilter,
-                        onReset: _resetFilters,
+                    AppMobileTabHeader(
+                      filterButtonKey: const Key(
+                        'mobile-actors-filter-button',
                       ),
-                      totalText: '${_actorsController.total} 位',
-                      totalKey: const Key('mobile-actors-page-total'),
+                      filterTooltip: '筛选',
+                      onFilterTap: _openFilterDrawer,
+                      chips: [
+                        for (final preset in ActorFilterPreset.values)
+                          AppMobileTabChip(
+                            key: Key(
+                              'mobile-actors-filter-preset-${preset.key}',
+                            ),
+                            label: preset.label,
+                            isSelected: _filterState.matchesPreset(preset),
+                            onTap: () => _applyFilter(preset.filterState),
+                          ),
+                      ],
                     ),
                     SizedBox(height: context.appSpacing.md),
                     ActorSummaryGrid(
@@ -150,6 +156,16 @@ class _MobileActorsPageState extends State<MobileActorsPage> {
       if (mounted) {
         showToast('刷新失败');
       }
+    }
+  }
+
+  Future<void> _openFilterDrawer() async {
+    final next = await showMobileActorFilterDrawer(
+      context,
+      current: _filterState,
+    );
+    if (next != null) {
+      _applyFilter(next);
     }
   }
 }

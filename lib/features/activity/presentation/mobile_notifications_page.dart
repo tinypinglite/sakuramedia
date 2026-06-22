@@ -215,9 +215,10 @@ class _MobileNotificationsPageState extends State<MobileNotificationsPage>
       return <Widget>[
         SliverFillRemaining(
           hasScrollBody: false,
-          child: _NotificationsErrorState(
+          child: AppEmptyState(
+            key: const Key('mobile-notifications-error'),
             message: _controller.initialErrorMessage!,
-            onRetry: _controller.reloadAll,
+            onRetry: () => _controller.reloadAll(),
           ),
         ),
       ];
@@ -443,27 +444,6 @@ class _MobileNotificationSkeleton extends StatelessWidget {
           bar(width: double.infinity),
         ],
       ),
-    );
-  }
-}
-
-class _NotificationsErrorState extends StatelessWidget {
-  const _NotificationsErrorState({required this.message, required this.onRetry});
-
-  final String message;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      key: const Key('mobile-notifications-error'),
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        AppEmptyState(message: message),
-        SizedBox(height: context.appSpacing.lg),
-        AppButton(label: '重试', onPressed: () => onRetry()),
-      ],
     );
   }
 }

@@ -2266,7 +2266,6 @@ void main() {
     );
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
     expect(find.byKey(const Key('mobile-movies-page')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-movies-page-total')), findsOneWidget);
     expect(find.byKey(const Key('login-form-base-url')), findsNothing);
   });
 
@@ -2294,7 +2293,6 @@ void main() {
 
     expect(router.routeInformationProvider.value.uri.path, mobileMoviesPath);
     expect(find.byKey(const Key('mobile-movies-page')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-movies-page-total')), findsOneWidget);
   });
 
   testWidgets('mobile bottom navigation switches to actors route', (
@@ -2321,7 +2319,6 @@ void main() {
 
     expect(router.routeInformationProvider.value.uri.path, mobileActorsPath);
     expect(find.byKey(const Key('mobile-actors-page')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-actors-page-total')), findsOneWidget);
   });
 
   testWidgets('mobile movies root route renders real page', (
@@ -2347,7 +2344,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-movies-page')), findsOneWidget);
-    expect(find.text('1 部'), findsOneWidget);
     expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
   });
 
@@ -2477,7 +2473,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-actors-page')), findsOneWidget);
-    expect(find.text('1 位'), findsOneWidget);
     expect(find.byKey(const Key('actor-summary-card-1')), findsOneWidget);
   });
 
@@ -2504,7 +2499,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-rankings-page')), findsOneWidget);
-    expect(find.text('1 部'), findsOneWidget);
   });
 
   testWidgets('desktop rankings root route renders real page', (

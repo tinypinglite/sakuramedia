@@ -375,7 +375,6 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
                   key: const Key('videos-create-collection-button'),
                   label: '新建',
                   size: AppTextButtonSize.small,
-                  emphasis: AppTextButtonEmphasis.accent,
                   onPressed: _createCollection,
                 ),
                 if (collections.isNotEmpty) ...[
@@ -384,7 +383,6 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
                     key: const Key('videos-view-all-collections-button'),
                     label: '查看全部',
                     size: AppTextButtonSize.small,
-                    emphasis: AppTextButtonEmphasis.accent,
                     onPressed: _viewAllCollections,
                   ),
                 ],

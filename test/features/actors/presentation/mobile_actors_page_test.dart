@@ -88,8 +88,8 @@ void main() {
     await _pumpActorsPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('mobile-actors-page-total')), findsOneWidget);
-    expect(find.text('2 位'), findsOneWidget);
+    // L2 重设计后移动端不再显示「N 位」总数。
+    expect(find.byKey(const Key('mobile-actors-page-total')), findsNothing);
     expect(find.byType(ActorSummaryCard), findsNWidgets(2));
     expect(find.text('三上悠亚 / 鬼头桃菜'), findsOneWidget);
   });
@@ -119,10 +119,14 @@ void main() {
     expect(_queryValue(bundle, 0, 'gender'), 'all');
     expect(_queryValue(bundle, 0, 'sort'), 'subscribed_at:desc');
 
-    await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+    // L2 重设计：filter 通过右上 icon button 弹底抽屉、本地副本、点确定才生效。
+    await tester.tap(find.byKey(const Key('mobile-actors-filter-button')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('未订阅'));
     await tester.pump();
+    await tester.tap(
+      find.byKey(const Key('mobile-actors-filter-drawer-confirm')),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('河北彩花'), findsOneWidget);
@@ -153,10 +157,13 @@ void main() {
     await _pumpActorsPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.filter_alt_outlined));
+    await tester.tap(find.byKey(const Key('mobile-actors-filter-button')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('影片数'));
     await tester.pump();
+    await tester.tap(
+      find.byKey(const Key('mobile-actors-filter-drawer-confirm')),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('河北彩花'), findsOneWidget);
