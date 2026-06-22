@@ -16,6 +16,7 @@ import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/collections/collection_card.dart';
+import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
 
 /// 移动端切片合集列表页：全部合集网格 + 新建 / 编辑 / 删除（编辑与确认走底部抽屉）。
 class MobileClipCollectionsPage extends StatefulWidget {
@@ -103,13 +104,8 @@ class _MobileClipCollectionsPageState extends State<MobileClipCollectionsPage> {
       animation: _controller,
       builder: (context, _) {
         if (_controller.isLoading) {
-          return const Center(
-            child: SizedBox(
-              key: Key('mobile-clip-collections-loading'),
-              width: 32,
-              height: 32,
-              child: CircularProgressIndicator(),
-            ),
+          return const AppMobileSkeletonList(
+            key: Key('mobile-clip-collections-loading'),
           );
         }
         final spacing = context.appSpacing;

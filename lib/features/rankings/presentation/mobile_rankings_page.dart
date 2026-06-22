@@ -4,23 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/app/cached_page_state_handle.dart';
-import 'package:sakuramedia/core/format/synced_at_label.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
+import 'package:sakuramedia/features/rankings/presentation/mobile_ranking_filter_drawer.dart';
 import 'package:sakuramedia/features/rankings/presentation/rankings_list_page_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:sakuramedia/widgets/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/navigation/app_mobile_tab_header.dart';
 import 'package:sakuramedia/widgets/rankings/ranked_movie_summary_grid.dart';
-import 'package:sakuramedia/widgets/rankings/ranking_filter_toolbar.dart';
+import 'package:sakuramedia/widgets/rankings/ranking_filter_sections.dart';
 
 class MobileRankingsPage extends StatefulWidget {
   const MobileRankingsPage({super.key});
@@ -88,33 +88,7 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
                   key: const Key('mobile-rankings-page'),
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    AppFilterTotalHeader(
-                      leading: RankingFilterToolbar(
-                        sources: _pageState.sources,
-                        selectedSource: _pageState.selectedSource,
-                        boards: _pageState.boards,
-                        selectedBoard: _pageState.selectedBoard,
-                        selectedPeriod: _pageState.selectedPeriod,
-                        isLoading: _pageState.isFilterLoading,
-                        onSourceChanged:
-                            (value) =>
-                                unawaited(_pageState.selectSource(value)),
-                        onBoardChanged:
-                            (value) => unawaited(_pageState.selectBoard(value)),
-                        onPeriodChanged:
-                            (value) =>
-                                unawaited(_pageState.selectPeriod(value)),
-                        selectedSortField: _pageState.selectedSortField,
-                        selectedSortDirection: _pageState.selectedSortDirection,
-                        onSortChanged: (field, dir) =>
-                            unawaited(_pageState.selectSort(field, dir)),
-                      ),
-                      totalText: composeTotalWithSyncedAt(
-                        '${_pageState.controller.total} 部',
-                        _pageState.controller.syncedAt,
-                      ),
-                      totalKey: const Key('mobile-rankings-page-total'),
-                    ),
+                    _buildHeader(context),
                     SizedBox(height: context.appSpacing.md),
                     if (_pageState.filterErrorMessage != null) ...[
                       _FilterErrorBanner(
@@ -176,6 +150,53 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
         showToast('刷新失败');
       }
     }
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final source = _pageState.selectedSource;
+    final board = _pageState.selectedBoard;
+    final sourceBoardLabel = '${source?.name ?? '来源'} · ${board?.name ?? '榜单'}';
+
+    // 仅保留「来源 · 榜单」单 chip；周期 / 排序 通过右上筛选 icon 弹抽屉调整。
+    return AppMobileTabHeader(
+      filterButtonKey: const Key('mobile-rankings-filter-button'),
+      filterTooltip: '筛选',
+      onFilterTap: () => _openFilterDrawer(initialAnchor: null),
+      chips: [
+        AppMobileTabChip(
+          key: const Key('mobile-rankings-chip-source-board'),
+          label: sourceBoardLabel,
+          isSelected: false,
+          trailingIcon: Icons.expand_more,
+          onTap: () =>
+              _openFilterDrawer(initialAnchor: RankingFilterAnchor.source),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openFilterDrawer({
+    RankingFilterAnchor? initialAnchor,
+  }) async {
+    await showMobileRankingFilterDrawer(
+      context,
+      listenable: _pageState,
+      argsBuilder: () => RankingFilterDrawerArgs(
+        sources: _pageState.sources,
+        selectedSource: _pageState.selectedSource,
+        boards: _pageState.boards,
+        selectedBoard: _pageState.selectedBoard,
+        selectedPeriod: _pageState.selectedPeriod,
+        onSourceChanged: (value) => unawaited(_pageState.selectSource(value)),
+        onBoardChanged: (value) => unawaited(_pageState.selectBoard(value)),
+        onPeriodChanged: (value) => unawaited(_pageState.selectPeriod(value)),
+        selectedSortField: _pageState.selectedSortField,
+        selectedSortDirection: _pageState.selectedSortDirection,
+        onSortChanged: (field, dir) =>
+            unawaited(_pageState.selectSort(field, dir)),
+      ),
+      initialAnchor: initialAnchor,
+    );
   }
 }
 

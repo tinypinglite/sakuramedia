@@ -33,11 +33,11 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/media/media_preview_dialog.dart';
+import 'package:sakuramedia/widgets/sheets/app_mobile_confirm_actions.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_inspector_dialog.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_detail_bottom_info_bar.dart';
 import 'package:sakuramedia/widgets/movie_detail/movie_plot_preview_overlay.dart';
@@ -421,25 +421,13 @@ class _MobileMovieDetailPageState extends State<MobileMovieDetailPage>
                 ),
               ),
               SizedBox(height: drawerContext.appSpacing.xl),
-              Row(
-                children: [
-                  Expanded(
-                    child: AppButton(
-                      key: const Key('movie-media-delete-cancel'),
-                      onPressed: () => Navigator.of(drawerContext).pop(false),
-                      label: '取消',
-                    ),
-                  ),
-                  SizedBox(width: drawerContext.appSpacing.md),
-                  Expanded(
-                    child: AppButton(
-                      key: const Key('movie-media-delete-confirm'),
-                      onPressed: () => Navigator.of(drawerContext).pop(true),
-                      label: '删除',
-                      variant: AppButtonVariant.danger,
-                    ),
-                  ),
-                ],
+              AppMobileConfirmActions(
+                cancelKey: const Key('movie-media-delete-cancel'),
+                confirmKey: const Key('movie-media-delete-confirm'),
+                confirmLabel: '删除',
+                isDangerous: true,
+                onCancel: () => Navigator.of(drawerContext).pop(false),
+                onConfirm: () => Navigator.of(drawerContext).pop(true),
               ),
             ],
           ),

@@ -734,17 +734,10 @@ class _MobileLlmErrorSection extends StatelessWidget {
         borderRadius: context.appRadius.lgBorder,
         border: Border.all(color: context.appColors.borderSubtle),
       ),
-      child: Column(
-        children: [
-          AppEmptyState(message: message),
-          AppButton(
-            key: const Key('mobile-llm-retry-button'),
-            label: '重试',
-            onPressed: () {
-              unawaited(onRetry());
-            },
-          ),
-        ],
+      child: AppEmptyState(
+        message: message,
+        retryKey: const Key('mobile-llm-retry-button'),
+        onRetry: () => unawaited(onRetry()),
       ),
     );
   }

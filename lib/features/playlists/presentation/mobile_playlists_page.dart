@@ -16,6 +16,7 @@ import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/sheets/app_mobile_confirm_actions.dart';
 import 'package:sakuramedia/widgets/playlists/playlist_banner_card.dart';
 
 class MobilePlaylistsPage extends StatefulWidget {
@@ -906,26 +907,13 @@ class _MobileDeletePlaylistDrawerState
           ),
         ),
         SizedBox(height: spacing.xl),
-        Row(
-          children: [
-            Expanded(
-              child: AppButton(
-                label: '取消',
-                onPressed:
-                    _isSubmitting ? null : () => Navigator.of(context).pop(),
-              ),
-            ),
-            SizedBox(width: spacing.md),
-            Expanded(
-              child: AppButton(
-                key: const Key('mobile-playlist-delete-confirm-button'),
-                label: '删除',
-                variant: AppButtonVariant.danger,
-                isLoading: _isSubmitting,
-                onPressed: _deletePlaylist,
-              ),
-            ),
-          ],
+        AppMobileConfirmActions(
+          confirmKey: const Key('mobile-playlist-delete-confirm-button'),
+          confirmLabel: '删除',
+          isDangerous: true,
+          isLoading: _isSubmitting,
+          onCancel: () => Navigator.of(context).pop(),
+          onConfirm: _deletePlaylist,
         ),
       ],
     );

@@ -48,8 +48,11 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
           ),
       loadingBuilder: (_) => const _MobileActorDetailLoadingSkeleton(),
       errorBuilder:
-          (context, message, onRetry) =>
-              _MobileActorDetailErrorState(message: message, onRetry: onRetry),
+          (context, message, onRetry) => AppEmptyState(
+            key: const Key('mobile-actor-detail-error-state'),
+            message: message,
+            onRetry: onRetry,
+          ),
       footerBuilder: _buildLoadMoreFooter,
       bodyBuilder:
           (context, scrollController, child, onRefresh) =>
@@ -228,28 +231,6 @@ class _MobileActorDetailLoadingSkeleton extends StatelessWidget {
           const _SkeletonBlock(height: 360),
         ],
       ),
-    );
-  }
-}
-
-class _MobileActorDetailErrorState extends StatelessWidget {
-  const _MobileActorDetailErrorState({
-    required this.message,
-    required this.onRetry,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      key: const Key('mobile-actor-detail-error-state'),
-      children: [
-        AppEmptyState(message: message),
-        SizedBox(height: context.appSpacing.lg),
-        TextButton(onPressed: onRetry, child: const Text('重试')),
-      ],
     );
   }
 }

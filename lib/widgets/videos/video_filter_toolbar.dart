@@ -29,7 +29,6 @@ class VideoFilterToolbar extends StatelessWidget {
             key: Key('videos-filter-sort-${field.apiValue}'),
             label: field.label,
             size: AppTextButtonSize.small,
-            backgroundStyle: AppTextButtonBackgroundStyle.muted,
             isSelected: field == filterState.sortField,
             onPressed: () =>
                 onChanged(filterState.copyWith(sortField: field)),
@@ -45,7 +44,6 @@ class VideoFilterToolbar extends StatelessWidget {
                   : Icons.north_rounded,
             ),
             size: AppTextButtonSize.small,
-            backgroundStyle: AppTextButtonBackgroundStyle.muted,
             onPressed: () => onChanged(
               filterState.copyWith(
                 sortDirection: filterState.sortDirection == SortDirection.desc

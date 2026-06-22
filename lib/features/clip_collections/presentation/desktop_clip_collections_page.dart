@@ -91,7 +91,6 @@ class _DesktopClipCollectionsPageState
                     key: const Key('clip-collections-create-button'),
                     label: '新建合集',
                     size: AppTextButtonSize.small,
-                    emphasis: AppTextButtonEmphasis.accent,
                     onPressed: _createCollection,
                   ),
                 ],

@@ -92,7 +92,7 @@ class _MobileOverviewHeader extends StatelessWidget {
                     key: const Key('mobile-overview-menu-button'),
                     tooltip: '打开菜单',
                     semanticLabel: '打开菜单',
-                    size: AppIconButtonSize.regular,
+                    size: AppIconButtonSize.compact,
                     icon: const Icon(Icons.menu_rounded),
                     onPressed: canOpenDrawer ? scaffold!.openDrawer : null,
                   ),
@@ -298,12 +298,9 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
       return _buildLatestMoviesSkeleton();
     }
     if (_latestMoviesErrorMessage != null) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppEmptyState(message: _latestMoviesErrorMessage!),
-          TextButton(onPressed: _loadLatestMovies, child: const Text('重试')),
-        ],
+      return AppEmptyState(
+        message: _latestMoviesErrorMessage!,
+        onRetry: _loadLatestMovies,
       );
     }
     if (_latestMovies.isEmpty) {

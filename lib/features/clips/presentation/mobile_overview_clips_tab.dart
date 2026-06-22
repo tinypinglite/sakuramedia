@@ -185,7 +185,6 @@ class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab>
               key: const Key('mobile-clips-create-collection-button'),
               label: '新建',
               size: AppTextButtonSize.small,
-              emphasis: AppTextButtonEmphasis.accent,
               onPressed: _createCollection,
             ),
             if (collections.isNotEmpty) ...[
@@ -194,7 +193,6 @@ class _MobileOverviewClipsTabState extends State<MobileOverviewClipsTab>
                 key: const Key('mobile-clips-view-all-collections-button'),
                 label: '查看全部',
                 size: AppTextButtonSize.small,
-                emphasis: AppTextButtonEmphasis.accent,
                 onPressed: _viewAllCollections,
               ),
             ],

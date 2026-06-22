@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/sheets/app_mobile_confirm_actions.dart';
 
 /// 移动端切片/合集场景的通用确认底部抽屉：确认返回 `true`，取消返回 `null`。
 ///
@@ -69,24 +69,12 @@ class _MobileClipConfirmDrawer extends StatelessWidget {
           ),
         ),
         SizedBox(height: spacing.xl),
-        Row(
-          children: [
-            Expanded(
-              child: AppButton(
-                label: '取消',
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-            SizedBox(width: spacing.md),
-            Expanded(
-              child: AppButton(
-                key: confirmButtonKey,
-                label: confirmLabel,
-                variant: AppButtonVariant.danger,
-                onPressed: () => Navigator.of(context).pop(true),
-              ),
-            ),
-          ],
+        AppMobileConfirmActions(
+          confirmKey: confirmButtonKey,
+          confirmLabel: confirmLabel,
+          isDangerous: true,
+          onCancel: () => Navigator.of(context).pop(),
+          onConfirm: () => Navigator.of(context).pop(true),
         ),
       ],
     );

@@ -75,20 +75,10 @@ class _MobileSystemOverviewPageState extends State<MobileSystemOverviewPage> {
       return AppContentCard(
         title: '系统信息',
         padding: EdgeInsets.all(context.appSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppEmptyState(message: _controller.statusError!),
-            SizedBox(height: context.appSpacing.md),
-            Align(
-              alignment: Alignment.center,
-              child: AppButton(
-                key: const Key('mobile-system-overview-retry-button'),
-                label: '重试',
-                onPressed: _controller.refresh,
-              ),
-            ),
-          ],
+        child: AppEmptyState(
+          message: _controller.statusError!,
+          retryKey: const Key('mobile-system-overview-retry-button'),
+          onRetry: _controller.refresh,
         ),
       );
     }

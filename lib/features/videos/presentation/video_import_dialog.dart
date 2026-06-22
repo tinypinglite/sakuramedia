@@ -441,7 +441,6 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
               key: const Key('video-import-create-collection-button'),
               label: '新建合集',
               size: AppTextButtonSize.small,
-              emphasis: AppTextButtonEmphasis.accent,
               onPressed: _createCollection,
             ),
           ],

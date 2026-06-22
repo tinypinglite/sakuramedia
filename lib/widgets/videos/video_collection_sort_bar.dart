@@ -38,7 +38,6 @@ class VideoCollectionSortBar extends StatelessWidget {
           key: const Key('video-collection-sort-manual'),
           label: '手动顺序',
           size: AppTextButtonSize.small,
-          backgroundStyle: AppTextButtonBackgroundStyle.muted,
           isSelected: isManual,
           onPressed: () => onChanged(field: null),
         ),
@@ -47,7 +46,6 @@ class VideoCollectionSortBar extends StatelessWidget {
             key: Key('video-collection-sort-${field.apiValue}'),
             label: field.label,
             size: AppTextButtonSize.small,
-            backgroundStyle: AppTextButtonBackgroundStyle.muted,
             isSelected: field == sortField,
             onPressed: () => onChanged(field: field),
           ),
@@ -64,7 +62,6 @@ class VideoCollectionSortBar extends StatelessWidget {
                     : Icons.north_rounded,
               ),
               size: AppTextButtonSize.small,
-              backgroundStyle: AppTextButtonBackgroundStyle.muted,
               onPressed: () => onChanged(
                 field: sortField,
                 direction: sortDirection == SortDirection.desc

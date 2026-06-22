@@ -17,6 +17,7 @@ import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/moments/moment_grid.dart';
+import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/moments/moment_preview_dialog.dart';
 import 'package:sakuramedia/widgets/moments/moment_sort_header.dart';
 
@@ -130,14 +131,7 @@ class _MobileOverviewMomentsTabState extends State<MobileOverviewMomentsTab> {
 
   Widget _buildBody(BuildContext context) {
     if (_controller.isInitialLoading) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: context.appLayoutTokens.emptySectionVerticalPadding,
-          ),
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const AppMobileSkeletonList();
     }
 
     if (_controller.initialErrorMessage != null) {

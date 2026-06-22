@@ -260,15 +260,10 @@ class _MobileUsernameErrorSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return _FormCard(
       children: [
-        AppEmptyState(message: message),
-        SizedBox(height: context.appSpacing.md),
-        Align(
-          alignment: Alignment.center,
-          child: AppButton(
-            key: const Key('mobile-username-retry-button'),
-            label: '重试',
-            onPressed: onRetry,
-          ),
+        AppEmptyState(
+          message: message,
+          retryKey: const Key('mobile-username-retry-button'),
+          onRetry: onRetry,
         ),
       ],
     );

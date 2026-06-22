@@ -15,6 +15,7 @@ import 'package:sakuramedia/features/videos/presentation/add_to_video_collection
 import 'package:sakuramedia/features/videos/presentation/create_video_collection_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/mobile_video_actions_sheet.dart';
 import 'package:sakuramedia/features/videos/presentation/mobile_video_player_page.dart';
+import 'package:sakuramedia/features/videos/presentation/mobile_video_sort_drawer.dart';
 import 'package:sakuramedia/features/videos/presentation/pick_video_collection_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/video_collections_overview_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
@@ -25,11 +26,13 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/collections/collection_card.dart';
+import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
+import 'package:sakuramedia/widgets/navigation/app_mobile_tab_header.dart';
 import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/videos/video_summary_card.dart';
 
@@ -327,47 +330,63 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
 
   Widget _buildCollectionsSection(BuildContext context) {
     final spacing = context.appSpacing;
+    final componentTokens = context.appComponentTokens;
     final collections = _collectionsController.collections;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(height: spacing.sm),
-        // 页面横向缩进由 AppMobileShell 的 8px body padding 统一提供，此处不再叠加，
-        // 否则左右合计 24px，比 movies / actors 等同类页明显宽。
-        Row(
-          children: [
-            Text(
-              '视频合集',
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s16,
-                weight: AppTextWeight.semibold,
-                tone: AppTextTone.primary,
-              ),
+        // 与 _buildVideosHeader 的 AppMobileTabHeader 对齐：top: xs + 固定
+        // mobileTopTabHeight 容器，标题行垂直居中。
+        Padding(
+          padding: EdgeInsets.only(top: spacing.xs),
+          child: SizedBox(
+            height: componentTokens.mobileTopTabHeight,
+            child: Row(
+              children: [
+                Text(
+                  '视频合集',
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s16,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.primary,
+                  ),
+                ),
+                const Spacer(),
+                AppIconButton(
+                  key: const Key('mobile-pornbox-create-collection-button'),
+                  tooltip: '新建合集',
+                  onPressed: _createCollection,
+                  icon: const Icon(Icons.add_rounded),
+                ),
+                if (collections.isNotEmpty) ...[
+                  SizedBox(width: spacing.xs),
+                  AppTextButton(
+                    key: const Key('mobile-pornbox-view-all-collections-button'),
+                    label: '查看全部',
+                    size: AppTextButtonSize.xSmall,
+                    onPressed: _viewAllCollections,
+                  ),
+                ],
+                if (_loadedVideos.isNotEmpty) ...[
+                  SizedBox(width: spacing.xs),
+                  AppTextButton(
+                    key: const Key('mobile-pornbox-enter-selection-button'),
+                    label: '选择',
+                    size: AppTextButtonSize.xSmall,
+                    icon: const Icon(Icons.check_circle_outline, size: 14),
+                    onPressed: enterSelection,
+                  ),
+                ],
+              ],
             ),
-            const Spacer(),
-            AppTextButton(
-              key: const Key('mobile-pornbox-create-collection-button'),
-              label: '新建',
-              size: AppTextButtonSize.small,
-              emphasis: AppTextButtonEmphasis.accent,
-              onPressed: _createCollection,
-            ),
-            if (collections.isNotEmpty) ...[
-              SizedBox(width: spacing.xs),
-              AppTextButton(
-                key: const Key('mobile-pornbox-view-all-collections-button'),
-                label: '查看全部',
-                size: AppTextButtonSize.small,
-                emphasis: AppTextButtonEmphasis.accent,
-                onPressed: _viewAllCollections,
-              ),
-            ],
-          ],
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.only(top: spacing.md),
+          child: _buildCollectionsRow(context, collections),
         ),
         SizedBox(height: spacing.sm),
-        _buildCollectionsRow(context, collections),
-        SizedBox(height: spacing.lg),
       ],
     );
   }
@@ -390,6 +409,8 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
       return const _HintBox(message: '还没有合集，点「新建」把视频攒成一个连播合集吧');
     }
     return SizedBox(
+      // CollectionCoverCard 内容下限：16:9 封面 + sm padding + s14 标题 + 边框 ≈ 105，
+      // 故 height 不能低于 ~110。保持 116（原值），只收紧宽度 132 → 116 已减少占用。
       height: 116,
       child: ListView.separated(
         key: const Key('mobile-pornbox-collections-row'),
@@ -400,7 +421,7 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
         itemBuilder: (context, index) {
           final collection = collections[index];
           return SizedBox(
-            width: 132,
+            width: 116, // L2 收紧：132 → 116
             child: CollectionCard.video(
               key: Key('mobile-video-collection-card-${collection.id}'),
               collection: collection,
@@ -417,57 +438,24 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
   // --------------------------------------------------------- 视频区
 
   Widget _buildVideosHeader(BuildContext context) {
-    final spacing = context.appSpacing;
     final filter = _pageState.filterState;
-    final arrow =
-        filter.sortDirection == SortDirection.desc ? '↓' : '↑';
-    return Padding(
-      // 横向缩进由 shell 提供，此处只补底部留白。
-      padding: EdgeInsets.only(bottom: spacing.sm),
-      child: Row(
-        children: [
-          Text(
-            '全部视频',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s16,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
-            ),
-          ),
-          const Spacer(),
-          AppTextButton(
-            key: const Key('mobile-pornbox-sort-button'),
-            label: '${filter.sortField.label} $arrow',
-            size: AppTextButtonSize.xSmall,
-            backgroundStyle: AppTextButtonBackgroundStyle.muted,
-            icon: const Icon(Icons.swap_vert_rounded, size: 14),
-            onPressed: _openSortDrawer,
-          ),
-          if (_loadedVideos.isNotEmpty) ...[
-            SizedBox(width: spacing.sm),
-            AppTextButton(
-              key: const Key('mobile-pornbox-enter-selection-button'),
-              label: '选择',
-              size: AppTextButtonSize.xSmall,
-              icon: const Icon(Icons.check_circle_outline, size: 14),
-              onPressed: enterSelection,
-            ),
-          ],
-        ],
-      ),
+    return AppMobileTabHeader(
+      chips: [
+        AppMobileTabChip(
+          key: const Key('mobile-pornbox-sort-chip'),
+          label: filter.sortField.label,
+          isSelected: false,
+          trailingIcon: Icons.expand_more,
+          onTap: _openSortDrawer,
+        ),
+      ],
     );
   }
 
   Future<void> _openSortDrawer() async {
-    final result = await showAppBottomDrawer<VideoFilterState>(
-      context: context,
-      heightFactor: 0.42,
-      drawerKey: const Key('mobile-pornbox-sort-drawer'),
-      builder: (drawerContext) => _VideoSortPicker(
-        current: _pageState.filterState,
-        onSelected: (next) => Navigator.of(drawerContext).pop(next),
-      ),
+    final result = await showMobileVideoSortDrawer(
+      context,
+      current: _pageState.filterState,
     );
     if (!mounted || result == null) {
       return;
@@ -479,16 +467,8 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
     final controller = _pageState.controller;
     if (controller.isInitialLoading && controller.items.isEmpty) {
       return const SliverToBoxAdapter(
-        child: SizedBox(
-          height: 200,
-          child: Center(
-            child: SizedBox(
-              key: Key('mobile-pornbox-loading'),
-              width: 32,
-              height: 32,
-              child: CircularProgressIndicator(),
-            ),
-          ),
+        child: AppMobileSkeletonList(
+          key: Key('mobile-pornbox-loading'),
         ),
       );
     }
@@ -592,6 +572,7 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
             key: const Key('mobile-pornbox-select-all-button'),
             label: allSelected ? '取消全选' : '全选',
             size: AppTextButtonSize.small,
+            isSelected: allSelected,
             onPressed: () => toggleSelectAll(videoIds),
           ),
         ],
@@ -631,126 +612,6 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 移动端 PornBox 排序抽屉：列出全部 [VideoSortField]，点击未选字段切换字段（保持
-/// 方向），再次点击已选字段切换升降序。选完即关闭抽屉返回新 filter。
-class _VideoSortPicker extends StatelessWidget {
-  const _VideoSortPicker({required this.current, required this.onSelected});
-
-  final VideoFilterState current;
-  final ValueChanged<VideoFilterState> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          '排序方式',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s16,
-            weight: AppTextWeight.semibold,
-            tone: AppTextTone.primary,
-          ),
-        ),
-        SizedBox(height: spacing.xs),
-        Text(
-          '点击切换字段；再次点击当前字段切换升降序。',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.muted,
-          ),
-        ),
-        SizedBox(height: spacing.sm),
-        for (final field in VideoSortField.values)
-          _SortRow(
-            field: field,
-            isSelected: field == current.sortField,
-            direction: current.sortDirection,
-            onTap: () {
-              if (field == current.sortField) {
-                onSelected(
-                  current.copyWith(
-                    sortDirection:
-                        current.sortDirection == SortDirection.desc
-                            ? SortDirection.asc
-                            : SortDirection.desc,
-                  ),
-                );
-              } else {
-                onSelected(current.copyWith(sortField: field));
-              }
-            },
-          ),
-      ],
-    );
-  }
-}
-
-class _SortRow extends StatelessWidget {
-  const _SortRow({
-    required this.field,
-    required this.isSelected,
-    required this.direction,
-    required this.onTap,
-  });
-
-  final VideoSortField field;
-  final bool isSelected;
-  final SortDirection direction;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        key: Key('mobile-pornbox-sort-field-${field.apiValue}'),
-        onTap: onTap,
-        borderRadius: context.appRadius.mdBorder,
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: spacing.md,
-            horizontal: spacing.xs,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  field.label,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: isSelected
-                        ? AppTextWeight.medium
-                        : AppTextWeight.regular,
-                    tone: isSelected
-                        ? AppTextTone.accent
-                        : AppTextTone.secondary,
-                  ),
-                ),
-              ),
-              if (isSelected)
-                Icon(
-                  direction == SortDirection.desc
-                      ? Icons.arrow_downward_rounded
-                      : Icons.arrow_upward_rounded,
-                  size: 18,
-                  color: resolveAppTextToneColor(context, AppTextTone.accent),
-                ),
-            ],
-          ),
         ),
       ),
     );

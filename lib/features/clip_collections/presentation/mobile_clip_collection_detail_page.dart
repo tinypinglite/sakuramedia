@@ -25,6 +25,7 @@ import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/clips/clip_cover_card.dart';
 import 'package:sakuramedia/widgets/collections/collection_member_views.dart';
+import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
 
 /// 合集详情的切片排布方式：纵向列表或网格（侧重浏览）。
@@ -87,13 +88,8 @@ class _MobileClipCollectionDetailPageState
         animation: _controller,
         builder: (context, _) {
           if (_controller.isLoading && _controller.collection == null) {
-            return const Center(
-              child: SizedBox(
-                key: Key('mobile-clip-collection-detail-loading'),
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(),
-              ),
+            return const AppMobileSkeletonList(
+              key: Key('mobile-clip-collection-detail-loading'),
             );
           }
           if (_controller.errorMessage != null &&
@@ -201,7 +197,6 @@ class _MobileClipCollectionDetailPageState
                 key: const Key('mobile-clip-collection-add-clips-button'),
                 label: '添加',
                 size: AppTextButtonSize.small,
-                emphasis: AppTextButtonEmphasis.accent,
                 onPressed: _addClips,
               ),
               if (hasClips) ...[
@@ -210,7 +205,6 @@ class _MobileClipCollectionDetailPageState
                   key: const Key('mobile-clip-collection-play-all-button'),
                   label: '播放',
                   size: AppTextButtonSize.small,
-                  emphasis: AppTextButtonEmphasis.accent,
                   onPressed: () => _playFrom(0),
                 ),
               ],
@@ -623,6 +617,7 @@ class _MobileClipCollectionDetailPageState
             key: const Key('mobile-clip-collection-select-all-button'),
             label: allSelected ? '取消全选' : '全选',
             size: AppTextButtonSize.small,
+            isSelected: allSelected,
             onPressed: () => toggleSelectAll(clipIds),
           ),
         ],
