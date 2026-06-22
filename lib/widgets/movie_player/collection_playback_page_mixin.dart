@@ -4,24 +4,32 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/widgets/movie_player/collection_filmstrip_controller.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_playback_mode.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_media_thumbnail_grid.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_thumbnail_panel.dart';
 
 /// 合集连播底栏：含上一首 / 下一首 + 全屏左侧的「选集」按钮。按平台选对应控件
 /// 变体——移动用触摸版、桌面用 Desktop 版（多一个音量按钮）。
 /// [includeEpisodeButton] 为 `false` 时省略「选集」按钮（全屏态用，浮层在全屏不可见）。
+/// [progressIndicator] 非空时替换默认的 [MaterialPositionIndicator]（时间文字），
+/// 用于合并模式接管整段进度条 + 时间显示（占满中间剩余空间，含 [Expanded] 自身）。
 List<Widget> buildCollectionPlayBottomControls({
   required bool useTouchOptimizedControls,
   required VoidCallback onOpenEpisodes,
   bool includeEpisodeButton = true,
+  Widget? progressIndicator,
 }) {
   if (useTouchOptimizedControls) {
     return <Widget>[
       const MaterialSkipPreviousButton(),
       const MaterialPlayOrPauseButton(),
       const MaterialSkipNextButton(),
-      const MaterialPositionIndicator(),
-      const Spacer(),
+      if (progressIndicator != null)
+        progressIndicator
+      else ...[
+        const MaterialPositionIndicator(),
+        const Spacer(),
+      ],
       if (includeEpisodeButton)
         MaterialCustomButton(
           onPressed: onOpenEpisodes,
@@ -35,8 +43,12 @@ List<Widget> buildCollectionPlayBottomControls({
     const MaterialPlayOrPauseButton(),
     const MaterialDesktopSkipNextButton(),
     const MaterialDesktopVolumeButton(),
-    const MaterialPositionIndicator(),
-    const Spacer(),
+    if (progressIndicator != null)
+      progressIndicator
+    else ...[
+      const MaterialPositionIndicator(),
+      const Spacer(),
+    ],
     if (includeEpisodeButton)
       MaterialDesktopCustomButton(
         onPressed: onOpenEpisodes,
@@ -64,6 +76,13 @@ mixin CollectionPlaybackPageMixin<T extends StatefulWidget> on State<T> {
   /// 当前集下标（实际可播列表）；由 playlist 流驱动 `setState`，供选集浮层高亮。
   int currentIndex = 0;
 
+  /// 播放形态；[CollectionPlaybackMode.merged] 时由页面接管底栏进度条 + 隐藏内置 seek bar。
+  CollectionPlaybackMode playbackMode = CollectionPlaybackMode.playlist;
+
+  /// 每集时长（秒），与可播 [Playlist] 顺序对齐；合并模式下供进度条累加为虚拟总时长。
+  /// playlist 模式可不传（保持空列表）。
+  List<int> episodeDurationsSeconds = const <int>[];
+
   StreamSubscription<Playlist>? _playlistSub;
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<Duration>? _pendingSeekSub;
@@ -72,15 +91,23 @@ mixin CollectionPlaybackPageMixin<T extends StatefulWidget> on State<T> {
   ({int episodeIndex, int offsetSeconds})? _pendingSeek;
 
   /// 在 `setState` 内调用：登记播放器/面板并接线 playlist/position 流。
+  ///
+  /// [mode] 与 [episodeDurationsSeconds] 用于合并播放形态：前者切换 UI（隐藏内置 seek bar
+  /// 改用 `MergedPositionIndicator`），后者驱动虚拟总时长 / `seekToGlobalSeconds` 反向定位。
+  /// 默认 [CollectionPlaybackMode.playlist]、空列表，行为与旧版完全一致。
   void attachPlayback({
     required Player player,
     required VideoController videoController,
     required CollectionFilmstripController filmstrip,
     required int startIndex,
+    CollectionPlaybackMode mode = CollectionPlaybackMode.playlist,
+    List<int> episodeDurationsSeconds = const <int>[],
   }) {
     this.player = player;
     this.videoController = videoController;
     this.filmstrip = filmstrip;
+    playbackMode = mode;
+    this.episodeDurationsSeconds = episodeDurationsSeconds;
     currentIndex = startIndex;
     _playlistSub = player.stream.playlist.listen(_handlePlaylist);
     _positionSub = player.stream.position.listen((position) {
@@ -165,6 +192,54 @@ mixin CollectionPlaybackPageMixin<T extends StatefulWidget> on State<T> {
     _pendingSeek = null;
     _pendingSeekSub?.cancel();
     _pendingSeekSub = null;
+  }
+
+  /// 合并模式拖进度条：把「虚拟总秒」解到目标集 + 集内 offset，复用
+  /// [seekToFrame] 的同集/跨集分支（含 jump 后待目标集首个 position tick 再 seek 的补偿）。
+  void seekToGlobalSeconds(int globalSeconds) {
+    final activePlayer = player;
+    final durations = episodeDurationsSeconds;
+    if (activePlayer == null || durations.isEmpty) {
+      return;
+    }
+    // 解出目标集：线性扫累积时长（集数小，O(N) 够用），最后一集兜底落点防越界。
+    final clamped = globalSeconds < 0 ? 0 : globalSeconds;
+    var cumulative = 0;
+    var targetEpisode = durations.length - 1;
+    var offsetSeconds = 0;
+    for (var i = 0; i < durations.length; i++) {
+      final duration = durations[i] > 0 ? durations[i] : 0;
+      if (clamped < cumulative + duration) {
+        targetEpisode = i;
+        offsetSeconds = clamped - cumulative;
+        break;
+      }
+      cumulative += duration;
+      if (i == durations.length - 1) {
+        // 落到末尾或更后：定位到末集「末尾前 1 秒」。seek 到正好 duration 等同
+        // EOF，mpv 会自动到下一集（若 Playlist 还有）/ 反复触发 completed 事件，
+        // 不是用户拖到最右端期望的「在末尾静止」。留 1 秒裕量足够规避。
+        offsetSeconds = duration > 0 ? duration - 1 : 0;
+      }
+    }
+    // 与 [seekToFrame] 的同集/跨集分支保持一致：避免在途 jump 时 seek 落到旧集。
+    final currentEpisode =
+        _pendingSeek?.episodeIndex ?? activePlayer.state.playlist.index;
+    if (targetEpisode == currentEpisode) {
+      if (_pendingSeek != null) {
+        _pendingSeek = (
+          episodeIndex: targetEpisode,
+          offsetSeconds: offsetSeconds,
+        );
+      } else {
+        _clearPendingSeek();
+        activePlayer.seek(Duration(seconds: offsetSeconds));
+      }
+      return;
+    }
+    _clearPendingSeek();
+    _pendingSeek = (episodeIndex: targetEpisode, offsetSeconds: offsetSeconds);
+    unawaited(activePlayer.jump(targetEpisode));
   }
 
   /// 右面板「整部合集」关键帧网格（纯展示 + 高亮 + 点击跳转；失败静默降级）。

@@ -18,8 +18,10 @@ import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 import 'package:sakuramedia/widgets/movie_player/collection_filmstrip_controller.dart';
 import 'package:sakuramedia/widgets/movie_player/collection_play_split_layout.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_playback_mode.dart';
 import 'package:sakuramedia/widgets/movie_player/collection_playback_page_mixin.dart';
 import 'package:sakuramedia/widgets/movie_player/episode_selector_overlay.dart';
+import 'package:sakuramedia/widgets/movie_player/merged_position_indicator.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/movie_player/themed_video_player.dart';
@@ -82,6 +84,8 @@ class _DesktopClipCollectionPlayPageState
           );
       final medias = <Media>[];
       final playableClips = <MediaClipDto>[];
+      // 与 playableClips 平行：每集时长（秒），合并模式累加为虚拟总时长 + 反向定位。
+      final playableDurations = <int>[];
       // startIndex 基于原始切片顺序；前面有不可播切片被跳过时，索引需重映射到实际
       // 可播列表（与视频连播页 resolvedStartIndex 对齐，否则会起播错位的切片）。
       var resolvedStartIndex = 0;
@@ -96,6 +100,7 @@ class _DesktopClipCollectionPlayPageState
         }
         medias.add(Media(url));
         playableClips.add(clip);
+        playableDurations.add(clip.durationSeconds);
       }
       if (!mounted) {
         return;
@@ -137,6 +142,10 @@ class _DesktopClipCollectionPlayPageState
               .toList();
         },
       );
+      // 详情页弹窗确认的播放形态（一次性 take，深链/刷新无值则回退 playlist）。
+      final mode =
+          handoff.takeMode(key: 'clip:${widget.collectionId}') ??
+          CollectionPlaybackMode.playlist;
       setState(() {
         _clips = playableClips;
         attachPlayback(
@@ -144,6 +153,8 @@ class _DesktopClipCollectionPlayPageState
           videoController: videoController,
           filmstrip: filmstrip,
           startIndex: startIndex,
+          mode: mode,
+          episodeDurationsSeconds: List<int>.unmodifiable(playableDurations),
         );
         _isLoading = false;
       });
@@ -240,10 +251,23 @@ class _DesktopClipCollectionPlayPageState
     BuildContext context,
     VideoController videoController,
   ) {
+    // 合并模式：底栏 progressIndicator 接管整段进度条 + 时间显示，
+    // 并把 media_kit 自带的 seek bar 关掉（避免两条进度条同时显示）。
+    final useMerged =
+        playbackMode == CollectionPlaybackMode.merged && player != null;
+    final progressIndicator =
+        useMerged
+            ? MergedPositionIndicator(
+              player: player!,
+              episodeDurationsSeconds: episodeDurationsSeconds,
+              onSeekGlobalSeconds: seekToGlobalSeconds,
+            )
+            : null;
     return ThemedVideoPlayer(
       videoController: videoController,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
       videoKey: const Key('clip-collection-play-video'),
+      displaySeekBar: !useMerged,
       topControls: buildMoviePlayerTopControls(
         movieNumber: _currentClipTitle(),
         onBackPressed: _handleBack,
@@ -251,6 +275,7 @@ class _DesktopClipCollectionPlayPageState
       bottomControls: buildCollectionPlayBottomControls(
         useTouchOptimizedControls: widget.useTouchOptimizedControls,
         onOpenEpisodes: _openEpisodePanel,
+        progressIndicator: progressIndicator,
       ),
       // 全屏由 media_kit push 独立路由，页面级「选集」浮层不在其内，按钮点了
       // 也看不到——全屏态去掉该按钮，避免死按钮。换集需先退出全屏。
@@ -258,6 +283,7 @@ class _DesktopClipCollectionPlayPageState
         useTouchOptimizedControls: widget.useTouchOptimizedControls,
         onOpenEpisodes: _openEpisodePanel,
         includeEpisodeButton: false,
+        progressIndicator: progressIndicator,
       ),
     );
   }

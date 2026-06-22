@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/videos_api.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_playback_mode.dart';
 import 'package:sakuramedia/features/videos/presentation/mobile_video_actions_sheet.dart';
 import 'package:sakuramedia/features/videos/presentation/mobile_video_player_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pick_video_collection_dialog.dart';
@@ -303,18 +304,34 @@ class _MobileVideoCollectionDetailPageState
     );
   }
 
-  void _playFrom(int index) {
+  Future<void> _playFrom(int index) async {
+    // 进入连播前先询问形态（列表连播 / 合并播放）；外部关闭返回 null → 放弃跳转。
+    // 移动壳传 useBottomDrawer 走底部抽屉范式，对齐其它图片菜单两端。
+    final mode = await showCollectionPlaybackModePicker(
+      context: context,
+      useBottomDrawer: true,
+    );
+    if (mode == null || !mounted) {
+      return;
+    }
+    final handoff = context.read<CollectionPlaybackHandoff>();
+    final sort = _controller.sortExpression;
     // 把当前已排序、带播放地址的成员交给连播页直接用，免其二次全量拉取。
-    context.read<CollectionPlaybackHandoff>().offerVideoItems(
+    handoff.offerVideoItems(
       collectionId: widget.collectionId,
-      sort: _controller.sortExpression,
+      sort: sort,
       items: _controller.items,
+    );
+    // key 与连播页 takeMode 处保持一致：合集 + 排序，避免同合集换排序后串。
+    handoff.offerMode(
+      key: 'video:${widget.collectionId}:${sort ?? ''}',
+      mode: mode,
     );
     MobileVideoCollectionPlayRouteData(
       collectionId: widget.collectionId,
       startIndex: index,
       // 移动端详情页按手动顺序展示（sortExpression 为 null），连播顺序与之一致。
-      sort: _controller.sortExpression,
+      sort: sort,
     ).push(context);
   }
 

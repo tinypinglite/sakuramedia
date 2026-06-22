@@ -196,6 +196,7 @@ MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
   required ThemeData theme,
   required List<Widget> topControls,
   required List<Widget> bottomControls,
+  bool displaySeekBar = true,
 }) {
   final overlayTokens = theme.appOverlayTokens;
   return MaterialVideoControlsThemeData(
@@ -215,7 +216,7 @@ MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
     seekBarPositionColor: theme.colorScheme.primary,
     seekBarHeight: 6,
     seekBarThumbSize: 14,
-    displaySeekBar: true,
+    displaySeekBar: displaySeekBar,
     topButtonBar: topControls,
     topButtonBarMargin: EdgeInsets.fromLTRB(
       overlayTokens.playerControlBarHorizontalInset,
@@ -231,6 +232,7 @@ MaterialDesktopVideoControlsThemeData buildMoviePlayerDesktopControlsThemeData({
   required ThemeData theme,
   required List<Widget> topControls,
   required List<Widget> bottomControls,
+  bool displaySeekBar = true,
 }) {
   final overlayTokens = theme.appOverlayTokens;
   return MaterialDesktopVideoControlsThemeData(
@@ -238,7 +240,7 @@ MaterialDesktopVideoControlsThemeData buildMoviePlayerDesktopControlsThemeData({
     seekBarPositionColor: theme.colorScheme.primary,
     seekBarHeight: 6,
     seekBarThumbSize: 14,
-    displaySeekBar: true,
+    displaySeekBar: displaySeekBar,
     topButtonBar: topControls,
     topButtonBarMargin: EdgeInsets.fromLTRB(
       overlayTokens.playerControlBarHorizontalInset,

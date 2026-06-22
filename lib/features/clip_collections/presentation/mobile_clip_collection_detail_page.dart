@@ -16,6 +16,7 @@ import 'package:sakuramedia/features/clips/presentation/mobile_clip_actions_shee
 import 'package:sakuramedia/features/clips/presentation/mobile_clip_confirm_drawer.dart';
 import 'package:sakuramedia/features/clips/presentation/mobile_clip_player_page.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_playback_mode.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
@@ -323,12 +324,23 @@ class _MobileClipCollectionDetailPageState
     );
   }
 
-  void _playFrom(int index) {
+  Future<void> _playFrom(int index) async {
+    // 进入连播前先询问形态（列表连播 / 合并播放）；外部关闭返回 null → 放弃跳转。
+    // 移动壳传 useBottomDrawer 走底部抽屉范式，对齐其它图片菜单两端。
+    final mode = await showCollectionPlaybackModePicker(
+      context: context,
+      useBottomDrawer: true,
+    );
+    if (mode == null || !mounted) {
+      return;
+    }
+    final handoff = context.read<CollectionPlaybackHandoff>();
     // 切片自带 streamUrl，把当前列表交给连播页直接用，免其二次全量拉取。
-    context.read<CollectionPlaybackHandoff>().offerClips(
+    handoff.offerClips(
       collectionId: widget.collectionId,
       clips: _controller.clips,
     );
+    handoff.offerMode(key: 'clip:${widget.collectionId}', mode: mode);
     MobileClipCollectionPlayRouteData(
       collectionId: widget.collectionId,
       startIndex: index,

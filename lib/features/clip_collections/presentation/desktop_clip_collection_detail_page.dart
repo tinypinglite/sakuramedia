@@ -22,6 +22,7 @@ import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/clips/clip_player_dialog.dart';
 import 'package:sakuramedia/widgets/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_playback_mode.dart';
 import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
 
 /// 合集详情的切片排布方式：纵向列表（可拖序）或网格（侧重浏览）。
@@ -407,12 +408,19 @@ class _DesktopClipCollectionDetailPageState
     return math.max(2, math.min(4, columns));
   }
 
-  void _playFrom(int index) {
+  Future<void> _playFrom(int index) async {
+    // 进入连播前先询问形态（列表连播 / 合并播放）；外部点关闭返回 null → 放弃跳转。
+    final mode = await showCollectionPlaybackModePicker(context: context);
+    if (mode == null || !mounted) {
+      return;
+    }
+    final handoff = context.read<CollectionPlaybackHandoff>();
     // 切片自带 streamUrl，把当前列表交给连播页直接用，免其二次全量拉取。
-    context.read<CollectionPlaybackHandoff>().offerClips(
+    handoff.offerClips(
       collectionId: widget.collectionId,
       clips: _controller.clips,
     );
+    handoff.offerMode(key: 'clip:${widget.collectionId}', mode: mode);
     context.pushDesktopClipCollectionPlay(
       collectionId: widget.collectionId,
       startIndex: index,

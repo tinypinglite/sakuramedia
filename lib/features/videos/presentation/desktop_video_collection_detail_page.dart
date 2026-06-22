@@ -19,6 +19,7 @@ import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_playback_mode.dart';
 import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/videos/video_collection_sort_bar.dart';
 import 'package:sakuramedia/widgets/videos/video_quick_play_dialog.dart';
@@ -83,18 +84,30 @@ class _DesktopVideoCollectionDetailPageState
   }
 
   /// 进入合集连播页：从第 [index] 集开始，原生 Playlist 自动连播（与切片合集一致）。
-  void _playFrom(int index) {
+  Future<void> _playFrom(int index) async {
+    // 进入连播前先询问形态（列表连播 / 合并播放）；外部点关闭返回 null → 放弃跳转。
+    final mode = await showCollectionPlaybackModePicker(context: context);
+    if (mode == null || !mounted) {
+      return;
+    }
+    final handoff = context.read<CollectionPlaybackHandoff>();
+    final sort = _controller.sortExpression;
     // 把当前已排序、带播放地址的成员交给连播页直接用，免其二次全量拉取。
-    context.read<CollectionPlaybackHandoff>().offerVideoItems(
+    handoff.offerVideoItems(
       collectionId: widget.collectionId,
-      sort: _controller.sortExpression,
+      sort: sort,
       items: _controller.items,
+    );
+    // key 与连播页 takeMode 处保持一致：合集 + 排序，避免同合集换排序后串。
+    handoff.offerMode(
+      key: 'video:${widget.collectionId}:${sort ?? ''}',
+      mode: mode,
     );
     context.pushDesktopVideoCollectionPlay(
       collectionId: widget.collectionId,
       startIndex: index,
       // 把详情页当前排序带进连播页，使连播顺序与详情页一致（手动顺序为 null）。
-      sort: _controller.sortExpression,
+      sort: sort,
     );
   }
 

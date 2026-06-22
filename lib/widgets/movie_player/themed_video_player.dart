@@ -25,6 +25,7 @@ class ThemedVideoPlayer extends StatelessWidget {
     this.videoKey,
     this.fit = BoxFit.contain,
     this.fill = Colors.black,
+    this.displaySeekBar = true,
   });
 
   final VideoController videoController;
@@ -49,6 +50,10 @@ class ThemedVideoPlayer extends StatelessWidget {
   final BoxFit fit;
   final Color fill;
 
+  /// 是否显示 media_kit 内置 seek bar；合集合并模式传 `false`，由调用方在 [bottomControls]
+  /// 里塞自定义合并进度条（含 [Expanded] 占满中间空间），避免与内置 seek bar 双进度条。
+  final bool displaySeekBar;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -57,21 +62,25 @@ class ThemedVideoPlayer extends StatelessWidget {
       theme: theme,
       topControls: topControls,
       bottomControls: bottomControls,
+      displaySeekBar: displaySeekBar,
     );
     final desktopFullscreenThemeData = buildMoviePlayerDesktopControlsThemeData(
       theme: theme,
       topControls: topControls,
       bottomControls: fullscreenBottom,
+      displaySeekBar: displaySeekBar,
     );
     final mobileThemeData = buildMoviePlayerMobileControlsThemeData(
       theme: theme,
       topControls: topControls,
       bottomControls: bottomControls,
+      displaySeekBar: displaySeekBar,
     );
     final mobileFullscreenThemeData = buildMoviePlayerMobileControlsThemeData(
       theme: theme,
       topControls: topControls,
       bottomControls: fullscreenBottom,
+      displaySeekBar: displaySeekBar,
     );
     return MaterialVideoControlsTheme(
       normal: mobileThemeData,

@@ -23,8 +23,10 @@ import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
 import 'package:sakuramedia/widgets/movie_player/collection_filmstrip_controller.dart';
 import 'package:sakuramedia/widgets/movie_player/collection_play_split_layout.dart';
+import 'package:sakuramedia/widgets/movie_player/collection_playback_mode.dart';
 import 'package:sakuramedia/widgets/movie_player/collection_playback_page_mixin.dart';
 import 'package:sakuramedia/widgets/movie_player/episode_selector_overlay.dart';
+import 'package:sakuramedia/widgets/movie_player/merged_position_indicator.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_media_thumbnail_grid.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_surface.dart';
@@ -104,6 +106,8 @@ class _DesktopVideoCollectionPlayPageState
       final playableVideos = <VideoItemListItemDto>[];
       // 与 playableVideos 平行：每集「首个媒体」id（可空），供右侧关键帧面板逐集拉缩略图。
       final playableFirstMediaIds = <int?>[];
+      // 与 playableVideos 平行：每集时长（秒，来自首条媒体），合并模式累加为虚拟总时长。
+      final playableDurations = <int>[];
       // startIndex 基于原始成员顺序；若该项不可播或前面有项被跳过，索引需重新映射到
       // 实际可播列表。记录「即将加入的位置」即可自然落到 startIndex 或其后首个可播项。
       var resolvedStartIndex = 0;
@@ -123,6 +127,7 @@ class _DesktopVideoCollectionPlayPageState
         medias.add(Media(playUrl));
         playableVideos.add(items[i].video);
         playableFirstMediaIds.add(items[i].firstMediaId);
+        playableDurations.add(items[i].video.durationSeconds);
       }
       if (!mounted) {
         return;
@@ -174,6 +179,13 @@ class _DesktopVideoCollectionPlayPageState
               .toList();
         },
       );
+      // 详情页弹窗确认的播放形态（一次性 take，深链/刷新无值则回退 playlist）。
+      // key 含 sort 以与 items 信箱一致，详情页同一合集换排序后选择不会串。
+      final mode =
+          handoff.takeMode(
+            key: 'video:${widget.collectionId}:${widget.sort ?? ''}',
+          ) ??
+          CollectionPlaybackMode.playlist;
       setState(() {
         _videos = playableVideos;
         attachPlayback(
@@ -181,6 +193,8 @@ class _DesktopVideoCollectionPlayPageState
           videoController: videoController,
           filmstrip: filmstrip,
           startIndex: startIndex,
+          mode: mode,
+          episodeDurationsSeconds: List<int>.unmodifiable(playableDurations),
         );
         _isLoading = false;
       });
@@ -362,10 +376,23 @@ class _DesktopVideoCollectionPlayPageState
     BuildContext context,
     VideoController videoController,
   ) {
+    // 合并模式：底栏 progressIndicator 接管整段进度条 + 时间显示，
+    // 并把 media_kit 自带的 seek bar 关掉（避免两条进度条同时显示）。
+    final useMerged =
+        playbackMode == CollectionPlaybackMode.merged && player != null;
+    final progressIndicator =
+        useMerged
+            ? MergedPositionIndicator(
+              player: player!,
+              episodeDurationsSeconds: episodeDurationsSeconds,
+              onSeekGlobalSeconds: seekToGlobalSeconds,
+            )
+            : null;
     return ThemedVideoPlayer(
       videoController: videoController,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
       videoKey: const Key('video-collection-play-video'),
+      displaySeekBar: !useMerged,
       topControls: buildMoviePlayerTopControls(
         movieNumber: _currentVideoTitle(),
         onBackPressed: _handleBack,
@@ -373,6 +400,7 @@ class _DesktopVideoCollectionPlayPageState
       bottomControls: buildCollectionPlayBottomControls(
         useTouchOptimizedControls: widget.useTouchOptimizedControls,
         onOpenEpisodes: _openEpisodePanel,
+        progressIndicator: progressIndicator,
       ),
       // 全屏由 media_kit push 独立路由，页面级「选集」浮层不在其内，按钮点了
       // 也看不到——全屏态去掉该按钮，避免死按钮。换集需先退出全屏。
@@ -380,6 +408,7 @@ class _DesktopVideoCollectionPlayPageState
         useTouchOptimizedControls: widget.useTouchOptimizedControls,
         onOpenEpisodes: _openEpisodePanel,
         includeEpisodeButton: false,
+        progressIndicator: progressIndicator,
       ),
     );
   }
