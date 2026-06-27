@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
+import 'package:sakuramedia/theme.dart';
 
 /// 合集「合并播放」模式下的进度条 widget：把每集时长累加成虚拟总时长，
 /// 把当前集 + 集内 position 折算成虚拟总位置；UI 看上去就像在播一部完整影片。
@@ -154,14 +155,16 @@ class _MergedPositionIndicatorState extends State<MergedPositionIndicator> {
     final current = _displaySeconds;
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
-    final textStyle = const TextStyle(
+    final textStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s12,
+    ).copyWith(
       color: Colors.white,
-      fontSize: 12,
-      fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
+      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
     );
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: EdgeInsets.symmetric(horizontal: context.appSpacing.sm),
         child: Row(
           children: [
             Text(formatMediaTimecode(current.round()), style: textStyle),
