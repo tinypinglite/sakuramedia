@@ -30,7 +30,8 @@ jobs:
         run: flutter test
 
       - name: Build Flutter web release
-        run: flutter build web --release
+        # --no-web-resources-cdn: 把 canvaskit 打进产物从同源加载, 避免国内访问 gstatic.com 失败。
+        run: flutter build web --release --no-web-resources-cdn
 
       - name: Resolve Docker image name
         id: image

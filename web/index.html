@@ -69,6 +69,22 @@
       setTimeout(function () { el.remove(); }, 300);
     });
   </script>
+  <script>
+    // 国内访问 fonts.gstatic.com 会卡到超时, 拖慢首帧十几秒。
+    // Flutter Web 引擎在 CanvasKit 初始化时硬编码 fetch Roboto 作兜底字体,
+    // 没有官方关闭开关。这里短路成空响应让引擎立即放弃,
+    // 实际渲染走主题里设的 NotoSansSC (见 lib/theme.dart kAppFontFamily)。
+    (function () {
+      var _fetch = window.fetch;
+      window.fetch = function (input, init) {
+        var url = typeof input === 'string' ? input : (input && input.url) || '';
+        if (url.indexOf('https://fonts.gstatic.com/') === 0) {
+          return Promise.resolve(new Response(new ArrayBuffer(0), { status: 200 }));
+        }
+        return _fetch.call(this, input, init);
+      };
+    })();
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
