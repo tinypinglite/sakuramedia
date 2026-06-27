@@ -13,6 +13,8 @@ class VideoItemListItemDto {
     this.releaseDate,
     this.durationSeconds = 0,
     this.fileSizeBytes = 0,
+    this.coverWidth,
+    this.coverHeight,
     required this.mediaCount,
     required this.canPlay,
     this.createdAt,
@@ -28,6 +30,11 @@ class VideoItemListItemDto {
   /// 时长（秒）/文件大小（字节）：取条目第一条媒体，无媒体时为 0。供时长/大小排序与展示。
   final int durationSeconds;
   final int fileSizeBytes;
+
+  /// 封面像素宽高（= 第一条媒体探测分辨率）。瀑布流网格按此真实比例排版，
+  /// 缺失时回退 16:9 占位。后端探测失败 / 无媒体时为 null。
+  final int? coverWidth;
+  final int? coverHeight;
   final int mediaCount;
   final bool canPlay;
   final DateTime? createdAt;
@@ -50,6 +57,8 @@ class VideoItemListItemDto {
       releaseDate: videoDateFromJson(json['release_date']),
       durationSeconds: _intFromJson(json['duration_seconds']) ?? 0,
       fileSizeBytes: _intFromJson(json['file_size_bytes']) ?? 0,
+      coverWidth: _intFromJson(json['cover_width']),
+      coverHeight: _intFromJson(json['cover_height']),
       mediaCount: _intFromJson(json['media_count']) ?? 0,
       canPlay: json['can_play'] as bool? ?? false,
       createdAt: videoDateFromJson(json['created_at']),

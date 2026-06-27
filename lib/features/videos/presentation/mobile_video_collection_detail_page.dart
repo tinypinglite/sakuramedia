@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
@@ -243,45 +244,66 @@ class _MobileVideoCollectionDetailPageState
   Widget _buildGrid(BuildContext context) {
     final spacing = context.appSpacing;
     final items = _controller.items;
-    return GridView.builder(
-      key: const Key('mobile-video-collection-detail-grid'),
-      // 横向缩进由 shell 提供，此处只补底部留白。
-      padding: EdgeInsets.only(bottom: spacing.lg),
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 180,
-        mainAxisSpacing: spacing.md,
-        crossAxisSpacing: spacing.md,
-        childAspectRatio: context.appComponentTokens.movieCardAspectRatio,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return GestureDetector(
-          onLongPress: selectionMode
-              ? null
-              : () {
-                  enterSelection();
-                  toggleSelect(item.itemId);
-                },
-          child: CollectionMemberCard(
-            key: ValueKey<int>(item.itemId),
-            coverUrl: item.video.coverImage?.bestAvailableUrl,
-            coverAspectRatio: context.appComponentTokens.movieCardAspectRatio,
-            title: item.video.preferredTitle,
-            subtitle: _subtitleFor(item.video),
-            placeholderIcon: Icons.video_library_outlined,
-            titleMaxLines: 2,
-            overlayCaption: true,
-            selectionMode: selectionMode,
-            isSelected: isSelected(item.itemId),
-            onTap: selectionMode
-                ? () => toggleSelect(item.itemId)
-                : () => _openSheet(index, item.video),
-            menuKey: Key('mobile-video-collection-grid-menu-${item.itemId}'),
-          ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        final gap = spacing.md;
+        final rawColumns = ((width + gap) / (180 + gap)).floor();
+        final columns = rawColumns < 2 ? 2 : (rawColumns > 6 ? 6 : rawColumns);
+        return MasonryGridView.count(
+          key: const Key('mobile-video-collection-detail-grid'),
+          // 横向缩进由 shell 提供，此处只补底部留白。
+          padding: EdgeInsets.only(bottom: spacing.lg),
+          crossAxisCount: columns,
+          mainAxisSpacing: gap,
+          crossAxisSpacing: gap,
+          itemCount: items.length,
+          itemBuilder: (context, i) {
+            final item = items[i];
+            final aspect = _resolveCoverAspect(
+              item.video.coverWidth,
+              item.video.coverHeight,
+            );
+            return AspectRatio(
+              aspectRatio: aspect,
+              child: GestureDetector(
+                onLongPress: selectionMode
+                    ? null
+                    : () {
+                        enterSelection();
+                        toggleSelect(item.itemId);
+                      },
+                child: CollectionMemberCard(
+                  key: ValueKey<int>(item.itemId),
+                  coverUrl: item.video.coverImage?.bestAvailableUrl,
+                  coverAspectRatio: 16 / 9,
+                  title: item.video.preferredTitle,
+                  subtitle: _subtitleFor(item.video),
+                  placeholderIcon: Icons.video_library_outlined,
+                  titleMaxLines: 2,
+                  overlayCaption: true,
+                  expandToParent: true,
+                  selectionMode: selectionMode,
+                  isSelected: isSelected(item.itemId),
+                  onTap: selectionMode
+                      ? () => toggleSelect(item.itemId)
+                      : () => _openSheet(i, item.video),
+                  menuKey: Key(
+                      'mobile-video-collection-grid-menu-${item.itemId}'),
+                ),
+              ),
+            );
+          },
         );
       },
     );
+  }
+
+  double _resolveCoverAspect(int? width, int? height) {
+    if (width != null && height != null && width > 0 && height > 0) {
+      return width / height;
+    }
+    return 16 / 9;
   }
 
   String? _subtitleFor(VideoItemListItemDto video) {

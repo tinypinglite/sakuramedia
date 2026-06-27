@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
@@ -489,34 +490,55 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
         ),
       );
     }
-    final spacing = context.appSpacing;
-    // 网格横向缩进由 shell 提供，此处不再叠加外层 SliverPadding。
-    return SliverGrid(
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 180,
-        mainAxisSpacing: spacing.md,
-        crossAxisSpacing: spacing.md,
-        childAspectRatio: context.appComponentTokens.movieCardAspectRatio,
-      ),
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final video = videos[index];
-        return GestureDetector(
-          onLongPress: selectionMode
-              ? null
-              : () {
-                  enterSelection();
-                  toggleSelect(video.id);
-                },
-          child: VideoSummaryCard(
-            video: video,
-            onTap: selectionMode ? null : () => _openSheet(video),
-            selectionMode: selectionMode,
-            isSelected: isSelected(video.id),
-            onSelectedChanged: (_) => toggleSelect(video.id),
-          ),
+    final spacing = context.appSpacing.md;
+    // 网格横向缩进由 shell 提供；用 SliverMasonryGrid 直接消费外层 CustomScrollView，
+    // 自带懒构建（按视口构建 tile），避免 SliverToBoxAdapter+Stack 一次性 build N 张卡。
+    return SliverLayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.crossAxisExtent;
+        final rawColumns = ((width + spacing) / (180 + spacing)).floor();
+        final columns = rawColumns < 2 ? 2 : (rawColumns > 6 ? 6 : rawColumns);
+        return SliverMasonryGrid.count(
+          crossAxisCount: columns,
+          mainAxisSpacing: spacing,
+          crossAxisSpacing: spacing,
+          childCount: videos.length,
+          itemBuilder: (context, i) {
+            final video = videos[i];
+            final aspect = _resolveCoverAspect(
+              video.coverWidth,
+              video.coverHeight,
+            );
+            return AspectRatio(
+              aspectRatio: aspect,
+              child: GestureDetector(
+                onLongPress: selectionMode
+                    ? null
+                    : () {
+                        enterSelection();
+                        toggleSelect(video.id);
+                      },
+                child: VideoSummaryCard(
+                  video: video,
+                  onTap:
+                      selectionMode ? null : () => _openSheet(video),
+                  selectionMode: selectionMode,
+                  isSelected: isSelected(video.id),
+                  onSelectedChanged: (_) => toggleSelect(video.id),
+                ),
+              ),
+            );
+          },
         );
-      }, childCount: videos.length),
+      },
     );
+  }
+
+  double _resolveCoverAspect(int? width, int? height) {
+    if (width != null && height != null && width > 0 && height > 0) {
+      return width / height;
+    }
+    return 16 / 9;
   }
 
   Widget _buildFooter(BuildContext context) {

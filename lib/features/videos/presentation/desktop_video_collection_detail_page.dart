@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:intl/intl.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
@@ -602,41 +603,61 @@ class _DesktopVideoCollectionDetailPageState
 
   Widget _buildGrid(BuildContext context) {
     final items = _controller.items;
-    final spacing = context.appSpacing;
-    return GridView.builder(
-      key: const Key('video-collection-detail-grid'),
-      padding: EdgeInsets.zero,
-      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 180,
-        mainAxisSpacing: spacing.md,
-        crossAxisSpacing: spacing.md,
-        // 竖版海报：标题/日期压在封面底部，整卡即封面比例，无下方留白。
-        childAspectRatio: context.appComponentTokens.movieCardAspectRatio,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return CollectionMemberCard(
-          key: ValueKey<int>(item.itemId),
-          coverUrl: item.video.coverImage?.bestAvailableUrl,
-          coverAspectRatio: context.appComponentTokens.movieCardAspectRatio,
-          title: item.video.preferredTitle,
-          subtitle: _formatReleaseDate(item.video.releaseDate),
-          onTap: selectionMode
-              ? () => toggleSelect(item.itemId)
-              : () => _playVideoSingle(item.video),
-          menuKey: Key('video-collection-grid-menu-${item.itemId}'),
-          onRemove: () => _removeItem(item.itemId),
-          onDelete: () => _deleteVideo(item.itemId),
-          placeholderIcon: Icons.video_library_outlined,
-          titleMaxLines: 2,
-          overlayCaption: true,
-          selectionMode: selectionMode,
-          isSelected: isSelected(item.itemId),
+    final spacing = context.appSpacing.md;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        // 列数按目标宽 180 自动算，与原 maxCrossAxisExtent 一致；上限放宽到 8 列。
+        final rawColumns = ((width + spacing) / (180 + spacing)).floor();
+        final columns = rawColumns < 2 ? 2 : (rawColumns > 8 ? 8 : rawColumns);
+        return MasonryGridView.count(
+          key: const Key('video-collection-detail-grid'),
+          crossAxisCount: columns,
+          mainAxisSpacing: spacing,
+          crossAxisSpacing: spacing,
+          itemCount: items.length,
+          itemBuilder: (context, i) {
+            final item = items[i];
+            final aspect = _resolveCoverAspect(
+              item.video.coverWidth,
+              item.video.coverHeight,
+            );
+            return AspectRatio(
+              aspectRatio: aspect,
+              child: CollectionMemberCard(
+                key: ValueKey<int>(item.itemId),
+                coverUrl: item.video.coverImage?.bestAvailableUrl,
+                // expandToParent 模式下 coverAspectRatio 仅在 cover placeholder 时
+                // 影响占位比例；瀑布流 tile 已按真实比例分配高度，传 16:9 兜底即可。
+                coverAspectRatio: 16 / 9,
+                title: item.video.preferredTitle,
+                subtitle: _formatReleaseDate(item.video.releaseDate),
+                onTap: selectionMode
+                    ? () => toggleSelect(item.itemId)
+                    : () => _playVideoSingle(item.video),
+                menuKey: Key('video-collection-grid-menu-${item.itemId}'),
+                onRemove: () => _removeItem(item.itemId),
+                onDelete: () => _deleteVideo(item.itemId),
+                placeholderIcon: Icons.video_library_outlined,
+                titleMaxLines: 2,
+                overlayCaption: true,
+                expandToParent: true,
+                selectionMode: selectionMode,
+                isSelected: isSelected(item.itemId),
+              ),
+            );
+          },
         );
       },
     );
   }
+}
+
+double _resolveCoverAspect(int? width, int? height) {
+  if (width != null && height != null && width > 0 && height > 0) {
+    return width / height;
+  }
+  return 16 / 9;
 }
 
 /// 发布日期文案；为空返回 `null`（不展示该行）。

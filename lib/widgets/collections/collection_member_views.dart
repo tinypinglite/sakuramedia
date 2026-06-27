@@ -338,6 +338,7 @@ class CollectionMemberCard extends StatelessWidget {
     this.clipOverlay = false,
     this.selectionMode = false,
     this.isSelected = false,
+    this.expandToParent = false,
   });
 
   final String? coverUrl;
@@ -377,6 +378,12 @@ class CollectionMemberCard extends StatelessWidget {
 
   /// 当前是否被选中（仅 [selectionMode] 下有意义）。
   final bool isSelected;
+
+  /// 卡片是否直接占满父布局尺寸（不再按 [coverAspectRatio] 自包 AspectRatio）。
+  /// 瀑布流场景下父布局已按封面真实比例分配 tile 高度，再包 AspectRatio 会与父高度
+  /// 冲突导致留空 / 溢出，此时传 `true` 让卡片直接 fit 父尺寸。仅 [overlayCaption]
+  /// 模式生效（上图下文 / 切片样式仍依赖 AspectRatio 隔离封面区与下方文案）。
+  final bool expandToParent;
 
   @override
   Widget build(BuildContext context) {
@@ -587,55 +594,56 @@ class CollectionMemberCard extends StatelessWidget {
   Widget _buildOverlay(BuildContext context) {
     final spacing = context.appSpacing;
     final sub = subtitle?.trim();
-    return AspectRatio(
-      aspectRatio: coverAspectRatio,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildCover(context),
-          const _MemberCaptionShade(),
-          const _MemberPlayOverlay(),
-          Positioned(
-            left: spacing.md,
-            right: spacing.md,
-            bottom: spacing.md,
-            child: IgnorePointer(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
+    final stack = Stack(
+      fit: StackFit.expand,
+      children: [
+        _buildCover(context),
+        const _MemberCaptionShade(),
+        const _MemberPlayOverlay(),
+        Positioned(
+          left: spacing.md,
+          right: spacing.md,
+          bottom: spacing.md,
+          child: IgnorePointer(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  maxLines: titleMaxLines,
+                  overflow: TextOverflow.ellipsis,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.onMedia,
+                  ),
+                ),
+                if (sub != null && sub.isNotEmpty) ...[
+                  SizedBox(height: spacing.xs),
                   Text(
-                    title,
-                    maxLines: titleMaxLines,
+                    sub,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: resolveAppTextStyle(
                       context,
-                      size: AppTextSize.s14,
-                      weight: AppTextWeight.semibold,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
                       tone: AppTextTone.onMedia,
-                    ),
+                    ).copyWith(color: Colors.white.withValues(alpha: 0.72)),
                   ),
-                  if (sub != null && sub.isNotEmpty) ...[
-                    SizedBox(height: spacing.xs),
-                    Text(
-                      sub,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        weight: AppTextWeight.regular,
-                        tone: AppTextTone.onMedia,
-                      ).copyWith(color: Colors.white.withValues(alpha: 0.72)),
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
+    if (expandToParent) {
+      return stack;
+    }
+    return AspectRatio(aspectRatio: coverAspectRatio, child: stack);
   }
 }
 

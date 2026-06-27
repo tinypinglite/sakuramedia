@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -11,8 +10,14 @@ import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart'
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/layout/staggered_layout.dart';
 import 'package:sakuramedia/widgets/media/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/media/masked_image.dart';
+
+// 瀑布流布局工具已抽到 lib/widgets/layout/staggered_layout.dart 共用，本文件 re-export 三符号
+// 兼容历史 import 路径与单测；新代码请直接 import 公共模块。
+export 'package:sakuramedia/widgets/layout/staggered_layout.dart'
+    show StaggeredLayoutResult, StaggeredTilePlacement, computeStaggeredLayout;
 
 /// 缩略图网格的两种布局：
 /// - [uniform16x9]：所有 tile 统一 16:9，竖图运行时回退 `BoxFit.contain` 两侧留底（历史行为）。
@@ -24,9 +29,6 @@ enum ThumbnailGridLayout { uniform16x9, staggered }
 /// 仅 [ThumbnailGridLayout.uniform16x9] 分支使用——瀑布流分支预先按真实比例切 tile，cover 即可。
 const double _kAdaptiveFitAspectThreshold = 1.5;
 
-/// 瀑布流缺 width/height 时按 16:9 占位（与 uniform 分支历史行为对齐）。
-const double _kStaggeredFallbackAspect = 16 / 9;
-
 /// 按图片真实宽高比（宽/高）选填充方式：竖/方图（< 1.5）用 contain 完整展示，
 /// 横图（>= 1.5）用 cover 填满。测得前（null）或无效（<=0）回退 cover，等同原行为、不闪烁。
 @visibleForTesting
@@ -37,110 +39,6 @@ BoxFit resolveAdaptiveThumbnailFit(double? aspectRatio) {
   return aspectRatio < _kAdaptiveFitAspectThreshold
       ? BoxFit.contain
       : BoxFit.cover;
-}
-
-/// 瀑布流单个 tile 的归位结果：所在列 + 顶端 y 偏移 + tile 高度。
-@immutable
-class StaggeredTilePlacement {
-  const StaggeredTilePlacement({
-    required this.columnIndex,
-    required this.topOffset,
-    required this.height,
-  });
-
-  final int columnIndex;
-  final double topOffset;
-  final double height;
-
-  double get bottomOffset => topOffset + height;
-}
-
-/// 瀑布流整组布局结果：每 tile 的归位 + 各列累计高度 + 单 tile 宽度。
-@immutable
-class StaggeredLayoutResult {
-  const StaggeredLayoutResult({
-    required this.tiles,
-    required this.columnHeights,
-    required this.tileWidth,
-  });
-
-  final List<StaggeredTilePlacement> tiles;
-  final List<double> columnHeights;
-  final double tileWidth;
-
-  /// 整组瀑布流总高 = 最长列高（不含尾部 mainAxisSpacing）。
-  double get totalHeight =>
-      columnHeights.isEmpty
-          ? 0
-          : columnHeights.reduce((a, b) => a > b ? a : b);
-}
-
-/// 计算瀑布流 tile 归位：**镜像** `SliverMasonryGrid.count` 的「当前最矮列优先」放置算法
-/// （并列时取最左列），同集内 tile 等高会自然形成整齐行；缺 w/h 的 tile 回退 16:9。
-///
-/// 暴露成纯函数供面板内部预算可视范围 / 自动滚动目标偏移用——只要算法与库一致，前端预算
-/// 的 `topOffset` 就等同库实际渲染位置；库换实现的小风险由 layout 单测覆盖。
-@visibleForTesting
-StaggeredLayoutResult computeStaggeredLayout({
-  required int crossAxisCount,
-  required double availableWidth,
-  required double crossAxisSpacing,
-  required double mainAxisSpacing,
-  required List<({int? width, int? height})> items,
-  double fallbackAspect = _kStaggeredFallbackAspect,
-}) {
-  final safeColumns = math.max(0, crossAxisCount);
-  if (safeColumns == 0 || items.isEmpty || availableWidth <= 0) {
-    return StaggeredLayoutResult(
-      tiles: const <StaggeredTilePlacement>[],
-      columnHeights: List<double>.filled(safeColumns, 0, growable: false),
-      tileWidth: 0,
-    );
-  }
-  final tileWidth =
-      (availableWidth - crossAxisSpacing * (safeColumns - 1)) / safeColumns;
-  if (tileWidth <= 0) {
-    return StaggeredLayoutResult(
-      tiles: const <StaggeredTilePlacement>[],
-      columnHeights: List<double>.filled(safeColumns, 0, growable: false),
-      tileWidth: 0,
-    );
-  }
-  final columnHeights = List<double>.filled(safeColumns, 0, growable: false);
-  final tiles = <StaggeredTilePlacement>[];
-  for (final item in items) {
-    final w = item.width;
-    final h = item.height;
-    final aspect =
-        (w != null && h != null && w > 0 && h > 0) ? w / h : fallbackAspect;
-    final tileHeight = tileWidth / aspect;
-    var bestColumn = 0;
-    for (var c = 1; c < safeColumns; c++) {
-      if (columnHeights[c] < columnHeights[bestColumn]) {
-        bestColumn = c;
-      }
-    }
-    final top = columnHeights[bestColumn];
-    tiles.add(
-      StaggeredTilePlacement(
-        columnIndex: bestColumn,
-        topOffset: top,
-        height: tileHeight,
-      ),
-    );
-    columnHeights[bestColumn] = top + tileHeight + mainAxisSpacing;
-  }
-  // 去掉尾部多记的 mainAxisSpacing，让 totalHeight 等于最后一行 tile 的底端。
-  for (var c = 0; c < safeColumns; c++) {
-    if (columnHeights[c] > 0) {
-      columnHeights[c] -= mainAxisSpacing;
-    }
-  }
-  return StaggeredLayoutResult(
-    tiles: List<StaggeredTilePlacement>.unmodifiable(tiles),
-    columnHeights: columnHeights,
-    tileWidth: tileWidth,
-  );
 }
 
 class MovieMediaThumbnailGrid extends StatefulWidget {
@@ -796,7 +694,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
             final aspect =
                 (w != null && h != null && w > 0 && h > 0)
                     ? w / h
-                    : _kStaggeredFallbackAspect;
+                    : kStaggeredFallbackAspect;
             // AspectRatio 让 SliverMasonryGrid 无须解码图片即可定 tile 高度，懒构建照常生效。
             return AspectRatio(
               aspectRatio: aspect,

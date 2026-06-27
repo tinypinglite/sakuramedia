@@ -42,7 +42,6 @@ class VideoSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final componentTokens = context.appComponentTokens;
     final spacing = context.appSpacing;
 
     final borderColor =
@@ -60,64 +59,62 @@ class VideoSummaryCard extends StatelessWidget {
         boxShadow: context.appShadows.card,
       ),
       clipBehavior: Clip.antiAlias,
-      child: AspectRatio(
-        aspectRatio: componentTokens.movieCardAspectRatio,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _VideoCover(videoId: video.id, coverImage: video.coverImage),
-            const _VideoCardBottomShade(),
-            // 选择模式：整卡点击切换选中；非选择模式：整卡点击播放（落在浮层之下，避免吃掉菜单点击）。
-            if (selectionMode)
-              Positioned.fill(
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: InkWell(
-                    key: Key('video-summary-card-select-${video.id}'),
-                    onTap: () => onSelectedChanged?.call(!isSelected),
-                  ),
-                ),
-              )
-            else if (onTap != null)
-              Positioned.fill(
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: InkWell(
-                    key: Key('video-summary-card-tap-${video.id}'),
-                    onTap: onTap,
-                  ),
+      // 卡片整体由瀑布流网格按封面真实比例分配高度，不再固定 AspectRatio。
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _VideoCover(videoId: video.id, coverImage: video.coverImage),
+          const _VideoCardBottomShade(),
+          // 选择模式：整卡点击切换选中；非选择模式：整卡点击播放（落在浮层之下，避免吃掉菜单点击）。
+          if (selectionMode)
+            Positioned.fill(
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  key: Key('video-summary-card-select-${video.id}'),
+                  onTap: () => onSelectedChanged?.call(!isSelected),
                 ),
               ),
-            if (!selectionMode) const _PlayOverlay(),
-            Positioned(
-              left: spacing.md,
-              right: spacing.md,
-              bottom: spacing.md,
-              child: IgnorePointer(
-                child: Text(
-                  video.preferredTitle,
-                  key: Key('video-summary-card-title-${video.id}'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.onMedia,
-                  ),
+            )
+          else if (onTap != null)
+            Positioned.fill(
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  key: Key('video-summary-card-tap-${video.id}'),
+                  onTap: onTap,
                 ),
               ),
             ),
-            if (selectionMode)
-              Positioned(
-                top: spacing.xs,
-                left: spacing.xs,
-                child: IgnorePointer(
-                  child: _SelectionCheck(isSelected: isSelected),
+          if (!selectionMode) const _PlayOverlay(),
+          Positioned(
+            left: spacing.md,
+            right: spacing.md,
+            bottom: spacing.md,
+            child: IgnorePointer(
+              child: Text(
+                video.preferredTitle,
+                key: Key('video-summary-card-title-${video.id}'),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.onMedia,
                 ),
               ),
-          ],
-        ),
+            ),
+          ),
+          if (selectionMode)
+            Positioned(
+              top: spacing.xs,
+              left: spacing.xs,
+              child: IgnorePointer(
+                child: _SelectionCheck(isSelected: isSelected),
+              ),
+            ),
+        ],
       ),
     );
 
@@ -236,7 +233,9 @@ class _VideoCover extends StatelessWidget {
     final coverUrl = coverImage?.bestAvailableUrl.trim();
 
     if (coverUrl != null && coverUrl.isNotEmpty) {
-      return MaskedImage(url: coverUrl, fit: BoxFit.contain);
+      // 瀑布流网格按 coverWidth/coverHeight 切 tile，cover 填满不再留底色；
+      // 罕见极端比例（探测缺失走 16:9 fallback、与真实比例差距大）会少量裁切。
+      return MaskedImage(url: coverUrl, fit: BoxFit.cover);
     }
 
     return DecoratedBox(

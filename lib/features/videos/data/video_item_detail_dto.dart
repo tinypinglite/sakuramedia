@@ -15,6 +15,8 @@ class VideoItemDetailDto {
     this.releaseDate,
     this.durationSeconds = 0,
     this.fileSizeBytes = 0,
+    this.coverWidth,
+    this.coverHeight,
     required this.mediaCount,
     required this.canPlay,
     this.createdAt,
@@ -31,6 +33,10 @@ class VideoItemDetailDto {
   /// 时长（秒）/文件大小（字节）：取条目第一条媒体，无媒体时为 0。
   final int durationSeconds;
   final int fileSizeBytes;
+
+  /// 封面像素宽高（= 第一条媒体探测分辨率）。后端探测失败 / 无媒体时为 null。
+  final int? coverWidth;
+  final int? coverHeight;
   final int mediaCount;
   final bool canPlay;
   final DateTime? createdAt;
@@ -55,6 +61,8 @@ class VideoItemDetailDto {
       releaseDate: releaseDate,
       durationSeconds: durationSeconds,
       fileSizeBytes: fileSizeBytes,
+      coverWidth: coverWidth,
+      coverHeight: coverHeight,
       mediaCount: mediaCount,
       canPlay: canPlay,
       createdAt: createdAt,
@@ -71,6 +79,8 @@ class VideoItemDetailDto {
       releaseDate: videoDateFromJson(json['release_date']),
       durationSeconds: _intFromJson(json['duration_seconds']) ?? 0,
       fileSizeBytes: _intFromJson(json['file_size_bytes']) ?? 0,
+      coverWidth: _intFromJson(json['cover_width']),
+      coverHeight: _intFromJson(json['cover_height']),
       mediaCount: _intFromJson(json['media_count']) ?? 0,
       canPlay: json['can_play'] as bool? ?? false,
       createdAt: videoDateFromJson(json['created_at']),
