@@ -48,6 +48,8 @@ class VideoItemListItemDto {
       summary: json['summary'] as String? ?? '',
       coverImage: videoImageFromJson(json['cover_image']),
       releaseDate: videoDateFromJson(json['release_date']),
+      durationSeconds: _intFromJson(json['duration_seconds']) ?? 0,
+      fileSizeBytes: _intFromJson(json['file_size_bytes']) ?? 0,
       mediaCount: _intFromJson(json['media_count']) ?? 0,
       canPlay: json['can_play'] as bool? ?? false,
       createdAt: videoDateFromJson(json['created_at']),
