@@ -3,7 +3,7 @@ class AppImageConfig {
   static const int imageCacheMaximumSizeBytes = 64 * 1024 * 1024;
 
   static bool enableBlur = false;
-  static double blurSigma = 30;
+  static double blurSigma = 50;
 
   @Deprecated('Use enableBlur instead.')
   static bool get enableMask => enableBlur;
