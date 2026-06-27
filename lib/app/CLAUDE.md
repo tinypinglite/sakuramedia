@@ -22,7 +22,7 @@
 3. `MediaKit.ensureInitialized`(之前不能用播放器);
 4. 仅 Web 调 `disableContextMenu`;**仅桌面**初始化窗口(条件导入 `window_bootstrap_desktop.dart` / `window_bootstrap_stub.dart`)。
 
-桌面窗口固定 `1440×800` 且 `minimumSize == size`(小屏会被强制撑大);macOS 隐藏标题栏 + 透明背景。
+桌面窗口默认 `1280×720`、最小 `1280×720`(小屏会被强制撑大);窗口大小与最大化状态会持久化到 `SharedPreferences`(key 前缀 `desktop_window:`),下次启动自动恢复;macOS 隐藏标题栏 + 透明背景。
 
 `main.dart` 是唯一用**真实持久化 `SessionStore`** 启动的路径(`SessionStore.create()`);测试用 `inMemory` 注入。`MyApp.didUpdateWidget` 在 `platformOverride`/`sessionStore` 变化时重建 router。
 
