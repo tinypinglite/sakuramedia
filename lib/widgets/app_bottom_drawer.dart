@@ -22,7 +22,7 @@ Future<T?> showAppBottomDrawer<T>({
     useSafeArea: shouldUseRouteSafeArea,
     showDragHandle: false,
     enableDrag: enableDrag,
-    backgroundColor: Colors.transparent,
+    backgroundColor: context.appColors.surfaceCard,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(
         top: Radius.circular(context.appRadius.lg),
