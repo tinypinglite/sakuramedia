@@ -56,3 +56,15 @@ SakuraMedia 面向 NAS 用户，原因在于它本身就是前后端分离的设
 - 项目提供的是媒体管理与工作台能力，不提供任何媒体资源内容。
 - 请确保你的使用行为符合所在地法律法规与版权要求。
 - License: [GNU GPL v3](./LICENSE)
+
+<h2 align="center">Star History</h2>
+
+<p align="center">
+  <a href="https://star-history.com/#tinypinglite/sakuramedia&Date">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=tinypinglite/sakuramedia&type=Date&theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=tinypinglite/sakuramedia&type=Date" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=tinypinglite/sakuramedia&type=Date" />
+    </picture>
+  </a>
+</p>
