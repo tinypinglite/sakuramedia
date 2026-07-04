@@ -236,6 +236,7 @@
 
 - 普通文本优先走 `AppText`
 - 表单、按钮、Tab、详情页主内容等需要 `TextStyle` 的场景统一走 `resolveAppTextStyle`
+- `resolveAppTextStyle` 在 Web 端会携带主题字体族，避免自绘组件或 `DefaultTextStyle` 重置继承链后丢失内嵌 `NotoSansSC`
 - 业务页面不再使用语义兼容层或 `context.appTypography.*`
 - 静态文本色优先用 `tone`，只有动态 alpha 或运行时状态色才允许在 resolver 结果上再做 `copyWith`
 - 只有 Flutter / Material 或第三方组件兼容场景才通过 `TextTheme` 间接消费这些字体 token

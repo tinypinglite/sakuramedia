@@ -70,6 +70,27 @@
     });
   </script>
   <script>
+    // CanvasKit 默认从 https://www.gstatic.com/flutter-canvaskit/<engine>/ 拉 wasm,
+    // 国内网络下会拖慢首帧。改成本地目录 web/canvaskit/, 版本与 Flutter SDK 同源。
+    // 升级 Flutter 后需重新拷贝 $FLUTTER_ROOT/bin/cache/flutter_web_sdk/canvaskit 覆盖。
+    //
+    // 实现: Flutter 3.29 的 flutter_bootstrap.js 里 canvasKit URL 逻辑等价于
+    //   config.canvasKitBaseUrl || (buildConfig.engineRevision && !buildConfig.useLocalCanvasKit
+    //     ? "https://www.gstatic.com/flutter-canvaskit/<engine>"
+    //     : "canvaskit")
+    // 由于自动生成的 bootstrap 不给 config 传 canvasKitBaseUrl, 也不设 useLocalCanvasKit,
+    // 我们用 setter 在 buildConfig 被赋值的瞬间打上 useLocalCanvasKit=true, 走 fallback 分支。
+    (function () {
+      window._flutter = window._flutter || {};
+      var _bc;
+      Object.defineProperty(window._flutter, 'buildConfig', {
+        configurable: true,
+        get: function () { return _bc; },
+        set: function (v) { if (v) v.useLocalCanvasKit = true; _bc = v; }
+      });
+    })();
+  </script>
+  <script>
     // 国内访问 fonts.gstatic.com 会卡到超时, 拖慢首帧十几秒。
     // Flutter Web 引擎在 CanvasKit 初始化时硬编码 fetch Roboto 作兜底字体,
     // 没有官方关闭开关。这里短路成空响应让引擎立即放弃,

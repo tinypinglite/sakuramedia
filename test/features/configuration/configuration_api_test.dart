@@ -110,6 +110,313 @@ void main() {
       expect(bundle.adapter.requests[2].body.containsKey('password'), isFalse);
     });
 
+    test('download clients diagnostic apis map endpoints and results', () async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/download-clients/1/test',
+        body: {
+          'healthy': true,
+          'checked_at': '2026-07-03T12:00:00',
+          'client_id': 1,
+          'client_name': 'client-a',
+          'base_url': 'http://localhost:8080',
+          'elapsed_ms': 18,
+          'version': '5.0.4',
+          'web_api_version': '2.11.4',
+          'error': null,
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/download-clients/2/test',
+        body: {
+          'healthy': false,
+          'checked_at': '2026-07-03T12:00:00',
+          'client_id': 2,
+          'client_name': 'client-b',
+          'base_url': 'http://localhost:8081',
+          'elapsed_ms': 1002,
+          'version': null,
+          'web_api_version': null,
+          'error': {
+            'type': 'qbittorrent_request_error',
+            'message': 'login failed',
+          },
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/download-clients/1/storage-test',
+        body: {
+          'healthy': true,
+          'checked_at': '2026-07-03T12:05:00',
+          'client_id': 1,
+          'client_name': 'client-a',
+          'elapsed_ms': 24,
+          'warnings': <String>[],
+          'directory_mapping': {
+            'status': 'ok',
+            'client_save_path': '/downloads/a',
+            'local_root_path': '/mnt/qb/downloads/a',
+            'probe_remote_dir': '/downloads/a/.sakuramedia-diagnostics/4f9b',
+            'probe_local_dir':
+                '/mnt/qb/downloads/a/.sakuramedia-diagnostics/4f9b',
+            'sentinel_visible_to_qb': true,
+            'error': null,
+          },
+          'hardlink': {
+            'status': 'ok',
+            'supported': true,
+            'source_path':
+                '/mnt/qb/downloads/a/.sakuramedia-diagnostics/4f9b/sentinel.txt',
+            'target_path':
+                '/media/library/main/.sakuramedia-diagnostics/4f9b/sentinel.link',
+            'error': null,
+          },
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/download-clients/2/storage-test',
+        body: {
+          'healthy': true,
+          'checked_at': '2026-07-03T12:05:00',
+          'client_id': 2,
+          'client_name': 'client-b',
+          'elapsed_ms': 31,
+          'warnings': ['下载目录到媒体库不支持硬链接，导入会回退为复制'],
+          'directory_mapping': {
+            'status': 'ok',
+            'client_save_path': '/downloads/b',
+            'local_root_path': '/mnt/qb/downloads/b',
+            'probe_remote_dir': '/downloads/b/.sakuramedia-diagnostics/aaaa',
+            'probe_local_dir':
+                '/mnt/qb/downloads/b/.sakuramedia-diagnostics/aaaa',
+            'sentinel_visible_to_qb': true,
+            'error': null,
+          },
+          'hardlink': {
+            'status': 'failed',
+            'supported': false,
+            'source_path':
+                '/mnt/qb/downloads/b/.sakuramedia-diagnostics/aaaa/sentinel.txt',
+            'target_path':
+                '/media/library/main/.sakuramedia-diagnostics/aaaa/sentinel.link',
+            'error': {
+              'type': 'hardlink_not_supported',
+              'message': 'Invalid cross-device link',
+            },
+          },
+        },
+      );
+
+      final healthy = await bundle.downloadClientsApi.testClient(1);
+      final unhealthy = await bundle.downloadClientsApi.testClient(2);
+      final storageOk = await bundle.downloadClientsApi.storageTestClient(1);
+      final storageWarn = await bundle.downloadClientsApi.storageTestClient(2);
+
+      expect(healthy.healthy, isTrue);
+      expect(healthy.version, '5.0.4');
+      expect(healthy.webApiVersion, '2.11.4');
+      expect(healthy.error, isNull);
+      expect(
+        healthy.checkedAt,
+        DateTime.parse('2026-07-03T12:00:00'),
+      );
+
+      expect(unhealthy.healthy, isFalse);
+      expect(unhealthy.version, isNull);
+      expect(unhealthy.webApiVersion, isNull);
+      expect(unhealthy.error?.type, 'qbittorrent_request_error');
+      expect(unhealthy.error?.message, 'login failed');
+
+      expect(storageOk.healthy, isTrue);
+      expect(storageOk.warnings, isEmpty);
+      expect(storageOk.directoryMapping.status, 'ok');
+      expect(storageOk.directoryMapping.sentinelVisibleToQb, isTrue);
+      expect(storageOk.hardlink.status, 'ok');
+      expect(storageOk.hardlink.supported, isTrue);
+
+      expect(storageWarn.healthy, isTrue);
+      expect(storageWarn.warnings.length, 1);
+      expect(
+        storageWarn.warnings.single,
+        contains('下载目录到媒体库不支持硬链接'),
+      );
+      expect(storageWarn.hardlink.status, 'failed');
+      expect(storageWarn.hardlink.supported, isFalse);
+      expect(storageWarn.hardlink.error?.type, 'hardlink_not_supported');
+
+      expect(bundle.adapter.requests.length, 4);
+      expect(bundle.adapter.requests[0].method, 'GET');
+      expect(bundle.adapter.requests[0].path, '/download-clients/1/test');
+      expect(bundle.adapter.requests[2].method, 'POST');
+      expect(
+        bundle.adapter.requests[2].path,
+        '/download-clients/1/storage-test',
+      );
+    });
+
+    test('download client probe apis send form payload without client id',
+        () async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/download-clients/probe/test',
+        body: {
+          'healthy': true,
+          'checked_at': '2026-07-03T13:00:00',
+          'client_id': 0,
+          'client_name': '',
+          'base_url': 'http://qb.example.com',
+          'elapsed_ms': 12,
+          'version': '5.0.4',
+          'web_api_version': '2.11.4',
+          'error': null,
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/download-clients/probe/storage-test',
+        body: {
+          'healthy': true,
+          'checked_at': '2026-07-03T13:05:00',
+          'client_id': 0,
+          'client_name': '',
+          'elapsed_ms': 22,
+          'warnings': <String>[],
+          'directory_mapping': {
+            'status': 'ok',
+            'client_save_path': '/downloads/new',
+            'local_root_path': '/mnt/downloads/new',
+            'probe_remote_dir': '/downloads/new/.sakuramedia-diagnostics/xx',
+            'probe_local_dir': '/mnt/downloads/new/.sakuramedia-diagnostics/xx',
+            'sentinel_visible_to_qb': true,
+            'error': null,
+          },
+          'hardlink': {
+            'status': 'ok',
+            'supported': true,
+            'source_path':
+                '/mnt/downloads/new/.sakuramedia-diagnostics/xx/sentinel.txt',
+            'target_path':
+                '/library/main/.sakuramedia-diagnostics/xx/sentinel.link',
+            'error': null,
+          },
+        },
+      );
+
+      final connectivity = await bundle.downloadClientsApi.probeTestClient(
+        const DownloadClientProbeTestPayload(
+          baseUrl: 'http://qb.example.com',
+          username: 'alice',
+          password: 'fresh-secret',
+        ),
+      );
+      final storage = await bundle.downloadClientsApi.probeStorageTestClient(
+        const DownloadClientProbeStorageTestPayload(
+          baseUrl: 'http://qb.example.com',
+          username: 'alice',
+          password: 'fresh-secret',
+          clientSavePath: '/downloads/new',
+          localRootPath: '/mnt/downloads/new',
+          mediaLibraryId: 3,
+        ),
+      );
+
+      expect(connectivity.healthy, isTrue);
+      expect(connectivity.version, '5.0.4');
+      expect(storage.healthy, isTrue);
+      expect(storage.directoryMapping.clientSavePath, '/downloads/new');
+
+      expect(bundle.adapter.requests[0].method, 'POST');
+      expect(bundle.adapter.requests[0].path, '/download-clients/probe/test');
+      final connBody = bundle.adapter.requests[0].body;
+      expect(connBody['base_url'], 'http://qb.example.com');
+      expect(connBody['username'], 'alice');
+      expect(connBody['password'], 'fresh-secret');
+      expect(connBody.containsKey('client_id'), isFalse);
+
+      expect(bundle.adapter.requests[1].method, 'POST');
+      expect(
+        bundle.adapter.requests[1].path,
+        '/download-clients/probe/storage-test',
+      );
+      final storageBody = bundle.adapter.requests[1].body;
+      expect(storageBody['client_save_path'], '/downloads/new');
+      expect(storageBody['local_root_path'], '/mnt/downloads/new');
+      expect(storageBody['media_library_id'], 3);
+      expect(storageBody.containsKey('client_id'), isFalse);
+    });
+
+    test('download client probe apis carry null password + client id for edit',
+        () async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/download-clients/probe/test',
+        body: {
+          'healthy': true,
+          'checked_at': '2026-07-03T13:10:00',
+          'client_id': 42,
+          'client_name': 'client-a',
+          'base_url': 'http://qb.example.com',
+          'elapsed_ms': 9,
+          'version': '5.0.4',
+          'web_api_version': '2.11.4',
+          'error': null,
+        },
+      );
+
+      final result = await bundle.downloadClientsApi.probeTestClient(
+        const DownloadClientProbeTestPayload(
+          baseUrl: 'http://qb.example.com',
+          username: 'alice',
+          password: null,
+          clientId: 42,
+        ),
+      );
+
+      expect(result.healthy, isTrue);
+      final body = bundle.adapter.requests[0].body;
+      expect(body['password'], isNull);
+      expect(body['client_id'], 42);
+    });
+
+    test('download client diagnostic dtos tolerate missing fields', () {
+      final test = DownloadClientTestResultDto.fromJson(
+        const <String, dynamic>{},
+      );
+      expect(test.healthy, isFalse);
+      expect(test.clientId, 0);
+      expect(test.clientName, isEmpty);
+      expect(test.version, isNull);
+      expect(test.webApiVersion, isNull);
+      expect(test.error, isNull);
+      expect(test.checkedAt, isNull);
+
+      final storage = DownloadClientStorageTestResultDto.fromJson(
+        const <String, dynamic>{},
+      );
+      expect(storage.healthy, isFalse);
+      expect(storage.warnings, isEmpty);
+      expect(storage.directoryMapping.status, isEmpty);
+      expect(storage.directoryMapping.sentinelVisibleToQb, isFalse);
+      expect(storage.directoryMapping.error, isNull);
+      expect(storage.hardlink.supported, isFalse);
+      expect(storage.hardlink.error, isNull);
+    });
+
     test('media libraries api maps CRUD endpoints and payloads', () async {
       final sessionStore = await _buildLoggedInSessionStore();
       final bundle = await createTestApiBundle(sessionStore);

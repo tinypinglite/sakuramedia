@@ -6,7 +6,9 @@ import 'package:sakuramedia/features/configuration/data/download_client_dto.dart
 import 'package:sakuramedia/features/configuration/data/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/download_client_diagnostics_dialog.dart';
 import 'package:sakuramedia/features/configuration/presentation/download_client_form.dart';
+import 'package:sakuramedia/features/configuration/presentation/download_client_probe_controller.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_inline_action_button.dart';
@@ -211,6 +213,14 @@ class _DownloadClientsSectionState extends State<DownloadClientsSection> {
                   mediaLibrary: librariesById[client.mediaLibraryId],
                   onEdit: () => _editClient(client),
                   onDelete: () => _deleteClient(client),
+                  runTest:
+                      () => context
+                          .read<DownloadClientsApi>()
+                          .testClient(client.id),
+                  runStorageTest:
+                      () => context
+                          .read<DownloadClientsApi>()
+                          .storageTestClient(client.id),
                 ),
             ],
           ),
@@ -234,23 +244,129 @@ class _DownloadClientsSectionState extends State<DownloadClientsSection> {
   }
 }
 
-class DownloadClientCard extends StatelessWidget {
+class DownloadClientCard extends StatefulWidget {
   const DownloadClientCard({
     super.key,
     required this.client,
     required this.mediaLibrary,
     required this.onEdit,
     required this.onDelete,
+    required this.runTest,
+    required this.runStorageTest,
   });
 
   final DownloadClientDto client;
   final MediaLibraryDto? mediaLibrary;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final Future<DownloadClientTestResultDto> Function() runTest;
+  final Future<DownloadClientStorageTestResultDto> Function() runStorageTest;
+
+  @override
+  State<DownloadClientCard> createState() => _DownloadClientCardState();
+}
+
+class _DownloadClientCardState extends State<DownloadClientCard> {
+  late final DownloadClientProbeController _probe;
+
+  @override
+  void initState() {
+    super.initState();
+    _probe = DownloadClientProbeController()..addListener(_onProbeChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant DownloadClientCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 配置任何字段变了(后端会 bump updatedAt) → 老探针结果作废,回到未检测态。
+    // 用 updatedAt 判定,才不会漏掉「只改了密码」的场景 —— DTO 里没有原文,
+    // 但 updatedAt 会更新。
+    if (oldWidget.client.id != widget.client.id ||
+        oldWidget.client.updatedAt != widget.client.updatedAt) {
+      _probe.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _probe.removeListener(_onProbeChanged);
+    _probe.dispose();
+    super.dispose();
+  }
+
+  void _onProbeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _handleConnectivityChipTap() async {
+    if (_probe.busy) return;
+    if (_probe.canReplayConnectivityDialog) {
+      await _openConnectivityDialog(_probe.lastConnectivityResult!);
+      return;
+    }
+    try {
+      final result = await _probe.runConnectivity(widget.runTest);
+      if (!mounted || result == null) return;
+      if (_probe.connectivityChipState != DownloadClientProbeChipState.healthy) {
+        await _openConnectivityDialog(result);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      showToast(apiErrorMessage(error, fallback: '连通性检测请求失败'));
+    }
+  }
+
+  Future<void> _handleStorageChipTap() async {
+    if (_probe.busy) return;
+    if (_probe.canReplayStorageDialog) {
+      await _openStorageDialog(_probe.lastStorageResult!);
+      return;
+    }
+    try {
+      final result = await _probe.runStorage(widget.runStorageTest);
+      if (!mounted || result == null) return;
+      if (_probe.storageChipState != DownloadClientProbeChipState.healthy) {
+        await _openStorageDialog(result);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      showToast(apiErrorMessage(error, fallback: '目录映射检测请求失败'));
+    }
+  }
+
+  Future<void> _openConnectivityDialog(
+    DownloadClientTestResultDto result,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => DownloadClientTestResultDialog(
+        initialResult: result,
+        onRerun: widget.runTest,
+        onResultChanged: _probe.applyConnectivityResult,
+      ),
+    );
+  }
+
+  Future<void> _openStorageDialog(
+    DownloadClientStorageTestResultDto result,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => DownloadClientStorageTestResultDialog(
+        initialResult: result,
+        clientBaseUrl: widget.client.baseUrl,
+        onRerun: widget.runStorageTest,
+        onResultChanged: _probe.applyStorageResult,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final client = widget.client;
+    final mediaLibrary = widget.mediaLibrary;
+    final busy = _probe.busy;
 
     return Padding(
       key: Key('download-client-card-${client.id}'),
@@ -294,16 +410,34 @@ class DownloadClientCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: spacing.md),
+              DownloadClientProbeStatusChip(
+                key: Key('download-client-test-${client.id}'),
+                label: '连通性',
+                state: _probe.connectivityChipState,
+                detail: _probe.connectivityChipDetail(),
+                tooltip: _probe.connectivityTooltip(),
+                onTap: busy ? null : _handleConnectivityChipTap,
+              ),
+              SizedBox(width: spacing.xs),
+              DownloadClientProbeStatusChip(
+                key: Key('download-client-storage-test-${client.id}'),
+                label: '目录映射',
+                state: _probe.storageChipState,
+                detail: _probe.storageChipDetail(),
+                tooltip: _probe.storageTooltip(),
+                onTap: busy ? null : _handleStorageChipTap,
+              ),
+              SizedBox(width: spacing.sm),
               AppInlineActionButton(
                 key: Key('download-client-edit-${client.id}'),
                 icon: Icons.edit_outlined,
-                onTap: onEdit,
+                onTap: widget.onEdit,
               ),
               SizedBox(width: spacing.xs),
               AppInlineActionButton(
                 key: Key('download-client-delete-${client.id}'),
                 icon: Icons.delete_outline,
-                onTap: onDelete,
+                onTap: widget.onDelete,
               ),
             ],
           ),
@@ -320,7 +454,7 @@ class DownloadClientCard extends StatelessWidget {
                   value:
                       mediaLibrary == null
                           ? '未匹配 (${client.mediaLibraryId})'
-                          : mediaLibrary!.name,
+                          : mediaLibrary.name,
                 ),
                 AppInfoPill(
                   label: 'qBittorrent保存路径',
@@ -366,6 +500,7 @@ class _DownloadClientDialogState extends State<DownloadClientDialog> {
   late final TextEditingController _clientSavePathController;
   late final TextEditingController _localRootPathController;
   int? _selectedLibraryId;
+  late final DownloadClientProbeController _probe;
 
   bool get _isEditing => widget.initialClient != null;
 
@@ -384,6 +519,7 @@ class _DownloadClientDialogState extends State<DownloadClientDialog> {
       text: initial?.localRootPath ?? '',
     );
     _selectedLibraryId = initial?.mediaLibraryId;
+    _probe = DownloadClientProbeController()..addListener(_onProbeChanged);
   }
 
   @override
@@ -394,24 +530,22 @@ class _DownloadClientDialogState extends State<DownloadClientDialog> {
     _passwordController.dispose();
     _clientSavePathController.dispose();
     _localRootPathController.dispose();
+    _probe.removeListener(_onProbeChanged);
+    _probe.dispose();
     super.dispose();
   }
 
+  void _onProbeChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _submit() {
+    if (_probe.busy) return;
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final value = DownloadClientFormValue.fromControllers(
-      nameController: _nameController,
-      baseUrlController: _baseUrlController,
-      usernameController: _usernameController,
-      passwordController: _passwordController,
-      clientSavePathController: _clientSavePathController,
-      localRootPathController: _localRootPathController,
-      mediaLibraryId: _selectedLibraryId,
-    );
-
+    final value = _snapshotFormValue();
     if (_isEditing) {
       Navigator.of(context).pop(value.toUpdatePayload());
       return;
@@ -420,9 +554,120 @@ class _DownloadClientDialogState extends State<DownloadClientDialog> {
     Navigator.of(context).pop(value.toCreatePayload());
   }
 
+  DownloadClientFormValue _snapshotFormValue() {
+    return DownloadClientFormValue.fromControllers(
+      nameController: _nameController,
+      baseUrlController: _baseUrlController,
+      usernameController: _usernameController,
+      passwordController: _passwordController,
+      clientSavePathController: _clientSavePathController,
+      localRootPathController: _localRootPathController,
+      mediaLibraryId: _selectedLibraryId,
+    );
+  }
+
+  DownloadClientFormValue? _validatedFormValue() {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return null;
+    }
+    return _snapshotFormValue();
+  }
+
+  Future<void> _handleConnectivityChipTap() async {
+    if (_probe.busy) return;
+    if (_probe.canReplayConnectivityDialog) {
+      // 重跑用表单当前值(用户可能已修改)。
+      final value = _validatedFormValue();
+      if (value == null) return;
+      await _openConnectivityDialog(
+        _probe.lastConnectivityResult!,
+        value.toProbeTestPayload(clientId: widget.initialClient?.id),
+      );
+      return;
+    }
+    final value = _validatedFormValue();
+    if (value == null) return;
+    final payload = value.toProbeTestPayload(clientId: widget.initialClient?.id);
+    final api = context.read<DownloadClientsApi>();
+    try {
+      final result = await _probe.runConnectivity(() => api.probeTestClient(payload));
+      if (!mounted || result == null) return;
+      if (_probe.connectivityChipState != DownloadClientProbeChipState.healthy) {
+        await _openConnectivityDialog(result, payload);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      showToast(apiErrorMessage(error, fallback: '连通性检测请求失败'));
+    }
+  }
+
+  Future<void> _handleStorageChipTap() async {
+    if (_probe.busy) return;
+    if (_probe.canReplayStorageDialog) {
+      final value = _validatedFormValue();
+      if (value == null) return;
+      await _openStorageDialog(
+        _probe.lastStorageResult!,
+        value.toProbeStorageTestPayload(clientId: widget.initialClient?.id),
+        value.baseUrl,
+      );
+      return;
+    }
+    final value = _validatedFormValue();
+    if (value == null) return;
+    final payload = value.toProbeStorageTestPayload(
+      clientId: widget.initialClient?.id,
+    );
+    final api = context.read<DownloadClientsApi>();
+    try {
+      final result =
+          await _probe.runStorage(() => api.probeStorageTestClient(payload));
+      if (!mounted || result == null) return;
+      if (_probe.storageChipState != DownloadClientProbeChipState.healthy) {
+        await _openStorageDialog(result, payload, value.baseUrl);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      showToast(apiErrorMessage(error, fallback: '目录映射检测请求失败'));
+    }
+  }
+
+  Future<void> _openConnectivityDialog(
+    DownloadClientTestResultDto result,
+    DownloadClientProbeTestPayload payload,
+  ) async {
+    final api = context.read<DownloadClientsApi>();
+    await showDialog<void>(
+      context: context,
+      builder: (_) => DownloadClientTestResultDialog(
+        initialResult: result,
+        onRerun: () => api.probeTestClient(payload),
+        onResultChanged: _probe.applyConnectivityResult,
+      ),
+    );
+  }
+
+  Future<void> _openStorageDialog(
+    DownloadClientStorageTestResultDto result,
+    DownloadClientProbeStorageTestPayload payload,
+    String baseUrl,
+  ) async {
+    final api = context.read<DownloadClientsApi>();
+    await showDialog<void>(
+      context: context,
+      builder: (_) => DownloadClientStorageTestResultDialog(
+        initialResult: result,
+        clientBaseUrl: baseUrl,
+        onRerun: () => api.probeStorageTestClient(payload),
+        onResultChanged: _probe.applyStorageResult,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final busy = _probe.busy;
 
     return AppDesktopDialog(
       backgroundColor: Colors.white,
@@ -462,22 +707,35 @@ class _DownloadClientDialogState extends State<DownloadClientDialog> {
                       _selectedLibraryId = value;
                     }),
                 isEditing: _isEditing,
+                enabled: !busy,
                 credentialsLayout: DownloadClientCredentialsLayout.horizontal,
                 onSubmitted: _submit,
+              ),
+              SizedBox(height: spacing.lg),
+              DownloadClientEditorProbeChips(
+                keyPrefix: 'download-client-dialog',
+                busy: busy,
+                connectivityState: _probe.connectivityChipState,
+                storageState: _probe.storageChipState,
+                connectivityDetail: _probe.connectivityChipDetail(),
+                storageDetail: _probe.storageChipDetail(),
+                onConnectivityTap: _handleConnectivityChipTap,
+                onStorageTap: _handleStorageChipTap,
               ),
               SizedBox(height: spacing.xl),
               Row(
                 children: [
                   Expanded(
                     child: AppButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed:
+                          busy ? null : () => Navigator.of(context).pop(),
                       label: '取消',
                     ),
                   ),
                   SizedBox(width: context.appSpacing.md),
                   Expanded(
                     child: AppButton(
-                      onPressed: _submit,
+                      onPressed: busy ? null : _submit,
                       label: '保存',
                       variant: AppButtonVariant.primary,
                     ),
@@ -491,3 +749,4 @@ class _DownloadClientDialogState extends State<DownloadClientDialog> {
     );
   }
 }
+

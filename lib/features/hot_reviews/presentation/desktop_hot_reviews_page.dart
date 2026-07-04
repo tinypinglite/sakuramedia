@@ -16,6 +16,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
@@ -35,6 +36,7 @@ class DesktopHotReviewsPage extends StatefulWidget {
     this.targetCardWidth = 420,
     this.enablePullToRefresh = false,
     this.scrollPhysics,
+    this.useCompactPeriodPicker = false,
   }) : assert(minColumns >= 1),
        assert(maxColumns >= minColumns),
        assert(targetCardWidth > 0);
@@ -45,6 +47,10 @@ class DesktopHotReviewsPage extends StatefulWidget {
   final double targetCardWidth;
   final bool enablePullToRefresh;
   final ScrollPhysics? scrollPhysics;
+
+  /// 是否把 5 个周期按钮收成「当前周期 ▾」的单一触发按钮 + 底部抽屉，
+  /// 用于窄屏（移动端）避免顶栏挤成两行。桌面端保持横向排布，传 `false`。
+  final bool useCompactPeriodPicker;
 
   @override
   State<DesktopHotReviewsPage> createState() => _DesktopHotReviewsPageState();
@@ -148,19 +154,34 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final leading = Wrap(
-      spacing: context.appSpacing.xs,
-      runSpacing: context.appSpacing.xs,
-      children: [
-        for (final period in HotReviewPeriod.values)
-          _HotReviewPeriodButton(
-            actionKey: Key('desktop-hot-reviews-period-${period.apiValue}'),
-            label: period.label,
-            isSelected: _controller.period == period,
-            onPressed: () => unawaited(_controller.setPeriod(period)),
-          ),
-      ],
-    );
+    final leading =
+        widget.useCompactPeriodPicker
+            ? Align(
+              alignment: Alignment.centerLeft,
+              child: AppTextButton(
+                key: const Key('mobile-hot-reviews-period-trigger'),
+                label: _controller.period.label,
+                size: AppTextButtonSize.small,
+                backgroundStyle: AppTextButtonBackgroundStyle.muted,
+                trailingIcon: const Icon(Icons.expand_more_rounded),
+                onPressed: () => unawaited(_openPeriodPicker(context)),
+              ),
+            )
+            : Wrap(
+              spacing: context.appSpacing.xs,
+              runSpacing: context.appSpacing.xs,
+              children: [
+                for (final period in HotReviewPeriod.values)
+                  _HotReviewPeriodButton(
+                    actionKey: Key(
+                      'desktop-hot-reviews-period-${period.apiValue}',
+                    ),
+                    label: period.label,
+                    isSelected: _controller.period == period,
+                    onPressed: () => unawaited(_controller.setPeriod(period)),
+                  ),
+              ],
+            );
 
     return AppFilterTotalHeader(
       leading: leading,
@@ -170,6 +191,24 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
       ),
       totalKey: const Key('desktop-hot-reviews-page-total'),
     );
+  }
+
+  Future<void> _openPeriodPicker(BuildContext context) async {
+    final selected = await showAppBottomDrawer<HotReviewPeriod>(
+      context: context,
+      drawerKey: const Key('mobile-hot-reviews-period-picker'),
+      maxHeightFactor: 0.6,
+      builder: (drawerContext) {
+        return _HotReviewPeriodPickerBody(
+          currentPeriod: _controller.period,
+          onSelected:
+              (period) => Navigator.of(drawerContext).pop(period),
+        );
+      },
+    );
+    if (selected != null && selected != _controller.period) {
+      unawaited(_controller.setPeriod(selected));
+    }
   }
 
   Widget _buildBody(BuildContext context) {
@@ -310,6 +349,116 @@ class _HotReviewPeriodButton extends StatelessWidget {
       size: AppTextButtonSize.small,
       isSelected: isSelected,
       onPressed: onPressed,
+    );
+  }
+}
+
+class _HotReviewPeriodPickerBody extends StatelessWidget {
+  const _HotReviewPeriodPickerBody({
+    required this.currentPeriod,
+    required this.onSelected,
+  });
+
+  final HotReviewPeriod currentPeriod;
+  final ValueChanged<HotReviewPeriod> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(bottom: spacing.md),
+          child: Text(
+            '选择周期',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s16,
+              weight: AppTextWeight.semibold,
+              tone: AppTextTone.primary,
+            ),
+          ),
+        ),
+        for (final period in HotReviewPeriod.values)
+          _HotReviewPeriodPickerRow(
+            rowKey: Key(
+              'mobile-hot-reviews-period-option-${period.apiValue}',
+            ),
+            label: period.label,
+            isSelected: period == currentPeriod,
+            onTap: () => onSelected(period),
+          ),
+      ],
+    );
+  }
+}
+
+class _HotReviewPeriodPickerRow extends StatelessWidget {
+  const _HotReviewPeriodPickerRow({
+    required this.rowKey,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final Key rowKey;
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final colors = context.appColors;
+    final accent = Theme.of(context).colorScheme.primary;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: rowKey,
+        borderRadius: context.appRadius.mdBorder,
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.sm,
+            vertical: spacing.md,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    weight:
+                        isSelected
+                            ? AppTextWeight.semibold
+                            : AppTextWeight.regular,
+                    tone:
+                        isSelected
+                            ? AppTextTone.accent
+                            : AppTextTone.primary,
+                  ),
+                ),
+              ),
+              if (isSelected)
+                Icon(
+                  Icons.check_rounded,
+                  size: context.appComponentTokens.iconSizeSm,
+                  color: accent,
+                )
+              else
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: context.appComponentTokens.iconSizeSm,
+                  color: colors.borderStrong,
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

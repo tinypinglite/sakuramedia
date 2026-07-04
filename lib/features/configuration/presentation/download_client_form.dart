@@ -67,6 +67,31 @@ class DownloadClientFormValue {
       mediaLibraryId: mediaLibraryId,
     );
   }
+
+  /// 连通性预检 payload:密码为空时依赖 `clientId` 让后端合并 DB 原密码。
+  DownloadClientProbeTestPayload toProbeTestPayload({int? clientId}) {
+    return DownloadClientProbeTestPayload(
+      baseUrl: baseUrl,
+      username: username,
+      password: password.isEmpty ? null : password,
+      clientId: clientId,
+    );
+  }
+
+  /// 存储预检 payload。`mediaLibraryId` 在表单校验通过后必然非空。
+  DownloadClientProbeStorageTestPayload toProbeStorageTestPayload({
+    int? clientId,
+  }) {
+    return DownloadClientProbeStorageTestPayload(
+      baseUrl: baseUrl,
+      username: username,
+      password: password.isEmpty ? null : password,
+      clientSavePath: clientSavePath,
+      localRootPath: localRootPath,
+      mediaLibraryId: mediaLibraryId!,
+      clientId: clientId,
+    );
+  }
 }
 
 String? validateDownloadClientName(String? value) {

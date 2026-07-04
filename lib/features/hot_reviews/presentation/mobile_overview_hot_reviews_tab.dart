@@ -14,6 +14,7 @@ class MobileOverviewHotReviewsTab extends StatelessWidget {
         maxColumns: 2,
         targetCardWidth: 360,
         enablePullToRefresh: true,
+        useCompactPeriodPicker: true,
         scrollPhysics: const AlwaysScrollableScrollPhysics(),
         onOpenMovieDetail: (context, item) {
           final movieNumber = item.movie.movieNumber.trim();

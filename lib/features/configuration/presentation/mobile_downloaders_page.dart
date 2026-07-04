@@ -12,7 +12,9 @@ import 'package:sakuramedia/features/configuration/data/indexer_settings_api.dar
 import 'package:sakuramedia/features/configuration/data/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/data/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/download_client_diagnostics_dialog.dart';
 import 'package:sakuramedia/features/configuration/presentation/download_client_form.dart';
+import 'package:sakuramedia/features/configuration/presentation/download_client_probe_controller.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
@@ -21,6 +23,24 @@ import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
+
+/// 移动端下载器卡片的探针状态快照。
+/// - 会话内 in-memory,不落库;编辑保存/删除时清空对应 clientId 的条目。
+/// - `probing` 态由抽屉内运行状态覆盖,不进入快照。
+/// - 作为详情抽屉 controller 的初始种子,详情抽屉每次跑完通过回调回写。
+class _MobileDownloaderProbeSnapshot {
+  const _MobileDownloaderProbeSnapshot({
+    this.connectivityChipState = DownloadClientProbeChipState.notTested,
+    this.storageChipState = DownloadClientProbeChipState.notTested,
+    this.connectivityResult,
+    this.storageResult,
+  });
+
+  final DownloadClientProbeChipState connectivityChipState;
+  final DownloadClientProbeChipState storageChipState;
+  final DownloadClientTestResultDto? connectivityResult;
+  final DownloadClientStorageTestResultDto? storageResult;
+}
 
 class MobileDownloadersPage extends StatefulWidget {
   const MobileDownloadersPage({super.key});
@@ -42,6 +62,8 @@ class _MobileDownloadersPageState extends State<MobileDownloadersPage>
   );
   bool _isLoading = true;
   String? _errorMessage;
+  final Map<int, _MobileDownloaderProbeSnapshot> _probeSnapshots =
+      <int, _MobileDownloaderProbeSnapshot>{};
 
   bool get _hasLinkedIndexer =>
       _indexerSettings.indexers.any((item) => item.downloadClientId > 0);
@@ -260,6 +282,9 @@ class _MobileDownloadersPageState extends State<MobileDownloadersPage>
               _MobileDownloaderCard(
                 client: client,
                 mediaLibrary: librariesById[client.mediaLibraryId],
+                probeSnapshot:
+                    _probeSnapshots[client.id] ??
+                    const _MobileDownloaderProbeSnapshot(),
                 onTap: () => _handleShowDetail(client),
               ),
               if (client != _clients.last)
@@ -268,6 +293,38 @@ class _MobileDownloadersPageState extends State<MobileDownloadersPage>
           )
           .toList(growable: false),
     );
+  }
+
+  void _mergeConnectivityResult(
+    int clientId,
+    DownloadClientTestResultDto result,
+  ) {
+    setState(() {
+      final prev =
+          _probeSnapshots[clientId] ?? const _MobileDownloaderProbeSnapshot();
+      _probeSnapshots[clientId] = _MobileDownloaderProbeSnapshot(
+        connectivityChipState: probeChipStateFromConnectivity(result),
+        connectivityResult: result,
+        storageChipState: prev.storageChipState,
+        storageResult: prev.storageResult,
+      );
+    });
+  }
+
+  void _mergeStorageResult(
+    int clientId,
+    DownloadClientStorageTestResultDto result,
+  ) {
+    setState(() {
+      final prev =
+          _probeSnapshots[clientId] ?? const _MobileDownloaderProbeSnapshot();
+      _probeSnapshots[clientId] = _MobileDownloaderProbeSnapshot(
+        connectivityChipState: prev.connectivityChipState,
+        connectivityResult: prev.connectivityResult,
+        storageChipState: probeChipStateFromStorage(result),
+        storageResult: result,
+      );
+    });
   }
 
   Future<void> _loadData() async {
@@ -364,16 +421,23 @@ class _MobileDownloadersPageState extends State<MobileDownloadersPage>
       _clients = _clients
           .where((item) => item.id != deletedClientId)
           .toList(growable: false);
+      _probeSnapshots.remove(deletedClientId);
       _errorMessage = null;
     });
     unawaited(_syncDataInBackground());
   }
 
   Future<void> _handleShowDetail(DownloadClientDto client) async {
-    final detailAction = await showMobileDownloaderDetailDrawer(
+    final detailAction = await _showMobileDownloaderDetailDrawer(
       context,
       client: client,
       mediaLibrary: _libraryById(client.mediaLibraryId),
+      initialSnapshot:
+          _probeSnapshots[client.id] ??
+          const _MobileDownloaderProbeSnapshot(),
+      onConnectivityResult: (result) =>
+          _mergeConnectivityResult(client.id, result),
+      onStorageResult: (result) => _mergeStorageResult(client.id, result),
     );
     if (!mounted || detailAction == null) {
       return;
@@ -418,6 +482,8 @@ class _MobileDownloadersPageState extends State<MobileDownloadersPage>
     } else {
       nextClients.add(client);
     }
+    // 配置改了 → 老探针结果作废,回到未检测态。
+    _probeSnapshots.remove(client.id);
     setState(() {
       _clients = nextClients;
       _errorMessage = null;
@@ -452,10 +518,14 @@ Future<DownloadClientDto?> showMobileDownloaderEditorDrawer(
   );
 }
 
-Future<MobileDownloaderDetailAction?> showMobileDownloaderDetailDrawer(
+Future<MobileDownloaderDetailAction?> _showMobileDownloaderDetailDrawer(
   BuildContext context, {
   required DownloadClientDto client,
   required MediaLibraryDto? mediaLibrary,
+  _MobileDownloaderProbeSnapshot initialSnapshot =
+      const _MobileDownloaderProbeSnapshot(),
+  ValueChanged<DownloadClientTestResultDto>? onConnectivityResult,
+  ValueChanged<DownloadClientStorageTestResultDto>? onStorageResult,
 }) {
   return showAppBottomDrawer<MobileDownloaderDetailAction>(
     context: context,
@@ -465,6 +535,9 @@ Future<MobileDownloaderDetailAction?> showMobileDownloaderDetailDrawer(
       return _MobileDownloaderDetailDrawer(
         client: client,
         mediaLibrary: mediaLibrary,
+        initialSnapshot: initialSnapshot,
+        onConnectivityResult: onConnectivityResult,
+        onStorageResult: onStorageResult,
       );
     },
   );
@@ -609,11 +682,13 @@ class _MobileDownloaderCard extends StatelessWidget {
   const _MobileDownloaderCard({
     required this.client,
     required this.mediaLibrary,
+    required this.probeSnapshot,
     required this.onTap,
   });
 
   final DownloadClientDto client;
   final MediaLibraryDto? mediaLibrary;
+  final _MobileDownloaderProbeSnapshot probeSnapshot;
   final VoidCallback onTap;
 
   @override
@@ -711,6 +786,38 @@ class _MobileDownloaderCard extends StatelessWidget {
                         value: client.localRootPath,
                       ),
                       SizedBox(height: spacing.sm),
+                      Wrap(
+                        spacing: spacing.xs,
+                        runSpacing: spacing.xs,
+                        children: [
+                          DownloadClientProbeStatusChip(
+                            key: Key(
+                              'mobile-downloader-card-probe-test-${client.id}',
+                            ),
+                            label: '连通性',
+                            state: probeSnapshot.connectivityChipState,
+                            detail: probeChipDetail(
+                              probeSnapshot.connectivityChipState,
+                              elapsedMs:
+                                  probeSnapshot.connectivityResult?.elapsedMs,
+                            ),
+                            onTap: null,
+                          ),
+                          DownloadClientProbeStatusChip(
+                            key: Key(
+                              'mobile-downloader-card-probe-storage-test-${client.id}',
+                            ),
+                            label: '目录映射',
+                            state: probeSnapshot.storageChipState,
+                            detail: probeChipDetail(
+                              probeSnapshot.storageChipState,
+                              elapsedMs: probeSnapshot.storageResult?.elapsedMs,
+                            ),
+                            onTap: null,
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: spacing.sm),
                       Text(
                         '更新时间: ${_formatUpdatedAt(client.updatedAt)}',
                         style: resolveAppTextStyle(
@@ -730,6 +837,7 @@ class _MobileDownloaderCard extends StatelessWidget {
       ),
     );
   }
+
 }
 
 class _DownloaderMetaLine extends StatelessWidget {
@@ -1018,8 +1126,11 @@ class _MobileDownloaderEditorDrawerState
   late int? _selectedLibraryId;
   bool _hasAttemptedSubmit = false;
   bool _isSubmitting = false;
+  late final DownloadClientProbeController _probe;
 
   bool get _isEditing => widget.initialClient != null;
+
+  bool get _busy => _isSubmitting || _probe.busy;
 
   AutovalidateMode get _autovalidateMode =>
       _hasAttemptedSubmit
@@ -1051,6 +1162,7 @@ class _MobileDownloaderEditorDrawerState
     _clientSavePathFocusNode = FocusNode();
     _localRootPathFocusNode = FocusNode();
     _selectedLibraryId = initialClient?.mediaLibraryId;
+    _probe = DownloadClientProbeController()..addListener(_onProbeChanged);
   }
 
   @override
@@ -1067,7 +1179,13 @@ class _MobileDownloaderEditorDrawerState
     _passwordFocusNode.dispose();
     _clientSavePathFocusNode.dispose();
     _localRootPathFocusNode.dispose();
+    _probe.removeListener(_onProbeChanged);
+    _probe.dispose();
     super.dispose();
+  }
+
+  void _onProbeChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -1120,7 +1238,7 @@ class _MobileDownloaderEditorDrawerState
                   });
                 },
                 isEditing: _isEditing,
-                enabled: !_isSubmitting,
+                enabled: !_busy,
                 autovalidateMode: _autovalidateMode,
                 nameFocusNode: _nameFocusNode,
                 baseUrlFocusNode: _baseUrlFocusNode,
@@ -1131,15 +1249,24 @@ class _MobileDownloaderEditorDrawerState
                 onSubmitted: _submit,
               ),
               SizedBox(height: spacing.lg),
+              DownloadClientEditorProbeChips(
+                keyPrefix: 'mobile-downloader',
+                busy: _busy,
+                connectivityState: _probe.connectivityChipState,
+                storageState: _probe.storageChipState,
+                connectivityDetail: _probe.connectivityChipDetail(),
+                storageDetail: _probe.storageChipDetail(),
+                onConnectivityTap: _handleConnectivityChipTap,
+                onStorageTap: _handleStorageChipTap,
+              ),
+              SizedBox(height: spacing.lg),
               Row(
                 children: [
                   Expanded(
                     child: AppButton(
                       label: '取消',
                       onPressed:
-                          _isSubmitting
-                              ? null
-                              : () => Navigator.of(context).pop(),
+                          _busy ? null : () => Navigator.of(context).pop(),
                     ),
                   ),
                   SizedBox(width: spacing.md),
@@ -1149,7 +1276,7 @@ class _MobileDownloaderEditorDrawerState
                       label: '保存',
                       variant: AppButtonVariant.primary,
                       isLoading: _isSubmitting,
-                      onPressed: _submit,
+                      onPressed: _probe.busy ? null : _submit,
                     ),
                   ),
                 ],
@@ -1216,21 +1343,243 @@ class _MobileDownloaderEditorDrawerState
       });
     }
   }
+
+  DownloadClientFormValue? _validatedFormValue() {
+    FocusScope.of(context).unfocus();
+    if (!_hasAttemptedSubmit) {
+      setState(() => _hasAttemptedSubmit = true);
+    }
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return null;
+    }
+    return DownloadClientFormValue.fromControllers(
+      nameController: _nameController,
+      baseUrlController: _baseUrlController,
+      usernameController: _usernameController,
+      passwordController: _passwordController,
+      clientSavePathController: _clientSavePathController,
+      localRootPathController: _localRootPathController,
+      mediaLibraryId: _selectedLibraryId,
+    );
+  }
+
+  Future<void> _handleConnectivityChipTap() async {
+    if (_busy) return;
+    if (_probe.canReplayConnectivityDialog) {
+      final value = _validatedFormValue();
+      if (value == null) return;
+      await _openConnectivityDialog(
+        _probe.lastConnectivityResult!,
+        value.toProbeTestPayload(clientId: widget.initialClient?.id),
+      );
+      return;
+    }
+    final value = _validatedFormValue();
+    if (value == null) return;
+    final payload = value.toProbeTestPayload(clientId: widget.initialClient?.id);
+    final api = context.read<DownloadClientsApi>();
+    try {
+      final result =
+          await _probe.runConnectivity(() => api.probeTestClient(payload));
+      if (!mounted || result == null) return;
+      if (_probe.connectivityChipState != DownloadClientProbeChipState.healthy) {
+        await _openConnectivityDialog(result, payload);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      showToast(apiErrorMessage(error, fallback: '连通性检测请求失败'));
+    }
+  }
+
+  Future<void> _handleStorageChipTap() async {
+    if (_busy) return;
+    if (_probe.canReplayStorageDialog) {
+      final value = _validatedFormValue();
+      if (value == null) return;
+      await _openStorageDialog(
+        _probe.lastStorageResult!,
+        value.toProbeStorageTestPayload(clientId: widget.initialClient?.id),
+        value.baseUrl,
+      );
+      return;
+    }
+    final value = _validatedFormValue();
+    if (value == null) return;
+    final payload = value.toProbeStorageTestPayload(
+      clientId: widget.initialClient?.id,
+    );
+    final api = context.read<DownloadClientsApi>();
+    try {
+      final result =
+          await _probe.runStorage(() => api.probeStorageTestClient(payload));
+      if (!mounted || result == null) return;
+      if (_probe.storageChipState != DownloadClientProbeChipState.healthy) {
+        await _openStorageDialog(result, payload, value.baseUrl);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      showToast(apiErrorMessage(error, fallback: '目录映射检测请求失败'));
+    }
+  }
+
+  Future<void> _openConnectivityDialog(
+    DownloadClientTestResultDto result,
+    DownloadClientProbeTestPayload payload,
+  ) async {
+    final api = context.read<DownloadClientsApi>();
+    await showDialog<void>(
+      context: context,
+      builder: (_) => DownloadClientTestResultDialog(
+        initialResult: result,
+        onRerun: () => api.probeTestClient(payload),
+        onResultChanged: _probe.applyConnectivityResult,
+      ),
+    );
+  }
+
+  Future<void> _openStorageDialog(
+    DownloadClientStorageTestResultDto result,
+    DownloadClientProbeStorageTestPayload payload,
+    String baseUrl,
+  ) async {
+    final api = context.read<DownloadClientsApi>();
+    await showDialog<void>(
+      context: context,
+      builder: (_) => DownloadClientStorageTestResultDialog(
+        initialResult: result,
+        clientBaseUrl: baseUrl,
+        onRerun: () => api.probeStorageTestClient(payload),
+        onResultChanged: _probe.applyStorageResult,
+      ),
+    );
+  }
 }
 
-class _MobileDownloaderDetailDrawer extends StatelessWidget {
+class _MobileDownloaderDetailDrawer extends StatefulWidget {
   const _MobileDownloaderDetailDrawer({
     required this.client,
     required this.mediaLibrary,
+    required this.initialSnapshot,
+    required this.onConnectivityResult,
+    required this.onStorageResult,
   });
 
   final DownloadClientDto client;
   final MediaLibraryDto? mediaLibrary;
+  final _MobileDownloaderProbeSnapshot initialSnapshot;
+  final ValueChanged<DownloadClientTestResultDto>? onConnectivityResult;
+  final ValueChanged<DownloadClientStorageTestResultDto>? onStorageResult;
+
+  @override
+  State<_MobileDownloaderDetailDrawer> createState() =>
+      _MobileDownloaderDetailDrawerState();
+}
+
+class _MobileDownloaderDetailDrawerState
+    extends State<_MobileDownloaderDetailDrawer> {
+  late final DownloadClientProbeController _probe;
+
+  @override
+  void initState() {
+    super.initState();
+    _probe = DownloadClientProbeController(
+      connectivityChipState: widget.initialSnapshot.connectivityChipState,
+      storageChipState: widget.initialSnapshot.storageChipState,
+      connectivityResult: widget.initialSnapshot.connectivityResult,
+      storageResult: widget.initialSnapshot.storageResult,
+      onConnectivityChanged: widget.onConnectivityResult,
+      onStorageChanged: widget.onStorageResult,
+    )..addListener(_onProbeChanged);
+  }
+
+  @override
+  void dispose() {
+    _probe.removeListener(_onProbeChanged);
+    _probe.dispose();
+    super.dispose();
+  }
+
+  void _onProbeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _handleConnectivityAction() async {
+    if (_probe.busy) return;
+    if (_probe.canReplayConnectivityDialog) {
+      await _openConnectivityDialog(_probe.lastConnectivityResult!);
+      return;
+    }
+    final api = context.read<DownloadClientsApi>();
+    try {
+      final result =
+          await _probe.runConnectivity(() => api.testClient(widget.client.id));
+      if (!mounted || result == null) return;
+      // 健康态不打扰;失败 → 首次自动弹一次详情。
+      if (_probe.connectivityChipState != DownloadClientProbeChipState.healthy) {
+        await _openConnectivityDialog(result);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      showToast(apiErrorMessage(error, fallback: '连通性检测请求失败'));
+    }
+  }
+
+  Future<void> _handleStorageAction() async {
+    if (_probe.busy) return;
+    if (_probe.canReplayStorageDialog) {
+      await _openStorageDialog(_probe.lastStorageResult!);
+      return;
+    }
+    final api = context.read<DownloadClientsApi>();
+    try {
+      final result = await _probe
+          .runStorage(() => api.storageTestClient(widget.client.id));
+      if (!mounted || result == null) return;
+      if (_probe.storageChipState != DownloadClientProbeChipState.healthy) {
+        await _openStorageDialog(result);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      showToast(apiErrorMessage(error, fallback: '目录映射检测请求失败'));
+    }
+  }
+
+  Future<void> _openConnectivityDialog(
+    DownloadClientTestResultDto result,
+  ) async {
+    final api = context.read<DownloadClientsApi>();
+    await showDialog<void>(
+      context: context,
+      builder: (_) => DownloadClientTestResultDialog(
+        initialResult: result,
+        onRerun: () => api.testClient(widget.client.id),
+        onResultChanged: _probe.applyConnectivityResult,
+      ),
+    );
+  }
+
+  Future<void> _openStorageDialog(
+    DownloadClientStorageTestResultDto result,
+  ) async {
+    final api = context.read<DownloadClientsApi>();
+    await showDialog<void>(
+      context: context,
+      builder: (_) => DownloadClientStorageTestResultDialog(
+        initialResult: result,
+        clientBaseUrl: widget.client.baseUrl,
+        onRerun: () => api.storageTestClient(widget.client.id),
+        onResultChanged: _probe.applyStorageResult,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final client = widget.client;
+    final mediaLibrary = widget.mediaLibrary;
     final passwordLabel = client.hasPassword ? '已保存密码' : '待补密码';
+    final busy = _probe.busy;
 
     return SingleChildScrollView(
       child: Column(
@@ -1294,6 +1643,39 @@ class _MobileDownloaderDetailDrawer extends StatelessWidget {
             label: '更新时间',
             value: _formatUpdatedAt(client.updatedAt),
           ),
+          SizedBox(height: spacing.lg),
+          Text(
+            '诊断',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.medium,
+              tone: AppTextTone.secondary,
+            ),
+          ),
+          SizedBox(height: spacing.sm),
+          Wrap(
+            spacing: spacing.sm,
+            runSpacing: spacing.sm,
+            children: [
+              DownloadClientProbeStatusChip(
+                key: const Key('mobile-downloader-detail-probe-test-button'),
+                label: '连通性',
+                state: _probe.connectivityChipState,
+                detail: _probe.connectivityChipDetail(),
+                onTap: busy ? null : _handleConnectivityAction,
+              ),
+              DownloadClientProbeStatusChip(
+                key: const Key(
+                  'mobile-downloader-detail-probe-storage-test-button',
+                ),
+                label: '目录映射',
+                state: _probe.storageChipState,
+                detail: _probe.storageChipDetail(),
+                onTap: busy ? null : _handleStorageAction,
+              ),
+            ],
+          ),
           SizedBox(height: spacing.xl),
           Row(
             children: [
@@ -1303,9 +1685,11 @@ class _MobileDownloaderDetailDrawer extends StatelessWidget {
                   label: '编辑',
                   variant: AppButtonVariant.primary,
                   onPressed:
-                      () => Navigator.of(
-                        context,
-                      ).pop(MobileDownloaderDetailAction.edit),
+                      busy
+                          ? null
+                          : () => Navigator.of(
+                            context,
+                          ).pop(MobileDownloaderDetailAction.edit),
                 ),
               ),
               SizedBox(width: spacing.md),
@@ -1315,9 +1699,11 @@ class _MobileDownloaderDetailDrawer extends StatelessWidget {
                   label: '删除',
                   variant: AppButtonVariant.danger,
                   onPressed:
-                      () => Navigator.of(
-                        context,
-                      ).pop(MobileDownloaderDetailAction.delete),
+                      busy
+                          ? null
+                          : () => Navigator.of(
+                            context,
+                          ).pop(MobileDownloaderDetailAction.delete),
                 ),
               ),
             ],

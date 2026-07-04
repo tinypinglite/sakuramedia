@@ -14,6 +14,7 @@ class AppMobileTabHeader extends StatelessWidget {
     this.filterIcon = Icons.tune_rounded,
     this.filterTooltip,
     this.filterButtonKey,
+    this.trailing,
   });
 
   final List<AppMobileTabChip> chips;
@@ -21,6 +22,10 @@ class AppMobileTabHeader extends StatelessWidget {
   final IconData filterIcon;
   final String? filterTooltip;
   final Key? filterButtonKey;
+
+  /// 可选：filter icon 左侧的尾随节点（如「更新于 …」小字）。
+  /// chip 与它之间用 [Spacer]/[Expanded] 分开，chip 过长会自动横向滚。
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +52,10 @@ class AppMobileTabHeader extends StatelessWidget {
                 ),
               ),
             ),
+            if (trailing != null) ...[
+              SizedBox(width: spacing.sm),
+              trailing!,
+            ],
             if (onFilterTap != null) ...[
               SizedBox(width: spacing.sm),
               AppIconButton(

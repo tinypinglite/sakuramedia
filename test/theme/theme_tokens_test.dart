@@ -198,6 +198,14 @@ void main() {
     );
   });
 
+  test('text style resolver preserves web font family hook', () {
+    final source = File('lib/theme/app_typography.dart').readAsStringSync();
+
+    expect(source, contains('String? resolveAppTextFontFamily'));
+    expect(source, contains('fontFamily: resolveAppTextFontFamily(context)'));
+    expect(source, contains('Theme.of(context).textTheme.bodyMedium?.fontFamily'));
+  });
+
   test('component token source only exposes global icon size scale', () {
     final source =
         File('lib/theme/app_component_tokens.dart').readAsStringSync();

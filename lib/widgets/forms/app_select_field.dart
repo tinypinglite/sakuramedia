@@ -123,8 +123,9 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
     final triggerOffset = triggerBox.localToGlobal(Offset.zero);
     final triggerBottom = triggerOffset.dy + _triggerHeight;
     final spaceAbove = triggerOffset.dy;
-    final view = View.of(context);
-    final viewportHeight = view.physicalSize.height / view.devicePixelRatio;
+    // 用 MediaQuery 拿逻辑视口高度：View.physicalSize 在 Flutter Web
+    // 上不一定等于浏览器 CSS 视口，可能压得下拉只剩一行。
+    final viewportHeight = MediaQuery.sizeOf(context).height;
     final formTokens = context.appFormTokens;
     final spaceBelow = viewportHeight - triggerBottom;
     final menuItemHeight = switch (widget.size) {
@@ -227,8 +228,9 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
         hasError ? theme.colorScheme.error : colors.borderSubtle;
     final selectedItem = _selectedItem();
     final displayChild =
-        selectedItem?.child ??
-        Text(widget.placeholder, overflow: TextOverflow.ellipsis);
+        selectedItem == null
+            ? Text(widget.placeholder, overflow: TextOverflow.ellipsis)
+            : _buildTriggerDisplayChild(selectedItem);
     final baseTextStyle =
         widget.textStyle ??
         resolveAppTextStyle(
@@ -293,7 +295,7 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: DefaultTextStyle(
+                      child: _AppSelectText(
                         style: _resolveSelectTextStyle(
                           context,
                           baseStyle: baseTextStyle,
@@ -303,8 +305,6 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
                                   ? AppTextTone.muted
                                   : AppTextTone.primary,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                         child: displayChild,
                       ),
                     ),
@@ -339,6 +339,24 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
 }
 
 enum _AppSelectMenuPlacement { up, down }
+
+Widget _buildTriggerDisplayChild<T>(DropdownMenuItem<T> item) {
+  final label = _textLabelOf(item.child);
+  if (label != null) {
+    return Text(label, overflow: TextOverflow.ellipsis);
+  }
+  return item.child;
+}
+
+String? _textLabelOf(Widget child) {
+  if (child is! Text) {
+    return null;
+  }
+  if (child.data != null) {
+    return child.data;
+  }
+  return child.textSpan?.toPlainText();
+}
 
 class _AppSelectMenu<T> extends StatelessWidget {
   const _AppSelectMenu({
@@ -465,19 +483,44 @@ class _AppSelectMenuItemState<T> extends State<_AppSelectMenuItem<T>> {
           ),
           alignment: Alignment.centerLeft,
           decoration: BoxDecoration(color: backgroundColor),
-          child: DefaultTextStyle(
+          child: _AppSelectText(
             style: _resolveSelectTextStyle(
               context,
               baseStyle: baseTextStyle,
               fallbackSize: AppTextSize.s14,
               tone: widget.selected ? AppTextTone.accent : AppTextTone.primary,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
             child: widget.child,
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AppSelectText extends StatelessWidget {
+  const _AppSelectText({required this.style, required this.child});
+
+  final TextStyle style;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final mergedStyle = DefaultTextStyle.of(context).style.merge(style);
+    final label = _textLabelOf(child);
+    if (label != null) {
+      return Text(
+        label,
+        style: mergedStyle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+    return DefaultTextStyle(
+      style: mergedStyle,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      child: child,
     );
   }
 }

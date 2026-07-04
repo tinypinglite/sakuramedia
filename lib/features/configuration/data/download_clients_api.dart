@@ -36,4 +36,38 @@ class DownloadClientsApi {
   Future<void> deleteClient(int clientId) {
     return _apiClient.deleteNoContent('/download-clients/$clientId');
   }
+
+  Future<DownloadClientTestResultDto> testClient(int clientId) async {
+    final response = await _apiClient.get('/download-clients/$clientId/test');
+    return DownloadClientTestResultDto.fromJson(response);
+  }
+
+  Future<DownloadClientStorageTestResultDto> storageTestClient(
+    int clientId,
+  ) async {
+    final response = await _apiClient.post(
+      '/download-clients/$clientId/storage-test',
+    );
+    return DownloadClientStorageTestResultDto.fromJson(response);
+  }
+
+  Future<DownloadClientTestResultDto> probeTestClient(
+    DownloadClientProbeTestPayload payload,
+  ) async {
+    final response = await _apiClient.post(
+      '/download-clients/probe/test',
+      data: payload.toJson(),
+    );
+    return DownloadClientTestResultDto.fromJson(response);
+  }
+
+  Future<DownloadClientStorageTestResultDto> probeStorageTestClient(
+    DownloadClientProbeStorageTestPayload payload,
+  ) async {
+    final response = await _apiClient.post(
+      '/download-clients/probe/storage-test',
+      data: payload.toJson(),
+    );
+    return DownloadClientStorageTestResultDto.fromJson(response);
+  }
 }

@@ -208,7 +208,7 @@ void main() {
   });
 
   testWidgets(
-    'mobile hot reviews tab uses shared text buttons and switches period',
+    'mobile hot reviews tab collapses periods into a bottom-drawer picker',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
         method: 'GET',
@@ -237,18 +237,40 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final weeklyButtonFinder = find.byKey(
-        const Key('desktop-hot-reviews-period-weekly'),
+      // 5 个周期按钮已收成单一触发按钮，桌面 key 不应存在。
+      expect(
+        find.byKey(const Key('desktop-hot-reviews-period-weekly')),
+        findsNothing,
+      );
+
+      final triggerFinder = find.byKey(
+        const Key('mobile-hot-reviews-period-trigger'),
+      );
+      expect(triggerFinder, findsOneWidget);
+      expect(
+        tester.widget<AppTextButton>(triggerFinder).size,
+        AppTextButtonSize.small,
+      );
+      // 触发按钮的标签就是当前周期名，默认「本周」。
+      expect(find.descendant(of: triggerFinder, matching: find.text('本周')),
+          findsOneWidget);
+
+      await tester.tap(triggerFinder);
+      await tester.pumpAndSettle();
+
+      // 底部抽屉弹出，5 个选项都在。
+      expect(
+        find.byKey(const Key('mobile-hot-reviews-period-picker')),
+        findsOneWidget,
       );
       expect(
-        tester.widget<AppTextButton>(weeklyButtonFinder).size,
-        AppTextButtonSize.small,
+        find.byKey(const Key('mobile-hot-reviews-period-option-monthly')),
+        findsOneWidget,
       );
 
       await tester.tap(
-        find.byKey(const Key('desktop-hot-reviews-period-monthly')),
+        find.byKey(const Key('mobile-hot-reviews-period-option-monthly')),
       );
-      await tester.pump();
       await tester.pumpAndSettle();
 
       final reviewRequests = bundle.adapter.requests
@@ -285,7 +307,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final periodRect = tester.getRect(
-      find.byKey(const Key('desktop-hot-reviews-period-weekly')),
+      find.byKey(const Key('mobile-hot-reviews-period-trigger')),
     );
     final totalRect = tester.getRect(
       find.byKey(const Key('desktop-hot-reviews-page-total')),

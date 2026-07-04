@@ -308,6 +308,14 @@ Color resolveAppTextToneColor(BuildContext context, AppTextTone tone) {
   return Theme.of(context).appTextPalette.colorFor(tone);
 }
 
+String? resolveAppTextFontFamily(BuildContext context) {
+  if (!kIsWeb) {
+    return null;
+  }
+  return Theme.of(context).textTheme.bodyMedium?.fontFamily ??
+      DefaultTextStyle.of(context).style.fontFamily;
+}
+
 TextStyle resolveAppTextStyle(
   BuildContext context, {
   required AppTextSize size,
@@ -318,6 +326,7 @@ TextStyle resolveAppTextStyle(
   return TextStyle(
     fontSize: resolveAppTextFontSize(context, size),
     fontWeight: fontWeight,
+    fontFamily: resolveAppTextFontFamily(context),
     // 仅 Web 内嵌的可变字体需要:把字重喂给 wght 轴(默认停在 Thin 100)。
     // 其他平台用系统字体,靠 fontWeight 即可。
     fontVariations:

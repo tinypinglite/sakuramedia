@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/app/cached_page_state_handle.dart';
+import 'package:sakuramedia/core/format/synced_at_label.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
@@ -156,8 +157,10 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
     final source = _pageState.selectedSource;
     final board = _pageState.selectedBoard;
     final sourceBoardLabel = '${source?.name ?? '来源'} · ${board?.name ?? '榜单'}';
+    final syncedAtLabel = formatSyncedAtLabel(_pageState.controller.syncedAt);
 
     // 仅保留「来源 · 榜单」单 chip；周期 / 排序 通过右上筛选 icon 弹抽屉调整。
+    // 抓取时间放到 filter icon 左侧，与 chip 同一行显示，不新开一行。
     return AppMobileTabHeader(
       filterButtonKey: const Key('mobile-rankings-filter-button'),
       filterTooltip: '筛选',
@@ -172,6 +175,18 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
               _openFilterDrawer(initialAnchor: RankingFilterAnchor.source),
         ),
       ],
+      trailing: syncedAtLabel == null
+          ? null
+          : Text(
+              key: const Key('mobile-rankings-synced-at'),
+              syncedAtLabel,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
+              ),
+            ),
     );
   }
 

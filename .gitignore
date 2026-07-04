@@ -34,6 +34,10 @@ migrate_working_dir/
 /build/
 devtools_options.yaml
 
+# Web CanvasKit 本地副本(24MB),从 $FLUTTER_ROOT/bin/cache/flutter_web_sdk/canvaskit 拷贝,
+# 用于绕过 gstatic CDN。首次 clone 后需手动 cp -r 一次;升级 Flutter 后需重新覆盖。
+/web/canvaskit/
+
 # Symbolication related
 app.*.symbols
 
