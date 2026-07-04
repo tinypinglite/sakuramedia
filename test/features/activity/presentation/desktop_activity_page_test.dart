@@ -169,7 +169,10 @@ void main() {
       expect(_textStyleOf(tester, find.text('任务历史')).fontSize, 18);
       expect(_textStyleOf(tester, find.text('活动任务标题')).fontSize, 14);
       expect(_textStyleOf(tester, find.text('历史任务标题')).fontSize, 14);
-      expect(_defaultTextStyleOf(tester, find.text('全部状态')).fontSize, 12);
+      expect(
+        _textStyleOf(tester, find.text('全部状态')).fontSize,
+        sakuraThemeData.appTextScale.s12,
+      );
     },
   );
 
@@ -674,14 +677,4 @@ ResponseBody _jsonResponseBody(Map<String, dynamic> body) {
 
 TextStyle _textStyleOf(WidgetTester tester, Finder finder) {
   return tester.widget<Text>(finder).style!;
-}
-
-TextStyle _defaultTextStyleOf(WidgetTester tester, Finder finder) {
-  return tester
-      .widget<DefaultTextStyle>(
-        find
-            .ancestor(of: finder, matching: find.byType(DefaultTextStyle))
-            .first,
-      )
-      .style;
 }

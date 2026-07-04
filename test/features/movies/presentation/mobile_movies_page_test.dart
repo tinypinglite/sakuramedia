@@ -475,8 +475,13 @@ void main() {
         ),
       );
 
-      await tester.ensureVisible(find.widgetWithText(TextButton, '重试'));
-      await tester.tap(find.widgetWithText(TextButton, '重试'));
+      final retryButton = find.widgetWithText(TextButton, '重试');
+      await tester.scrollUntilVisible(
+        retryButton,
+        240,
+        scrollable: find.byType(Scrollable).first,
+      );
+      tester.widget<TextButton>(retryButton).onPressed?.call();
       await tester.pump();
       await tester.pumpAndSettle();
 

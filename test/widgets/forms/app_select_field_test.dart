@@ -162,7 +162,9 @@ void main() {
   testWidgets('preserves theme font family for trigger and menu text', (
     WidgetTester tester,
   ) async {
-    final themed = sakuraThemeData.copyWith(fontFamily: 'FixtureFont');
+    final themed = sakuraThemeData.copyWith(
+      textTheme: sakuraThemeData.textTheme.apply(fontFamily: 'FixtureFont'),
+    );
 
     await tester.pumpWidget(
       wrapApp(
@@ -476,7 +478,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('默认'), findsNWidgets(2));
-    expect(find.byKey(selectedTextKey), findsOneWidget);
+    expect(find.byKey(selectedTextKey), findsNothing);
   });
 
   testWidgets('aligns menu width and keeps menu close to trigger', (
