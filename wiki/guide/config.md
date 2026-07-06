@@ -10,7 +10,7 @@
 
 例如：
 
-- 正确：`/data/db/sakuramedia.db`
+- 正确：`/data/cache/assets`
 - 正确：`/mnt/volume1/media/sakuramedia`
 - 错误：`/Users/xxx/...`
 
@@ -52,80 +52,45 @@ enable_docs = false
 
 ## `[database]`
 
-这一组决定 SakuraMedia 使用什么数据库，以及如何连接数据库。
+这一组决定 SakuraMedia 如何连接数据库。当前版本只支持 PostgreSQL。
 
 ```toml
 [database]
-engine = "sqlite"
-path = "/data/db/sakuramedia.db"
-charset = "utf8mb4"
-url = ""
+engine = "postgres"
+url = "postgresql://sakuramedia:sakuramedia@postgres:5432/sakuramedia"
 ```
 
 字段说明：
 
 | 字段 | 默认值 | 作用 |
 |---|---|---|
-| `engine` | `sqlite` | 数据库类型，支持 `sqlite`、`mysql`、`postgres` |
-| `path` | `/data/db/sakuramedia.db` | SQLite 数据库文件路径，仅 `sqlite` 生效 |
-| `charset` | `utf8mb4` | MySQL 字符集，仅 `mysql` 生效 |
-| `url` | `""` | MySQL / PostgreSQL 连接串 |
+| `engine` | `postgres` | 数据库类型，固定为 `postgres` |
+| `url` | `postgresql://sakuramedia:sakuramedia@postgres:5432/sakuramedia` | PostgreSQL 连接串 |
 
-### `database.pragmas`
+### 绝大多数用户不需要动这一节
 
-这是 SQLite 专用的附加配置。
+默认连接串和「快速开始」compose 里内置的 `postgres` 服务完全对齐（服务名、账号、密码、库名都一致），**照抄 compose 部署的话，这一节保持默认就能直接工作**。
 
-```toml
-[database.pragmas]
-foreign_keys = 1
-```
+内置 `postgres` 服务不对宿主机映射端口，只在 compose 内部网络可见，默认账号密码不会暴露到外部。
 
-当前默认只用了：
+### 使用外部 PostgreSQL
 
-- `foreign_keys = 1`
-  开启 SQLite 外键约束
-
-### 数据库怎么选
-
-建议：
-
-- 临时试跑：`sqlite`
-- 长期使用：`postgres`
-- 已经有稳定的 MySQL 环境：`mysql`
-
-不建议把 `sqlite` 作为正式长期方案，尤其是你准备长期积累数据时，更推荐 PostgreSQL。
-
-示例：
-
-SQLite：
-
-```toml
-[database]
-engine = "sqlite"
-path = "/data/db/sakuramedia.db"
-charset = "utf8mb4"
-url = ""
-```
-
-MySQL：
-
-```toml
-[database]
-engine = "mysql"
-path = "/data/db/sakuramedia.db"
-charset = "utf8mb4"
-url = "mysql://sakuramedia:change-me@mysql:3306/sakuramedia"
-```
-
-PostgreSQL：
+只有当你想复用自己已有的 PostgreSQL（比如 NAS 上已经跑着一个 PG 实例）时，才需要改 `url`：
 
 ```toml
 [database]
 engine = "postgres"
-path = "/data/db/sakuramedia.db"
-charset = "utf8mb4"
-url = "postgresql://sakuramedia:change-me@postgres:5432/sakuramedia"
+url = "postgresql://用户名:密码@192.168.x.x:5432/sakuramedia"
 ```
+
+注意：
+
+- 数据库需要你自己提前建好（`CREATE DATABASE sakuramedia`），表结构会在容器启动时自动建
+- 用外部 PG 后，compose 里内置的 `postgres` 服务可以整段删掉，同时删掉 `sakuramedia` 服务的 `depends_on`
+
+::: warning 从老版本（SQLite / MySQL）升级
+新版本已移除 SQLite 和 MySQL 支持。如果你的 `config.toml` 里还是 `engine = "sqlite"` 或 `engine = "mysql"`，服务会在启动时直接报配置错误。请按上面的说明把 `[database]` 改成 PostgreSQL，旧库数据无法迁移.
+:::
 
 ## `[auth]`
 

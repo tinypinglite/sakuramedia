@@ -293,11 +293,14 @@ docker compose ps
 至少要确认：
 
 - `sakuramedia`
+- `sakuramedia-postgres`
 - `sakuramedia-web`
 - `joytag-infer`
 - `qdrant`
 
 都已经正常启动。
+
+如果 `sakuramedia` 一直在重启，先看它的日志：卡在 `Waiting for database to become ready...` 说明数据库还没就绪或连接串不对，检查 `postgres` 容器状态和 `config.toml` 的 `[database].url`。
 
 ### 2. Web 能不能打开
 
