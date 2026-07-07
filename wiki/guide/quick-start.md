@@ -321,3 +321,26 @@ APP 必须连后端 API 端口 `38000`（即 `sakuramedia` 容器的 `38000:8000
 - 查询成功后，把对应的影片或女优元数据自动写入本地库
 - 下次再搜索同一部影片或同一个女优时，通常就不需要再手动开启 `联网`
 
+
+## 强烈建议使用客户端，而不是 Web 端
+
+服务跑起来之后，日常使用**强烈建议下载对应平台的客户端**，不要长期用浏览器 Web 端。
+
+::: warning Web 端仅作为兜底，未经完善测试
+`sakuramedia-web` 目前只保证「能用」，很多细节交互、播放性能、图片加载、快捷键、下载/导入反馈等都**没有和客户端做等价测试**
+:::
+
+前往 GitHub Releases 下载对应平台的安装包：
+
+👉 [https://github.com/tinypinglite/sakuramedia/releases](https://github.com/tinypinglite/sakuramedia/releases)
+
+支持的平台：
+
+- **Windows**：下载 zip 包，解压后直接运行 `.exe`
+- **macOS**：下载 zip 包，解压后拖动到应用程序后打开，若打开时提示「已损坏 / 无法打开」，是未签名导致的系统拦截，可在「系统设置 → 隐私与安全性」放行
+- **Android**：下载 `.apk`，允许「安装未知来源应用」后直接安装
+- **iOS**：Releases 提供 `.ipa`，需要通过 [AltStore（AltServer）](https://altstore.io/) 或 [SideStore](https://sidestore.io/) 自签安装（Apple 的免费开发者证书 7 天需要重签一次，AltStore/SideStore 会自动处理）
+
+::: tip 客户端的服务器地址仍然填后端 API 端口
+无论在哪个平台，客户端首次登录时填的**服务器地址**都是后端 `sakuramedia` 容器对外暴露的端口（默认 `http://你的IP:38000`），**不是 Web 端的 `38080`**。详见上面 [5. 访问 → 桌面端 / 移动端 APP](#桌面端-移动端-app)。
+:::
