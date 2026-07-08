@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/videos/data/video_import_job_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_imports_api.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_import_job_dto.dart';
+import 'package:sakuramedia/features/videos/data/api/video_imports_api.dart';
 
-import '../../../support/fake_http_client_adapter.dart';
+import '../../../../support/fake_http_client_adapter.dart';
 
 void main() {
   late SessionStore sessionStore;

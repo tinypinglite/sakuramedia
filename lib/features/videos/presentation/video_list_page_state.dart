@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:sakuramedia/app/app_page_state_cache.dart';
-import 'package:sakuramedia/features/videos/data/videos_api.dart';
+import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 import 'package:sakuramedia/features/videos/presentation/paged_video_summary_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
 import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';

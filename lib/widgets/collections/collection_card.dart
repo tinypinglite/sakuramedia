@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/clip_collections/data/clip_collection_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/widgets/collections/collection_cover_card.dart';
 
 /// 合集封面卡：16:9 封面 + 名称 + 计数角标，右上角可选「···」菜单（编辑 / 删除）。

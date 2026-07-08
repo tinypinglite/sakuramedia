@@ -1,7 +1,7 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/fetch_all_pages.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 
 /// 视频合集接口（`/video-collections`）。合集列表为非分页 `List`；成员端点已分页
 /// （`page`/`page_size`），万级成员合集靠分页避免单请求超时。

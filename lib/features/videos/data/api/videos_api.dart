@@ -1,7 +1,7 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_item_detail_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_item_detail_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 
 /// 非 JAV 视频条目接口（`/videos`）。
 ///

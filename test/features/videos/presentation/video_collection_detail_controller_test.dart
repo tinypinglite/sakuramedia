@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
-import 'package:sakuramedia/features/videos/data/videos_api.dart';
+import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
+import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 import 'package:sakuramedia/features/videos/presentation/video_collection_detail_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
 

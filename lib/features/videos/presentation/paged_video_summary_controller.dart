@@ -1,5 +1,5 @@
 import 'package:sakuramedia/features/shared/presentation/paged_load_controller.dart';
-import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 
 /// 视频列表的分页控制器。
 ///

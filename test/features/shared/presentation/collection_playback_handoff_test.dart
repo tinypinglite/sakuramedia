@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
-import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 
 void main() {
   VideoCollectionItemDto videoItem(int id) =>

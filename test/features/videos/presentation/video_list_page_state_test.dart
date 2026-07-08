@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/videos/data/videos_api.dart';
+import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 import 'package:sakuramedia/features/videos/presentation/video_list_page_state.dart';
 import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
 

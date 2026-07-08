@@ -9,7 +9,7 @@ import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
 import 'package:sakuramedia/features/media_import/presentation/desktop_media_import_page.dart';
-import 'package:sakuramedia/features/videos/data/video_imports_api.dart';
+import 'package:sakuramedia/features/videos/data/api/video_imports_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 

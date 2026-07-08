@@ -20,7 +20,7 @@ import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
-import 'package:sakuramedia/features/videos/data/video_imports_api.dart';
+import 'package:sakuramedia/features/videos/data/api/video_imports_api.dart';
 
 import 'fake_http_client_adapter.dart';
 import 'in_memory_credential_store.dart';

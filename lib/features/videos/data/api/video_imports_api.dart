@@ -1,6 +1,6 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_import_job_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_import_job_dto.dart';
 
 /// 视频（PornBox）导入接口（`/video-imports`）。
 ///

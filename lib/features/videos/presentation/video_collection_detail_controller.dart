@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
-import 'package:sakuramedia/features/videos/data/videos_api.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
+import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
+import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
 
 /// 视频合集详情控制器：加载合集与有序成员，支持排序、乐观重排与移除。

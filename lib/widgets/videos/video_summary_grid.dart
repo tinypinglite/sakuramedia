@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/layout/staggered_layout.dart';

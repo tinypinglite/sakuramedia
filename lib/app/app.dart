@@ -32,9 +32,9 @@ import 'package:sakuramedia/features/clip_collections/data/clip_collections_api.
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/tags/data/tags_api.dart';
-import 'package:sakuramedia/features/videos/data/videos_api.dart';
-import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
-import 'package:sakuramedia/features/videos/data/video_imports_api.dart';
+import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
+import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
+import 'package:sakuramedia/features/videos/data/api/video_imports_api.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_subscription_change_notifier.dart';

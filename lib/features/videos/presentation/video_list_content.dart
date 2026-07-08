@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/paged_video_summary_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
 import 'package:sakuramedia/theme.dart';

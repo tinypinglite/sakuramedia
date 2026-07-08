@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
+import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/presentation/create_video_collection_dialog.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';

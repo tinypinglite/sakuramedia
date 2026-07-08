@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/videos/data/videos_api.dart';
+import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';

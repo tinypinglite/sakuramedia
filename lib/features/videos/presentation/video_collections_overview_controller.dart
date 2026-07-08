@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/videos/data/video_collection_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_collections_api.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
+import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
 
 /// 视频合集列表控制器（合集列表为非分页 `List`）。
 class VideoCollectionsOverviewController extends ChangeNotifier {

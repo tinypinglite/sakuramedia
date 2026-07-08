@@ -1,6 +1,6 @@
 import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_item_list_item_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 
 /// 视频合集资源（`VideoCollectionResource`）。成员顺序见 [VideoCollectionItemDto]。
 ///

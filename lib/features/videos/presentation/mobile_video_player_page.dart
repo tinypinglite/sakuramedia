@@ -8,7 +8,7 @@ import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
-import 'package:sakuramedia/features/videos/data/videos_api.dart';
+import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media_player/landscape_player_system_ui.dart';
 import 'package:sakuramedia/widgets/media_player/movie_player_back_overlay.dart';

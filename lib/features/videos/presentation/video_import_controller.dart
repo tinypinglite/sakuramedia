@@ -7,8 +7,8 @@ import 'package:sakuramedia/features/activity/data/activity_event_stream_client.
 import 'package:sakuramedia/features/activity/data/activity_stream_event.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/media_import/presentation/import_jobs_view_controller.dart';
-import 'package:sakuramedia/features/videos/data/video_import_job_dto.dart';
-import 'package:sakuramedia/features/videos/data/video_imports_api.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_import_job_dto.dart';
+import 'package:sakuramedia/features/videos/data/api/video_imports_api.dart';
 
 /// 视频（PornBox）导入后台作业的 task_run task_key。
 const String kVideoImportTaskKey = 'video_directory_import';
