@@ -1,4 +1,4 @@
-import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
+import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 
 /// 切片合集资源（后端 `ClipCollectionResource`）。

@@ -1,7 +1,7 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
-import 'package:sakuramedia/features/clips/data/media_clip_thumbnail_dto.dart';
+import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
+import 'package:sakuramedia/features/clips/data/dto/media_clip_thumbnail_dto.dart';
 
 class ClipsApi {
   const ClipsApi({required ApiClient apiClient}) : _apiClient = apiClient;

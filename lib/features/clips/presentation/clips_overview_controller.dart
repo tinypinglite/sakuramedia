@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
+import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 
 typedef ClipPageFetcher =
     Future<PaginatedResponseDto<MediaClipDto>> Function({

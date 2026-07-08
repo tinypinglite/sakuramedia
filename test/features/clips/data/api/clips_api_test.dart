@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/clips/data/clips_api.dart';
+import 'package:sakuramedia/features/clips/data/api/clips_api.dart';
 
-import '../../../support/fake_http_client_adapter.dart';
+import '../../../../support/fake_http_client_adapter.dart';
 
 Map<String, dynamic> _clipJson({int clipId = 12}) => <String, dynamic>{
   'clip_id': clipId,

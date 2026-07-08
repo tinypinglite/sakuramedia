@@ -12,8 +12,8 @@ import 'package:sakuramedia/features/clip_collections/presentation/widgets/add_t
 import 'package:sakuramedia/features/clip_collections/presentation/controllers/clip_collections_overview_controller.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/widgets/create_clip_collection_dialog.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/widgets/pick_clip_collection_dialog.dart';
-import 'package:sakuramedia/features/clips/data/clips_api.dart';
-import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
+import 'package:sakuramedia/features/clips/data/api/clips_api.dart';
+import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/clips_overview_controller.dart';
 import 'package:sakuramedia/features/clips/presentation/rename_clip_dialog.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';

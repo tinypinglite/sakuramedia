@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
 import 'package:sakuramedia/features/clip_collections/data/api/clip_collections_api.dart';
-import 'package:sakuramedia/features/clips/data/clips_api.dart';
-import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
+import 'package:sakuramedia/features/clips/data/api/clips_api.dart';
+import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 
 /// 合集详情控制器：加载合集元信息 + 全量有序切片，支持拖序、移除与删除本体。
 ///
