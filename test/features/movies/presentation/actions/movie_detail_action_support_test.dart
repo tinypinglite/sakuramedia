@@ -12,7 +12,7 @@ import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_ac
 import 'package:sakuramedia/features/movies/presentation/controllers/movie_detail_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/movie_subscription_change_notifier.dart';
 
-import '../../../support/fake_http_client_adapter.dart';
+import '../../../../support/fake_http_client_adapter.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

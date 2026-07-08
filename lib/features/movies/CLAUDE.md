@@ -1,6 +1,24 @@
 # lib/features/movies/ — 影片核心域(最复杂)
 
-仓库最大最复杂的 feature(11 data + 32 presentation 文件):影片列表/筛选、系列、详情(演员/标签/媒体源/相似)、应用内播放器(缩略图圈选切片 + 字幕 + 进度上报)、订阅/合集、磁力搜索/下载、评论、缩略图(本地切片帧 + MissAV 在线流式)、系列在线导入。先读 `lib/features/CLAUDE.md` 的通用范式,本文件只讲本域特有约定。
+仓库最大最复杂的 feature:影片列表/筛选、系列、详情(演员/标签/媒体源/相似)、应用内播放器(缩略图圈选切片 + 字幕 + 进度上报)、订阅/合集、磁力搜索/下载、评论、缩略图(本地切片帧 + MissAV 在线流式)、系列在线导入。先读 `lib/features/CLAUDE.md` 的通用范式,本文件只讲本域特有约定。
+
+## 目录结构
+
+```
+data/                    # 11 个 DTO + movies_api
+presentation/
+  controllers/           # controller/notifier/state/mixin(17)
+  pages/
+    desktop/             # 4 个桌面页(文件名无 desktop_ 前缀)
+    mobile/              # 5 个移动页(文件名无 mobile_ 前缀)
+    shared/              # 3 个跨平台内容片段(movie_list_content 等)
+  actions/               # 6 个详情动作/菜单/播放启动器
+  widgets/               # 详情页 + 系列导入弹窗
+    detail/              # 18 个 detail 页专用组件(从原 lib/widgets/movie_detail/ 迁入)
+    series_import_dialog.dart
+```
+
+**在其它 feature 内 import 时**:控制器/DTO 从 `features/movies/data|controllers/` 拿,不要从 `pages/` 拿(那是页面私域)。
 
 ## 列表:筛选状态驱动(易踩第一名)
 
@@ -36,7 +54,7 @@
 
 ## 跨模块契约
 
-依赖 core(`ApiClient` 全动词 / `resolveMediaUrl` / `PaginatedResponseDto` / `ApiException.code`);跨 feature 协作 search/downloads/media/playlists/external_player(`launchMoviePlayback` 拉外部播放器降级应用内)/image_search/clips/configuration/subscriptions;复用 `widgets/movies`、`widgets/movie_detail`、`widgets/movie_player`、`widgets/media`。被 rankings/actors/tags/overview/discovery/playlists 等多域复用其 DTO 与控制器。
+依赖 core(`ApiClient` 全动词 / `resolveMediaUrl` / `PaginatedResponseDto` / `ApiException.code`);跨 feature 协作 search/downloads/media/playlists/external_player(`launchMoviePlayback` 拉外部播放器降级应用内)/image_search/clips/configuration/subscriptions;复用 `widgets/movies`(通用影片卡片/网格)、`widgets/media_player`(通用播放器套件,已从 `movie_player` 更名)、`widgets/media`。detail 页专用组件已内聚到本 feature 的 `presentation/widgets/detail/`,少数被 `image_search` / `media_preview_dialog` 借用。被 rankings/actors/tags/overview/discovery/playlists 等多域复用其 DTO 与控制器。
 
 ## 与测试的关系
 

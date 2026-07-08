@@ -38,7 +38,7 @@ import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_de
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_tag_wrap.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
-import '../../../support/test_api_bundle.dart';
+import '../../../../../support/test_api_bundle.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

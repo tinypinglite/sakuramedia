@@ -32,7 +32,7 @@ import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_hero_card.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
-import '../../../support/test_api_bundle.dart';
+import '../../../../../support/test_api_bundle.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -22,7 +22,7 @@ import 'package:sakuramedia/widgets/media_player/movie_player_back_overlay.dart'
 import 'package:sakuramedia/widgets/media_player/movie_player_surface_controller.dart';
 import 'package:sakuramedia/widgets/media_player/movie_player_surface_readiness.dart';
 
-import '../../../support/test_api_bundle.dart';
+import '../../../../../support/test_api_bundle.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

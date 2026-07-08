@@ -18,7 +18,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
-import '../../../support/test_api_bundle.dart';
+import '../../../../../support/test_api_bundle.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
