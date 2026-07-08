@@ -5,7 +5,7 @@ class AppImageConfig {
   // 通过 `flutter run --dart-define-from-file=.env` 覆盖,`.env` 已 gitignore。
   static bool enableBlur = const bool.fromEnvironment(
     'ENABLE_BLUR',
-    defaultValue: true,
+    defaultValue: false,
   );
   static double blurSigma = 100;
 
