@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video_controls/media_kit_video_controls.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_playback_info.dart';

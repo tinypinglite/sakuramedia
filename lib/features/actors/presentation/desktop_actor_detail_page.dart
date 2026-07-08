@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/actors/data/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_detail_content.dart';
-import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';

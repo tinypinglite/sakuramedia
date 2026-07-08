@@ -1,6 +1,6 @@
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/features/actors/presentation/paged_actor_summary_controller.dart';
-import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/paged_movie_summary_controller.dart';
 
 String? movieSubscriptionFeedbackMessage(MovieSubscriptionToggleResult result) {
   switch (result.status) {

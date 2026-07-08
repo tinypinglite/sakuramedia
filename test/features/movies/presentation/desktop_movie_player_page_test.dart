@@ -14,7 +14,7 @@ import 'package:sakuramedia/features/image_search/presentation/image_search_draf
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/desktop_movie_player_page.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/theme.dart';

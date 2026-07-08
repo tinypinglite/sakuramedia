@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_filter_state.dart';
 import 'package:sakuramedia/features/tags/data/tag_list_item_dto.dart';
 import 'package:sakuramedia/features/tags/data/tags_api.dart';
 

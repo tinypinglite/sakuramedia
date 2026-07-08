@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_list_filterable_page_state.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
-import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_filter_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_list_filterable_page_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_subscription_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/tags/data/tags_api.dart';
 import 'package:sakuramedia/features/tags/presentation/tag_selection_controller.dart';
 

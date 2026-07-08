@@ -20,7 +20,7 @@ import 'package:sakuramedia/features/configuration/presentation/desktop_configur
 import 'package:sakuramedia/features/configuration/presentation/llm_settings_copy.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';

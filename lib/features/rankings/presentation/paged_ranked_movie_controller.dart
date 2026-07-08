@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/paged_load_controller.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_filter_state.dart';
 import 'package:sakuramedia/features/tags/data/tag_list_item_dto.dart';
 import 'package:sakuramedia/features/tags/presentation/tag_selection_controller.dart';
 import 'package:sakuramedia/theme.dart';

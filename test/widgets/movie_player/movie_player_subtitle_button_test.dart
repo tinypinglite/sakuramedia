@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_subtitle_button.dart';
 

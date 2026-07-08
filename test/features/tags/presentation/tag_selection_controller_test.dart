@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_filter_state.dart';
 import 'package:sakuramedia/features/tags/data/tags_api.dart';
 import 'package:sakuramedia/features/tags/presentation/tag_selection_controller.dart';
 

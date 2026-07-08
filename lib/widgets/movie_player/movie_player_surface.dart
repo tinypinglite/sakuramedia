@@ -8,7 +8,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/movie_player/movie_player_playback_info.dart';

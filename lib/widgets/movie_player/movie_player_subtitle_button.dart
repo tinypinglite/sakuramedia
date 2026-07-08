@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 
 const Duration _subtitleMenuCloseDelay = Duration(milliseconds: 80);

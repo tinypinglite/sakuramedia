@@ -7,7 +7,7 @@ import 'package:sakuramedia/features/clips/data/clips_api.dart';
 import 'package:sakuramedia/features/clips/data/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/clips/presentation/rename_clip_dialog.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_clips_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_clips_controller.dart';
 import 'package:sakuramedia/widgets/clips/clip_player_dialog.dart';
 import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 

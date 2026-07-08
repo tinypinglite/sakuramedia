@@ -3,7 +3,7 @@ import 'package:sakuramedia/core/network/api_error_dto.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/paged_movie_summary_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

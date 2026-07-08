@@ -1,7 +1,7 @@
-import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart'
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_filter_state.dart'
     show SortDirection, SortDirectionX;
 
-export 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart'
+export 'package:sakuramedia/features/movies/presentation/controllers/movie_filter_state.dart'
     show SortDirection, SortDirectionX;
 
 /// 非 JAV 视频列表的排序字段，对齐后端 `sort=created_at|title|duration|file_size`。

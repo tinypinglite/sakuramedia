@@ -6,7 +6,7 @@ import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/movies/data/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_subtitle_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_player_subtitle_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_player_subtitle_state.dart';
 
 class MoviePlayerController extends ChangeNotifier {
   MoviePlayerController({

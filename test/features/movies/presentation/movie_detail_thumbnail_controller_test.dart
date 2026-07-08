@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/features/movies/data/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_media_thumbnail_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_detail_thumbnail_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_detail_thumbnail_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

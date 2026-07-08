@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/actors_api.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/search/presentation/mobile_catalog_search_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';

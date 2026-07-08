@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/features/movies/data/missav_thumbnail_result_dto.dart';
 import 'package:sakuramedia/features/movies/data/missav_thumbnail_stream_update.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_detail_missav_thumbnail_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_detail_missav_thumbnail_controller.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -6,7 +6,7 @@ import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_list_content.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/tags/data/tags_api.dart';
 import 'package:sakuramedia/features/tags/presentation/tag_selection_controller.dart';
 import 'package:sakuramedia/features/tags/presentation/tag_selector_panel.dart';

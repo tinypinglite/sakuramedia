@@ -9,7 +9,7 @@ import 'package:sakuramedia/features/movies/data/movie_review_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/data/parsed_movie_number_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_filter_state.dart';
 
 import '../../../support/fake_http_client_adapter.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_filter_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/movies/movie_filter_toolbar.dart';
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_filter_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_filter_state.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/movies/movie_filter_sections.dart';
 import 'package:sakuramedia/widgets/navigation/app_mobile_filter_drawer_scaffold.dart';

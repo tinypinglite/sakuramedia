@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/features/actors/presentation/paged_actor_summary_controller.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_controller.dart';
 
 import '../../../support/test_api_bundle.dart';

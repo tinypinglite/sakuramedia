@@ -5,7 +5,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_list_content.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/tags/data/tags_api.dart';
 import 'package:sakuramedia/features/tags/presentation/tag_selection_controller.dart';
 import 'package:sakuramedia/features/tags/presentation/tag_selector_panel.dart';
