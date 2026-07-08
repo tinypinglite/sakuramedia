@@ -343,7 +343,12 @@ class MovieDetailPageContent extends StatelessWidget {
             onRetry: onRetrySimilarMovies,
             onMovieTap: onSimilarMovieTap,
             onMovieMenuRequest: (movie, globalPosition) =>
-                requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
+                requestMovieCollectionMenu(
+                  context,
+                  movie.movieNumber,
+                  globalPosition,
+                  isSubscribed: movie.isSubscribed,
+                ),
           ),
         ),
       ],

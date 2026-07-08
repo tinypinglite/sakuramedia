@@ -232,6 +232,7 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent> {
             context: context,
             movieNumber: movie.movieNumber,
             globalPosition: globalPosition,
+            isSubscribed: movie.isSubscribed,
           ),
         );
       },

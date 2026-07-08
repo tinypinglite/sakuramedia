@@ -4,14 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_api.dart';
 import 'package:sakuramedia/features/configuration/data/collection_number_features_dto.dart';
 import 'package:sakuramedia/features/movies/data/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_collection_type_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_subscription_change_notifier.dart';
+import 'package:sakuramedia/features/movies/presentation/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
 
-enum _MovieCollectionFeatureMenuAction { toggleCollectionType, addFeature }
+enum _MovieCollectionFeatureMenuAction {
+  toggleSubscription,
+  toggleCollectionType,
+  addFeature,
+}
 
 class _MovieCollectionStatusLookupResult {
   const _MovieCollectionStatusLookupResult({this.status, this.errorMessage});
@@ -41,16 +49,21 @@ String? extractCollectionFeaturePrefix(String movieNumber) {
 
 /// 列表页右键/长按菜单的便捷入口:免去各处重复的
 /// `unawaited(showMovieCollectionFeatureActionMenu(...))` 闭包。
+///
+/// [isSubscribed] 为 null 时菜单不显示"订阅/取消订阅"项;
+/// 传入布尔值时按当前状态显示"订阅影片" / "取消订阅"。
 void requestMovieCollectionMenu(
   BuildContext context,
   String movieNumber,
-  Offset globalPosition,
-) {
+  Offset globalPosition, {
+  bool? isSubscribed,
+}) {
   unawaited(
     showMovieCollectionFeatureActionMenu(
       context: context,
       movieNumber: movieNumber,
       globalPosition: globalPosition,
+      isSubscribed: isSubscribed,
     ),
   );
 }
@@ -59,6 +72,7 @@ Future<void> showMovieCollectionFeatureActionMenu({
   required BuildContext context,
   required String movieNumber,
   required Offset globalPosition,
+  bool? isSubscribed,
   bool applyNow = true,
 }) async {
   final feature = extractCollectionFeaturePrefix(movieNumber);
@@ -75,6 +89,7 @@ Future<void> showMovieCollectionFeatureActionMenu({
     context: context,
     feature: feature,
     isCollection: statusResult.status?.isCollection,
+    isSubscribed: isSubscribed,
     globalPosition: globalPosition,
   );
   if (action == null || !context.mounted) {
@@ -82,6 +97,17 @@ Future<void> showMovieCollectionFeatureActionMenu({
   }
 
   switch (action) {
+    case _MovieCollectionFeatureMenuAction.toggleSubscription:
+      if (isSubscribed == null) {
+        return;
+      }
+      await _handleToggleSubscriptionAction(
+        context: context,
+        movieNumber: movieNumber,
+        isSubscribed: isSubscribed,
+        moviesApi: moviesApi,
+      );
+      return;
     case _MovieCollectionFeatureMenuAction.toggleCollectionType:
       await _handleCollectionTypeToggleAction(
         context: context,
@@ -98,6 +124,53 @@ Future<void> showMovieCollectionFeatureActionMenu({
       );
       return;
   }
+}
+
+Future<void> _handleToggleSubscriptionAction({
+  required BuildContext context,
+  required String movieNumber,
+  required bool isSubscribed,
+  required MoviesApi moviesApi,
+}) async {
+  MovieSubscriptionToggleResult result;
+  try {
+    if (isSubscribed) {
+      await moviesApi.unsubscribeMovie(
+        movieNumber: movieNumber,
+        deleteMedia: false,
+      );
+      result = const MovieSubscriptionToggleResult.unsubscribed();
+    } else {
+      await moviesApi.subscribeMovie(movieNumber: movieNumber);
+      result = const MovieSubscriptionToggleResult.subscribed();
+    }
+  } catch (error) {
+    if (error is ApiException &&
+        error.error?.code == 'movie_subscription_has_media') {
+      result = const MovieSubscriptionToggleResult.blockedByMedia();
+    } else {
+      result = MovieSubscriptionToggleResult.failed(
+        message: apiErrorMessage(
+          error,
+          fallback: isSubscribed ? '取消订阅影片失败' : '订阅影片失败',
+        ),
+      );
+    }
+  }
+
+  if (!context.mounted) {
+    return;
+  }
+
+  if (result.status == MovieSubscriptionToggleStatus.subscribed ||
+      result.status == MovieSubscriptionToggleStatus.unsubscribed) {
+    context.read<MovieSubscriptionChangeNotifier>().reportChange(
+      movieNumber: movieNumber,
+      isSubscribed: result.status == MovieSubscriptionToggleStatus.subscribed,
+    );
+  }
+
+  showMovieSubscriptionFeedback(result);
 }
 
 Future<void> _handleAddFeatureAction({
@@ -220,6 +293,7 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
   required BuildContext context,
   required String? feature,
   required bool? isCollection,
+  required bool? isSubscribed,
   required Offset globalPosition,
 }) {
   final colors = context.appColors;
@@ -234,6 +308,9 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
     Offset.zero & overlay.size,
   );
 
+  final subscriptionTone =
+      isSubscribed == true ? AppTextTone.error : AppTextTone.primary;
+
   return showMenu<_MovieCollectionFeatureMenuAction>(
     context: context,
     position: position,
@@ -245,6 +322,44 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
       side: BorderSide(color: colors.borderSubtle),
     ),
     items: <PopupMenuEntry<_MovieCollectionFeatureMenuAction>>[
+      if (isSubscribed != null)
+        PopupMenuItem<_MovieCollectionFeatureMenuAction>(
+          key: const Key('movie-collection-feature-menu-subscription-item'),
+          value: _MovieCollectionFeatureMenuAction.toggleSubscription,
+          height: menuItemHeight,
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.sm,
+            vertical: spacing.xs,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isSubscribed
+                    ? Icons.favorite_border_rounded
+                    : Icons.favorite_rounded,
+                size: componentTokens.iconSizeXs,
+                color: resolveAppTextToneColor(context, subscriptionTone),
+              ),
+              SizedBox(width: spacing.sm),
+              Text(
+                isSubscribed ? '取消订阅' : '订阅影片',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: subscriptionTone,
+                ),
+              ),
+            ],
+          ),
+        ),
+      if (isSubscribed != null)
+        PopupMenuItem<_MovieCollectionFeatureMenuAction>(
+          enabled: false,
+          height: 1,
+          padding: EdgeInsets.zero,
+          child: Divider(height: 1, thickness: 1, color: colors.borderStrong),
+        ),
       PopupMenuItem<_MovieCollectionFeatureMenuAction>(
         key: const Key('movie-collection-feature-menu-toggle-item'),
         value: _MovieCollectionFeatureMenuAction.toggleCollectionType,

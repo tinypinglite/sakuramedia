@@ -115,7 +115,12 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
                               movieNumber: movie.movieNumber,
                             ),
                         onMovieMenuRequest: (movie, globalPosition) =>
-                            requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
+                            requestMovieCollectionMenu(
+                              context,
+                              movie.movieNumber,
+                              globalPosition,
+                              isSubscribed: movie.isSubscribed,
+                            ),
                         onMovieSubscriptionTap:
                             (movie) =>
                                 _toggleMovieSubscription(movie.movieNumber),

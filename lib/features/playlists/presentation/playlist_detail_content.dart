@@ -158,7 +158,12 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
                 errorMessage: _moviesController.initialErrorMessage,
                 onMovieTap: widget.onMovieTap,
                 onMovieMenuRequest: (movie, globalPosition) =>
-                    requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
+                    requestMovieCollectionMenu(
+                      context,
+                      movie.movieNumber,
+                      globalPosition,
+                      isSubscribed: movie.isSubscribed,
+                    ),
                 onMovieSubscriptionTap:
                     (movie) => _toggleMovieSubscription(movie.movieNumber),
                 isMovieSubscriptionUpdating:

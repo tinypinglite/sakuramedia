@@ -150,6 +150,7 @@ class _DesktopFollowPageState extends State<DesktopFollowPage> {
                         context: context,
                         movieNumber: movie.movieNumber,
                         globalPosition: globalPosition,
+                        isSubscribed: movie.isSubscribed,
                       ),
                     );
                   },

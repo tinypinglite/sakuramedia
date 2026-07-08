@@ -135,7 +135,12 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
                           fallbackPath: desktopRankingsPath,
                         ),
                     onMovieMenuRequest: (movie, globalPosition) =>
-                        requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
+                        requestMovieCollectionMenu(
+                          context,
+                          movie.movieNumber,
+                          globalPosition,
+                          isSubscribed: movie.isSubscribed,
+                        ),
                     onMovieSubscriptionTap:
                         (movie) => _toggleMovieSubscription(movie.movieNumber),
                     isMovieSubscriptionUpdating:

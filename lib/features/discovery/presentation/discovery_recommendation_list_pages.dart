@@ -193,7 +193,12 @@ class _DiscoveryMoviesPageState extends State<_DiscoveryMoviesPage> {
       placeholderCount: _isMobile ? 6 : 12,
       onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
       onMovieMenuRequest: (movie, globalPosition) =>
-          requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
+          requestMovieCollectionMenu(
+            context,
+            movie.movieNumber,
+            globalPosition,
+            isSubscribed: movie.isSubscribed,
+          ),
     );
   }
 

@@ -201,6 +201,7 @@ class _MovieListContentState extends State<MovieListContent> {
                         context: context,
                         movieNumber: movie.movieNumber,
                         globalPosition: globalPosition,
+                        isSubscribed: movie.isSubscribed,
                       ),
                     );
                   },

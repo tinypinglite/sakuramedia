@@ -125,7 +125,12 @@ class _MobileCatalogSearchPageState extends State<MobileCatalogSearchPage>
             ).push(context);
           },
           onMovieMenuRequest: (movie, globalPosition) =>
-              requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
+              requestMovieCollectionMenu(
+                context,
+                movie.movieNumber,
+                globalPosition,
+                isSubscribed: movie.isSubscribed,
+              ),
           onActorTap: (actor) {
             MobileActorDetailRouteData(actorId: actor.id).push(context);
           },

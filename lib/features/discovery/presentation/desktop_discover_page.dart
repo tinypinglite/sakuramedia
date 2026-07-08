@@ -165,7 +165,12 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
           errorMessage: _followController.initialErrorMessage,
           onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
           onMovieMenuRequest: (movie, globalPosition) =>
-              requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
+              requestMovieCollectionMenu(
+                context,
+                movie.movieNumber,
+                globalPosition,
+                isSubscribed: movie.isSubscribed,
+              ),
           onMovieSubscriptionTap:
               (movie) => _toggleFollowSubscription(movie.movieNumber),
           isMovieSubscriptionUpdating:
@@ -211,7 +216,12 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
       placeholderCount: 6,
       onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
       onMovieMenuRequest: (movie, globalPosition) =>
-          requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
+          requestMovieCollectionMenu(
+            context,
+            movie.movieNumber,
+            globalPosition,
+            isSubscribed: movie.isSubscribed,
+          ),
     );
   }
 

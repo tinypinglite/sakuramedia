@@ -125,7 +125,12 @@ class _CatalogSearchPageState extends State<CatalogSearchPage>
                 movieNumber: movie.movieNumber,
               ),
           onMovieMenuRequest: (movie, globalPosition) =>
-              requestMovieCollectionMenu(context, movie.movieNumber, globalPosition),
+              requestMovieCollectionMenu(
+                context,
+                movie.movieNumber,
+                globalPosition,
+                isSubscribed: movie.isSubscribed,
+              ),
           onActorTap:
               (actor) => context.pushDesktopActorDetail(actorId: actor.id),
           onMovieSubscriptionTap:
