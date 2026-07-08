@@ -18,10 +18,10 @@ import 'package:sakuramedia/features/videos/presentation/mobile_video_actions_sh
 import 'package:sakuramedia/features/videos/presentation/mobile_video_player_page.dart';
 import 'package:sakuramedia/features/videos/presentation/mobile_video_sort_drawer.dart';
 import 'package:sakuramedia/features/videos/presentation/pick_video_collection_dialog.dart';
-import 'package:sakuramedia/features/videos/presentation/video_collections_overview_controller.dart';
-import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
-import 'package:sakuramedia/features/videos/presentation/video_list_page_state.dart';
-import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/collections/video_collections_overview_controller.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_list_page_state.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/notifiers/video_mutation_change_notifier.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';

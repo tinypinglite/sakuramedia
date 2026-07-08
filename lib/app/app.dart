@@ -39,7 +39,7 @@ import 'package:sakuramedia/features/shared/presentation/collection_playback_han
 import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_playability_change_notifier.dart';
-import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/notifiers/video_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/clips/presentation/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/playlists/data/playlists_api.dart';

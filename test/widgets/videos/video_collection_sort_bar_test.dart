@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/videos/video_collection_sort_bar.dart';
 

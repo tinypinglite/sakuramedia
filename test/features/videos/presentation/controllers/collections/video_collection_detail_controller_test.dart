@@ -3,10 +3,10 @@ import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
-import 'package:sakuramedia/features/videos/presentation/video_collection_detail_controller.dart';
-import 'package:sakuramedia/features/videos/presentation/video_filter_state.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/collections/video_collection_detail_controller.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
 
-import '../../../support/fake_http_client_adapter.dart';
+import '../../../../../support/fake_http_client_adapter.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

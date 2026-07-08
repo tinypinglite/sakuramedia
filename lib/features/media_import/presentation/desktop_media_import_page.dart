@@ -11,7 +11,7 @@ import 'package:sakuramedia/features/media_import/presentation/import_job_card.d
 import 'package:sakuramedia/features/media_import/presentation/import_jobs_view_controller.dart';
 import 'package:sakuramedia/features/media_import/presentation/media_import_controller.dart';
 import 'package:sakuramedia/features/videos/data/api/video_imports_api.dart';
-import 'package:sakuramedia/features/videos/presentation/video_import_controller.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/imports/video_import_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/video_import_dialog.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';

@@ -2,10 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
-import 'package:sakuramedia/features/videos/presentation/video_list_page_state.dart';
-import 'package:sakuramedia/features/videos/presentation/video_mutation_change_notifier.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_list_page_state.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/notifiers/video_mutation_change_notifier.dart';
 
-import '../../../support/fake_http_client_adapter.dart';
+import '../../../../../support/fake_http_client_adapter.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
