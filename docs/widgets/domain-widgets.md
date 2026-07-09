@@ -26,6 +26,7 @@
 - **required**: `items` · `isLoading`
 - **可选**: `errorMessage` · `onActorTap` · `onActorSubscriptionTap` · `isActorSubscriptionUpdating` · `emptyMessage` · `placeholderCount`(默认 8)
 - **何时用**: 所有女优网格页面(女优发现、时刻里的女优、搜索结果女优 tab)。
+- **实现**: 内部走 `AppAdaptiveCardGrid<ActorListItemDto>`(fixedAspect)。改列宽 / 四态观感请去 [data-loading.md](./data-loading.md) 的 `AppAdaptiveCardGrid<T>`。
 
 ### ActorFilterToolbar / ActorFilterSectionGroup / ActorFilterChoiceSection&lt;T&gt; / ActorSortSection
 - **路径**: `lib/widgets/actors/actor_filter_toolbar.dart` · `actor_filter_sections.dart`
@@ -48,6 +49,7 @@
 - **用途**: 影片网格(四态 + 自适应列宽,列宽用 `movieCardTargetWidth` token)。
 - **required**: `items` · `isLoading`
 - **可选**: `errorMessage` · `onMovieTap` · `onMovieMenuRequest` · `onMovieSubscriptionTap` · `isMovieSubscriptionUpdating` · `emptyMessage` · `placeholderCount`(默认 8)
+- **实现**: 内部走 `AppAdaptiveCardGrid<MovieListItemDto>`(fixedAspect)。改列宽 / 四态观感请去 [data-loading.md](./data-loading.md) 的 `AppAdaptiveCardGrid<T>`。
 
 ### MovieFilterToolbar / MovieFilterSectionGroup / MovieFilterChoiceSection&lt;T&gt; / MovieYearFilterSection / MovieSortSection
 - **路径**: `lib/widgets/movies/movie_filter_toolbar.dart` · `movie_filter_sections.dart`
@@ -151,6 +153,7 @@
 - **用途**: 排行榜网格(与 `MovieSummaryGrid` 类似,但每张卡带 rank 徽标)。
 - **required**: `items` · `isLoading`
 - **可选**: `errorMessage` · `onMovieTap` · `onMovieMenuRequest` · `onMovieSubscriptionTap` · `isMovieSubscriptionUpdating` · `emptyMessage` · `placeholderCount`
+- **实现**: 内部走 `AppAdaptiveCardGrid<RankedMovieListItemDto>`(fixedAspect)。改列宽 / 四态观感请去 [data-loading.md](./data-loading.md) 的 `AppAdaptiveCardGrid<T>`。
 
 ### RankingFilterToolbar / RankingFilterSectionGroup / RankingFilterChoiceSection&lt;T&gt; / RankingSortSection / RankingFilterSectionKeys / RankingFilterAnchor
 - **路径**: `lib/widgets/rankings/ranking_filter_toolbar.dart` · `ranking_filter_sections.dart`

@@ -1,9 +1,7 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
 class RankedMovieSummaryGrid extends StatelessWidget {
@@ -34,92 +32,30 @@ class RankedMovieSummaryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return _RankedMovieSummaryGridLayout(
-        children: List<Widget>.generate(
-          placeholderCount,
-          (index) => _RankedMovieSummaryCardSkeleton(
-            key: Key('ranked-movie-summary-card-skeleton-$index'),
-          ),
-        ),
-      );
-    }
-
-    if (errorMessage != null) {
-      return AppEmptyState(message: errorMessage!);
-    }
-
-    if (items.isEmpty) {
-      return AppEmptyState(message: emptyMessage);
-    }
-
-    return _RankedMovieSummaryGridLayout(
-      children: items
-          .map((item) {
-            final movie = item.toMovieListItem();
-            return MovieSummaryCard(
-              movie: movie,
-              rank: item.rank,
-              onTap: onMovieTap == null ? null : () => onMovieTap!(item),
-              onRequestMenu:
-                  onMovieMenuRequest == null
-                      ? null
-                      : (globalPosition) =>
-                          onMovieMenuRequest!(item, globalPosition),
-              onSubscriptionTap:
-                  onMovieSubscriptionTap == null
-                      ? null
-                      : () => onMovieSubscriptionTap!(item),
-              isSubscriptionUpdating:
-                  isMovieSubscriptionUpdating?.call(item) ?? false,
-            );
-          })
-          .toList(growable: false),
+    return AppAdaptiveCardGrid<RankedMovieListItemDto>(
+      gridKey: const Key('ranked-movie-summary-grid'),
+      items: items,
+      isLoading: isLoading,
+      errorMessage: errorMessage,
+      emptyMessage: emptyMessage,
+      placeholderCount: placeholderCount,
+      skeletonBuilder: (context, index) => _RankedMovieSummaryCardSkeleton(
+        key: Key('ranked-movie-summary-card-skeleton-$index'),
+      ),
+      itemBuilder: (context, item, index) => MovieSummaryCard(
+        movie: item.toMovieListItem(),
+        rank: item.rank,
+        onTap: onMovieTap == null ? null : () => onMovieTap!(item),
+        onRequestMenu: onMovieMenuRequest == null
+            ? null
+            : (globalPosition) => onMovieMenuRequest!(item, globalPosition),
+        onSubscriptionTap: onMovieSubscriptionTap == null
+            ? null
+            : () => onMovieSubscriptionTap!(item),
+        isSubscriptionUpdating:
+            isMovieSubscriptionUpdating?.call(item) ?? false,
+      ),
     );
-  }
-}
-
-class _RankedMovieSummaryGridLayout extends StatelessWidget {
-  const _RankedMovieSummaryGridLayout({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final spacing = context.appSpacing.md;
-        final componentTokens = context.appComponentTokens;
-        final columns = _resolveColumnCount(
-          width: constraints.maxWidth,
-          spacing: spacing,
-          targetWidth: componentTokens.movieCardTargetWidth,
-        );
-
-        return GridView.builder(
-          key: const Key('ranked-movie-summary-grid'),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: children.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: spacing,
-            mainAxisSpacing: spacing,
-            childAspectRatio: componentTokens.movieCardAspectRatio,
-          ),
-          itemBuilder: (context, index) => children[index],
-        );
-      },
-    );
-  }
-
-  int _resolveColumnCount({
-    required double width,
-    required double spacing,
-    required double targetWidth,
-  }) {
-    final columns = ((width + spacing) / (targetWidth + spacing)).floor();
-    return math.max(2, math.min(6, columns));
   }
 }
 
@@ -137,7 +73,7 @@ class _RankedMovieSummaryCardSkeleton extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: AspectRatio(
-        aspectRatio: 0.7,
+        aspectRatio: context.appComponentTokens.movieCardAspectRatio,
         child: DecoratedBox(
           key: Key(
             'ranked-movie-summary-card-skeleton-poster-${_indexFromKey()}',

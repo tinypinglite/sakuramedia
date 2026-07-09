@@ -1,10 +1,8 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actors/actor_summary_card.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/app_adaptive_card_grid.dart';
 
 class ActorSummaryGrid extends StatelessWidget {
   const ActorSummaryGrid({
@@ -30,85 +28,26 @@ class ActorSummaryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return _ActorSummaryGridLayout(
-        children: List<Widget>.generate(
-          placeholderCount,
-          (index) => _ActorSummaryCardSkeleton(
-            key: Key('actor-summary-card-skeleton-$index'),
-          ),
-        ),
-      );
-    }
-
-    if (errorMessage != null) {
-      return AppEmptyState(message: errorMessage!);
-    }
-
-    if (items.isEmpty) {
-      return AppEmptyState(message: emptyMessage);
-    }
-
-    return _ActorSummaryGridLayout(
-      children: items
-          .map(
-            (actor) => ActorSummaryCard(
-              actor: actor,
-              onTap: onActorTap == null ? null : () => onActorTap!(actor),
-              onSubscriptionTap:
-                  onActorSubscriptionTap == null
-                      ? null
-                      : () => onActorSubscriptionTap!(actor),
-              isSubscriptionUpdating:
-                  isActorSubscriptionUpdating?.call(actor) ?? false,
-            ),
-          )
-          .toList(growable: false),
+    return AppAdaptiveCardGrid<ActorListItemDto>(
+      gridKey: const Key('actor-summary-grid'),
+      items: items,
+      isLoading: isLoading,
+      errorMessage: errorMessage,
+      emptyMessage: emptyMessage,
+      placeholderCount: placeholderCount,
+      skeletonBuilder: (context, index) => _ActorSummaryCardSkeleton(
+        key: Key('actor-summary-card-skeleton-$index'),
+      ),
+      itemBuilder: (context, actor, index) => ActorSummaryCard(
+        actor: actor,
+        onTap: onActorTap == null ? null : () => onActorTap!(actor),
+        onSubscriptionTap: onActorSubscriptionTap == null
+            ? null
+            : () => onActorSubscriptionTap!(actor),
+        isSubscriptionUpdating:
+            isActorSubscriptionUpdating?.call(actor) ?? false,
+      ),
     );
-  }
-}
-
-class _ActorSummaryGridLayout extends StatelessWidget {
-  const _ActorSummaryGridLayout({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final spacing = context.appSpacing.md;
-        final componentTokens = context.appComponentTokens;
-        final columns = _resolveColumnCount(
-          width: constraints.maxWidth,
-          spacing: spacing,
-          targetWidth: componentTokens.movieCardTargetWidth,
-        );
-
-        return GridView.builder(
-          key: const Key('actor-summary-grid'),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: children.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: spacing,
-            mainAxisSpacing: spacing,
-            childAspectRatio: componentTokens.movieCardAspectRatio,
-          ),
-          itemBuilder: (context, index) => children[index],
-        );
-      },
-    );
-  }
-
-  int _resolveColumnCount({
-    required double width,
-    required double spacing,
-    required double targetWidth,
-  }) {
-    final columns = ((width + spacing) / (targetWidth + spacing)).floor();
-    return math.max(2, math.min(6, columns));
   }
 }
 

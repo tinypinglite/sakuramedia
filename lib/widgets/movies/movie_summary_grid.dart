@@ -1,9 +1,7 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 
 class MovieSummaryGrid extends StatelessWidget {
@@ -33,90 +31,29 @@ class MovieSummaryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return _MovieSummaryGridLayout(
-        children: List<Widget>.generate(
-          placeholderCount,
-          (index) => _MovieSummaryCardSkeleton(
-            key: Key('movie-summary-card-skeleton-$index'),
-          ),
-        ),
-      );
-    }
-
-    if (errorMessage != null) {
-      return AppEmptyState(message: errorMessage!);
-    }
-
-    if (items.isEmpty) {
-      return AppEmptyState(message: emptyMessage);
-    }
-
-    return _MovieSummaryGridLayout(
-      children: items
-          .map(
-            (movie) => MovieSummaryCard(
-              movie: movie,
-              onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
-              onRequestMenu:
-                  onMovieMenuRequest == null
-                      ? null
-                      : (globalPosition) =>
-                          onMovieMenuRequest!(movie, globalPosition),
-              onSubscriptionTap:
-                  onMovieSubscriptionTap == null
-                      ? null
-                      : () => onMovieSubscriptionTap!(movie),
-              isSubscriptionUpdating:
-                  isMovieSubscriptionUpdating?.call(movie) ?? false,
-            ),
-          )
-          .toList(growable: false),
+    return AppAdaptiveCardGrid<MovieListItemDto>(
+      gridKey: const Key('movie-summary-grid'),
+      items: items,
+      isLoading: isLoading,
+      errorMessage: errorMessage,
+      emptyMessage: emptyMessage,
+      placeholderCount: placeholderCount,
+      skeletonBuilder: (context, index) => _MovieSummaryCardSkeleton(
+        key: Key('movie-summary-card-skeleton-$index'),
+      ),
+      itemBuilder: (context, movie, index) => MovieSummaryCard(
+        movie: movie,
+        onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
+        onRequestMenu: onMovieMenuRequest == null
+            ? null
+            : (globalPosition) => onMovieMenuRequest!(movie, globalPosition),
+        onSubscriptionTap: onMovieSubscriptionTap == null
+            ? null
+            : () => onMovieSubscriptionTap!(movie),
+        isSubscriptionUpdating:
+            isMovieSubscriptionUpdating?.call(movie) ?? false,
+      ),
     );
-  }
-}
-
-class _MovieSummaryGridLayout extends StatelessWidget {
-  const _MovieSummaryGridLayout({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final spacing = context.appSpacing.md;
-        final componentTokens = context.appComponentTokens;
-        final columns = _resolveColumnCount(
-          width: constraints.maxWidth,
-          spacing: spacing,
-          targetWidth: componentTokens.movieCardTargetWidth,
-        );
-
-        return GridView.builder(
-          key: const Key('movie-summary-grid'),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: children.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: spacing,
-            mainAxisSpacing: spacing,
-            childAspectRatio: componentTokens.movieCardAspectRatio,
-          ),
-          itemBuilder: (context, index) => children[index],
-        );
-      },
-    );
-  }
-
-  int _resolveColumnCount({
-    required double width,
-    required double spacing,
-    required double targetWidth,
-  }) {
-    final columns = ((width + spacing) / (targetWidth + spacing)).floor();
-    return math.max(2, math.min(6, columns));
   }
 }
 
@@ -134,7 +71,7 @@ class _MovieSummaryCardSkeleton extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: AspectRatio(
-        aspectRatio: 0.7,
+        aspectRatio: context.appComponentTokens.movieCardAspectRatio,
         child: DecoratedBox(
           key: Key('movie-summary-card-skeleton-poster-${_indexFromKey()}'),
           decoration: BoxDecoration(color: context.appColors.surfaceMuted),

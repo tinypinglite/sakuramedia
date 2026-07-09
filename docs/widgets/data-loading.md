@@ -50,16 +50,28 @@
 - **required**: `isSelected`
 - **何时用**: 多选模式下,卡片右上角覆盖。已经在 `ClipGridCard` / `ClipCoverCard` / `CollectionMemberCard` 等用了——新增可选卡片直接复用,**别再自己画一个**。
 
+## AppAdaptiveCardGrid&lt;T&gt;
+- **路径**: `lib/widgets/app_adaptive_card_grid.dart`
+- **用途**: **四态卡片网格的唯一入口**——按 `((width+spacing)/(target+spacing)).floor()` 算列 + 「骨架 → 错误 → 空 → 内容」四态壳一次封死。消除 movies / actors / rankings / videos 四份网格的 copy-paste,新网格**别再手写 `LayoutBuilder + GridView.builder`**。
+- **required**: `items: List<T>` · `isLoading` · `itemBuilder: (context, item, index) => Widget` · `skeletonBuilder: (context, index) => Widget`(骨架卡各域视觉不同,由 caller 提供,含 Key)
+- **可选**: `gridKey`(测试锚点,通常传 `Key('xxx-summary-grid')`) · `errorMessage` · `emptyMessage` · `placeholderCount`(默认 8) · `targetColumnWidth`(默认 `movieCardTargetWidth` token) · `minColumns` / `maxColumns`(默认 2 / 6) · `childAspectRatio`(fixedAspect 用,默认 `movieCardAspectRatio` token)
+- **layout 分支**:
+  - `AppAdaptiveCardGridLayout.fixedAspect`(默认):走 `GridView.builder` + 固定 `childAspectRatio`,所有 tile 等宽等高——movies / actors / rankings 的标准形态。
+  - `AppAdaptiveCardGridLayout.masonry`:走 `MasonryGridView.count` + 逐 tile `tileAspect(index)`,横竖封面混排不留底色——videos 的形态,`tileAspect` **必填**。
+- **何时用**: 所有"卡片自适应网格"——影片 / 女优 / 榜单 / 短视频等。
+- **何时不用**: 缩略图专用网格(`MovieMediaThumbnailGrid`)、图搜结果(裸值 220,历史例外) → 各自组件。
+- **旧网格现状**: `MovieSummaryGrid` / `ActorSummaryGrid` / `RankedMovieSummaryGrid` / `VideoSummaryGrid` 都已改成 `AppAdaptiveCardGrid<T>` 的薄壳(保留骨架私类 + 业务回调透传)。改列宽 / 四态观感 / 列钳位一律来这里改一处。
+
 ## StaggeredLayout(相关辅助)
 - **路径**: `lib/widgets/layout/staggered_layout.dart`
 - **用途**: 交错网格的**排布计算器**(`StaggeredTilePlacement` / `StaggeredLayoutResult`)。给业务侧一个"按 tile 元数据算出瀑布位置"的工具。
 - **何时用**: 已经有裸 GridView 满足不了(如某些图集混合宽/高 tile),需要瀑布布局时。**不是 widget** 而是**布局工具类**。
-- **何时不用**: 普通等宽卡片网格 → 直接用 `MovieSummaryGrid` / `ActorSummaryGrid` / `MomentGrid` 那种域内网格,它们已经用 `LayoutBuilder` 算列了(见 `lib/widgets/CLAUDE.md` "网格四态容器")。
+- **何时不用**: 普通等宽卡片网格 → 直接用 `AppAdaptiveCardGrid<T>`(见上)或它的域内薄壳。
 
 ---
 
 ## 相关约定
 
-- **网格四态**:骨架 → 错误 → 空态 → 内容,顺序固定。骨架 / 错误 / 空态用 [feedback.md](./feedback.md) 里的原子件。
-- **列宽自适应**:`LayoutBuilder` + `((w + spacing) / (target + spacing)).floor()` 计算列数并钳位;target 一般用 token(如 `movieCardTargetWidth`),不要传裸值 220 / 280 / 300。
+- **网格四态**:骨架 → 错误 → 空态 → 内容,顺序固定,**已封装在 `AppAdaptiveCardGrid<T>` 内**。错误 / 空态自动走 `AppEmptyState`,骨架卡由 caller 传 `skeletonBuilder`。别再手写 `if (isLoading) ... if (errorMessage != null) ...` 四态判断。
+- **列宽自适应**:`AppAdaptiveCardGrid<T>` 内部已封,公式 `((w + spacing) / (target + spacing)).floor()` + 钳位到 `[minColumns, maxColumns]`;target 默认 `movieCardTargetWidth` token,可通过 `targetColumnWidth` 覆盖(如 moment 传 280),**不要传裸值**。
 - 想抽新的"选择系"胶水前,看看 `MultiSelectStateMixin` 能不能扩,别在业务侧写第二份多选状态机。

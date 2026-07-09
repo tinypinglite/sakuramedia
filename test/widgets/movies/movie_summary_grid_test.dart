@@ -8,17 +8,20 @@ import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 
 void main() {
-  test('movie summary grid does not hardcode spacing constants', () {
+  // 网格四态 + 列宽公式已抽到 AppAdaptiveCardGrid,这两条 source-grep 断言把守卫
+  // 转到该原子件上；MovieSummaryGrid 本身仅剩薄壳。裸视觉值有 theme_source_guard_test
+  // 项目级兜底。
+  test('adaptive card grid does not hardcode spacing constants', () {
     final source =
-        File('lib/widgets/movies/movie_summary_grid.dart').readAsStringSync();
+        File('lib/widgets/app_adaptive_card_grid.dart').readAsStringSync();
 
     expect(source, contains('context.appSpacing.md'));
     expect(source, isNot(contains('const spacing = 12.0')));
   });
 
-  test('movie summary layout does not hardcode card sizing constants', () {
+  test('adaptive card grid does not hardcode card sizing constants', () {
     final gridSource =
-        File('lib/widgets/movies/movie_summary_grid.dart').readAsStringSync();
+        File('lib/widgets/app_adaptive_card_grid.dart').readAsStringSync();
     final cardSource =
         File('lib/widgets/movies/movie_summary_card.dart').readAsStringSync();
 
