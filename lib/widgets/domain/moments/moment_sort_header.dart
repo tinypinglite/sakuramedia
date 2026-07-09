@@ -4,38 +4,23 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 
-enum MomentSortHeaderVariant { standard, mobileTagCompact }
-
 class MomentSortHeader extends StatelessWidget {
   const MomentSortHeader({
     super.key,
     required this.total,
     required this.sortOrder,
     required this.onSortChanged,
-    this.kindFilter,
-    this.onKindChanged,
-    this.variant = MomentSortHeaderVariant.standard,
-    this.latestSortKey = const Key('moments-sort-latest'),
-    this.earliestSortKey = const Key('moments-sort-earliest'),
-    this.totalKey = const Key('moments-page-total'),
-    this.kindJavKey = const Key('moments-kind-jav'),
-    this.kindVideoKey = const Key('moments-kind-video'),
+    required this.kindFilter,
+    required this.onKindChanged,
+    this.keyPrefix = 'moments',
   });
 
   final int total;
   final MomentSortOrder sortOrder;
   final ValueChanged<MomentSortOrder> onSortChanged;
-  // 同时非空才渲染 kind 切换；discovery 等不传则保持现状（只显示排序 + 总数）。
-  final MomentKindFilter? kindFilter;
-  final ValueChanged<MomentKindFilter>? onKindChanged;
-  final MomentSortHeaderVariant variant;
-  final Key latestSortKey;
-  final Key earliestSortKey;
-  final Key totalKey;
-  final Key kindJavKey;
-  final Key kindVideoKey;
-
-  bool get _hasKindFilter => kindFilter != null && onKindChanged != null;
+  final MomentKindFilter kindFilter;
+  final ValueChanged<MomentKindFilter> onKindChanged;
+  final String keyPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -43,36 +28,34 @@ class MomentSortHeader extends StatelessWidget {
     return AppFilterTotalHeader(
       leading: Row(
         children: [
-          if (_hasKindFilter) ...[
-            _buildKindAction(
-              context,
-              actionKey: kindJavKey,
-              kind: MomentKindFilter.jav,
-            ),
-            SizedBox(width: spacing.sm),
-            _buildKindAction(
-              context,
-              actionKey: kindVideoKey,
-              kind: MomentKindFilter.video,
-            ),
-            // kind 组与 sort 组之间留个稍宽的间隔，让两组在视觉上分开。
-            SizedBox(width: spacing.md),
-          ],
+          _buildKindAction(
+            context,
+            actionKey: Key('$keyPrefix-kind-jav'),
+            kind: MomentKindFilter.jav,
+          ),
+          SizedBox(width: spacing.sm),
+          _buildKindAction(
+            context,
+            actionKey: Key('$keyPrefix-kind-video'),
+            kind: MomentKindFilter.video,
+          ),
+          // kind 组与 sort 组之间留个稍宽的间隔，让两组在视觉上分开。
+          SizedBox(width: spacing.md),
           _buildSortAction(
             context,
-            actionKey: latestSortKey,
+            actionKey: Key('$keyPrefix-sort-latest'),
             order: MomentSortOrder.latest,
           ),
           SizedBox(width: spacing.sm),
           _buildSortAction(
             context,
-            actionKey: earliestSortKey,
+            actionKey: Key('$keyPrefix-sort-earliest'),
             order: MomentSortOrder.earliest,
           ),
         ],
       ),
       totalText: '$total 个时刻',
-      totalKey: totalKey,
+      totalKey: Key('$keyPrefix-page-total'),
     );
   }
 
@@ -100,7 +83,7 @@ class MomentSortHeader extends StatelessWidget {
       label: kind.label,
       size: AppTextButtonSize.xSmall,
       isSelected: kindFilter == kind,
-      onPressed: () => onKindChanged!.call(kind),
+      onPressed: () => onKindChanged(kind),
     );
   }
 }

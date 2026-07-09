@@ -241,10 +241,7 @@ class _MovieDetailInspectorPanelState extends State<MovieDetailInspectorPanel>
     AppImageActionType action,
     MediaPointDto? point,
   ) async {
-    final imageUrl =
-        thumbnail.image.origin.trim().isNotEmpty
-            ? thumbnail.image.origin
-            : thumbnail.image.bestAvailableUrl;
+    final imageUrl = thumbnail.image.resolvedUrl;
     final fileName =
         'movie_thumbnail_${widget.movieNumber}_${thumbnail.thumbnailId}.webp';
 

@@ -53,13 +53,14 @@
 - **路径**: `lib/widgets/domain/media/preview/media_preview_dialog.dart`
 - **用途**: 通用**媒体项预览浮层**(自适应桌面 dialog / 移动底抽屉)——顶部主图 stage + 下方"操作"(搜相似 / 播放 / 打开影片详情 / 删除时刻)+ 影片信息 + 女优条。
 - **required**: `item: MediaPreviewItem`
-- **可选**: `onSearchSimilar` · `onPlay` · `onOpenMovieDetail` · `onPointRemoved` · `closeOnPointRemoved` · `presentation: dialog|bottomDrawer`
+- **可选**: `availableActions: Set<MediaPreviewAction>` · `onPointRemoved` · `closeOnPointRemoved` · `presentation: dialog|bottomDrawer`
 - **何时用**: 点媒体缩略图 / 点剧情帧 / 点 moment 时打开的"详情浮层"。**别自己组合 `AppDesktopDialog + Image + Buttons`**。
 - **别名 caller**: `MomentPreviewDialog` 和 `ImageSearchResultPreviewDialog` 是它的语义化包装。
+- **动作时序**: 外部跳转统一由 `showMediaPreviewOverlay` 返回 `MediaPreviewAction` 后执行；预览先关闭，页面再处理相似图片、播放或影片详情，避免旧弹层的 `pop` 影响新路由或桌面 Quick Play 弹窗。
 
 ### MomentPreviewDialog(相当于 MediaPreviewDialog 的语义 alias)
 - **路径**: `lib/widgets/domain/moments/moment_preview_dialog.dart`
-- 参数几乎与 `MediaPreviewDialog` 一致(`item`, `onSearchSimilar`, `onPlay`, `onOpenMovieDetail`, `onPointRemoved`, `closeOnPointRemoved`, `presentation`);语义清楚"这是时刻"。
+- 参数为 `item`、`onPointRemoved`、`closeOnPointRemoved`、`presentation`；可用动作由时刻数据自动推导，语义清楚"这是时刻"。
 - **何时用**: 时刻列表 / 时刻库点击。
 
 ### ImageSearchResultPreviewDialog(见 [domain-widgets.md](./domain-widgets.md))

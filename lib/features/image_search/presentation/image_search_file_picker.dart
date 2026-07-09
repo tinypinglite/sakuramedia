@@ -5,6 +5,9 @@ import 'package:sakuramedia/features/image_search/presentation/image_search_file
     if (dart.library.io) 'package:sakuramedia/features/image_search/presentation/image_search_file_system_io.dart'
     as file_system;
 
+export 'package:sakuramedia/core/format/image_file_extension.dart'
+    show guessImageFileExtension;
+
 class ImageSearchPickedFile {
   const ImageSearchPickedFile({
     required this.bytes,
@@ -183,23 +186,6 @@ String? guessImageMimeType(String fileName) {
     return 'image/gif';
   }
   return null;
-}
-
-String guessImageFileExtension(String fileName, {String fallback = 'webp'}) {
-  final lower = fileName.toLowerCase();
-  if (lower.endsWith('.png')) {
-    return 'png';
-  }
-  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
-    return 'jpg';
-  }
-  if (lower.endsWith('.gif')) {
-    return 'gif';
-  }
-  if (lower.endsWith('.webp')) {
-    return 'webp';
-  }
-  return fallback;
 }
 
 Future<String?> _resolveDownloadsDirectoryPath() async {

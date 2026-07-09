@@ -179,10 +179,7 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
       ),
       imagePicker: pickMobileImageSearchFile,
       onSearchSimilar: (context, item) async {
-        final imageUrl =
-            item.image.origin.trim().isNotEmpty
-                ? item.image.origin.trim()
-                : item.image.bestAvailableUrl;
+        final imageUrl = item.image.resolvedUrl;
         final fileName =
             'image_search_${item.movieNumber}_${item.thumbnailId}.${guessImageFileExtension(imageUrl)}';
         try {

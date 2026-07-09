@@ -4,13 +4,13 @@ import 'package:sakuramedia/features/media/data/media_point_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/paged_load_controller.dart';
 
-typedef MomentPageFetcher =
-    Future<PaginatedResponseDto<MediaPointListItemDto>> Function(
-      int page,
-      int pageSize,
-      String sort,
-      String kind,
-    );
+typedef MomentPageFetcher = Future<PaginatedResponseDto<MediaPointListItemDto>>
+    Function(
+  int page,
+  int pageSize,
+  String sort,
+  String kind,
+);
 
 enum MomentSortOrder {
   latest(label: '最新', apiValue: 'created_at:desc'),
@@ -40,7 +40,6 @@ class MomentListItem {
     this.videoItemId,
     required this.thumbnailId,
     required this.offsetSeconds,
-    required this.createdAt,
     required this.image,
   });
 
@@ -51,7 +50,6 @@ class MomentListItem {
   final int? videoItemId;
   final int thumbnailId;
   final int offsetSeconds;
-  final DateTime? createdAt;
   final MovieImageDto? image;
 
   bool get isVideo => videoItemId != null && videoItemId! > 0;
@@ -79,20 +77,18 @@ class PagedMomentController extends PagedLoadController<MomentListItem> {
     String initialLoadErrorText = '时刻列表加载失败，请稍后重试',
     String loadMoreErrorText = '加载更多失败，请点击重试',
     ScrollController? scrollController,
-  }) : _fetchPage = fetchPage,
-       super(
-         fetchPage:
-             (_, __) =>
-                 throw UnimplementedError(
-                   'PagedMomentController overrides fetchPage.',
-                 ),
-         initialPage: initialPage,
-         pageSize: pageSize,
-         loadMoreTriggerOffset: loadMoreTriggerOffset,
-         initialLoadErrorText: initialLoadErrorText,
-         loadMoreErrorText: loadMoreErrorText,
-         scrollController: scrollController,
-       );
+  })  : _fetchPage = fetchPage,
+        super(
+          fetchPage: (_, __) => throw UnimplementedError(
+            'PagedMomentController overrides fetchPage.',
+          ),
+          initialPage: initialPage,
+          pageSize: pageSize,
+          loadMoreTriggerOffset: loadMoreTriggerOffset,
+          initialLoadErrorText: initialLoadErrorText,
+          loadMoreErrorText: loadMoreErrorText,
+          scrollController: scrollController,
+        );
 
   final MomentPageFetcher _fetchPage;
   MomentSortOrder _sortOrder = MomentSortOrder.latest;
@@ -122,7 +118,6 @@ class PagedMomentController extends PagedLoadController<MomentListItem> {
               videoItemId: item.videoItemId,
               thumbnailId: item.thumbnailId,
               offsetSeconds: item.offsetSeconds,
-              createdAt: item.createdAt,
               image: item.image,
             ),
           )

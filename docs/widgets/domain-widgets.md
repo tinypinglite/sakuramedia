@@ -131,9 +131,9 @@
 
 ### MomentSortHeader
 - **路径**: `lib/widgets/domain/moments/moment_sort_header.dart`
-- **用途**: 时刻页顶"总数 + 排序(最新/最早)+ 可选类型筛选(jav/video)"条。
-- **required**: `total` · `sortOrder` · `onSortChanged`
-- **可选**: `kindFilter` · `onKindChanged` · `variant: standard|mobileTagCompact` · Key 一组默认预置
+- **用途**: 时刻页顶"总数 + 类型筛选(JAV/视频)+ 排序(最新/最早)"条。
+- **required**: `total` · `sortOrder` · `onSortChanged` · `kindFilter` · `onKindChanged`
+- **可选**: `keyPrefix`（默认 `moments`，生成测试锚点）
 - **何时用**: 时刻库入口页。
 
 ### MomentPreviewDialog
@@ -228,7 +228,7 @@
 ### ImageSearchResultPreviewDialog
 - **路径**: `lib/features/image_search/presentation/widgets/image_search_result_preview_dialog.dart`
 - **用途**: 图搜结果预览浮层(`MediaPreviewDialog` 家族的语义包装)。
-- **required**: `item` · `onSearchSimilar` · `onPlay` · `onOpenMovieDetail`
+- **required**: `item`
 - **可选**: `presentation: dialog|bottomDrawer`
 
 ### ImageSearchToolbarIconButton

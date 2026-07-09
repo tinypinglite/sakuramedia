@@ -15,12 +15,12 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_grid.dart';
+import 'package:sakuramedia/widgets/domain/moments/moment_image.dart';
+import 'package:sakuramedia/widgets/domain/moments/moment_preview_launcher.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
-import 'package:sakuramedia/widgets/domain/moments/moment_preview_dialog.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 
 class MobileOverviewDiscoverTab extends StatefulWidget {
@@ -171,38 +171,22 @@ class _MobileOverviewDiscoverTabState extends State<MobileOverviewDiscoverTab> {
   }
 
   Future<void> _openMomentPreview(MomentListItem item) async {
-    _MomentPreviewAction? selectedAction;
-    final preview = MomentPreviewDialog(
+    final action = await showMomentPreviewOverlay(
+      context: context,
       item: item,
       presentation: MediaPreviewPresentation.bottomDrawer,
-      onSearchSimilar: () async {
-        selectedAction = _MomentPreviewAction.searchSimilar;
-        return true;
-      },
-      onPlay: () => selectedAction = _MomentPreviewAction.play,
-      onOpenMovieDetail:
-          () => selectedAction = _MomentPreviewAction.movieDetail,
-    );
-
-    await showAppBottomDrawer<void>(
-      context: context,
-      maxHeightFactor: 0.7,
       drawerKey: const Key('mobile-discover-moment-preview-bottom-sheet'),
-      ignoreTopSafeArea: true,
-      builder: (_) => preview,
     );
-
-    if (!mounted || selectedAction == null) {
+    if (!mounted || action == null) {
       return;
     }
-    switch (selectedAction!) {
-      case _MomentPreviewAction.searchSimilar:
+    switch (action) {
+      case MediaPreviewAction.searchSimilar:
         await _searchSimilarFromMoment(item);
-        break;
-      case _MomentPreviewAction.play:
+      case MediaPreviewAction.play:
         final movieNumber = item.movieNumber;
         if (movieNumber == null || movieNumber.isEmpty) {
-          break;
+          return;
         }
         unawaited(
           launchMoviePlayback(
@@ -212,16 +196,14 @@ class _MobileOverviewDiscoverTabState extends State<MobileOverviewDiscoverTab> {
             positionSeconds: item.offsetSeconds,
           ),
         );
-        break;
-      case _MomentPreviewAction.movieDetail:
+      case MediaPreviewAction.openMovieDetail:
         final movieNumberForDetail = item.movieNumber;
         if (movieNumberForDetail == null || movieNumberForDetail.isEmpty) {
-          break;
+          return;
         }
         MobileMovieDetailRouteData(
           movieNumber: movieNumberForDetail,
         ).push(context);
-        break;
     }
   }
 
@@ -320,5 +302,3 @@ class _RetryEmptyState extends StatelessWidget {
     );
   }
 }
-
-enum _MomentPreviewAction { searchSimilar, play, movieDetail }

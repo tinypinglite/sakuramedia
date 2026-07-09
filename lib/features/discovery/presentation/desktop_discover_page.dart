@@ -21,8 +21,10 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_page_frame.dart';
+import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_grid.dart';
-import 'package:sakuramedia/widgets/domain/moments/moment_preview_dialog.dart';
+import 'package:sakuramedia/widgets/domain/moments/moment_image.dart';
+import 'package:sakuramedia/widgets/domain/moments/moment_preview_launcher.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 
 class DesktopDiscoverPage extends StatefulWidget {
@@ -55,10 +57,9 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
     _subscriptionChangeNotifier.addListener(_onMovieSubscriptionChanged);
 
     _followController = PagedMovieSummaryController(
-      fetchPage:
-          (page, pageSize) => context
-              .read<MoviesApi>()
-              .getSubscribedActorsLatestMovies(page: page, pageSize: pageSize),
+      fetchPage: (page, pageSize) => context
+          .read<MoviesApi>()
+          .getSubscribedActorsLatestMovies(page: page, pageSize: pageSize),
       subscribeMovie: context.read<MoviesApi>().subscribeMovie,
       unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
       onSubscriptionChanged: _reportSubscriptionChange,
@@ -166,16 +167,15 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
           onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
           onMovieMenuRequest: (movie, globalPosition) =>
               requestMovieCollectionMenu(
-                context,
-                movie.movieNumber,
-                globalPosition,
-                isSubscribed: movie.isSubscribed,
-              ),
-          onMovieSubscriptionTap:
-              (movie) => _toggleFollowSubscription(movie.movieNumber),
-          isMovieSubscriptionUpdating:
-              (movie) =>
-                  _followController.isSubscriptionUpdating(movie.movieNumber),
+            context,
+            movie.movieNumber,
+            globalPosition,
+            isSubscribed: movie.isSubscribed,
+          ),
+          onMovieSubscriptionTap: (movie) =>
+              _toggleFollowSubscription(movie.movieNumber),
+          isMovieSubscriptionUpdating: (movie) =>
+              _followController.isSubscriptionUpdating(movie.movieNumber),
           emptyMessage: '暂无女优上新',
           placeholderCount: 6,
         ),
@@ -215,13 +215,12 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
       emptyMessage: '暂无每日推荐',
       placeholderCount: 6,
       onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
-      onMovieMenuRequest: (movie, globalPosition) =>
-          requestMovieCollectionMenu(
-            context,
-            movie.movieNumber,
-            globalPosition,
-            isSubscribed: movie.isSubscribed,
-          ),
+      onMovieMenuRequest: (movie, globalPosition) => requestMovieCollectionMenu(
+        context,
+        movie.movieNumber,
+        globalPosition,
+        isSubscribed: movie.isSubscribed,
+      ),
     );
   }
 
@@ -277,17 +276,23 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
     );
   }
 
-  Future<void> _openMomentPreview(MomentListItem item) {
-    return showDialog<void>(
+  Future<void> _openMomentPreview(MomentListItem item) async {
+    final action = await showMomentPreviewOverlay(
       context: context,
-      builder:
-          (dialogContext) => MomentPreviewDialog(
-            item: item,
-            onSearchSimilar: () => _searchSimilarFromMoment(item),
-            onPlay: () => _openPlayerForMoment(item),
-            onOpenMovieDetail: () => _openMovieDetailForMoment(item),
-          ),
+      item: item,
+      presentation: MediaPreviewPresentation.dialog,
     );
+    if (!mounted || action == null) {
+      return;
+    }
+    switch (action) {
+      case MediaPreviewAction.searchSimilar:
+        await _searchSimilarFromMoment(item);
+      case MediaPreviewAction.play:
+        _openPlayerForMoment(item);
+      case MediaPreviewAction.openMovieDetail:
+        _openMovieDetailForMoment(item);
+    }
   }
 
   Future<bool> _searchSimilarFromMoment(MomentListItem item) async {

@@ -351,10 +351,7 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
     AppImageActionType action,
     MediaPointDto? point,
   ) async {
-    final imageUrl =
-        thumbnail.image.origin.trim().isNotEmpty
-            ? thumbnail.image.origin
-            : thumbnail.image.bestAvailableUrl;
+    final imageUrl = thumbnail.image.resolvedUrl;
     final fileName =
         'movie_player_${widget.movieNumber}_${thumbnail.thumbnailId}.webp';
 

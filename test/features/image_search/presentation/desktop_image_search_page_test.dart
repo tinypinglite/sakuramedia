@@ -781,7 +781,7 @@ void main() {
         of: find.byKey(const Key('image-search-result-preview-dialog')),
         matching: find.byType(SingleChildScrollView),
       ),
-      findsOneWidget,
+      findsNWidgets(2),
     );
     expect(find.text('相似图片'), findsOneWidget);
     expect(find.text('保存'), findsOneWidget);
@@ -1256,21 +1256,19 @@ void main() {
         routes: [
           GoRoute(
             path: desktopImageSearchPath,
-            builder:
-                (context, state) => DesktopImageSearchPage(
-                  fallbackPath: '/desktop/overview',
-                  initialFileName: 'query.png',
-                  initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
-                  initialMimeType: 'image/png',
-                ),
+            builder: (context, state) => DesktopImageSearchPage(
+              fallbackPath: '/desktop/overview',
+              initialFileName: 'query.png',
+              initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+              initialMimeType: 'image/png',
+            ),
           ),
           GoRoute(
             path: '/desktop/library/movies/:movieNumber/player',
-            builder:
-                (context, state) => Text(
-                  'player:${state.uri.toString()}',
-                  textDirection: TextDirection.ltr,
-                ),
+            builder: (context, state) => Text(
+              'player:${state.uri.toString()}',
+              textDirection: TextDirection.ltr,
+            ),
           ),
         ],
         initialLocation: desktopImageSearchPath,
@@ -1959,8 +1957,7 @@ void main() {
           ],
         },
       );
-      debugImageSearchFilePicker =
-          () async => ImageSearchPickedFile(
+      debugImageSearchFilePicker = () async => ImageSearchPickedFile(
             bytes: Uint8List.fromList(const <int>[5, 6, 7, 8]),
             fileName: 'changed.png',
             mimeType: 'image/png',
@@ -2133,13 +2130,12 @@ void main() {
       routes: [
         GoRoute(
           path: desktopImageSearchPath,
-          builder:
-              (context, state) => DesktopImageSearchPage(
-                fallbackPath: '/desktop/overview',
-                initialFileName: 'query.png',
-                initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
-                initialMimeType: 'image/png',
-              ),
+          builder: (context, state) => DesktopImageSearchPage(
+            fallbackPath: '/desktop/overview',
+            initialFileName: 'query.png',
+            initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+            initialMimeType: 'image/png',
+          ),
         ),
       ],
       initialLocation: desktopImageSearchPath,
@@ -2220,13 +2216,12 @@ void main() {
         routes: [
           GoRoute(
             path: desktopImageSearchPath,
-            builder:
-                (context, state) => DesktopImageSearchPage(
-                  fallbackPath: '/desktop/overview',
-                  initialFileName: 'query.png',
-                  initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
-                  initialMimeType: 'image/png',
-                ),
+            builder: (context, state) => DesktopImageSearchPage(
+              fallbackPath: '/desktop/overview',
+              initialFileName: 'query.png',
+              initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+              initialMimeType: 'image/png',
+            ),
           ),
         ],
         initialLocation: desktopImageSearchPath,
@@ -2315,13 +2310,12 @@ void main() {
       routes: [
         GoRoute(
           path: desktopImageSearchPath,
-          builder:
-              (context, state) => DesktopImageSearchPage(
-                fallbackPath: '/desktop/overview',
-                initialFileName: 'query.png',
-                initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
-                initialMimeType: 'image/png',
-              ),
+          builder: (context, state) => DesktopImageSearchPage(
+            fallbackPath: '/desktop/overview',
+            initialFileName: 'query.png',
+            initialFileBytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+            initialMimeType: 'image/png',
+          ),
         ),
       ],
       initialLocation: desktopImageSearchPath,

@@ -17,13 +17,13 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_grid.dart';
-import 'package:sakuramedia/widgets/domain/moments/moment_preview_dialog.dart';
+import 'package:sakuramedia/widgets/domain/moments/moment_image.dart';
+import 'package:sakuramedia/widgets/domain/moments/moment_preview_launcher.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 
 class DesktopDiscoverMoviesPage extends StatelessWidget {
@@ -84,10 +84,9 @@ class _DiscoveryMoviesPageState extends State<_DiscoveryMoviesPage> {
   void initState() {
     super.initState();
     _controller = PagedLoadController<DailyRecommendationMovieDto>(
-      fetchPage:
-          (page, pageSize) => context
-              .read<DiscoveryApi>()
-              .getDailyRecommendations(page: page, pageSize: pageSize),
+      fetchPage: (page, pageSize) => context
+          .read<DiscoveryApi>()
+          .getDailyRecommendations(page: page, pageSize: pageSize),
       pageSize: _isMobile ? 18 : 24,
       loadMoreTriggerOffset: 300,
       initialLoadErrorText: '推荐影片加载失败，请稍后重试',
@@ -108,8 +107,7 @@ class _DiscoveryMoviesPageState extends State<_DiscoveryMoviesPage> {
     final child = AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        final showFooter =
-            _controller.items.isNotEmpty &&
+        final showFooter = _controller.items.isNotEmpty &&
             (_controller.isLoadingMore ||
                 _controller.loadMoreErrorMessage != null);
         return Column(
@@ -185,20 +183,18 @@ class _DiscoveryMoviesPageState extends State<_DiscoveryMoviesPage> {
       );
     }
     return MovieSummaryGrid(
-      items: _controller.items
-          .map((item) => item.movie)
-          .toList(growable: false),
+      items:
+          _controller.items.map((item) => item.movie).toList(growable: false),
       isLoading: _controller.isInitialLoading,
       emptyMessage: '暂无推荐影片',
       placeholderCount: _isMobile ? 6 : 12,
       onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
-      onMovieMenuRequest: (movie, globalPosition) =>
-          requestMovieCollectionMenu(
-            context,
-            movie.movieNumber,
-            globalPosition,
-            isSubscribed: movie.isSubscribed,
-          ),
+      onMovieMenuRequest: (movie, globalPosition) => requestMovieCollectionMenu(
+        context,
+        movie.movieNumber,
+        globalPosition,
+        isSubscribed: movie.isSubscribed,
+      ),
     );
   }
 
@@ -261,8 +257,7 @@ class _DiscoveryMomentsPageState extends State<_DiscoveryMomentsPage> {
     final child = AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        final showFooter =
-            _controller.items.isNotEmpty &&
+        final showFooter = _controller.items.isNotEmpty &&
             (_controller.isLoadingMore ||
                 _controller.loadMoreErrorMessage != null);
         return Column(
@@ -359,53 +354,26 @@ class _DiscoveryMomentsPageState extends State<_DiscoveryMomentsPage> {
   }
 
   Future<void> _openMomentPreview(MomentListItem item) async {
-    if (!_isMobile) {
-      return showDialog<void>(
-        context: context,
-        builder:
-            (dialogContext) => MomentPreviewDialog(
-              item: item,
-              onSearchSimilar: () => _searchSimilarFromMoment(item),
-              onPlay: () => _openPlayerForMoment(item),
-              onOpenMovieDetail: () => _openMovieDetailForMoment(item),
-            ),
-      );
-    }
-
-    _MomentPreviewAction? selectedAction;
-    final preview = MomentPreviewDialog(
-      item: item,
-      presentation: MediaPreviewPresentation.bottomDrawer,
-      onSearchSimilar: () async {
-        selectedAction = _MomentPreviewAction.searchSimilar;
-        return true;
-      },
-      onPlay: () => selectedAction = _MomentPreviewAction.play,
-      onOpenMovieDetail:
-          () => selectedAction = _MomentPreviewAction.movieDetail,
-    );
-
-    await showAppBottomDrawer<void>(
+    final action = await showMomentPreviewOverlay(
       context: context,
-      maxHeightFactor: 0.7,
-      drawerKey: const Key('mobile-discover-moments-preview-bottom-sheet'),
-      ignoreTopSafeArea: true,
-      builder: (_) => preview,
+      item: item,
+      presentation: _isMobile
+          ? MediaPreviewPresentation.bottomDrawer
+          : MediaPreviewPresentation.dialog,
+      drawerKey: _isMobile
+          ? const Key('mobile-discover-moments-preview-bottom-sheet')
+          : null,
     );
-
-    if (!mounted || selectedAction == null) {
+    if (!mounted || action == null) {
       return;
     }
-    switch (selectedAction!) {
-      case _MomentPreviewAction.searchSimilar:
+    switch (action) {
+      case MediaPreviewAction.searchSimilar:
         await _searchSimilarFromMoment(item);
-        break;
-      case _MomentPreviewAction.play:
+      case MediaPreviewAction.play:
         _openPlayerForMoment(item);
-        break;
-      case _MomentPreviewAction.movieDetail:
+      case MediaPreviewAction.openMovieDetail:
         _openMovieDetailForMoment(item);
-        break;
     }
   }
 
@@ -509,5 +477,3 @@ String _moviePlayerPath(
     },
   ).toString();
 }
-
-enum _MomentPreviewAction { searchSimilar, play, movieDetail }

@@ -34,50 +34,47 @@ class MomentCard extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: context.appRadius.lgBorder,
-            child: AspectRatio(
-              aspectRatio: 16 / 10,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  MaskedImage(
-                    url: item.image?.bestAvailableUrl ?? '',
-                    fit: BoxFit.cover,
-                  ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.44),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                MaskedImage(
+                  url: item.image?.bestAvailableUrl ?? '',
+                  fit: BoxFit.cover,
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.44),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: spacing.md,
+                        vertical: spacing.sm,
                       ),
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: spacing.md,
-                          vertical: spacing.sm,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                item.displayLabel,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: labelTextStyle,
-                              ),
-                            ),
-                            SizedBox(width: spacing.sm),
-                            Text(
-                              formatMediaTimecode(item.offsetSeconds),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.displayLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: labelTextStyle,
                             ),
-                          ],
-                        ),
+                          ),
+                          SizedBox(width: spacing.sm),
+                          Text(
+                            formatMediaTimecode(item.offsetSeconds),
+                            style: labelTextStyle,
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

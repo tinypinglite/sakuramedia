@@ -7,24 +7,15 @@ class ImageSearchResultPreviewDialog extends StatelessWidget {
   const ImageSearchResultPreviewDialog({
     super.key,
     required this.item,
-    required this.onSearchSimilar,
-    required this.onPlay,
-    required this.onOpenMovieDetail,
     this.presentation = MediaPreviewPresentation.dialog,
   });
 
   final ImageSearchResultItemDto item;
-  final Future<bool> Function() onSearchSimilar;
-  final VoidCallback onPlay;
-  final VoidCallback onOpenMovieDetail;
   final MediaPreviewPresentation presentation;
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl =
-        item.image.origin.trim().isNotEmpty
-            ? item.image.origin.trim()
-            : item.image.bestAvailableUrl;
+    final imageUrl = item.image.resolvedUrl;
     final previewItem = MediaPreviewItem(
       imageUrl: imageUrl,
       fileName: 'image_search_${item.movieNumber}_${item.thumbnailId}.webp',
@@ -37,9 +28,11 @@ class ImageSearchResultPreviewDialog extends StatelessWidget {
 
     return MediaPreviewDialog(
       item: previewItem,
-      onSearchSimilar: onSearchSimilar,
-      onPlay: onPlay,
-      onOpenMovieDetail: onOpenMovieDetail,
+      availableActions: <MediaPreviewAction>{
+        if (imageUrl.isNotEmpty) MediaPreviewAction.searchSimilar,
+        if (item.mediaId > 0) MediaPreviewAction.play,
+        if (item.movieNumber.isNotEmpty) MediaPreviewAction.openMovieDetail,
+      },
       presentation: presentation,
     );
   }

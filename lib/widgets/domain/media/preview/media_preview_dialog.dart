@@ -14,9 +14,10 @@ import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dar
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/preview_image_stage.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_thumbnail.dart';
 
@@ -47,22 +48,44 @@ class MediaPreviewItem {
 
 enum MediaPreviewPresentation { dialog, bottomDrawer }
 
+/// 预览层关闭后，由调用页面执行的外部跳转动作。
+///
+/// 保存与标记由预览层自身处理；相似图、播放与影片详情必须先关闭当前 Dialog/
+/// Drawer，避免新路由或新的 root 弹层被旧预览的 pop 一并关闭。
+enum MediaPreviewAction { searchSimilar, play, openMovieDetail }
+
+Future<MediaPreviewAction?> showMediaPreviewOverlay({
+  required BuildContext context,
+  required MediaPreviewPresentation presentation,
+  required WidgetBuilder builder,
+  Key? drawerKey,
+}) {
+  switch (presentation) {
+    case MediaPreviewPresentation.dialog:
+      return showDialog<MediaPreviewAction>(context: context, builder: builder);
+    case MediaPreviewPresentation.bottomDrawer:
+      return showAppBottomDrawer<MediaPreviewAction>(
+        context: context,
+        maxHeightFactor: 0.7,
+        drawerKey: drawerKey,
+        ignoreTopSafeArea: true,
+        builder: builder,
+      );
+  }
+}
+
 class MediaPreviewDialog extends StatefulWidget {
   const MediaPreviewDialog({
     super.key,
     required this.item,
-    this.onSearchSimilar,
-    this.onPlay,
-    this.onOpenMovieDetail,
+    this.availableActions = const <MediaPreviewAction>{},
     this.onPointRemoved,
     this.closeOnPointRemoved = false,
     this.presentation = MediaPreviewPresentation.dialog,
   });
 
   final MediaPreviewItem item;
-  final Future<bool> Function()? onSearchSimilar;
-  final VoidCallback? onPlay;
-  final VoidCallback? onOpenMovieDetail;
+  final Set<MediaPreviewAction> availableActions;
   final VoidCallback? onPointRemoved;
   final bool closeOnPointRemoved;
   final MediaPreviewPresentation presentation;
@@ -79,7 +102,6 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
   bool _isLoadingMediaPoints = true;
   bool _isSavingImage = false;
   bool _isTogglingPoint = false;
-  bool _isSearchingSimilar = false;
   String? _movieDetailErrorMessage;
   String? _mediaPointsErrorMessage;
 
@@ -115,8 +137,8 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
     });
     try {
       final movieDetail = await context.read<MoviesApi>().getMovieDetail(
-        movieNumber: movieNumber,
-      );
+            movieNumber: movieNumber,
+          );
       if (!mounted) {
         return;
       }
@@ -154,8 +176,8 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
     });
     try {
       final points = await context.read<MediaApi>().getMediaPoints(
-        mediaId: widget.item.mediaId,
-      );
+            mediaId: widget.item.mediaId,
+          );
       if (!mounted) {
         return;
       }
@@ -193,7 +215,17 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
       !_isLoadingMediaPoints &&
       _mediaPointsErrorMessage == null;
 
-  bool get _canPlay => widget.item.mediaId > 0 && widget.onPlay != null;
+  bool get _canSearchSimilar => widget.availableActions.contains(
+        MediaPreviewAction.searchSimilar,
+      );
+
+  bool get _canPlay =>
+      widget.item.mediaId > 0 &&
+      widget.availableActions.contains(MediaPreviewAction.play);
+
+  bool get _canOpenMovieDetail =>
+      !widget.item.isVideo &&
+      widget.availableActions.contains(MediaPreviewAction.openMovieDetail);
 
   @override
   Widget build(BuildContext context) {
@@ -242,8 +274,7 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
         MediaPreviewActionItem(
           label: '相似图片',
           icon: Icons.image_search_outlined,
-          isLoading: _isSearchingSimilar,
-          onTap: widget.onSearchSimilar == null ? null : _handleSearchSimilar,
+          onTap: _canSearchSimilar ? _handleSearchSimilar : null,
         ),
         MediaPreviewActionItem(
           label: '保存',
@@ -253,10 +284,9 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
         ),
         MediaPreviewActionItem(
           label: _existingPoint == null ? '添加标记' : '删除标记',
-          icon:
-              _existingPoint == null
-                  ? Icons.bookmark_add_outlined
-                  : Icons.bookmark_remove_outlined,
+          icon: _existingPoint == null
+              ? Icons.bookmark_add_outlined
+              : Icons.bookmark_remove_outlined,
           isLoading: _isTogglingPoint,
           onTap: _canTogglePoint ? _handleTogglePoint : null,
         ),
@@ -269,9 +299,8 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
         MediaPreviewActionItem(
           label: '影片详情',
           icon: Icons.info_outline_rounded,
-          visible: !widget.item.isVideo && widget.onOpenMovieDetail != null,
-          onTap:
-              widget.onOpenMovieDetail == null ? null : _handleOpenMovieDetail,
+          visible: _canOpenMovieDetail,
+          onTap: _canOpenMovieDetail ? _handleOpenMovieDetail : null,
         ),
       ],
     );
@@ -301,9 +330,8 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
                   fullscreenImageKey: const Key(
                     'image-search-result-preview-fullscreen-image',
                   ),
-                  overlayChild: _canPlay
-                      ? _CenterPlayButton(onTap: _handlePlay)
-                      : null,
+                  overlayChild:
+                      _canPlay ? _CenterPlayButton(onTap: _handlePlay) : null,
                 ),
                 Container(
                   key: const Key('image-search-result-preview-summary'),
@@ -345,9 +373,7 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
           onClose: () => Navigator.of(context).pop(),
           showCloseButton: false,
           enablePinchToFullscreen: false,
-          overlayChild: _canPlay
-              ? _CenterPlayButton(onTap: _handlePlay)
-              : null,
+          overlayChild: _canPlay ? _CenterPlayButton(onTap: _handlePlay) : null,
         ),
         Container(
           key: const Key('image-search-result-preview-summary'),
@@ -368,7 +394,9 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
             ),
           ),
         ),
-        Expanded(child: movieInfoSection),
+        Expanded(
+          child: SingleChildScrollView(child: movieInfoSection),
+        ),
         // Divider(height: 1, color: context.appColors.borderSubtle),
         actionsSection,
       ],
@@ -424,48 +452,46 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
             children: [
               SizedBox(
                 key: const Key('image-search-result-preview-movie-cover'),
-                child:
-                    movie.coverImage == null
-                        ? ClipRRect(
-                          borderRadius: context.appRadius.mdBorder,
-                          child: SizedBox(
-                            width: 88,
-                            height: 80,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: context.appColors.surfaceMuted,
-                              ),
-                              child: const Center(
-                                child: Icon(Icons.movie_outlined),
-                              ),
+                child: movie.coverImage == null
+                    ? ClipRRect(
+                        borderRadius: context.appRadius.mdBorder,
+                        child: SizedBox(
+                          width: 88,
+                          height: 80,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: context.appColors.surfaceMuted,
+                            ),
+                            child: const Center(
+                              child: Icon(Icons.movie_outlined),
                             ),
                           ),
-                        )
-                        : MoviePlotThumbnail(
-                          url: movie.coverImage!.bestAvailableUrl,
-                          maxHeight: 80,
-                          fit: BoxFit.cover,
-                          borderRadius: context.appRadius.mdBorder,
-                          fallbackAspectRatio: 0.72,
                         ),
+                      )
+                    : MoviePlotThumbnail(
+                        url: movie.coverImage!.bestAvailableUrl,
+                        maxHeight: 80,
+                        fit: BoxFit.cover,
+                        borderRadius: context.appRadius.mdBorder,
+                        fallbackAspectRatio: 0.72,
+                      ),
               ),
               SizedBox(width: spacing.sm),
               Expanded(
-                child:
-                    movie.actors.isEmpty
-                        ? Text(
-                          movie.title,
-                          style: resolveAppTextStyle(
-                            context,
-                            size: AppTextSize.s18,
-                            weight: AppTextWeight.semibold,
-                            tone: AppTextTone.primary,
-                          ),
-                        )
-                        : _MovieActorStrip(
-                          actors: movie.actors,
-                          controller: _actorScrollController,
+                child: movie.actors.isEmpty
+                    ? Text(
+                        movie.title,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s18,
+                          weight: AppTextWeight.semibold,
+                          tone: AppTextTone.primary,
                         ),
+                      )
+                    : _MovieActorStrip(
+                        actors: movie.actors,
+                        controller: _actorScrollController,
+                      ),
               ),
             ],
           ),
@@ -479,19 +505,11 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
     );
   }
 
-  Future<void> _handleSearchSimilar() async {
-    if (_isSearchingSimilar || widget.onSearchSimilar == null) {
+  void _handleSearchSimilar() {
+    if (!_canSearchSimilar) {
       return;
     }
-    setState(() => _isSearchingSimilar = true);
-    final success = await widget.onSearchSimilar!.call();
-    if (!mounted) {
-      return;
-    }
-    setState(() => _isSearchingSimilar = false);
-    if (success) {
-      Navigator.of(context).pop();
-    }
+    Navigator.of(context).pop(MediaPreviewAction.searchSimilar);
   }
 
   Future<void> _handleSaveToLocal() async {
@@ -533,9 +551,9 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
       final existingPoint = _existingPoint;
       if (existingPoint == null) {
         final point = await context.read<MediaApi>().createMediaPoint(
-          mediaId: widget.item.mediaId,
-          thumbnailId: widget.item.thumbnailId,
-        );
+              mediaId: widget.item.mediaId,
+              thumbnailId: widget.item.thumbnailId,
+            );
         if (!mounted) {
           return;
         }
@@ -545,9 +563,9 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
         showToast('已添加标记');
       } else {
         await context.read<MediaApi>().deleteMediaPoint(
-          mediaId: widget.item.mediaId,
-          pointId: existingPoint.pointId,
-        );
+              mediaId: widget.item.mediaId,
+              pointId: existingPoint.pointId,
+            );
         if (!mounted) {
           return;
         }
@@ -577,13 +595,11 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
     debugPrint(
       '[player-debug] preview_play_tap movie=${widget.item.movieNumber} mediaId=${widget.item.mediaId} offsetSeconds=${widget.item.offsetSeconds} presentation=${widget.presentation.name}',
     );
-    widget.onPlay?.call();
-    Navigator.of(context).pop();
+    Navigator.of(context).pop(MediaPreviewAction.play);
   }
 
   void _handleOpenMovieDetail() {
-    widget.onOpenMovieDetail?.call();
-    Navigator.of(context).pop();
+    Navigator.of(context).pop(MediaPreviewAction.openMovieDetail);
   }
 }
 
@@ -650,8 +666,7 @@ class _MovieActorStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final tokens = context.appComponentTokens;
-    final itemHeight =
-        tokens.movieDetailActorAvatarSize +
+    final itemHeight = tokens.movieDetailActorAvatarSize +
         spacing.xs +
         spacing.lg +
         spacing.sm;
@@ -672,10 +687,9 @@ class _MovieActorStrip extends StatelessWidget {
             final actor = actors[index];
             final tooltip =
                 actor.aliasName.isEmpty ? actor.name : actor.aliasName;
-            final itemKey =
-                actor.id > 0
-                    ? Key('image-search-result-preview-actor-${actor.id}')
-                    : Key('image-search-result-preview-actor-index-$index');
+            final itemKey = actor.id > 0
+                ? Key('image-search-result-preview-actor-${actor.id}')
+                : Key('image-search-result-preview-actor-index-$index');
 
             return Tooltip(
               message: tooltip,

@@ -1,24 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
+import 'package:sakuramedia/widgets/domain/moments/moment_image.dart';
 
 class MomentPreviewDialog extends StatelessWidget {
   const MomentPreviewDialog({
     super.key,
     required this.item,
-    this.onSearchSimilar,
-    this.onPlay,
-    this.onOpenMovieDetail,
     this.onPointRemoved,
     this.closeOnPointRemoved = false,
     this.presentation = MediaPreviewPresentation.dialog,
   });
 
   final MomentListItem item;
-  final Future<bool> Function()? onSearchSimilar;
-  final VoidCallback? onPlay;
-  final VoidCallback? onOpenMovieDetail;
   final VoidCallback? onPointRemoved;
   final bool closeOnPointRemoved;
   final MediaPreviewPresentation presentation;
@@ -35,36 +29,19 @@ class MomentPreviewDialog extends StatelessWidget {
       thumbnailId: item.thumbnailId,
       offsetSeconds: item.offsetSeconds,
     );
+    final movieNumber = item.movieNumber;
 
     return MediaPreviewDialog(
       item: previewItem,
-      onSearchSimilar: onSearchSimilar,
-      onPlay: onPlay,
-      onOpenMovieDetail: onOpenMovieDetail,
+      availableActions: <MediaPreviewAction>{
+        if (imageUrl.isNotEmpty) MediaPreviewAction.searchSimilar,
+        if (item.mediaId > 0) MediaPreviewAction.play,
+        if (!item.isVideo && movieNumber != null && movieNumber.isNotEmpty)
+          MediaPreviewAction.openMovieDetail,
+      },
       onPointRemoved: onPointRemoved,
       closeOnPointRemoved: closeOnPointRemoved,
       presentation: presentation,
     );
   }
-}
-
-String resolveMomentImageUrl(MomentListItem item) {
-  final image = item.image;
-  if (image == null) {
-    return '';
-  }
-  final origin = image.origin.trim();
-  if (origin.isNotEmpty) {
-    return origin;
-  }
-  return image.bestAvailableUrl;
-}
-
-String buildMomentImageFileName(MomentListItem item, String imageUrl) {
-  final extension = guessImageFileExtension(imageUrl, fallback: 'webp');
-  final movieNumber = item.movieNumber;
-  if (movieNumber != null && movieNumber.isNotEmpty) {
-    return 'moment_${movieNumber}_${item.pointId}.$extension';
-  }
-  return 'moment_video_${item.videoItemId ?? 0}_${item.pointId}.$extension';
 }

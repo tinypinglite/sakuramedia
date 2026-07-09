@@ -35,6 +35,14 @@ class MovieImageDto {
     }
     return origin;
   }
+
+  String get resolvedUrl {
+    final trimmedOrigin = origin.trim();
+    if (trimmedOrigin.isNotEmpty) {
+      return trimmedOrigin;
+    }
+    return bestAvailableUrl;
+  }
 }
 
 class MovieListItemDto {

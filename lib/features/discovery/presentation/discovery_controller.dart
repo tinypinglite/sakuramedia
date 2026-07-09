@@ -152,7 +152,6 @@ extension MomentRecommendationMomentItem on MomentRecommendationDto {
       movieNumber: movie.movieNumber,
       thumbnailId: thumbnailId,
       offsetSeconds: offsetSeconds,
-      createdAt: null,
       image: image,
     );
   }

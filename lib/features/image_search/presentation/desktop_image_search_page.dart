@@ -25,7 +25,6 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_filter_panel.dart';
@@ -64,12 +63,11 @@ class DesktopImageSearchPage extends StatefulWidget {
   final Future<bool> Function(
     BuildContext context,
     ImageSearchResultItemDto item,
-  )?
-  onSearchSimilar;
+  )? onSearchSimilar;
   final void Function(BuildContext context, ImageSearchResultItemDto item)?
-  onOpenPlayer;
+      onOpenPlayer;
   final void Function(BuildContext context, ImageSearchResultItemDto item)?
-  onOpenMovieDetail;
+      onOpenMovieDetail;
   final ImageSearchResultPreviewPresentation resultPreviewPresentation;
 
   @override
@@ -96,12 +94,11 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     _pageStateHandle = obtainCachedPageState<ImageSearchPageStateEntry>(
       context,
       key: _resolveStateKey(),
-      create:
-          () => ImageSearchPageStateEntry(
-            imageSearchApi: context.read<ImageSearchApi>(),
-            actorsApi: context.read<ActorsApi>(),
-            initialCurrentMovieScope: widget.initialCurrentMovieScope,
-          ),
+      create: () => ImageSearchPageStateEntry(
+        imageSearchApi: context.read<ImageSearchApi>(),
+        actorsApi: context.read<ActorsApi>(),
+        initialCurrentMovieScope: widget.initialCurrentMovieScope,
+      ),
     );
     _controller.addListener(_handleControllerChanged);
     _bootstrapInitialSource();
@@ -187,23 +184,18 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
                     filterState: _filterState,
                     summaryText: _filterSummaryText,
                     currentMovieNumber: widget.currentMovieNumber,
-                    onCurrentMovieScopeChanged:
-                        (scope) => setState(
-                          () =>
-                              _pageState.filterState = _filterState.copyWith(
-                                currentMovieScope: scope,
-                              ),
-                        ),
-                    isSearching:
-                        _controller.isSearching ||
+                    onCurrentMovieScopeChanged: (scope) => setState(
+                      () => _pageState.filterState = _filterState.copyWith(
+                        currentMovieScope: scope,
+                      ),
+                    ),
+                    isSearching: _controller.isSearching ||
                         _controller.isResolvingActorMovieIds,
-                    onModeChanged:
-                        (mode) => setState(
-                          () =>
-                              _pageState.filterState = _filterState.copyWith(
-                                actorFilterMode: mode,
-                              ),
-                        ),
+                    onModeChanged: (mode) => setState(
+                      () => _pageState.filterState = _filterState.copyWith(
+                        actorFilterMode: mode,
+                      ),
+                    ),
                     onSelectActors: _openActorSelectorDialog,
                     onSearch: _runSearch,
                   ),
@@ -462,10 +454,10 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
         normalizedMovieNumber == null || normalizedMovieNumber.isEmpty
             ? null
             : '当前影片：${_filterState.currentMovieScope.label}';
-    final actorText =
-        _filterState.actorFilterMode == ImageSearchActorFilterMode.none
-            ? '女优：不过滤'
-            : '女优：${_filterState.actorFilterMode.label}（已选 ${_filterState.selectedActorCount} 位）';
+    final actorText = _filterState.actorFilterMode ==
+            ImageSearchActorFilterMode.none
+        ? '女优：不过滤'
+        : '女优：${_filterState.actorFilterMode.label}（已选 ${_filterState.selectedActorCount} 位）';
     return currentMovieText == null
         ? actorText
         : '$currentMovieText · $actorText';
@@ -586,11 +578,10 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     }
     final selectedActors = await showDialog<List<ActorListItemDto>>(
       context: context,
-      builder:
-          (dialogContext) => _ActorSelectorDialog(
-            actors: _controller.subscribedActors,
-            initialSelectedActors: _filterState.selectedActors,
-          ),
+      builder: (dialogContext) => _ActorSelectorDialog(
+        actors: _controller.subscribedActors,
+        initialSelectedActors: _filterState.selectedActors,
+      ),
     );
     if (!mounted || selectedActors == null) {
       return;
@@ -626,52 +617,33 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     }
   }
 
-  Future<void> _openResultPreviewDialog(ImageSearchResultItemDto item) {
-    _ImageSearchResultPreviewAction? selectedAction;
-    final previewDialog = ImageSearchResultPreviewDialog(
-      item: item,
-      onSearchSimilar: () => _searchSimilarFromResult(item),
-      onPlay: () {
-        selectedAction = _ImageSearchResultPreviewAction.play;
-      },
-      onOpenMovieDetail: () {
-        selectedAction = _ImageSearchResultPreviewAction.openMovieDetail;
-      },
-      presentation:
-          widget.resultPreviewPresentation ==
-                  ImageSearchResultPreviewPresentation.bottomDrawer
-              ? MediaPreviewPresentation.bottomDrawer
-              : MediaPreviewPresentation.dialog,
-    );
-
-    final previewFuture = switch (widget.resultPreviewPresentation) {
-      ImageSearchResultPreviewPresentation.dialog => showDialog<void>(
-        context: context,
-        builder: (_) => previewDialog,
+  Future<void> _openResultPreviewDialog(ImageSearchResultItemDto item) async {
+    final presentation = widget.resultPreviewPresentation ==
+            ImageSearchResultPreviewPresentation.bottomDrawer
+        ? MediaPreviewPresentation.bottomDrawer
+        : MediaPreviewPresentation.dialog;
+    final action = await showMediaPreviewOverlay(
+      context: context,
+      presentation: presentation,
+      drawerKey: presentation == MediaPreviewPresentation.bottomDrawer
+          ? const Key('image-search-result-preview-bottom-sheet')
+          : null,
+      builder: (_) => ImageSearchResultPreviewDialog(
+        item: item,
+        presentation: presentation,
       ),
-      ImageSearchResultPreviewPresentation.bottomDrawer =>
-        showAppBottomDrawer<void>(
-          maxHeightFactor: 0.7,
-          context: context,
-          drawerKey: const Key('image-search-result-preview-bottom-sheet'),
-          ignoreTopSafeArea: true,
-          builder: (_) => previewDialog,
-        ),
-    };
-
-    return previewFuture.then((_) {
-      if (!mounted) {
-        return;
-      }
-      switch (selectedAction) {
-        case _ImageSearchResultPreviewAction.play:
-          _openPlayerForResult(item);
-        case _ImageSearchResultPreviewAction.openMovieDetail:
-          _openMovieDetailForResult(item);
-        case null:
-          break;
-      }
-    });
+    );
+    if (!mounted || action == null) {
+      return;
+    }
+    switch (action) {
+      case MediaPreviewAction.searchSimilar:
+        await _searchSimilarFromResult(item);
+      case MediaPreviewAction.play:
+        _openPlayerForResult(item);
+      case MediaPreviewAction.openMovieDetail:
+        _openMovieDetailForResult(item);
+    }
   }
 
   Future<bool> _searchSimilarFromResult(ImageSearchResultItemDto item) async {
@@ -772,10 +744,9 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
       AppImageActionDescriptor(
         type: AppImageActionType.toggleMark,
         label: point == null ? '添加标记' : '删除标记',
-        icon:
-            point == null
-                ? Icons.bookmark_add_outlined
-                : Icons.bookmark_remove_outlined,
+        icon: point == null
+            ? Icons.bookmark_add_outlined
+            : Icons.bookmark_remove_outlined,
         enabled: hasMedia,
       ),
       AppImageActionDescriptor(
@@ -823,8 +794,8 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
       return null;
     }
     final points = await context.read<MediaApi>().getMediaPoints(
-      mediaId: item.mediaId,
-    );
+          mediaId: item.mediaId,
+        );
     for (final point in points) {
       if (point.thumbnailId == item.thumbnailId) {
         return point;
@@ -862,18 +833,18 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     try {
       if (point == null) {
         await context.read<MediaApi>().createMediaPoint(
-          mediaId: item.mediaId,
-          thumbnailId: item.thumbnailId,
-        );
+              mediaId: item.mediaId,
+              thumbnailId: item.thumbnailId,
+            );
         if (mounted) {
           showToast('已添加标记');
         }
         return;
       }
       await context.read<MediaApi>().deleteMediaPoint(
-        mediaId: item.mediaId,
-        pointId: point.pointId,
-      );
+            mediaId: item.mediaId,
+            pointId: point.pointId,
+          );
       if (mounted) {
         showToast('已删除标记');
       }
@@ -884,8 +855,6 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     }
   }
 }
-
-enum _ImageSearchResultPreviewAction { play, openMovieDetail }
 
 class _ActorSelectorDialog extends StatefulWidget {
   const _ActorSelectorDialog({
@@ -906,10 +875,9 @@ class _ActorSelectorDialogState extends State<_ActorSelectorDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedActorIds =
-        widget.initialSelectedActors
-            .map((ActorListItemDto actor) => actor.id)
-            .toSet();
+    _selectedActorIds = widget.initialSelectedActors
+        .map((ActorListItemDto actor) => actor.id)
+        .toSet();
   }
 
   @override
@@ -944,22 +912,21 @@ class _ActorSelectorDialogState extends State<_ActorSelectorDialog> {
           Expanded(
             child: ListView.separated(
               itemCount: widget.actors.length,
-              separatorBuilder:
-                  (context, index) => SizedBox(height: spacing.sm),
+              separatorBuilder: (context, index) =>
+                  SizedBox(height: spacing.sm),
               itemBuilder: (context, index) {
                 final actor = widget.actors[index];
                 final selected = _selectedActorIds.contains(actor.id);
                 return InkWell(
                   key: Key('desktop-image-search-actor-option-${actor.id}'),
                   borderRadius: context.appRadius.mdBorder,
-                  onTap:
-                      () => setState(() {
-                        if (selected) {
-                          _selectedActorIds.remove(actor.id);
-                        } else {
-                          _selectedActorIds.add(actor.id);
-                        }
-                      }),
+                  onTap: () => setState(() {
+                    if (selected) {
+                      _selectedActorIds.remove(actor.id);
+                    } else {
+                      _selectedActorIds.add(actor.id);
+                    }
+                  }),
                   child: Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: spacing.lg,
@@ -969,10 +936,9 @@ class _ActorSelectorDialogState extends State<_ActorSelectorDialog> {
                       color: context.appColors.surfaceCard,
                       borderRadius: context.appRadius.mdBorder,
                       border: Border.all(
-                        color:
-                            selected
-                                ? Theme.of(context).colorScheme.primary
-                                : context.appColors.borderSubtle,
+                        color: selected
+                            ? Theme.of(context).colorScheme.primary
+                            : context.appColors.borderSubtle,
                       ),
                     ),
                     child: Row(
@@ -1008,15 +974,14 @@ class _ActorSelectorDialogState extends State<_ActorSelectorDialog> {
               AppButton(
                 label: '完成',
                 variant: AppButtonVariant.primary,
-                onPressed:
-                    () => Navigator.of(context).pop(
-                      widget.actors
-                          .where(
-                            (ActorListItemDto actor) =>
-                                _selectedActorIds.contains(actor.id),
-                          )
-                          .toList(growable: false),
-                    ),
+                onPressed: () => Navigator.of(context).pop(
+                  widget.actors
+                      .where(
+                        (ActorListItemDto actor) =>
+                            _selectedActorIds.contains(actor.id),
+                      )
+                      .toList(growable: false),
+                ),
               ),
             ],
           ),
