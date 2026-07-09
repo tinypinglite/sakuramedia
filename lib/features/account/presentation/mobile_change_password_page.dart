@@ -7,9 +7,8 @@ import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_notice_card.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/forms/app_password_field.dart';
 
 class MobileChangePasswordPage extends StatefulWidget {
   const MobileChangePasswordPage({super.key});
@@ -28,9 +27,6 @@ class _MobileChangePasswordPageState extends State<MobileChangePasswordPage> {
   late final FocusNode _newPasswordFocusNode;
   late final FocusNode _confirmPasswordFocusNode;
 
-  bool _obscureCurrentPassword = true;
-  bool _obscureNewPassword = true;
-  bool _obscureConfirmPassword = true;
   bool _hasAttemptedSubmit = false;
   bool _isSubmitting = false;
 
@@ -185,81 +181,48 @@ class _MobileChangePasswordPageState extends State<MobileChangePasswordPage> {
                     SizedBox(height: spacing.md),
                     _FormCard(
                       children: [
-                        AppTextField(
+                        AppPasswordField(
                           fieldKey: const Key('mobile-password-current-field'),
+                          visibilityButtonKey: const Key(
+                            'mobile-password-current-visibility-toggle',
+                          ),
                           controller: _currentPasswordController,
                           focusNode: _currentPasswordFocusNode,
                           label: '当前密码',
-                          obscureText: _obscureCurrentPassword,
                           enabled: !_isSubmitting,
                           validator: _validateCurrentPassword,
                           textInputAction: TextInputAction.next,
                           onFieldSubmitted:
                               (_) => _newPasswordFocusNode.requestFocus(),
-                          suffix: _PasswordVisibilityButton(
-                            key: const Key(
-                              'mobile-password-current-visibility-toggle',
-                            ),
-                            obscureText: _obscureCurrentPassword,
-                            onPressed:
-                                _isSubmitting
-                                    ? null
-                                    : () => setState(() {
-                                      _obscureCurrentPassword =
-                                          !_obscureCurrentPassword;
-                                    }),
-                          ),
                         ),
                         SizedBox(height: spacing.md),
-                        AppTextField(
+                        AppPasswordField(
                           fieldKey: const Key('mobile-password-new-field'),
+                          visibilityButtonKey: const Key(
+                            'mobile-password-new-visibility-toggle',
+                          ),
                           controller: _newPasswordController,
                           focusNode: _newPasswordFocusNode,
                           label: '新密码',
-                          obscureText: _obscureNewPassword,
                           enabled: !_isSubmitting,
                           validator: _validateNewPassword,
                           textInputAction: TextInputAction.next,
                           onFieldSubmitted:
                               (_) => _confirmPasswordFocusNode.requestFocus(),
-                          suffix: _PasswordVisibilityButton(
-                            key: const Key(
-                              'mobile-password-new-visibility-toggle',
-                            ),
-                            obscureText: _obscureNewPassword,
-                            onPressed:
-                                _isSubmitting
-                                    ? null
-                                    : () => setState(() {
-                                      _obscureNewPassword =
-                                          !_obscureNewPassword;
-                                    }),
-                          ),
                         ),
                         SizedBox(height: spacing.md),
-                        AppTextField(
+                        AppPasswordField(
                           fieldKey: const Key('mobile-password-confirm-field'),
+                          visibilityButtonKey: const Key(
+                            'mobile-password-confirm-visibility-toggle',
+                          ),
                           controller: _confirmPasswordController,
                           focusNode: _confirmPasswordFocusNode,
                           label: '确认新密码',
-                          obscureText: _obscureConfirmPassword,
                           enabled: !_isSubmitting,
                           validator: _validateConfirmPassword,
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => _submit(),
-                          suffix: _PasswordVisibilityButton(
-                            key: const Key(
-                              'mobile-password-confirm-visibility-toggle',
-                            ),
-                            obscureText: _obscureConfirmPassword,
-                            onPressed:
-                                _isSubmitting
-                                    ? null
-                                    : () => setState(() {
-                                      _obscureConfirmPassword =
-                                          !_obscureConfirmPassword;
-                                    }),
-                          ),
                         ),
                       ],
                     ),
@@ -323,26 +286,3 @@ class _FormCard extends StatelessWidget {
   }
 }
 
-class _PasswordVisibilityButton extends StatelessWidget {
-  const _PasswordVisibilityButton({
-    super.key,
-    required this.obscureText,
-    required this.onPressed,
-  });
-
-  final bool obscureText;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppIconButton(
-      key: key,
-      onPressed: onPressed,
-      tooltip: obscureText ? '显示密码' : '隐藏密码',
-      icon: Icon(
-        obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-        size: context.appComponentTokens.iconSizeSm,
-      ),
-    );
-  }
-}

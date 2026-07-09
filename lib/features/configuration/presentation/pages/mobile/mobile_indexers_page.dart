@@ -10,20 +10,21 @@ import 'package:sakuramedia/features/configuration/data/api/download_clients_api
 import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/forms/indexer_entry_form.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_empty_card.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_onboarding_card.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_entity_list_card.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/forms/app_password_field.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_info_block.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_notice_card.dart';
 import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/feedback/app_mobile_section_error.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/sheets/app_bottom_form_sheet.dart';
 
 class MobileIndexersPage extends StatefulWidget {
@@ -37,7 +38,6 @@ class _MobileIndexersPageState extends State<MobileIndexersPage> {
   late final TextEditingController _apiKeyController;
   bool _isLoading = true;
   bool _isSavingApiKey = false;
-  bool _obscureApiKey = true;
   String? _errorMessage;
   String _settingsType = 'jackett';
   List<IndexerEntryDto> _indexers = const <IndexerEntryDto>[];
@@ -172,8 +172,12 @@ class _MobileIndexersPageState extends State<MobileIndexersPage> {
         _buildApiKeyCard(context),
         SizedBox(height: spacing.md),
         if (!_hasDownloadClients) ...[
-          _MobileIndexersGuideCard(
-            onOpenDownloaders:
+          MobileConfigOnboardingCard(
+            key: const Key('mobile-indexers-guide-downloaders'),
+            title: '请先在下载器页创建下载器',
+            description: '索引器需要先绑定下载器，影片详情里的资源投递才能生效。',
+            actionLabel: '前往下载器',
+            onActionTap:
                 () => GoRouter.of(context).push(mobileSettingsDownloadersPath),
           ),
           SizedBox(height: spacing.md),
@@ -233,29 +237,16 @@ class _MobileIndexersPageState extends State<MobileIndexersPage> {
             ),
           ),
           SizedBox(height: spacing.md),
-          AppTextField(
+          AppPasswordField(
             fieldKey: const Key('mobile-indexers-api-key-field'),
+            visibilityButtonKey: const Key(
+              'mobile-indexers-api-key-visibility-button',
+            ),
             controller: _apiKeyController,
             hintText: '请输入 Jackett API Key',
-            obscureText: _obscureApiKey,
             enabled: !_isSavingApiKey,
-            suffix: AppIconButton(
-              key: const Key('mobile-indexers-api-key-visibility-button'),
-              tooltip: _obscureApiKey ? '显示 API Key' : '隐藏 API Key',
-              semanticLabel: _obscureApiKey ? '显示 API Key' : '隐藏 API Key',
-              size: AppIconButtonSize.compact,
-              icon: Icon(
-                _obscureApiKey
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-              ),
-              onPressed:
-                  _isSavingApiKey
-                      ? null
-                      : () => setState(() {
-                        _obscureApiKey = !_obscureApiKey;
-                      }),
-            ),
+            showLabel: '显示 API Key',
+            hideLabel: '隐藏 API Key',
           ),
           SizedBox(height: spacing.md),
           SizedBox(
@@ -275,18 +266,9 @@ class _MobileIndexersPageState extends State<MobileIndexersPage> {
 
   Widget _buildIndexersSection(BuildContext context) {
     if (_indexers.isEmpty) {
-      return Container(
-        key: const Key('mobile-indexers-empty-state'),
-        padding: EdgeInsets.symmetric(
-          horizontal: context.appSpacing.md,
-          vertical: context.appSpacing.xl,
-        ),
-        decoration: BoxDecoration(
-          color: context.appColors.surfaceCard,
-          borderRadius: context.appRadius.lgBorder,
-          border: Border.all(color: context.appColors.borderSubtle),
-        ),
-        child: const AppEmptyState(message: '还没有索引器配置'),
+      return const MobileConfigEmptyCard(
+        key: Key('mobile-indexers-empty-state'),
+        message: '还没有索引器配置',
       );
     }
 
@@ -614,90 +596,22 @@ Future<MobileIndexerDetailAction?> showMobileIndexerDetailDrawer(
 
 enum MobileIndexerDetailAction { edit, delete }
 
-class _MobileIndexersGuideCard extends StatelessWidget {
-  const _MobileIndexersGuideCard({required this.onOpenDownloaders});
-
-  final VoidCallback onOpenDownloaders;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-
-    return Container(
-      key: const Key('mobile-indexers-guide-downloaders'),
-      padding: EdgeInsets.all(spacing.md),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '请先在下载器页创建下载器',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s14,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
-            ),
-          ),
-          SizedBox(height: spacing.xs),
-          Text(
-            '索引器需要先绑定下载器，影片详情里的资源投递才能生效。',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.secondary,
-            ),
-          ),
-          SizedBox(height: spacing.md),
-          AppButton(
-            label: '前往下载器',
-            size: AppButtonSize.xSmall,
-            onPressed: onOpenDownloaders,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _MobileIndexersLoadingSection extends StatelessWidget {
   const _MobileIndexersLoadingSection();
 
   @override
   Widget build(BuildContext context) {
+    final radius = context.appRadius.lgBorder;
     return Column(
       children: [
-        const _MobileIndexersSkeletonCard(height: 172),
+        AppSkeletonBlock(width: double.infinity, height: 172, radius: radius),
         SizedBox(height: context.appSpacing.md),
-        const _MobileIndexersSkeletonCard(height: 188),
+        AppSkeletonBlock(width: double.infinity, height: 188, radius: radius),
         SizedBox(height: context.appSpacing.md),
-        const _MobileIndexersSkeletonCard(height: 128),
+        AppSkeletonBlock(width: double.infinity, height: 128, radius: radius),
         SizedBox(height: context.appSpacing.sm),
-        const _MobileIndexersSkeletonCard(height: 128),
+        AppSkeletonBlock(width: double.infinity, height: 128, radius: radius),
       ],
-    );
-  }
-}
-
-class _MobileIndexersSkeletonCard extends StatelessWidget {
-  const _MobileIndexersSkeletonCard({required this.height});
-
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: height,
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceMuted,
-        borderRadius: context.appRadius.lgBorder,
-      ),
     );
   }
 }

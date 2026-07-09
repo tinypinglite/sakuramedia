@@ -10,9 +10,10 @@ import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
+import 'package:sakuramedia/widgets/forms/app_password_field.dart';
 import 'package:sakuramedia/widgets/forms/app_text_field.dart';
 
 class AccountSecuritySection extends StatefulWidget {
@@ -31,9 +32,6 @@ class _AccountSecuritySectionState extends State<AccountSecuritySection> {
   late final TextEditingController _newPasswordController;
   late final TextEditingController _confirmPasswordController;
 
-  bool _obscureCurrentPassword = true;
-  bool _obscureNewPassword = true;
-  bool _obscureConfirmPassword = true;
   bool _isSubmitting = false;
   bool _hasAttemptedUsernameSubmit = false;
 
@@ -179,11 +177,6 @@ class _AccountSecuritySectionState extends State<AccountSecuritySection> {
     _currentPasswordController.clear();
     _newPasswordController.clear();
     _confirmPasswordController.clear();
-    setState(() {
-      _obscureCurrentPassword = true;
-      _obscureNewPassword = true;
-      _obscureConfirmPassword = true;
-    });
   }
 
   String? _validateCurrentPassword(String? value) {
@@ -351,49 +344,25 @@ class _AccountSecuritySectionState extends State<AccountSecuritySection> {
               ),
             ),
             SizedBox(height: spacing.lg),
-            AppTextField(
+            AppPasswordField(
               fieldKey: const Key('configuration-password-current-field'),
               controller: _currentPasswordController,
               label: '当前密码',
-              obscureText: _obscureCurrentPassword,
               validator: _validateCurrentPassword,
-              suffix: _PasswordVisibilityButton(
-                obscureText: _obscureCurrentPassword,
-                onPressed:
-                    () => setState(() {
-                      _obscureCurrentPassword = !_obscureCurrentPassword;
-                    }),
-              ),
             ),
             SizedBox(height: spacing.lg),
-            AppTextField(
+            AppPasswordField(
               fieldKey: const Key('configuration-password-new-field'),
               controller: _newPasswordController,
               label: '新密码',
-              obscureText: _obscureNewPassword,
               validator: _validateNewPassword,
-              suffix: _PasswordVisibilityButton(
-                obscureText: _obscureNewPassword,
-                onPressed:
-                    () => setState(() {
-                      _obscureNewPassword = !_obscureNewPassword;
-                    }),
-              ),
             ),
             SizedBox(height: spacing.lg),
-            AppTextField(
+            AppPasswordField(
               fieldKey: const Key('configuration-password-confirm-field'),
               controller: _confirmPasswordController,
               label: '确认新密码',
-              obscureText: _obscureConfirmPassword,
               validator: _validateConfirmPassword,
-              suffix: _PasswordVisibilityButton(
-                obscureText: _obscureConfirmPassword,
-                onPressed:
-                    () => setState(() {
-                      _obscureConfirmPassword = !_obscureConfirmPassword;
-                    }),
-              ),
             ),
             SizedBox(height: spacing.lg),
             Row(
@@ -429,9 +398,9 @@ class _AccountProfileLoadingBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _AccountProfileSkeleton(height: 48),
+        const AppSkeletonBlock(width: double.infinity, height: 48),
         SizedBox(height: context.appSpacing.md),
-        _AccountProfileSkeleton(height: 44),
+        const AppSkeletonBlock(width: double.infinity, height: 44),
       ],
     );
   }
@@ -530,45 +499,6 @@ class _AccountProfilePill extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AccountProfileSkeleton extends StatelessWidget {
-  const _AccountProfileSkeleton({required this.height});
-
-  final double height;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceMuted,
-        borderRadius: context.appRadius.smBorder,
-      ),
-    );
-  }
-}
-
-class _PasswordVisibilityButton extends StatelessWidget {
-  const _PasswordVisibilityButton({
-    required this.obscureText,
-    required this.onPressed,
-  });
-
-  final bool obscureText;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppIconButton(
-      onPressed: onPressed,
-      tooltip: obscureText ? '显示密码' : '隐藏密码',
-      icon: Icon(
-        obscureText ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-        size: context.appComponentTokens.iconSizeSm,
       ),
     );
   }

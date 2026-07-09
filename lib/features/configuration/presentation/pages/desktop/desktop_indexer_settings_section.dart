@@ -6,16 +6,15 @@ import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.
 import 'package:sakuramedia/features/configuration/data/api/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/indexer_settings_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/controllers/section_loader_mixin.dart';
 import 'package:sakuramedia/features/configuration/presentation/forms/indexer_entry_form.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/forms/app_password_field.dart';
 import 'package:sakuramedia/widgets/actions/app_inline_action_button.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
 import 'package:sakuramedia/widgets/app_shell/app_settings_group.dart';
-import 'package:sakuramedia/widgets/feedback/app_section_error.dart';
-import 'package:sakuramedia/widgets/feedback/app_section_skeleton.dart';
 import 'package:sakuramedia/widgets/forms/app_text_field.dart';
 
 class IndexerSettingsSection extends StatefulWidget {
@@ -27,36 +26,58 @@ class IndexerSettingsSection extends StatefulWidget {
   State<IndexerSettingsSection> createState() => _IndexerSettingsSectionState();
 }
 
-class _IndexerSettingsSectionState extends State<IndexerSettingsSection> {
+class _IndexerSettingsSectionState extends State<IndexerSettingsSection>
+    with
+        SectionLoaderMixin<
+          (IndexerSettingsDto, List<DownloadClientDto>),
+          IndexerSettingsSection
+        > {
   static const List<String> _supportedTypes = <String>['jackett'];
 
   final TextEditingController _apiKeyController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
 
-  bool _initialized = false;
-  bool _isLoading = false;
   bool _isSaving = false;
-  bool _obscureApiKey = true;
-  String? _errorMessage;
   String _selectedType = _supportedTypes.first;
   List<IndexerEntryDto> _indexers = <IndexerEntryDto>[];
   List<DownloadClientDto> _downloadClients = <DownloadClientDto>[];
 
   @override
+  bool get isSectionActive => widget.active;
+
+  @override
+  Future<(IndexerSettingsDto, List<DownloadClientDto>)>
+  fetchSectionData() async {
+    final futures = await Future.wait<Object>([
+      context.read<IndexerSettingsApi>().getSettings(),
+      context.read<DownloadClientsApi>().getClients(),
+    ]);
+    return (
+      futures[0] as IndexerSettingsDto,
+      futures[1] as List<DownloadClientDto>,
+    );
+  }
+
+  @override
+  void applySectionData((IndexerSettingsDto, List<DownloadClientDto>) data) {
+    _applySettings(data.$1);
+    _downloadClients = List<DownloadClientDto>.from(data.$2);
+  }
+
+  @override
+  String get sectionLoadErrorFallback => '索引器配置加载失败，请稍后重试。';
+
+  @override
   void initState() {
     super.initState();
     _searchController.addListener(_handleSearchChanged);
-    if (widget.active) {
-      _loadTabData();
-    }
+    tryLoadIfActive();
   }
 
   @override
   void didUpdateWidget(covariant IndexerSettingsSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.active && !_initialized && !_isLoading) {
-      _loadTabData();
-    }
+    tryLoadIfActive();
   }
 
   @override
@@ -72,40 +93,6 @@ class _IndexerSettingsSectionState extends State<IndexerSettingsSection> {
       return;
     }
     setState(() {});
-  }
-
-  Future<void> _loadTabData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final futures = await Future.wait<Object>([
-        context.read<IndexerSettingsApi>().getSettings(),
-        context.read<DownloadClientsApi>().getClients(),
-      ]);
-      final settings = futures[0] as IndexerSettingsDto;
-      final downloadClients = futures[1] as List<DownloadClientDto>;
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _applySettings(settings);
-        _downloadClients = List<DownloadClientDto>.from(downloadClients);
-        _initialized = true;
-        _isLoading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialized = true;
-        _isLoading = false;
-        _errorMessage = apiErrorMessage(error, fallback: '索引器配置加载失败，请稍后重试。');
-      });
-    }
   }
 
   void _applySettings(IndexerSettingsDto settings) {
@@ -220,22 +207,14 @@ class _IndexerSettingsSectionState extends State<IndexerSettingsSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_initialized && !widget.active) {
-      return const SizedBox.shrink();
-    }
+    return buildSectionStates(
+      errorTitle: '索引器配置加载失败',
+      skeletonLineCount: 5,
+      buildLoaded: _buildLoaded,
+    );
+  }
 
-    if (_isLoading) {
-      return const AppSectionSkeleton(lineCount: 5);
-    }
-
-    if (_errorMessage != null) {
-      return AppSectionError(
-        title: '索引器配置加载失败',
-        message: _errorMessage!,
-        onRetry: _loadTabData,
-      );
-    }
-
+  Widget _buildLoaded(BuildContext context) {
     final query = _searchController.text.trim().toLowerCase();
     final filteredIndexers =
         query.isEmpty
@@ -265,23 +244,11 @@ class _IndexerSettingsSectionState extends State<IndexerSettingsSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppTextField(
+              AppPasswordField(
                 controller: _apiKeyController,
                 hintText: '请输入 Jackett API Key',
-                obscureText: _obscureApiKey,
-                suffix: AppIconButton(
-                  tooltip: _obscureApiKey ? '显示 API 密钥' : '隐藏 API 密钥',
-                  onPressed:
-                      () => setState(() {
-                        _obscureApiKey = !_obscureApiKey;
-                      }),
-                  icon: Icon(
-                    _obscureApiKey
-                        ? Icons.visibility_off_outlined
-                        : Icons.visibility_outlined,
-                    size: context.appComponentTokens.iconSizeSm,
-                  ),
-                ),
+                showLabel: '显示 API 密钥',
+                hideLabel: '隐藏 API 密钥',
               ),
               SizedBox(height: spacing.sm),
               Text(

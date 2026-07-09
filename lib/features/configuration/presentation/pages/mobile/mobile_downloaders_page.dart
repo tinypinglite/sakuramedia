@@ -12,20 +12,22 @@ import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api
 import 'package:sakuramedia/features/configuration/data/dto/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_empty_card.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_onboarding_card.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_entity_list_card.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/download_client_diagnostics_dialog.dart';
 import 'package:sakuramedia/features/configuration/presentation/forms/download_client_form.dart';
 import 'package:sakuramedia/features/configuration/presentation/controllers/download_client_probe_controller.dart';
+import 'package:sakuramedia/features/configuration/presentation/controllers/download_client_probe_interactions.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_info_block.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_notice_card.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
@@ -238,12 +240,16 @@ class _MobileDownloadersPageState extends State<MobileDownloadersPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _MobileGuideStepCard(
+                MobileConfigOnboardingCard(
                   key: const Key('mobile-downloaders-guide-step-libraries'),
                   title: '先准备媒体库',
                   description: '媒体库用于维护本地存储根路径，下载器创建前需要先明确映射位置。',
                   tip: '关键字段：媒体库名称、根路径。',
-                  completed: _hasLibraries,
+                  badgeLabel: _hasLibraries ? '已配置' : '待配置',
+                  badgeTone: _hasLibraries
+                      ? AppBadgeTone.success
+                      : AppBadgeTone.warning,
+                  showShadow: true,
                   actionLabel: '前往媒体库',
                   onActionTap:
                       () => GoRouter.of(
@@ -251,22 +257,30 @@ class _MobileDownloadersPageState extends State<MobileDownloadersPage>
                       ).push(mobileSettingsMediaLibrariesPath),
                 ),
                 SizedBox(height: spacing.md),
-                _MobileGuideStepCard(
+                MobileConfigOnboardingCard(
                   key: const Key('mobile-downloaders-guide-step-downloaders'),
                   title: '再配置下载器',
                   description: '下载器负责接收索引器推送的资源请求，并映射 qBittorrent 下载路径。',
                   tip: '关键字段：服务地址、qBittorrent 保存路径、本地访问路径。',
-                  completed: _clients.isNotEmpty,
+                  badgeLabel: _clients.isNotEmpty ? '已配置' : '待配置',
+                  badgeTone: _clients.isNotEmpty
+                      ? AppBadgeTone.success
+                      : AppBadgeTone.warning,
+                  showShadow: true,
                   actionLabel: '切换到下载器',
                   onActionTap: () => _tabController.animateTo(0),
                 ),
                 SizedBox(height: spacing.md),
-                _MobileGuideStepCard(
+                MobileConfigOnboardingCard(
                   key: const Key('mobile-downloaders-guide-step-indexers'),
                   title: '最后把索引器绑定到下载器',
                   description: '只有索引器绑定到下载器，影片详情里的资源搜索结果才能投递到对应客户端。',
                   tip: '常见问题：未绑定下载器时，搜索结果会提示先创建下载器。',
-                  completed: _hasLinkedIndexer,
+                  badgeLabel: _hasLinkedIndexer ? '已配置' : '待配置',
+                  badgeTone: _hasLinkedIndexer
+                      ? AppBadgeTone.success
+                      : AppBadgeTone.warning,
+                  showShadow: true,
                   actionLabel: '查看索引器',
                   onActionTap:
                       () =>
@@ -294,7 +308,10 @@ class _MobileDownloadersPageState extends State<MobileDownloadersPage>
       );
     }
     if (_clients.isEmpty) {
-      return const _MobileDownloadersEmptySection();
+      return const MobileConfigEmptyCard(
+        key: Key('mobile-downloaders-empty-state'),
+        message: '还没有下载器配置',
+      );
     }
 
     final librariesById = <int, MediaLibraryDto>{
@@ -550,23 +567,19 @@ class _MobileDownloadersPageState extends State<MobileDownloadersPage>
 
   Future<void> _handleDeleteClient(DownloadClientDto client) async {
     final api = context.read<DownloadClientsApi>();
-    final confirmed = await showAppConfirmDialog(
-      context,
+    final ok = await showAppConfigDeleteConfirm(
+      context: context,
       title: '删除下载器',
       message: '确认删除下载器"${client.name}"？该操作不会删除已有下载任务，但索引器绑定关系可能需要重新调整。',
-      danger: true,
-      confirmLabel: '删除',
       dialogKey: const Key('mobile-downloader-delete-drawer'),
       confirmKey: const Key('mobile-downloader-delete-confirm-button'),
+      onDelete: () => api.deleteClient(client.id),
+      successToast: '下载器已删除',
       failureFallback: '删除下载器失败',
-      onConfirm: () async {
-        await api.deleteClient(client.id);
-      },
     );
-    if (!confirmed || !mounted) {
+    if (!ok || !mounted) {
       return;
     }
-    showToast('下载器已删除');
     setState(() {
       _clients = _clients
           .where((item) => item.id != client.id)
@@ -773,122 +786,6 @@ class _MobileDownloaderSkeletonCard extends StatelessWidget {
                 const AppSkeletonBlock(width: 148, height: 12),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MobileDownloadersEmptySection extends StatelessWidget {
-  const _MobileDownloadersEmptySection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: const Key('mobile-downloaders-empty-state'),
-      padding: EdgeInsets.symmetric(
-        horizontal: context.appSpacing.md,
-        vertical: context.appSpacing.xl,
-      ),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-      ),
-      child: const AppEmptyState(message: '还没有下载器配置'),
-    );
-  }
-}
-
-class _MobileGuideStepCard extends StatelessWidget {
-  const _MobileGuideStepCard({
-    super.key,
-    required this.title,
-    required this.description,
-    required this.tip,
-    required this.completed,
-    required this.actionLabel,
-    required this.onActionTap,
-  });
-
-  final String title;
-  final String description;
-  final String tip;
-  final bool completed;
-  final String actionLabel;
-  final VoidCallback onActionTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    final badgeTone = completed ? AppBadgeTone.success : AppBadgeTone.warning;
-    final badgeLabel = completed ? '已配置' : '待配置';
-
-    return Container(
-      padding: EdgeInsets.all(spacing.md),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-        boxShadow: context.appShadows.card,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-              ),
-              AppBadge(
-                label: badgeLabel,
-                tone: badgeTone,
-                size: AppBadgeSize.compact,
-              ),
-            ],
-          ),
-          SizedBox(height: spacing.sm),
-          Text(
-            description,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.secondary,
-            ),
-          ),
-          SizedBox(height: spacing.sm),
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(spacing.sm),
-            decoration: BoxDecoration(
-              color: context.appColors.surfaceMuted,
-              borderRadius: context.appRadius.mdBorder,
-            ),
-            child: Text(
-              tip,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.muted,
-              ),
-            ),
-          ),
-          SizedBox(height: spacing.md),
-          AppButton(
-            label: actionLabel,
-            size: AppButtonSize.xSmall,
-            onPressed: onActionTap,
           ),
         ],
       ),
@@ -1121,62 +1018,33 @@ class _MobileDownloaderEditorDrawerState
   }
 
   Future<void> _handleConnectivityChipTap() async {
-    if (_busy) return;
-    if (_probe.canReplayConnectivityDialog) {
-      final value = _validatedFormValue();
-      if (value == null) return;
-      await _openConnectivityDialog(
-        _probe.lastConnectivityResult!,
-        value.toProbeTestPayload(clientId: widget.initialClient?.id),
-      );
-      return;
-    }
     final value = _validatedFormValue();
     if (value == null) return;
-    final payload = value.toProbeTestPayload(clientId: widget.initialClient?.id);
+    final payload = value.toProbeTestPayload(
+      clientId: widget.initialClient?.id,
+    );
     final api = context.read<DownloadClientsApi>();
-    try {
-      final result =
-          await _probe.runConnectivity(() => api.probeTestClient(payload));
-      if (!mounted || result == null) return;
-      if (_probe.connectivityChipState != DownloadClientProbeChipState.healthy) {
-        await _openConnectivityDialog(result, payload);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      showToast(apiErrorMessage(error, fallback: '连通性检测请求失败'));
-    }
+    await handleProbeConnectivityTap(
+      context: context,
+      probe: _probe,
+      runTest: () => api.probeTestClient(payload),
+      openDialog: (result) => _openConnectivityDialog(result, payload),
+    );
   }
 
   Future<void> _handleStorageChipTap() async {
-    if (_busy) return;
-    if (_probe.canReplayStorageDialog) {
-      final value = _validatedFormValue();
-      if (value == null) return;
-      await _openStorageDialog(
-        _probe.lastStorageResult!,
-        value.toProbeStorageTestPayload(clientId: widget.initialClient?.id),
-        value.baseUrl,
-      );
-      return;
-    }
     final value = _validatedFormValue();
     if (value == null) return;
     final payload = value.toProbeStorageTestPayload(
       clientId: widget.initialClient?.id,
     );
     final api = context.read<DownloadClientsApi>();
-    try {
-      final result =
-          await _probe.runStorage(() => api.probeStorageTestClient(payload));
-      if (!mounted || result == null) return;
-      if (_probe.storageChipState != DownloadClientProbeChipState.healthy) {
-        await _openStorageDialog(result, payload, value.baseUrl);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      showToast(apiErrorMessage(error, fallback: '目录映射检测请求失败'));
-    }
+    await handleProbeStorageTap(
+      context: context,
+      probe: _probe,
+      runTest: () => api.probeStorageTestClient(payload),
+      openDialog: (result) => _openStorageDialog(result, payload, value.baseUrl),
+    );
   }
 
   Future<void> _openConnectivityDialog(
@@ -1260,45 +1128,24 @@ class _MobileDownloaderDetailDrawerState
     if (mounted) setState(() {});
   }
 
-  Future<void> _handleConnectivityAction() async {
-    if (_probe.busy) return;
-    if (_probe.canReplayConnectivityDialog) {
-      await _openConnectivityDialog(_probe.lastConnectivityResult!);
-      return;
-    }
+  Future<void> _handleConnectivityAction() {
     final api = context.read<DownloadClientsApi>();
-    try {
-      final result =
-          await _probe.runConnectivity(() => api.testClient(widget.client.id));
-      if (!mounted || result == null) return;
-      // 健康态不打扰;失败 → 首次自动弹一次详情。
-      if (_probe.connectivityChipState != DownloadClientProbeChipState.healthy) {
-        await _openConnectivityDialog(result);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      showToast(apiErrorMessage(error, fallback: '连通性检测请求失败'));
-    }
+    return handleProbeConnectivityTap(
+      context: context,
+      probe: _probe,
+      runTest: () => api.testClient(widget.client.id),
+      openDialog: _openConnectivityDialog,
+    );
   }
 
-  Future<void> _handleStorageAction() async {
-    if (_probe.busy) return;
-    if (_probe.canReplayStorageDialog) {
-      await _openStorageDialog(_probe.lastStorageResult!);
-      return;
-    }
+  Future<void> _handleStorageAction() {
     final api = context.read<DownloadClientsApi>();
-    try {
-      final result = await _probe
-          .runStorage(() => api.storageTestClient(widget.client.id));
-      if (!mounted || result == null) return;
-      if (_probe.storageChipState != DownloadClientProbeChipState.healthy) {
-        await _openStorageDialog(result);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      showToast(apiErrorMessage(error, fallback: '目录映射检测请求失败'));
-    }
+    return handleProbeStorageTap(
+      context: context,
+      probe: _probe,
+      runTest: () => api.storageTestClient(widget.client.id),
+      openDialog: _openStorageDialog,
+    );
   }
 
   Future<void> _openConnectivityDialog(

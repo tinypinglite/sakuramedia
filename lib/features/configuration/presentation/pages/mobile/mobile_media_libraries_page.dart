@@ -14,9 +14,9 @@ import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_mobile_notice_card.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_empty_card.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
 import 'package:sakuramedia/widgets/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/sheets/app_bottom_form_sheet.dart';
@@ -123,23 +123,19 @@ class _MobileMediaLibrariesPageState extends State<MobileMediaLibrariesPage> {
 
   Future<void> _handleDeleteLibrary(MediaLibraryDto library) async {
     final api = context.read<MediaLibrariesApi>();
-    final confirmed = await showAppConfirmDialog(
-      context,
+    final ok = await showAppConfigDeleteConfirm(
+      context: context,
       title: '删除媒体库',
       message: '确认删除媒体库"${library.name}"？删除后下载器等依赖该路径的配置可能失效，该操作不可恢复。',
-      danger: true,
-      confirmLabel: '删除',
       dialogKey: const Key('mobile-media-library-delete-drawer'),
       confirmKey: const Key('mobile-media-library-delete-confirm-button'),
+      onDelete: () => api.deleteLibrary(library.id),
+      successToast: '媒体库已删除',
       failureFallback: '删除媒体库失败',
-      onConfirm: () async {
-        await api.deleteLibrary(library.id);
-      },
     );
-    if (!confirmed || !mounted) {
+    if (!ok || !mounted) {
       return;
     }
-    showToast('媒体库已删除');
     setState(() {
       _libraries = _libraries
           .where((item) => item.id != library.id)
@@ -265,7 +261,10 @@ class _MobileMediaLibrariesPageState extends State<MobileMediaLibrariesPage> {
       );
     }
     if (_libraries.isEmpty) {
-      return const _MobileMediaLibraryEmptySection();
+      return const MobileConfigEmptyCard(
+        key: Key('mobile-media-libraries-empty-state'),
+        message: '还没有媒体库',
+      );
     }
 
     return Column(
@@ -448,27 +447,6 @@ class _MobileMediaLibrarySkeletonCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _MobileMediaLibraryEmptySection extends StatelessWidget {
-  const _MobileMediaLibraryEmptySection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: const Key('mobile-media-libraries-empty-state'),
-      padding: EdgeInsets.symmetric(
-        horizontal: context.appSpacing.md,
-        vertical: context.appSpacing.xl,
-      ),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-      ),
-      child: const AppEmptyState(message: '还没有媒体库'),
     );
   }
 }

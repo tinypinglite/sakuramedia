@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/controllers/section_loader_mixin.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
 import 'package:sakuramedia/features/playlists/data/api/playlists_api.dart';
+import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/create_playlist_dialog.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
@@ -11,9 +13,6 @@ import 'package:sakuramedia/widgets/actions/app_inline_action_button.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_settings_group.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
-import 'package:sakuramedia/widgets/feedback/app_section_error.dart';
-import 'package:sakuramedia/widgets/feedback/app_section_skeleton.dart';
 import 'package:sakuramedia/widgets/forms/app_text_field.dart';
 
 class PlaylistsSection extends StatefulWidget {
@@ -25,58 +24,39 @@ class PlaylistsSection extends StatefulWidget {
   State<PlaylistsSection> createState() => _PlaylistsSectionState();
 }
 
-class _PlaylistsSectionState extends State<PlaylistsSection> {
-  bool _initialized = false;
-  bool _isLoading = false;
-  String? _errorMessage;
+class _PlaylistsSectionState extends State<PlaylistsSection>
+    with SectionLoaderMixin<List<PlaylistDto>, PlaylistsSection> {
   List<PlaylistDto> _playlists = const <PlaylistDto>[];
+
+  @override
+  bool get isSectionActive => widget.active;
+
+  @override
+  Future<List<PlaylistDto>> fetchSectionData() =>
+      context.read<PlaylistsApi>().getPlaylists(includeSystem: false);
+
+  @override
+  void applySectionData(List<PlaylistDto> data) {
+    _playlists = data
+        .where((playlist) => !playlist.isSystem)
+        .toList(growable: false);
+  }
+
+  @override
+  String get sectionLoadErrorFallback => '播放列表加载失败，请稍后重试。';
+
+  Future<void> _loadPlaylists() => loadSectionData();
 
   @override
   void initState() {
     super.initState();
-    if (widget.active) {
-      _loadPlaylists();
-    }
+    tryLoadIfActive();
   }
 
   @override
   void didUpdateWidget(covariant PlaylistsSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.active && !_initialized && !_isLoading) {
-      _loadPlaylists();
-    }
-  }
-
-  Future<void> _loadPlaylists() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final playlists = await context.read<PlaylistsApi>().getPlaylists(
-        includeSystem: false,
-      );
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _playlists = playlists
-            .where((playlist) => !playlist.isSystem)
-            .toList(growable: false);
-        _initialized = true;
-        _isLoading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialized = true;
-        _isLoading = false;
-        _errorMessage = apiErrorMessage(error, fallback: '播放列表加载失败，请稍后重试。');
-      });
-    }
+    tryLoadIfActive();
   }
 
   Future<void> _createPlaylist() async {
@@ -120,45 +100,29 @@ class _PlaylistsSectionState extends State<PlaylistsSection> {
     if (!playlist.isDeletable) {
       return;
     }
-
-    final confirmed = await showAppConfirmDialog(
-      context,
+    final api = context.read<PlaylistsApi>();
+    final ok = await showAppConfigDeleteConfirm(
+      context: context,
       title: '删除播放列表',
       message: '确认删除播放列表“${playlist.name}”？该操作不可恢复。',
-      danger: true,
-      confirmLabel: '删除',
+      onDelete: () => api.deletePlaylist(playlist.id),
+      successToast: '播放列表已删除',
+      failureFallback: '删除播放列表失败',
     );
-    if (!mounted || !confirmed) {
-      return;
-    }
-
-    try {
-      await context.read<PlaylistsApi>().deletePlaylist(playlist.id);
-      showToast('播放列表已删除');
+    if (ok && mounted) {
       await _loadPlaylists();
-    } catch (error) {
-      showToast(apiErrorMessage(error, fallback: '删除播放列表失败'));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_initialized && !widget.active) {
-      return const SizedBox.shrink();
-    }
+    return buildSectionStates(
+      errorTitle: '播放列表加载失败',
+      buildLoaded: _buildLoaded,
+    );
+  }
 
-    if (_isLoading) {
-      return const AppSectionSkeleton(lineCount: 4);
-    }
-
-    if (_errorMessage != null) {
-      return AppSectionError(
-        title: '播放列表加载失败',
-        message: _errorMessage!,
-        onRetry: _loadPlaylists,
-      );
-    }
-
+  Widget _buildLoaded(BuildContext context) {
     final spacing = context.appSpacing;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

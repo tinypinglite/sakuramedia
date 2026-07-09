@@ -1,22 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/core/validation/url_validators.dart';
 import 'package:sakuramedia/features/configuration/data/api/movie_desc_translation_settings_api.dart';
-import 'package:sakuramedia/features/configuration/data/dto/movie_desc_translation_settings_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/controllers/llm_settings_controller.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/llm_settings_copy.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/llm_settings_form_fields.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
 import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
-
-enum _LlmConfigTestState { idle, success, failure }
 
 class DesktopLlmSettingsSection extends StatefulWidget {
   const DesktopLlmSettingsSection({super.key, required this.active});
@@ -29,105 +23,78 @@ class DesktopLlmSettingsSection extends StatefulWidget {
 }
 
 class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  late final TextEditingController _baseUrlController;
-  late final TextEditingController _apiKeyController;
-  late final TextEditingController _modelController;
-  late final TextEditingController _timeoutController;
-  late final TextEditingController _connectTimeoutController;
-
-  bool _enabled = false;
-  bool _initialized = false;
-  bool _isLoading = false;
-  bool _isSaving = false;
-  bool _isTesting = false;
-  bool _obscureApiKey = true;
-  bool _showValidation = false;
-  String? _errorMessage;
-  _LlmConfigTestState _testState = _LlmConfigTestState.idle;
-
-  MovieDescTranslationSettingsApi get _api =>
-      context.read<MovieDescTranslationSettingsApi>();
-
-  bool get _hasCompleteConfig {
-    return _baseUrlError(_baseUrlController.text) == null &&
-        _modelError(_modelController.text) == null &&
-        _timeoutError(_timeoutController.text, label: '请求超时') == null &&
-        _timeoutError(_connectTimeoutController.text, label: '连接超时') == null;
-  }
+  late final LlmSettingsController _controller;
 
   @override
   void initState() {
     super.initState();
-    _baseUrlController = TextEditingController();
-    _apiKeyController = TextEditingController();
-    _modelController = TextEditingController();
-    _timeoutController = TextEditingController();
-    _connectTimeoutController = TextEditingController();
+    _controller = LlmSettingsController(
+      api: context.read<MovieDescTranslationSettingsApi>(),
+    );
     if (widget.active) {
-      unawaited(_loadSettings());
+      unawaited(_controller.load());
     }
   }
 
   @override
   void didUpdateWidget(covariant DesktopLlmSettingsSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.active && !_initialized && !_isLoading) {
-      unawaited(_loadSettings());
+    if (widget.active &&
+        !_controller.initialized &&
+        !_controller.isLoading) {
+      unawaited(_controller.load());
     }
   }
 
   @override
   void dispose() {
-    _baseUrlController.dispose();
-    _apiKeyController.dispose();
-    _modelController.dispose();
-    _timeoutController.dispose();
-    _connectTimeoutController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_initialized && !widget.active) {
-      return const SizedBox.shrink();
-    }
-
-    final spacing = context.appSpacing;
-
-    return AppContentCard(
-      key: const Key('configuration-llm-card'),
-      title: 'LLM 配置',
-      padding: EdgeInsets.all(spacing.lg),
-      titleStyle: resolveAppTextStyle(
-        context,
-        size: AppTextSize.s18,
-        weight: AppTextWeight.semibold,
-        tone: AppTextTone.primary,
-      ),
-      headerBottomSpacing: spacing.md,
-      child: _buildBody(context),
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        if (!_controller.initialized && !widget.active) {
+          return const SizedBox.shrink();
+        }
+        final spacing = context.appSpacing;
+        return AppContentCard(
+          key: const Key('configuration-llm-card'),
+          title: 'LLM 配置',
+          padding: EdgeInsets.all(spacing.lg),
+          titleStyle: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s18,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ),
+          headerBottomSpacing: spacing.md,
+          child: _buildBody(context),
+        );
+      },
     );
   }
 
   Widget _buildBody(BuildContext context) {
-    if (_isLoading) {
+    if (_controller.isLoading) {
       return const _DesktopLlmSkeleton();
     }
-
-    if (_errorMessage != null) {
+    if (_controller.errorMessage != null) {
       return _DesktopLlmErrorState(
-        message: _errorMessage!,
-        onRetry: _loadSettings,
+        message: _controller.errorMessage!,
+        onRetry: _controller.load,
       );
     }
 
     final spacing = context.appSpacing;
-    final autovalidateMode =
-        _showValidation ? AutovalidateMode.always : AutovalidateMode.disabled;
+    final enabled = _controller.enabled;
+    final busy = !_controller.fieldsEnabled;
 
     return Form(
-      key: _formKey,
+      key: _controller.formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -146,8 +113,8 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
               ),
               SizedBox(width: spacing.md),
               AppBadge(
-                label: _enabled ? '已启用' : '已停用',
-                tone: _enabled ? AppBadgeTone.success : AppBadgeTone.warning,
+                label: enabled ? '已启用' : '已停用',
+                tone: enabled ? AppBadgeTone.success : AppBadgeTone.warning,
                 size: AppBadgeSize.compact,
               ),
             ],
@@ -169,19 +136,15 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
             children: [
               _DesktopLlmOverviewStat(
                 label: '启用状态',
-                value: _enabled ? '已启用' : '已停用',
+                value: enabled ? '已启用' : '已停用',
               ),
               _DesktopLlmOverviewStat(
                 label: '配置完整度',
-                value: _hasCompleteConfig ? '可保存' : '待补齐',
+                value: _controller.hasCompleteConfig ? '可保存' : '待补齐',
               ),
               _DesktopLlmOverviewStat(
                 label: '最近测试',
-                value: switch (_testState) {
-                  _LlmConfigTestState.idle => '未测试',
-                  _LlmConfigTestState.success => '测试通过',
-                  _LlmConfigTestState.failure => '测试失败',
-                },
+                value: _controller.testStateLabel,
               ),
             ],
           ),
@@ -204,11 +167,8 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
                   key: const Key('configuration-llm-enabled-button'),
                   label: '已启用',
                   variant: AppButtonVariant.secondary,
-                  isSelected: _enabled,
-                  onPressed:
-                      _isSaving || _isTesting
-                          ? null
-                          : () => _updateEnabled(true),
+                  isSelected: enabled,
+                  onPressed: busy ? null : () => _controller.updateEnabled(true),
                 ),
               ),
               SizedBox(width: spacing.sm),
@@ -218,89 +178,17 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
                   key: const Key('configuration-llm-disabled-button'),
                   label: '已停用',
                   variant: AppButtonVariant.secondary,
-                  isSelected: !_enabled,
+                  isSelected: !enabled,
                   onPressed:
-                      _isSaving || _isTesting
-                          ? null
-                          : () => _updateEnabled(false),
+                      busy ? null : () => _controller.updateEnabled(false),
                 ),
               ),
             ],
           ),
           SizedBox(height: spacing.lg),
-          AppTextField(
-            fieldKey: const Key('configuration-llm-base-url-field'),
-            controller: _baseUrlController,
-            label: 'Base URL',
-            hintText: '请输入 http/https 地址',
-            helperText: LlmSettingsCopy.baseUrlHelperText,
-            enabled: !_isSaving && !_isTesting,
-            keyboardType: TextInputType.url,
-            autovalidateMode: autovalidateMode,
-            validator: _baseUrlError,
-            onChanged: (_) => _handleDraftChanged(),
-          ),
-          SizedBox(height: spacing.md),
-          AppTextField(
-            fieldKey: const Key('configuration-llm-api-key-field'),
-            controller: _apiKeyController,
-            label: 'API Key',
-            hintText: '可为空',
-            enabled: !_isSaving && !_isTesting,
-            obscureText: _obscureApiKey,
-            suffix: AppIconButton(
-              key: const Key('configuration-llm-api-key-visibility-button'),
-              tooltip: _obscureApiKey ? '显示 API Key' : '隐藏 API Key',
-              semanticLabel: _obscureApiKey ? '显示 API Key' : '隐藏 API Key',
-              size: AppIconButtonSize.compact,
-              icon: Icon(
-                _obscureApiKey
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-              ),
-              onPressed:
-                  _isSaving || _isTesting
-                      ? null
-                      : () => setState(() {
-                        _obscureApiKey = !_obscureApiKey;
-                      }),
-            ),
-            onChanged: (_) => _handleDraftChanged(),
-          ),
-          SizedBox(height: spacing.md),
-          AppTextField(
-            fieldKey: const Key('configuration-llm-model-field'),
-            controller: _modelController,
-            label: '模型',
-            hintText: LlmSettingsCopy.modelHintText,
-            enabled: !_isSaving && !_isTesting,
-            autovalidateMode: autovalidateMode,
-            validator: _modelError,
-            onChanged: (_) => _handleDraftChanged(),
-          ),
-          SizedBox(height: spacing.md),
-          AppTextField(
-            fieldKey: const Key('configuration-llm-timeout-field'),
-            controller: _timeoutController,
-            label: '请求超时（秒）',
-            hintText: '请输入正数',
-            enabled: !_isSaving && !_isTesting,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            autovalidateMode: autovalidateMode,
-            validator: (value) => _timeoutError(value, label: '请求超时'),
-            onChanged: (_) => _handleDraftChanged(),
-          ),
-          SizedBox(height: spacing.md),
-          AppTextField(
-            fieldKey: const Key('configuration-llm-connect-timeout-field'),
-            controller: _connectTimeoutController,
-            label: '连接超时（秒）',
-            hintText: '请输入正数',
-            enabled: !_isSaving && !_isTesting,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            autovalidateMode: autovalidateMode,
-            validator: (value) => _timeoutError(value, label: '连接超时'),
-            onChanged: (_) => _handleDraftChanged(),
+          LlmSettingsFormFields(
+            controller: _controller,
+            keyPrefix: 'configuration-llm',
           ),
           SizedBox(height: spacing.lg),
           Row(
@@ -311,8 +199,8 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
                 child: AppButton(
                   key: const Key('configuration-llm-test-button'),
                   label: '测试配置',
-                  isLoading: _isTesting,
-                  onPressed: _isSaving ? null : _handleTest,
+                  isLoading: _controller.isTesting,
+                  onPressed: _controller.isSaving ? null : _controller.runTest,
                 ),
               ),
               SizedBox(width: spacing.md),
@@ -322,8 +210,8 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
                   key: const Key('configuration-llm-save-button'),
                   label: '保存配置',
                   variant: AppButtonVariant.primary,
-                  isLoading: _isSaving,
-                  onPressed: _isTesting ? null : _handleSave,
+                  isLoading: _controller.isSaving,
+                  onPressed: _controller.isTesting ? null : _controller.save,
                 ),
               ),
             ],
@@ -331,204 +219,6 @@ class _DesktopLlmSettingsSectionState extends State<DesktopLlmSettingsSection> {
         ],
       ),
     );
-  }
-
-  Future<void> _loadSettings() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final settings = await _api.getSettings();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _applySettings(settings);
-        _initialized = true;
-        _testState = _LlmConfigTestState.idle;
-        _isLoading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialized = true;
-        _isLoading = false;
-        _errorMessage = apiErrorMessage(error, fallback: 'LLM 配置加载失败');
-      });
-    }
-  }
-
-  Future<void> _handleSave() async {
-    final payload = _buildUpdatePayload();
-    if (payload == null || _isSaving) {
-      return;
-    }
-
-    setState(() {
-      _isSaving = true;
-    });
-
-    try {
-      final saved = await _api.updateSettings(payload);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _applySettings(saved);
-        _testState = _LlmConfigTestState.idle;
-        _isSaving = false;
-      });
-      showToast('LLM 配置已保存');
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isSaving = false;
-      });
-      showToast(apiErrorMessage(error, fallback: '保存 LLM 配置失败'));
-    }
-  }
-
-  Future<void> _handleTest() async {
-    final payload = _buildTestPayload();
-    if (payload == null || _isTesting) {
-      return;
-    }
-
-    setState(() {
-      _isTesting = true;
-    });
-
-    try {
-      final ok = await _api.testSettings(payload);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isTesting = false;
-        _testState =
-            ok ? _LlmConfigTestState.success : _LlmConfigTestState.failure;
-      });
-      showToast(ok ? '测试通过' : '测试失败');
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isTesting = false;
-        _testState = _LlmConfigTestState.failure;
-      });
-      showToast(apiErrorMessage(error, fallback: '测试 LLM 配置失败'));
-    }
-  }
-
-  void _applySettings(MovieDescTranslationSettingsDto settings) {
-    _enabled = settings.enabled;
-    _baseUrlController.text = settings.baseUrl;
-    _apiKeyController.text = settings.apiKey;
-    _modelController.text = settings.model;
-    _timeoutController.text = _formatNumber(settings.timeoutSeconds);
-    _connectTimeoutController.text = _formatNumber(
-      settings.connectTimeoutSeconds,
-    );
-    _showValidation = false;
-    _errorMessage = null;
-  }
-
-  void _updateEnabled(bool enabled) {
-    if (_enabled == enabled) {
-      return;
-    }
-    setState(() {
-      _enabled = enabled;
-      _testState = _LlmConfigTestState.idle;
-    });
-  }
-
-  void _handleDraftChanged() {
-    if (_testState == _LlmConfigTestState.idle) {
-      return;
-    }
-    setState(() {
-      _testState = _LlmConfigTestState.idle;
-    });
-  }
-
-  UpdateMovieDescTranslationSettingsPayload? _buildUpdatePayload() {
-    if (!_validateForm()) {
-      return null;
-    }
-    return UpdateMovieDescTranslationSettingsPayload(
-      enabled: _enabled,
-      baseUrl: _baseUrlController.text.trim(),
-      apiKey: _apiKeyController.text,
-      model: _modelController.text.trim(),
-      timeoutSeconds: double.parse(_timeoutController.text.trim()),
-      connectTimeoutSeconds: double.parse(
-        _connectTimeoutController.text.trim(),
-      ),
-    );
-  }
-
-  TestMovieDescTranslationSettingsPayload? _buildTestPayload() {
-    if (!_validateForm()) {
-      return null;
-    }
-    return TestMovieDescTranslationSettingsPayload(
-      enabled: _enabled,
-      baseUrl: _baseUrlController.text.trim(),
-      apiKey: _apiKeyController.text,
-      model: _modelController.text.trim(),
-      timeoutSeconds: double.parse(_timeoutController.text.trim()),
-      connectTimeoutSeconds: double.parse(
-        _connectTimeoutController.text.trim(),
-      ),
-    );
-  }
-
-  bool _validateForm() {
-    setState(() {
-      _showValidation = true;
-    });
-    return _formKey.currentState?.validate() ?? false;
-  }
-
-  String? _baseUrlError(String? value) {
-    final trimmed = value?.trim() ?? '';
-    if (trimmed.isEmpty || !isValidHttpUrl(trimmed)) {
-      return '请输入合法的 http/https 地址';
-    }
-    return null;
-  }
-
-  String? _modelError(String? value) {
-    if ((value?.trim() ?? '').isEmpty) {
-      return '请输入模型名称';
-    }
-    return null;
-  }
-
-  String? _timeoutError(String? value, {required String label}) {
-    final trimmed = value?.trim() ?? '';
-    if (trimmed.isEmpty) {
-      return '请输入$label';
-    }
-    final parsed = double.tryParse(trimmed);
-    if (parsed == null || parsed <= 0) {
-      return '$label必须是正数';
-    }
-    return null;
-  }
-
-  String _formatNumber(double value) {
-    return value == value.roundToDouble()
-        ? value.toInt().toString()
-        : value.toString();
   }
 }
 

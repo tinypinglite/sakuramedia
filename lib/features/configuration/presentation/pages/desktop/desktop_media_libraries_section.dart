@@ -4,16 +4,15 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/controllers/section_loader_mixin.dart';
 import 'package:sakuramedia/features/configuration/presentation/forms/media_library_form.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_inline_action_button.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_settings_group.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
-import 'package:sakuramedia/widgets/feedback/app_section_error.dart';
-import 'package:sakuramedia/widgets/feedback/app_section_skeleton.dart';
 
 class MediaLibrariesSection extends StatefulWidget {
   const MediaLibrariesSection({
@@ -29,54 +28,37 @@ class MediaLibrariesSection extends StatefulWidget {
   State<MediaLibrariesSection> createState() => _MediaLibrariesSectionState();
 }
 
-class _MediaLibrariesSectionState extends State<MediaLibrariesSection> {
-  bool _initialized = false;
-  bool _isLoading = false;
-  String? _errorMessage;
+class _MediaLibrariesSectionState extends State<MediaLibrariesSection>
+    with SectionLoaderMixin<List<MediaLibraryDto>, MediaLibrariesSection> {
   List<MediaLibraryDto> _libraries = const <MediaLibraryDto>[];
+
+  @override
+  bool get isSectionActive => widget.active;
+
+  @override
+  Future<List<MediaLibraryDto>> fetchSectionData() =>
+      context.read<MediaLibrariesApi>().getLibraries();
+
+  @override
+  void applySectionData(List<MediaLibraryDto> data) {
+    _libraries = data;
+  }
+
+  @override
+  String get sectionLoadErrorFallback => '媒体库加载失败，请稍后重试。';
+
+  Future<void> _loadLibraries() => loadSectionData();
 
   @override
   void initState() {
     super.initState();
-    if (widget.active) {
-      _loadLibraries();
-    }
+    tryLoadIfActive();
   }
 
   @override
   void didUpdateWidget(covariant MediaLibrariesSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.active && !_initialized && !_isLoading) {
-      _loadLibraries();
-    }
-  }
-
-  Future<void> _loadLibraries() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final libraries = await context.read<MediaLibrariesApi>().getLibraries();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _libraries = libraries;
-        _initialized = true;
-        _isLoading = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _initialized = true;
-        _isLoading = false;
-        _errorMessage = apiErrorMessage(error, fallback: '媒体库加载失败，请稍后重试。');
-      });
-    }
+    tryLoadIfActive();
   }
 
   Future<void> _createLibrary() async {
@@ -123,46 +105,30 @@ class _MediaLibrariesSectionState extends State<MediaLibrariesSection> {
   }
 
   Future<void> _deleteLibrary(MediaLibraryDto library) async {
-    final confirmed = await showAppConfirmDialog(
-      context,
+    final api = context.read<MediaLibrariesApi>();
+    final ok = await showAppConfigDeleteConfirm(
+      context: context,
       title: '删除媒体库',
       message: '确认删除媒体库“${library.name}”？该操作不可恢复。',
-      danger: true,
-      confirmLabel: '删除',
+      onDelete: () => api.deleteLibrary(library.id),
+      successToast: '媒体库已删除',
+      failureFallback: '删除媒体库失败',
     );
-
-    if (!mounted || !confirmed) {
-      return;
-    }
-
-    try {
-      await context.read<MediaLibrariesApi>().deleteLibrary(library.id);
-      showToast('媒体库已删除');
+    if (ok && mounted) {
       widget.onLibrariesChanged();
       await _loadLibraries();
-    } catch (error) {
-      showToast(apiErrorMessage(error, fallback: '删除媒体库失败'));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_initialized && !widget.active) {
-      return const SizedBox.shrink();
-    }
+    return buildSectionStates(
+      errorTitle: '媒体库加载失败',
+      buildLoaded: _buildLoaded,
+    );
+  }
 
-    if (_isLoading) {
-      return const AppSectionSkeleton(lineCount: 4);
-    }
-
-    if (_errorMessage != null) {
-      return AppSectionError(
-        title: '媒体库加载失败',
-        message: _errorMessage!,
-        onRetry: _loadLibraries,
-      );
-    }
-
+  Widget _buildLoaded(BuildContext context) {
     final spacing = context.appSpacing;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

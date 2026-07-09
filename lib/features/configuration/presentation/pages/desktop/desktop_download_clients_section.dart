@@ -6,16 +6,17 @@ import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.
 import 'package:sakuramedia/features/configuration/data/api/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/download_client_diagnostics_dialog.dart';
 import 'package:sakuramedia/features/configuration/presentation/forms/download_client_form.dart';
 import 'package:sakuramedia/features/configuration/presentation/controllers/download_client_probe_controller.dart';
+import 'package:sakuramedia/features/configuration/presentation/controllers/download_client_probe_interactions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
 import 'package:sakuramedia/widgets/actions/app_inline_action_button.dart';
 import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
 import 'package:sakuramedia/widgets/app_shell/app_settings_group.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/feedback/app_section_skeleton.dart';
 import 'package:sakuramedia/widgets/forms/app_info_pill.dart';
@@ -142,24 +143,16 @@ class _DownloadClientsSectionState extends State<DownloadClientsSection> {
 
   Future<void> _deleteClient(DownloadClientDto client) async {
     final api = context.read<DownloadClientsApi>();
-    final confirmed = await showAppConfirmDialog(
-      context,
+    final ok = await showAppConfigDeleteConfirm(
+      context: context,
       title: '删除下载器',
       message: '确认删除下载器“${client.name}”？该操作不会删除下载任务。',
-      danger: true,
-      confirmLabel: '删除',
+      onDelete: () => api.deleteClient(client.id),
+      successToast: '下载器已删除',
+      failureFallback: '删除下载器失败',
     );
-
-    if (!mounted || !confirmed) {
-      return;
-    }
-
-    try {
-      await api.deleteClient(client.id);
-      showToast('下载器已删除');
+    if (ok && mounted) {
       await _loadData();
-    } catch (error) {
-      showToast(apiErrorMessage(error, fallback: '删除下载器失败'));
     }
   }
 
@@ -298,40 +291,22 @@ class _DownloadClientCardState extends State<DownloadClientCard> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _handleConnectivityChipTap() async {
-    if (_probe.busy) return;
-    if (_probe.canReplayConnectivityDialog) {
-      await _openConnectivityDialog(_probe.lastConnectivityResult!);
-      return;
-    }
-    try {
-      final result = await _probe.runConnectivity(widget.runTest);
-      if (!mounted || result == null) return;
-      if (_probe.connectivityChipState != DownloadClientProbeChipState.healthy) {
-        await _openConnectivityDialog(result);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      showToast(apiErrorMessage(error, fallback: '连通性检测请求失败'));
-    }
+  Future<void> _handleConnectivityChipTap() {
+    return handleProbeConnectivityTap(
+      context: context,
+      probe: _probe,
+      runTest: widget.runTest,
+      openDialog: _openConnectivityDialog,
+    );
   }
 
-  Future<void> _handleStorageChipTap() async {
-    if (_probe.busy) return;
-    if (_probe.canReplayStorageDialog) {
-      await _openStorageDialog(_probe.lastStorageResult!);
-      return;
-    }
-    try {
-      final result = await _probe.runStorage(widget.runStorageTest);
-      if (!mounted || result == null) return;
-      if (_probe.storageChipState != DownloadClientProbeChipState.healthy) {
-        await _openStorageDialog(result);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      showToast(apiErrorMessage(error, fallback: '目录映射检测请求失败'));
-    }
+  Future<void> _handleStorageChipTap() {
+    return handleProbeStorageTap(
+      context: context,
+      probe: _probe,
+      runTest: widget.runStorageTest,
+      openDialog: _openStorageDialog,
+    );
   }
 
   Future<void> _openConnectivityDialog(
@@ -574,62 +549,33 @@ class _DownloadClientDialogState extends State<DownloadClientDialog> {
   }
 
   Future<void> _handleConnectivityChipTap() async {
-    if (_probe.busy) return;
-    if (_probe.canReplayConnectivityDialog) {
-      // 重跑用表单当前值(用户可能已修改)。
-      final value = _validatedFormValue();
-      if (value == null) return;
-      await _openConnectivityDialog(
-        _probe.lastConnectivityResult!,
-        value.toProbeTestPayload(clientId: widget.initialClient?.id),
-      );
-      return;
-    }
     final value = _validatedFormValue();
     if (value == null) return;
-    final payload = value.toProbeTestPayload(clientId: widget.initialClient?.id);
+    final payload = value.toProbeTestPayload(
+      clientId: widget.initialClient?.id,
+    );
     final api = context.read<DownloadClientsApi>();
-    try {
-      final result = await _probe.runConnectivity(() => api.probeTestClient(payload));
-      if (!mounted || result == null) return;
-      if (_probe.connectivityChipState != DownloadClientProbeChipState.healthy) {
-        await _openConnectivityDialog(result, payload);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      showToast(apiErrorMessage(error, fallback: '连通性检测请求失败'));
-    }
+    await handleProbeConnectivityTap(
+      context: context,
+      probe: _probe,
+      runTest: () => api.probeTestClient(payload),
+      openDialog: (result) => _openConnectivityDialog(result, payload),
+    );
   }
 
   Future<void> _handleStorageChipTap() async {
-    if (_probe.busy) return;
-    if (_probe.canReplayStorageDialog) {
-      final value = _validatedFormValue();
-      if (value == null) return;
-      await _openStorageDialog(
-        _probe.lastStorageResult!,
-        value.toProbeStorageTestPayload(clientId: widget.initialClient?.id),
-        value.baseUrl,
-      );
-      return;
-    }
     final value = _validatedFormValue();
     if (value == null) return;
     final payload = value.toProbeStorageTestPayload(
       clientId: widget.initialClient?.id,
     );
     final api = context.read<DownloadClientsApi>();
-    try {
-      final result =
-          await _probe.runStorage(() => api.probeStorageTestClient(payload));
-      if (!mounted || result == null) return;
-      if (_probe.storageChipState != DownloadClientProbeChipState.healthy) {
-        await _openStorageDialog(result, payload, value.baseUrl);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      showToast(apiErrorMessage(error, fallback: '目录映射检测请求失败'));
-    }
+    await handleProbeStorageTap(
+      context: context,
+      probe: _probe,
+      runTest: () => api.probeStorageTestClient(payload),
+      openDialog: (result) => _openStorageDialog(result, payload, value.baseUrl),
+    );
   }
 
   Future<void> _openConnectivityDialog(

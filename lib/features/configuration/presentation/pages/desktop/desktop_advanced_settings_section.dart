@@ -9,7 +9,7 @@ import 'package:sakuramedia/features/configuration/data/api/config_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/config_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/forms/app_password_field.dart';
 import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
 import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
 import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
@@ -59,7 +59,6 @@ class _DesktopAdvancedSettingsSectionState
 
   bool _initialized = false;
   bool _isLoading = false;
-  bool _obscureJavdbPassword = true;
   String? _errorMessage;
   String _loggingLevel = _defaultLoggingLevel;
   String _savedLoggingLevel = _defaultLoggingLevel;
@@ -337,34 +336,18 @@ class _DesktopAdvancedSettingsSectionState
                   helperText: '用于抓取需要登录的 TOP250 榜单。',
                   onChanged: (_) => _markDirty(_AdvancedCardKind.metadata),
                 ),
-                AppTextField(
+                AppPasswordField(
                   fieldKey: const Key(
                     'configuration-advanced-javdb-password-field',
+                  ),
+                  visibilityButtonKey: const Key(
+                    'configuration-advanced-javdb-password-visibility-button',
                   ),
                   controller: _javdbPasswordController,
                   label: 'JavDB 密码',
                   hintText: '留空表示不修改已保存密码',
                   helperText: '保存时留空不会进入提交 payload。',
-                  obscureText: _obscureJavdbPassword,
-                  suffix: AppIconButton(
-                    key: const Key(
-                      'configuration-advanced-javdb-password-visibility-button',
-                    ),
-                    tooltip: _obscureJavdbPassword ? '显示密码' : '隐藏密码',
-                    semanticLabel: _obscureJavdbPassword ? '显示密码' : '隐藏密码',
-                    size: AppIconButtonSize.compact,
-                    icon: Icon(
-                      _obscureJavdbPassword
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                    ),
-                    onPressed:
-                        _savingCards.contains(_AdvancedCardKind.metadata)
-                            ? null
-                            : () => setState(() {
-                              _obscureJavdbPassword = !_obscureJavdbPassword;
-                            }),
-                  ),
+                  enabled: !_savingCards.contains(_AdvancedCardKind.metadata),
                   onChanged: (_) => _markDirty(_AdvancedCardKind.metadata),
                 ),
               ],
