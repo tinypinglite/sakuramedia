@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/domain/clips/clip_cover_overlays.dart';
 
 /// 合集「成员」（切片 / 视频）在详情页的共享展示组件：列表行 [CollectionMemberRow]
 /// 与网格卡 [CollectionMemberCard]。
@@ -499,7 +500,7 @@ class CollectionMemberCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               _buildCover(context),
-              const _MemberPlayOverlay(),
+              const ClipPlayOverlay(),
               if (badge != null)
                 Positioned(right: spacing.xs, bottom: spacing.xs, child: badge),
             ],
@@ -560,7 +561,7 @@ class CollectionMemberCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             _buildCover(context),
-            const _MemberPlayOverlay(),
+            const ClipPlayOverlay(),
             Positioned(
               left: 0,
               right: 0,
@@ -608,7 +609,7 @@ class CollectionMemberCard extends StatelessWidget {
       children: [
         _buildCover(context),
         const _MemberCaptionShade(),
-        const _MemberPlayOverlay(),
+        const ClipPlayOverlay(),
         Positioned(
           left: spacing.md,
           right: spacing.md,
@@ -708,21 +709,3 @@ class _CoverPlaceholder extends StatelessWidget {
   }
 }
 
-/// 网格卡封面上的播放遮罩：半透明暗层 + 居中播放图标。
-class _MemberPlayOverlay extends StatelessWidget {
-  const _MemberPlayOverlay();
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.16)),
-      child: Center(
-        child: Icon(
-          Icons.play_circle_outline_rounded,
-          color: Colors.white.withValues(alpha: 0.92),
-          size: context.appComponentTokens.iconSize2xl,
-        ),
-      ),
-    );
-  }
-}

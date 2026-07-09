@@ -67,11 +67,6 @@
 
 ## clips —— 切片
 
-### ClipCard(list row 形态)
-- **路径**: `lib/widgets/domain/clips/clip_card.dart`
-- **用途**: 切片**行 item**(横排:缩略图 + 元数据 + 菜单)。
-- **required**: `clip` · `onPlay` · `onRename` · `onDelete`
-
 ### ClipGridCard(网格 tile,推荐主用)
 - **路径**: `lib/widgets/domain/clips/clip_grid_card.dart`
 - **用途**: 切片**网格 tile**——支持多选、右键 / 长按上下文菜单、跳转原影片。
@@ -89,7 +84,7 @@
 - **路径**: `lib/widgets/domain/clips/clip_cover_overlays.dart`
 - **用途**: 切片封面上的两个覆盖层——中间"播放三角"和右下"时长徽标"。
 - **ClipDurationBadge required**: `seconds`
-- **何时用**: 自建切片封面时叠加。已经在 `ClipGridCard` / `ClipCoverCard` 里用过。
+- **何时用**: 自建切片封面时叠加。目前 `CollectionMemberCard`(合集成员网格 tile)在用 `ClipPlayOverlay`;`ClipGridCard` / `ClipCoverCard` 走"整卡点击直接播"路径,未叠此遮罩。
 
 ### ClipSelectionStatusBar
 - **路径**: `lib/widgets/domain/clips/clip_selection_status_bar.dart`
