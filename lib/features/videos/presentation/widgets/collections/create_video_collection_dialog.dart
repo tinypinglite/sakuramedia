@@ -5,10 +5,10 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 /// 视频合集创建/编辑的呈现形态：桌面弹窗 / 移动端底部抽屉。
 enum VideoCollectionEditPresentation { dialog, bottomDrawer }

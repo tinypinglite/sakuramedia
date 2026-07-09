@@ -10,8 +10,8 @@ import 'package:sakuramedia/features/movies/presentation/controllers/listing/mov
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_list_filterable_page_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_filter_total_header.dart';
-import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/movies/movie_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 

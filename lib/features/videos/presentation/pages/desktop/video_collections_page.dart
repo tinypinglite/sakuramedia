@@ -10,10 +10,10 @@ import 'package:sakuramedia/features/videos/presentation/widgets/collections/cre
 import 'package:sakuramedia/features/videos/presentation/controllers/collections/video_collections_overview_controller.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/collections/collection_card.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
 class DesktopVideoCollectionsPage extends StatefulWidget {
   const DesktopVideoCollectionsPage({super.key});

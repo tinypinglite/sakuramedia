@@ -9,13 +9,13 @@ import 'package:sakuramedia/features/media/data/invalid_media_dto.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/presentation/invalid_media_controller.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
-import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/app_shell/app_page_frame.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_page_frame.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 class DesktopMediaMaintenancePage extends StatefulWidget {
   const DesktopMediaMaintenancePage({super.key, this.active = true});

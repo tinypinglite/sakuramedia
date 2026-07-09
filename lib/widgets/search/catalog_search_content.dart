@@ -4,9 +4,9 @@ import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto
 import 'package:sakuramedia/features/search/presentation/catalog_search_controller.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actors/actor_summary_grid.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
-import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 import 'package:sakuramedia/widgets/search/catalog_search_field.dart';
 import 'package:sakuramedia/widgets/search/catalog_search_stream_status_card.dart';
 

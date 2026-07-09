@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/configuration/presentation/controllers/llm_settings_controller.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/llm_settings_copy.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/forms/app_password_field.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_password_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 /// LLM 设置表单核心字段：Base URL / API Key / 模型 / 请求超时 / 连接超时。
 ///

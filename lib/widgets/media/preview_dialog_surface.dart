@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 class PreviewDialogSurface extends StatelessWidget {
   const PreviewDialogSurface({

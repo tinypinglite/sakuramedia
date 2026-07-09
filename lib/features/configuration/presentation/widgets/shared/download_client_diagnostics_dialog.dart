@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/app_shell/app_settings_group.dart';
-import 'package:sakuramedia/widgets/forms/app_info_pill.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
+import 'package:sakuramedia/widgets/base/forms/app_info_pill.dart';
 
 /// 下载器卡片上的探针状态胶囊状态机。
 /// - [notTested]:从未点过,ghost 观感,点击运行探针

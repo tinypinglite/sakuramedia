@@ -7,8 +7,8 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media_player/themed_video_player.dart';
 
 /// 列表卡片「播放」icon 的轻量弹窗播放器：拉一次详情取默认（首个可播）媒体源，

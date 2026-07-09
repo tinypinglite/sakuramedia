@@ -6,7 +6,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media_player/landscape_player_system_ui.dart';
 import 'package:sakuramedia/widgets/media_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/media_player/movie_player_surface.dart';

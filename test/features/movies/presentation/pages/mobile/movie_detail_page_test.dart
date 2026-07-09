@@ -26,9 +26,9 @@ import 'package:sakuramedia/features/playlists/data/api/playlists_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/app_shell/app_mobile_subpage_shell.dart';
-import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_hero_card.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_card.dart';
 

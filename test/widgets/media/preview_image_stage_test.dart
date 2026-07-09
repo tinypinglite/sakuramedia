@@ -5,8 +5,8 @@ import 'package:photo_view/photo_view_gallery.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/media/preview_image_stage.dart';
 
 void main() {

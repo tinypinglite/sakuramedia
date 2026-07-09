@@ -8,8 +8,8 @@ import 'package:sakuramedia/features/configuration/presentation/pages/desktop/de
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_playlists_section.dart';
 import 'package:sakuramedia/features/media/presentation/desktop_media_maintenance_page.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
-import 'package:sakuramedia/widgets/app_shell/app_settings_rail.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_settings_rail.dart';
 
 class DesktopConfigurationPage extends StatefulWidget {
   const DesktopConfigurationPage({super.key});

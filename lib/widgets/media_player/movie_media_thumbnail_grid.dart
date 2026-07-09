@@ -8,15 +8,15 @@ import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/layout/staggered_layout.dart';
-import 'package:sakuramedia/widgets/media/app_image_action_trigger.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/staggered_layout.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
-// 瀑布流布局工具已抽到 lib/widgets/layout/staggered_layout.dart 共用，本文件 re-export 三符号
+// 瀑布流布局工具已抽到 lib/widgets/base/layout/grids/staggered_layout.dart 共用，本文件 re-export 三符号
 // 兼容历史 import 路径与单测；新代码请直接 import 公共模块。
-export 'package:sakuramedia/widgets/layout/staggered_layout.dart'
+export 'package:sakuramedia/widgets/base/layout/grids/staggered_layout.dart'
     show StaggeredLayoutResult, StaggeredTilePlacement, computeStaggeredLayout;
 
 /// 缩略图网格的两种布局：

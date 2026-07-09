@@ -21,14 +21,14 @@ import 'package:sakuramedia/features/clips/presentation/pages/mobile/clip_player
 import 'package:sakuramedia/features/clips/presentation/widgets/rename_clip_dialog.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/clips/clip_cover_card.dart';
 import 'package:sakuramedia/widgets/collections/collection_card.dart';
-import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 
 /// 概览页「切片」tab：上方「我的合集」横滑区 + 下方「全部切片」网格。
 ///

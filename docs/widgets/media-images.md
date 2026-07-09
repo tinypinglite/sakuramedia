@@ -7,7 +7,7 @@
 三个组件都自己读 `AppImageConfig.enableBlur/blurSigma` 包模糊、都自己拼 baseUrl,**改模糊逻辑要同时改三处**。
 
 ### MaskedImage
-- **路径**: `lib/widgets/media/masked_image.dart`
+- **路径**: `lib/widgets/base/media/images/masked_image.dart`
 - **用途**: **普通封面 / 缩略图**的**唯一标准入口**(自动 decode 提示 + 占位 / 错误图)。
 - **required**: `url`
 - **可选**: `fit`(默认 `BoxFit.cover`) · `visibleWidthFactor`(0<x<=1,只显左侧一段) · `visibleAlignment` · `memCacheWidth` / `memCacheHeight`
@@ -21,7 +21,7 @@
 - **和 `MaskedImage` 的差异**: 列表封面用它会多开销;剧情图用 `MaskedImage` 会丢比例(cover 裁掉)。**不可互换**。
 
 ### AppImageFullscreenHost(+ `AppPinchToFullscreenImage`)
-- **路径**: `lib/widgets/media/app_image_fullscreen.dart`
+- **路径**: `lib/widgets/base/media/images/app_image_fullscreen.dart`
 - **用途**: 全屏 / 画廊(基于 `photo_view`),支持双指捏合放大 → 拉起全屏。
 - **AppImageFullscreenHost required**: `child`(**必须包在路由树高处**——触发器靠 `findAncestorStateOfType` 找它,找不到则全屏 / 抽屉**静默失败**)。
 - **AppPinchToFullscreenImage required**: `child` · 二选一 `url` / `imageProvider`
@@ -34,14 +34,14 @@
 ## 二、图片右键 / 长按菜单
 
 ### AppImageActionTrigger
-- **路径**: `lib/widgets/media/app_image_action_trigger.dart`
+- **路径**: `lib/widgets/base/media/images/app_image_action_trigger.dart`
 - **用途**: 给图片包裹一层手势(右键 + 长按)→ 通过 `onRequestMenu(Offset globalPosition)` 回调让调用方唤菜单。
 - **required**: `child` · `onRequestMenu`
 - **可选**: `onTap` · `mouseCursor`
 - **何时用**: 任何"图片支持复制链接 / 保存 / 搜索相似"的场景——影片封面卡、剧情图、moment、图搜结果。
 
 ### showAppImageActionMenu
-- **路径**: `lib/widgets/media/app_image_action_menu.dart`
+- **路径**: `lib/widgets/base/media/images/app_image_action_menu.dart`
 - **签名**: `Future<AppImageActionType?> showAppImageActionMenu({ required BuildContext context, required List<AppImageActionDescriptor> actions, required Offset? globalPosition, AppImageActionMenuPresentation presentation = popup })`
 - **用途**: 图片操作菜单(复制链接 / 保存到相册 / 用它搜相似 …),自适应 popup(桌面弹右键菜单) vs bottomDrawer(移动底抽屉)。
 - **何时用**: 配合 `AppImageActionTrigger` 的 `onRequestMenu` 回调唤起。
@@ -91,7 +91,7 @@
 ## 五、缩略图列数解析
 
 ### resolveThumbnailGridColumns(工具函数,非 widget)
-- **路径**: `lib/widgets/media/thumbnail_grid_column_resolver.dart`
+- **路径**: `lib/widgets/base/media/images/thumbnail_grid_column_resolver.dart`
 - **用途**: 按容器宽 / 目标 tile 宽解析出列数(与 media_player 的 `MovieMediaThumbnailGrid` 共用规则)。
 - **何时用**: 需要"跟播放器缩略图面板同规则"计算列数的地方。
 

@@ -7,12 +7,12 @@ import 'package:sakuramedia/features/configuration/presentation/controllers/llm_
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/llm_settings_copy.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/llm_settings_form_fields.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/app_shell/app_notice_card.dart';
-import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 
 class MobileLlmSettingsPage extends StatefulWidget {
   const MobileLlmSettingsPage({super.key});

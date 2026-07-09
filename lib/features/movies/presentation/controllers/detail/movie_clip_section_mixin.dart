@@ -9,7 +9,7 @@ import 'package:sakuramedia/features/clips/presentation/controllers/clip_mutatio
 import 'package:sakuramedia/features/clips/presentation/widgets/rename_clip_dialog.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/detail/movie_clips_controller.dart';
 import 'package:sakuramedia/widgets/clips/clip_player_dialog.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
 /// 影片详情页「切片」区块的交互动作集合，供桌面 / 移动两端详情页 `with` 复用，
 /// 避免播放 / 改名 / 删除 / 加入合集这套 handler 在两端逐行重复。

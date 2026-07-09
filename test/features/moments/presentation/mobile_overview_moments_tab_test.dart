@@ -13,7 +13,7 @@ import 'package:sakuramedia/features/moments/presentation/mobile_overview_moment
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 
 import '../../../support/test_api_bundle.dart';
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 /// 非 JAV 视频列表卡片：封面 + 标题，中部播放按钮，右键 / 长按弹菜单（加入合集 / 删除）。
 ///

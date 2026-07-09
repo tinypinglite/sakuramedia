@@ -11,11 +11,11 @@ import 'package:sakuramedia/features/playlists/presentation/widgets/create_playl
 import 'package:sakuramedia/features/playlists/presentation/widgets/edit_playlist_dialog.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/app_shell/app_notice_card.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/playlists/playlist_management_card.dart';
 
 class MobilePlaylistsPage extends StatefulWidget {

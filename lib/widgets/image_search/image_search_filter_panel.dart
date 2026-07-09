@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 
 class ImageSearchFilterPanel extends StatelessWidget {
   const ImageSearchFilterPanel({

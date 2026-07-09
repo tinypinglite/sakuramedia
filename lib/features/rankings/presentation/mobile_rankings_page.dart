@@ -14,12 +14,12 @@ import 'package:sakuramedia/features/rankings/presentation/rankings_list_page_st
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/navigation/app_mobile_tab_header.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_tab_header.dart';
 import 'package:sakuramedia/widgets/rankings/ranked_movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/rankings/ranking_filter_sections.dart';
 

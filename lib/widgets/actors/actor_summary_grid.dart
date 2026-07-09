@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/actors/actor_summary_card.dart';
-import 'package:sakuramedia/widgets/app_adaptive_card_grid.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 
 class ActorSummaryGrid extends StatelessWidget {
   const ActorSummaryGrid({

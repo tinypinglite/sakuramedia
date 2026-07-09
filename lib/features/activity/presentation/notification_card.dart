@@ -3,8 +3,8 @@ import 'package:sakuramedia/core/format/updated_at_label.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/notification_center_controller.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
-import 'package:sakuramedia/widgets/forms/app_select_field.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 
 /// 通知列表卡片。已读为「无感」自动处理，卡片本身不区分已读/未读视觉，
 /// 未读信号统一交给侧边栏角标。

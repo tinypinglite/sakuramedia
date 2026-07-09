@@ -11,7 +11,7 @@ import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
 import 'package:sakuramedia/features/media_import/presentation/desktop_media_import_page.dart';
 import 'package:sakuramedia/features/videos/data/api/video_imports_api.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 
 import '../../../support/test_api_bundle.dart';
 

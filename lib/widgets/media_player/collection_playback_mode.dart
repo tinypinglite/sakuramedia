@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 合集连播的两种播放形态：
 /// - [playlist] 原生 media_kit `Playlist`：一集接一集，UI 显示当前集进度条。

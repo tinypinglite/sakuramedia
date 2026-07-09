@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/forms/app_select_field.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 class DownloadClientFormValue {
   const DownloadClientFormValue({

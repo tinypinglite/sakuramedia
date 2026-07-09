@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 
 /// 演员筛选所有 section 的纵向 Column。
 ///

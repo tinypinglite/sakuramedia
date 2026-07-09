@@ -248,7 +248,7 @@
 ## batch —— 批量任务
 
 ### runBatchOperation&lt;T&gt;
-- **路径**: `lib/widgets/batch/batch_progress_dialog.dart`
+- **路径**: `lib/widgets/base/operations/batch/batch_progress_dialog.dart`
 - **签名**: `Future<BatchRunResult<T>> runBatchOperation<T>(...)`(具体参数见源码)
 - **用途**: 批量操作进度弹窗——内部起 `_BatchProgressDialog`,追踪 N 个任务(排队 / 进行中 / 成功 / 失败),返回聚合结果 `BatchRunResult<T>`。
 - **何时用**: 任何"批量删除 / 批量下载 / 批量补数据 / 批量刷新"操作,都走它,不要自己写 progress 弹窗。

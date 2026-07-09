@@ -7,9 +7,9 @@ import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/clips/data/api/clips_api.dart';
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 /// 弹出切片标题输入对话框并执行同步切片创建。
 ///

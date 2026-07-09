@@ -19,15 +19,15 @@ import 'package:sakuramedia/features/shared/presentation/collection_playback_han
 import 'package:sakuramedia/widgets/media_player/collection_playback_mode.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/batch/batch_progress_dialog.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/clips/clip_cover_card.dart';
 import 'package:sakuramedia/widgets/collections/collection_member_views.dart';
-import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
-import 'package:sakuramedia/widgets/selection/multi_select_state_mixin.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 
 /// 合集详情的切片排布方式：纵向列表或网格（侧重浏览）。
 enum _ClipLayout { list, grid }

@@ -13,14 +13,14 @@ import 'package:sakuramedia/features/videos/data/api/video_imports_api.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/imports/video_import_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/imports/video_import_dialog.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
-import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/app_shell/app_page_frame.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
-import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_page_frame.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 
 class DesktopMediaImportPage extends StatefulWidget {
   const DesktopMediaImportPage({super.key});

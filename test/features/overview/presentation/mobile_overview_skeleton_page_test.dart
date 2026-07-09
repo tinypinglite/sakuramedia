@@ -38,8 +38,8 @@ import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
-import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 
 import '../../../support/in_memory_credential_store.dart';
 import '../../../support/test_api_bundle.dart';

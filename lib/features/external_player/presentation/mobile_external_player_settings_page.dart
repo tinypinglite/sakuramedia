@@ -7,7 +7,7 @@ import 'package:sakuramedia/features/external_player/data/external_player_app.da
 import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_store.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_shell/app_settings_group.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
 
 class MobileExternalPlayerSettingsPage extends StatefulWidget {
   const MobileExternalPlayerSettingsPage({super.key});

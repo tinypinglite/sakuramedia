@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 
 enum MomentSortHeaderVariant { standard, mobileTagCompact }
 

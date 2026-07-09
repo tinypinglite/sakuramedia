@@ -11,13 +11,13 @@ import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_play
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/media/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/moments/moment_grid.dart';
-import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/moments/moment_preview_dialog.dart';
 import 'package:sakuramedia/widgets/moments/moment_sort_header.dart';
 

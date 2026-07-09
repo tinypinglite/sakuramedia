@@ -14,7 +14,7 @@ import 'package:sakuramedia/features/tags/presentation/tags_page_state.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 
 class DesktopTagsPage extends StatefulWidget {
   const DesktopTagsPage({super.key, this.initialTagId});

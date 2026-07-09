@@ -10,8 +10,8 @@ import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.d
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 import '../../../support/test_api_bundle.dart';
 

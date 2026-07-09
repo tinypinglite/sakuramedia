@@ -10,16 +10,16 @@ import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.da
 import 'package:sakuramedia/features/configuration/presentation/forms/media_library_form.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_entity_list_card.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/app_shell/app_notice_card.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_empty_card.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
-import 'package:sakuramedia/widgets/feedback/app_mobile_section_error.dart';
-import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
-import 'package:sakuramedia/widgets/sheets/app_bottom_form_sheet.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
 
 class MobileMediaLibrariesPage extends StatefulWidget {
   const MobileMediaLibrariesPage({super.key});

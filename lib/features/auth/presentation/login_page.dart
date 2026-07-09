@@ -11,8 +11,8 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, required this.platform});

@@ -3,7 +3,7 @@
 三个原子件,足够覆盖"横向切分 + 移动筛选进入"两种交互。
 
 ## AppTabBar
-- **路径**: `lib/widgets/navigation/app_tab_bar.dart`
+- **路径**: `lib/widgets/base/navigation/app_tab_bar.dart`
 - **用途**: 通用 tab 条,`PreferredSizeWidget`。**四种 variant 自动分流**。
 - **required**: `tabs`
 - **可选**: `controller` · `onTap` · `variant: auto|desktop|compact|mobileTop`(默认 auto) · `tabHeight` · `indicatorSize`
@@ -12,14 +12,14 @@
 - **注意**: 指示器是自绘 `_ThinTabIndicator`。改样式改这里,别在业务侧覆盖。
 
 ## AppMobileTabHeader(+ `AppMobileTabChip`)
-- **路径**: `lib/widgets/navigation/app_mobile_tab_header.dart`
+- **路径**: `lib/widgets/base/navigation/app_mobile_tab_header.dart`
 - **用途**: 移动端"chip 组 + 右侧筛选按钮"顶部条。跟 `AppTabBar(mobileTop)` **不是同一种**——它是**并列 chips 直接切数据**(不是路由 tab),右侧可点开筛选抽屉。
 - **required**: `chips: List<AppMobileTabChip>`(每个 chip 有 `label` / `isActive` / `onTap` / `key`)
 - **可选**: `onFilterTap` · `filterIcon`(默认 `Icons.tune_rounded`) · `filterTooltip` · `filterButtonKey` · `trailing`
 - **何时用**: 移动"这一屏内切几组数据 + 需要筛选"——比如 overview 移动版下的女优 / 影片 tab 切换。
 
 ## AppMobileFilterDrawerScaffold
-- **路径**: `lib/widgets/navigation/app_mobile_filter_drawer_scaffold.dart`
+- **路径**: `lib/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart`
 - **用途**: 移动**筛选抽屉的通用外壳**:标题 + 内容 + 底部"重置 / 确定"按钮。
 - **required**: `title` · `onReset` · `onConfirm` · `child`
 - **可选**: `confirmLabel`(默认 "确定") · `resetLabel`(默认 "重置") · `resetButtonKey` / `confirmButtonKey`

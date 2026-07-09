@@ -229,7 +229,7 @@ void main() {
   test('notice cards use noticeSurface token', () {
     // AppNoticeCard 组件本身负责 noticeSurface 与去掉旧硬编码。
     final noticeCardSource =
-        File('lib/widgets/app_shell/app_notice_card.dart').readAsStringSync();
+        File('lib/widgets/base/layout/cards/app_notice_card.dart').readAsStringSync();
     expect(noticeCardSource, contains('colors.noticeSurface'));
     expect(
       noticeCardSource,

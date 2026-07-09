@@ -15,8 +15,8 @@ import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_review
 import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 import '../../../support/test_api_bundle.dart';
 

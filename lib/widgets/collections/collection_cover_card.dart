@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 /// 合集封面卡的共享实现：16:9 封面 + 底部标题 + 封面右下角计数角标。
 ///

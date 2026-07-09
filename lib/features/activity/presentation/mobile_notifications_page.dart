@@ -9,12 +9,12 @@ import 'package:sakuramedia/features/activity/data/activity_notification_dto.dar
 import 'package:sakuramedia/features/activity/presentation/notification_card.dart';
 import 'package:sakuramedia/features/activity/presentation/notification_center_controller.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
-import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 
 /// 移动端「消息」中心页。消费全局 [NotificationCenterController]
 /// (列表/分页来自 controller、已读为「无感」自动处理);移动端在桌面行为之上,

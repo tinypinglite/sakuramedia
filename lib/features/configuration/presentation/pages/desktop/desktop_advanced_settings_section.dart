@@ -8,15 +8,15 @@ import 'package:sakuramedia/core/validation/url_validators.dart';
 import 'package:sakuramedia/features/configuration/data/api/config_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/config_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/forms/app_password_field.dart';
-import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
-import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
-import 'package:sakuramedia/widgets/feedback/app_section_error.dart';
-import 'package:sakuramedia/widgets/feedback/app_section_skeleton.dart';
-import 'package:sakuramedia/widgets/forms/app_select_field.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_password_field.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
+import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 class DesktopAdvancedSettingsSection extends StatefulWidget {
   const DesktopAdvancedSettingsSection({

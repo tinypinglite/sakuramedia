@@ -7,10 +7,10 @@ import 'package:sakuramedia/features/configuration/presentation/controllers/llm_
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/llm_settings_copy.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/llm_settings_form_fields.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
-import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 
 class DesktopLlmSettingsSection extends StatefulWidget {
   const DesktopLlmSettingsSection({super.key, required this.active});

@@ -26,7 +26,7 @@ import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 
 import '../../../../../support/in_memory_credential_store.dart';
 import '../../../../../support/test_api_bundle.dart';

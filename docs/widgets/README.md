@@ -12,6 +12,18 @@
    - 抽出后**同步更新本索引对应分册**(以及必要时更新 `lib/widgets/CLAUDE.md`)。
 3. **命名铁则**:抽到 `lib/widgets/` 的原子件一律 **`App` 前缀**(如 `AppButton`/`AppTextField`/`AppEmptyState`)。业务展示件(卡片、筛选栏、预览弹窗)按业务域命名(如 `MovieSummaryCard`/`ClipGridCard`),**不加 `App` 前缀**。
 
+## 三层物理结构(base / shell / domain)
+
+`lib/widgets/` 按**职责**分三个顶级目录,依赖只能从 shell/domain 向 base 单向流动(深度细则见 [`lib/widgets/CLAUDE.md`](../../lib/widgets/CLAUDE.md)):
+
+| 顶级目录 | 放什么 | 依赖规则 |
+|---|---|---|
+| **`base/`** | 纯 UI/通用交互原子:`actions` `forms` `feedback` `navigation` `typography` `interaction/selection` `layout/{cards,grids,scrolling}` `overlays` `operations/batch` `media/images` | **禁** import `features/`、`routes/`;只可依赖 Flutter/theme/core |
+| **`shell/`** | 应用壳层:`desktop`(AppDesktopShell/AppSidebar/AppTopBar) `mobile`(AppMobileShell/…) `window`(拖拽区) | 允许依赖 `app/`、`routes/`、feature presentation;不承载具体业务流程 |
+| **`domain/`** | 跨 ≥2 feature 复用的业务展示件(actors/clips/collections/movies/…) | 可用该域 DTO/筛选/回调;尽量不直接发请求(`MediaPreviewDialog` 是已知例外) |
+
+> ⏳ **迁移进行中**:base/ 与 shell/ 已落位;各业务目录(actors/clips/collections/media_player…)仍在 `lib/widgets/` 根,将在后续 step 迁入 `domain/`。**只被单个 feature 用的组件回迁 `features/<域>/presentation/widgets/`**,不留共享层。本索引各分册链接与内部路径正随迁移分步更新。
+
 ## 分册导航
 
 | 分册 | 覆盖组件 | 什么时候来这里翻 |

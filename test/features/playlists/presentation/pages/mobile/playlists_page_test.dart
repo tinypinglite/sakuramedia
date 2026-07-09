@@ -18,7 +18,7 @@ import 'package:sakuramedia/features/playlists/data/api/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/pages/mobile/playlists_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
 
 import '../../../../../support/test_api_bundle.dart';
 

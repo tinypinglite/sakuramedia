@@ -12,8 +12,8 @@ import 'package:sakuramedia/features/tags/presentation/tag_selector_panel.dart';
 import 'package:sakuramedia/features/tags/presentation/tags_page_state.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 
 /// 移动端标签页：标签多选区 + 所选标签下的影片列表。
 ///

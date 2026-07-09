@@ -9,12 +9,12 @@ import 'package:sakuramedia/features/account/presentation/account_profile_contro
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_shell/app_content_card.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
-import 'package:sakuramedia/widgets/forms/app_password_field.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
+import 'package:sakuramedia/widgets/base/forms/app_password_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 class AccountSecuritySection extends StatefulWidget {
   const AccountSecuritySection({super.key});

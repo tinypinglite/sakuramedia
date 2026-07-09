@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
 /// 配置域标准删除流程：danger 确认 → 调 [onDelete] → 成功 toast + 返回 true。
 ///

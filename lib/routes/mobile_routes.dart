@@ -43,9 +43,9 @@ import 'package:sakuramedia/routes/app_route_helpers.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
-import 'package:sakuramedia/widgets/app_shell/app_mobile_shell.dart';
-import 'package:sakuramedia/widgets/app_shell/app_mobile_subpage_shell.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/shell/mobile/app_mobile_shell.dart';
+import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 
 part 'mobile_routes.g.dart';
 

@@ -8,8 +8,8 @@ import 'package:sakuramedia/features/moments/presentation/paged_moment_controlle
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/moments/moment_grid.dart';
 import 'package:sakuramedia/widgets/moments/moment_preview_dialog.dart';
 import 'package:sakuramedia/widgets/moments/moment_sort_header.dart';

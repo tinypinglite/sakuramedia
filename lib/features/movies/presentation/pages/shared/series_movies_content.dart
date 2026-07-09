@@ -10,8 +10,8 @@ import 'package:sakuramedia/features/movies/presentation/controllers/listing/pag
 import 'package:sakuramedia/features/movies/presentation/widgets/series_import/series_import_dialog.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 
 typedef SeriesMoviesBodyBuilder =

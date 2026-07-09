@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/widgets/feedback/app_section_error.dart';
-import 'package:sakuramedia/widgets/feedback/app_section_skeleton.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
 
 /// 桌面 configuration 页面的懒加载 section 三态骨架公共 mixin。
 ///

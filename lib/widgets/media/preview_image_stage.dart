@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 class PreviewImageStage extends StatelessWidget {
   const PreviewImageStage({

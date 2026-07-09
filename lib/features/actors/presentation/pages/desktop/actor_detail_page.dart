@@ -4,7 +4,7 @@ import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_deta
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/actors/actor_avatar.dart';
 
 class DesktopActorDetailPage extends StatefulWidget {

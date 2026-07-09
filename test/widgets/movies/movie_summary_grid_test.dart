@@ -13,7 +13,7 @@ void main() {
   // 项目级兜底。
   test('adaptive card grid does not hardcode spacing constants', () {
     final source =
-        File('lib/widgets/app_adaptive_card_grid.dart').readAsStringSync();
+        File('lib/widgets/base/layout/grids/app_adaptive_card_grid.dart').readAsStringSync();
 
     expect(source, contains('context.appSpacing.md'));
     expect(source, isNot(contains('const spacing = 12.0')));
@@ -21,7 +21,7 @@ void main() {
 
   test('adaptive card grid does not hardcode card sizing constants', () {
     final gridSource =
-        File('lib/widgets/app_adaptive_card_grid.dart').readAsStringSync();
+        File('lib/widgets/base/layout/grids/app_adaptive_card_grid.dart').readAsStringSync();
     final cardSource =
         File('lib/widgets/movies/movie_summary_card.dart').readAsStringSync();
 

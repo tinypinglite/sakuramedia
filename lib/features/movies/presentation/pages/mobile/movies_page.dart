@@ -11,8 +11,8 @@ import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/m
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/navigation/app_mobile_tab_header.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_tab_header.dart';
 
 class MobileMoviesPage extends StatefulWidget {
   const MobileMoviesPage({super.key});

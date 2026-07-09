@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_sort.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_source_dto.dart';
-import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/navigation/app_mobile_filter_drawer_scaffold.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/rankings/ranking_filter_sections.dart';
 
 /// 抽屉每次重建时通过这个数据类拿一份最新的 page state 快照（含回调）。

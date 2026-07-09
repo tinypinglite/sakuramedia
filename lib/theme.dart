@@ -24,7 +24,7 @@ export 'package:sakuramedia/theme/app_shadows.dart';
 export 'package:sakuramedia/theme/app_sidebar_tokens.dart';
 export 'package:sakuramedia/theme/app_spacing.dart';
 export 'package:sakuramedia/theme/app_typography.dart';
-export 'package:sakuramedia/widgets/app_text.dart';
+export 'package:sakuramedia/widgets/base/typography/app_text.dart';
 
 /// 应用内嵌字体族名,与 pubspec.yaml 的 fonts.family 一致。
 /// Web(CanvasKit) 必须把它设为主 fontFamily,否则中日文首屏会因联网下载

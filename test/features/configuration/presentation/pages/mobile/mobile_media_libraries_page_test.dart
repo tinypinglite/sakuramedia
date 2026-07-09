@@ -11,7 +11,7 @@ import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_media_libraries_page.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
 
 import '../../../../../support/test_api_bundle.dart';
 

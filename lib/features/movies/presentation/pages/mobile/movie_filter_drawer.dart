@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
-import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/movies/movie_filter_sections.dart';
-import 'package:sakuramedia/widgets/navigation/app_mobile_filter_drawer_scaffold.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 
 /// 弹出移动端影片筛选底部抽屉，确定才生效。
 ///

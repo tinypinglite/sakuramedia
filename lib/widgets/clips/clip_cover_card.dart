@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
-import 'package:sakuramedia/widgets/selection/selection_check_badge.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 
 /// 移动端切片网格卡：整卡即封面 + 底部一条信息栏（左番号、右时长，连成一行），
 /// 仿「时刻」卡 [MomentCard] 的版式。整卡点击触发 [onTap]（通常弹出操作抽屉）。

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
-import 'package:sakuramedia/widgets/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
 /// 删除合集确认弹窗，确认返回 `true`。仅删合集，不删切片本体。
 Future<bool?> showClipCollectionDeleteDialog(

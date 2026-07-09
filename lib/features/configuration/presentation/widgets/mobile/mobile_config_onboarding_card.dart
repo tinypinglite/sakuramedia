@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 
 /// 移动端配置流程/引导卡:标题 + 描述 + 可选 tip + 可选 [AppBadge] 状态 +
 /// 底部 CTA 按钮。用作「先做 X → 再做 Y → 最后 Z」的多步流程卡,

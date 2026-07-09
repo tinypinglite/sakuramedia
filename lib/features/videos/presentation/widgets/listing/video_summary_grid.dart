@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_adaptive_card_grid.dart';
-import 'package:sakuramedia/widgets/layout/staggered_layout.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/staggered_layout.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_summary_card.dart';
 
 /// 视频卡片瀑布流：骨架屏 → 错误态 → 空态 → 卡片，按封面真实分辨率排版，

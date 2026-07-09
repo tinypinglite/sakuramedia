@@ -22,16 +22,16 @@ import 'package:sakuramedia/features/configuration/presentation/controllers/down
 import 'package:sakuramedia/features/configuration/presentation/controllers/download_client_probe_interactions.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/app_shell/app_badge.dart';
-import 'package:sakuramedia/widgets/app_shell/app_info_block.dart';
-import 'package:sakuramedia/widgets/app_shell/app_notice_card.dart';
-import 'package:sakuramedia/widgets/feedback/app_mobile_section_error.dart';
-import 'package:sakuramedia/widgets/feedback/app_mobile_skeleton.dart';
-import 'package:sakuramedia/widgets/navigation/app_tab_bar.dart';
-import 'package:sakuramedia/widgets/sheets/app_bottom_form_sheet.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_info_block.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
 
 /// 移动端下载器卡片的探针状态快照。
 /// - 会话内 in-memory,不落库;编辑保存/删除时清空对应 clientId 的条目。

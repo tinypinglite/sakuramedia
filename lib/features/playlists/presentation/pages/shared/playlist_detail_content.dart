@@ -13,9 +13,9 @@ import 'package:sakuramedia/features/playlists/presentation/controllers/playlist
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/movies/movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/playlists/playlist_banner_card.dart';
 

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
-import 'package:sakuramedia/widgets/selection/selection_check_badge.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 
 enum _ClipCardAction { openMovie, addToCollection, rename, delete }
 

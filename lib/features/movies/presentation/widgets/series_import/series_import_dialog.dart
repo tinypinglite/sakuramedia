@@ -4,7 +4,7 @@ import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/series_import/series_import_controller.dart';
 import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 Future<bool> showSeriesImportDialog(
   BuildContext context,

@@ -12,7 +12,7 @@ import 'package:sakuramedia/features/configuration/data/dto/movie_desc_translati
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/llm_settings_copy.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_llm_settings_page.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_pull_to_refresh.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
 
 import '../../../../../support/test_api_bundle.dart';
 

@@ -6,9 +6,9 @@ import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/auth/data/auth_api.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_shell/app_notice_card.dart';
-import 'package:sakuramedia/widgets/forms/app_password_field.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
+import 'package:sakuramedia/widgets/base/forms/app_password_field.dart';
 
 class MobileChangePasswordPage extends StatefulWidget {
   const MobileChangePasswordPage({super.key});

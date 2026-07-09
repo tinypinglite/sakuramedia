@@ -1,0 +1,632 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
+
+void main() {
+  List<DropdownMenuItem<int>> buildItems(int count) {
+    return List<DropdownMenuItem<int>>.generate(
+      count,
+      (index) =>
+          DropdownMenuItem<int>(value: index, child: Text('Item $index')),
+    );
+  }
+
+  Finder findTriggerSurface() {
+    return find.byWidgetPredicate((widget) {
+      if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
+        return false;
+      }
+      final decoration = widget.decoration as BoxDecoration;
+      return decoration.borderRadius == sakuraThemeData.appRadius.smBorder &&
+          decoration.color == sakuraThemeData.appColors.surfaceMuted &&
+          (decoration.boxShadow?.isEmpty ?? true) &&
+          decoration.border != null;
+    });
+  }
+
+  Finder findMenuSurface() {
+    return find.byWidgetPredicate((widget) {
+      if (widget is! DecoratedBox || widget.decoration is! BoxDecoration) {
+        return false;
+      }
+      final decoration = widget.decoration as BoxDecoration;
+      return decoration.borderRadius == sakuraThemeData.appRadius.smBorder &&
+          decoration.color == sakuraThemeData.appColors.surfaceCard &&
+          (decoration.boxShadow?.isNotEmpty ?? false) &&
+          decoration.border != null;
+    });
+  }
+
+  Widget wrapApp(
+    Widget child, {
+    ThemeData? theme,
+    double width = 420,
+    double height = 320,
+  }) {
+    return MaterialApp(
+      theme: theme ?? sakuraThemeData,
+      home: Scaffold(
+        body: SizedBox(
+          width: width,
+          height: height,
+          child: Center(child: child),
+        ),
+      ),
+    );
+  }
+
+  testWidgets('renders label placeholder and selected value styles', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            label: '目标媒体库',
+            value: 1,
+            items: const [DropdownMenuItem<int>(value: 1, child: Text('默认'))],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('目标媒体库'), findsOneWidget);
+    expect(find.text('默认'), findsOneWidget);
+
+    final selectedText = tester.widget<Text>(find.text('默认'));
+    expect(selectedText.style?.color, sakuraThemeData.appTextPalette.primary);
+
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            label: '目标媒体库',
+            items: const [DropdownMenuItem<int>(value: 1, child: Text('默认'))],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('请选择'), findsOneWidget);
+    final placeholderText = tester.widget<Text>(find.text('请选择'));
+    expect(placeholderText.style?.color, sakuraThemeData.appTextPalette.muted);
+  });
+
+  testWidgets('supports compact trigger height for action rows', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            size: AppSelectFieldSize.compact,
+            value: 1,
+            items: const [DropdownMenuItem<int>(value: 1, child: Text('默认'))],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final triggerRect = tester.getRect(findTriggerSurface());
+    expect(
+      triggerRect.height,
+      moreOrLessEquals(
+        sakuraThemeData.appFormTokens.compactFieldHeight,
+        epsilon: 0.1,
+      ),
+    );
+  });
+
+  testWidgets('uses mobile typography and compact height under mobile theme', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            size: AppSelectFieldSize.compact,
+            value: 1,
+            items: const [DropdownMenuItem<int>(value: 1, child: Text('默认'))],
+            onChanged: (_) {},
+          ),
+        ),
+        theme: sakuraMobileThemeData,
+      ),
+    );
+
+    final triggerRect = tester.getRect(findTriggerSurface());
+    final selectedText = tester.widget<Text>(find.text('默认'));
+
+    expect(
+      triggerRect.height,
+      moreOrLessEquals(
+        sakuraMobileThemeData.appFormTokens.compactFieldHeight,
+        epsilon: 0.1,
+      ),
+    );
+    expect(
+      selectedText.style?.fontSize,
+      sakuraMobileThemeData.appTextScale.s14,
+    );
+  });
+
+  testWidgets('preserves theme font family for trigger and menu text', (
+    WidgetTester tester,
+  ) async {
+    final themed = sakuraThemeData.copyWith(
+      textTheme: sakuraThemeData.textTheme.apply(fontFamily: 'FixtureFont'),
+    );
+
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            value: 1,
+            items: const [
+              DropdownMenuItem<int>(value: 1, child: Text('默认')),
+              DropdownMenuItem<int>(value: 2, child: Text('归档')),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+        theme: themed,
+      ),
+    );
+
+    final triggerText = tester.widget<Text>(
+      find.descendant(of: findTriggerSurface(), matching: find.text('默认')),
+    );
+    expect(triggerText.style?.fontFamily, 'FixtureFont');
+
+    await tester.tap(find.text('默认'));
+    await tester.pumpAndSettle();
+
+    final menuText = tester.widget<Text>(
+      find.descendant(of: findMenuSurface(), matching: find.text('归档')),
+    );
+    expect(menuText.style?.fontFamily, 'FixtureFont');
+  });
+
+  testWidgets('supports mini trigger height for dense toolbars', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            size: AppSelectFieldSize.mini,
+            value: 1,
+            items: const [DropdownMenuItem<int>(value: 1, child: Text('默认'))],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final triggerRect = tester.getRect(findTriggerSurface());
+    expect(
+      triggerRect.height,
+      moreOrLessEquals(
+        sakuraThemeData.appFormTokens.miniFieldHeight,
+        epsilon: 0.1,
+      ),
+    );
+  });
+
+  testWidgets('uses shorter menu items for mini size', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            size: AppSelectFieldSize.mini,
+            value: 1,
+            items: const [
+              DropdownMenuItem<int>(value: 1, child: Text('默认')),
+              DropdownMenuItem<int>(value: 2, child: Text('归档')),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('默认'));
+    await tester.pumpAndSettle();
+
+    final menuRect = tester.getRect(findMenuSurface());
+    expect(
+      menuRect.height,
+      moreOrLessEquals(
+        sakuraThemeData.appFormTokens.miniMenuItemHeight * 2,
+        epsilon: 0.1,
+      ),
+    );
+  });
+
+  testWidgets('applies custom text style to trigger and menu items', (
+    WidgetTester tester,
+  ) async {
+    const customTextStyle = TextStyle(fontSize: 13);
+
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            value: 1,
+            textStyle: customTextStyle,
+            items: const [
+              DropdownMenuItem<int>(value: 1, child: Text('默认')),
+              DropdownMenuItem<int>(value: 2, child: Text('归档')),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final triggerText = tester.widget<Text>(
+      find.descendant(of: findTriggerSurface(), matching: find.text('默认')),
+    );
+    expect(triggerText.style?.fontSize, 13);
+
+    await tester.tap(find.text('默认'));
+    await tester.pumpAndSettle();
+
+    final menuText = tester.widget<Text>(
+      find.descendant(of: findMenuSurface(), matching: find.text('归档')),
+    );
+    expect(menuText.style?.fontSize, 13);
+  });
+
+  testWidgets('opens menu selects item and closes on outside tap', (
+    WidgetTester tester,
+  ) async {
+    int? selectedValue;
+
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            label: '目标媒体库',
+            items: const [
+              DropdownMenuItem<int>(value: 1, child: Text('默认')),
+              DropdownMenuItem<int>(value: 2, child: Text('归档')),
+            ],
+            onChanged: (value) => selectedValue = value,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('请选择'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('默认'), findsOneWidget);
+    expect(find.text('归档'), findsOneWidget);
+
+    await tester.tap(find.text('归档'));
+    await tester.pumpAndSettle();
+
+    expect(selectedValue, 2);
+    expect(findMenuSurface(), findsNothing);
+
+    await tester.tap(find.text('归档'));
+    await tester.pumpAndSettle();
+    expect(findMenuSurface(), findsOneWidget);
+
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
+    expect(findMenuSurface(), findsNothing);
+  });
+
+  testWidgets('can switch from non-null option back to null option', (
+    WidgetTester tester,
+  ) async {
+    String? selectedValue = 'reminder';
+
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<String?>(
+            value: selectedValue,
+            items: const [
+              DropdownMenuItem<String?>(value: null, child: Text('全部分类')),
+              DropdownMenuItem<String?>(value: 'result', child: Text('结果')),
+              DropdownMenuItem<String?>(value: 'reminder', child: Text('提醒')),
+            ],
+            onChanged: (value) => selectedValue = value,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('提醒'), findsOneWidget);
+
+    await tester.tap(find.text('提醒'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('全部分类').last);
+    await tester.pumpAndSettle();
+
+    expect(selectedValue, isNull);
+    expect(find.text('全部分类'), findsOneWidget);
+
+    await tester.tap(find.text('全部分类'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('结果').last);
+    await tester.pumpAndSettle();
+
+    expect(selectedValue, 'result');
+    expect(find.text('结果'), findsOneWidget);
+  });
+
+  testWidgets('renders multiple nullable default selections side by side', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            SizedBox(
+              width: 120,
+              child: AppSelectField<String?>(
+                value: null,
+                items: const [
+                  DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('全部状态'),
+                  ),
+                  DropdownMenuItem<String?>(
+                    value: 'failed',
+                    child: Text('失败'),
+                  ),
+                ],
+                onChanged: (_) {},
+              ),
+            ),
+            SizedBox(
+              width: 160,
+              child: AppSelectField<String?>(
+                value: null,
+                items: const [
+                  DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('全部任务类型'),
+                  ),
+                  DropdownMenuItem<String?>(
+                    value: 'sync',
+                    child: Text('同步任务'),
+                  ),
+                ],
+                onChanged: (_) {},
+              ),
+            ),
+            SizedBox(
+              width: 140,
+              child: AppSelectField<String?>(
+                value: null,
+                items: const [
+                  DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('全部触发来源'),
+                  ),
+                  DropdownMenuItem<String?>(
+                    value: 'manual',
+                    child: Text('手动触发'),
+                  ),
+                ],
+                onChanged: (_) {},
+              ),
+            ),
+          ],
+        ),
+        width: 520,
+      ),
+    );
+
+    expect(find.text('全部状态'), findsOneWidget);
+    expect(find.text('全部任务类型'), findsOneWidget);
+    expect(find.text('全部触发来源'), findsOneWidget);
+  });
+
+  testWidgets('does not reuse selected text child when menu opens', (
+    WidgetTester tester,
+  ) async {
+    final selectedTextKey = GlobalKey();
+
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            value: 1,
+            items: [
+              DropdownMenuItem<int>(
+                value: 1,
+                child: Text('默认', key: selectedTextKey),
+              ),
+              const DropdownMenuItem<int>(value: 2, child: Text('归档')),
+            ],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('默认'), findsOneWidget);
+
+    await tester.tap(find.text('默认'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('默认'), findsNWidgets(2));
+    expect(find.byKey(selectedTextKey), findsNothing);
+  });
+
+  testWidgets('aligns menu width and keeps menu close to trigger', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            label: '目标媒体库',
+            items: const [DropdownMenuItem<int>(value: 1, child: Text('默认'))],
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final triggerRectBeforeOpen = tester.getRect(findTriggerSurface());
+
+    await tester.tap(find.text('请选择'));
+    await tester.pumpAndSettle();
+
+    final triggerRect = tester.getRect(findTriggerSurface());
+    final menuRect = tester.getRect(findMenuSurface());
+
+    expect(triggerRect, triggerRectBeforeOpen);
+    expect(menuRect.width, moreOrLessEquals(triggerRect.width, epsilon: 0.1));
+    expect(menuRect.top - triggerRect.bottom, inInclusiveRange(4.0, 8.0));
+  });
+
+  testWidgets('opens upward when there is not enough space below', (
+    WidgetTester tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(800, 280);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: Scaffold(
+          body: Column(
+            children: [
+              const SizedBox(height: 150),
+              Center(
+                child: SizedBox(
+                  width: 320,
+                  child: AppSelectField<int>(
+                    label: '目标媒体库',
+                    items: buildItems(6),
+                    onChanged: (_) {},
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('请选择'));
+    await tester.pumpAndSettle();
+
+    final triggerRect = tester.getRect(findTriggerSurface());
+    final menuRect = tester.getRect(findMenuSurface());
+
+    expect(triggerRect.top - menuRect.bottom, inInclusiveRange(4.0, 8.0));
+  });
+
+  testWidgets('caps menu height and supports scrolling', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      wrapApp(
+        SizedBox(
+          width: 320,
+          child: AppSelectField<int>(
+            label: '目标媒体库',
+            items: buildItems(20),
+            onChanged: (_) {},
+          ),
+        ),
+        height: 420,
+      ),
+    );
+
+    await tester.tap(find.text('请选择'));
+    await tester.pumpAndSettle();
+
+    final menuRect = tester.getRect(findMenuSurface());
+    expect(menuRect.height, lessThanOrEqualTo(244));
+    expect(
+      tester.getRect(find.text('Item 19')).top,
+      greaterThan(menuRect.bottom),
+    );
+
+    await tester.dragUntilVisible(
+      find.text('Item 19'),
+      find.byType(SingleChildScrollView),
+      const Offset(0, -120),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getRect(find.text('Item 19')).bottom,
+      lessThanOrEqualTo(menuRect.bottom),
+    );
+  });
+
+  testWidgets('shows error state and prevents opening when disabled', (
+    WidgetTester tester,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+
+    await tester.pumpWidget(
+      wrapApp(
+        Form(
+          key: formKey,
+          autovalidateMode: AutovalidateMode.always,
+          child: SizedBox(
+            width: 320,
+            child: AppSelectField<int>(
+              label: '目标媒体库',
+              items: const [DropdownMenuItem<int>(value: 1, child: Text('默认'))],
+              onChanged: null,
+              validator: (value) => value == null ? '请选择目标媒体库' : null,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    formKey.currentState!.validate();
+    await tester.pumpAndSettle();
+
+    expect(find.text('请选择目标媒体库'), findsOneWidget);
+
+    final decoration =
+        tester.widget<DecoratedBox>(findTriggerSurface()).decoration
+            as BoxDecoration;
+    final border = decoration.border! as Border;
+    expect(border.top.color, sakuraThemeData.colorScheme.error);
+
+    await tester.tap(find.text('请选择'));
+    await tester.pumpAndSettle();
+
+    expect(findMenuSurface(), findsNothing);
+  });
+}

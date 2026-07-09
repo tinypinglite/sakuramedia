@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/media/masked_image.dart';
-import 'package:sakuramedia/widgets/selection/selection_check_badge.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 
 /// 合集「成员」（切片 / 视频）在详情页的共享展示组件：列表行 [CollectionMemberRow]
 /// 与网格卡 [CollectionMemberCard]。

@@ -5,9 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/activity/presentation/notification_card.dart';
 import 'package:sakuramedia/features/activity/presentation/notification_center_controller.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 
 /// 独立的「通知」消息中心页。消费全局 [NotificationCenterController]：
 /// 列表/分页/筛选来自 controller；已读为「无感」自动处理——卡片被渲染（展示）时

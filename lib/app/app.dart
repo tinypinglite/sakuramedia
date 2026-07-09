@@ -47,7 +47,7 @@ import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/media/app_image_fullscreen.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 
 /// 允许发起拖拽滚动的指针类型集合(应用全局 [ScrollConfiguration] 使用)。
 ///

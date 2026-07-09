@@ -24,7 +24,7 @@ import 'package:sakuramedia/features/search/presentation/catalog_search_page.dar
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
-import 'package:sakuramedia/widgets/app_shell/app_desktop_shell.dart';
+import 'package:sakuramedia/widgets/shell/desktop/app_desktop_shell.dart';
 
 part 'desktop_routes.g.dart';
 

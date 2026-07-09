@@ -1,0 +1,208 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+
+void main() {
+  testWidgets('renders label helper prefix suffix and forwards changes', (
+    WidgetTester tester,
+  ) async {
+    var latestValue = '';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: Material(
+          child: AppTextField(
+            fieldKey: const Key('app-text-field'),
+            label: '名称',
+            helperText: '辅助信息',
+            hintText: '请输入名称',
+            prefix: const Icon(Icons.search_rounded),
+            suffix: const Icon(Icons.clear_rounded),
+            onChanged: (value) => latestValue = value,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('名称'), findsOneWidget);
+    expect(find.text('辅助信息'), findsOneWidget);
+    expect(find.byIcon(Icons.search_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.clear_rounded), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('app-text-field')), 'jackett');
+
+    expect(latestValue, 'jackett');
+  });
+
+  testWidgets('keeps text suffix trailing without covering input', (
+    WidgetTester tester,
+  ) async {
+    final controller = TextEditingController(text: '256');
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: Material(
+          child: Center(
+            child: SizedBox(
+              width: sakuraThemeData.appLayoutTokens.dialogWidthSm,
+              child: AppTextField(
+                fieldKey: const Key('unit-field'),
+                controller: controller,
+                suffix: Padding(
+                  padding: EdgeInsets.only(
+                    right: sakuraThemeData.appSpacing.md,
+                  ),
+                  child: const Text('MB'),
+                ),
+                tightSuffix: true,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final fieldRect = tester.getRect(find.byKey(const Key('unit-field')));
+    final suffixRect = tester.getRect(find.text('MB'));
+    expect(suffixRect.center.dx, greaterThan(fieldRect.center.dx));
+
+    await tester.tapAt(
+      Offset(fieldRect.left + fieldRect.width / 4, fieldRect.center.dy),
+    );
+    await tester.pump();
+    tester.testTextInput.enterText('512');
+    await tester.pump();
+
+    expect(controller.text, '512');
+  });
+
+  testWidgets('supports obscure text and disabled state', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const Material(
+          child: AppTextField(
+            fieldKey: Key('password-field'),
+            obscureText: true,
+            enabled: false,
+          ),
+        ),
+      ),
+    );
+
+    final editableText = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const Key('password-field')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    final textFormField = tester.widget<TextFormField>(
+      find.byType(TextFormField),
+    );
+
+    expect(editableText.obscureText, isTrue);
+    expect(textFormField.enabled, isFalse);
+  });
+
+  testWidgets('keeps focused border color same as enabled border', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: Material(
+          child: Form(
+            child: AppTextField(
+              fieldKey: const Key('validated-field'),
+              validator: (_) => '请输入内容',
+              autovalidateMode: AutovalidateMode.always,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final decoration =
+        tester.widget<InputDecorator>(find.byType(InputDecorator)).decoration;
+    final enabledBorder = decoration.enabledBorder! as OutlineInputBorder;
+    final focusedBorder = decoration.focusedBorder! as OutlineInputBorder;
+    final errorBorder = decoration.errorBorder! as OutlineInputBorder;
+
+    expect(enabledBorder.borderSide.color, focusedBorder.borderSide.color);
+    expect(enabledBorder.borderRadius, sakuraThemeData.appRadius.smBorder);
+    expect(errorBorder.borderSide.color, sakuraThemeData.colorScheme.error);
+    expect(find.text('请输入内容'), findsOneWidget);
+  });
+
+  testWidgets('uses form tokens for label gap and content padding', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const Material(
+          child: AppTextField(
+            fieldKey: Key('sized-field'),
+            label: '名称',
+            hintText: '请输入名称',
+          ),
+        ),
+      ),
+    );
+
+    final sizedBox = tester.widget<SizedBox>(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is SizedBox &&
+            widget.height == sakuraThemeData.appFormTokens.labelGap,
+      ),
+    );
+    final decoration =
+        tester.widget<InputDecorator>(find.byType(InputDecorator)).decoration;
+
+    expect(sizedBox.height, sakuraThemeData.appFormTokens.labelGap);
+    expect(
+      decoration.contentPadding,
+      EdgeInsets.symmetric(
+        horizontal: sakuraThemeData.appFormTokens.fieldHorizontalPadding,
+        vertical: sakuraThemeData.appFormTokens.fieldVerticalPadding,
+      ),
+    );
+  });
+
+  testWidgets('uses mobile form tokens and typography under mobile theme', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraMobileThemeData,
+        home: const Material(
+          child: AppTextField(
+            fieldKey: Key('mobile-sized-field'),
+            label: '名称',
+            hintText: '请输入名称',
+          ),
+        ),
+      ),
+    );
+
+    final editableText = tester.widget<EditableText>(find.byType(EditableText));
+    final decoration =
+        tester.widget<InputDecorator>(find.byType(InputDecorator)).decoration;
+
+    expect(editableText.style.fontSize, sakuraMobileThemeData.appTextScale.s14);
+    expect(
+      decoration.contentPadding,
+      EdgeInsets.symmetric(
+        horizontal: sakuraMobileThemeData.appFormTokens.fieldHorizontalPadding,
+        vertical: sakuraMobileThemeData.appFormTokens.fieldVerticalPadding,
+      ),
+    );
+  });
+}

@@ -11,8 +11,8 @@ import 'package:sakuramedia/features/clip_collections/presentation/widgets/creat
 import 'package:sakuramedia/features/clips/presentation/controllers/clip_mutation_change_notifier.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/widgets/clip_collection_delete_dialog.dart';
 import 'package:sakuramedia/widgets/collections/collection_card.dart';
 

@@ -5,10 +5,10 @@ import 'package:sakuramedia/features/movies/presentation/controllers/listing/pag
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/actors/actor_avatar.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 
 class MobileActorDetailPage extends StatefulWidget {
   const MobileActorDetailPage({super.key, required this.actorId});

@@ -3,7 +3,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/series_movies_content.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 
 class MobileSeriesMoviesPage extends StatelessWidget {
   const MobileSeriesMoviesPage({

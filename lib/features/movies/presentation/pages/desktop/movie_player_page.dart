@@ -18,8 +18,8 @@ import 'package:sakuramedia/features/movies/presentation/controllers/player/movi
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/media/app_image_action_menu.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/media_player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/media_player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/media_player/movie_player_surface_controller.dart';

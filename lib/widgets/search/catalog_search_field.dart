@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 
 class CatalogSearchField extends StatelessWidget {
   const CatalogSearchField({

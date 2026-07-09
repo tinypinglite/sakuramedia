@@ -6,10 +6,10 @@ import 'package:sakuramedia/features/account/data/account_api.dart';
 import 'package:sakuramedia/features/account/data/account_dto.dart';
 import 'package:sakuramedia/features/account/presentation/account_profile_controller.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/actions/app_button.dart';
-import 'package:sakuramedia/widgets/app_shell/app_empty_state.dart';
-import 'package:sakuramedia/widgets/app_shell/app_notice_card.dart';
-import 'package:sakuramedia/widgets/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 class MobileChangeUsernamePage extends StatefulWidget {
   const MobileChangeUsernamePage({super.key});
