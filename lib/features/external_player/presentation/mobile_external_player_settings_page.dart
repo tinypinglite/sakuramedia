@@ -7,6 +7,7 @@ import 'package:sakuramedia/features/external_player/data/external_player_app.da
 import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_store.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/app_shell/app_settings_group.dart';
 
 class MobileExternalPlayerSettingsPage extends StatefulWidget {
   const MobileExternalPlayerSettingsPage({super.key});
@@ -62,6 +63,37 @@ class _MobileExternalPlayerSettingsPageState
     final store = context.watch<ExternalPlayerStore>();
     final selectedPackage = store.packageName;
 
+    final cells = <Widget>[
+      AppSettingCell(
+        key: const Key('mobile-external-player-in-app'),
+        icon: Icons.phonelink_ring_outlined,
+        title: '应用内播放器',
+        subtitle: '使用樱视内置播放器',
+        trailing:
+            selectedPackage == null ? const _SelectionCheckMark() : null,
+        onTap: () => unawaited(_selectInApp()),
+      ),
+      for (final player in _players)
+        AppSettingCell(
+          key: Key('mobile-external-player-${player.packageName}'),
+          icon: Icons.ondemand_video_outlined,
+          title: player.label,
+          trailing: selectedPackage == player.packageName
+              ? const _SelectionCheckMark()
+              : null,
+          onTap: () => unawaited(_selectPlayer(player)),
+        ),
+      if (_isLoading)
+        const AppSettingCell(
+          title: '正在检测已安装的播放器…',
+          trailing: SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+    ];
+
     return ListView(
       key: const Key('mobile-external-player-settings'),
       children: [
@@ -75,7 +107,7 @@ class _MobileExternalPlayerSettingsPageState
           ),
         ),
         SizedBox(height: spacing.lg),
-        _buildPlayerGroup(context, selectedPackage),
+        AppSettingsGroup(children: cells),
         if (!_isLoading && _players.isEmpty) ...[
           SizedBox(height: spacing.md),
           Text(
@@ -91,170 +123,17 @@ class _MobileExternalPlayerSettingsPageState
       ],
     );
   }
-
-  Widget _buildPlayerGroup(BuildContext context, String? selectedPackage) {
-    final rows = <Widget>[
-      _SelectableRow(
-        key: const Key('mobile-external-player-in-app'),
-        icon: Icons.phonelink_ring_outlined,
-        label: '应用内播放器',
-        description: '使用樱视内置播放器',
-        selected: selectedPackage == null,
-        onTap: () => unawaited(_selectInApp()),
-      ),
-    ];
-
-    for (final player in _players) {
-      rows.add(
-        _SelectableRow(
-          key: Key('mobile-external-player-${player.packageName}'),
-          icon: Icons.ondemand_video_outlined,
-          label: player.label,
-          selected: selectedPackage == player.packageName,
-          onTap: () => unawaited(_selectPlayer(player)),
-        ),
-      );
-    }
-
-    if (_isLoading) {
-      rows.add(const _PlayerLoadingRow());
-    }
-
-    final children = <Widget>[];
-    for (var index = 0; index < rows.length; index++) {
-      if (index > 0) {
-        children.add(
-          Divider(height: 1, thickness: 1, color: context.appColors.divider),
-        );
-      }
-      children.add(rows[index]);
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(children: children),
-    );
-  }
 }
 
-class _SelectableRow extends StatelessWidget {
-  const _SelectableRow({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.description,
-  });
-
-  final IconData icon;
-  final String label;
-  final String? description;
-  final bool selected;
-  final VoidCallback onTap;
+class _SelectionCheckMark extends StatelessWidget {
+  const _SelectionCheckMark();
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-
-    return Material(
-      color: selected ? colors.selectionSurface : colors.surfaceCard,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: spacing.lg,
-            vertical: spacing.md,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 22,
-                color: selected ? colors.selectionBorder : colors.borderStrong,
-              ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s14,
-                        weight:
-                            selected
-                                ? AppTextWeight.semibold
-                                : AppTextWeight.medium,
-                        tone: AppTextTone.primary,
-                      ),
-                    ),
-                    if (description != null) ...[
-                      SizedBox(height: spacing.xs),
-                      Text(
-                        description!,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s12,
-                          weight: AppTextWeight.regular,
-                          tone: AppTextTone.secondary,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              if (selected)
-                Icon(
-                  Icons.check_circle_rounded,
-                  size: 20,
-                  color: colors.selectionBorder,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PlayerLoadingRow extends StatelessWidget {
-  const _PlayerLoadingRow();
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: spacing.lg,
-        vertical: spacing.md,
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          SizedBox(width: spacing.md),
-          Text(
-            '正在检测已安装的播放器…',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.secondary,
-            ),
-          ),
-        ],
-      ),
+    return Icon(
+      Icons.check_circle_rounded,
+      size: 20,
+      color: context.appColors.selectionBorder,
     );
   }
 }
