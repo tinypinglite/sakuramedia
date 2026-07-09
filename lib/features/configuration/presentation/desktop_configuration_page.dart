@@ -19,30 +19,22 @@ class DesktopConfigurationPage extends StatefulWidget {
 }
 
 class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
-  int _selectedIndex = 0;
+  static const int _defaultSelectedIndex = 1;
+
+  int _selectedIndex = _defaultSelectedIndex;
   int _mediaLibrariesRevision = 0;
 
   // 顺序即右侧 IndexedStack 的索引；itemKey 沿用原 tab key，保持深链/测试兼容。
   static const List<_ConfigurationCategory> _categories = [
     _ConfigurationCategory(
-      itemKey: Key('configuration-tab-media-libraries'),
-      label: '媒体库',
-      icon: Icons.folder_open_outlined,
-    ),
-    _ConfigurationCategory(
-      itemKey: Key('configuration-tab-collection-features'),
-      label: '合集特征',
-      icon: Icons.tag_outlined,
-    ),
-    _ConfigurationCategory(
-      itemKey: Key('configuration-tab-llm'),
-      label: 'LLM 配置',
-      icon: Icons.auto_awesome_outlined,
-    ),
-    _ConfigurationCategory(
       itemKey: Key('configuration-tab-account-security'),
       label: '账号安全',
       icon: Icons.shield_outlined,
+    ),
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-media-libraries'),
+      label: '媒体库',
+      icon: Icons.folder_open_outlined,
     ),
     _ConfigurationCategory(
       itemKey: Key('configuration-tab-downloads'),
@@ -53,6 +45,16 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
       itemKey: Key('configuration-tab-indexers'),
       label: '索引器',
       icon: Icons.travel_explore_outlined,
+    ),
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-collection-features'),
+      label: '合集特征',
+      icon: Icons.tag_outlined,
+    ),
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-llm'),
+      label: 'LLM 配置',
+      icon: Icons.auto_awesome_outlined,
     ),
     _ConfigurationCategory(
       itemKey: Key('configuration-tab-playlists'),
@@ -122,33 +124,33 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
                   index: _selectedIndex,
                   sizing: StackFit.expand,
                   children: [
-                    _ConfigurationTabScrollView(
-                      child: MediaLibrariesSection(
-                        active: _selectedIndex == 0,
-                        onLibrariesChanged: _handleMediaLibrariesChanged,
-                      ),
-                    ),
-                    _ConfigurationTabScrollView(
-                      child: CollectionFeaturesSection(
-                        active: _selectedIndex == 1,
-                      ),
-                    ),
-                    _ConfigurationTabScrollView(
-                      child: DesktopLlmSettingsSection(
-                        active: _selectedIndex == 2,
-                      ),
-                    ),
                     const _ConfigurationTabScrollView(
                       child: AccountSecuritySection(),
                     ),
                     _ConfigurationTabScrollView(
+                      child: MediaLibrariesSection(
+                        active: _selectedIndex == 1,
+                        onLibrariesChanged: _handleMediaLibrariesChanged,
+                      ),
+                    ),
+                    _ConfigurationTabScrollView(
                       child: DownloadClientsSection(
-                        active: _selectedIndex == 4,
+                        active: _selectedIndex == 2,
                         librariesRevision: _mediaLibrariesRevision,
                       ),
                     ),
                     _ConfigurationTabScrollView(
                       child: IndexerSettingsSection(
+                        active: _selectedIndex == 3,
+                      ),
+                    ),
+                    _ConfigurationTabScrollView(
+                      child: CollectionFeaturesSection(
+                        active: _selectedIndex == 4,
+                      ),
+                    ),
+                    _ConfigurationTabScrollView(
+                      child: DesktopLlmSettingsSection(
                         active: _selectedIndex == 5,
                       ),
                     ),

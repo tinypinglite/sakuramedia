@@ -44,27 +44,33 @@ void main() {
       bundle.dispose();
     });
 
-    testWidgets('renders all configuration category entries in the rail', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
+    testWidgets(
+      'renders configuration category entries in the requested order',
+      (WidgetTester tester) async {
+        _enqueueMediaLibraries(bundle);
 
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+        await _pumpPage(tester, bundle, sessionStore: sessionStore);
 
-      const categoryKeys = <String>[
-        'configuration-tab-media-libraries',
-        'configuration-tab-collection-features',
-        'configuration-tab-llm',
-        'configuration-tab-account-security',
-        'configuration-tab-downloads',
-        'configuration-tab-indexers',
-        'configuration-tab-playlists',
-        'configuration-tab-media-maintenance',
-      ];
-      for (final key in categoryKeys) {
-        expect(find.byKey(Key(key)), findsOneWidget, reason: key);
-      }
-    });
+        const categoryKeys = <String>[
+          'configuration-tab-account-security',
+          'configuration-tab-media-libraries',
+          'configuration-tab-downloads',
+          'configuration-tab-indexers',
+          'configuration-tab-collection-features',
+          'configuration-tab-llm',
+          'configuration-tab-playlists',
+          'configuration-tab-media-maintenance',
+        ];
+        var previousTop = double.negativeInfinity;
+        for (final key in categoryKeys) {
+          final finder = find.byKey(Key(key));
+          expect(finder, findsOneWidget, reason: key);
+          final top = tester.getTopLeft(finder).dy;
+          expect(top, greaterThan(previousTop), reason: key);
+          previousTop = top;
+        }
+      },
+    );
 
     testWidgets('loads media maintenance tab lazily when switching tabs', (
       WidgetTester tester,
