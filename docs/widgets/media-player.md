@@ -98,6 +98,13 @@
 - **用途**: 字幕菜单按钮(列出可选轨道、切换、重新拉字幕)。
 - **配合**: `MoviePlayerSurface` 通过 `subtitleState` 透传状态给它。
 
+### MoviePlayerMenuItemRow
+- **路径**: `lib/widgets/domain/movies/player/movie_player_menu_widgets.dart`
+- **用途**: 播放器菜单 / 抽屉里的一行(左右留白 + 中央 label + 右侧勾选槽)。桌面 speed / subtitle 菜单项与移动 speed / subtitle 抽屉项四处逐字相同的骨架合并到此。
+- **required**: `label` · `selected` · `checkColor`(桌面 & 移动 speed = accent token; 移动 subtitle = `Theme.colorScheme.primary`)
+- **可选**: `labelKey` / `checkKey` / `checkSlotKey`(测试锚点) · `overflow` / `maxLines`(subtitle 传 ellipsis + 1) · `background`(桌面 hover 半透明 onMedia,移动无背景)
+- **别自己拼**: 「SizedBox(sideGap) × 2 + Expanded(Center(Text)) + 勾选槽 + trailingGap」这套 row 骨架。
+
 ### landscape_player_system_ui.dart
 - **路径**: `lib/widgets/domain/movies/player/landscape_player_system_ui.dart`
 - **用途**: 移动横屏播放的系统 UI 隐藏/恢复工具(状态栏、导航栏、屏幕方向)。业务侧一般直接引用其中函数。

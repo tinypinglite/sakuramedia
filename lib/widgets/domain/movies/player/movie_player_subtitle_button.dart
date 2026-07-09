@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_menu_widgets.dart';
 
 const Duration _subtitleMenuCloseDelay = Duration(milliseconds: 80);
 const String _noAvailableSubtitleLabel = '无可用字幕';
@@ -500,13 +501,11 @@ class _MoviePlayerSubtitleMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final overlayTokens = context.appOverlayTokens;
-    final selectedColor = resolveAppTextToneColor(context, AppTextTone.accent);
-    final backgroundColor =
-        hovered
-            ? context.appTextPalette.onMedia.withValues(
-              alpha: overlayTokens.hoverAlpha,
-            )
-            : Colors.transparent;
+    final backgroundColor = hovered
+        ? context.appTextPalette.onMedia.withValues(
+            alpha: overlayTokens.hoverAlpha,
+          )
+        : null;
 
     return MouseRegion(
       onEnter: (_) => onHoverChanged(true),
@@ -514,55 +513,20 @@ class _MoviePlayerSubtitleMenuItem extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Container(
+        child: KeyedSubtree(
           key: Key('movie-player-subtitle-menu-item-$subtitleId'),
-          height: overlayTokens.menuItemHeight,
-          decoration: BoxDecoration(color: backgroundColor),
-          child: Row(
-            children: [
-              SizedBox(width: overlayTokens.controlSideGap),
-              SizedBox(width: overlayTokens.controlSideGap),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    label,
-                    key: Key(
-                      'movie-player-subtitle-menu-item-label-$subtitleId',
-                    ),
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s14,
-                      tone: selected ? AppTextTone.accent : AppTextTone.onMedia,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: overlayTokens.controlCheckSlotWidth,
-                child: Center(
-                  child:
-                      selected
-                          ? Icon(
-                            Icons.check_rounded,
-                            key: Key(
-                              'movie-player-subtitle-menu-item-check-$subtitleId',
-                            ),
-                            size: overlayTokens.controlCheckIconSize,
-                            color: selectedColor,
-                          )
-                          : SizedBox(
-                            key: Key(
-                              'movie-player-subtitle-menu-item-check-slot-$subtitleId',
-                            ),
-                            width: overlayTokens.controlCheckIconSize,
-                            height: overlayTokens.controlCheckIconSize,
-                          ),
-                ),
-              ),
-              SizedBox(width: overlayTokens.controlTrailingGap),
-            ],
+          child: MoviePlayerMenuItemRow(
+            label: label,
+            selected: selected,
+            checkColor: resolveAppTextToneColor(context, AppTextTone.accent),
+            labelKey: Key('movie-player-subtitle-menu-item-label-$subtitleId'),
+            checkKey: Key('movie-player-subtitle-menu-item-check-$subtitleId'),
+            checkSlotKey: Key(
+              'movie-player-subtitle-menu-item-check-slot-$subtitleId',
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            background: backgroundColor,
           ),
         ),
       ),
