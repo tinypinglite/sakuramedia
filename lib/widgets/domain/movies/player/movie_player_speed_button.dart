@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_menu_widgets.dart';
 
 const List<double> kMoviePlayerPlaybackRates = <double>[
   2.0,
@@ -291,7 +292,7 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
   Widget build(BuildContext context) {
     final overlayTokens = context.appOverlayTokens;
     final label =
-        _displayHasExplicitSelection ? _formatRateLabel(_displayRate) : '倍速';
+        _displayHasExplicitSelection ? formatMoviePlayerPlaybackRateLabel(_displayRate) : '倍速';
 
     return MouseRegion(
       onEnter: _handleButtonEnter,
@@ -413,14 +414,13 @@ class _MoviePlayerSpeedMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final overlayTokens = context.appOverlayTokens;
-    final label = _formatRateLabel(rate);
-    final selectedColor = resolveAppTextToneColor(context, AppTextTone.accent);
-    final backgroundColor =
-        hovered
-            ? context.appTextPalette.onMedia.withValues(
-              alpha: overlayTokens.hoverAlpha,
-            )
-            : Colors.transparent;
+    final label = formatMoviePlayerPlaybackRateLabel(rate);
+    final backgroundColor = hovered
+        ? context.appTextPalette.onMedia.withValues(
+            alpha: overlayTokens.hoverAlpha,
+          )
+        : null;
+    final rateKey = _rateKey(rate);
 
     return MouseRegion(
       onEnter: (_) => onHoverChanged(true),
@@ -428,53 +428,18 @@ class _MoviePlayerSpeedMenuItem extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Container(
-          key: Key('movie-player-speed-menu-item-${_rateKey(rate)}'),
-          height: overlayTokens.menuItemHeight,
-          decoration: BoxDecoration(color: backgroundColor),
-          child: Row(
-            children: [
-              SizedBox(width: overlayTokens.controlSideGap),
-              SizedBox(width: overlayTokens.controlSideGap),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    label,
-                    key: Key(
-                      'movie-player-speed-menu-item-label-${_rateKey(rate)}',
-                    ),
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s14,
-                      tone: selected ? AppTextTone.accent : AppTextTone.onMedia,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                width: overlayTokens.controlCheckSlotWidth,
-                child: Center(
-                  child:
-                      selected
-                          ? Icon(
-                            Icons.check_rounded,
-                            key: Key(
-                              'movie-player-speed-menu-item-check-${_rateKey(rate)}',
-                            ),
-                            size: overlayTokens.controlCheckIconSize,
-                            color: selectedColor,
-                          )
-                          : SizedBox(
-                            key: Key(
-                              'movie-player-speed-menu-item-check-slot-${_rateKey(rate)}',
-                            ),
-                            width: overlayTokens.controlCheckIconSize,
-                            height: overlayTokens.controlCheckIconSize,
-                          ),
-                ),
-              ),
-              SizedBox(width: overlayTokens.controlTrailingGap),
-            ],
+        child: KeyedSubtree(
+          key: Key('movie-player-speed-menu-item-$rateKey'),
+          child: MoviePlayerMenuItemRow(
+            label: label,
+            selected: selected,
+            checkColor: resolveAppTextToneColor(context, AppTextTone.accent),
+            labelKey: Key('movie-player-speed-menu-item-label-$rateKey'),
+            checkKey: Key('movie-player-speed-menu-item-check-$rateKey'),
+            checkSlotKey: Key(
+              'movie-player-speed-menu-item-check-slot-$rateKey',
+            ),
+            background: backgroundColor,
           ),
         ),
       ),
@@ -482,7 +447,10 @@ class _MoviePlayerSpeedMenuItem extends StatelessWidget {
   }
 }
 
-String _formatRateLabel(double rate) {
+/// 播放速率 label 格式化: 0.5x / 1.0x / 1.75x。
+///
+/// 供 speed 按钮 / surface 的桌面 pill / 移动抽屉共用。
+String formatMoviePlayerPlaybackRateLabel(double rate) {
   final hundredths = (rate * 100).round();
   if (hundredths % 100 == 0 || hundredths % 50 == 0) {
     return '${rate.toStringAsFixed(1)}x';

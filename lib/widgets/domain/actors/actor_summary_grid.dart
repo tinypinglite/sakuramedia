@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/domain/actors/actor_summary_card.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_cover_card_skeleton.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
+import 'package:sakuramedia/widgets/domain/actors/actor_summary_card.dart';
 
 class ActorSummaryGrid extends StatelessWidget {
   const ActorSummaryGrid({
@@ -35,8 +36,10 @@ class ActorSummaryGrid extends StatelessWidget {
       errorMessage: errorMessage,
       emptyMessage: emptyMessage,
       placeholderCount: placeholderCount,
-      skeletonBuilder: (context, index) => _ActorSummaryCardSkeleton(
+      skeletonBuilder: (context, index) => AppCoverCardSkeleton(
         key: Key('actor-summary-card-skeleton-$index'),
+        posterKey: Key('actor-summary-card-skeleton-poster-$index'),
+        aspectRatio: context.appComponentTokens.movieCardAspectRatio,
       ),
       itemBuilder: (context, actor, index) => ActorSummaryCard(
         actor: actor,
@@ -51,38 +54,3 @@ class ActorSummaryGrid extends StatelessWidget {
   }
 }
 
-class _ActorSummaryCardSkeleton extends StatelessWidget {
-  const _ActorSummaryCardSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-        boxShadow: context.appShadows.card,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: AspectRatio(
-        aspectRatio: context.appComponentTokens.movieCardAspectRatio,
-        child: DecoratedBox(
-          key: Key('actor-summary-card-skeleton-poster-${_indexFromKey()}'),
-          decoration: BoxDecoration(color: context.appColors.surfaceMuted),
-        ),
-      ),
-    );
-  }
-
-  String _indexFromKey() {
-    final currentKey = key;
-    if (currentKey is ValueKey<String>) {
-      const prefix = 'actor-summary-card-skeleton-';
-      if (currentKey.value.startsWith(prefix)) {
-        return currentKey.value.substring(prefix.length);
-      }
-      return currentKey.value;
-    }
-    return 'unknown';
-  }
-}

@@ -16,7 +16,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
-import 'package:sakuramedia/widgets/domain/media/preview/preview_dialog_surface.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/preview_image_stage.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_thumbnail.dart';
 
@@ -217,7 +217,7 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
     );
     final previewHeight = dialogHeight * 0.5;
 
-    return PreviewDialogSurface(
+    return AppDesktopDialog(
       dialogKey: const Key('image-search-result-preview-dialog'),
       contentKey: const Key('image-search-result-preview-dialog-content'),
       insetPadding: insetPadding,

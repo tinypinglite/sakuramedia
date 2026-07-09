@@ -23,6 +23,14 @@
 - **路径**: `lib/widgets/domain/movies/player/movie_player_surface_controller.dart`
 - **用途**: `MoviePlayerSurface` 的外部控制句柄(seek / play / pause / 请求缩略图之类)。业务侧持有并传给 surface。
 
+### QuickPlayDialog + showVideoQuickPlayDialog
+- **路径**: `lib/widgets/domain/media/quick_play_dialog.dart`
+- **用途**: 桌面「点小图 → 弹小窗立刻播」的轻量播放弹窗——`AppDesktopDialog` 外壳 + `ThemedVideoPlayer` 播放器 + 空态 / 加载态。切片、视频列表卡、时刻缩略图共用。
+- **QuickPlayDialog required**: `title` · `fallbackTitle`(标题为空时兜底) · `videoKey`(测试锚点) · `resolvePlayUrl(context)`(切片同步取 stream_url; 视频 async `GET /videos/{id}` 取首个可播源) · `noPlayableMessage`(resolver 返 null / 空时的空态文案)
+- **可选**: `errorFallback`(resolver throw 时兜底)
+- **`showVideoQuickPlayDialog(context, videoId, title)`**: 视频列表 / 时刻卡专用便捷函数,包好 videos_api + session_store 拉详情逻辑。切片走 [showClipPlayerDialog](./domain-widgets.md#showclipplayerdialog)。
+- **别自己写**: `showDialog + Player() + VideoController + AppDesktopDialog` 那套骨架——一律走它。
+
 ## 二、缩略图 / 关键帧
 
 ### MovieMediaThumbnailGrid
@@ -50,10 +58,15 @@
 
 ### CollectionPlaybackPageMixin
 - **路径**: `lib/widgets/domain/collections/playback/collection_playback_page_mixin.dart`
-- **用途**: 合集连播页 State mixin——**共享**播放器登记(`attachPlayback`)、`dispose`、跨集 seek 补偿(`seekToFrame`/待办 `_pendingSeek`)、右面板构建(`buildFilmstripPanel`)。
-- **何时用**: 新增合集连播场景一定要 `with` 它,别自己复制播放器登记 / 跨集 seek。
+- **用途**: 合集连播页 State mixin——**共享**播放器登记(`attachPlayback`)、`dispose`、跨集 seek 补偿(`seekToFrame`/待办 `_pendingSeek`)、右面板构建(`buildFilmstripPanel`)、「选集」浮层开合状态(`isEpisodePanelOpen` / `openEpisodePanel` / `closeEpisodePanel`)。
+- **何时用**: 新增合集连播场景一定要 `with` 它,别自己复制播放器登记 / 跨集 seek / 选集浮层开合。
 - **注意**: `updatePosition` / 同集判定都用播放器**实时** `player.state.playlist.index`(非滞后的 `currentIndex`,position 流可能先于 playlist 流到);`seekToFrame` 覆盖待办时会先取消旧的一次性监听(防旧 offset 误 seek)。
 - **`buildFilmstripPanel(onThumbnailMenuRequested:)`**: 桌面 video 合集页传菜单回调 → 右键 / 长按帧"添加时刻"(仅 pornbox 帧携真实 media/thumbnail id 时可用);切片合集页不传 → 无菜单。
+
+### CollectionEpisodeQueueItem
+- **路径**: `lib/widgets/domain/collections/playback/collection_episode_queue_item.dart`
+- **用途**: 合集连播「选集」浮层内的一项(88 宽 16:9 封面 + 标题 + 副信息 + 当前集高亮 icon)。切片 / 视频两页公用。
+- **required**: `itemKey` · `coverUrl`(可空) · `coverStyle: cover|containOnMuted`(切片 cover, pornbox contain 加灰底) · `title` · `subtitle`(切片时长 / video「第 N 集」) · `isCurrent` · `onTap`
 
 ### CollectionFilmstripController
 - **路径**: `lib/widgets/domain/collections/playback/collection_filmstrip_controller.dart`
@@ -97,6 +110,13 @@
 - **required**: `subtitleStateListenable` · `isApplyingListenable` · `onSubtitleSelected` · `onReloadRequested`
 - **用途**: 字幕菜单按钮(列出可选轨道、切换、重新拉字幕)。
 - **配合**: `MoviePlayerSurface` 通过 `subtitleState` 透传状态给它。
+
+### MoviePlayerMenuItemRow
+- **路径**: `lib/widgets/domain/movies/player/movie_player_menu_widgets.dart`
+- **用途**: 播放器菜单 / 抽屉里的一行(左右留白 + 中央 label + 右侧勾选槽)。桌面 speed / subtitle 菜单项与移动 speed / subtitle 抽屉项四处逐字相同的骨架合并到此。
+- **required**: `label` · `selected` · `checkColor`(桌面 & 移动 speed = accent token; 移动 subtitle = `Theme.colorScheme.primary`)
+- **可选**: `labelKey` / `checkKey` / `checkSlotKey`(测试锚点) · `overflow` / `maxLines`(subtitle 传 ellipsis + 1) · `background`(桌面 hover 半透明 onMedia,移动无背景)
+- **别自己拼**: 「SizedBox(sideGap) × 2 + Expanded(Center(Text)) + 勾选槽 + trailingGap」这套 row 骨架。
 
 ### landscape_player_system_ui.dart
 - **路径**: `lib/widgets/domain/movies/player/landscape_player_system_ui.dart`

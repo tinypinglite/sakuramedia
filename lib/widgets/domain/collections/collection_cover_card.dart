@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_card_context_menu.dart';
 
 /// 合集封面卡的共享实现：16:9 封面 + 底部标题 + 封面右下角计数角标。
 ///
@@ -146,35 +147,21 @@ class CollectionCoverCard extends StatelessWidget {
     BuildContext context,
     Offset globalPosition,
   ) async {
-    final navigator = Navigator.of(context);
-    final overlay = navigator.overlay!.context.findRenderObject() as RenderBox;
-    final localPosition = overlay.globalToLocal(globalPosition);
-    final position = RelativeRect.fromRect(
-      Rect.fromPoints(localPosition, localPosition),
-      Offset.zero & overlay.size,
-    );
     final edit = onEdit;
     final delete = onDelete;
-    final action = await showMenu<_CollectionMenuAction>(
-      context: context,
-      position: position,
-      useRootNavigator: false,
-      items: <PopupMenuEntry<_CollectionMenuAction>>[
+    final action = await showAppCardContextMenu<_CollectionMenuAction>(
+      context,
+      globalPosition: globalPosition,
+      items: [
         if (edit != null)
-          PopupMenuItem<_CollectionMenuAction>(
+          const AppCardContextMenuItem(
             value: _CollectionMenuAction.edit,
-            child: Text(
-              '编辑',
-              style: resolveAppTextStyle(context, size: AppTextSize.s14),
-            ),
+            label: '编辑',
           ),
         if (delete != null)
-          PopupMenuItem<_CollectionMenuAction>(
+          const AppCardContextMenuItem(
             value: _CollectionMenuAction.delete,
-            child: Text(
-              '删除',
-              style: resolveAppTextStyle(context, size: AppTextSize.s14),
-            ),
+            label: '删除',
           ),
       ],
     );

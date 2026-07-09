@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_cover_bottom_shade.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/domain/movies/subscription_heart_badge.dart';
 
 class MovieSummaryCard extends StatelessWidget {
   const MovieSummaryCard({
@@ -49,7 +51,7 @@ class MovieSummaryCard extends StatelessWidget {
               thinCoverImage: movie.thinCoverImage,
               coverImage: movie.coverImage,
             ),
-            const _MovieCardBottomShade(),
+            const AppCoverBottomShade(),
             Positioned(
               left: context.appSpacing.md,
               right: context.appSpacing.md,
@@ -147,7 +149,7 @@ class MovieSummaryCard extends StatelessWidget {
             spacing: spacing.xs,
             runSpacing: spacing.xs,
             children: [
-              _SubscriptionBadge(
+              SubscriptionHeartBadge(
                 key: Key(
                   'movie-summary-card-subscription-${movie.movieNumber}',
                 ),
@@ -287,30 +289,6 @@ String? _resolveMovieImageUrl(MovieImageDto? image) {
   return url;
 }
 
-class _MovieCardBottomShade extends StatelessWidget {
-  const _MovieCardBottomShade();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            colors.mediaOverlaySoft.withValues(alpha: 0),
-            colors.mediaOverlaySoft,
-            colors.mediaOverlayStrong,
-          ],
-          stops: const [0.45, 0.72, 1],
-        ),
-      ),
-    );
-  }
-}
-
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({
     super.key,
@@ -340,61 +318,3 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-class _SubscriptionBadge extends StatelessWidget {
-  const _SubscriptionBadge({
-    super.key,
-    required this.loadingKey,
-    required this.isSubscribed,
-    required this.isUpdating,
-    required this.onTap,
-  });
-
-  final Key loadingKey;
-  final bool isSubscribed;
-  final bool isUpdating;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final componentTokens = context.appComponentTokens;
-    final colors = context.appColors;
-
-    final badge = SizedBox(
-      width: componentTokens.movieCardStatusBadgeSize,
-      height: componentTokens.movieCardStatusBadgeSize,
-      child: Center(
-        child:
-            isUpdating
-                ? SizedBox(
-                  width: componentTokens.movieCardLoaderSize,
-                  height: componentTokens.movieCardLoaderSize,
-                  child: CircularProgressIndicator(
-                    key: loadingKey,
-                    strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
-                    color: colors.subscriptionHeartIcon,
-                  ),
-                )
-                : Icon(
-                  isSubscribed
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
-                  size: componentTokens.iconSizeXl,
-                  color: colors.subscriptionHeartIcon,
-                ),
-      ),
-    );
-
-    if (onTap == null || isUpdating) {
-      return badge;
-    }
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: onTap,
-        child: badge,
-      ),
-    );
-  }
-}

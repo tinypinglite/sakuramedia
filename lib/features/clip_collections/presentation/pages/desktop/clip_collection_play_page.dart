@@ -13,9 +13,8 @@ import 'package:sakuramedia/features/clip_collections/data/api/clip_collections_
 import 'package:sakuramedia/features/clips/data/api/clips_api.dart';
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/domain/collections/playback/collection_episode_queue_item.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_filmstrip_controller.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_play_split_layout.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_mode.dart';
@@ -53,7 +52,6 @@ class _DesktopClipCollectionPlayPageState
   List<MediaClipDto> _clips = const <MediaClipDto>[];
   bool _isLoading = true;
   String? _errorMessage;
-  bool _isEpisodePanelOpen = false;
 
   @override
   void initState() {
@@ -224,18 +222,22 @@ class _DesktopClipCollectionPlayPageState
         children: [
           Positioned.fill(child: _buildPlayerSurface(context, videoController)),
           EpisodeSelectorOverlay(
-            isOpen: _isEpisodePanelOpen,
+            isOpen: isEpisodePanelOpen,
             itemCount: _clips.length,
             currentIndex: currentIndex,
             title: '选集 · ${_clips.length}',
-            onClose: _closeEpisodePanel,
+            onClose: closeEpisodePanel,
             itemBuilder: (context, index) {
-              return _QueueItem(
-                clip: _clips[index],
-                index: index,
+              final clip = _clips[index];
+              return CollectionEpisodeQueueItem(
+                itemKey: Key('clip-collection-play-queue-item-$index'),
+                coverUrl: clip.coverImage?.bestAvailableUrl,
+                coverStyle: CollectionQueueCoverStyle.cover,
+                title: clip.displayTitle,
+                subtitle: formatMediaTimecode(clip.durationSeconds),
                 isCurrent: index == currentIndex,
                 onTap: () {
-                  _closeEpisodePanel();
+                  closeEpisodePanel();
                   jumpTo(index);
                 },
               );
@@ -274,122 +276,18 @@ class _DesktopClipCollectionPlayPageState
       ),
       bottomControls: buildCollectionPlayBottomControls(
         useTouchOptimizedControls: widget.useTouchOptimizedControls,
-        onOpenEpisodes: _openEpisodePanel,
+        onOpenEpisodes: openEpisodePanel,
         progressIndicator: progressIndicator,
       ),
       // 全屏由 media_kit push 独立路由，页面级「选集」浮层不在其内，按钮点了
       // 也看不到——全屏态去掉该按钮，避免死按钮。换集需先退出全屏。
       fullscreenBottomControls: buildCollectionPlayBottomControls(
         useTouchOptimizedControls: widget.useTouchOptimizedControls,
-        onOpenEpisodes: _openEpisodePanel,
+        onOpenEpisodes: openEpisodePanel,
         includeEpisodeButton: false,
         progressIndicator: progressIndicator,
       ),
     );
   }
 
-  void _openEpisodePanel() {
-    setState(() => _isEpisodePanelOpen = true);
-  }
-
-  void _closeEpisodePanel() {
-    if (!_isEpisodePanelOpen) {
-      return;
-    }
-    setState(() => _isEpisodePanelOpen = false);
-  }
-}
-
-class _QueueItem extends StatelessWidget {
-  const _QueueItem({
-    required this.clip,
-    required this.index,
-    required this.isCurrent,
-    required this.onTap,
-  });
-
-  final MediaClipDto clip;
-  final int index;
-  final bool isCurrent;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final coverUrl = clip.coverImage?.bestAvailableUrl;
-    return Material(
-      color: isCurrent ? colors.surfaceMuted : Colors.transparent,
-      borderRadius: context.appRadius.smBorder,
-      child: InkWell(
-        key: Key('clip-collection-play-queue-item-$index'),
-        borderRadius: context.appRadius.smBorder,
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.all(spacing.xs),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: context.appRadius.xsBorder,
-                child: SizedBox(
-                  width: 88,
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child:
-                        coverUrl != null && coverUrl.isNotEmpty
-                            ? MaskedImage(url: coverUrl, fit: BoxFit.cover)
-                            : ColoredBox(color: colors.surfaceMuted),
-                  ),
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      clip.displayTitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        weight:
-                            isCurrent
-                                ? AppTextWeight.semibold
-                                : AppTextWeight.regular,
-                        tone:
-                            isCurrent
-                                ? AppTextTone.primary
-                                : AppTextTone.secondary,
-                      ),
-                    ),
-                    SizedBox(height: spacing.xs),
-                    Text(
-                      formatMediaTimecode(clip.durationSeconds),
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        weight: AppTextWeight.regular,
-                        tone: AppTextTone.tertiary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isCurrent)
-                Padding(
-                  padding: EdgeInsets.only(left: spacing.xs),
-                  child: Icon(
-                    Icons.equalizer_rounded,
-                    size: context.appComponentTokens.iconSizeSm,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

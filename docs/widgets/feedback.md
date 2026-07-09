@@ -47,6 +47,12 @@
 - **可选**: `itemCount`(默认 3) · `itemBuilder` · `padding`
 - **何时用**: 移动列表骨架直接用它,别循环写 `AppSkeletonBlock`。
 
+## AppCoverCardSkeleton
+- **路径**: `lib/widgets/base/feedback/app_cover_card_skeleton.dart`
+- **用途**: 封面卡骨架 = 圆角 Container(surfaceCard) + 可选 AspectRatio + surfaceMuted 内框。movie / actor / rankedMovie / video 四份网格 skeleton 复用它。
+- **可选**: `posterKey`(内层 DecoratedBox 的 Key, 通常拼 `xxx-skeleton-poster-$index`) · `aspectRatio`(不传 = video masonry, 传 = movieCardAspectRatio)
+- **何时用**: 需要「四态卡片网格」骨架时。别再手写"圆角 + 灰色内框"。
+
 ## showAppConfirmDialog
 - **路径**: `lib/widgets/base/feedback/app_confirm_dialog.dart`
 - **用途**: **自适应**确认框——一套 API 双端通用。

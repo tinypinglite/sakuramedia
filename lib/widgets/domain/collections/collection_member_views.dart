@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_cover_bottom_shade.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_card_context_menu.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_cover_overlays.dart';
 
 /// 合集「成员」（切片 / 视频）在详情页的共享展示组件：列表行 [CollectionMemberRow]
@@ -31,53 +33,30 @@ Future<void> _showCollectionMemberContextMenu(
   VoidCallback? onDelete,
   String deleteLabel = '删除视频',
 }) async {
-  final navigator = Navigator.of(context);
-  final overlay = navigator.overlay!.context.findRenderObject() as RenderBox;
-  final localPosition = overlay.globalToLocal(globalPosition);
-  final position = RelativeRect.fromRect(
-    Rect.fromPoints(localPosition, localPosition),
-    Offset.zero & overlay.size,
-  );
   final openSource = onOpenSource;
   final label = openSourceLabel;
   final delete = onDelete;
-  final action = await showMenu<_MemberMenuAction>(
-    context: context,
-    position: position,
-    useRootNavigator: false,
-    items: <PopupMenuEntry<_MemberMenuAction>>[
+  final action = await showAppCardContextMenu<_MemberMenuAction>(
+    context,
+    globalPosition: globalPosition,
+    items: [
       if (openSource != null && label != null)
-        PopupMenuItem<_MemberMenuAction>(
+        AppCardContextMenuItem(
           value: _MemberMenuAction.openSource,
-          child: Text(
-            label,
-            style: resolveAppTextStyle(context, size: AppTextSize.s14),
-          ),
+          label: label,
         ),
-      PopupMenuItem<_MemberMenuAction>(
+      // 无「删除本体」时（如切片合集）「移出合集」保持原有 error 强调色；与红色
+      // 删除项并列时退为常规色，让破坏性的「删除」独占红色、层级清晰。
+      AppCardContextMenuItem(
         value: _MemberMenuAction.remove,
-        // 无「删除本体」时（如切片合集）「移出合集」保持原有 error 强调色；与红色
-        // 删除项并列时退为常规色，让破坏性的「删除」独占红色、层级清晰。
-        child: Text(
-          removeLabel,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            tone: delete == null ? AppTextTone.error : AppTextTone.primary,
-          ),
-        ),
+        label: removeLabel,
+        tone: delete == null ? AppTextTone.error : AppTextTone.primary,
       ),
       if (delete != null)
-        PopupMenuItem<_MemberMenuAction>(
+        AppCardContextMenuItem(
           value: _MemberMenuAction.delete,
-          child: Text(
-            deleteLabel,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s14,
-              tone: AppTextTone.error,
-            ),
-          ),
+          label: deleteLabel,
+          tone: AppTextTone.error,
         ),
     ],
   );
@@ -608,7 +587,7 @@ class CollectionMemberCard extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         _buildCover(context),
-        const _MemberCaptionShade(),
+        const AppCoverBottomShade(),
         const ClipPlayOverlay(),
         Positioned(
           left: spacing.md,
@@ -657,31 +636,6 @@ class CollectionMemberCard extends StatelessWidget {
   }
 }
 
-/// 标题压图模式下封面底部的渐变，保证浮层白字可读。
-class _MemberCaptionShade extends StatelessWidget {
-  const _MemberCaptionShade();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    return IgnorePointer(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              colors.mediaOverlaySoft.withValues(alpha: 0),
-              colors.mediaOverlaySoft,
-              colors.mediaOverlayStrong,
-            ],
-            stops: const [0.45, 0.72, 1],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// 封面缺图时的占位：muted 底色，可选居中图标（[icon] 为 `null` 时纯色）。
 class _CoverPlaceholder extends StatelessWidget {

@@ -23,7 +23,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_mode.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/video_collection_sort_bar.dart';
-import 'package:sakuramedia/features/videos/presentation/widgets/player/video_quick_play_dialog.dart';
+import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
 
 /// 合集详情的成员排布方式：纵向列表（可拖序）或网格（侧重浏览）。
 enum _VideoLayout { list, grid }

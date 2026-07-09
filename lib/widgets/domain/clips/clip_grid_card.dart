@@ -2,57 +2,81 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_card_context_menu.dart';
 
 enum _ClipCardAction { openMovie, addToCollection, rename, delete }
 
-/// 切片网格卡：封面 + 底部一条信息条（左番号、右时长）。
-/// 左键 / 单击播放，右键 / 长按弹菜单（影片 / 加入合集 / 重命名 / 删除），
-/// 与「时刻」卡的右键菜单形式对齐。
+/// 切片卡：封面 + 底部一条信息条（左番号、右时长）。桌面 grid 版本
+/// 单击播放 + 右键 / 长按弹菜单;移动 cover 版本(见 [ClipCoverCard]
+/// 薄壳)整卡点击弹操作抽屉、无右键菜单。
 ///
-/// 选择模式下整卡点击切换选中、屏蔽右键菜单与播放、左上角叠勾选；与
-/// [VideoSummaryCard] 的多选交互对齐。
+/// 选择模式下整卡点击切换选中、屏蔽右键菜单与 tap、左上角叠勾选。
 class ClipGridCard extends StatelessWidget {
   const ClipGridCard({
     super.key,
     required this.clip,
-    required this.onPlay,
-    required this.onRename,
-    required this.onDelete,
-    required this.onAddToCollection,
+    required this.onTap,
+    this.onRename,
+    this.onDelete,
+    this.onAddToCollection,
     this.onOpenMovie,
     this.selectionMode = false,
     this.isSelected = false,
     this.onSelectedChanged,
+    this.tapKey,
+    this.numberOverride,
+    this.materialColor,
+    this.backgroundOnDecoration = false,
   });
 
   final MediaClipDto clip;
-  final VoidCallback onPlay;
-  final VoidCallback onRename;
-  final VoidCallback onDelete;
-  final VoidCallback onAddToCollection;
 
-  /// 跳转到切片来源影片详情；切片无番号时为 `null`，对应菜单项隐藏。
+  /// 整卡点击回调:桌面 = 播放;移动 cover 版 = 弹抽屉。
+  final VoidCallback onTap;
+
+  /// 菜单相关回调,全部可空。任一非空 + 非选择模式 = 加右键 / 长按手势。
+  final VoidCallback? onRename;
+  final VoidCallback? onDelete;
+  final VoidCallback? onAddToCollection;
+
+  /// 跳转到切片来源影片详情;切片无番号 / cover 版本不适用时为 `null`。
   final VoidCallback? onOpenMovie;
 
-  /// 选择模式：整卡点击改为切换选中，屏蔽右键菜单与播放点击，叠加勾选标记。
   final bool selectionMode;
-
-  /// 当前是否被选中（仅 [selectionMode] 下有意义）。
   final bool isSelected;
-
-  /// 选择模式下切换选中态的回调，入参为切换后的目标值。
   final ValueChanged<bool>? onSelectedChanged;
+
+  /// InkWell Key,测试锚点。桌面 grid 传 `clip-grid-card-tap-<id>`,
+  /// 移动 cover 薄壳传 `clip-cover-card-<id>`。
+  final Key? tapKey;
+
+  /// 番号显示 override。默认走 `movieNumber ?? '无番号'`(grid);
+  /// cover 版传 `clip.displayNumber`。
+  final String? numberOverride;
+
+  /// [Material] 底色。cover 版传 `Colors.transparent`(外层已有背景);
+  /// grid 版走默认 surfaceCard。
+  final Color? materialColor;
+
+  /// cover 版本外层没有额外背景,底色改到 [DecoratedBox] 上;grid 版走
+  /// [Material] 底色即可。
+  final bool backgroundOnDecoration;
+
+  bool get _hasMenu =>
+      onRename != null ||
+      onDelete != null ||
+      onAddToCollection != null ||
+      onOpenMovie != null;
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final colors = context.appColors;
     final coverUrl = clip.coverImage?.bestAvailableUrl;
-    final number = clip.movieNumber?.isNotEmpty == true
-        ? clip.movieNumber!
-        : '无番号';
+    final number = numberOverride ??
+        (clip.movieNumber?.isNotEmpty == true ? clip.movieNumber! : '无番号');
     final duration = formatMediaTimecode(clip.durationSeconds);
     final labelTextStyle = resolveAppTextStyle(
       context,
@@ -63,16 +87,18 @@ class ClipGridCard extends StatelessWidget {
     final selected = selectionMode && isSelected;
 
     final card = Material(
-      color: colors.surfaceCard,
+      color: materialColor ??
+          (backgroundOnDecoration ? Colors.transparent : colors.surfaceCard),
       borderRadius: context.appRadius.mdBorder,
       child: InkWell(
-        key: Key('clip-grid-card-tap-${clip.clipId}'),
+        key: tapKey,
         borderRadius: context.appRadius.mdBorder,
         onTap: selectionMode
             ? () => onSelectedChanged?.call(!isSelected)
-            : onPlay,
+            : onTap,
         child: DecoratedBox(
           decoration: BoxDecoration(
+            color: backgroundOnDecoration ? colors.surfaceCard : null,
             borderRadius: context.appRadius.mdBorder,
             border: Border.all(
               color: selected ? colors.selectionBorder : colors.borderSubtle,
@@ -137,7 +163,7 @@ class ClipGridCard extends StatelessWidget {
       ),
     );
 
-    if (selectionMode) {
+    if (selectionMode || !_hasMenu) {
       return card;
     }
     return GestureDetector(
@@ -154,49 +180,34 @@ class ClipGridCard extends StatelessWidget {
     BuildContext context,
     Offset globalPosition,
   ) async {
-    final navigator = Navigator.of(context);
-    final overlay =
-        navigator.overlay!.context.findRenderObject() as RenderBox;
-    final localPosition = overlay.globalToLocal(globalPosition);
-    final position = RelativeRect.fromRect(
-      Rect.fromPoints(localPosition, localPosition),
-      Offset.zero & overlay.size,
-    );
     final openMovie = onOpenMovie;
-    final action = await showMenu<_ClipCardAction>(
-      context: context,
-      position: position,
-      useRootNavigator: false,
-      items: <PopupMenuEntry<_ClipCardAction>>[
+    final addToCollection = onAddToCollection;
+    final rename = onRename;
+    final delete = onDelete;
+    final action = await showAppCardContextMenu<_ClipCardAction>(
+      context,
+      globalPosition: globalPosition,
+      items: [
         if (openMovie != null)
-          PopupMenuItem<_ClipCardAction>(
+          const AppCardContextMenuItem(
             value: _ClipCardAction.openMovie,
-            child: Text(
-              '影片',
-              style: resolveAppTextStyle(context, size: AppTextSize.s14),
-            ),
+            label: '影片',
           ),
-        PopupMenuItem<_ClipCardAction>(
-          value: _ClipCardAction.addToCollection,
-          child: Text(
-            '加入合集',
-            style: resolveAppTextStyle(context, size: AppTextSize.s14),
+        if (addToCollection != null)
+          const AppCardContextMenuItem(
+            value: _ClipCardAction.addToCollection,
+            label: '加入合集',
           ),
-        ),
-        PopupMenuItem<_ClipCardAction>(
-          value: _ClipCardAction.rename,
-          child: Text(
-            '重命名',
-            style: resolveAppTextStyle(context, size: AppTextSize.s14),
+        if (rename != null)
+          const AppCardContextMenuItem(
+            value: _ClipCardAction.rename,
+            label: '重命名',
           ),
-        ),
-        PopupMenuItem<_ClipCardAction>(
-          value: _ClipCardAction.delete,
-          child: Text(
-            '删除',
-            style: resolveAppTextStyle(context, size: AppTextSize.s14),
+        if (delete != null)
+          const AppCardContextMenuItem(
+            value: _ClipCardAction.delete,
+            label: '删除',
           ),
-        ),
       ],
     );
     if (action == null) {
@@ -206,11 +217,11 @@ class ClipGridCard extends StatelessWidget {
       case _ClipCardAction.openMovie:
         openMovie?.call();
       case _ClipCardAction.addToCollection:
-        onAddToCollection();
+        addToCollection?.call();
       case _ClipCardAction.rename:
-        onRename();
+        rename?.call();
       case _ClipCardAction.delete:
-        onDelete();
+        delete?.call();
     }
   }
 }

@@ -76,6 +76,21 @@ mixin CollectionPlaybackPageMixin<T extends StatefulWidget> on State<T> {
   /// 当前集下标（实际可播列表）；由 playlist 流驱动 `setState`，供选集浮层高亮。
   int currentIndex = 0;
 
+  /// 「选集」浮层开合状态。切片 / 视频合集页公用同一套状态与 open/close 方法。
+  bool isEpisodePanelOpen = false;
+
+  /// 打开「选集」浮层。已开时无副作用。
+  void openEpisodePanel() {
+    if (isEpisodePanelOpen) return;
+    setState(() => isEpisodePanelOpen = true);
+  }
+
+  /// 关闭「选集」浮层。已关时无副作用。
+  void closeEpisodePanel() {
+    if (!isEpisodePanelOpen) return;
+    setState(() => isEpisodePanelOpen = false);
+  }
+
   /// 播放形态；[CollectionPlaybackMode.merged] 时由页面接管底栏进度条 + 隐藏内置 seek bar。
   CollectionPlaybackMode playbackMode = CollectionPlaybackMode.playlist;
 

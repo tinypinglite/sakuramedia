@@ -394,7 +394,8 @@ class _DesktopClipsPageState extends State<DesktopClipsPage>
             return ClipGridCard(
               key: Key('clip-grid-card-${clip.clipId}'),
               clip: clip,
-              onPlay: () => _playClip(clip),
+              tapKey: Key('clip-grid-card-tap-${clip.clipId}'),
+              onTap: () => _playClip(clip),
               onRename: () => _renameClip(clip),
               onDelete: () => _deleteClip(clip),
               onAddToCollection: () => _addToCollection(clip),

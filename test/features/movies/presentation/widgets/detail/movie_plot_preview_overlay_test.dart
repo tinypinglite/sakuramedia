@@ -11,7 +11,7 @@ import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
-import 'package:sakuramedia/widgets/domain/media/preview/preview_dialog_surface.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_preview_overlay.dart';
 
 void main() {
@@ -48,7 +48,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('movie-plot-preview-dialog')), findsOneWidget);
-    expect(find.byType(PreviewDialogSurface), findsOneWidget);
+    expect(find.byType(AppDesktopDialog), findsOneWidget);
     expect(find.text('2 / 2'), findsOneWidget);
   });
 
@@ -81,7 +81,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('movie-plot-preview-dialog')), findsNothing);
-    expect(find.byType(PreviewDialogSurface), findsNothing);
+    expect(find.byType(AppDesktopDialog), findsNothing);
     expect(find.text('2 / 2'), findsOneWidget);
   });
 

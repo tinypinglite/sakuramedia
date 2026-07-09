@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_cover_card_skeleton.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
 
@@ -38,8 +39,10 @@ class MovieSummaryGrid extends StatelessWidget {
       errorMessage: errorMessage,
       emptyMessage: emptyMessage,
       placeholderCount: placeholderCount,
-      skeletonBuilder: (context, index) => _MovieSummaryCardSkeleton(
+      skeletonBuilder: (context, index) => AppCoverCardSkeleton(
         key: Key('movie-summary-card-skeleton-$index'),
+        posterKey: Key('movie-summary-card-skeleton-poster-$index'),
+        aspectRatio: context.appComponentTokens.movieCardAspectRatio,
       ),
       itemBuilder: (context, movie, index) => MovieSummaryCard(
         movie: movie,
@@ -57,38 +60,3 @@ class MovieSummaryGrid extends StatelessWidget {
   }
 }
 
-class _MovieSummaryCardSkeleton extends StatelessWidget {
-  const _MovieSummaryCardSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-        boxShadow: context.appShadows.card,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: AspectRatio(
-        aspectRatio: context.appComponentTokens.movieCardAspectRatio,
-        child: DecoratedBox(
-          key: Key('movie-summary-card-skeleton-poster-${_indexFromKey()}'),
-          decoration: BoxDecoration(color: context.appColors.surfaceMuted),
-        ),
-      ),
-    );
-  }
-
-  String _indexFromKey() {
-    final currentKey = key;
-    if (currentKey is ValueKey<String>) {
-      const prefix = 'movie-summary-card-skeleton-';
-      if (currentKey.value.startsWith(prefix)) {
-        return currentKey.value.substring(prefix.length);
-      }
-      return currentKey.value;
-    }
-    return 'unknown';
-  }
-}

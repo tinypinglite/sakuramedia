@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 
-class MovieFilterToolbar extends StatefulWidget {
+class MovieFilterToolbar extends StatelessWidget {
   const MovieFilterToolbar({
     super.key,
     required this.filterState,
@@ -27,295 +28,35 @@ class MovieFilterToolbar extends StatefulWidget {
   final VoidCallback? onOpened;
 
   @override
-  State<MovieFilterToolbar> createState() => _MovieFilterToolbarState();
-}
-
-class _MovieFilterToolbarState extends State<MovieFilterToolbar> {
-  final LayerLink _layerLink = LayerLink();
-  final GlobalKey _triggerKey = GlobalKey();
-  OverlayEntry? _overlayEntry;
-  bool _isOpen = false;
-  bool _overlayRebuildScheduled = false;
-  Size _triggerSize = const Size(160, 36);
-  Offset _triggerOffsetInOverlay = Offset.zero;
-
-  @override
-  void didUpdateWidget(covariant MovieFilterToolbar oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _scheduleOverlayRebuild();
-  }
-
-  @override
-  void dispose() {
-    _removeOverlay(updateState: false);
-    super.dispose();
-  }
-
-  void _togglePanel() {
-    if (_isOpen) {
-      _removeOverlay();
-    } else {
-      _showOverlay();
-    }
-  }
-
-  void _showOverlay() {
-    widget.onOpened?.call();
-    _updateTriggerMetrics();
-    _isOpen = true;
-    _overlayEntry = OverlayEntry(
-      builder: (overlayContext) => _buildOverlay(overlayContext),
-    );
-    Overlay.of(context).insert(_overlayEntry!);
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void _scheduleOverlayRebuild() {
-    if (!_isOpen || _overlayEntry == null || _overlayRebuildScheduled) {
-      return;
-    }
-    _overlayRebuildScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _overlayRebuildScheduled = false;
-      if (!mounted || !_isOpen) {
-        return;
-      }
-      _overlayEntry?.markNeedsBuild();
-    });
-  }
-
-  void _updateTriggerMetrics() {
-    final triggerBox =
-        _triggerKey.currentContext?.findRenderObject() as RenderBox?;
-    if (triggerBox != null) {
-      _triggerSize = triggerBox.size;
-    }
-  }
-
-  RenderBox? _updateTriggerMetricsForOverlay(BuildContext overlayContext) {
-    final triggerBox =
-        _triggerKey.currentContext?.findRenderObject() as RenderBox?;
-    final overlayState = Overlay.maybeOf(overlayContext);
-    final overlayBox = overlayState?.context.findRenderObject() as RenderBox?;
-
-    if (triggerBox != null) {
-      _triggerSize = triggerBox.size;
-    }
-    if (triggerBox != null && overlayBox != null) {
-      _triggerOffsetInOverlay = triggerBox.localToGlobal(
-        Offset.zero,
-        ancestor: overlayBox,
-      );
-    }
-    return overlayBox;
-  }
-
-  void _removeOverlay({bool updateState = true}) {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    _overlayRebuildScheduled = false;
-    if (updateState && _isOpen && mounted) {
-      setState(() {
-        _isOpen = false;
-      });
-      return;
-    }
-    _isOpen = false;
-  }
-
-  Widget _buildOverlay(BuildContext overlayContext) {
-    final overlayBox = _updateTriggerMetricsForOverlay(overlayContext);
-    final mediaQuery = MediaQuery.of(overlayContext);
-    final overlayWidth = overlayBox?.size.width ?? mediaQuery.size.width;
-    final desiredWidth = _triggerSize.width + 260;
-    final panelWidth =
-        desiredWidth.clamp(_triggerSize.width, overlayWidth).toDouble();
-    final leftSpace = _triggerOffsetInOverlay.dx;
-    final rightAlignedOffset =
-        -((panelWidth - _triggerSize.width).clamp(0, leftSpace)).toDouble();
-    const panelVerticalGap = 8.0;
-    final overlayHeight = overlayBox?.size.height ?? mediaQuery.size.height;
-    final panelTop =
-        _triggerOffsetInOverlay.dy + _triggerSize.height + panelVerticalGap;
-    final bottomMargin = mediaQuery.padding.bottom + context.appSpacing.lg;
-    final safeOverlayHeight =
-        (overlayHeight - bottomMargin).clamp(1.0, overlayHeight).toDouble();
-    final availablePanelHeight = safeOverlayHeight - panelTop;
-    final maxPanelHeight =
-        availablePanelHeight > 0 ? availablePanelHeight : safeOverlayHeight;
-
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: _removeOverlay,
-            child: const SizedBox.expand(),
-          ),
-        ),
-        CompositedTransformFollower(
-          link: _layerLink,
-          showWhenUnlinked: false,
-          offset: Offset(
-            rightAlignedOffset,
-            _triggerSize.height + panelVerticalGap,
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              key: const Key('movies-filter-panel'),
-              width: panelWidth,
-              constraints: BoxConstraints(maxHeight: maxPanelHeight),
-              padding: EdgeInsets.all(context.appSpacing.lg),
-              decoration: BoxDecoration(
-                color: context.appColors.surfaceCard,
-                borderRadius: context.appRadius.mdBorder,
-                border: Border.all(color: context.appColors.borderSubtle),
-                boxShadow: context.appShadows.panel,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(
-                    child: SingleChildScrollView(
-                      key: const Key('movies-filter-scroll-view'),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _FilterSection<MovieStatusFilter>(
-                            title: '状态筛选',
-                            options: MovieStatusFilter.values,
-                            selectedValue: widget.filterState.status,
-                            labelBuilder: (value) => value.label,
-                            onSelected:
-                                (value) => widget.onChanged(
-                                  widget.filterState.copyWith(status: value),
-                                ),
-                          ),
-                          SizedBox(height: context.appSpacing.lg),
-                          _FilterSection<MovieCollectionTypeFilter>(
-                            title: '合集类型',
-                            options: MovieCollectionTypeFilter.values,
-                            selectedValue: widget.filterState.collectionType,
-                            labelBuilder: (value) => value.label,
-                            onSelected:
-                                (value) => widget.onChanged(
-                                  widget.filterState.copyWith(
-                                    collectionType: value,
-                                  ),
-                                ),
-                          ),
-                          SizedBox(height: context.appSpacing.lg),
-                          _FilterSection<MovieNumberSourceFilter>(
-                            title: '番号来源',
-                            options: MovieNumberSourceFilter.values,
-                            selectedValue: widget.filterState.numberSource,
-                            labelBuilder: (value) => value.label,
-                            onSelected:
-                                (value) => widget.onChanged(
-                                  widget.filterState.copyWith(
-                                    numberSource: value,
-                                  ),
-                                ),
-                          ),
-                          if (_shouldShowYearSection) ...[
-                            SizedBox(height: context.appSpacing.lg),
-                            _YearFilterSection(
-                              options: widget.yearOptions,
-                              selectedYear: widget.filterState.year,
-                              isLoading: widget.isYearOptionsLoading,
-                              errorMessage: widget.yearOptionsErrorMessage,
-                              onRetry: widget.onYearOptionsRetry,
-                              onSelected:
-                                  (value) => widget.onChanged(
-                                    widget.filterState.copyWith(year: value),
-                                  ),
-                            ),
-                          ],
-                          SizedBox(height: context.appSpacing.lg),
-                          _SortSection(
-                            filterState: widget.filterState,
-                            onSortFieldChanged:
-                                (value) => widget.onChanged(
-                                  widget.filterState.copyWith(sortField: value),
-                                ),
-                            onSortDirectionChanged:
-                                (value) => widget.onChanged(
-                                  widget.filterState.copyWith(
-                                    sortDirection: value,
-                                  ),
-                                ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: context.appSpacing.lg),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        widget.filterState.isDefault ? '当前使用默认筛选' : '筛选已即时生效',
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s12,
-                          weight: AppTextWeight.regular,
-                          tone: AppTextTone.muted,
-                        ),
-                      ),
-                      AppButton(
-                        label: '重置',
-                        size: AppButtonSize.xSmall,
-                        variant: AppButtonVariant.secondary,
-                        onPressed:
-                            widget.filterState.isDefault
-                                ? null
-                                : widget.onReset,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  bool get _shouldShowYearSection =>
-      widget.yearOptions.isNotEmpty ||
-      widget.isYearOptionsLoading ||
-      widget.yearOptionsErrorMessage != null ||
-      widget.filterState.year != null;
-
-  @override
   Widget build(BuildContext context) {
-    final isDefaultSelection = widget.filterState.isDefault;
-    final isPresetSelection = MovieFilterPreset.values.any(
-      widget.filterState.matchesPreset,
-    );
-    final isCustomSelection = !isDefaultSelection && !isPresetSelection;
+    final isDefault = filterState.isDefault;
+    final isPreset = MovieFilterPreset.values.any(filterState.matchesPreset);
+    final isCustom = !isDefault && !isPreset;
 
     return Wrap(
       spacing: context.appSpacing.sm,
       runSpacing: context.appSpacing.sm,
       children: [
-        CompositedTransformTarget(
-          link: _layerLink,
-          child: AppTextButton(
-            key: _triggerKey,
-            label: widget.filterState.triggerLabel,
-            labelKey: const Key('movies-filter-trigger-label'),
-            icon: const Icon(Icons.filter_alt_outlined),
-            trailingIcon: Icon(_isOpen ? Icons.expand_less : Icons.expand_more),
-            size: AppTextButtonSize.small,
-            isSelected: isDefaultSelection || isCustomSelection,
-            onPressed: _togglePanel,
+        AppFilterPopover(
+          triggerLabel: filterState.triggerLabel,
+          labelKey: const Key('movies-filter-trigger-label'),
+          panelKey: const Key('movies-filter-panel'),
+          scrollViewKey: const Key('movies-filter-scroll-view'),
+          isSelected: isDefault || isCustom,
+          highlightWhenOpen: false,
+          panelExtraWidth: 260,
+          onOpened: onOpened,
+          panelBuilder: (_) => MovieFilterSectionGroup(
+            filterState: filterState,
+            onChanged: onChanged,
+            yearOptions: yearOptions,
+            isYearOptionsLoading: isYearOptionsLoading,
+            yearOptionsErrorMessage: yearOptionsErrorMessage,
+            onYearOptionsRetry: onYearOptionsRetry,
+          ),
+          footer: AppFilterPanelFooter(
+            isDefault: isDefault,
+            onReset: onReset,
           ),
         ),
         for (final preset in MovieFilterPreset.values)
@@ -323,219 +64,9 @@ class _MovieFilterToolbarState extends State<MovieFilterToolbar> {
             key: Key('movies-filter-preset-${preset.key}'),
             label: preset.label,
             size: AppTextButtonSize.small,
-            isSelected: widget.filterState.matchesPreset(preset),
-            onPressed: () => widget.onChanged(preset.filterState),
+            isSelected: filterState.matchesPreset(preset),
+            onPressed: () => onChanged(preset.filterState),
           ),
-      ],
-    );
-  }
-}
-
-class _FilterSection<T> extends StatelessWidget {
-  const _FilterSection({
-    required this.title,
-    required this.options,
-    required this.selectedValue,
-    required this.labelBuilder,
-    required this.onSelected,
-  });
-
-  final String title;
-  final List<T> options;
-  final T selectedValue;
-  final String Function(T value) labelBuilder;
-  final ValueChanged<T> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.primary,
-          ),
-        ),
-        SizedBox(height: context.appSpacing.sm),
-        Wrap(
-          spacing: context.appSpacing.sm,
-          runSpacing: context.appSpacing.sm,
-          children: options
-              .map(
-                (value) => AppTextButton(
-                  label: labelBuilder(value),
-                  size: AppTextButtonSize.xSmall,
-                  isSelected: value == selectedValue,
-                  onPressed: () => onSelected(value),
-                ),
-              )
-              .toList(growable: false),
-        ),
-      ],
-    );
-  }
-}
-
-class _YearFilterSection extends StatelessWidget {
-  const _YearFilterSection({
-    required this.options,
-    required this.selectedYear,
-    required this.isLoading,
-    required this.errorMessage,
-    required this.onRetry,
-    required this.onSelected,
-  });
-
-  final List<MovieFilterYearOption> options;
-  final int? selectedYear;
-  final bool isLoading;
-  final String? errorMessage;
-  final VoidCallback? onRetry;
-  final ValueChanged<int?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '发行年份',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.primary,
-          ),
-        ),
-        SizedBox(height: context.appSpacing.sm),
-        if (isLoading)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 14,
-                height: 14,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              SizedBox(width: context.appSpacing.sm),
-              Text(
-                '年份加载中',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.muted,
-                ),
-              ),
-            ],
-          )
-        else if (errorMessage != null)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                errorMessage!,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.muted,
-                ),
-              ),
-              SizedBox(width: context.appSpacing.sm),
-              AppTextButton(
-                label: '重试',
-                size: AppTextButtonSize.xSmall,
-                onPressed: onRetry,
-              ),
-            ],
-          )
-        else
-          Wrap(
-            spacing: context.appSpacing.sm,
-            runSpacing: context.appSpacing.sm,
-            children: [
-              AppTextButton(
-                label: '全部年份',
-                size: AppTextButtonSize.xSmall,
-                isSelected: selectedYear == null,
-                onPressed: () => onSelected(null),
-              ),
-              for (final option in options)
-                AppTextButton(
-                  label: option.label,
-                  size: AppTextButtonSize.xSmall,
-                  isSelected: option.year == selectedYear,
-                  onPressed: () => onSelected(option.year),
-                ),
-            ],
-          ),
-      ],
-    );
-  }
-}
-
-class _SortSection extends StatelessWidget {
-  const _SortSection({
-    required this.filterState,
-    required this.onSortFieldChanged,
-    required this.onSortDirectionChanged,
-  });
-
-  final MovieFilterState filterState;
-  final ValueChanged<MovieSortField> onSortFieldChanged;
-  final ValueChanged<SortDirection> onSortDirectionChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '排序方式',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.primary,
-          ),
-        ),
-        SizedBox(height: context.appSpacing.sm),
-        Wrap(
-          spacing: context.appSpacing.sm,
-          runSpacing: context.appSpacing.sm,
-          children: MovieSortField.values
-              .map(
-                (value) => AppTextButton(
-                  label: value.label,
-                  size: AppTextButtonSize.xSmall,
-                  isSelected: value == filterState.sortField,
-                  onPressed: () => onSortFieldChanged(value),
-                ),
-              )
-              .toList(growable: false),
-        ),
-        SizedBox(height: context.appSpacing.md),
-        Wrap(
-          spacing: context.appSpacing.sm,
-          children: SortDirection.values
-              .map(
-                (value) => AppTextButton(
-                  label: value.label,
-                  size: AppTextButtonSize.xSmall,
-                  isSelected: value == filterState.sortDirection,
-                  onPressed: () => onSortDirectionChanged(value),
-                ),
-              )
-              .toList(growable: false),
-        ),
       ],
     );
   }

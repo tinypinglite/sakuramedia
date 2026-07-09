@@ -7,42 +7,51 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
-/// 列表卡片「播放」icon 的轻量弹窗播放器：拉一次详情取默认（首个可播）媒体源，
-/// 用 media_kit 直接播放，无缩略图/字幕/进度上报。完整观看仍走详情页的独立播放页。
+/// 「点小图 → 弹小窗立刻播」的桌面轻量播放弹窗。
 ///
-/// 与 [ClipPlayerDialog] 平行，区别是切片自带签名 `stream_url`，而视频列表项不含
-/// 播放地址，需先 `GET /videos/{id}` 拿 `media_items` 再解析首个可播源。
-Future<void> showVideoQuickPlayDialog(
-  BuildContext context, {
-  required int videoId,
-  required String title,
-}) {
-  return showDialog<void>(
-    context: context,
-    builder: (dialogContext) =>
-        VideoQuickPlayDialog(videoId: videoId, title: title),
-  );
-}
-
-class VideoQuickPlayDialog extends StatefulWidget {
-  const VideoQuickPlayDialog({
+/// 切片、视频列表卡、时刻缩略图都走它——两处原本各有一份逐字相同的
+/// dialog 实现,差别只在如何拿到 stream URL(切片自带 `stream_url`,
+/// 视频列表卡要 `GET /videos/{id}` 取首个可播源)。resolver 参数把
+/// 这个差异吃进来。
+///
+/// 完整观看仍走各自域的独立播放页(自持 seek / subtitle / progress-report)。
+class QuickPlayDialog extends StatefulWidget {
+  const QuickPlayDialog({
     super.key,
-    required this.videoId,
     required this.title,
+    required this.fallbackTitle,
+    required this.videoKey,
+    required this.resolvePlayUrl,
+    required this.noPlayableMessage,
+    this.errorFallback = '加载失败，请重试',
   });
 
-  final int videoId;
   final String title;
 
+  /// 标题 trim 后为空时的兜底文案('切片' / '视频' 等)。
+  final String fallbackTitle;
+
+  /// 内部 [ThemedVideoPlayer] 的 videoKey——测试锚点,原两 dialog 各有各的值。
+  final Key videoKey;
+
+  /// 拿到实际播放地址;返回 null / 空 = 无可播,弹 [AppEmptyState]。
+  final Future<String?> Function(BuildContext context) resolvePlayUrl;
+
+  /// resolvePlayUrl 返回 null / 空时的空态文案。
+  final String noPlayableMessage;
+
+  /// resolvePlayUrl throw 时的兜底错误文案。
+  final String errorFallback;
+
   @override
-  State<VideoQuickPlayDialog> createState() => _VideoQuickPlayDialogState();
+  State<QuickPlayDialog> createState() => _QuickPlayDialogState();
 }
 
-class _VideoQuickPlayDialogState extends State<VideoQuickPlayDialog> {
+class _QuickPlayDialogState extends State<QuickPlayDialog> {
   Player? _player;
   VideoController? _controller;
   bool _loading = true;
@@ -55,27 +64,15 @@ class _VideoQuickPlayDialogState extends State<VideoQuickPlayDialog> {
   }
 
   Future<void> _load() async {
-    final videosApi = context.read<VideosApi>();
-    final baseUrl = context.read<SessionStore>().baseUrl;
     try {
-      final detail = await videosApi.getVideoDetail(videoId: widget.videoId);
+      final resolvedUrl = await widget.resolvePlayUrl(context);
       if (!mounted) {
         return;
-      }
-      String? resolvedUrl;
-      for (final media in detail.mediaItems) {
-        if (!media.hasPlayableUrl) {
-          continue;
-        }
-        resolvedUrl = resolveMediaUrl(rawUrl: media.playUrl, baseUrl: baseUrl);
-        if (resolvedUrl != null && resolvedUrl.isNotEmpty) {
-          break;
-        }
       }
       if (resolvedUrl == null || resolvedUrl.isEmpty) {
         setState(() {
           _loading = false;
-          _errorMessage = '暂无可播放的媒体';
+          _errorMessage = widget.noPlayableMessage;
         });
         return;
       }
@@ -96,7 +93,7 @@ class _VideoQuickPlayDialogState extends State<VideoQuickPlayDialog> {
       }
       setState(() {
         _loading = false;
-        _errorMessage = apiErrorMessage(error, fallback: '加载失败，请重试');
+        _errorMessage = apiErrorMessage(error, fallback: widget.errorFallback);
       });
     }
   }
@@ -120,7 +117,7 @@ class _VideoQuickPlayDialogState extends State<VideoQuickPlayDialog> {
           Padding(
             padding: EdgeInsets.only(right: spacing.xl),
             child: Text(
-              title.isEmpty ? '视频' : title,
+              title.isEmpty ? widget.fallbackTitle : title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: resolveAppTextStyle(
@@ -158,7 +155,7 @@ class _VideoQuickPlayDialogState extends State<VideoQuickPlayDialog> {
     return ThemedVideoPlayer(
       videoController: controller,
       useTouchOptimizedControls: false,
-      videoKey: const Key('video-quick-play-video'),
+      videoKey: widget.videoKey,
       bottomControls: const <Widget>[
         MaterialPlayOrPauseButton(),
         MaterialDesktopVolumeButton(),
@@ -169,3 +166,39 @@ class _VideoQuickPlayDialogState extends State<VideoQuickPlayDialog> {
     );
   }
 }
+
+/// 视频列表卡 / 时刻卡「小图快播」入口——先取详情、拿首个可播源。
+Future<void> showVideoQuickPlayDialog(
+  BuildContext context, {
+  required int videoId,
+  required String title,
+}) {
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) => QuickPlayDialog(
+      title: title,
+      fallbackTitle: '视频',
+      videoKey: const Key('video-quick-play-video'),
+      noPlayableMessage: '暂无可播放的媒体',
+      resolvePlayUrl: (innerContext) async {
+        final videosApi = innerContext.read<VideosApi>();
+        final baseUrl = innerContext.read<SessionStore>().baseUrl;
+        final detail = await videosApi.getVideoDetail(videoId: videoId);
+        for (final media in detail.mediaItems) {
+          if (!media.hasPlayableUrl) {
+            continue;
+          }
+          final resolved = resolveMediaUrl(
+            rawUrl: media.playUrl,
+            baseUrl: baseUrl,
+          );
+          if (resolved != null && resolved.isNotEmpty) {
+            return resolved;
+          }
+        }
+        return null;
+      },
+    ),
+  );
+}
+

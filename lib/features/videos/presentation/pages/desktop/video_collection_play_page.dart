@@ -17,10 +17,9 @@ import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
 import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
-import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/domain/collections/playback/collection_episode_queue_item.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_filmstrip_controller.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_play_split_layout.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_mode.dart';
@@ -68,7 +67,6 @@ class _DesktopVideoCollectionPlayPageState
   List<VideoItemListItemDto> _videos = const <VideoItemListItemDto>[];
   bool _isLoading = true;
   String? _errorMessage;
-  bool _isEpisodePanelOpen = false;
 
   @override
   void initState() {
@@ -345,18 +343,22 @@ class _DesktopVideoCollectionPlayPageState
         children: [
           Positioned.fill(child: _buildPlayerSurface(context, videoController)),
           EpisodeSelectorOverlay(
-            isOpen: _isEpisodePanelOpen,
+            isOpen: isEpisodePanelOpen,
             itemCount: _videos.length,
             currentIndex: currentIndex,
             title: '选集 · ${_videos.length}',
-            onClose: _closeEpisodePanel,
+            onClose: closeEpisodePanel,
             itemBuilder: (context, index) {
-              return _QueueItem(
-                video: _videos[index],
-                index: index,
+              final video = _videos[index];
+              return CollectionEpisodeQueueItem(
+                itemKey: Key('video-collection-play-queue-item-$index'),
+                coverUrl: video.coverImage?.bestAvailableUrl,
+                coverStyle: CollectionQueueCoverStyle.containOnMuted,
+                title: video.preferredTitle,
+                subtitle: '第 ${index + 1} 集',
                 isCurrent: index == currentIndex,
                 onTap: () {
-                  _closeEpisodePanel();
+                  closeEpisodePanel();
                   jumpTo(index);
                 },
               );
@@ -399,126 +401,18 @@ class _DesktopVideoCollectionPlayPageState
       ),
       bottomControls: buildCollectionPlayBottomControls(
         useTouchOptimizedControls: widget.useTouchOptimizedControls,
-        onOpenEpisodes: _openEpisodePanel,
+        onOpenEpisodes: openEpisodePanel,
         progressIndicator: progressIndicator,
       ),
       // 全屏由 media_kit push 独立路由，页面级「选集」浮层不在其内，按钮点了
       // 也看不到——全屏态去掉该按钮，避免死按钮。换集需先退出全屏。
       fullscreenBottomControls: buildCollectionPlayBottomControls(
         useTouchOptimizedControls: widget.useTouchOptimizedControls,
-        onOpenEpisodes: _openEpisodePanel,
+        onOpenEpisodes: openEpisodePanel,
         includeEpisodeButton: false,
         progressIndicator: progressIndicator,
       ),
     );
   }
 
-  void _openEpisodePanel() {
-    setState(() => _isEpisodePanelOpen = true);
-  }
-
-  void _closeEpisodePanel() {
-    if (!_isEpisodePanelOpen) {
-      return;
-    }
-    setState(() => _isEpisodePanelOpen = false);
-  }
-}
-
-class _QueueItem extends StatelessWidget {
-  const _QueueItem({
-    required this.video,
-    required this.index,
-    required this.isCurrent,
-    required this.onTap,
-  });
-
-  final VideoItemListItemDto video;
-  final int index;
-  final bool isCurrent;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final coverUrl = video.coverImage?.bestAvailableUrl;
-    return Material(
-      color: isCurrent ? colors.surfaceMuted : Colors.transparent,
-      borderRadius: context.appRadius.smBorder,
-      child: InkWell(
-        key: Key('video-collection-play-queue-item-$index'),
-        borderRadius: context.appRadius.smBorder,
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.all(spacing.xs),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: context.appRadius.xsBorder,
-                child: SizedBox(
-                  width: 88,
-                  // pornbox 视频不一定横屏：缩略图按 contain 完整居中、两侧留底，不裁切。
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: ColoredBox(
-                      color: colors.surfaceMuted,
-                      child:
-                          coverUrl != null && coverUrl.isNotEmpty
-                              ? MaskedImage(url: coverUrl, fit: BoxFit.contain)
-                              : null,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      video.preferredTitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        weight:
-                            isCurrent
-                                ? AppTextWeight.semibold
-                                : AppTextWeight.regular,
-                        tone:
-                            isCurrent
-                                ? AppTextTone.primary
-                                : AppTextTone.secondary,
-                      ),
-                    ),
-                    SizedBox(height: spacing.xs),
-                    Text(
-                      '第 ${index + 1} 集',
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        weight: AppTextWeight.regular,
-                        tone: AppTextTone.tertiary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isCurrent)
-                Padding(
-                  padding: EdgeInsets.only(left: spacing.xs),
-                  child: Icon(
-                    Icons.equalizer_rounded,
-                    size: context.appComponentTokens.iconSizeSm,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

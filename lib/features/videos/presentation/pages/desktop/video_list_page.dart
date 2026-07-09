@@ -26,7 +26,7 @@ import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/features/videos/presentation/widgets/player/video_quick_play_dialog.dart';
+import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
 
 /// PornBox 主页：顶部「新建合集」，中部「视频合集」横滑区（参照切片页），
 /// 下方「全部视频」网格。导入入口统一收口到「媒体导入」页。

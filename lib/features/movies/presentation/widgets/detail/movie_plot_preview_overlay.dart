@@ -13,7 +13,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
-import 'package:sakuramedia/widgets/domain/media/preview/preview_dialog_surface.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_thumbnail.dart';
 
 enum MoviePlotPreviewThumbnailStripLayout { adaptive, fixed }
@@ -103,7 +103,7 @@ class _MoviePlotPreviewDialog extends StatelessWidget {
       tokens.movieDetailPlotPreviewMaxHeight,
     );
 
-    return PreviewDialogSurface(
+    return AppDesktopDialog(
       dialogKey: const Key('movie-plot-preview-dialog'),
       backgroundColor: context.appColors.surfaceCard,
       insetPadding: EdgeInsets.symmetric(

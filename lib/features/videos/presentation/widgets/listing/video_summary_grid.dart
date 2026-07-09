@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
-import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_cover_card_skeleton.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/staggered_layout.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_summary_card.dart';
@@ -60,7 +60,7 @@ class VideoSummaryGrid extends StatelessWidget {
       tileAspect: (index) => index < items.length
           ? _resolveAspect(items[index].coverWidth, items[index].coverHeight)
           : kStaggeredFallbackAspect,
-      skeletonBuilder: (context, index) => _VideoSummaryCardSkeleton(
+      skeletonBuilder: (context, index) => AppCoverCardSkeleton(
         key: Key('video-summary-card-skeleton-$index'),
       ),
       itemBuilder: (context, video, index) => VideoSummaryCard(
@@ -90,22 +90,3 @@ double _resolveAspect(int? width, int? height) {
   return kStaggeredFallbackAspect;
 }
 
-class _VideoSummaryCardSkeleton extends StatelessWidget {
-  const _VideoSummaryCardSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-        boxShadow: context.appShadows.card,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: DecoratedBox(
-        decoration: BoxDecoration(color: context.appColors.surfaceMuted),
-      ),
-    );
-  }
-}

@@ -67,19 +67,12 @@
 
 ## 四、预览浮层的**积木**(自建预览时用)
 
-### PreviewDialogSurface
-- **路径**: `lib/widgets/domain/media/preview/preview_dialog_surface.dart`
-- **用途**: 预览类弹窗的**外壳**(比 `AppDesktopDialog` 多了预览语义的默认背景 / X 按钮布局)。
-- **required**: `child`
-- **可选**: `dialogKey` · `contentKey` · `width` / `height` / `constraints`(互斥) · `insetPadding` · `backgroundColor` · `showCloseButton` · `onClose`
-- **何时用**: 想自建一个"图 + 元信息"预览浮层,又不想吃 `MediaPreviewDialog` 内置那套 action grid 时。**一般用不到**——先看能不能直接用 `MediaPreviewDialog`。
-
 ### PreviewImageStage
 - **路径**: `lib/widgets/domain/media/preview/preview_image_stage.dart`
 - **用途**: 预览浮层顶部那块"图 + 关闭按钮 + 可选 overlay"stage。
 - **required**: `imageUrl` · `height` · `onClose`
 - **可选**: `stageKey` / `imageKey` / `closeButtonKey` · `backgroundColor` · `fit` · `showCloseButton` · `overlayChild` · `enablePinchToFullscreen` · `fullscreenImageKey`
-- **何时用**: 自建预览浮层的图区域(会跟 `PreviewDialogSurface` 搭配用)。
+- **何时用**: 自建预览浮层的图区域(与 `AppDesktopDialog` 搭配用)。
 
 ### MediaPreviewActionGrid(+ `MediaPreviewActionTile`)
 - **路径**: `lib/widgets/domain/media/preview/media_preview_action_grid.dart`
@@ -88,7 +81,16 @@
 - **可选**: `layout`(默认 wrap) · `columns`(默认 3) · `spacing` · `tileWidth`(默认 92) · `gridKey`
 - **何时用**: 自建预览浮层的操作区。
 
-## 五、缩略图列数解析
+## 五、封面遮罩
+
+### AppCoverBottomShade
+- **路径**: `lib/widgets/base/media/images/app_cover_bottom_shade.dart`
+- **用途**: 封面底部"从中间往下加深"的渐变遮罩(`mediaOverlaySoft` → `mediaOverlayStrong`),保证浮层白字与图标可读。始终包 `IgnorePointer`,不吃点击。
+- **可选**: `stops`(默认 `[0.45, 0.72, 1]`; actor 卡传 `[0.42, 0.7, 1]` 稍强)
+- **何时用**: 卡片封面上叠"白色标题 / 图标"时。movie / actor / rankedMovie / video / collection member 都走它。
+- **别自己写**: `DecoratedBox + LinearGradient` 那套 gradient——别再复制粘贴。
+
+## 六、缩略图列数解析
 
 ### resolveThumbnailGridColumns(工具函数,非 widget)
 - **路径**: `lib/widgets/base/media/images/thumbnail_grid_column_resolver.dart`
@@ -101,5 +103,5 @@
 
 - **图片三入口** 是**互斥且规则明确**的,别在业务侧自建"新图片组件"——先看能不能扩这三个。
 - 图片右键 / 长按菜单**统一**走 `AppImageActionTrigger` + `showAppImageActionMenu`,别自己 `showMenu`。
-- 预览浮层**首选** `MediaPreviewDialog`;真要自建也用它内部的三个积木(`PreviewDialogSurface` / `PreviewImageStage` / `MediaPreviewActionGrid`),别自己拼壳。
+- 预览浮层**首选** `MediaPreviewDialog`;真要自建也用它内部的两个积木(`PreviewImageStage` / `MediaPreviewActionGrid`)+ `AppDesktopDialog` 外壳,别自己拼壳。
 - 深入规则见 `lib/widgets/CLAUDE.md` "图片组件——三选一,各读一次 blur" 段。

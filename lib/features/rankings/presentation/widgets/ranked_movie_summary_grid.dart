@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_cover_card_skeleton.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
 
@@ -39,8 +40,12 @@ class RankedMovieSummaryGrid extends StatelessWidget {
       errorMessage: errorMessage,
       emptyMessage: emptyMessage,
       placeholderCount: placeholderCount,
-      skeletonBuilder: (context, index) => _RankedMovieSummaryCardSkeleton(
+      skeletonBuilder: (context, index) => AppCoverCardSkeleton(
         key: Key('ranked-movie-summary-card-skeleton-$index'),
+        posterKey: Key(
+          'ranked-movie-summary-card-skeleton-poster-$index',
+        ),
+        aspectRatio: context.appComponentTokens.movieCardAspectRatio,
       ),
       itemBuilder: (context, item, index) => MovieSummaryCard(
         movie: item.toMovieListItem(),
@@ -59,40 +64,3 @@ class RankedMovieSummaryGrid extends StatelessWidget {
   }
 }
 
-class _RankedMovieSummaryCardSkeleton extends StatelessWidget {
-  const _RankedMovieSummaryCardSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-        boxShadow: context.appShadows.card,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: AspectRatio(
-        aspectRatio: context.appComponentTokens.movieCardAspectRatio,
-        child: DecoratedBox(
-          key: Key(
-            'ranked-movie-summary-card-skeleton-poster-${_indexFromKey()}',
-          ),
-          decoration: BoxDecoration(color: context.appColors.surfaceMuted),
-        ),
-      ),
-    );
-  }
-
-  String _indexFromKey() {
-    final currentKey = key;
-    if (currentKey is ValueKey<String>) {
-      const prefix = 'ranked-movie-summary-card-skeleton-';
-      if (currentKey.value.startsWith(prefix)) {
-        return currentKey.value.substring(prefix.length);
-      }
-      return currentKey.value;
-    }
-    return 'unknown';
-  }
-}
