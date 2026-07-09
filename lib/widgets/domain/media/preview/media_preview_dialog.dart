@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/preview_dialog_surface.dart';
@@ -399,21 +400,9 @@ class _MediaPreviewDialogState extends State<MediaPreviewDialog> {
       );
     }
     if (_movieDetailErrorMessage != null) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            _movieDetailErrorMessage!,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.muted,
-            ),
-          ),
-          SizedBox(height: spacing.md),
-          TextButton(onPressed: _loadMovieDetail, child: const Text('重试')),
-        ],
+      return AppEmptyState(
+        message: _movieDetailErrorMessage!,
+        onRetry: _loadMovieDetail,
       );
     }
 

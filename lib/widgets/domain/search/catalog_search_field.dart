@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 class CatalogSearchField extends StatelessWidget {
   const CatalogSearchField({
@@ -18,8 +19,6 @@ class CatalogSearchField extends StatelessWidget {
     this.showOnlineToggle = false,
     this.isOnlineSearchEnabled = false,
     this.onOnlineSearchToggle,
-    this.autofocus = false,
-    this.compact = false,
   });
 
   final Key? fieldKey;
@@ -35,61 +34,26 @@ class CatalogSearchField extends StatelessWidget {
   final bool showOnlineToggle;
   final bool isOnlineSearchEnabled;
   final ValueChanged<bool>? onOnlineSearchToggle;
-  final bool autofocus;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final spacing = context.appSpacing;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.sidebarActiveBackground,
-        borderRadius: context.appRadius.smBorder,
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: spacing.md,
-        vertical: compact ? spacing.sm : spacing.md,
-      ),
-      child: Row(
+    return AppTextField(
+      fieldKey: fieldKey,
+      controller: controller,
+      hintText: hintText,
+      textInputAction: TextInputAction.search,
+      onFieldSubmitted: onSubmitted,
+      suffix: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: TextField(
-              key: fieldKey,
-              controller: controller,
-              autofocus: autofocus,
-              textInputAction: TextInputAction.search,
-              onSubmitted: onSubmitted,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.secondary,
-              ),
-              decoration: InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                hintText: hintText,
-                hintStyle: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s14,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
-                ),
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-          if (showImageSearchButton) ...[
+          if (showImageSearchButton)
             AppIconButton(
               key: imageSearchButtonKey,
               iconColor: context.appTextPalette.primary,
               icon: const Icon(Icons.image_search_outlined),
               onPressed: onImageSearchTap,
             ),
-          ],
-          if (showOnlineToggle) ...[
+          if (showOnlineToggle)
             AppIconButton(
               key: onlineToggleKey,
               icon: const Icon(Icons.public_rounded),
@@ -99,7 +63,6 @@ class CatalogSearchField extends StatelessWidget {
                       ? null
                       : () => onOnlineSearchToggle!(!isOnlineSearchEnabled),
             ),
-          ],
           AppIconButton(
             key: searchButtonKey,
             iconColor: context.appTextPalette.primary,

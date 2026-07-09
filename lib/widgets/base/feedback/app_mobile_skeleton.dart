@@ -9,12 +9,12 @@ class AppSkeletonBlock extends StatelessWidget {
   const AppSkeletonBlock({
     super.key,
     this.width,
-    required this.height,
+    this.height,
     this.radius,
   });
 
   final double? width;
-  final double height;
+  final double? height;
   final BorderRadius? radius;
 
   @override

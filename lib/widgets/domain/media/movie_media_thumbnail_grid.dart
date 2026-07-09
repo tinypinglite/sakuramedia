@@ -8,8 +8,8 @@ import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/staggered_layout.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
@@ -624,10 +624,12 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       );
     }
     if (widget.errorMessage != null) {
-      return _MovieMediaThumbnailErrorState(
-        keyPrefix: widget.keyPrefix,
+      return AppEmptyState(
+        icon: Icons.broken_image_outlined,
+        title: '缩略图加载失败',
         message: widget.errorMessage!,
         onRetry: widget.onRetry,
+        retryKey: Key('${widget.keyPrefix}-thumbnail-retry'),
       );
     }
     if (widget.thumbnails.isEmpty) {
@@ -995,65 +997,6 @@ class _MovieMediaThumbnailImagePlaceholder extends StatelessWidget {
   }
 }
 
-class _MovieMediaThumbnailErrorState extends StatelessWidget {
-  const _MovieMediaThumbnailErrorState({
-    required this.keyPrefix,
-    required this.message,
-    required this.onRetry,
-  });
-
-  final String keyPrefix;
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 280),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.broken_image_outlined,
-              size: context.appComponentTokens.iconSize2xl,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            SizedBox(height: context.appSpacing.lg),
-            Text(
-              '缩略图加载失败',
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s18,
-                weight: AppTextWeight.semibold,
-                tone: AppTextTone.primary,
-              ),
-            ),
-            SizedBox(height: context.appSpacing.sm),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.secondary,
-              ),
-            ),
-            SizedBox(height: context.appSpacing.lg),
-            AppButton(
-              key: Key('$keyPrefix-thumbnail-retry'),
-              label: '重试',
-              variant: AppButtonVariant.secondary,
-              onPressed: onRetry,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _MovieMediaThumbnailGridSkeleton extends StatelessWidget {
   const _MovieMediaThumbnailGridSkeleton({
     required this.columns,
@@ -1077,12 +1020,7 @@ class _MovieMediaThumbnailGridSkeleton extends StatelessWidget {
       ),
       itemCount: columns * 4,
       itemBuilder: (context, index) {
-        return DecoratedBox(
-          decoration: BoxDecoration(
-            color: context.appColors.surfaceMuted,
-            borderRadius: context.appRadius.mdBorder,
-          ),
-        );
+        return AppSkeletonBlock(radius: context.appRadius.mdBorder);
       },
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 /// 非 JAV 视频列表卡片：封面 + 标题，中部播放按钮，右键 / 长按弹菜单（加入合集 / 删除）。
@@ -111,7 +112,7 @@ class VideoSummaryCard extends StatelessWidget {
               top: spacing.xs,
               left: spacing.xs,
               child: IgnorePointer(
-                child: _SelectionCheck(isSelected: isSelected),
+                child: SelectionCheckBadge(isSelected: isSelected),
               ),
             ),
         ],
@@ -182,32 +183,6 @@ class VideoSummaryCard extends StatelessWidget {
 }
 
 enum _VideoCardAction { addToCollection, delete }
-
-/// 选择模式下卡片左上角的勾选标记：选中为实心对勾，未选为半透明空心圈。
-class _SelectionCheck extends StatelessWidget {
-  const _SelectionCheck({required this.isSelected});
-
-  final bool isSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isSelected
-            ? colors.selectionBorder
-            : Colors.black.withValues(alpha: 0.35),
-        border: Border.all(color: Colors.white, width: 1.5),
-      ),
-      child: isSelected
-          ? const Icon(Icons.check, color: Colors.white, size: 14)
-          : null,
-    );
-  }
-}
 
 class _PlayOverlay extends StatelessWidget {
   const _PlayOverlay();

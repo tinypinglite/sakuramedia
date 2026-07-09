@@ -4,11 +4,11 @@
 
 ## AppEmptyState
 - **路径**: `lib/widgets/base/feedback/app_empty_state.dart`
-- **用途**: 空态卡:message + 可选 icon + 可选重试按钮。
+- **用途**: 空态卡:message + 可选 icon + 可选标题 + 可选重试按钮。
 - **required**: `message`
-- **可选**: `icon` · `onRetry` · `retryLabel`(默认 "重试") · `retryKey`
-- **何时用**: 列表 / 网格空态。四态容器里"内容为空"这一态永远走它。
-- **注意**: 只是**展示**;错误态用 `AppSectionError`(有区分)。
+- **可选**: `icon` · `title`(s16 semibold,渲染在 icon 之后 / message 之前) · `onRetry` · `retryLabel`(默认 "重试") · `retryKey`
+- **何时用**: 列表 / 网格空态,也可作为轻量错误态(带 `title` 概括 + `message` 详情,如缩略图加载失败)。
+- **注意**: 只是**展示**;桌面/移动区块级错误态更推荐 `AppSectionError`(有区分)。
 
 ## AppSectionError(桌面)
 - **路径**: `lib/widgets/base/feedback/app_section_error.dart`
@@ -33,7 +33,7 @@
 ## AppSkeletonBlock
 - **路径**: `lib/widgets/base/feedback/app_mobile_skeleton.dart`
 - **用途**: 基础骨架块(可配 width / height / radius)。默认 `smBorder`,传 `mdBorder` 用于头像块。
-- **required**: `height`
+- **可选**: `width` · `height`(为 `null` 时交给父级约束定尺寸,常见于网格 tile 场景) · `radius`
 - **何时用**: 拼自定义骨架布局的最小积木。
 
 ## AppMobileSkeletonCard

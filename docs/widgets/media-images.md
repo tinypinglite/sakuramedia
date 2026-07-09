@@ -36,9 +36,9 @@
 ### AppImageActionTrigger
 - **路径**: `lib/widgets/base/media/images/app_image_action_trigger.dart`
 - **用途**: 给图片包裹一层手势(右键 + 长按)→ 通过 `onRequestMenu(Offset globalPosition)` 回调让调用方唤菜单。
-- **required**: `child` · `onRequestMenu`
-- **可选**: `onTap` · `mouseCursor`
-- **何时用**: 任何"图片支持复制链接 / 保存 / 搜索相似"的场景——影片封面卡、剧情图、moment、图搜结果。
+- **required**: `child`
+- **可选**: `onRequestMenu`(为 `null` 时不接长按/右键手势,只保留 `onTap`)· `onTap` · `mouseCursor`
+- **何时用**: 任何"图片支持复制链接 / 保存 / 搜索相似"的场景——影片封面卡、剧情图、moment、图搜结果;也可只传 `onTap` 当作统一手势入口用(菜单回调按需可空)。
 
 ### showAppImageActionMenu
 - **路径**: `lib/widgets/base/media/images/app_image_action_menu.dart`

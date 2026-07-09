@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 
 enum MomentSortHeaderVariant { standard, mobileTagCompact }
 
@@ -39,46 +40,39 @@ class MomentSortHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    return Row(
-      children: [
-        if (_hasKindFilter) ...[
-          _buildKindAction(
+    return AppFilterTotalHeader(
+      leading: Row(
+        children: [
+          if (_hasKindFilter) ...[
+            _buildKindAction(
+              context,
+              actionKey: kindJavKey,
+              kind: MomentKindFilter.jav,
+            ),
+            SizedBox(width: spacing.sm),
+            _buildKindAction(
+              context,
+              actionKey: kindVideoKey,
+              kind: MomentKindFilter.video,
+            ),
+            // kind 组与 sort 组之间留个稍宽的间隔，让两组在视觉上分开。
+            SizedBox(width: spacing.md),
+          ],
+          _buildSortAction(
             context,
-            actionKey: kindJavKey,
-            kind: MomentKindFilter.jav,
+            actionKey: latestSortKey,
+            order: MomentSortOrder.latest,
           ),
           SizedBox(width: spacing.sm),
-          _buildKindAction(
+          _buildSortAction(
             context,
-            actionKey: kindVideoKey,
-            kind: MomentKindFilter.video,
+            actionKey: earliestSortKey,
+            order: MomentSortOrder.earliest,
           ),
-          // kind 组与 sort 组之间留个稍宽的间隔，让两组在视觉上分开。
-          SizedBox(width: spacing.md),
         ],
-        _buildSortAction(
-          context,
-          actionKey: latestSortKey,
-          order: MomentSortOrder.latest,
-        ),
-        SizedBox(width: spacing.sm),
-        _buildSortAction(
-          context,
-          actionKey: earliestSortKey,
-          order: MomentSortOrder.earliest,
-        ),
-        const Spacer(),
-        Text(
-          '$total 个时刻',
-          key: totalKey,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.secondary,
-          ),
-        ),
-      ],
+      ),
+      totalText: '$total 个时刻',
+      totalKey: totalKey,
     );
   }
 

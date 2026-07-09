@@ -7,6 +7,7 @@ class AppEmptyState extends StatelessWidget {
     super.key,
     required this.message,
     this.icon,
+    this.title,
     this.onRetry,
     this.retryLabel = '重试',
     this.retryKey,
@@ -14,6 +15,7 @@ class AppEmptyState extends StatelessWidget {
 
   final String message;
   final IconData? icon;
+  final String? title;
   final VoidCallback? onRetry;
   final String retryLabel;
   final Key? retryKey;
@@ -41,6 +43,19 @@ class AppEmptyState extends StatelessWidget {
                   color: iconColor,
                 ),
                 SizedBox(height: spacing.md),
+              ],
+              if (title != null) ...[
+                Text(
+                  title!,
+                  textAlign: TextAlign.center,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s16,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.primary,
+                  ),
+                ),
+                SizedBox(height: spacing.sm),
               ],
               Text(
                 message,

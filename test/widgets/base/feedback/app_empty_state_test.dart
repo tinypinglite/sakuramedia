@@ -65,6 +65,25 @@ void main() {
     expect(tapped, 1);
   });
 
+  testWidgets('app empty state renders title above message when provided', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const Scaffold(
+          body: AppEmptyState(
+            title: '缩略图加载失败',
+            message: '网络异常,请重试',
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('缩略图加载失败'), findsOneWidget);
+    expect(find.text('网络异常,请重试'), findsOneWidget);
+  });
+
   testWidgets('app empty state respects custom retry label', (
     WidgetTester tester,
   ) async {

@@ -578,7 +578,6 @@ class _SidebarSearchSectionState extends State<_SidebarSearchSection> {
           imageSearchButtonKey: const Key('sidebar-search-image'),
           controller: _controller,
           hintText: '找影片',
-          compact: true,
           showImageSearchButton: true,
           onSubmitted: (_) => _submit(context),
           onImageSearchTap: () => _pickAndOpenImageSearch(context),

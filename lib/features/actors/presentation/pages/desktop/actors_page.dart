@@ -12,6 +12,7 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_summary_grid.dart';
 
@@ -218,25 +219,14 @@ class _ActorsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        ActorFilterToolbar(
-          filterState: filterState,
-          onChanged: onFilterChanged,
-          onReset: onResetFilters,
-        ),
-        const Spacer(),
-        Text(
-          '$total 位',
-          key: const Key('actors-page-total'),
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.secondary,
-          ),
-        ),
-      ],
+    return AppFilterTotalHeader(
+      leading: ActorFilterToolbar(
+        filterState: filterState,
+        onChanged: onFilterChanged,
+        onReset: onResetFilters,
+      ),
+      totalText: '$total 位',
+      totalKey: const Key('actors-page-total'),
     );
   }
 }

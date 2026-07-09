@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 class MovieSummaryCard extends StatelessWidget {
@@ -87,21 +88,10 @@ class MovieSummaryCard extends StatelessWidget {
     final interactiveCard =
         onTap == null && onRequestMenu == null
             ? card
-            : MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onTap,
-                onLongPressStart:
-                    onRequestMenu == null
-                        ? null
-                        : (details) => onRequestMenu!(details.globalPosition),
-                onSecondaryTapDown:
-                    onRequestMenu == null
-                        ? null
-                        : (details) => onRequestMenu!(details.globalPosition),
-                child: card,
-              ),
+            : AppImageActionTrigger(
+              onTap: onTap,
+              onRequestMenu: onRequestMenu,
+              child: card,
             );
 
     if (!showStatusBadges) {

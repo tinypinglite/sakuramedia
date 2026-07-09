@@ -127,7 +127,7 @@
 ### MomentGrid
 - **路径**: `lib/widgets/domain/moments/moment_grid.dart`
 - **required**: `items` · `onItemTap`
-- **何时用**: 时刻库网格(列宽用**裸值** 220/280/300,是本项目里几个"网格四态容器"例外之一)。
+- **何时用**: 时刻库网格。已收敛为 `AppAdaptiveCardGrid<MomentListItem>` 的薄壳(`targetColumnWidth: 280` · `minColumns: 2` · `maxColumns: 4` · `childAspectRatio: 16/10`),调用方各自管加载态(内部 `isLoading` 恒 `false`,空态由调用方在渲染前拦截)。
 
 ### MomentSortHeader
 - **路径**: `lib/widgets/domain/moments/moment_sort_header.dart`

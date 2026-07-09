@@ -14,9 +14,7 @@ void main() {
             'lib/widgets/domain/search/catalog_search_field.dart',
           ).readAsStringSync();
 
-      expect(source, contains('context.appColors'));
-      expect(source, contains('context.appSpacing'));
-      expect(source, contains('context.appRadius'));
+      expect(source, contains('context.appTextPalette'));
       expect(source, isNot(contains('Color(0x')));
     },
   );

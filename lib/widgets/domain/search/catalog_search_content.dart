@@ -86,7 +86,11 @@ class CatalogSearchContent extends StatelessWidget {
     }
 
     if (controller.errorMessage != null) {
-      return AppEmptyState(message: controller.errorMessage!);
+      return AppEmptyState(
+        message: controller.errorMessage!,
+        onRetry: onSubmitSearch,
+        retryKey: const Key('catalog-search-retry'),
+      );
     }
 
     if (controller.isLoading) {
