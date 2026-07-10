@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/downloads/presentation/download_task_center_controller.dart';
+import 'package:sakuramedia/features/downloads/presentation/download_task_filter_state.dart';
 
 import '../../../support/test_api_bundle.dart';
 
@@ -192,6 +193,41 @@ void main() {
     },
   );
 
+  test(
+    'SSE update for unknown task_id does NOT trigger merge when first page not fully loaded',
+    () async {
+      // 死循环回归：任务总数 > 一页时，SSE 会反复推分页外任务的 progress，
+      // 每次都是 unknown taskId。若无限响应 → 每 800ms 就发一次 /download-tasks，
+      // 每次响应带新签名 URL → 图片反复重加载/闪烁。修复：分页没拉全时不响应
+      // unknown taskId（等用户 loadMore 或手动 refresh 才拉新数据）。
+      enqueueFirstPage([taskJson(id: 1)], total: 5);
+      enqueueClients();
+      bundle.adapter.enqueueSse(
+        method: 'GET',
+        path: '/download-tasks/stream',
+        keepOpen: true,
+        chunks: <String>[
+          // page 2 的任务 progress，前端从未见过
+          'event: download_task_updated\n'
+              'data: {"task_id":42,"client_id":2,"name":"ABC-042","info_hash":"hash-42","progress":0.6,"raw_state":"downloading","download_state":"downloading","download_speed_bytes":1024,"uploaded_speed_bytes":128,"downloaded_bytes":200,"total_size_bytes":333,"eta_seconds":60}\n\n',
+        ],
+      );
+
+      final controller = newController();
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      await controller.connectStream();
+      // 等到 debounce 时间已过（若响应，第二次请求就会发出）
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+
+      // 只有初始 initialize 那一次 GET，unknown taskId 未触发 merge
+      expect(bundle.adapter.hitCount('GET', '/download-tasks'), 1);
+      expect(controller.items.map((row) => row.task.id).toList(),
+          equals(<int>[1]));
+      expect(controller.total, 5);
+    },
+  );
+
   test('SSE removed frame drops row and decrements total', () async {
     enqueueFirstPage(
       [taskJson(id: 1), taskJson(id: 2)],
@@ -372,5 +408,147 @@ void main() {
     expect(controller.streamState, DownloadTaskStreamState.idle);
     // 列表快照仍在。
     expect(controller.items, hasLength(1));
+  });
+
+  test(
+    'applyFilter reloads first page with movie_number + download_state query',
+    () async {
+      enqueueFirstPage([taskJson(id: 1)]);
+      enqueueClients();
+      // applyFilter 触发的第二次列表请求
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/download-tasks',
+        body: <String, dynamic>{
+          'items': [taskJson(id: 5, downloadState: 'paused')],
+          'page': 1,
+          'page_size': 20,
+          'total': 1,
+        },
+      );
+
+      final controller = newController();
+      addTearDown(controller.dispose);
+
+      await controller.initialize();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      // 切筛选：仅 paused + 番号 ABC-005
+      await controller.applyFilter(
+        DownloadTaskFilterState(
+          stateFilter: DownloadTaskStateFilter.paused,
+          search: 'ABC-005',
+        ),
+      );
+
+      // 第 2 次 /download-tasks 请求应带上 download_state / movie_number
+      final downloadListRequests = bundle.adapter.requests
+          .where((request) => request.path == '/download-tasks')
+          .toList();
+      expect(downloadListRequests, hasLength(2));
+      final secondRequest = downloadListRequests.last;
+      expect(secondRequest.uri.queryParameters['download_state'], 'paused');
+      expect(secondRequest.uri.queryParameters['movie_number'], 'ABC-005');
+      // filter 状态存回控制器
+      expect(controller.filter.stateFilter, DownloadTaskStateFilter.paused);
+      expect(controller.filter.search, 'ABC-005');
+      // 相同 filter 再传一次会短路，不再发请求
+      await controller.applyFilter(controller.filter);
+      final downloadListRequestsAfter = bundle.adapter.requests
+          .where((request) => request.path == '/download-tasks')
+          .toList();
+      expect(downloadListRequestsAfter, hasLength(2));
+    },
+  );
+
+  test(
+    'applyFilter uses isReloading (not isInitialLoading) so the filter bar stays mounted',
+    () async {
+      // 回归：筛选切换用整页 spinner 会把筛选栏从 widget 树移除→重建，
+      // 造成视觉闪烁 + AppSelectField 内部动画/焦点丢失。改用 isReloading
+      // 后 pane 保留筛选栏，仅顶部叠一条 LinearProgressIndicator。
+      enqueueFirstPage([taskJson(id: 1)]);
+      enqueueClients();
+      // applyFilter 进行中的 GET
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/download-tasks',
+        body: <String, dynamic>{
+          'items': [taskJson(id: 5, downloadState: 'paused')],
+          'page': 1,
+          'page_size': 20,
+          'total': 1,
+        },
+      );
+
+      final controller = newController();
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(controller.isInitialLoading, isFalse);
+      expect(controller.isReloading, isFalse);
+
+      // applyFilter 内 `_isReloading = true; _notifySafely()` 是同步的（在第一个
+      // await 之前）；拿到 Future 后立刻断言就能捕获中间态。
+      final applyFuture = controller.applyFilter(
+        DownloadTaskFilterState(stateFilter: DownloadTaskStateFilter.paused),
+      );
+
+      expect(controller.isInitialLoading, isFalse);
+      expect(controller.isReloading, isTrue);
+      // 旧 items 保留：pane 层继续渲染筛选栏 + 旧列表 + 顶部 loading 条
+      expect(controller.items.map((row) => row.task.id).toList(),
+          equals(<int>[1]));
+
+      await applyFuture;
+      expect(controller.isInitialLoading, isFalse);
+      expect(controller.isReloading, isFalse);
+      expect(controller.items.map((row) => row.task.id).toList(),
+          equals(<int>[5]));
+    },
+  );
+
+  test('clientOptions surfaces loaded client list for filter dropdown',
+      () async {
+    enqueueFirstPage([taskJson(id: 1)]);
+    // 两个客户端 → filter bar 会展示客户端下拉
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients',
+      body: <Map<String, dynamic>>[
+        {
+          'id': 2,
+          'name': 'qb-main',
+          'base_url': 'http://qb:8080',
+          'username': 'admin',
+          'client_save_path': '/downloads',
+          'local_root_path': '/mnt/qb',
+          'media_library_id': 1,
+          'has_password': true,
+        },
+        {
+          'id': 3,
+          'name': 'qb-backup',
+          'base_url': 'http://qb2:8080',
+          'username': 'admin',
+          'client_save_path': '/downloads',
+          'local_root_path': '/mnt/qb2',
+          'media_library_id': 1,
+          'has_password': true,
+        },
+      ],
+    );
+
+    final controller = newController();
+    addTearDown(controller.dispose);
+
+    await controller.initialize();
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+
+    expect(controller.clientOptions, hasLength(2));
+    expect(
+      controller.clientOptions.map((c) => c.name),
+      containsAll(<String>['qb-main', 'qb-backup']),
+    );
   });
 }

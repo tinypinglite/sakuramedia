@@ -1,4 +1,6 @@
 import 'package:sakuramedia/core/json/json_parse.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart'
+    show MovieImageDto;
 
 class DownloadTaskDto {
   const DownloadTaskDto({
@@ -14,6 +16,8 @@ class DownloadTaskDto {
     required this.importStatusLabel,
     required this.createdAt,
     required this.updatedAt,
+    this.movieTitle,
+    this.movieCover,
   });
 
   final int id;
@@ -29,7 +33,15 @@ class DownloadTaskDto {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  /// 后端 JOIN 出的中文/原始标题（优先中文）。仅当 movie_number 命中本地影片库时才有值；
+  /// 未入库番号（predownload 场景）保持 null，前端 fallback 到 `name`。
+  final String? movieTitle;
+
+  /// 后端 JOIN 出的封面图。null 表示影片未入库或该影片无封面；前端用 MaskedImage 自带 placeholder。
+  final MovieImageDto? movieCover;
+
   factory DownloadTaskDto.fromJson(Map<String, dynamic> json) {
+    final coverRaw = json['movie_cover'];
     return DownloadTaskDto(
       id: json['id'] as int? ?? 0,
       clientId: json['client_id'] as int? ?? 0,
@@ -43,6 +55,10 @@ class DownloadTaskDto {
       importStatusLabel: json['import_status_label'] as String? ?? '',
       createdAt: asDateTime(json['created_at']),
       updatedAt: asDateTime(json['updated_at']),
+      movieTitle: json['movie_title'] as String?,
+      movieCover: coverRaw is Map<String, dynamic>
+          ? MovieImageDto.fromJson(coverRaw)
+          : null,
     );
   }
 
@@ -59,6 +75,8 @@ class DownloadTaskDto {
     String? importStatusLabel,
     Object? createdAt = _sentinel,
     Object? updatedAt = _sentinel,
+    Object? movieTitle = _sentinel,
+    Object? movieCover = _sentinel,
   }) {
     return DownloadTaskDto(
       id: id ?? this.id,
@@ -79,6 +97,12 @@ class DownloadTaskDto {
       updatedAt: identical(updatedAt, _sentinel)
           ? this.updatedAt
           : updatedAt as DateTime?,
+      movieTitle: identical(movieTitle, _sentinel)
+          ? this.movieTitle
+          : movieTitle as String?,
+      movieCover: identical(movieCover, _sentinel)
+          ? this.movieCover
+          : movieCover as MovieImageDto?,
     );
   }
 }

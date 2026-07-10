@@ -159,6 +159,14 @@ void main() {
               'download_state': 'downloading',
               'import_status': 'pending',
               'import_status_label': '等待导入',
+              'movie_title': '中文标题',
+              'movie_cover': {
+                'id': 5,
+                'origin': '/files/images/orig.jpg',
+                'small': '/files/images/small.jpg',
+                'medium': '/files/images/medium.jpg',
+                'large': '/files/images/large.jpg',
+              },
               'created_at': '2026-03-10T08:10:00Z',
               'updated_at': '2026-03-10T08:11:00Z',
             },
@@ -180,8 +188,46 @@ void main() {
       expect(request.uri.queryParameters['page'], '1');
       expect(request.uri.queryParameters['page_size'], '20');
       expect(request.uri.queryParameters['sort'], 'created_at:desc');
+      // 未传 downloadState 时不应出现 download_state 查询参数（避免后端误认为空串筛选）。
+      expect(
+        request.uri.queryParameters.containsKey('download_state'),
+        isFalse,
+      );
       expect(result.items.single.id, 11);
       expect(result.items.single.importStatusLabel, '等待导入');
+      // 后端 JOIN 出的标题/封面已进入 DTO，前端下载卡片可以直接展示，不再二次查。
+      expect(result.items.single.movieTitle, '中文标题');
+      expect(result.items.single.movieCover?.small, '/files/images/small.jpg');
+    });
+
+    test('getDownloadTasks forwards download_state and movie_number filters',
+        () async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/download-tasks',
+        body: {
+          'items': const <Map<String, dynamic>>[],
+          'page': 1,
+          'page_size': 20,
+          'total': 0,
+        },
+      );
+
+      await bundle.downloadsApi.getDownloadTasks(
+        movieNumber: 'SSIS-001',
+        downloadState: 'paused',
+        clientId: 3,
+        sort: 'created_at:desc',
+      );
+
+      final request = bundle.adapter.requests.single;
+      expect(request.uri.queryParameters['movie_number'], 'SSIS-001');
+      expect(request.uri.queryParameters['download_state'], 'paused');
+      expect(request.uri.queryParameters['client_id'], '3');
     });
 
     test('pauseDownloadTask calls /pause and parses action result', () async {

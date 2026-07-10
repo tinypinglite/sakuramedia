@@ -46,6 +46,9 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     required this.movieCardLoaderSize,
     required this.movieCardLoaderStrokeWidth,
     required this.movieCardStatusBadgeSize,
+    required this.downloadTaskCoverWidth,
+    required this.downloadTaskCardMinHeight,
+    required this.downloadTaskProgressHeight,
     required this.movieDetailHeroHeight,
     required this.movieDetailThinCoverWidth,
     required this.movieDetailPlotThumbnailWidth,
@@ -121,6 +124,9 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
         movieCardLoaderSize = 18,
         movieCardLoaderStrokeWidth = 2,
         movieCardStatusBadgeSize = 24,
+        downloadTaskCoverWidth = 220,
+        downloadTaskCardMinHeight = 120,
+        downloadTaskProgressHeight = 6,
         movieDetailHeroHeight = 420,
         movieDetailThinCoverWidth = 180,
         movieDetailPlotThumbnailWidth = 132,
@@ -195,6 +201,9 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
         movieCardLoaderSize = 18,
         movieCardLoaderStrokeWidth = 2,
         movieCardStatusBadgeSize = 24,
+        downloadTaskCoverWidth = 220,
+        downloadTaskCardMinHeight = 120,
+        downloadTaskProgressHeight = 6,
         movieDetailHeroHeight = 420,
         movieDetailThinCoverWidth = 180,
         movieDetailPlotThumbnailWidth = 132,
@@ -268,6 +277,9 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
   final double movieCardLoaderSize;
   final double movieCardLoaderStrokeWidth;
   final double movieCardStatusBadgeSize;
+  final double downloadTaskCoverWidth;
+  final double downloadTaskCardMinHeight;
+  final double downloadTaskProgressHeight;
   final double movieDetailHeroHeight;
   final double movieDetailThinCoverWidth;
   final double movieDetailPlotThumbnailWidth;
@@ -343,6 +355,9 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     double? movieCardLoaderSize,
     double? movieCardLoaderStrokeWidth,
     double? movieCardStatusBadgeSize,
+    double? downloadTaskCoverWidth,
+    double? downloadTaskCardMinHeight,
+    double? downloadTaskProgressHeight,
     double? movieDetailHeroHeight,
     double? movieDetailThinCoverWidth,
     double? movieDetailPlotThumbnailWidth,
@@ -435,6 +450,12 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
           movieCardLoaderStrokeWidth ?? this.movieCardLoaderStrokeWidth,
       movieCardStatusBadgeSize:
           movieCardStatusBadgeSize ?? this.movieCardStatusBadgeSize,
+      downloadTaskCoverWidth:
+          downloadTaskCoverWidth ?? this.downloadTaskCoverWidth,
+      downloadTaskCardMinHeight:
+          downloadTaskCardMinHeight ?? this.downloadTaskCardMinHeight,
+      downloadTaskProgressHeight:
+          downloadTaskProgressHeight ?? this.downloadTaskProgressHeight,
       movieDetailHeroHeight:
           movieDetailHeroHeight ?? this.movieDetailHeroHeight,
       movieDetailThinCoverWidth:
@@ -615,6 +636,21 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       movieCardStatusBadgeSize: lerpDouble(
         movieCardStatusBadgeSize,
         other.movieCardStatusBadgeSize,
+        t,
+      )!,
+      downloadTaskCoverWidth: lerpDouble(
+        downloadTaskCoverWidth,
+        other.downloadTaskCoverWidth,
+        t,
+      )!,
+      downloadTaskCardMinHeight: lerpDouble(
+        downloadTaskCardMinHeight,
+        other.downloadTaskCardMinHeight,
+        t,
+      )!,
+      downloadTaskProgressHeight: lerpDouble(
+        downloadTaskProgressHeight,
+        other.downloadTaskProgressHeight,
         t,
       )!,
       movieDetailHeroHeight:

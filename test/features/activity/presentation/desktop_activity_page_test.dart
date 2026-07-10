@@ -624,11 +624,16 @@ Future<SessionStore> _createSessionStore() async {
 Future<void> _pumpActivityPage(
   WidgetTester tester, {
   required TestApiBundle bundle,
+  SessionStore? sessionStore,
   bool settle = true,
 }) async {
+  // MaskedImage 需要在 widget 树里能找到 SessionStore（拿 baseUrl 拼绝对 URL）。
+  // 下载任务卡片会引用 MaskedImage 展示影片封面，因此 harness 必须提供该 provider。
+  final resolvedSessionStore = sessionStore ?? SessionStore.inMemory();
   await tester.pumpWidget(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider<SessionStore>.value(value: resolvedSessionStore),
         Provider<ActivityEventStreamClient>.value(
           value: bundle.activityEventStreamClient,
         ),

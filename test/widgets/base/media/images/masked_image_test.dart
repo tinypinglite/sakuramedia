@@ -7,6 +7,23 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
+/// 从 MaskedImage 渲染出的 `Image` widget 里取回 network 层的 URL。
+/// 内部结构：`Image.image` 是 `ResizeImage(CachedNetworkImageProvider)`
+/// 或直接就是 `CachedNetworkImageProvider`（未传 memCacheWidth/Height 时）。
+String? _extractImageUrl(Image image) {
+  final provider = image.image;
+  if (provider is ResizeImage) {
+    final inner = provider.imageProvider;
+    if (inner is CachedNetworkImageProvider) {
+      return inner.url;
+    }
+  }
+  if (provider is CachedNetworkImageProvider) {
+    return provider.url;
+  }
+  return null;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -27,11 +44,9 @@ void main() {
       ),
     );
 
-    final image = tester.widget<CachedNetworkImage>(
-      find.byType(CachedNetworkImage),
-    );
+    final image = tester.widget<Image>(find.byType(Image));
 
-    expect(image.imageUrl, 'https://api.example.com/covers/a.jpg');
+    expect(_extractImageUrl(image), 'https://api.example.com/covers/a.jpg');
   });
 
   testWidgets(
@@ -49,7 +64,7 @@ void main() {
 
       expect(find.byType(ClipRect), findsNothing);
 
-      final imageSize = tester.getSize(find.byType(CachedNetworkImage));
+      final imageSize = tester.getSize(find.byType(Image));
       expect(imageSize.width, 160);
     },
   );
@@ -72,7 +87,7 @@ void main() {
       );
 
       final clipRectSize = tester.getSize(find.byType(ClipRect));
-      final imageSize = tester.getSize(find.byType(CachedNetworkImage));
+      final imageSize = tester.getSize(find.byType(Image));
       final overflowBox = tester.widget<OverflowBox>(find.byType(OverflowBox));
       final expectedWidth = 160 / 0.47;
 
@@ -83,6 +98,26 @@ void main() {
       expect(overflowBox.alignment, Alignment.centerRight);
     },
   );
+
+  testWidgets('masked image forwards alignment to underlying Image', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      _TestApp(
+        sessionStore: sessionStore,
+        child: const MaskedImage(
+          url: '/covers/a.jpg',
+          alignment: Alignment.topCenter,
+        ),
+      ),
+    );
+
+    final image = tester.widget<Image>(find.byType(Image));
+    expect(image.alignment, Alignment.topCenter);
+  });
 
   testWidgets('masked image skips color filter when mask is disabled', (
     WidgetTester tester,
@@ -99,7 +134,7 @@ void main() {
     );
 
     expect(find.byType(ColorFiltered), findsNothing);
-    expect(find.byType(CachedNetworkImage), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
   });
 
   testWidgets(
@@ -114,8 +149,51 @@ void main() {
         ),
       );
 
-      expect(find.byType(CachedNetworkImage), findsNothing);
+      expect(find.byType(Image), findsNothing);
       expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'masked image keeps ImageProvider identity stable across rebuilds',
+    (WidgetTester tester) async {
+      // 根治「SSE 每秒 tick → 卡片 rebuild → CachedNetworkImage/OctoImage 内部
+      // 新 ResizeImage 实例 → Image element 被 ValueKey(image) 强制替换 → fade 重放」
+      // 这条闪烁链路。断言：反复 setState 触发 MaskedImage 的 parent 重建后，
+      // Image widget 的 `image` provider **identity 稳定**（== 且 identical）。
+      final sessionStore = SessionStore.inMemory();
+      await sessionStore.saveBaseUrl('https://api.example.com');
+
+      final rebuildTrigger = ValueNotifier<int>(0);
+      addTearDown(rebuildTrigger.dispose);
+
+      await tester.pumpWidget(
+        _TestApp(
+          sessionStore: sessionStore,
+          child: ValueListenableBuilder<int>(
+            valueListenable: rebuildTrigger,
+            builder: (context, tick, _) {
+              return MaskedImage(url: '/covers/a.jpg');
+            },
+          ),
+        ),
+      );
+
+      final providerBefore = tester.widget<Image>(find.byType(Image)).image;
+
+      for (var i = 0; i < 5; i++) {
+        rebuildTrigger.value = i + 1;
+        await tester.pump();
+      }
+
+      final providerAfter = tester.widget<Image>(find.byType(Image)).image;
+      expect(
+        identical(providerBefore, providerAfter),
+        isTrue,
+        reason:
+            'MaskedImage 内部应该缓存 ImageProvider identity，避免高频 rebuild '
+            '触发 Image element 重建 / fade 动画重放。',
+      );
     },
   );
 

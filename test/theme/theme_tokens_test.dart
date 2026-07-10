@@ -110,6 +110,9 @@ void main() {
     expect(componentTokens.buttonGap2xs, 4);
     expect(componentTokens.buttonGap3xs, 2);
     expect(componentTokens.movieCardStatusBadgeSize, 24);
+    expect(componentTokens.downloadTaskCoverWidth, 220);
+    expect(componentTokens.downloadTaskCardMinHeight, 120);
+    expect(componentTokens.downloadTaskProgressHeight, 6);
     expect(componentTokens.movieDetailSectionGap, 16);
     expect(componentTokens.movieDetailSectionTitleGap, 8);
     expect(componentTokens.movieDetailPillHorizontalPadding, 5);

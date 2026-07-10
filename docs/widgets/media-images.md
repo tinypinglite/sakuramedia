@@ -10,7 +10,7 @@
 - **路径**: `lib/widgets/base/media/images/masked_image.dart`
 - **用途**: **普通封面 / 缩略图**的**唯一标准入口**(自动 decode 提示 + 占位 / 错误图)。
 - **required**: `url`
-- **可选**: `fit`(默认 `BoxFit.cover`) · `visibleWidthFactor`(0<x<=1,只显左侧一段) · `visibleAlignment` · `memCacheWidth` / `memCacheHeight`
+- **可选**: `fit`(默认 `BoxFit.cover`) · `alignment`(默认居中，控制 `cover` 裁切焦点) · `visibleWidthFactor`(0<x<=1,只显左侧一段) · `visibleAlignment` · `memCacheWidth` / `memCacheHeight`
 - **何时用**: 影片封面、女优头像(内层)、切片封面、合集封面、播放列表 banner、任意"网格里那张图"。
 - **何时不用**: 剧情图(要真实比例) → `MoviePlotThumbnail`;全屏 / 画廊 → `AppImageFullscreenHost` + `AppPinchToFullscreenImage`。
 
