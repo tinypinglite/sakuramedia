@@ -1896,6 +1896,45 @@ void main() {
       },
     );
 
+    testWidgets('tests saved Jackett settings and shows the result', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueIndexerSettings(bundle, indexers: const []);
+      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/indexer-settings/test',
+        body: <String, dynamic>{
+          'healthy': true,
+          'checked_at': '2026-07-11T08:00:00Z',
+          'query': 'SSNI-888',
+          'indexers_checked': 2,
+          'result_count': 5,
+          'elapsed_ms': 342,
+          'error': null,
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-indexer-connection-test-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('GET', '/indexer-settings/test'), 1);
+      expect(
+        find.byKey(const Key('configuration-indexer-connection-test-result')),
+        findsOneWidget,
+      );
+      expect(find.text('Jackett 已连通，真实搜索已完成。'), findsOneWidget);
+      expect(find.text('索引器：2 个'), findsOneWidget);
+      expect(find.text('候选：5 条'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
     testWidgets('disables creating indexer when no download clients exist', (
       WidgetTester tester,
     ) async {

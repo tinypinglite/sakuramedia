@@ -46,8 +46,10 @@ void main() {
       expect(resolveDownloaderConnectivityHintKey(null), 'unknown');
     });
     test('type 含 auth → auth-error', () {
-      expect(resolveDownloaderConnectivityHintKey(_err('auth_failed')),
-          'auth-error');
+      expect(
+        resolveDownloaderConnectivityHintKey(_err('auth_failed')),
+        'auth-error',
+      );
     });
     test('type 含 timeout → network-error', () {
       expect(
@@ -64,8 +66,10 @@ void main() {
       );
     });
     test('无匹配 → unknown', () {
-      expect(resolveDownloaderConnectivityHintKey(_err('random_thing')),
-          'unknown');
+      expect(
+        resolveDownloaderConnectivityHintKey(_err('random_thing')),
+        'unknown',
+      );
     });
   });
 
@@ -129,11 +133,7 @@ void main() {
       String apiKey = 'k',
       List<IndexerEntryDto> entries = const <IndexerEntryDto>[],
     }) {
-      return IndexerSettingsDto(
-        type: type,
-        apiKey: apiKey,
-        indexers: entries,
-      );
+      return IndexerSettingsDto(type: type, apiKey: apiKey, indexers: entries);
     }
 
     test('type 空 → type-missing', () {
@@ -169,7 +169,9 @@ void main() {
     test('entry URL 非法 → entry-url-invalid', () {
       expect(
         resolveIndexerConfigHintKey(
-          settings: settings(entries: <IndexerEntryDto>[_entry(url: 'ftp://x')]),
+          settings: settings(
+            entries: <IndexerEntryDto>[_entry(url: 'ftp://x')],
+          ),
           existingClients: <DownloadClientDto>[_client(1)],
         ),
         'entry-url-invalid',
@@ -196,13 +198,33 @@ void main() {
       );
     });
 
-    test('全通过 → null（表示走 warning + no-online-probe）', () {
+    test('全通过 → null（表示可继续执行在线连通性检测）', () {
       expect(
         resolveIndexerConfigHintKey(
           settings: settings(entries: <IndexerEntryDto>[_entry(clientId: 1)]),
           existingClients: <DownloadClientDto>[_client(1)],
         ),
         isNull,
+      );
+    });
+  });
+
+  group('resolveIndexerConnectionHintKey', () {
+    test('未配置索引器 → no-indexers-configured', () {
+      expect(
+        resolveIndexerConnectionHintKey('no_indexers_configured'),
+        'no-indexers-configured',
+      );
+    });
+
+    test('Jackett 请求失败及未知错误 → jackett-request-error', () {
+      expect(
+        resolveIndexerConnectionHintKey('jackett_request_error'),
+        'jackett-request-error',
+      );
+      expect(
+        resolveIndexerConnectionHintKey('unexpected_error'),
+        'jackett-request-error',
       );
     });
   });

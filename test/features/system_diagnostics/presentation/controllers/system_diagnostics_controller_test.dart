@@ -69,12 +69,13 @@ Map<String, dynamic> _connectivityResult({
     'elapsed_ms': 20,
     'version': healthy ? '5.0.4' : null,
     'web_api_version': healthy ? '2.11' : null,
-    'error': errorType == null
-        ? null
-        : <String, dynamic>{
-            'type': errorType,
-            'message': errorMessage ?? '',
-          },
+    'error':
+        errorType == null
+            ? null
+            : <String, dynamic>{
+              'type': errorType,
+              'message': errorMessage ?? '',
+            },
   };
 }
 
@@ -93,9 +94,10 @@ Map<String, dynamic> _storageResult({required bool healthy, int clientId = 1}) {
       'probe_remote_dir': '/dl/.p',
       'probe_local_dir': '/mnt/dl/.p',
       'sentinel_visible_to_qb': healthy,
-      'error': healthy
-          ? null
-          : <String, dynamic>{'type': 'mapping', 'message': 'nope'},
+      'error':
+          healthy
+              ? null
+              : <String, dynamic>{'type': 'mapping', 'message': 'nope'},
     },
     'hardlink': <String, dynamic>{
       'status': 'ok',
@@ -119,6 +121,31 @@ Map<String, dynamic> _indexerSettings({
   };
 }
 
+Map<String, dynamic> _indexerConnectionTest({
+  required bool healthy,
+  int indexersChecked = 1,
+  int resultCount = 2,
+  int elapsedMs = 24,
+  String? errorType,
+  String? errorMessage,
+}) {
+  return <String, dynamic>{
+    'healthy': healthy,
+    'checked_at': '2026-07-11T08:00:00Z',
+    'query': 'SSNI-888',
+    'indexers_checked': indexersChecked,
+    'result_count': resultCount,
+    'elapsed_ms': elapsedMs,
+    'error':
+        errorType == null
+            ? null
+            : <String, dynamic>{
+              'type': errorType,
+              'message': errorMessage ?? '',
+            },
+  };
+}
+
 Map<String, dynamic> _configWithLlm({
   bool enabled = true,
   String baseUrl = 'https://llm',
@@ -139,7 +166,10 @@ Map<String, dynamic> _configWithLlm({
   };
 }
 
-Map<String, dynamic> _providerTest({required bool healthy, String provider = 'javdb'}) {
+Map<String, dynamic> _providerTest({
+  required bool healthy,
+  String provider = 'javdb',
+}) {
   return <String, dynamic>{
     'healthy': healthy,
     'provider': provider,
@@ -247,29 +277,37 @@ void main() {
     _bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/indexer-settings',
-      body: _indexerSettings(entries: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 1,
-          'name': 'e1',
-          'url': 'https://jackett.example/api',
-          'kind': 'jackett',
-          'download_client_id': 1,
-          'download_client_name': 'qb',
-        },
-      ]),
+      body: _indexerSettings(
+        entries: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 1,
+            'name': 'e1',
+            'url': 'https://jackett.example/api',
+            'kind': 'jackett',
+            'download_client_id': 1,
+            'download_client_name': 'qb',
+          },
+        ],
+      ),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings/test',
+      body: _indexerConnectionTest(healthy: true),
     );
     _enqueueIndependentProbes();
 
     final c = _newController();
     await c.runAll();
 
-    // 索引器是"配置完整（暂不支持在线连通检测）" → warning
-    // 其余全 healthy → 整体因为存在一个 warning 项，overallStatus = warning
-    expect(c.overallStatus, DiagnosticItemStatus.warning);
+    expect(c.overallStatus, DiagnosticItemStatus.healthy);
     expect(c.unhealthyCount, 0);
     expect(c.lastRunAt, isNotNull);
     final ml = _find(c, (i) => i.kind == DiagnosticItemKind.mediaLibrary);
     expect(ml.status, DiagnosticItemStatus.healthy);
+    final indexer = _find(c, (i) => i.kind == DiagnosticItemKind.indexer);
+    expect(indexer.status, DiagnosticItemStatus.healthy);
+    expect(indexer.summary, contains('2 条候选'));
   });
 
   test('媒体库空 → 下载器 + 索引器全部 blocked，不发多余请求', () async {
@@ -286,9 +324,13 @@ void main() {
     final ml = _find(c, (i) => i.kind == DiagnosticItemKind.mediaLibrary);
     expect(ml.status, DiagnosticItemStatus.unhealthy);
 
-    final downloaderCat = c.categories.firstWhere((cat) => cat.label == '下载与检索链');
+    final downloaderCat = c.categories.firstWhere(
+      (cat) => cat.label == '下载与检索链',
+    );
     expect(
-      downloaderCat.items.every((i) => i.status == DiagnosticItemStatus.blocked),
+      downloaderCat.items.every(
+        (i) => i.status == DiagnosticItemStatus.blocked,
+      ),
       isTrue,
     );
 
@@ -339,25 +381,33 @@ void main() {
     _bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/indexer-settings',
-      body: _indexerSettings(entries: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 1,
-          'name': 'e1',
-          'url': 'https://jackett.example',
-          'kind': 'jackett',
-          'download_client_id': 2,
-          'download_client_name': 'qb-b',
-        },
-      ]),
+      body: _indexerSettings(
+        entries: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 1,
+            'name': 'e1',
+            'url': 'https://jackett.example',
+            'kind': 'jackett',
+            'download_client_id': 2,
+            'download_client_name': 'qb-b',
+          },
+        ],
+      ),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings/test',
+      body: _indexerConnectionTest(healthy: true, resultCount: 0),
     );
     _enqueueIndependentProbes();
 
     final c = _newController();
     await c.runAll();
 
-    // 索引器不被 block（因为有健康的下载器 2），最终落 warning（no-online-probe）。
+    // 索引器不被 block（因为有健康的下载器 2），真实搜索无候选仍代表连通正常。
     final idx = _find(c, (i) => i.kind == DiagnosticItemKind.indexer);
-    expect(idx.status, DiagnosticItemStatus.warning);
+    expect(idx.status, DiagnosticItemStatus.healthy);
+    expect(idx.summary, contains('未返回候选'));
 
     // 下载器 1 连通性 → unhealthy，命中 auth-error hint。
     final c1 = _find(
@@ -405,6 +455,112 @@ void main() {
     final idx = _find(c, (i) => i.kind == DiagnosticItemKind.indexer);
     expect(idx.status, DiagnosticItemStatus.blocked);
     expect(idx.blockedByLabel, '下载器');
+  });
+
+  test('索引器静态校验失败时不发起真实搜索', () async {
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-libraries',
+      body: <Map<String, dynamic>>[_library()],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients',
+      body: <Map<String, dynamic>>[_clientDto()],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients/1/test',
+      body: _connectivityResult(healthy: true),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-clients/1/storage-test',
+      body: _storageResult(healthy: true),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings',
+      body: _indexerSettings(
+        apiKey: '',
+        entries: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 1,
+            'name': 'e1',
+            'url': 'https://jackett.example/api',
+            'kind': 'pt',
+            'download_client_id': 1,
+            'download_client_name': 'qb',
+          },
+        ],
+      ),
+    );
+    _enqueueIndependentProbes();
+
+    final c = _newController();
+    await c.runAll();
+
+    expect(_bundle.adapter.hitCount('GET', '/indexer-settings/test'), 0);
+    final indexer = _find(c, (i) => i.kind == DiagnosticItemKind.indexer);
+    expect(indexer.status, DiagnosticItemStatus.unhealthy);
+    expect(indexer.summary, 'API Key 未填');
+  });
+
+  test('Jackett 业务失败映射为可修复的索引器错误', () async {
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-libraries',
+      body: <Map<String, dynamic>>[_library()],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients',
+      body: <Map<String, dynamic>>[_clientDto()],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients/1/test',
+      body: _connectivityResult(healthy: true),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-clients/1/storage-test',
+      body: _storageResult(healthy: true),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings',
+      body: _indexerSettings(
+        entries: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 1,
+            'name': 'e1',
+            'url': 'https://jackett.example/api',
+            'kind': 'pt',
+            'download_client_id': 1,
+            'download_client_name': 'qb',
+          },
+        ],
+      ),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings/test',
+      body: _indexerConnectionTest(
+        healthy: false,
+        errorType: 'jackett_request_error',
+        errorMessage: 'connection refused',
+      ),
+    );
+    _enqueueIndependentProbes();
+
+    final c = _newController();
+    await c.runAll();
+
+    final indexer = _find(c, (i) => i.kind == DiagnosticItemKind.indexer);
+    expect(indexer.status, DiagnosticItemStatus.unhealthy);
+    expect(indexer.summary, 'connection refused');
+    expect(indexer.fixHint, contains('API Key'));
   });
 
   test('单项 throw 不影响其他项：JavDB 抛错 → JavDB unhealthy，其他仍推进', () async {

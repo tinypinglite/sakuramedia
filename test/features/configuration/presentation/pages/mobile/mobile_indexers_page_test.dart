@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/configuration/data/dto/indexer_settings_dto
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_indexers_page.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
 
 import '../../../../../support/test_api_bundle.dart';
@@ -228,6 +229,109 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
+  testWidgets('tests saved Jackett settings and blocks unsaved API Key', (
+    WidgetTester tester,
+  ) async {
+    _enqueueIndexersData(_bundle, apiKey: 'secret-key');
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings/test',
+      body: <String, dynamic>{
+        'healthy': true,
+        'checked_at': '2026-07-11T08:00:00Z',
+        'query': 'SSNI-888',
+        'indexers_checked': 1,
+        'result_count': 0,
+        'elapsed_ms': 30,
+        'error': null,
+      },
+    );
+
+    await _pumpPage(tester);
+    await tester.tap(
+      find.byKey(const Key('mobile-indexers-connection-test-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(_bundle.adapter.hitCount('GET', '/indexer-settings/test'), 1);
+    expect(
+      find.byKey(const Key('mobile-indexers-connection-test-result')),
+      findsOneWidget,
+    );
+    expect(find.text('Jackett 已连通，测试查询未返回候选。'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('mobile-indexers-api-key-field')),
+      'changed-key',
+    );
+    await tester.pump();
+
+    final button = tester.widget<AppButton>(
+      find.byKey(const Key('mobile-indexers-connection-test-button')),
+    );
+    expect(button.onPressed, isNull);
+    expect(find.text('当前配置尚未保存，保存后再测试。'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('shows Jackett connection failure details', (
+    WidgetTester tester,
+  ) async {
+    _enqueueIndexersData(_bundle, apiKey: 'secret-key');
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings/test',
+      body: <String, dynamic>{
+        'healthy': false,
+        'checked_at': '2026-07-11T08:00:00Z',
+        'query': 'SSNI-888',
+        'indexers_checked': 1,
+        'result_count': 0,
+        'elapsed_ms': 30,
+        'error': <String, dynamic>{
+          'type': 'jackett_request_error',
+          'message': 'connection refused',
+        },
+      },
+    );
+
+    await _pumpPage(tester);
+    await tester.tap(
+      find.byKey(const Key('mobile-indexers-connection-test-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('mobile-indexers-connection-test-result')),
+      findsOneWidget,
+    );
+    expect(find.text('connection refused'), findsOneWidget);
+    expect(find.text('jackett_request_error'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('shows a repair hint when the connection request fails', (
+    WidgetTester tester,
+  ) async {
+    _enqueueIndexersData(_bundle, apiKey: 'secret-key');
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings/test',
+      statusCode: 500,
+      body: <String, dynamic>{'message': 'service unavailable'},
+    );
+
+    await _pumpPage(tester);
+    await tester.tap(
+      find.byKey(const Key('mobile-indexers-connection-test-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppStatusChip), findsOneWidget);
+    expect(find.text('请检查 Jackett 服务、API Key 和索引器地址后重试。'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
   testWidgets('creates indexer and submits bound download client id', (
     WidgetTester tester,
   ) async {
@@ -315,6 +419,8 @@ void main() {
 
     await _pumpPage(tester);
 
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -200));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('mobile-indexer-card-body-1')));
     await tester.pumpAndSettle();
     expect(
@@ -362,6 +468,8 @@ void main() {
 
     await _pumpPage(tester);
 
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -200));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('mobile-indexer-card-body-1')));
     await tester.pumpAndSettle();
     await tester.tap(
@@ -401,7 +509,7 @@ void main() {
 
       expect(find.text('索引器名称重复'), findsOneWidget);
       expect(find.text('请输入合法的 http/https 地址'), findsOneWidget);
-    expect(find.text('请选择下载器'), findsWidgets);
+      expect(find.text('请选择下载器'), findsWidgets);
       expect(_bundle.adapter.hitCount('PATCH', '/indexer-settings'), 0);
     },
   );
@@ -448,6 +556,8 @@ void main() {
         findsOneWidget,
       );
 
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -200));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('mobile-indexer-card-body-1')));
       await tester.pumpAndSettle();
       await tester.tap(

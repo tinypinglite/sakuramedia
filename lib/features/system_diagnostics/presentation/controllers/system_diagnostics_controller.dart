@@ -30,7 +30,7 @@ import 'package:sakuramedia/features/system_diagnostics/presentation/hints/metad
 ///   Stage A（基础资源）：媒体库。空 → 后置全部 blocked。
 ///   Stage B（独立探针，与 A 并行）：JavDB / DMM / LLM / JoyTag。
 ///   Stage C（依赖 A）：下载器（每个 client → 连通性 + 存储 两项，全部并发）。
-///   Stage D（依赖 C）：索引器 —— 静态校验 + 与下载器 id 交叉核对。
+///   Stage D（依赖 C）：索引器 —— 静态校验、下载器绑定核对和真实搜索测试。
 ///
 /// 单项 try/catch 隔离，任何一项抛异常不影响整体流水推进。
 class SystemDiagnosticsController extends ChangeNotifier {
@@ -155,7 +155,9 @@ class SystemDiagnosticsController extends ChangeNotifier {
       final downloaderItems = await _probeAllDownloaders();
       final indexerItem = await _probeIndexer(
         downloaderConnectivityItems: downloaderItems
-            .where((item) => item.kind == DiagnosticItemKind.downloaderConnectivity)
+            .where(
+              (item) => item.kind == DiagnosticItemKind.downloaderConnectivity,
+            )
             .toList(growable: false),
       );
       _replaceCategoryItems('下载与检索链', <DiagnosticItemState>[
@@ -279,7 +281,8 @@ class SystemDiagnosticsController extends ChangeNotifier {
         );
       }
       final hintKey = resolveDownloaderConnectivityHintKey(result.error);
-      final hint = downloaderConnectivityHints[hintKey] ??
+      final hint =
+          downloaderConnectivityHints[hintKey] ??
           downloaderConnectivityHints['unknown']!;
       return _fromHint(
         kind: DiagnosticItemKind.downloaderConnectivity,
@@ -288,9 +291,8 @@ class SystemDiagnosticsController extends ChangeNotifier {
         status: DiagnosticItemStatus.unhealthy,
         hint: hint,
         elapsedMs: result.elapsedMs,
-        summary: result.error?.type.isNotEmpty == true
-            ? result.error!.type
-            : '连通失败',
+        summary:
+            result.error?.type.isNotEmpty == true ? result.error!.type : '连通失败',
       );
     } catch (_) {
       return _fromHint(
@@ -323,9 +325,10 @@ class SystemDiagnosticsController extends ChangeNotifier {
       final hint =
           downloaderStorageHints[hintKey] ?? downloaderStorageHints['unknown']!;
       // 业务上 healthy 但带 warnings（例如硬链接不支持）→ 落 warning，不阻塞。
-      final status = result.healthy
-          ? DiagnosticItemStatus.warning
-          : DiagnosticItemStatus.unhealthy;
+      final status =
+          result.healthy
+              ? DiagnosticItemStatus.warning
+              : DiagnosticItemStatus.unhealthy;
       return _fromHint(
         kind: DiagnosticItemKind.downloaderStorage,
         itemKey: 'downloader-storage-${client.id}',
@@ -333,9 +336,12 @@ class SystemDiagnosticsController extends ChangeNotifier {
         status: status,
         hint: hint,
         elapsedMs: result.elapsedMs,
-        summary: result.warnings.isNotEmpty
-            ? result.warnings.first
-            : (status == DiagnosticItemStatus.unhealthy ? '存储映射不通' : '存在告警'),
+        summary:
+            result.warnings.isNotEmpty
+                ? result.warnings.first
+                : (status == DiagnosticItemStatus.unhealthy
+                    ? '存储映射不通'
+                    : '存在告警'),
       );
     } catch (_) {
       return _fromHint(
@@ -367,30 +373,45 @@ class SystemDiagnosticsController extends ChangeNotifier {
 
     try {
       final settings = await _indexerSettingsApi.getSettings();
-      final List<DownloadClientDto> clients =
-          _lastKnownClients.values.toList(growable: false);
+      final List<DownloadClientDto> clients = _lastKnownClients.values.toList(
+        growable: false,
+      );
       final hintKey = resolveIndexerConfigHintKey(
         settings: settings,
         existingClients: clients,
       );
-      if (hintKey == null) {
-        // 静态配置全通过 → warning + no-online-probe 提醒。
+      if (hintKey != null) {
         return _fromHint(
           kind: DiagnosticItemKind.indexer,
           itemKey: _indexerItemKey,
           displayName: '索引器',
-          status: DiagnosticItemStatus.warning,
-          hint: indexerHints['no-online-probe']!,
-          summary: '配置完整（暂不支持在线连通检测）',
+          status: DiagnosticItemStatus.unhealthy,
+          hint: indexerHints[hintKey] ?? indexerHints['jackett-request-error']!,
+          summary: _indexerSummary(hintKey, settings),
         );
       }
+
+      final result = await _indexerSettingsApi.testConnection();
+      if (result.healthy) {
+        return DiagnosticItemState.healthy(
+          kind: DiagnosticItemKind.indexer,
+          itemKey: _indexerItemKey,
+          displayName: '索引器',
+          elapsedMs: result.elapsedMs,
+          summary: _indexerConnectionSummary(result),
+        );
+      }
+      final connectionHintKey = resolveIndexerConnectionHintKey(
+        result.error?.type,
+      );
       return _fromHint(
         kind: DiagnosticItemKind.indexer,
         itemKey: _indexerItemKey,
         displayName: '索引器',
         status: DiagnosticItemStatus.unhealthy,
-        hint: indexerHints[hintKey] ?? indexerHints['no-online-probe']!,
-        summary: _indexerSummary(hintKey, settings),
+        hint: indexerHints[connectionHintKey]!,
+        elapsedMs: result.elapsedMs,
+        summary: _indexerConnectionErrorSummary(result),
       );
     } catch (_) {
       return _fromHint(
@@ -398,17 +419,18 @@ class SystemDiagnosticsController extends ChangeNotifier {
         itemKey: _indexerItemKey,
         displayName: '索引器',
         status: DiagnosticItemStatus.unhealthy,
-        hint: indexerHints['type-missing']!,
-        summary: '索引器配置读取失败',
+        hint: indexerHints['jackett-request-error']!,
+        summary: '索引器配置或连通性检测失败',
       );
     }
   }
 
   Future<DiagnosticItemState> _probeMetadataProvider(String provider) async {
     final displayName = provider == _javdbItemKey ? 'JavDB' : 'DMM';
-    final kind = provider == _javdbItemKey
-        ? DiagnosticItemKind.javdb
-        : DiagnosticItemKind.dmm;
+    final kind =
+        provider == _javdbItemKey
+            ? DiagnosticItemKind.javdb
+            : DiagnosticItemKind.dmm;
     final started = DateTime.now();
     try {
       final result = await _statusApi.testMetadataProvider(provider);
@@ -433,9 +455,10 @@ class SystemDiagnosticsController extends ChangeNotifier {
         status: DiagnosticItemStatus.unhealthy,
         hint: javdbHints[hintKey] ?? javdbHints['unknown']!,
         elapsedMs: elapsed,
-        summary: result.error?.message.isNotEmpty == true
-            ? _shortenError(result.error!.message)
-            : '接口返回不健康',
+        summary:
+            result.error?.message.isNotEmpty == true
+                ? _shortenError(result.error!.message)
+                : '接口返回不健康',
       );
     } catch (_) {
       return _fromHint(
@@ -541,9 +564,7 @@ class SystemDiagnosticsController extends ChangeNotifier {
           itemKey: _joyTagItemKey,
           displayName: 'JoyTag 推理',
           elapsedMs: elapsed,
-          summary: device == null || device.isEmpty
-              ? '模型加载正常'
-              : '推理设备：$device',
+          summary: device == null || device.isEmpty ? '模型加载正常' : '推理设备：$device',
         );
       }
       return _fromHint(
@@ -595,10 +616,15 @@ class SystemDiagnosticsController extends ChangeNotifier {
   /// 在 [categoryLabel] 分类里，按 `(kind, itemKey)` 命中并替换单个 item，
   /// 其余 item 保持不变。
   void _replaceItem(String categoryLabel, DiagnosticItemState next) {
-    final category = _categories.firstWhere((cat) => cat.label == categoryLabel);
+    final category = _categories.firstWhere(
+      (cat) => cat.label == categoryLabel,
+    );
     _replaceCategoryItems(categoryLabel, <DiagnosticItemState>[
       for (final item in category.items)
-        if (item.kind == next.kind && item.itemKey == next.itemKey) next else item,
+        if (item.kind == next.kind && item.itemKey == next.itemKey)
+          next
+        else
+          item,
     ]);
   }
 
@@ -610,7 +636,11 @@ class SystemDiagnosticsController extends ChangeNotifier {
     _categories = <DiagnosticCategoryState>[
       for (final cat in _categories)
         if (cat.label == categoryLabel)
-          DiagnosticCategoryState(label: cat.label, icon: cat.icon, items: items)
+          DiagnosticCategoryState(
+            label: cat.label,
+            icon: cat.icon,
+            items: items,
+          )
         else
           cat,
     ];
@@ -619,11 +649,7 @@ class SystemDiagnosticsController extends ChangeNotifier {
   List<DiagnosticCategoryState> _buildInitialCategories({
     DiagnosticItemStatus status = DiagnosticItemStatus.notTested,
   }) {
-    DiagnosticItemState make(
-      DiagnosticItemKind kind,
-      String key,
-      String name,
-    ) {
+    DiagnosticItemState make(DiagnosticItemKind kind, String key, String name) {
       if (status == DiagnosticItemStatus.probing) {
         return DiagnosticItemState.probing(
           kind: kind,
@@ -708,6 +734,23 @@ class SystemDiagnosticsController extends ChangeNotifier {
       default:
         return '配置存在问题';
     }
+  }
+
+  String _indexerConnectionSummary(IndexerConnectionTestResultDto result) {
+    if (result.resultCount == 0) {
+      return '${result.indexersChecked} 个索引器已连接，测试查询未返回候选';
+    }
+    return '${result.indexersChecked} 个索引器已连接，返回 ${result.resultCount} 条候选';
+  }
+
+  String _indexerConnectionErrorSummary(IndexerConnectionTestResultDto result) {
+    final message = result.error?.message ?? '';
+    if (message.trim().isNotEmpty) {
+      return _shortenError(message);
+    }
+    return result.error?.type == 'no_indexers_configured'
+        ? '尚未保存任何索引器条目'
+        : 'Jackett 连通性测试失败';
   }
 
   String _shortenError(String message) {

@@ -98,3 +98,62 @@ class UpdateIndexerSettingsPayload {
     };
   }
 }
+
+class IndexerConnectionTestErrorDto {
+  const IndexerConnectionTestErrorDto({
+    required this.type,
+    required this.message,
+  });
+
+  final String type;
+  final String message;
+
+  factory IndexerConnectionTestErrorDto.fromJson(Map<String, dynamic> json) {
+    return IndexerConnectionTestErrorDto(
+      type: json['type'] as String? ?? '',
+      message: json['message'] as String? ?? '',
+    );
+  }
+}
+
+class IndexerConnectionTestResultDto {
+  const IndexerConnectionTestResultDto({
+    required this.healthy,
+    required this.checkedAt,
+    required this.query,
+    required this.indexersChecked,
+    required this.resultCount,
+    required this.elapsedMs,
+    required this.error,
+  });
+
+  final bool healthy;
+  final DateTime? checkedAt;
+  final String query;
+  final int indexersChecked;
+  final int resultCount;
+  final int elapsedMs;
+  final IndexerConnectionTestErrorDto? error;
+
+  factory IndexerConnectionTestResultDto.fromJson(Map<String, dynamic> json) {
+    final rawCheckedAt = json['checked_at'] as String?;
+    final rawError = json['error'];
+    return IndexerConnectionTestResultDto(
+      healthy: json['healthy'] as bool? ?? false,
+      checkedAt: rawCheckedAt == null ? null : DateTime.tryParse(rawCheckedAt),
+      query: json['query'] as String? ?? '',
+      indexersChecked: json['indexers_checked'] as int? ?? 0,
+      resultCount: json['result_count'] as int? ?? 0,
+      elapsedMs: json['elapsed_ms'] as int? ?? 0,
+      error:
+          rawError is Map
+              ? IndexerConnectionTestErrorDto.fromJson(
+                rawError.map(
+                  (dynamic key, dynamic value) =>
+                      MapEntry(key.toString(), value),
+                ),
+              )
+              : null,
+    );
+  }
+}

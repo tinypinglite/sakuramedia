@@ -10,6 +10,8 @@ import 'package:sakuramedia/features/configuration/data/api/download_clients_api
 import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/forms/indexer_entry_form.dart';
+import 'package:sakuramedia/features/configuration/presentation/controllers/indexer_connection_test_controller.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/indexer_connection_test_panel.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_empty_card.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_onboarding_card.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_entity_list_card.dart';
@@ -42,6 +44,8 @@ class _MobileIndexersPageState extends State<MobileIndexersPage> {
   String _settingsType = 'jackett';
   List<IndexerEntryDto> _indexers = const <IndexerEntryDto>[];
   List<DownloadClientDto> _downloadClients = const <DownloadClientDto>[];
+  IndexerSettingsDto? _savedSettings;
+  late final IndexerConnectionTestController _connectionTestController;
 
   bool get _hasDownloadClients => _downloadClients.isNotEmpty;
 
@@ -57,12 +61,20 @@ class _MobileIndexersPageState extends State<MobileIndexersPage> {
   void initState() {
     super.initState();
     _apiKeyController = TextEditingController();
+    _apiKeyController.addListener(_handleApiKeyChanged);
+    _connectionTestController = IndexerConnectionTestController(
+      runTest: () => context.read<IndexerSettingsApi>().testConnection(),
+    )..addListener(_handleConnectionTestChanged);
     unawaited(_loadData());
   }
 
   @override
   void dispose() {
+    _apiKeyController.removeListener(_handleApiKeyChanged);
     _apiKeyController.dispose();
+    _connectionTestController
+      ..removeListener(_handleConnectionTestChanged)
+      ..dispose();
     super.dispose();
   }
 
@@ -158,14 +170,8 @@ class _MobileIndexersPageState extends State<MobileIndexersPage> {
               label: 'API Key 状态',
               value: _apiKeyController.text.trim().isNotEmpty ? '已配置' : '待配置',
             ),
-            AppNoticeStat(
-              label: '索引器数',
-              value: '${_indexers.length}',
-            ),
-            AppNoticeStat(
-              label: '已绑定下载器',
-              value: '$_boundIndexerCount',
-            ),
+            AppNoticeStat(label: '索引器数', value: '${_indexers.length}'),
+            AppNoticeStat(label: '已绑定下载器', value: '$_boundIndexerCount'),
           ],
         ),
         SizedBox(height: spacing.md),
@@ -258,6 +264,18 @@ class _MobileIndexersPageState extends State<MobileIndexersPage> {
               isLoading: _isSavingApiKey,
               onPressed: _saveApiKey,
             ),
+          ),
+          SizedBox(height: spacing.lg),
+          IndexerConnectionTestPanel(
+            key: const Key('mobile-indexers-connection-test-panel'),
+            isTesting: _connectionTestController.isTesting,
+            isTestEnabled: _isConnectionTestEnabled,
+            onTest: _testConnection,
+            result: _connectionTestController.result,
+            requestError: _connectionTestController.requestError,
+            disabledMessage: _connectionTestDisabledMessage,
+            testButtonKey: const Key('mobile-indexers-connection-test-button'),
+            resultKey: const Key('mobile-indexers-connection-test-result'),
           ),
         ],
       ),
@@ -447,6 +465,17 @@ class _MobileIndexersPageState extends State<MobileIndexersPage> {
     }
   }
 
+  Future<void> _testConnection() async {
+    if (!_isConnectionTestEnabled) {
+      return;
+    }
+    final result = await _connectionTestController.testConnection();
+    if (!mounted || result == null) {
+      return;
+    }
+    showToast(result.healthy ? 'Jackett 连通正常' : 'Jackett 连通性测试失败');
+  }
+
   Future<void> _handleCreateIndexer() async {
     final saved = await showMobileIndexerEditorDrawer(
       context,
@@ -538,8 +567,63 @@ class _MobileIndexersPageState extends State<MobileIndexersPage> {
 
   void _applySettings(IndexerSettingsDto settings) {
     _settingsType = settings.type.trim().isEmpty ? 'jackett' : settings.type;
+    _apiKeyController.removeListener(_handleApiKeyChanged);
     _apiKeyController.text = settings.apiKey;
+    _apiKeyController.addListener(_handleApiKeyChanged);
     _indexers = List<IndexerEntryDto>.from(settings.indexers);
+    _savedSettings = settings;
+    _connectionTestController.invalidate(notify: false);
+  }
+
+  void _handleApiKeyChanged() {
+    if (!mounted) {
+      return;
+    }
+    _connectionTestController.invalidate();
+  }
+
+  void _handleConnectionTestChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  bool get _hasUnsavedChanges {
+    final saved = _savedSettings;
+    if (saved == null) {
+      return false;
+    }
+    if (_resolvedSettingsType != saved.type.trim() ||
+        _apiKeyController.text.trim() != saved.apiKey.trim() ||
+        _indexers.length != saved.indexers.length) {
+      return true;
+    }
+    for (var index = 0; index < _indexers.length; index++) {
+      final current = _indexers[index];
+      final previous = saved.indexers[index];
+      if (current.id != previous.id ||
+          current.name != previous.name ||
+          current.url != previous.url ||
+          current.kind != previous.kind ||
+          current.downloadClientId != previous.downloadClientId ||
+          current.downloadClientName != previous.downloadClientName) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool get _isConnectionTestEnabled =>
+      !_isLoading &&
+      !_isSavingApiKey &&
+      !_connectionTestController.isTesting &&
+      !_hasUnsavedChanges;
+
+  String? get _connectionTestDisabledMessage {
+    if (_hasUnsavedChanges) {
+      return '当前配置尚未保存，保存后再测试。';
+    }
+    return null;
   }
 
   DownloadClientDto? _resolveDownloadClient(IndexerEntryDto entry) {
@@ -844,15 +928,9 @@ class _MobileIndexerDetailDrawer extends StatelessWidget {
             ],
           ),
           SizedBox(height: spacing.lg),
-          AppInfoBlock(
-            label: '类别',
-            value: entry.kind.toUpperCase(),
-          ),
+          AppInfoBlock(label: '类别', value: entry.kind.toUpperCase()),
           SizedBox(height: spacing.sm),
-          AppInfoBlock(
-            label: '绑定下载器',
-            value: downloadClient?.name ?? '未匹配',
-          ),
+          AppInfoBlock(label: '绑定下载器', value: downloadClient?.name ?? '未匹配'),
           if (hasInvalidBinding) ...[
             SizedBox(height: spacing.sm),
             Container(
@@ -906,4 +984,3 @@ class _MobileIndexerDetailDrawer extends StatelessWidget {
     );
   }
 }
-

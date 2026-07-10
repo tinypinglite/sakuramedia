@@ -7,7 +7,9 @@ import 'package:sakuramedia/features/configuration/data/api/download_clients_api
 import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/controllers/section_loader_mixin.dart';
+import 'package:sakuramedia/features/configuration/presentation/controllers/indexer_connection_test_controller.dart';
 import 'package:sakuramedia/features/configuration/presentation/forms/indexer_entry_form.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/indexer_connection_test_panel.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_password_field.dart';
@@ -41,6 +43,8 @@ class _IndexerSettingsSectionState extends State<IndexerSettingsSection>
   String _selectedType = _supportedTypes.first;
   List<IndexerEntryDto> _indexers = <IndexerEntryDto>[];
   List<DownloadClientDto> _downloadClients = <DownloadClientDto>[];
+  IndexerSettingsDto? _savedSettings;
+  late final IndexerConnectionTestController _connectionTestController;
 
   @override
   bool get isSectionActive => widget.active;
@@ -71,6 +75,10 @@ class _IndexerSettingsSectionState extends State<IndexerSettingsSection>
   void initState() {
     super.initState();
     _searchController.addListener(_handleSearchChanged);
+    _apiKeyController.addListener(_handleApiKeyChanged);
+    _connectionTestController = IndexerConnectionTestController(
+      runTest: () => context.read<IndexerSettingsApi>().testConnection(),
+    )..addListener(_handleConnectionTestChanged);
     tryLoadIfActive();
   }
 
@@ -82,7 +90,11 @@ class _IndexerSettingsSectionState extends State<IndexerSettingsSection>
 
   @override
   void dispose() {
+    _apiKeyController.removeListener(_handleApiKeyChanged);
     _apiKeyController.dispose();
+    _connectionTestController
+      ..removeListener(_handleConnectionTestChanged)
+      ..dispose();
     _searchController.removeListener(_handleSearchChanged);
     _searchController.dispose();
     super.dispose();
@@ -95,11 +107,63 @@ class _IndexerSettingsSectionState extends State<IndexerSettingsSection>
     setState(() {});
   }
 
+  void _handleApiKeyChanged() {
+    if (!mounted) {
+      return;
+    }
+    _connectionTestController.invalidate();
+  }
+
+  void _handleConnectionTestChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   void _applySettings(IndexerSettingsDto settings) {
     _selectedType =
         settings.type.isEmpty ? _supportedTypes.first : settings.type;
+    _apiKeyController.removeListener(_handleApiKeyChanged);
     _apiKeyController.text = settings.apiKey;
+    _apiKeyController.addListener(_handleApiKeyChanged);
     _indexers = List<IndexerEntryDto>.from(settings.indexers);
+    _savedSettings = settings;
+    _connectionTestController.invalidate(notify: false);
+  }
+
+  bool get _hasUnsavedChanges {
+    final saved = _savedSettings;
+    if (saved == null) {
+      return false;
+    }
+    if (_selectedType.trim() != saved.type.trim() ||
+        _apiKeyController.text.trim() != saved.apiKey.trim() ||
+        _indexers.length != saved.indexers.length) {
+      return true;
+    }
+    for (var index = 0; index < _indexers.length; index++) {
+      final current = _indexers[index];
+      final previous = saved.indexers[index];
+      if (current.id != previous.id ||
+          current.name != previous.name ||
+          current.url != previous.url ||
+          current.kind != previous.kind ||
+          current.downloadClientId != previous.downloadClientId ||
+          current.downloadClientName != previous.downloadClientName) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool get _isConnectionTestEnabled =>
+      !_isSaving && !_connectionTestController.isTesting && !_hasUnsavedChanges;
+
+  String? get _connectionTestDisabledMessage {
+    if (_hasUnsavedChanges) {
+      return '当前配置尚未保存，保存后再测试。';
+    }
+    return null;
   }
 
   Future<void> _saveSettings() async {
@@ -164,6 +228,17 @@ class _IndexerSettingsSectionState extends State<IndexerSettingsSection>
     }
   }
 
+  Future<void> _testConnection() async {
+    if (!_isConnectionTestEnabled) {
+      return;
+    }
+    final result = await _connectionTestController.testConnection();
+    if (!mounted || result == null) {
+      return;
+    }
+    showToast(result.healthy ? 'Jackett 连通正常' : 'Jackett 连通性测试失败');
+  }
+
   Future<void> _createIndexer() async {
     final result = await showDialog<IndexerEntryDto>(
       context: context,
@@ -178,6 +253,7 @@ class _IndexerSettingsSectionState extends State<IndexerSettingsSection>
     }
     setState(() {
       _indexers = List<IndexerEntryDto>.from(_indexers)..add(result);
+      _connectionTestController.invalidate(notify: false);
     });
   }
 
@@ -196,12 +272,14 @@ class _IndexerSettingsSectionState extends State<IndexerSettingsSection>
     }
     setState(() {
       _indexers = List<IndexerEntryDto>.from(_indexers)..[index] = result;
+      _connectionTestController.invalidate(notify: false);
     });
   }
 
   void _deleteIndexer(int index) {
     setState(() {
       _indexers = List<IndexerEntryDto>.from(_indexers)..removeAt(index);
+      _connectionTestController.invalidate(notify: false);
     });
   }
 
@@ -258,6 +336,22 @@ class _IndexerSettingsSectionState extends State<IndexerSettingsSection>
                   size: AppTextSize.s12,
                   weight: AppTextWeight.regular,
                   tone: AppTextTone.muted,
+                ),
+              ),
+              SizedBox(height: spacing.lg),
+              IndexerConnectionTestPanel(
+                key: const Key('configuration-indexer-connection-test-panel'),
+                isTesting: _connectionTestController.isTesting,
+                isTestEnabled: _isConnectionTestEnabled,
+                onTest: _testConnection,
+                result: _connectionTestController.result,
+                requestError: _connectionTestController.requestError,
+                disabledMessage: _connectionTestDisabledMessage,
+                testButtonKey: const Key(
+                  'configuration-indexer-connection-test-button',
+                ),
+                resultKey: const Key(
+                  'configuration-indexer-connection-test-result',
                 ),
               ),
             ],
@@ -355,7 +449,10 @@ class IndexerEntryCard extends StatelessWidget {
 
     return Padding(
       key: Key('indexer-entry-card-$index'),
-      padding: EdgeInsets.symmetric(horizontal: spacing.lg, vertical: spacing.md),
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.lg,
+        vertical: spacing.md,
+      ),
       child: Row(
         children: [
           IndexerSourceAvatar(kind: entry.kind),

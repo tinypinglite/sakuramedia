@@ -3,7 +3,7 @@ import 'package:sakuramedia/features/configuration/data/dto/indexer_settings_dto
 import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_fix_target.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/hints/diagnostic_hints.dart';
 
-/// 索引器（Jackett）第一期只做静态配置完整性检查，不做在线连通。
+/// 索引器（Jackett）先校验静态配置，再进行真实搜索连通性检测。
 const Map<String, DiagnosticHint> indexerHints = <String, DiagnosticHint>{
   'type-missing': DiagnosticHint(
     cause: '还没有选择索引器类型（Jackett/Prowlarr 等）。',
@@ -13,8 +13,7 @@ const Map<String, DiagnosticHint> indexerHints = <String, DiagnosticHint>{
   ),
   'api-key-missing': DiagnosticHint(
     cause: '索引器 API Key 还是空的。',
-    fixHint:
-        '登录 Jackett 面板顶部会显示 API Key，复制回来填进「索引器」页；如果换 Jackett 实例了也要重新配。',
+    fixHint: '登录 Jackett 面板顶部会显示 API Key，复制回来填进「索引器」页；如果换 Jackett 实例了也要重新配。',
     impact: '所有 Jackett 相关搜索会立刻 401 失败。',
     fixTarget: DiagnosticFixTarget.configurationTab(3),
   ),
@@ -42,15 +41,22 @@ const Map<String, DiagnosticHint> indexerHints = <String, DiagnosticHint>{
     impact: '这些 entry 搜到的磁力无法派发，用户点下载会因下载器不存在直接失败。',
     fixTarget: DiagnosticFixTarget.configurationTab(3),
   ),
-  'no-online-probe': DiagnosticHint(
-    cause: '目前只做本地配置完整性检查，不主动向 Jackett 发一次真实搜索。',
-    fixHint: '暂无需操作；如需真正验证在线连通，请在影片详情里跑一次搜索。',
-    impact: '如果 Jackett 挂了或 API Key 错了，这里检不出来；只有第一次搜索时才暴露。',
+  'no-indexers-configured': DiagnosticHint(
+    cause: '服务器上尚未保存任何索引器条目，无法向 Jackett 发起真实搜索。',
+    fixHint: '在「索引器」页添加至少一个 tracker 并保存配置后，再重新测试。',
+    impact: '影片详情中的索引器搜索没有可用来源，无法返回下载候选。',
+    fixTarget: DiagnosticFixTarget.configurationTab(3),
+  ),
+  'jackett-request-error': DiagnosticHint(
+    cause: 'Jackett 未能完成本次真实 Torznab 搜索，可能是服务不可达、API Key 无效或索引器地址异常。',
+    fixHint:
+        '检查 Jackett 服务地址与网络连通性，确认 API Key 有效，并核对每个 tracker 的 Torznab 地址后重新测试。',
+    impact: '影片详情的索引器搜索会失败，无法获取可投递到下载器的候选资源。',
     fixTarget: DiagnosticFixTarget.configurationTab(3),
   ),
 };
 
-/// 索引器静态校验结果。`null` = 没问题（走 warning + `no-online-probe`）。
+/// 索引器静态校验结果。`null` 表示可继续执行在线连通性检测。
 ///
 /// 规则按顺序判定，命中第一条就返回。
 String? resolveIndexerConfigHintKey({
@@ -73,6 +79,16 @@ String? resolveIndexerConfigHintKey({
     }
   }
   return null;
+}
+
+String resolveIndexerConnectionHintKey(String? errorType) {
+  switch (errorType?.trim()) {
+    case 'no_indexers_configured':
+      return 'no-indexers-configured';
+    case 'jackett_request_error':
+    default:
+      return 'jackett-request-error';
+  }
 }
 
 bool _isHttpUrl(String value) {
