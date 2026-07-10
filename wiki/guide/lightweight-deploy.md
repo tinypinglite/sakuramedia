@@ -39,7 +39,7 @@ outline: [2, 4]
 
 ### 必备
 
-- 一台 Linux NAS（飞牛 OS / 常见 X86 Linux 发行版，Windows 未测试）
+- 一台 Linux NAS（飞牛 OS / 常见 Linux 发行版；ARM 架构现已支持但尚未经过测试，可自行尝试；Windows 理论上可以，未经测试）
 - 已安装 `Docker` 和 `Docker Compose`
 - **一个已有影片目录**，或一个准备用来放媒体库的空目录
 - 一个 SSD 目录用来放运行时数据（数据库、缓存、配置、日志、图片索引）
