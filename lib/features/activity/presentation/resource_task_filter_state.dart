@@ -55,7 +55,7 @@ extension ResourceTaskRecordSortValue on ResourceTaskRecordSort {
 
 class ResourceTaskRecordFilterState {
   const ResourceTaskRecordFilterState({
-    this.stateFilter = ResourceTaskRecordStateFilter.all,
+    this.stateFilter = ResourceTaskRecordStateFilter.failed,
     this.search = '',
     this.sort = ResourceTaskRecordSort.backendDefault,
   });

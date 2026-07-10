@@ -376,10 +376,10 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
                       AppTabBar(
                         controller: _tabController,
                         tabs: const [
-                          Tab(key: Key('activity-tab-tasks'), text: '任务'),
+                          Tab(key: Key('activity-tab-tasks'), text: '后台任务'),
                           Tab(
                             key: Key('activity-tab-resource-tasks'),
-                            text: '资源任务',
+                            text: '元数据任务',
                           ),
                           Tab(
                             key: Key('activity-tab-download-tasks'),

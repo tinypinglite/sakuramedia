@@ -70,7 +70,7 @@ void main() {
     expect(recordRequest.uri.queryParameters['task_key'], 'movie_desc_sync');
     expect(recordRequest.uri.queryParameters['page'], '1');
     expect(recordRequest.uri.queryParameters['page_size'], '20');
-    expect(recordRequest.uri.queryParameters.containsKey('state'), isFalse);
+    expect(recordRequest.uri.queryParameters['state'], 'failed');
     expect(recordRequest.uri.queryParameters.containsKey('sort'), isFalse);
     expect(recordRequest.uri.queryParameters.containsKey('search'), isFalse);
   });

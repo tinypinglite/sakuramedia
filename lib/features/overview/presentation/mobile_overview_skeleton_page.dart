@@ -229,7 +229,7 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
                   'mobile-overview-my-search-image',
                 ),
                 controller: _searchController,
-                hintText: '找影片',
+                hintText: '如 SSNI-888、三上悠亚',
                 showImageSearchButton: true,
                 onSearchTap: _submitSearch,
                 onSubmitted: (_) => _submitSearch(),

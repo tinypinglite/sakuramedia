@@ -58,7 +58,7 @@ class CatalogSearchContent extends StatelessWidget {
               searchButtonKey: const Key('catalog-search-page-submit'),
               onlineToggleKey: const Key('catalog-search-page-online-toggle'),
               controller: textController,
-              hintText: '找影片',
+              hintText: '如 SSNI-888、三上悠亚',
               showOnlineToggle: true,
               isOnlineSearchEnabled: useOnlineSearch,
               onOnlineSearchToggle: onOnlineSearchToggle,

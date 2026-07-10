@@ -19,6 +19,7 @@ class CatalogSearchField extends StatelessWidget {
     this.showOnlineToggle = false,
     this.isOnlineSearchEnabled = false,
     this.onOnlineSearchToggle,
+    this.fillColor,
   });
 
   final Key? fieldKey;
@@ -35,6 +36,9 @@ class CatalogSearchField extends StatelessWidget {
   final bool isOnlineSearchEnabled;
   final ValueChanged<bool>? onOnlineSearchToggle;
 
+  /// 覆盖默认的填充色；用于把搜索框放到比 `surfaceMuted` 更暗的面板（如侧边栏）上时提升对比。
+  final Color? fillColor;
+
   @override
   Widget build(BuildContext context) {
     return AppTextField(
@@ -43,6 +47,7 @@ class CatalogSearchField extends StatelessWidget {
       hintText: hintText,
       textInputAction: TextInputAction.search,
       onFieldSubmitted: onSubmitted,
+      fillColor: fillColor,
       suffix: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
