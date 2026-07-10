@@ -186,7 +186,7 @@ class _DiscoveryMoviesPageState extends State<_DiscoveryMoviesPage> {
       items:
           _controller.items.map((item) => item.movie).toList(growable: false),
       isLoading: _controller.isInitialLoading,
-      emptyMessage: '暂无推荐影片',
+      emptyMessage: '暂无推荐影片，去搜索看看吧',
       placeholderCount: _isMobile ? 6 : 12,
       onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
       onMovieMenuRequest: (movie, globalPosition) => requestMovieCollectionMenu(
@@ -343,7 +343,9 @@ class _DiscoveryMomentsPageState extends State<_DiscoveryMomentsPage> {
       );
     }
     if (_controller.items.isEmpty) {
-      return const AppEmptyState(message: '暂无推荐时刻');
+      return const AppEmptyState(
+        message: '暂无推荐时刻，播放时添加标记，等定时任务处理后展示',
+      );
     }
     return MomentGrid(
       items: _controller.items

@@ -176,7 +176,7 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
               _toggleFollowSubscription(movie.movieNumber),
           isMovieSubscriptionUpdating: (movie) =>
               _followController.isSubscriptionUpdating(movie.movieNumber),
-          emptyMessage: '暂无女优上新',
+          emptyMessage: '暂无女优上新，先订阅感兴趣的女优，等定时任务同步后展示',
           placeholderCount: 6,
         ),
       ],
@@ -212,7 +212,7 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
           .map((item) => item.movie)
           .toList(growable: false),
       isLoading: _controller.isLoadingDaily,
-      emptyMessage: '暂无每日推荐',
+      emptyMessage: '暂无每日推荐，去搜索看看吧',
       placeholderCount: 6,
       onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
       onMovieMenuRequest: (movie, globalPosition) => requestMovieCollectionMenu(
@@ -259,7 +259,9 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
       );
     }
     if (_controller.momentItems.isEmpty) {
-      return const AppEmptyState(message: '暂无推荐时刻');
+      return const AppEmptyState(
+        message: '暂无推荐时刻，播放时添加标记，等定时任务处理后展示',
+      );
     }
     return MomentGrid(
       items: _controller.momentItems

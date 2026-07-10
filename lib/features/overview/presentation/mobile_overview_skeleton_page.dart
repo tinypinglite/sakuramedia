@@ -304,7 +304,7 @@ class _MobileOverviewMyTabState extends State<_MobileOverviewMyTab> {
       );
     }
     if (_latestMovies.isEmpty) {
-      return const AppEmptyState(message: '暂无最近添加影片');
+      return const AppEmptyState(message: '暂无入库影片，去搜索看看吧');
     }
 
     final cardWidth = context.appComponentTokens.mobileLatestMovieCardWidth;

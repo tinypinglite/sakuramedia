@@ -236,7 +236,7 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
                           (movie) => _moviesController.isSubscriptionUpdating(
                             movie.movieNumber,
                           ),
-                      emptyMessage: '暂无最新入库影片',
+                      emptyMessage: '暂无入库影片，去搜索看看吧',
                     ),
                     if (footer != null) ...[
                       SizedBox(height: context.appSpacing.md),

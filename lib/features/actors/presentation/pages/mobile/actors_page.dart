@@ -129,7 +129,9 @@ class _MobileActorsPageState extends State<MobileActorsPage> {
                           (actor) => _actorsController.isSubscriptionUpdating(
                             actor.id,
                           ),
-                      emptyMessage: '暂无女优数据',
+                      emptyMessage: _filterState.isDefault
+                          ? '暂无女优，去搜索看看吧'
+                          : '当前筛选条件下暂无匹配女优',
                     ),
                     if (showFooter) ...[
                       SizedBox(height: context.appSpacing.md),

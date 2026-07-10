@@ -51,7 +51,7 @@ class MovieListContent extends StatefulWidget {
     required this.sectionSpacing,
     required this.onMovieTap,
     required this.bodyBuilder,
-    this.emptyMessage = '暂无影片数据',
+    this.emptyMessage,
     this.enableRefresh = false,
     this.onRefreshFailure,
     this.headerBuilder,
@@ -64,7 +64,10 @@ class MovieListContent extends StatefulWidget {
   final double sectionSpacing;
   final void Function(BuildContext context, String movieNumber) onMovieTap;
   final MovieListBodyBuilder bodyBuilder;
-  final String emptyMessage;
+
+  /// 为空时的提示文案；不传时按当前筛选状态自动决定：
+  /// 未筛选(默认态)提示去搜索,已应用筛选则提示当前筛选下无匹配。
+  final String? emptyMessage;
   final bool enableRefresh;
   final void Function(BuildContext context)? onRefreshFailure;
 
@@ -209,7 +212,10 @@ class _MovieListContentState extends State<MovieListContent> {
                       _toggleMovieSubscription(movie.movieNumber),
                   isMovieSubscriptionUpdating: (movie) =>
                       controller.isSubscriptionUpdating(movie.movieNumber),
-                  emptyMessage: widget.emptyMessage,
+                  emptyMessage: widget.emptyMessage ??
+                      (widget.pageState.filterState.isDefault
+                          ? '暂无影片，去搜索看看吧'
+                          : '当前筛选条件下暂无匹配影片'),
                 ),
                 if (showFooter) ...[
                   SizedBox(height: context.appSpacing.md),

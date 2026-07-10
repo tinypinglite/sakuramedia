@@ -121,7 +121,7 @@ class _MobileOverviewDiscoverTabState extends State<MobileOverviewDiscoverTab> {
           .map((item) => item.movie)
           .toList(growable: false),
       isLoading: _controller.isLoadingDaily,
-      emptyMessage: '暂无每日推荐',
+      emptyMessage: '暂无每日推荐，去搜索看看吧',
       placeholderCount: _dailyPreviewCount,
       onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
     );
@@ -155,7 +155,9 @@ class _MobileOverviewDiscoverTabState extends State<MobileOverviewDiscoverTab> {
       );
     }
     if (_controller.momentItems.isEmpty) {
-      return const AppEmptyState(message: '暂无推荐时刻');
+      return const AppEmptyState(
+        message: '暂无推荐时刻，播放时添加标记，等定时任务处理后展示',
+      );
     }
     return MomentGrid(
       items: _controller.momentItems
