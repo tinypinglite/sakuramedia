@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 import 'package:sakuramedia/features/activity/data/activity_stream_event.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
+import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
 import 'package:sakuramedia/features/media_import/presentation/import_jobs_view_controller.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_import_job_dto.dart';
 import 'package:sakuramedia/features/videos/data/api/video_imports_api.dart';
@@ -199,17 +200,17 @@ class VideoImportController extends ChangeNotifier
     }
   }
 
-  /// 触发视频导入。成功返回 `null`，失败返回中文错误信息。
+  /// 触发视频导入。成功返回 `null`，失败返回中文错误信息。[source] 兼容本地路径与 115 CID。
   Future<String?> triggerImport({
     required int libraryId,
-    required String sourcePath,
+    required MediaImportSource source,
     required TransferMode transferMode,
     int? collectionId,
   }) async {
     try {
       await _videoImportsApi.createVideoImport(
         libraryId: libraryId,
-        sourcePath: sourcePath,
+        source: source,
         transferMode: transferMode,
         collectionId: collectionId,
       );
@@ -229,42 +230,6 @@ class VideoImportController extends ChangeNotifier
       return null;
     } catch (error) {
       return apiErrorMessage(error, fallback: '重导失败文件失败，请稍后重试。');
-    }
-  }
-
-  /// 删除失败源文件。成功返回 `null`。
-  @override
-  Future<String?> deleteFailedFile(int jobId, {required String path}) async {
-    try {
-      final detail = await _videoImportsApi.deleteFailedFile(jobId, path: path);
-      _details[jobId] = detail;
-      _replaceJob(detail);
-      _notify();
-      return null;
-    } catch (error) {
-      return apiErrorMessage(error, fallback: '删除源文件失败，请稍后重试。');
-    }
-  }
-
-  /// 重命名失败源文件。成功返回 `null`。
-  @override
-  Future<String?> renameFailedFile(
-    int jobId, {
-    required String path,
-    required String newName,
-  }) async {
-    try {
-      final detail = await _videoImportsApi.renameFailedFile(
-        jobId,
-        path: path,
-        newName: newName,
-      );
-      _details[jobId] = detail;
-      _replaceJob(detail);
-      _notify();
-      return null;
-    } catch (error) {
-      return apiErrorMessage(error, fallback: '重命名源文件失败，请稍后重试。');
     }
   }
 

@@ -237,8 +237,8 @@ class MediaImportController extends ChangeNotifier
     }
   }
 
-  /// 删除失败源文件。成功返回 `null`。
-  @override
+  /// 删除失败源文件（JAV 本地作业专属，不在 [ImportJobsViewController] 接口内）。
+  /// 成功返回 `null`。
   Future<String?> deleteFailedFile(int jobId, {required String path}) async {
     try {
       final detail = await _mediaImportApi.deleteFailedFile(jobId, path: path);
@@ -251,8 +251,8 @@ class MediaImportController extends ChangeNotifier
     }
   }
 
-  /// 重命名失败源文件。成功返回 `null`。
-  @override
+  /// 重命名失败源文件（JAV 本地作业专属，不在 [ImportJobsViewController] 接口内）。
+  /// 成功返回 `null`。
   Future<String?> renameFailedFile(
     int jobId, {
     required String path,

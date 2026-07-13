@@ -11,6 +11,7 @@ class VideoImportJobListItemDto implements ImportJobCardData {
   const VideoImportJobListItemDto({
     required this.id,
     required this.sourcePath,
+    required this.sourceCid,
     required this.libraryId,
     required this.collectionId,
     required this.taskRunId,
@@ -29,6 +30,8 @@ class VideoImportJobListItemDto implements ImportJobCardData {
   final int id;
   @override
   final String sourcePath;
+  /// 115 目录导入的 CID；本地导入为 null。用于区分作业来源类型。
+  final String? sourceCid;
   @override
   String get displaySourcePath => sourcePath;
   final int libraryId;
@@ -53,12 +56,13 @@ class VideoImportJobListItemDto implements ImportJobCardData {
   final DateTime? updatedAt;
 
   @override
-  bool get isCloud115 => false;
+  bool get isCloud115 => sourceCid != null;
 
+  /// PornBox 作业的失败文件只开放「重导」，不提供删除/重命名入口。
   @override
-  bool get canMutateFailedSource => true;
+  bool get canMutateFailedSource => false;
 
-  /// 终态（completed / failed）才允许失败文件的删除/重命名/重导。
+  /// 终态（completed / failed）才允许失败文件的重导。
   @override
   bool get isTerminal => state == 'completed' || state == 'failed';
 
@@ -66,6 +70,7 @@ class VideoImportJobListItemDto implements ImportJobCardData {
     return VideoImportJobListItemDto(
       id: asInt(json['id']),
       sourcePath: json['source_path'] as String? ?? '',
+      sourceCid: json['source_cid'] as String?,
       libraryId: asInt(json['library_id']),
       collectionId: asIntOrNull(json['collection_id']),
       taskRunId: asIntOrNull(json['task_run_id']),
@@ -88,6 +93,7 @@ class VideoImportJobDto extends VideoImportJobListItemDto
   const VideoImportJobDto({
     required super.id,
     required super.sourcePath,
+    required super.sourceCid,
     required super.libraryId,
     required super.collectionId,
     required super.taskRunId,
@@ -106,7 +112,7 @@ class VideoImportJobDto extends VideoImportJobListItemDto
   @override
   final List<FailedFileDto> failedFiles;
 
-  /// 可操作（可重导/删除/重命名）的失败文件。
+  /// 可重导的失败文件。
   @override
   List<FailedFileDto> get actionableFailedFiles =>
       failedFiles.where((file) => file.isActionable).toList(growable: false);
@@ -131,6 +137,7 @@ class VideoImportJobDto extends VideoImportJobListItemDto
     return VideoImportJobDto(
       id: base.id,
       sourcePath: base.sourcePath,
+      sourceCid: base.sourceCid,
       libraryId: base.libraryId,
       collectionId: base.collectionId,
       taskRunId: base.taskRunId,

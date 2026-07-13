@@ -6,6 +6,8 @@ import 'package:sakuramedia/features/media_import/data/import_job_dto.dart';
 ///
 /// JAV `MediaImportController` 与 PornBox `VideoImportController` 各自实现本接口，
 /// 让媒体导入页的标签内容用同一套渲染逻辑驱动两类导入作业。
+/// 失败源文件的删除/重命名是 JAV 专属能力，不在本接口内
+/// （见 `MediaImportController.deleteFailedFile` / `renameFailedFile`）。
 abstract class ImportJobsViewController implements Listenable {
   List<ImportJobCardData> get jobs;
   bool get isInitialLoading;
@@ -23,10 +25,4 @@ abstract class ImportJobsViewController implements Listenable {
   Future<void> loadMore();
   Future<void> ensureDetail(int jobId, {bool force});
   Future<String?> retryFailedFiles(int jobId, {List<String>? files});
-  Future<String?> deleteFailedFile(int jobId, {required String path});
-  Future<String?> renameFailedFile(
-    int jobId, {
-    required String path,
-    required String newName,
-  });
 }

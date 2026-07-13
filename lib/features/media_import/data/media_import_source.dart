@@ -13,8 +13,18 @@ class LocalMediaImportSource extends MediaImportSource {
 
   final String path;
 
+  /// 序列化时兜底剪空白，防止调用方从用户输入直接构造带前后空格/换行的路径。
   @override
-  Map<String, dynamic> toJson() => <String, dynamic>{'source_path': path};
+  Map<String, dynamic> toJson() =>
+      <String, dynamic>{'source_path': path.trim()};
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LocalMediaImportSource && other.path == path;
+
+  @override
+  int get hashCode => Object.hash('local', path);
 }
 
 class Cloud115MediaImportSource extends MediaImportSource {
@@ -24,4 +34,12 @@ class Cloud115MediaImportSource extends MediaImportSource {
 
   @override
   Map<String, dynamic> toJson() => <String, dynamic>{'source_cid': cid};
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Cloud115MediaImportSource && other.cid == cid;
+
+  @override
+  int get hashCode => Object.hash('cloud115', cid);
 }

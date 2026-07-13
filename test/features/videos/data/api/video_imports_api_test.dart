@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_import_job_dto.dart';
 import 'package:sakuramedia/features/videos/data/api/video_imports_api.dart';
 
@@ -48,7 +49,7 @@ void main() {
 
     final response = await api.createVideoImport(
       libraryId: 1,
-      sourcePath: '/mnt/incoming/videos',
+      source: const MediaImportSource.local('/mnt/incoming/videos'),
       transferMode: TransferMode.cleanupSource,
       collectionId: 9,
     );
@@ -60,7 +61,36 @@ void main() {
     final body = adapter.requests.single.body as Map;
     expect(body['library_id'], 1);
     expect(body['source_path'], '/mnt/incoming/videos');
+    expect(body.containsKey('source_cid'), isFalse);
     expect(body['transfer_mode'], 'cleanup-source');
+    expect(body['collection_id'], 9);
+  });
+
+  test('createVideoImport with cloud115 source sends source_cid + copy mode',
+      () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/video-imports',
+      statusCode: 202,
+      body: <String, dynamic>{
+        'video_import_job_id': 8,
+        'task_run_id': 43,
+        'status': 'accepted',
+      },
+    );
+
+    await api.createVideoImport(
+      libraryId: 2,
+      source: const MediaImportSource.cloud115('cid-source'),
+      transferMode: TransferMode.copy,
+      collectionId: 9,
+    );
+
+    final body = adapter.requests.single.body as Map;
+    expect(body['library_id'], 2);
+    expect(body['source_cid'], 'cid-source');
+    expect(body.containsKey('source_path'), isFalse);
+    expect(body['transfer_mode'], 'copy');
     expect(body['collection_id'], 9);
   });
 
@@ -76,7 +106,11 @@ void main() {
       },
     );
 
-    await api.createVideoImport(libraryId: 1, sourcePath: '/mnt/x');
+    await api.createVideoImport(
+      libraryId: 1,
+      source: const MediaImportSource.local('/mnt/x'),
+      transferMode: TransferMode.auto,
+    );
 
     final body = adapter.requests.single.body as Map;
     expect(body.containsKey('collection_id'), isFalse);
@@ -97,7 +131,11 @@ void main() {
     );
 
     await expectLater(
-      api.createVideoImport(libraryId: 1, sourcePath: '/mnt/x'),
+      api.createVideoImport(
+        libraryId: 1,
+        source: const MediaImportSource.local('/mnt/x'),
+        transferMode: TransferMode.auto,
+      ),
       throwsA(
         isA<ApiException>()
             .having((e) => e.statusCode, 'statusCode', 409)
@@ -145,6 +183,44 @@ void main() {
     expect(job.transferMode, TransferMode.auto);
     expect(job.isTerminal, isFalse);
     expect(job.importedCount, 2);
+    expect(job.sourceCid, isNull);
+    expect(job.isCloud115, isFalse);
+  });
+
+  test('listVideoImportJobs marks cloud115 jobs via source_cid', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-imports',
+      body: <String, dynamic>{
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 5,
+            'source_path': '115 网盘 / 来源目录',
+            'source_cid': 'cid-source',
+            'library_id': 2,
+            'collection_id': 9,
+            'task_run_id': 44,
+            'state': 'completed',
+            'transfer_mode': 'copy',
+            'imported_count': 3,
+            'skipped_count': 0,
+            'failed_count': 0,
+            'created_at': '2026-07-14 10:00:00',
+            'updated_at': '2026-07-14 10:05:00',
+          },
+        ],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
+    );
+
+    final page = await api.listVideoImportJobs();
+    final job = page.items.single;
+    expect(job.sourceCid, 'cid-source');
+    expect(job.isCloud115, isTrue);
+    expect(job.transferMode, TransferMode.copy);
+    expect(job.canMutateFailedSource, isFalse);
   });
 
   test('getVideoImportJob parses failed files with kinds', () async {
@@ -207,40 +283,6 @@ void main() {
     expect(body.containsKey('files'), isFalse);
   });
 
-  test('deleteFailedFile sends path and parses updated job', () async {
-    adapter.enqueueJson(
-      method: 'DELETE',
-      path: '/video-imports/3/failed-files',
-      body: _jobDetailBody(),
-    );
-
-    final job = await api.deleteFailedFile(
-      3,
-      path: '/mnt/incoming/videos/clip.mp4',
-    );
-
-    expect(job.id, 3);
-    final body = adapter.requests.single.body as Map;
-    expect(body['path'], '/mnt/incoming/videos/clip.mp4');
-  });
-
-  test('renameFailedFile sends path and new_name', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/video-imports/3/failed-files/rename',
-      body: _jobDetailBody(),
-    );
-
-    await api.renameFailedFile(
-      3,
-      path: '/mnt/incoming/videos/raw.mp4',
-      newName: 'clip.mp4',
-    );
-
-    final body = adapter.requests.single.body as Map;
-    expect(body['path'], '/mnt/incoming/videos/raw.mp4');
-    expect(body['new_name'], 'clip.mp4');
-  });
 }
 
 Map<String, dynamic> _jobDetailBody() {

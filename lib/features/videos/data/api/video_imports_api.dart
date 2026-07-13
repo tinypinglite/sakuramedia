@@ -1,29 +1,31 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
+import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_import_job_dto.dart';
 
 /// 视频（PornBox）导入接口（`/video-imports`）。
 ///
-/// 与 JAV 导入同构的异步搬库作业：按 `transfer_mode` 把视频目录/单文件搬入指定媒体库，
-/// 登记 `VideoItem` + `Media` 并可一并关联合集。触发返回 202，进度经作业详情或活动流查询。
-/// 目录浏览能力复用 `MediaImportApi.listEntries`。
+/// 与 JAV 导入同构的异步搬库作业：按 `transfer_mode` 把本地目录或 115 目录搬入指定
+/// 媒体库，登记 `VideoItem` + `Media` 并可一并关联合集。触发返回 202，进度经作业详情
+/// 或活动流查询。目录浏览能力复用 `MediaImportApi.listEntries` /
+/// `MediaLibrariesApi.listCloud115Directory`。
 class VideoImportsApi {
   const VideoImportsApi({required ApiClient apiClient}) : _apiClient = apiClient;
 
   final ApiClient _apiClient;
 
-  /// 触发视频导入（异步）。
+  /// 触发视频导入（异步）。[source] 承载本地路径或 115 CID，两种来源共用同一端点。
   Future<VideoImportTriggerResponseDto> createVideoImport({
     required int libraryId,
-    required String sourcePath,
-    TransferMode transferMode = TransferMode.auto,
+    required MediaImportSource source,
+    required TransferMode transferMode,
     int? collectionId,
   }) async {
     final response = await _apiClient.post(
       '/video-imports',
       data: <String, dynamic>{
         'library_id': libraryId,
-        'source_path': sourcePath.trim(),
+        ...source.toJson(),
         'transfer_mode': transferMode.wireValue,
         if (collectionId != null) 'collection_id': collectionId,
       },
@@ -62,30 +64,5 @@ class VideoImportsApi {
       data: <String, dynamic>{if (files != null) 'files': files},
     );
     return VideoImportTriggerResponseDto.fromJson(response);
-  }
-
-  /// 删除失败源文件，返回更新后的作业详情。
-  Future<VideoImportJobDto> deleteFailedFile(
-    int videoImportJobId, {
-    required String path,
-  }) async {
-    final response = await _apiClient.delete(
-      '/video-imports/$videoImportJobId/failed-files',
-      data: <String, dynamic>{'path': path},
-    );
-    return VideoImportJobDto.fromJson(response);
-  }
-
-  /// 重命名失败源文件，返回更新后的作业详情。
-  Future<VideoImportJobDto> renameFailedFile(
-    int videoImportJobId, {
-    required String path,
-    required String newName,
-  }) async {
-    final response = await _apiClient.post(
-      '/video-imports/$videoImportJobId/failed-files/rename',
-      data: <String, dynamic>{'path': path, 'new_name': newName},
-    );
-    return VideoImportJobDto.fromJson(response);
   }
 }

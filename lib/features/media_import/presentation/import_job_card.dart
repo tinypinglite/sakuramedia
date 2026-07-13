@@ -23,8 +23,8 @@ class ImportJobCard extends StatelessWidget {
     required this.onToggle,
     required this.onRetryAll,
     required this.onRetryFile,
-    required this.onDeleteFile,
-    required this.onRenameFile,
+    this.onDeleteFile,
+    this.onRenameFile,
     required this.onReloadDetail,
   });
 
@@ -37,8 +37,10 @@ class ImportJobCard extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onRetryAll;
   final void Function(String path) onRetryFile;
-  final void Function(String path) onDeleteFile;
-  final void Function(String path, String currentName) onRenameFile;
+
+  /// 删除/重命名失败源文件（JAV 本地作业专属）；传 `null` 时对应按钮不渲染。
+  final void Function(String path)? onDeleteFile;
+  final void Function(String path, String currentName)? onRenameFile;
   final VoidCallback onReloadDetail;
 
   @override
@@ -204,10 +206,14 @@ class ImportJobCard extends StatelessWidget {
             child: _FailedFileRow(
               file: file,
               canAct: file.isActionable && loaded.isTerminal,
-              canMutateSource: job.canMutateFailedSource,
+              canMutateSource: _canMutateSource,
               onRetry: () => onRetryFile(file.path),
-              onDelete: () => onDeleteFile(file.path),
-              onRename: () => onRenameFile(file.path, _sourceName(file.path)),
+              onDelete: _canMutateSource
+                  ? () => onDeleteFile!(file.path)
+                  : null,
+              onRename: _canMutateSource
+                  ? () => onRenameFile!(file.path, _sourceName(file.path))
+                  : null,
             ),
           ),
         ),
@@ -223,6 +229,10 @@ class ImportJobCard extends StatelessWidget {
     }
     return '创建于 $createdText';
   }
+
+  /// 是否可对失败源文件做删除/重命名：作业本身允许，且外部接了对应回调。
+  bool get _canMutateSource =>
+      job.canMutateFailedSource && onDeleteFile != null && onRenameFile != null;
 
   String _sourceName(String path) {
     final normalized =
@@ -361,8 +371,8 @@ class _FailedFileRow extends StatelessWidget {
   final bool canAct;
   final bool canMutateSource;
   final VoidCallback onRetry;
-  final VoidCallback onDelete;
-  final VoidCallback onRename;
+  final VoidCallback? onDelete;
+  final VoidCallback? onRename;
 
   @override
   Widget build(BuildContext context) {

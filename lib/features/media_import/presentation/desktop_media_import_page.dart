@@ -122,7 +122,7 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
     }
     final error = await _pornController.triggerImport(
       libraryId: request.libraryId,
-      sourcePath: request.sourcePath,
+      source: request.source,
       transferMode: request.transferMode,
       collectionId: request.collectionId,
     );
@@ -274,6 +274,9 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
       return const AppEmptyState(message: '还没有导入作业。点击「新建导入」从后端目录选择媒体导入。');
     }
 
+    // 失败源文件的删除/重命名是 JAV 专属能力；PornBox 作业只保留「重导」。
+    final javController =
+        controller is MediaImportController ? controller : null;
     return Column(
       children: controller.jobs
           .map(
@@ -290,9 +293,13 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
                 onRetryAll: () => _retryAll(controller, job.id),
                 onRetryFile: (path) =>
                     _retryFiles(controller, job.id, <String>[path]),
-                onDeleteFile: (path) => _deleteFile(controller, job.id, path),
-                onRenameFile: (path, name) =>
-                    _renameFile(controller, job.id, path, name),
+                onDeleteFile: javController == null
+                    ? null
+                    : (path) => _deleteFile(javController, job.id, path),
+                onRenameFile: javController == null
+                    ? null
+                    : (path, name) =>
+                        _renameFile(javController, job.id, path, name),
                 onReloadDetail: () =>
                     unawaited(controller.ensureDetail(job.id, force: true)),
               ),
@@ -323,7 +330,7 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
   }
 
   Future<void> _deleteFile(
-    ImportJobsViewController controller,
+    MediaImportController controller,
     int jobId,
     String path,
   ) async {
@@ -339,7 +346,7 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
   }
 
   Future<void> _renameFile(
-    ImportJobsViewController controller,
+    MediaImportController controller,
     int jobId,
     String path,
     String currentName,

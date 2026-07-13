@@ -1,33 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
-import 'package:sakuramedia/features/media_import/data/filesystem_entry_dto.dart';
 import 'package:sakuramedia/features/media_import/data/import_job_dto.dart';
-import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
+import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/create_video_collection_dialog.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/domain/media_import/media_import_source_picker.dart';
+import 'package:sakuramedia/widgets/domain/media_import/media_library_selector_field.dart';
 
-/// PornBox 视频导入的表单结果：浏览后端目录选取源路径，选定媒体库、合集（必选）与导入方式。
+/// PornBox 视频导入的表单结果：来源可以是本地路径或 115 目录 CID；导入方式随来源类型联动。
 class VideoImportRequest {
   const VideoImportRequest({
     required this.libraryId,
-    required this.sourcePath,
+    required this.source,
     required this.transferMode,
     required this.collectionId,
   });
 
   final int libraryId;
-  final String sourcePath;
+  final MediaImportSource source;
   final TransferMode transferMode;
   final int collectionId;
 }
@@ -48,16 +46,8 @@ class VideoImportDialog extends StatefulWidget {
 }
 
 class _VideoImportDialogState extends State<VideoImportDialog> {
-  late final MediaImportApi _filesystemApi;
-  late final MediaLibrariesApi _librariesApi;
-
-  FilesystemListResponseDto? _listing;
-  bool _isBrowsing = true;
-  String? _browseError;
-  String? _sourcePath;
-
-  List<MediaLibraryDto> _libraries = const <MediaLibraryDto>[];
-  int? _libraryId;
+  MediaLibraryDto? _selectedLibrary;
+  MediaImportSource? _source;
   TransferMode _transferMode = TransferMode.auto;
 
   List<VideoCollectionDto> _collections = const <VideoCollectionDto>[];
@@ -66,53 +56,7 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
   @override
   void initState() {
     super.initState();
-    _filesystemApi = context.read<MediaImportApi>();
-    _librariesApi = context.read<MediaLibrariesApi>();
-    _browse(null);
-    _loadLibraries();
     _loadCollections();
-  }
-
-  Future<void> _browse(String? path) async {
-    setState(() {
-      _isBrowsing = true;
-      _browseError = null;
-    });
-    try {
-      final listing = await _filesystemApi.listEntries(path: path);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _listing = listing;
-        _isBrowsing = false;
-      });
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _browseError = apiErrorMessage(error, fallback: '目录浏览失败');
-        _isBrowsing = false;
-      });
-    }
-  }
-
-  Future<void> _loadLibraries() async {
-    try {
-      final libraries = await _librariesApi.getLibraries();
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _libraries = libraries
-            .where((library) => library.isLocal)
-            .toList(growable: false);
-        _libraryId ??= _libraries.isNotEmpty ? _libraries.first.id : null;
-      });
-    } catch (_) {
-      // 媒体库加载失败时下拉为空，开始导入按钮校验时给出提示。
-    }
   }
 
   Future<void> _loadCollections() async {
@@ -138,14 +82,24 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
     });
   }
 
+  void _handleLibraryChanged(MediaLibraryDto? library) {
+    setState(() {
+      _selectedLibrary = library;
+      _source = null;
+      _transferMode = library == null
+          ? TransferMode.auto
+          : MediaImportSourcePicker.defaultTransferModeFor(library);
+    });
+  }
+
   void _submit() {
-    final sourcePath = _sourcePath;
-    if (sourcePath == null || sourcePath.isEmpty) {
-      showToast('请先选择要导入的目录或视频文件');
+    final library = _selectedLibrary;
+    final source = _source;
+    if (source == null) {
+      showToast('请先选择要导入的目录');
       return;
     }
-    final libraryId = _libraryId;
-    if (libraryId == null) {
+    if (library == null) {
       showToast('请选择导入到的媒体库');
       return;
     }
@@ -156,8 +110,8 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
     }
     Navigator.of(context).pop(
       VideoImportRequest(
-        libraryId: libraryId,
-        sourcePath: sourcePath,
+        libraryId: library.id,
+        source: source,
         transferMode: _transferMode,
         collectionId: collectionId,
       ),
@@ -167,6 +121,8 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final deletingCloudSource = _selectedLibrary?.isCloud115 == true &&
+        _transferMode == TransferMode.cleanupSource;
     return AppDesktopDialog(
       width: context.appLayoutTokens.dialogWidthMd,
       child: Column(
@@ -188,16 +144,31 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFieldLabel(context, '选择来源'),
-                  _buildBrowser(context),
-                  SizedBox(height: spacing.sm),
-                  _buildSelectedPath(context),
-                  SizedBox(height: spacing.xl),
-                  _buildLibraryField(context),
+                  MediaLibrarySelectorField(
+                    selectedLibraryId: _selectedLibrary?.id,
+                    onLibraryChanged: _handleLibraryChanged,
+                  ),
+                  if (_selectedLibrary != null) ...[
+                    SizedBox(height: spacing.md),
+                    MediaImportSourcePicker(
+                      selectedLibrary: _selectedLibrary,
+                      transferMode: _transferMode,
+                      onSourceChanged: (source) {
+                        if (source == _source) {
+                          return;
+                        }
+                        setState(() => _source = source);
+                      },
+                      onTransferModeChanged: (mode) {
+                        if (mode == _transferMode) {
+                          return;
+                        }
+                        setState(() => _transferMode = mode);
+                      },
+                    ),
+                  ],
                   SizedBox(height: spacing.lg),
                   _buildCollectionField(context),
-                  SizedBox(height: spacing.lg),
-                  _buildTransferModeField(context),
                 ],
               ),
             ),
@@ -214,7 +185,7 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
               SizedBox(width: spacing.sm),
               AppButton(
                 key: const Key('video-import-submit-button'),
-                label: '开始导入',
+                label: deletingCloudSource ? '导入并删除源文件' : '开始导入',
                 variant: AppButtonVariant.primary,
                 size: AppButtonSize.small,
                 onPressed: _submit,
@@ -223,216 +194,6 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFieldLabel(BuildContext context, String label) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-      child: Text(
-        label,
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s12,
-          tone: AppTextTone.secondary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBrowser(BuildContext context) {
-    final listing = _listing;
-    final spacing = context.appSpacing;
-    return Container(
-      height: 220,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.mdBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-      ),
-      child: Column(
-        children: [
-          Container(
-            color: context.appColors.surfaceMuted,
-            padding: EdgeInsets.symmetric(
-              horizontal: spacing.sm,
-              vertical: spacing.xs,
-            ),
-            child: Row(
-              children: [
-                AppIconButton(
-                  size: AppIconButtonSize.mini,
-                  tooltip: '上级目录',
-                  icon: const Icon(Icons.arrow_upward_rounded),
-                  onPressed: listing?.parent == null
-                      ? null
-                      : () => _browse(listing!.parent),
-                ),
-                SizedBox(width: spacing.xs),
-                Expanded(
-                  child: Text(
-                    listing == null || listing.isRootsOverview
-                        ? '媒体根目录'
-                        : listing.path,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s12,
-                      weight: AppTextWeight.medium,
-                      tone: AppTextTone.secondary,
-                    ),
-                  ),
-                ),
-                if (listing != null && !listing.isRootsOverview)
-                  AppTextButton(
-                    label: '选择此目录',
-                    size: AppTextButtonSize.xSmall,
-                    isSelected: _sourcePath == listing.path,
-                    onPressed: () => setState(() => _sourcePath = listing.path),
-                  ),
-              ],
-            ),
-          ),
-          Divider(height: 1, color: context.appColors.divider),
-          Expanded(child: _buildBrowserBody(context)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBrowserBody(BuildContext context) {
-    if (_isBrowsing) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_browseError != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(_browseError!),
-            SizedBox(height: context.appSpacing.sm),
-            AppTextButton(
-              label: '重试',
-              size: AppTextButtonSize.xSmall,
-              onPressed: () => _browse(_listing?.path),
-            ),
-          ],
-        ),
-      );
-    }
-    final entries = _listing?.entries ?? const <FilesystemEntryDto>[];
-    if (entries.isEmpty) {
-      return Center(
-        child: Text(
-          '该目录为空',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.muted,
-          ),
-        ),
-      );
-    }
-    return ListView.builder(
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        final isSelected = _sourcePath == entry.path;
-        return ListTile(
-          key: Key('video-import-entry-${entry.path}'),
-          dense: true,
-          leading: Icon(
-            entry.isDirectory ? Icons.folder_outlined : Icons.movie_outlined,
-            color: context.appTextPalette.secondary,
-          ),
-          title: Text(
-            entry.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          selected: isSelected,
-          trailing: entry.isVideo
-              ? Icon(
-                  isSelected
-                      ? Icons.check_circle
-                      : Icons.radio_button_unchecked,
-                  size: context.appComponentTokens.iconSizeSm,
-                )
-              : null,
-          onTap: () {
-            if (entry.isDirectory) {
-              _browse(entry.path);
-            } else if (entry.isVideo) {
-              setState(() => _sourcePath = entry.path);
-            }
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildSelectedPath(BuildContext context) {
-    final selected = _sourcePath != null;
-    return Row(
-      children: [
-        Text(
-          '已选',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            tone: AppTextTone.muted,
-          ),
-        ),
-        SizedBox(width: context.appSpacing.sm),
-        Expanded(
-          child: Text(
-            _sourcePath ?? '尚未选择，请在上方选取目录或视频文件',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: selected ? AppTextWeight.medium : AppTextWeight.regular,
-              tone: selected ? AppTextTone.primary : AppTextTone.muted,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLibraryField(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        AppSelectField<int>(
-          key: const Key('video-import-library-select'),
-          label: '导入到媒体库',
-          placeholder: _libraries.isEmpty ? '暂无媒体库，请先在系统设置中添加' : '请选择媒体库',
-          value: _libraryId,
-          items: _libraries
-              .map(
-                (library) => DropdownMenuItem<int>(
-                  value: library.id,
-                  child: Text(library.name),
-                ),
-              )
-              .toList(growable: false),
-          onChanged: (value) => setState(() => _libraryId = value),
-        ),
-        SizedBox(height: context.appSpacing.xs),
-        Text(
-          '硬链接优先模式下，源目录需和目标媒体库根路径位于同一块物理盘，否则会回退到复制。',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            tone: AppTextTone.muted,
-          ),
-        ),
-      ],
     );
   }
 
@@ -473,27 +234,6 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
           onChanged: (value) => setState(() => _collectionId = value),
         ),
       ],
-    );
-  }
-
-  Widget _buildTransferModeField(BuildContext context) {
-    return AppSelectField<TransferMode>(
-      key: const Key('video-import-transfer-mode-select'),
-      label: '导入方式',
-      value: _transferMode,
-      items: const <TransferMode>[
-        TransferMode.auto,
-        TransferMode.cleanupSource,
-      ]
-          .map(
-            (mode) => DropdownMenuItem<TransferMode>(
-              value: mode,
-              child: Text(mode.label),
-            ),
-          )
-          .toList(growable: false),
-      onChanged: (value) =>
-          setState(() => _transferMode = value ?? TransferMode.auto),
     );
   }
 }
