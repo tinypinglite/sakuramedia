@@ -321,7 +321,7 @@ class _DesktopAdvancedSettingsSectionState
                   controller: _proxyController,
                   label: '元数据代理',
                   hintText: 'http://127.0.0.1:7890',
-                  helperText: '留空表示不配置；支持 http/https/socks5/socks5h。',
+                  helperText: '留空表示不配置；仅支持 http',
                   keyboardType: TextInputType.url,
                   validator: _proxyError,
                   onChanged: (_) => _markDirty(_AdvancedCardKind.metadata),
