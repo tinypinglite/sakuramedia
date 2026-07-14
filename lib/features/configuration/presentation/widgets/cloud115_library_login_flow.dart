@@ -129,7 +129,7 @@ Future<MediaLibraryDto?> showCloud115LibraryLoginFlow(
 
 const List<Cloud115LoginApp> _visibleCloud115LoginApps = <Cloud115LoginApp>[
   Cloud115LoginApp.alipaymini,
-  Cloud115LoginApp.android,
+  Cloud115LoginApp.wechatmini,
 ];
 
 enum _Cloud115FlowStep { configuration, qr }

@@ -198,7 +198,7 @@ void main() {
     );
     await tester.tap(find.text('支付宝小程序（推荐）'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Android').last);
+    await tester.tap(find.text('微信小程序').last);
     await tester.pumpAndSettle();
 
     expect(
@@ -209,7 +209,7 @@ void main() {
           .value,
       isFalse,
     );
-    expect(find.textContaining('持续占用“Android”登录槽'), findsOneWidget);
+    expect(find.textContaining('持续占用“微信小程序”登录槽'), findsOneWidget);
   });
 }
 
