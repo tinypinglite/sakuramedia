@@ -57,6 +57,7 @@ void main() {
           'configuration-tab-media-libraries',
           'configuration-tab-downloads',
           'configuration-tab-indexers',
+          'configuration-tab-download-preference',
           'configuration-tab-llm',
           'configuration-tab-playlists',
           'configuration-tab-advanced',
@@ -1915,6 +1916,49 @@ void main() {
       },
     );
 
+    testWidgets('saves global download preference in its own tab', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle, includeLlmSettings: false);
+      _enqueueAdvancedConfig(bundle);
+      _enqueueDownloadPreferencePatch(bundle);
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(
+        find.byKey(const Key('configuration-tab-download-preference')),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(
+          const Key('configuration-download-preference-client-field'),
+        ),
+      );
+      await tester.tap(
+        find.byKey(
+          const Key('configuration-download-preference-client-field'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('115 离线').last);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const Key('configuration-download-preference-save-button'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final request = bundle.adapter.requests.firstWhere(
+        (item) => item.method == 'PATCH' && item.path == '/config',
+      );
+      expect(request.body, <String, dynamic>{
+        'downloads': <String, dynamic>{
+          'preferred_client_kinds': <String>['cloud115', 'qbittorrent'],
+        },
+      });
+      await tester.pump(const Duration(seconds: 3));
+    });
+
     testWidgets('tests saved Jackett settings and shows the result', (
       WidgetTester tester,
     ) async {
@@ -2597,6 +2641,23 @@ Map<String, dynamic> _buildConfigResponseJson({
     'values': <String, dynamic>{'movie_info_translation': section},
     'effects': <String, dynamic>{'movie_info_translation': 'hot'},
   };
+}
+
+void _enqueueDownloadPreferencePatch(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'PATCH',
+    path: '/config',
+    body: <String, dynamic>{
+      ..._buildAdvancedConfigResponseJson(),
+      'applied': <String>['downloads.preferred_client_kinds'],
+      'pending_restart': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'field': 'downloads.preferred_client_kinds',
+          'restart': 'scheduler',
+        },
+      ],
+    },
+  );
 }
 
 /// 构造 `PATCH /config` 响应壳，`section` 是最新的 `movie_info_translation`。

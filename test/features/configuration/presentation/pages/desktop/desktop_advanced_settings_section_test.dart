@@ -184,53 +184,6 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
     });
 
-    testWidgets('saves the selected global download preference', (
-      WidgetTester tester,
-    ) async {
-      _enqueueAdvancedConfig(bundle);
-      _enqueueAdvancedConfigPatch(
-        bundle,
-        applied: const <String>['downloads.preferred_client_kinds'],
-        pendingRestart: const <Map<String, dynamic>>[
-          <String, dynamic>{
-            'field': 'downloads.preferred_client_kinds',
-            'restart': 'scheduler',
-          },
-        ],
-      );
-
-      await _pumpSection(tester, bundle, active: true);
-      await tester.ensureVisible(
-        find.byKey(
-          const Key('configuration-advanced-preferred-download-client-field'),
-        ),
-      );
-      await tester.tap(
-        find.byKey(
-          const Key('configuration-advanced-preferred-download-client-field'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('115 离线').last);
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const Key('configuration-advanced-download-preference-save-button'),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final request = bundle.adapter.requests.firstWhere(
-        (item) => item.method == 'PATCH' && item.path == '/config',
-      );
-      expect(request.body, <String, dynamic>{
-        'downloads': <String, dynamic>{
-          'preferred_client_kinds': <String>['cloud115', 'qbittorrent'],
-        },
-      });
-      await tester.pump(const Duration(seconds: 3));
-    });
-
     testWidgets('confirms logging level changes before api restart save', (
       WidgetTester tester,
     ) async {

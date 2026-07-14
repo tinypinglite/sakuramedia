@@ -7,7 +7,6 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/validation/url_validators.dart';
 import 'package:sakuramedia/features/configuration/data/api/config_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/config_dto.dart';
-import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_password_field.dart';
@@ -63,10 +62,6 @@ class _DesktopAdvancedSettingsSectionState
   String? _errorMessage;
   String _loggingLevel = _defaultLoggingLevel;
   String _savedLoggingLevel = _defaultLoggingLevel;
-  List<DownloadClientKind> _preferredClientKinds = const <DownloadClientKind>[
-    DownloadClientKind.qbittorrent,
-    DownloadClientKind.cloud115,
-  ];
 
   ConfigApi get _api => context.read<ConfigApi>();
 
@@ -147,8 +142,6 @@ class _DesktopAdvancedSettingsSectionState
         _buildMetadataCard(context),
         SizedBox(height: spacing.xl),
         _buildSchedulerCard(context),
-        SizedBox(height: spacing.xl),
-        _buildDownloadsCard(context),
         SizedBox(height: spacing.xl),
         _buildOtherCard(context),
       ],
@@ -514,84 +507,6 @@ class _DesktopAdvancedSettingsSectionState
     );
   }
 
-  Widget _buildDownloadsCard(BuildContext context) {
-    final spacing = context.appSpacing;
-    final selectedKind = _preferredClientKinds.first;
-    return AppContentCard(
-      key: const Key('configuration-advanced-download-preference-card'),
-      title: '下载偏好',
-      padding: EdgeInsets.all(spacing.lg),
-      headerBottomSpacing: spacing.md,
-      headerTrailing: _CardBadges(
-        badges: [
-          const AppBadge(label: '调度重启', tone: AppBadgeTone.warning),
-          if (_dirtyCards.contains(_AdvancedCardKind.downloads))
-            const AppBadge(label: '未保存', tone: AppBadgeTone.warning),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _CardTip(
-            icon: Icons.priority_high_rounded,
-            message:
-                '未显式选择下载器时，系统按此顺序自动选择。手动搜索和提交会立即使用新偏好；自动下载任务需重启 APS 调度进程后生效。',
-          ),
-          SizedBox(height: spacing.lg),
-          AppSelectField<DownloadClientKind>(
-            key: const Key(
-              'configuration-advanced-preferred-download-client-field',
-            ),
-            label: '首选下载器',
-            value: selectedKind,
-            items: [
-              for (final kind in DownloadClientKind.values)
-                DropdownMenuItem<DownloadClientKind>(
-                  value: kind,
-                  child: Text(kind.label),
-                ),
-            ],
-            onChanged: _savingCards.contains(_AdvancedCardKind.downloads)
-                ? null
-                : (value) {
-                    if (value == null || value == selectedKind) {
-                      return;
-                    }
-                    setState(() {
-                      _preferredClientKinds = <DownloadClientKind>[
-                        value,
-                        ...DownloadClientKind.values.where(
-                          (kind) => kind != value,
-                        ),
-                      ];
-                    });
-                    _markDirty(_AdvancedCardKind.downloads);
-                  },
-          ),
-          SizedBox(height: spacing.sm),
-          Text(
-            '${_preferredClientKinds.last.label} 会作为候补下载器。',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.muted,
-            ),
-          ),
-          SizedBox(height: spacing.lg),
-          _buildActions(
-            context,
-            buttonKey: const Key(
-              'configuration-advanced-download-preference-save-button',
-            ),
-            isSaving: _savingCards.contains(_AdvancedCardKind.downloads),
-            onSave: _handleSaveDownloads,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildListField({
     required TextEditingController controller,
     required Key fieldKey,
@@ -725,20 +640,6 @@ class _DesktopAdvancedSettingsSectionState
           'scheduler': _buildSchedulerPayload(),
         },
         (values) => _applyScheduler(values.scheduler));
-  }
-
-  Future<void> _handleSaveDownloads() async {
-    await _savePartial(
-      _AdvancedCardKind.downloads,
-      <String, dynamic>{
-        'downloads': <String, dynamic>{
-          'preferred_client_kinds': _preferredClientKinds
-              .map((kind) => kind.wireValue)
-              .toList(growable: false),
-        },
-      },
-      (values) => _applyDownloads(values.downloads),
-    );
   }
 
   Future<void> _handleSaveOther() async {
@@ -898,7 +799,6 @@ class _DesktopAdvancedSettingsSectionState
   void _applyDownloads(AdvancedDownloadsConfigDto downloads) {
     _smallFileCleanupThresholdController.text =
         downloads.smallFileCleanupThresholdMb.toString();
-    _preferredClientKinds = downloads.preferredClientKinds;
   }
 
   void _applyLogging(AdvancedLoggingConfigDto logging) {
@@ -1007,7 +907,7 @@ class _DesktopAdvancedSettingsSectionState
   }
 }
 
-enum _AdvancedCardKind { media, metadata, scheduler, downloads, other }
+enum _AdvancedCardKind { media, metadata, scheduler, other }
 
 /// 根据 `PATCH /config` 响应里的 `pending_restart` 列表拼保存成功后的 toast 文案。
 ///

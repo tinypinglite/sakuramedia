@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_account_security_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_advanced_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_download_clients_section.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_download_preference_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_indexer_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_llm_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_media_libraries_section.dart';
@@ -21,7 +22,7 @@ class DesktopConfigurationPage extends StatefulWidget {
 
 class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
   static const int _defaultSelectedIndex = 1;
-  static const int _advancedSettingsIndex = 6;
+  static const int _advancedSettingsIndex = 7;
 
   int _selectedIndex = _defaultSelectedIndex;
   int _mediaLibrariesRevision = 0;
@@ -48,6 +49,11 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
       itemKey: Key('configuration-tab-indexers'),
       label: '索引器',
       icon: Icons.travel_explore_outlined,
+    ),
+    _ConfigurationCategory(
+      itemKey: Key('configuration-tab-download-preference'),
+      label: '下载偏好',
+      icon: Icons.low_priority_outlined,
     ),
     _ConfigurationCategory(
       itemKey: Key('configuration-tab-llm'),
@@ -171,12 +177,17 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
                       ),
                     ),
                     _ConfigurationTabScrollView(
-                      child: DesktopLlmSettingsSection(
+                      child: DesktopDownloadPreferenceSection(
                         active: _selectedIndex == 4,
                       ),
                     ),
                     _ConfigurationTabScrollView(
-                      child: PlaylistsSection(active: _selectedIndex == 5),
+                      child: DesktopLlmSettingsSection(
+                        active: _selectedIndex == 5,
+                      ),
+                    ),
+                    _ConfigurationTabScrollView(
+                      child: PlaylistsSection(active: _selectedIndex == 6),
                     ),
                     _ConfigurationTabScrollView(
                       child: DesktopAdvancedSettingsSection(
@@ -186,7 +197,7 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
                     ),
                     // 媒体维护页自带滚动控制器（无限滚动分页），直接铺满区域，
                     // 不再额外包一层滚动视图。
-                    DesktopMediaMaintenancePage(active: _selectedIndex == 7),
+                    DesktopMediaMaintenancePage(active: _selectedIndex == 8),
                   ],
                 ),
               ),
