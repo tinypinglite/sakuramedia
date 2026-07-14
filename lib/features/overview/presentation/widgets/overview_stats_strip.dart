@@ -5,7 +5,8 @@ class OverviewStatItem {
   const OverviewStatItem({
     required this.id,
     required this.label,
-    required this.value,
+    this.value = '',
+    this.valueWidget,
     this.isLoading = false,
     this.action,
     this.valueTextSize = AppTextSize.s18,
@@ -15,6 +16,9 @@ class OverviewStatItem {
   final String id;
   final String label;
   final String value;
+
+  /// 非 null 时代替 [value] 文本渲染（如外部数据源的状态徽章行）。
+  final Widget? valueWidget;
   final bool isLoading;
   final Widget? action;
   final AppTextSize valueTextSize;
@@ -136,6 +140,8 @@ class _OverviewStatTile extends StatelessWidget {
                     strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
                   ),
                 )
+              else if (item.valueWidget != null)
+                item.valueWidget!
               else
                 Text(
                   item.value,

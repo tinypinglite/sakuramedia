@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_controller.dart';
+import 'package:sakuramedia/features/overview/presentation/widgets/external_data_source_status_chips.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -165,7 +166,12 @@ class _MobileSystemOverviewPageState extends State<MobileSystemOverviewPage> {
             _MobileSystemOverviewMetricItem(
               id: 'external-data-sources',
               label: '外部数据源',
-              value: _controller.buildExternalDataSourcesValue(),
+              valueWidget: ExternalDataSourceStatusChips(
+                javdbHealthy: _controller.javdbHealthy,
+                dmmHealthy: _controller.dmmHealthy,
+                isTesting: _controller.isTestingMetadataProviders,
+                keyPrefix: 'mobile-system-overview',
+              ),
               actionLabel: '检测',
               isActionLoading: _controller.isTestingMetadataProviders,
               onActionPressed: _controller.testExternalDataSources,
@@ -248,7 +254,8 @@ class _MobileSystemOverviewMetricItem {
   const _MobileSystemOverviewMetricItem({
     required this.id,
     required this.label,
-    required this.value,
+    this.value = '',
+    this.valueWidget,
     this.isLoading = false,
     this.actionLabel,
     this.isActionLoading = false,
@@ -258,6 +265,9 @@ class _MobileSystemOverviewMetricItem {
   final String id;
   final String label;
   final String value;
+
+  /// 非 null 时代替 [value] 文本渲染（如外部数据源的状态徽章行）。
+  final Widget? valueWidget;
   final bool isLoading;
   final String? actionLabel;
   final bool isActionLoading;
@@ -301,6 +311,8 @@ class _MobileSystemOverviewMetricTile extends StatelessWidget {
                     context.appComponentTokens.movieCardLoaderStrokeWidth,
               ),
             )
+          else if (item.valueWidget != null)
+            item.valueWidget!
           else
             Text(
               item.value,

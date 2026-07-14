@@ -104,16 +104,6 @@ class OverviewSystemInfoController extends ChangeNotifier {
     return imageSearchStatus!.indexing.pendingThumbnails.toString();
   }
 
-  String buildExternalDataSourcesValue() {
-    if (isTestingMetadataProviders) {
-      return '检测中';
-    }
-    if (javdbHealthy == null && dmmHealthy == null) {
-      return '未检测 JavDB / DMM';
-    }
-    return '${_buildExternalDataSourceText('JavDB', javdbHealthy)} ${_buildExternalDataSourceText('DMM', dmmHealthy)}';
-  }
-
   Future<bool> _testMetadataProvider(String provider) async {
     try {
       final result = await _statusApi.testMetadataProvider(provider);
@@ -121,12 +111,5 @@ class OverviewSystemInfoController extends ChangeNotifier {
     } catch (_) {
       return false;
     }
-  }
-
-  String _buildExternalDataSourceText(String label, bool? healthy) {
-    if (healthy == null) {
-      return '未检测 $label';
-    }
-    return '${healthy ? '✅' : '❌'} $label';
   }
 }

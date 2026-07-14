@@ -14,6 +14,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
+import 'package:sakuramedia/features/overview/presentation/widgets/external_data_source_status_chips.dart';
 import 'package:sakuramedia/features/overview/presentation/widgets/overview_stats_strip.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/widgets/system_diagnostics_strip.dart';
 
@@ -176,8 +177,11 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
               OverviewStatItem(
                 id: 'external-data-sources',
                 label: '外部数据源',
-                value: systemInfo.buildExternalDataSourcesValue(),
-                valueTextSize: AppTextSize.s12,
+                valueWidget: ExternalDataSourceStatusChips(
+                  javdbHealthy: systemInfo.javdbHealthy,
+                  dmmHealthy: systemInfo.dmmHealthy,
+                  isTesting: systemInfo.isTestingMetadataProviders,
+                ),
                 maxWidth: 260,
                 action: _buildExternalDataSourcesAction(context),
               ),
