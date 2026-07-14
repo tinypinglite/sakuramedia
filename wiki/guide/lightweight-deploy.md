@@ -141,8 +141,10 @@ services:
     ports:
       - "38000:8000" # API 服务端口
     environment:
-      PUID: "${PUID:-1000}"
-      PGID: "${PGID:-1000}"
+      # 如果你知道 PUID/PGID 的含义，可用 `id -u` 和 `id -g` 查询
+      # 如果你不懂，就保持默认 0/0（root）
+      PUID: 0
+      PGID: 0
       TZ: "Asia/Shanghai"
     volumes:
       - ./sakuramedia-data:/data
