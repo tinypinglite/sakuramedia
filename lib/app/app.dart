@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +23,7 @@ import 'package:sakuramedia/features/configuration/data/api/download_clients_api
 import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/movie_desc_translation_settings_api.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/llm_settings_provider.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_store.dart';
@@ -302,27 +304,38 @@ class _MyAppState extends State<MyApp> {
           create: (_) => ExternalPlayerStore()..load(),
         ),
       ],
-      child: OKToast(
-        textStyle: kAppToastTextStyle,
-        child: MaterialApp.router(
-          title: 'SakuraMedia',
-          debugShowCheckedModeBanner: false,
-          theme:
-              _platform == AppPlatform.mobile
-                  ? sakuraMobileThemeData
-                  : sakuraDesktopThemeData,
-          routerConfig: _router,
-          builder: (context, child) {
-            return AppImageFullscreenHost(
-              child: ScrollConfiguration(
-                behavior: const MaterialScrollBehavior().copyWith(
-                  dragDevices: kAppScrollDragDevices,
-                ),
-                child: child ?? const SizedBox.shrink(),
+      child: Builder(
+        builder: (context) {
+          return ProviderScope(
+            overrides: [
+              llmSettingsApiProvider.overrideWithValue(
+                context.read<MovieDescTranslationSettingsApi>(),
               ),
-            );
-          },
-        ),
+            ],
+            child: OKToast(
+              textStyle: kAppToastTextStyle,
+              child: MaterialApp.router(
+                title: 'SakuraMedia',
+                debugShowCheckedModeBanner: false,
+                theme:
+                    _platform == AppPlatform.mobile
+                        ? sakuraMobileThemeData
+                        : sakuraDesktopThemeData,
+                routerConfig: _router,
+                builder: (context, child) {
+                  return AppImageFullscreenHost(
+                    child: ScrollConfiguration(
+                      behavior: const MaterialScrollBehavior().copyWith(
+                        dragDevices: kAppScrollDragDevices,
+                      ),
+                      child: child ?? const SizedBox.shrink(),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        },
       ),
     );
   }

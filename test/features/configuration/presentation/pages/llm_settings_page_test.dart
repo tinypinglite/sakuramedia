@@ -2,19 +2,20 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/api/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/movie_desc_translation_settings_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/llm_settings_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/llm_settings_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/llm_settings_copy.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_llm_settings_page.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
 
-import '../../../../../support/test_api_bundle.dart';
+import '../../../../support/test_api_bundle.dart';
 
 late SessionStore _sessionStore;
 late TestApiBundle _bundle;
@@ -39,11 +40,11 @@ void main() {
 
     await _pumpPage(tester);
 
-    expect(find.byKey(const Key('mobile-settings-llm')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-llm-overview-card')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-llm-form-card')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-llm-test-button')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-llm-save-button')), findsOneWidget);
+    expect(find.byKey(const Key('llm-settings-page')), findsOneWidget);
+    expect(find.byKey(const Key('llm-overview-card')), findsOneWidget);
+    expect(find.byKey(const Key('llm-form-card')), findsOneWidget);
+    expect(find.byKey(const Key('llm-test-button')), findsOneWidget);
+    expect(find.byKey(const Key('llm-save-button')), findsOneWidget);
     expect(find.text('启用'), findsOneWidget);
     expect(find.text('停用'), findsOneWidget);
     expect(find.text('可保存'), findsOneWidget);
@@ -94,14 +95,14 @@ void main() {
 
     await _pumpPage(tester);
 
-    expect(find.byKey(const Key('mobile-llm-error-state')), findsOneWidget);
-    expect(find.text('LLM 配置加载失败'), findsOneWidget);
+    expect(find.byKey(const Key('llm-error-state')), findsOneWidget);
+    expect(find.text('LLM 配置加载失败'), findsWidgets);
 
-    await tester.tap(find.byKey(const Key('mobile-llm-retry-button')));
+    await tester.tap(find.byKey(const Key('llm-retry-button')));
     await tester.pump();
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('mobile-llm-overview-card')), findsOneWidget);
+    expect(find.byKey(const Key('llm-overview-card')), findsOneWidget);
   });
 
   testWidgets('saves current draft and applies returned state', (
@@ -125,34 +126,30 @@ void main() {
 
     await _pumpPage(tester);
 
-    await tester.tap(find.byKey(const Key('mobile-llm-enabled-button')));
+    await tester.tap(find.byKey(const Key('llm-enabled-button')));
     await tester.enterText(
-      find.byKey(const Key('mobile-llm-base-url-field')),
+      find.byKey(const Key('llm-base-url-field')),
       'http://127.0.0.1:8000',
     );
     await tester.enterText(
-      find.byKey(const Key('mobile-llm-api-key-field')),
+      find.byKey(const Key('llm-api-key-field')),
       'secret-token',
     );
     await tester.enterText(
-      find.byKey(const Key('mobile-llm-model-field')),
+      find.byKey(const Key('llm-model-field')),
       'gpt-4.1-mini',
     );
+    await tester.enterText(find.byKey(const Key('llm-timeout-field')), '120');
     await tester.enterText(
-      find.byKey(const Key('mobile-llm-timeout-field')),
-      '120',
-    );
-    await tester.enterText(
-      find.byKey(const Key('mobile-llm-connect-timeout-field')),
+      find.byKey(const Key('llm-connect-timeout-field')),
       '5',
     );
-    await tester.tap(find.byKey(const Key('mobile-llm-save-button')));
+    await tester.tap(find.byKey(const Key('llm-save-button')));
     await tester.pump();
     await tester.pumpAndSettle();
 
     final patchRequest = _bundle.adapter.requests.firstWhere(
-      (request) =>
-          request.method == 'PATCH' && request.path == '/config',
+      (request) => request.method == 'PATCH' && request.path == '/config',
     );
     final patchSection =
         patchRequest.body['movie_info_translation'] as Map<String, dynamic>;
@@ -176,17 +173,17 @@ void main() {
     await _pumpPage(tester);
 
     await tester.enterText(
-      find.byKey(const Key('mobile-llm-base-url-field')),
+      find.byKey(const Key('llm-base-url-field')),
       'http://127.0.0.1:9000',
     );
     await tester.enterText(
-      find.byKey(const Key('mobile-llm-model-field')),
+      find.byKey(const Key('llm-model-field')),
       'gpt-4.1-mini',
     );
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('mobile-llm-test-button')));
-    await tester.tap(find.byKey(const Key('mobile-llm-test-button')));
+    await tester.ensureVisible(find.byKey(const Key('llm-test-button')));
+    await tester.tap(find.byKey(const Key('llm-test-button')));
     await tester.pump();
     await tester.pumpAndSettle();
 
@@ -194,10 +191,7 @@ void main() {
       _bundle.adapter.hitCount('POST', '/movie-desc-translation-settings/test'),
       1,
     );
-    expect(
-      _bundle.adapter.hitCount('PATCH', '/config'),
-      0,
-    );
+    expect(_bundle.adapter.hitCount('PATCH', '/config'), 0);
     expect(find.text('测试通过'), findsWidgets);
     await tester.pump(const Duration(seconds: 3));
   });
@@ -210,32 +204,23 @@ void main() {
       await _pumpPage(tester);
 
       await tester.enterText(
-        find.byKey(const Key('mobile-llm-base-url-field')),
+        find.byKey(const Key('llm-base-url-field')),
         'not-url',
       );
+      await tester.enterText(find.byKey(const Key('llm-model-field')), '');
+      await tester.enterText(find.byKey(const Key('llm-timeout-field')), '0');
       await tester.enterText(
-        find.byKey(const Key('mobile-llm-model-field')),
-        '',
-      );
-      await tester.enterText(
-        find.byKey(const Key('mobile-llm-timeout-field')),
-        '0',
-      );
-      await tester.enterText(
-        find.byKey(const Key('mobile-llm-connect-timeout-field')),
+        find.byKey(const Key('llm-connect-timeout-field')),
         '-1',
       );
-      await tester.tap(find.byKey(const Key('mobile-llm-save-button')));
+      await tester.tap(find.byKey(const Key('llm-save-button')));
       await tester.pumpAndSettle();
 
       expect(find.text('请输入合法的 http/https 地址'), findsOneWidget);
       expect(find.text('请输入模型名称'), findsOneWidget);
       expect(find.text('请求超时必须是正数'), findsOneWidget);
       expect(find.text('连接超时必须是正数'), findsOneWidget);
-      expect(
-        _bundle.adapter.hitCount('PATCH', '/config'),
-        0,
-      );
+      expect(_bundle.adapter.hitCount('PATCH', '/config'), 0);
     },
   );
 
@@ -294,7 +279,7 @@ void main() {
 
     await _pumpPage(tester);
 
-    await tester.tap(find.byKey(const Key('mobile-llm-test-button')));
+    await tester.tap(find.byKey(const Key('llm-test-button')));
     await tester.pump();
     await tester.pumpAndSettle();
 
@@ -308,16 +293,16 @@ Future<void> _pumpPage(
   MovieDescTranslationSettingsApi? api,
 }) async {
   await tester.pumpWidget(
-    MultiProvider(
-      providers: [
-        Provider<MovieDescTranslationSettingsApi>.value(
-          value: api ?? _bundle.movieDescTranslationSettingsApi,
+    ProviderScope(
+      overrides: [
+        llmSettingsApiProvider.overrideWithValue(
+          api ?? _bundle.movieDescTranslationSettingsApi,
         ),
       ],
       child: OKToast(
         child: MaterialApp(
           theme: sakuraThemeData,
-          home: const Scaffold(body: MobileLlmSettingsPage()),
+          home: const Scaffold(body: LlmSettingsPage()),
         ),
       ),
     ),

@@ -206,7 +206,10 @@ void main() {
 
     expect(source, contains('String? resolveAppTextFontFamily'));
     expect(source, contains('fontFamily: resolveAppTextFontFamily(context)'));
-    expect(source, contains('Theme.of(context).textTheme.bodyMedium?.fontFamily'));
+    expect(
+      source,
+      contains('Theme.of(context).textTheme.bodyMedium?.fontFamily'),
+    );
   });
 
   test('component token source only exposes global icon size scale', () {
@@ -232,7 +235,9 @@ void main() {
   test('notice cards use noticeSurface token', () {
     // AppNoticeCard 组件本身负责 noticeSurface 与去掉旧硬编码。
     final noticeCardSource =
-        File('lib/widgets/base/layout/cards/app_notice_card.dart').readAsStringSync();
+        File(
+          'lib/widgets/base/layout/cards/app_notice_card.dart',
+        ).readAsStringSync();
     expect(noticeCardSource, contains('colors.noticeSurface'));
     expect(
       noticeCardSource,
@@ -246,7 +251,7 @@ void main() {
       'lib/features/configuration/presentation/pages/mobile/mobile_media_libraries_page.dart',
       'lib/features/configuration/presentation/pages/mobile/mobile_downloaders_page.dart',
       'lib/features/configuration/presentation/pages/mobile/mobile_indexers_page.dart',
-      'lib/features/configuration/presentation/pages/mobile/mobile_llm_settings_page.dart',
+      'lib/features/configuration/presentation/pages/llm_settings_page.dart',
       'lib/features/playlists/presentation/pages/mobile/playlists_page.dart',
     ];
     for (final path in consumers) {

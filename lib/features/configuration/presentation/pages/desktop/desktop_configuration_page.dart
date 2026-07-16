@@ -4,9 +4,9 @@ import 'package:sakuramedia/features/configuration/presentation/pages/desktop/de
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_download_clients_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_download_preference_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_indexer_settings_section.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_llm_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_media_libraries_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_playlists_section.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/llm_settings_page.dart';
 import 'package:sakuramedia/features/media/presentation/desktop_media_maintenance_page.dart';
 import 'package:sakuramedia/features/media/presentation/desktop_media_management_page.dart';
 import 'package:sakuramedia/theme.dart';
@@ -187,11 +187,7 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
                         active: _selectedIndex == 4,
                       ),
                     ),
-                    _ConfigurationTabScrollView(
-                      child: DesktopLlmSettingsSection(
-                        active: _selectedIndex == 5,
-                      ),
-                    ),
+                    LlmSettingsPage(active: _selectedIndex == 5),
                     _ConfigurationTabScrollView(
                       child: PlaylistsSection(active: _selectedIndex == 6),
                     ),

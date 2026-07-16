@@ -22,8 +22,8 @@ import 'package:sakuramedia/features/image_search/presentation/image_search_draf
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_downloaders_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_indexers_page.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_llm_settings_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_media_libraries_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/llm_settings_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collection_detail_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collection_play_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collections_page.dart';
@@ -382,7 +382,7 @@ class MobileSettingsLlmRouteData extends _MobileSubpageRouteData
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return const MobileLlmSettingsPage();
+    return const LlmSettingsPage();
   }
 }
 

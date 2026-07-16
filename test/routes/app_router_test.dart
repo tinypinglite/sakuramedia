@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
@@ -28,6 +29,7 @@ import 'package:sakuramedia/features/configuration/data/api/download_clients_api
 import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/movie_desc_translation_settings_api.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/llm_settings_provider.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
@@ -80,7 +82,7 @@ const List<_MobileSettingsRouteCase> _mobileSettingsRouteCases =
       _MobileSettingsRouteCase(
         path: mobileSettingsLlmPath,
         title: 'LLM 配置',
-        pageKey: Key('mobile-settings-llm'),
+        pageKey: Key('llm-settings-page'),
       ),
       _MobileSettingsRouteCase(
         path: mobileSettingsPlaylistsPath,
@@ -1382,7 +1384,10 @@ void main() {
     router.go(mobileClipCollectionsPath);
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('mobile-clip-collections-page')), findsOneWidget);
+    expect(
+      find.byKey(const Key('mobile-clip-collections-page')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const Key('mobile-clip-collections-create-button')),
       findsOneWidget,
@@ -1445,9 +1450,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('开发中'), findsNothing);
-    expect(find.byKey(const Key('mobile-llm-overview-card')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-llm-form-card')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-llm-save-button')), findsOneWidget);
+    expect(find.byKey(const Key('llm-overview-card')), findsOneWidget);
+    expect(find.byKey(const Key('llm-form-card')), findsOneWidget);
+    expect(find.byKey(const Key('llm-save-button')), findsOneWidget);
   });
 
   testWidgets('mobile playlist detail route uses subpage shell', (
@@ -3703,8 +3708,18 @@ Future<void> _pumpRouterApp(
   return tester.pumpWidget(
     MultiProvider(
       providers: providers,
-      child: OKToast(
-        child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
+      child: ProviderScope(
+        overrides: [
+          llmSettingsApiProvider.overrideWithValue(
+            bundle.movieDescTranslationSettingsApi,
+          ),
+        ],
+        child: OKToast(
+          child: MaterialApp.router(
+            theme: sakuraThemeData,
+            routerConfig: router,
+          ),
+        ),
       ),
     ),
   );

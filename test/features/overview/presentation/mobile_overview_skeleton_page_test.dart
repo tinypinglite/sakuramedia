@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -22,6 +23,7 @@ import 'package:sakuramedia/features/configuration/data/api/download_clients_api
 import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/movie_desc_translation_settings_api.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/llm_settings_provider.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
@@ -499,8 +501,8 @@ void main() {
 
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
     expect(find.text('LLM 配置'), findsOneWidget);
-    expect(find.byKey(const Key('mobile-settings-llm')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-llm-save-button')), findsOneWidget);
+    expect(find.byKey(const Key('llm-settings-page')), findsOneWidget);
+    expect(find.byKey(const Key('llm-save-button')), findsOneWidget);
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
   });
 
@@ -1829,8 +1831,15 @@ Widget _buildRouterApp({
         create: (_) => ClipMutationChangeNotifier(),
       ),
     ],
-    child: OKToast(
-      child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
+    child: ProviderScope(
+      overrides: [
+        llmSettingsApiProvider.overrideWithValue(
+          bundle.movieDescTranslationSettingsApi,
+        ),
+      ],
+      child: OKToast(
+        child: MaterialApp.router(theme: sakuraThemeData, routerConfig: router),
+      ),
     ),
   );
 }

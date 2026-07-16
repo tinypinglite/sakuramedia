@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +18,7 @@ import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api
 import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/movie_desc_translation_settings_api.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/desktop_configuration_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/llm_settings_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/llm_settings_copy.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
@@ -142,22 +144,13 @@ void main() {
       await tester.tap(find.byKey(const Key('configuration-tab-llm')));
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('configuration-llm-card')), findsOneWidget);
+      expect(find.byKey(const Key('llm-form-card')), findsOneWidget);
       expect(find.text('LLM 配置'), findsWidgets);
-      expect(
-        find.byKey(const Key('configuration-llm-base-url-field')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('llm-base-url-field')), findsOneWidget);
       expect(find.text('启用'), findsOneWidget);
       expect(find.text('停用'), findsOneWidget);
-      expect(
-        find.byKey(const Key('configuration-llm-test-button')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('configuration-llm-save-button')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('llm-test-button')), findsOneWidget);
+      expect(find.byKey(const Key('llm-save-button')), findsOneWidget);
       expect(find.text('可保存'), findsOneWidget);
       expect(find.text(LlmSettingsCopy.sharedUsageDescription), findsOneWidget);
       expect(
@@ -217,294 +210,6 @@ void main() {
 
       expect(bundle.adapter.hitCount('GET', '/playlists'), 1);
       expect(find.text('还没有自定义播放列表'), findsOneWidget);
-    });
-
-    testWidgets('shows llm example config hints when draft is empty', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle, includeLlmSettings: false);
-      _enqueueMovieDescTranslationSettings(bundle, baseUrl: '', model: '');
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
-
-      expect(find.text(LlmSettingsCopy.baseUrlHelperText), findsOneWidget);
-      expect(find.text(LlmSettingsCopy.modelHintText), findsOneWidget);
-    });
-
-    testWidgets('saves llm settings and applies returned state', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'PATCH',
-        path: '/config',
-        body: _buildConfigPatchResponseJson(
-          section: _buildMovieDescTranslationSettingsJson(
-            enabled: true,
-            baseUrl: 'http://127.0.0.1:8000',
-            apiKey: 'secret-token',
-            model: 'gpt-4.1-mini',
-            timeoutSeconds: 120,
-            connectTimeoutSeconds: 5,
-          ),
-        ),
-      );
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
-
-      await tester.ensureVisible(
-        find.byKey(const Key('configuration-llm-enabled-button')),
-      );
-      await tester.tap(
-        find.byKey(const Key('configuration-llm-enabled-button')),
-      );
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-base-url-field')),
-        'http://127.0.0.1:8000',
-      );
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-api-key-field')),
-        'secret-token',
-      );
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-model-field')),
-        'gpt-4.1-mini',
-      );
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-timeout-field')),
-        '120',
-      );
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-connect-timeout-field')),
-        '5',
-      );
-      await tester.ensureVisible(
-        find.byKey(const Key('configuration-llm-save-button')),
-      );
-      await tester.tap(find.byKey(const Key('configuration-llm-save-button')));
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      final patchRequest = bundle.adapter.requests.firstWhere(
-        (request) => request.method == 'PATCH' && request.path == '/config',
-      );
-      final patchSection =
-          patchRequest.body['movie_info_translation'] as Map<String, dynamic>;
-      expect(patchSection['enabled'], isTrue);
-      expect(patchSection['base_url'], 'http://127.0.0.1:8000');
-      expect(patchSection['model'], 'gpt-4.1-mini');
-      expect(patchSection['timeout_seconds'], 120.0);
-      expect(find.text('已启用'), findsWidgets);
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('tests llm draft without triggering save', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'POST',
-        path: '/movie-desc-translation-settings/test',
-        body: const <String, dynamic>{'ok': true},
-      );
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
-
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-base-url-field')),
-        'http://127.0.0.1:9000',
-      );
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-model-field')),
-        'gpt-4.1-mini',
-      );
-      await tester.ensureVisible(
-        find.byKey(const Key('configuration-llm-test-button')),
-      );
-      await tester.tap(find.byKey(const Key('configuration-llm-test-button')));
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(
-        bundle.adapter.hitCount(
-          'POST',
-          '/movie-desc-translation-settings/test',
-        ),
-        1,
-      );
-      expect(bundle.adapter.hitCount('PATCH', '/config'), 0);
-      expect(find.text('测试通过'), findsWidgets);
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('validates llm fields before save', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
-
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-base-url-field')),
-        'not-url',
-      );
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-model-field')),
-        '',
-      );
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-timeout-field')),
-        '0',
-      );
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-connect-timeout-field')),
-        '-1',
-      );
-      await tester.ensureVisible(
-        find.byKey(const Key('configuration-llm-save-button')),
-      );
-      await tester.tap(find.byKey(const Key('configuration-llm-save-button')));
-      await tester.pumpAndSettle();
-
-      expect(find.text('请输入合法的 http/https 地址'), findsOneWidget);
-      expect(find.text('请输入模型名称'), findsOneWidget);
-      expect(find.text('请求超时必须是正数'), findsOneWidget);
-      expect(find.text('连接超时必须是正数'), findsOneWidget);
-      expect(bundle.adapter.hitCount('PATCH', '/config'), 0);
-    });
-
-    testWidgets('failed llm test updates recent test state', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-      bundle.adapter.enqueueResponder(
-        method: 'POST',
-        path: '/movie-desc-translation-settings/test',
-        responder: (_, __) async {
-          return ResponseBody.fromString(
-            jsonEncode({
-              'error': <String, dynamic>{
-                'code': 'movie_desc_translation_failed',
-                'message': '测试失败',
-              },
-            }),
-            500,
-            headers: const <String, List<String>>{
-              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
-            },
-          );
-        },
-      );
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
-
-      await tester.ensureVisible(
-        find.byKey(const Key('configuration-llm-test-button')),
-      );
-      await tester.tap(find.byKey(const Key('configuration-llm-test-button')));
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(find.text('测试失败'), findsWidgets);
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('shows llm error state and retries successfully', (
-      WidgetTester tester,
-    ) async {
-      bundle.adapter.enqueueResponder(
-        method: 'GET',
-        path: '/config',
-        responder: (_, __) async {
-          return ResponseBody.fromString(
-            jsonEncode({
-              'error': <String, dynamic>{
-                'code': 'server_error',
-                'message': 'LLM 配置加载失败',
-              },
-            }),
-            500,
-            headers: const <String, List<String>>{
-              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
-            },
-          );
-        },
-      );
-      _enqueueMediaLibraries(bundle, includeLlmSettings: false);
-      _enqueueMovieDescTranslationSettings(bundle);
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
-
-      expect(
-        find.byKey(const Key('configuration-llm-error-state')),
-        findsOneWidget,
-      );
-      expect(find.text('LLM 配置加载失败'), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key('configuration-llm-retry-button')));
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key('configuration-llm-card')), findsOneWidget);
-      expect(
-        find.byKey(const Key('configuration-llm-save-button')),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('keeps llm draft when saving fails', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-      bundle.adapter.enqueueResponder(
-        method: 'PATCH',
-        path: '/config',
-        responder: (_, __) async {
-          return ResponseBody.fromString(
-            jsonEncode({
-              'error': <String, dynamic>{
-                'code': 'invalid_movie_desc_translation_base_url',
-                'message': 'Base URL 不合法',
-              },
-            }),
-            422,
-            headers: const <String, List<String>>{
-              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
-            },
-          );
-        },
-      );
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openConfigurationTab(tester, const Key('configuration-tab-llm'));
-
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-base-url-field')),
-        'http://127.0.0.1:9000',
-      );
-      await tester.enterText(
-        find.byKey(const Key('configuration-llm-model-field')),
-        'gpt-4.1-mini',
-      );
-      await tester.ensureVisible(
-        find.byKey(const Key('configuration-llm-save-button')),
-      );
-      await tester.tap(find.byKey(const Key('configuration-llm-save-button')));
-      await tester.pump();
-      await tester.pumpAndSettle();
-
-      final field = tester.widget<TextFormField>(
-        find.byKey(const Key('configuration-llm-base-url-field')),
-      );
-      expect(field.controller?.text, 'http://127.0.0.1:9000');
-      expect(find.text('Base URL 不合法'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 3));
     });
 
     testWidgets('loads playlists lazily and hides system playlists', (
@@ -1601,22 +1306,24 @@ void main() {
         findsOneWidget,
       );
 
-      final usernameRows = tester
-          .elementList(
-            find.ancestor(
-              of: find.byKey(const Key('download-client-username-field')),
-              matching: find.byType(Row),
-            ),
-          )
-          .toSet();
-      final passwordRows = tester
-          .elementList(
-            find.ancestor(
-              of: find.byKey(const Key('download-client-password-field')),
-              matching: find.byType(Row),
-            ),
-          )
-          .toSet();
+      final usernameRows =
+          tester
+              .elementList(
+                find.ancestor(
+                  of: find.byKey(const Key('download-client-username-field')),
+                  matching: find.byType(Row),
+                ),
+              )
+              .toSet();
+      final passwordRows =
+          tester
+              .elementList(
+                find.ancestor(
+                  of: find.byKey(const Key('download-client-password-field')),
+                  matching: find.byType(Row),
+                ),
+              )
+              .toSet();
       expect(usernameRows.intersection(passwordRows), isNotEmpty);
 
       await tester.enterText(
@@ -1930,22 +1637,16 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.ensureVisible(
-        find.byKey(
-          const Key('configuration-download-preference-client-field'),
-        ),
+        find.byKey(const Key('configuration-download-preference-client-field')),
       );
       await tester.tap(
-        find.byKey(
-          const Key('configuration-download-preference-client-field'),
-        ),
+        find.byKey(const Key('configuration-download-preference-client-field')),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('115 离线').last);
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(
-          const Key('configuration-download-preference-save-button'),
-        ),
+        find.byKey(const Key('configuration-download-preference-save-button')),
       );
       await tester.pumpAndSettle();
 
@@ -2065,11 +1766,7 @@ void main() {
                 'url': 'https://mirror.example.com/torznab',
                 'kind': 'pt',
                 'download_clients': [
-                  {
-                    'id': 1,
-                    'name': 'client-a',
-                    'kind': 'qbittorrent',
-                  },
+                  {'id': 1, 'name': 'client-a', 'kind': 'qbittorrent'},
                 ],
               },
             ],
@@ -2105,10 +1802,9 @@ void main() {
           (request) =>
               request.method == 'PATCH' && request.path == '/indexer-settings',
         );
-        expect(
-          patchRequest.body['indexers'][0]['download_client_ids'],
-          <int>[1],
-        );
+        expect(patchRequest.body['indexers'][0]['download_client_ids'], <int>[
+          1,
+        ]);
         expect(find.textContaining('下载器: client-a'), findsOneWidget);
         await tester.pump(const Duration(seconds: 3));
       },
@@ -2182,11 +1878,7 @@ void main() {
               'url': 'https://mirror.example.com/torznab',
               'kind': 'pt',
               'download_clients': [
-                {
-                  'id': 2,
-                  'name': 'client-b',
-                  'kind': 'qbittorrent',
-                },
+                {'id': 2, 'name': 'client-b', 'kind': 'qbittorrent'},
               ],
             },
           ],
@@ -2215,10 +1907,7 @@ void main() {
         (request) =>
             request.method == 'PATCH' && request.path == '/indexer-settings',
       );
-      expect(
-        patchRequest.body['indexers'][0]['download_client_ids'],
-        <int>[2],
-      );
+      expect(patchRequest.body['indexers'][0]['download_client_ids'], <int>[2]);
       expect(find.textContaining('下载器: client-b'), findsOneWidget);
       await tester.pump(const Duration(seconds: 3));
     });
@@ -2404,10 +2093,17 @@ Future<void> _pumpPage(
         ),
         Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
       ],
-      child: OKToast(
-        child: MaterialApp(
-          theme: sakuraThemeData,
-          home: const Scaffold(body: DesktopConfigurationPage()),
+      child: ProviderScope(
+        overrides: [
+          llmSettingsApiProvider.overrideWithValue(
+            bundle.movieDescTranslationSettingsApi,
+          ),
+        ],
+        child: OKToast(
+          child: MaterialApp(
+            theme: sakuraThemeData,
+            home: const Scaffold(body: DesktopConfigurationPage()),
+          ),
         ),
       ),
     ),
@@ -2494,19 +2190,21 @@ void _enqueueIndexerSettings(
     body: {
       'type': 'jackett',
       'api_key': 'secret-key',
-      'indexers': indexers.map((entry) {
-        if (entry.containsKey('download_clients')) return entry;
-        return <String, Object?>{
-          ...entry,
-          'download_clients': <Map<String, Object?>>[
-            <String, Object?>{
-              'id': entry['download_client_id'],
-              'name': entry['download_client_name'],
-              'kind': 'qbittorrent',
-            },
-          ],
-        };
-      }).toList(growable: false),
+      'indexers': indexers
+          .map((entry) {
+            if (entry.containsKey('download_clients')) return entry;
+            return <String, Object?>{
+              ...entry,
+              'download_clients': <Map<String, Object?>>[
+                <String, Object?>{
+                  'id': entry['download_client_id'],
+                  'name': entry['download_client_name'],
+                  'kind': 'qbittorrent',
+                },
+              ],
+            };
+          })
+          .toList(growable: false),
     },
   );
 }
@@ -2659,17 +2357,6 @@ void _enqueueDownloadPreferencePatch(TestApiBundle bundle) {
       ],
     },
   );
-}
-
-/// 构造 `PATCH /config` 响应壳，`section` 是最新的 `movie_info_translation`。
-Map<String, dynamic> _buildConfigPatchResponseJson({
-  required Map<String, dynamic> section,
-}) {
-  return <String, dynamic>{
-    'values': <String, dynamic>{'movie_info_translation': section},
-    'applied': <String>['movie_info_translation'],
-    'pending_restart': <dynamic>[],
-  };
 }
 
 Map<String, dynamic> _buildMovieDescTranslationSettingsJson({
