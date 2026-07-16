@@ -26,6 +26,7 @@ export default defineConfig({
             { text: '收藏思路', link: '/guide/collection-strategy' },
             { text: '切片收藏', link: '/guide/clips' },
             { text: 'PornBox 视频管理', link: '/guide/videos' },
+            { text: '115 网盘接入', link: '/guide/cloud115' },
             { text: '进阶部署', link: '/guide/docker' },
             { text: '常用命令', link: '/guide/commands' },
             { text: '常见问题', link: '/faq' },
