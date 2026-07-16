@@ -5,7 +5,9 @@ import 'package:sakuramedia/features/media_import/data/failure_reason_descriptio
 import 'package:sakuramedia/features/media_import/data/import_job_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_meta_chip.dart';
 
 /// 导入作业卡片：JAV 与 PornBox 两类导入作业共用。
 ///
@@ -73,27 +75,36 @@ class ImportJobCard extends StatelessWidget {
             runSpacing: spacing.xs,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _StatusBadge(state: job.state),
+              AppBadge(
+                label: _stateLabel(job.state),
+                tone: _stateTone(job.state),
+              ),
               if (job.isCloud115)
-                const _MetaChip(
+                const AppMetaChip(
                   icon: Icons.cloud_outlined,
                   label: '115 网盘',
                 ),
-              _MetaChip(
+              AppMetaChip(
                 icon: Icons.swap_horiz_rounded,
                 label: job.transferMode.label,
               ),
-              _MetaChip(
+              AppMetaChip(
                 icon: Icons.check_circle_outline_rounded,
                 label: '导入 ${job.importedCount}',
+                tone: job.importedCount > 0
+                    ? AppTextTone.success
+                    : AppTextTone.secondary,
               ),
-              _MetaChip(
+              AppMetaChip(
                 icon: Icons.skip_next_rounded,
                 label: '跳过 ${job.skippedCount}',
               ),
-              _MetaChip(
+              AppMetaChip(
                 icon: Icons.error_outline_rounded,
                 label: '失败 ${job.failedCount}',
+                tone: job.failedCount > 0
+                    ? AppTextTone.error
+                    : AppTextTone.secondary,
               ),
             ],
           ),
@@ -289,72 +300,24 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.state});
-
-  final String state;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final palette = context.appTextPalette;
-    final (label, background, foreground) = switch (state) {
-      'completed' => ('已完成', colors.successSurface, palette.success),
-      'failed' => ('失败', colors.errorSurface, palette.error),
-      'running' => ('导入中', colors.infoSurface, palette.info),
-      'pending' => ('等待中', colors.infoSurface, palette.info),
-      _ => (state.isEmpty ? '未知' : state, colors.surfaceMuted, palette.muted),
-    };
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: context.appSpacing.sm,
-        vertical: context.appSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: context.appRadius.smBorder,
-      ),
-      child: Text(
-        label,
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s12,
-          weight: AppTextWeight.semibold,
-        ).copyWith(color: foreground),
-      ),
-    );
-  }
+String _stateLabel(String state) {
+  return switch (state) {
+    'completed' => '已完成',
+    'failed' => '失败',
+    'running' => '导入中',
+    'pending' => '等待中',
+    _ => state.isEmpty ? '未知' : state,
+  };
 }
 
-class _MetaChip extends StatelessWidget {
-  const _MetaChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: context.appComponentTokens.iconSizeXs,
-          color: context.appTextPalette.muted,
-        ),
-        SizedBox(width: context.appSpacing.xs),
-        Text(
-          label,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.secondary,
-          ),
-        ),
-      ],
-    );
-  }
+AppBadgeTone _stateTone(String state) {
+  return switch (state) {
+    'completed' => AppBadgeTone.success,
+    'failed' => AppBadgeTone.error,
+    'running' => AppBadgeTone.info,
+    'pending' => AppBadgeTone.info,
+    _ => AppBadgeTone.neutral,
+  };
 }
 
 class _FailedFileRow extends StatelessWidget {

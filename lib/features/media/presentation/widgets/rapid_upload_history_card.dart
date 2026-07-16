@@ -12,12 +12,14 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_meta_chip.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 
 /// 秒传批次历史卡：批次 tab 主体。
 ///
-/// - 加载中骨架、错误空态、空历史各自兜底；
-/// - 每批次一行 [_RapidUploadBatchRow]，含状态徽章、批次目标库、计数与时间、失败重试按钮；
+/// - 外层 [AppContentCard]「秒传批次」承载 header + 刷新按钮 + 空/骨架/错误兜底；
+/// - 每个批次一张 [AppContentCard]（[_RapidUploadBatchCard]），与
+///   `ImportJobCard` 视觉承载对齐（同域两个"批处理作业"页读起来是一套 UI）；
 /// - 翻页由 `_DesktopMediaManagementPageState._handleScroll` 滚到底触发。
 class RapidUploadHistoryCard extends StatelessWidget {
   const RapidUploadHistoryCard({
@@ -79,8 +81,8 @@ class RapidUploadHistoryCard extends StatelessWidget {
       children: [
         for (final batch in controller.items)
           Padding(
-            padding: EdgeInsets.only(bottom: spacing.sm),
-            child: _RapidUploadBatchRow(
+            padding: EdgeInsets.only(bottom: spacing.md),
+            child: _RapidUploadBatchCard(
               batch: batch,
               libraries: libraries,
               isRetrying: retryingBatchId == batch.id,
@@ -104,8 +106,8 @@ class RapidUploadHistoryCard extends StatelessWidget {
   }
 }
 
-class _RapidUploadBatchRow extends StatelessWidget {
-  const _RapidUploadBatchRow({
+class _RapidUploadBatchCard extends StatelessWidget {
+  const _RapidUploadBatchCard({
     required this.batch,
     required this.libraries,
     required this.isRetrying,
@@ -122,69 +124,77 @@ class _RapidUploadBatchRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    return Container(
-      padding: EdgeInsets.all(spacing.md),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceMuted,
-        borderRadius: context.appRadius.mdBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
+    return AppContentCard(
+      title: '批次 #${batch.id}',
+      titleStyle: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s14,
+        weight: AppTextWeight.semibold,
+        tone: AppTextTone.primary,
       ),
-      child: Row(
+      headerBottomSpacing: spacing.sm,
+      child: Column(
+        key: Key('rapid-upload-batch-card-${batch.id}'),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      '批次 #${batch.id}',
-                      key: Key('rapid-upload-batch-id-${batch.id}'),
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s14,
-                        weight: AppTextWeight.semibold,
-                        tone: AppTextTone.primary,
-                      ),
-                    ),
-                    SizedBox(width: spacing.sm),
-                    AppBadge(
-                      label: batch.state.label,
-                      tone: _batchStateTone(batch.state),
-                    ),
-                    if (batch.retryOfBatchId != null) ...[
-                      SizedBox(width: spacing.sm),
-                      AppBadge(
-                        label: '重试 #${batch.retryOfBatchId}',
-                        tone: AppBadgeTone.info,
-                      ),
-                    ],
-                  ],
+          Wrap(
+            spacing: spacing.sm,
+            runSpacing: spacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              AppBadge(
+                key: Key('rapid-upload-batch-state-${batch.id}'),
+                label: batch.state.label,
+                tone: _batchStateTone(batch.state),
+              ),
+              if (batch.retryOfBatchId != null)
+                AppBadge(
+                  label: '重试 #${batch.retryOfBatchId}',
+                  tone: AppBadgeTone.info,
                 ),
-                SizedBox(height: spacing.xs),
-                Text(
-                  '目标：${_targetLibraryName()}',
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.secondary,
-                  ),
+              AppMetaChip(
+                icon: Icons.folder_outlined,
+                label: '目标 ${_targetLibraryName()}',
+              ),
+              AppMetaChip(
+                icon: Icons.summarize_outlined,
+                label: '共 ${batch.totalCount}',
+              ),
+              AppMetaChip(
+                key: Key('rapid-upload-batch-succeeded-${batch.id}'),
+                icon: Icons.check_circle_outline_rounded,
+                label: '成功 ${batch.succeededCount}',
+                tone: batch.succeededCount > 0
+                    ? AppTextTone.success
+                    : AppTextTone.secondary,
+              ),
+              if (batch.failedCount > 0)
+                AppMetaChip(
+                  key: Key('rapid-upload-batch-failed-${batch.id}'),
+                  icon: Icons.error_outline_rounded,
+                  label: '失败 ${batch.failedCount}',
+                  tone: AppTextTone.error,
                 ),
-                SizedBox(height: spacing.xs),
-                Text(
-                  _countsText(),
-                  key: Key('rapid-upload-batch-counts-${batch.id}'),
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.muted,
-                  ),
+              if (batch.cleanupFailedCount > 0)
+                AppMetaChip(
+                  icon: Icons.cleaning_services_outlined,
+                  label: '清理失败 ${batch.cleanupFailedCount}',
+                  tone: AppTextTone.error,
                 ),
-                SizedBox(height: spacing.xs),
-                Text(
+              if (batch.pendingCount > 0)
+                AppMetaChip(
+                  icon: Icons.hourglass_top_rounded,
+                  label: '进行中 ${batch.pendingCount}',
+                  tone: AppTextTone.info,
+                ),
+            ],
+          ),
+          SizedBox(height: spacing.sm),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
                   _timeText(),
                   style: resolveAppTextStyle(
                     context,
@@ -193,20 +203,21 @@ class _RapidUploadBatchRow extends StatelessWidget {
                     tone: AppTextTone.muted,
                   ),
                 ),
+              ),
+              if (canRetry || isRetrying) ...[
+                SizedBox(width: spacing.md),
+                AppButton(
+                  key: Key('rapid-upload-batch-retry-${batch.id}'),
+                  label: isRetrying ? '重试中' : '重试失败项',
+                  size: AppButtonSize.small,
+                  variant: AppButtonVariant.secondary,
+                  isLoading: isRetrying,
+                  icon: const Icon(Icons.replay_rounded),
+                  onPressed: canRetry ? onRetry : null,
+                ),
               ],
-            ),
+            ],
           ),
-          SizedBox(width: spacing.md),
-          if (canRetry || isRetrying)
-            AppButton(
-              key: Key('rapid-upload-batch-retry-${batch.id}'),
-              label: isRetrying ? '重试中' : '重试失败项',
-              size: AppButtonSize.small,
-              variant: AppButtonVariant.secondary,
-              isLoading: isRetrying,
-              icon: const Icon(Icons.replay_rounded),
-              onPressed: canRetry ? onRetry : null,
-            ),
         ],
       ),
     );
@@ -219,18 +230,6 @@ class _RapidUploadBatchRow extends StatelessWidget {
       }
     }
     return '媒体库 ${batch.targetLibraryId}';
-  }
-
-  String _countsText() {
-    final parts = <String>[
-      '共 ${batch.totalCount} 项',
-      '成功 ${batch.succeededCount}',
-      if (batch.failedCount > 0) '失败 ${batch.failedCount}',
-      if (batch.cleanupFailedCount > 0)
-        '清理失败 ${batch.cleanupFailedCount}',
-      if (batch.pendingCount > 0) '进行中 ${batch.pendingCount}',
-    ];
-    return parts.join(' · ');
   }
 
   String _timeText() {
