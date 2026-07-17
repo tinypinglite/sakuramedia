@@ -681,10 +681,7 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                   children: [
                     if (inSelectionMode) ...[
                       Padding(
-                        padding: EdgeInsets.only(
-                          top: 2,
-                          right: context.appSpacing.md,
-                        ),
+                        padding: EdgeInsets.only(right: context.appSpacing.md),
                         child: _AccentCheckBadge(isSelected: isBatchSelected),
                       ),
                     ],
