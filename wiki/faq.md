@@ -17,6 +17,30 @@ outline: [2, 3]
 
 
 
+## 账号与登录
+
+### 忘记用户名或密码了怎么办？
+
+结论：在后端容器里跑一次 `reset-account` 命令，用新的用户名和密码覆盖式重建单账号即可，不需要校验旧密码。
+
+```bash
+docker exec -it --user app -w /app sakuramedia python -m src.start.commands reset-account
+```
+
+执行后会依次提示输入**新用户名**和**新密码**（密码隐式输入并二次确认）。也可以直接把参数写在命令行里：
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands reset-account --username admin --password 'your-new-password'
+```
+
+要注意：
+
+- 这是**覆盖式重置**：会先清空数据库里所有已有账号，再按你给的用户名和密码重建一个单账号
+- 同时会清空所有 refresh token，**所有已登录的客户端都会立即失效**，需要用新账号重新登录
+- 整个过程在同一个事务里，中途失败会回滚，不会出现“旧账号删了、新账号没建”导致完全登不上的情况
+
+详见 [常用命令 → 重置账号](/guide/commands#重置账号-忘记用户名-密码)。
+
 ## 搜索与数据
 
 ### 在线搜索入库影片或女优失败

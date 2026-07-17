@@ -82,6 +82,27 @@ tail -f ./docker-data/logs/api.log
 
 如果你已经把日志目录持久化到了 `docker-data/logs`，这个命令会比 `docker compose logs` 更适合长期跟日志。
 
+## 账号
+
+### 重置账号（忘记用户名 / 密码）
+
+```bash
+docker exec -it --user app -w /app sakuramedia python -m src.start.commands reset-account
+```
+
+执行后会分别提示输入新的**用户名**和**密码**（密码是隐式输入并要求二次确认）。如果不想交互式输入，也可以直接把两个参数带在命令行里：
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands reset-account --username admin --password 'your-new-password'
+```
+
+说明：
+
+- 这条命令是**覆盖式重置**：会先删掉数据库里所有已有账号，再按你给的用户名和密码重建一个单账号
+- 同时会清空所有 refresh token，**已登录的客户端会立即失效**，需要用新账号重新登录
+- 不校验旧密码，忘记用户名或忘记密码时都能用；整个过程在一个事务里，中途失败会回滚，不会出现“旧账号删了、新账号没建”导致完全登不上
+- 用户名不能为空、密码不能为空，命令行传值时注意用单引号包住带特殊字符的密码
+
 ## 媒体库
 
 ### 创建媒体库
