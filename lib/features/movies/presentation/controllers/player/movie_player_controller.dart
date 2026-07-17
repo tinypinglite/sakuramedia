@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/media/playback_resume_policy.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
@@ -65,6 +66,8 @@ class MoviePlayerController extends ChangeNotifier {
   );
   int? _lastReportedPositionSeconds;
   Duration? _startupPlaybackPosition;
+  Duration? _resumePlaybackPosition;
+  bool _isResumeDecisionPending = false;
   String? _errorMessage;
   String? _thumbnailErrorMessage;
   String? _subtitleErrorMessage;
@@ -136,12 +139,16 @@ class MoviePlayerController extends ChangeNotifier {
       resolveMediaUrl(rawUrl: _selectedMedia?.playUrl, baseUrl: baseUrl);
 
   Duration? get initialPlaybackPosition => _startupPlaybackPosition;
+  Duration? get resumePlaybackPosition => _resumePlaybackPosition;
+  bool get isResumeDecisionPending => _isResumeDecisionPending;
 
   Future<void> load() async {
     debugPrint(
       '[player-debug] controller_load_start movie=$movieNumber initialMediaId=$initialMediaId initialPositionSeconds=$initialPositionSeconds',
     );
     _stopProgressTimer();
+    _isResumeDecisionPending = false;
+    _resumePlaybackPosition = null;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -159,11 +166,13 @@ class MoviePlayerController extends ChangeNotifier {
       _thumbnailErrorMessage = null;
       _isThumbnailLoading = false;
       _resetSubtitleState();
-      _startupPlaybackPosition = _resolveStartupPlaybackPosition(
-        _selectedMedia,
-      );
+      _startupPlaybackPosition = _resolveExplicitStartupPlaybackPosition();
+      _resumePlaybackPosition = _startupPlaybackPosition == null
+          ? _resolveResumePlaybackPosition(_selectedMedia)
+          : null;
+      _isResumeDecisionPending = _resumePlaybackPosition != null;
       debugPrint(
-        '[player-debug] controller_load_resolved movie=$movieNumber selectedMediaId=${_selectedMedia?.mediaId} hasPlayUrl=${_selectedMedia?.hasPlayableUrl} storedProgress=${_selectedMedia?.progress?.lastPositionSeconds} startupPositionSeconds=${_startupPlaybackPosition?.inSeconds}',
+        '[player-debug] controller_load_resolved movie=$movieNumber selectedMediaId=${_selectedMedia?.mediaId} hasPlayUrl=${_selectedMedia?.hasPlayableUrl} storedProgress=${_selectedMedia?.progress?.lastPositionSeconds} startupPositionSeconds=${_startupPlaybackPosition?.inSeconds} resumePositionSeconds=${_resumePlaybackPosition?.inSeconds}',
       );
       _currentPlaybackSeconds = _startupPlaybackPosition?.inSeconds ?? 0;
       _lastReportedPositionSeconds = _startupPlaybackPosition?.inSeconds;
@@ -185,6 +194,8 @@ class MoviePlayerController extends ChangeNotifier {
       _isThumbnailLoading = false;
       _resetSubtitleState();
       _startupPlaybackPosition = null;
+      _resumePlaybackPosition = null;
+      _isResumeDecisionPending = false;
       _setActiveThumbnailIndex(null);
       _errorMessage = _messageForError(error);
     } finally {
@@ -403,6 +414,16 @@ class MoviePlayerController extends ChangeNotifier {
     }
   }
 
+  /// 续播提示已被继续、拒绝、超时或手动 seek 处理，允许后续进度覆盖旧记录。
+  void resolveResumePrompt() {
+    if (!_isResumeDecisionPending) {
+      return;
+    }
+    _isResumeDecisionPending = false;
+    _resumePlaybackPosition = null;
+    notifyListeners();
+  }
+
   Future<void> flushPlaybackProgress() async {
     await _reportProgressIfNeeded();
   }
@@ -425,24 +446,35 @@ class MoviePlayerController extends ChangeNotifier {
     return null;
   }
 
-  Duration? _resolveStartupPlaybackPosition(MovieMediaItemDto? media) {
+  Duration? _resolveExplicitStartupPlaybackPosition() {
     if (initialPositionSeconds != null && initialPositionSeconds! > 0) {
       debugPrint(
-        '[player-debug] startup_position_source=requested requested=$initialPositionSeconds mediaId=${media?.mediaId}',
+        '[player-debug] startup_position_source=requested requested=$initialPositionSeconds mediaId=${_selectedMedia?.mediaId}',
       );
       return Duration(seconds: initialPositionSeconds!);
     }
 
+    debugPrint(
+      '[player-debug] startup_position_source=none mediaId=${_selectedMedia?.mediaId}',
+    );
+    return null;
+  }
+
+  Duration? _resolveResumePlaybackPosition(MovieMediaItemDto? media) {
     final storedSeconds = media?.progress?.lastPositionSeconds ?? 0;
-    if (storedSeconds > 0) {
+    final position = resolvePlaybackResumePosition(
+      storedPositionSeconds: storedSeconds,
+      durationSeconds: media?.durationSeconds ?? 0,
+    );
+    if (position != null) {
       debugPrint(
-        '[player-debug] startup_position_source=stored stored=$storedSeconds mediaId=${media?.mediaId}',
+        '[player-debug] resume_position_source=stored stored=$storedSeconds mediaId=${media?.mediaId}',
       );
-      return Duration(seconds: storedSeconds);
+      return position;
     }
 
     debugPrint(
-      '[player-debug] startup_position_source=none mediaId=${media?.mediaId}',
+      '[player-debug] resume_position_source=none stored=$storedSeconds mediaId=${media?.mediaId}',
     );
     return null;
   }
@@ -496,7 +528,7 @@ class MoviePlayerController extends ChangeNotifier {
 
   Future<void> _reportProgressIfNeeded() async {
     final media = _selectedMedia;
-    if (media == null) {
+    if (media == null || _isResumeDecisionPending) {
       return;
     }
     final positionSeconds = _currentPlaybackSeconds;

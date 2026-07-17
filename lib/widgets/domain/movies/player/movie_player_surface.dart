@@ -10,6 +10,8 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/video/initial_seek_guard.dart';
+import 'package:sakuramedia/widgets/base/media/video/playback_resume_prompt.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
@@ -26,6 +28,8 @@ class MoviePlayerSurface extends StatefulWidget {
     required this.resolvedUrl,
     required this.surfaceController,
     this.initialPosition,
+    this.resumePosition,
+    this.onResumePromptResolved,
     this.onPositionChanged,
     this.onPlayingChanged,
     this.onCompleted,
@@ -41,7 +45,13 @@ class MoviePlayerSurface extends StatefulWidget {
   final String movieNumber;
   final String resolvedUrl;
   final MoviePlayerSurfaceController surfaceController;
+
+  /// 调用方明确指定的起播位置（如从时刻/缩略图进入），不显示续播提示。
   final Duration? initialPosition;
+
+  /// 历史播放位置：媒体始终先从头播放，待 surface 可安全 seek 后再询问用户。
+  final Duration? resumePosition;
+  final VoidCallback? onResumePromptResolved;
   final ValueChanged<Duration>? onPositionChanged;
   final ValueChanged<bool>? onPlayingChanged;
 
@@ -167,6 +177,7 @@ class MoviePlayerSurfaceOpenCoordinator {
     required Duration? initialPosition,
     required bool Function() shouldContinue,
     required VoidCallback markReady,
+    Future<void> Function()? waitUntilSeekReady,
   }) async {
     final startupPosition =
         initialPosition != null && initialPosition > Duration.zero
@@ -175,7 +186,8 @@ class MoviePlayerSurfaceOpenCoordinator {
     debugPrint(
       '[player-debug] surface_open_begin url=$resolvedUrl initialPositionSeconds=${initialPosition?.inSeconds} startupPositionSeconds=${startupPosition?.inSeconds}',
     );
-    await driver.open(resolvedUrl, startPosition: startupPosition, play: false);
+    final openPosition = waitUntilSeekReady == null ? startupPosition : null;
+    await driver.open(resolvedUrl, startPosition: openPosition, play: false);
     if (!shouldContinue()) {
       debugPrint('[player-debug] surface_open_abort_after=open');
       return;
@@ -193,6 +205,15 @@ class MoviePlayerSurfaceOpenCoordinator {
     if (!shouldContinue()) {
       debugPrint('[player-debug] surface_open_abort_after=wait_first_frame');
       return;
+    }
+
+    if (waitUntilSeekReady != null) {
+      debugPrint('[player-debug] surface_open_step=wait_seek_ready');
+      await waitUntilSeekReady();
+      if (!shouldContinue()) {
+        debugPrint('[player-debug] surface_open_abort_after=wait_seek_ready');
+        return;
+      }
     }
 
     if (startupPosition != null) {
@@ -291,6 +312,11 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
   double? _previousVoDelayedFrameCount;
   double? _previousMistimedFrameCount;
   MoviePlayerMobileDrawerType? _activeMobileDrawer;
+  Duration? _pendingInitialSeek;
+  bool _resumePromptVisible = false;
+  bool _resumePromptResolved = true;
+  Duration? _lastResumePromptPosition;
+  DateTime? _lastResumePromptPositionAt;
   Duration? _startupSeekTarget;
   DateTime? _startupSeekStartedAt;
   bool _startupSeekSettled = true;
@@ -335,7 +361,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       ),
     );
     _seekSubscription = widget.surfaceController.seekStream.listen(
-      _player.seek,
+      _handleSurfaceSeekRequested,
     );
     _playSubscription = widget.surfaceController.playStream.listen((_) {
       unawaited(_player.play());
@@ -343,6 +369,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     _positionSubscription = _player.stream.position.listen((position) {
       widget.onPositionChanged?.call(position);
       _maybeRetryStartupSeek(position);
+      _handleResumePromptPosition(position);
     });
     _playingSubscription = _player.stream.playing.listen((playing) {
       widget.onPlayingChanged?.call(playing);
@@ -419,7 +446,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     if (oldWidget.surfaceController != widget.surfaceController) {
       _seekSubscription?.cancel();
       _seekSubscription = widget.surfaceController.seekStream.listen(
-        _player.seek,
+        _handleSurfaceSeekRequested,
       );
       _playSubscription?.cancel();
       _playSubscription = widget.surfaceController.playStream.listen((_) {
@@ -436,6 +463,17 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       _isInfoSideDrawerOpen = false;
       _hasPlaybackError = false;
       unawaited(_openMedia());
+    }
+    if (oldWidget.resumePosition != widget.resumePosition) {
+      if (widget.resumePosition == null) {
+        _resumePromptVisible = false;
+        _resumePromptResolved = true;
+      } else {
+        _resumePromptResolved = false;
+        if (_readiness.isReady) {
+          _showResumePrompt();
+        }
+      }
     }
     if (oldWidget.useTouchOptimizedControls &&
         !widget.useTouchOptimizedControls) {
@@ -477,6 +515,9 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     _startupSeekRetryCount = 0;
     _startupSeekNearTargetSamples = 0;
     _startupSeekSettled = _startupSeekTarget == null;
+    _pendingInitialSeek = null;
+    _resumePromptVisible = false;
+    _resumePromptResolved = widget.resumePosition == null;
     debugPrint(
       '[player-debug] surface_state_open_media requestId=$requestId url=${widget.resolvedUrl} initialPositionSeconds=${widget.initialPosition?.inSeconds} startupTargetSeconds=${_startupSeekTarget?.inSeconds}',
     );
@@ -487,7 +528,16 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
         resolvedUrl: widget.resolvedUrl,
         initialPosition: widget.initialPosition,
         shouldContinue: () => mounted && requestId == _openRequestId,
-        markReady: _readiness.markReady,
+        waitUntilSeekReady: _guardsInitialSeek
+            ? () => waitUntilInitialSeekReady(
+                  firstFrame: _controller.waitUntilFirstFrameRendered,
+                  positionStream: _player.stream.position,
+                  currentPosition: () => _player.state.position,
+                  isPlaying: () => _player.state.playing,
+                  isBuffering: () => _player.state.buffering,
+                )
+            : null,
+        markReady: _markSurfaceReady,
       );
     } catch (error) {
       if (mounted && requestId == _openRequestId) {
@@ -496,6 +546,98 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       return;
     }
     unawaited(_refreshNativePlaybackInfo());
+  }
+
+  bool get _guardsInitialSeek =>
+      widget.mediaSourceKind != MoviePlayerMediaSourceKind.local;
+
+  void _handleSurfaceSeekRequested(Duration position) {
+    if (!_resumePromptResolved) {
+      _resolveResumePrompt();
+    }
+    if (_guardsInitialSeek && !_readiness.isReady) {
+      _pendingInitialSeek = position;
+      return;
+    }
+    unawaited(_player.seek(position));
+  }
+
+  void _markSurfaceReady() {
+    _readiness.markReady();
+    final pendingSeek = _pendingInitialSeek;
+    _pendingInitialSeek = null;
+    if (pendingSeek != null) {
+      unawaited(_player.seek(pendingSeek));
+    }
+    if (!_resumePromptResolved && widget.resumePosition != null) {
+      _showResumePrompt();
+    }
+  }
+
+  void _showResumePrompt() {
+    _lastResumePromptPosition = _player.state.position;
+    _lastResumePromptPositionAt = DateTime.now();
+    if (!mounted) {
+      _resumePromptVisible = true;
+      return;
+    }
+    setState(() => _resumePromptVisible = true);
+  }
+
+  void _handleResumePromptPosition(Duration position) {
+    if (!_resumePromptVisible || _resumePromptResolved) {
+      return;
+    }
+    final previousPosition = _lastResumePromptPosition;
+    final previousAt = _lastResumePromptPositionAt;
+    final now = DateTime.now();
+    _lastResumePromptPosition = position;
+    _lastResumePromptPositionAt = now;
+    if (previousPosition == null || previousAt == null) {
+      return;
+    }
+    final elapsedMilliseconds = now.difference(previousAt).inMilliseconds;
+    final expectedForwardMilliseconds =
+        (elapsedMilliseconds * _player.state.rate).round() + 2000;
+    final deltaMilliseconds =
+        position.inMilliseconds - previousPosition.inMilliseconds;
+    if (deltaMilliseconds < -2000 ||
+        deltaMilliseconds > expectedForwardMilliseconds) {
+      _resolveResumePrompt();
+    }
+  }
+
+  void _resolveResumePrompt() {
+    if (_resumePromptResolved) {
+      return;
+    }
+    _resumePromptResolved = true;
+    if (mounted) {
+      setState(() => _resumePromptVisible = false);
+    } else {
+      _resumePromptVisible = false;
+    }
+    widget.onResumePromptResolved?.call();
+  }
+
+  void _resumePlayback() {
+    final position = widget.resumePosition;
+    if (position == null) {
+      _resolveResumePrompt();
+      return;
+    }
+    _resumePromptResolved = true;
+    setState(() => _resumePromptVisible = false);
+    unawaited(() async {
+      try {
+        await _player.seek(position);
+        await _player.play();
+      } finally {
+        if (mounted) {
+          widget.onResumePromptResolved?.call();
+        }
+      }
+    }());
   }
 
   void _markPlaybackFailed(String error) {
@@ -979,6 +1121,13 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       fit: StackFit.expand,
       children: [
         videoSurface,
+        if (_resumePromptVisible && widget.resumePosition != null)
+          PlaybackResumePromptOverlay(
+            position: widget.resumePosition!,
+            useTouchOptimizedLayout: widget.useTouchOptimizedControls,
+            onResume: _resumePlayback,
+            onStartOver: _resolveResumePrompt,
+          ),
         if (widget.useTouchOptimizedControls)
           buildMoviePlayerMobileDrawerOverlay(
             context: context,

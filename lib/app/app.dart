@@ -8,6 +8,7 @@ import 'package:sakuramedia/app/app_page_state_cache.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_state.dart';
 import 'package:sakuramedia/app/app_version_info_controller.dart';
+import 'package:sakuramedia/app/web_platform_notice.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/sse_event_stream_client.dart';
 import 'package:sakuramedia/core/session/credential_store.dart';
@@ -335,12 +336,16 @@ class _MyAppState extends State<MyApp> {
                         : sakuraDesktopThemeData,
                 routerConfig: _router,
                 builder: (context, child) {
-                  return AppImageFullscreenHost(
-                    child: ScrollConfiguration(
-                      behavior: const MaterialScrollBehavior().copyWith(
-                        dragDevices: kAppScrollDragDevices,
+                  return WebPlatformNoticeHost(
+                    enabled: _platform == AppPlatform.web,
+                    navigatorKey: _router.routerDelegate.navigatorKey,
+                    child: AppImageFullscreenHost(
+                      child: ScrollConfiguration(
+                        behavior: const MaterialScrollBehavior().copyWith(
+                          dragDevices: kAppScrollDragDevices,
+                        ),
+                        child: child ?? const SizedBox.shrink(),
                       ),
-                      child: child ?? const SizedBox.shrink(),
                     ),
                   );
                 },

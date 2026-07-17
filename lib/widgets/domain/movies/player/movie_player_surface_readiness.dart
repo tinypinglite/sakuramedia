@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 
 class MoviePlayerSurfaceReadiness extends ChangeNotifier {
@@ -57,6 +58,9 @@ class MoviePlayerSurfaceFrame extends StatelessWidget {
               child: ColoredBox(
                 key: const Key('movie-player-surface-ready-mask'),
                 color: backgroundColor,
+                child: const Center(
+                  child: VideoLoadingIndicator(label: '正在加载影片…'),
+                ),
               ),
             ),
           if (!isReady && onBackPressed != null)

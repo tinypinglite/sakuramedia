@@ -81,6 +81,36 @@ void main() {
       sakuraDesktopThemeData.appTextScale.s14,
     );
   });
+
+  testWidgets('MyApp shows the platform notice once for web', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MyApp(platformOverride: AppPlatform.web));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('web-platform-notice-dialog')), findsOneWidget);
+    expect(find.text('建议使用 SakuraMedia 客户端'), findsOneWidget);
+    expect(find.text('我知道了'), findsOneWidget);
+
+    await tester.tap(find.text('我知道了'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('web-platform-notice-dialog')), findsNothing);
+
+    final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    (materialApp.routerConfig! as GoRouter).go(desktopOverviewPath);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('web-platform-notice-dialog')), findsNothing);
+  });
+
+  testWidgets('MyApp does not show the platform notice outside web', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MyApp(platformOverride: AppPlatform.desktop));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('web-platform-notice-dialog')), findsNothing);
+  });
 }
 
 GoRouter _routerFrom(WidgetTester tester) {

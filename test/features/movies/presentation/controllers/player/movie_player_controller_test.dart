@@ -198,7 +198,10 @@ void main() {
     expect(controller.selectedMedia?.mediaId, 100);
     expect(controller.thumbnails, hasLength(3));
     expect(thumbnailRequests, <int>[100]);
-    expect(controller.currentPlaybackSeconds, 12);
+    expect(controller.currentPlaybackSeconds, 0);
+    expect(controller.initialPlaybackPosition, isNull);
+    expect(controller.resumePlaybackPosition, const Duration(seconds: 12));
+    expect(controller.isResumeDecisionPending, isTrue);
     expect(controller.activeThumbnailIndex, 0);
   });
 
@@ -599,7 +602,7 @@ void main() {
   });
 
   test(
-    'initial playback position remains the startup position after playback updates',
+    'stored progress becomes a resume prompt instead of a startup seek',
     () async {
       final controller = MoviePlayerController(
         movieNumber: 'ABC-001',
@@ -621,14 +624,42 @@ void main() {
       addTearDown(controller.dispose);
       await controller.load();
 
-      expect(controller.initialPlaybackPosition, const Duration(seconds: 12));
+      expect(controller.initialPlaybackPosition, isNull);
+      expect(controller.resumePlaybackPosition, const Duration(seconds: 12));
 
       controller.handlePlaybackPosition(const Duration(seconds: 35));
 
       expect(controller.currentPlaybackSeconds, 35);
-      expect(controller.initialPlaybackPosition, const Duration(seconds: 12));
+      expect(controller.resumePlaybackPosition, const Duration(seconds: 12));
     },
   );
+
+  test('explicit entry position bypasses the resume prompt', () async {
+    final controller = MoviePlayerController(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      initialPositionSeconds: 90,
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles: ({required movieNumber}) async =>
+          buildSubtitleList(),
+      updateMediaProgress: ({
+        required mediaId,
+        required positionSeconds,
+      }) async =>
+          MovieMediaProgressDto(
+        lastPositionSeconds: positionSeconds,
+        lastWatchedAt: null,
+      ),
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+
+    expect(controller.initialPlaybackPosition, const Duration(seconds: 90));
+    expect(controller.resumePlaybackPosition, isNull);
+    expect(controller.isResumeDecisionPending, isFalse);
+  });
 
   test(
     'playing state starts periodic progress reporting and pauses stop it',
@@ -657,6 +688,7 @@ void main() {
       );
       addTearDown(controller.dispose);
       await controller.load();
+      controller.resolveResumePrompt();
 
       controller.handlePlaybackPosition(const Duration(seconds: 21));
       controller.handlePlaybackPlayingChanged(true);
@@ -695,6 +727,7 @@ void main() {
     );
     addTearDown(controller.dispose);
     await controller.load();
+    controller.resolveResumePrompt();
 
     controller.handlePlaybackPosition(const Duration(seconds: 30));
     controller.handlePlaybackPlayingChanged(true);
@@ -731,6 +764,11 @@ void main() {
     await controller.load();
 
     controller.handlePlaybackPosition(const Duration(seconds: 42));
+    await controller.flushPlaybackProgress();
+    expect(progressReports, isEmpty);
+
+    controller.resolveResumePrompt();
+
     await controller.flushPlaybackProgress();
     await controller.flushPlaybackProgress();
 

@@ -18,6 +18,7 @@ import 'package:sakuramedia/features/shared/presentation/collection_playback_han
 import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_episode_queue_item.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_filmstrip_controller.dart';
@@ -314,11 +315,8 @@ class _DesktopVideoCollectionPlayPageState
       return wrapWithMoviePlayerBackButton(
         onBackPressed: _handleBack,
         child: const Center(
-          child: SizedBox(
+          child: VideoLoadingIndicator(
             key: Key('video-collection-play-loading'),
-            width: 40,
-            height: 40,
-            child: CircularProgressIndicator(),
           ),
         ),
       );
@@ -333,7 +331,7 @@ class _DesktopVideoCollectionPlayPageState
     if (videoController == null) {
       return wrapWithMoviePlayerBackButton(
         onBackPressed: _handleBack,
-        child: const Center(child: CircularProgressIndicator()),
+        child: const Center(child: VideoLoadingIndicator()),
       );
     }
     // 左：原沉浸式播放器 + 「选集」浮层（原样保留）；右：「整部合集」关键帧面板。
@@ -393,6 +391,7 @@ class _DesktopVideoCollectionPlayPageState
     return ThemedVideoPlayer(
       videoController: videoController,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
+      guardInitialSeek: true,
       videoKey: const Key('video-collection-play-video'),
       displaySeekBar: !useMerged,
       topControls: buildMoviePlayerTopControls(

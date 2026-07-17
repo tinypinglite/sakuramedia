@@ -5,6 +5,7 @@ import 'package:media_kit_video/media_kit_video_controls/media_kit_video_control
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
+import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_speed_button.dart';
@@ -62,6 +63,7 @@ void main() {
         mask.color,
         sakuraThemeData.appColors.movieDetailHeroBackgroundStart,
       );
+      expect(find.byType(VideoLoadingIndicator), findsOneWidget);
     });
 
     testWidgets('hides readiness mask once the surface is ready', (
@@ -131,6 +133,53 @@ void main() {
         ]);
       },
     );
+
+    test('waits for initial seek readiness before exposing controls', () async {
+      final driver = _FakeMoviePlayerSurfacePlaybackDriver();
+      var markedReady = false;
+
+      await const MoviePlayerSurfaceOpenCoordinator().open(
+        driver: driver,
+        resolvedUrl: 'https://example.com/video.mp4',
+        initialPosition: null,
+        shouldContinue: () => true,
+        waitUntilSeekReady: () async {
+          driver.operations.add('waitUntilSeekReady');
+        },
+        markReady: () => markedReady = true,
+      );
+
+      expect(driver.operations, <String>[
+        'open:https://example.com/video.mp4:start=null:play=false',
+        'play',
+        'waitUntilFirstFrameRendered',
+        'waitUntilSeekReady',
+      ]);
+      expect(markedReady, isTrue);
+    });
+
+    test('defers requested seek until remote media is seek-ready', () async {
+      final driver = _FakeMoviePlayerSurfacePlaybackDriver();
+
+      await const MoviePlayerSurfaceOpenCoordinator().open(
+        driver: driver,
+        resolvedUrl: 'https://example.com/video.mp4',
+        initialPosition: const Duration(seconds: 61),
+        shouldContinue: () => true,
+        waitUntilSeekReady: () async {
+          driver.operations.add('waitUntilSeekReady');
+        },
+        markReady: () {},
+      );
+
+      expect(driver.operations, <String>[
+        'open:https://example.com/video.mp4:start=null:play=false',
+        'play',
+        'waitUntilFirstFrameRendered',
+        'waitUntilSeekReady',
+        'seek:0:01:01.000000',
+      ]);
+    });
 
     test(
       'stops before follow-up actions when request is no longer current',
@@ -318,6 +367,59 @@ void main() {
       expect(themeData.volumeGesture, isTrue);
       expect(themeData.brightnessGesture, isTrue);
       expect(themeData.seekOnDoubleTap, isTrue);
+    });
+
+    test('mobile controls theme keeps progress visible while seek is disabled',
+        () {
+      final themeData = buildMoviePlayerMobileControlsThemeData(
+        theme: ThemeData.light(),
+        topControls: const <Widget>[],
+        bottomControls: const <Widget>[],
+        seekEnabled: false,
+      );
+
+      expect(themeData.displaySeekBar, isTrue);
+      expect(themeData.seekGesture, isFalse);
+      expect(themeData.seekOnDoubleTap, isFalse);
+    });
+
+    test('desktop controls theme keeps the built-in progress bar visible', () {
+      final themeData = buildMoviePlayerDesktopControlsThemeData(
+        theme: ThemeData.light(),
+        topControls: const <Widget>[],
+        bottomControls: const <Widget>[],
+      );
+
+      expect(themeData.displaySeekBar, isTrue);
+    });
+
+    testWidgets('mobile and desktop controls share the buffering indicator', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: Builder(
+            builder: (context) => Column(
+              children: [
+                buildMoviePlayerMobileControlsThemeData(
+                  theme: Theme.of(context),
+                  topControls: const <Widget>[],
+                  bottomControls: const <Widget>[],
+                ).bufferingIndicatorBuilder!(context),
+                buildMoviePlayerDesktopControlsThemeData(
+                  theme: Theme.of(context),
+                  topControls: const <Widget>[],
+                  bottomControls: const <Widget>[],
+                ).bufferingIndicatorBuilder!(context),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(VideoLoadingIndicator), findsNWidgets(2));
+      expect(find.text('正在缓冲…'), findsNWidgets(2));
     });
 
     test('top controls render back button then current movie number', () {

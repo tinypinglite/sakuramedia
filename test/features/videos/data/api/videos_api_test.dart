@@ -166,4 +166,25 @@ void main() {
     expect(body.containsKey('tag_ids'), isFalse);
     expect(body.containsKey('person_ids'), isFalse);
   });
+
+  test('updateMediaProgress 写回普通视频媒体进度', () async {
+    adapter.enqueueJson(
+      method: 'PUT',
+      path: '/media/31/progress',
+      body: <String, dynamic>{
+        'last_position_seconds': 125,
+        'last_watched_at': '2026-01-03T10:05:00',
+      },
+    );
+
+    final progress = await videosApi.updateMediaProgress(
+      mediaId: 31,
+      positionSeconds: 125,
+    );
+
+    expect(progress.lastPositionSeconds, 125);
+    expect(adapter.requests.single.body, <String, dynamic>{
+      'position_seconds': 125,
+    });
+  });
 }

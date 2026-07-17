@@ -23,6 +23,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
+import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface.dart';
@@ -34,6 +35,8 @@ typedef MoviePlayerSurfaceBuilder = Widget Function(
   String resolvedUrl,
   MoviePlayerSurfaceController surfaceController,
   Duration? initialPosition,
+  Duration? resumePosition,
+  VoidCallback onResumePromptResolved,
   ValueChanged<Duration>? onPositionChanged,
   ValueChanged<bool>? onPlayingChanged,
   MoviePlayerSubtitleState subtitleState,
@@ -183,6 +186,8 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
         resolvedUrl,
         _surfaceController,
         _controller.initialPlaybackPosition,
+        _controller.resumePlaybackPosition,
+        _controller.resolveResumePrompt,
         _controller.handlePlaybackPosition,
         _controller.handlePlaybackPlayingChanged,
         _controller.subtitleState,
@@ -197,6 +202,8 @@ class _DesktopMoviePlayerPageState extends State<DesktopMoviePlayerPage> {
       resolvedUrl: resolvedUrl,
       surfaceController: _surfaceController,
       initialPosition: _controller.initialPlaybackPosition,
+      resumePosition: _controller.resumePlaybackPosition,
+      onResumePromptResolved: _controller.resolveResumePrompt,
       onPositionChanged: _controller.handlePlaybackPosition,
       onPlayingChanged: _controller.handlePlaybackPlayingChanged,
       subtitleState: _controller.subtitleState,
@@ -552,7 +559,13 @@ class _MoviePlayerLoadingPanel extends StatelessWidget {
     return ColoredBox(
       key: const Key('movie-player-loading-state'),
       color: context.appColors.movieDetailHeroBackgroundStart,
-      child: const SizedBox.expand(key: Key('movie-player-left-blackout')),
+      child: const Stack(
+        fit: StackFit.expand,
+        children: [
+          SizedBox.expand(key: Key('movie-player-left-blackout')),
+          Center(child: VideoLoadingIndicator(label: '正在加载影片…')),
+        ],
+      ),
     );
   }
 }

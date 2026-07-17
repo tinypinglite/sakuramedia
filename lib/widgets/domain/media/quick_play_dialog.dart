@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
+import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 「点小图 → 弹小窗立刻播」的桌面轻量播放弹窗。
@@ -28,6 +29,7 @@ class QuickPlayDialog extends StatefulWidget {
     required this.resolvePlayUrl,
     required this.noPlayableMessage,
     this.errorFallback = '加载失败，请重试',
+    this.guardInitialSeek = false,
   });
 
   final String title;
@@ -46,6 +48,9 @@ class QuickPlayDialog extends StatefulWidget {
 
   /// resolvePlayUrl throw 时的兜底错误文案。
   final String errorFallback;
+
+  /// 完整媒体启用初始化 seek 保护；切片是本地产物，保持关闭。
+  final bool guardInitialSeek;
 
   @override
   State<QuickPlayDialog> createState() => _QuickPlayDialogState();
@@ -150,11 +155,12 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
     }
     final controller = _controller;
     if (_loading || controller == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: VideoLoadingIndicator());
     }
     return ThemedVideoPlayer(
       videoController: controller,
       useTouchOptimizedControls: false,
+      guardInitialSeek: widget.guardInitialSeek,
       videoKey: widget.videoKey,
       bottomControls: const <Widget>[
         MaterialPlayOrPauseButton(),
@@ -180,6 +186,7 @@ Future<void> showVideoQuickPlayDialog(
       fallbackTitle: '视频',
       videoKey: const Key('video-quick-play-video'),
       noPlayableMessage: '暂无可播放的媒体',
+      guardInitialSeek: true,
       resolvePlayUrl: (innerContext) async {
         final videosApi = innerContext.read<VideosApi>();
         final baseUrl = innerContext.read<SessionStore>().baseUrl;
@@ -201,4 +208,3 @@ Future<void> showVideoQuickPlayDialog(
     ),
   );
 }
-

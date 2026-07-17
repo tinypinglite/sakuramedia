@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 
 /// 「层级二」轻量播放器的控制主题 / 控件 builder 构建函数。
 ///
@@ -27,30 +28,38 @@ Widget Function(VideoState state) resolveMoviePlayerVideoControlsBuilder({
       : buildMoviePlayerDesktopVideoControls;
 }
 
+@visibleForTesting
+Widget buildMoviePlayerBufferingIndicator(BuildContext context) {
+  return const VideoLoadingIndicator(label: '正在缓冲…');
+}
+
 MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
   required ThemeData theme,
   required List<Widget> topControls,
   required List<Widget> bottomControls,
   bool displaySeekBar = true,
+  bool seekEnabled = true,
 }) {
   final overlayTokens = theme.appOverlayTokens;
   return MaterialVideoControlsThemeData(
     horizontalGestureSensitivity: 3000,
-    seekOnDoubleTap: true,
+    seekOnDoubleTap: seekEnabled,
     seekBarMargin: EdgeInsets.fromLTRB(
       overlayTokens.playerSeekBarHorizontalInset,
       0,
       overlayTokens.playerSeekBarHorizontalInset,
       overlayTokens.playerSeekBarBottomInset,
     ),
-    seekGesture: true,
+    seekGesture: seekEnabled,
     volumeGesture: true,
     speedUpOnLongPress: true,
     brightnessGesture: true,
+    bufferingIndicatorBuilder: buildMoviePlayerBufferingIndicator,
     seekBarThumbColor: theme.colorScheme.primary,
     seekBarPositionColor: theme.colorScheme.primary,
     seekBarHeight: 6,
     seekBarThumbSize: 14,
+    // 初始化 seek 保护期只禁用交互，不隐藏进度条，避免完整媒体看起来没有进度。
     displaySeekBar: displaySeekBar,
     topButtonBar: topControls,
     topButtonBarMargin: EdgeInsets.fromLTRB(
@@ -71,6 +80,7 @@ MaterialDesktopVideoControlsThemeData buildMoviePlayerDesktopControlsThemeData({
 }) {
   final overlayTokens = theme.appOverlayTokens;
   return MaterialDesktopVideoControlsThemeData(
+    bufferingIndicatorBuilder: buildMoviePlayerBufferingIndicator,
     seekBarThumbColor: theme.colorScheme.primary,
     seekBarPositionColor: theme.colorScheme.primary,
     seekBarHeight: 6,
