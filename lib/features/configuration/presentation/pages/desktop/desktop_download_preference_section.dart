@@ -117,14 +117,24 @@ class _DesktopDownloadPreferenceSectionState
       ),
       headerBottomSpacing: spacing.md,
       headerTrailing: const AppBadge(
-        label: '调度重启',
+        label: '重启容器生效',
         tone: AppBadgeTone.warning,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '未显式选择下载器时，系统按此顺序自动选择。手动搜索和提交立即生效；自动下载任务需重启 APS 调度进程。',
+            '未显式选择下载器时，系统按此顺序自动选择。手动搜索和提交立即生效；自动下载任务需重启容器。',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
+          ),
+          SizedBox(height: spacing.sm),
+          Text(
+            '注意：PT 种子只能通过 qBittorrent 下载，不会走 115 离线下载。',
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s12,
@@ -191,6 +201,6 @@ class _DesktopDownloadPreferenceSectionState
 
 String _saveMessage(List<PendingRestartFieldDto> pendingRestart) {
   return pendingRestart.any((item) => item.restart == 'scheduler')
-      ? '已保存，需重启 APS 调度进程才生效'
+      ? '已保存，需重启容器才生效'
       : '已保存';
 }

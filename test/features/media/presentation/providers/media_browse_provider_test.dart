@@ -1,18 +1,21 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
-import 'package:sakuramedia/features/media/presentation/media_browse_controller.dart';
 import 'package:sakuramedia/features/media/presentation/media_browse_filter_state.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_browse_provider.dart';
 
-import '../../../support/fake_http_client_adapter.dart';
+import '../../../../support/fake_http_client_adapter.dart';
 
 void main() {
   late SessionStore sessionStore;
   late ApiClient apiClient;
   late FakeHttpClientAdapter adapter;
   late MediaApi mediaApi;
+  late ProviderContainer container;
 
   setUp(() async {
     sessionStore = SessionStore.inMemory();
@@ -27,33 +30,30 @@ void main() {
     apiClient.rawDio.httpClientAdapter = adapter;
     apiClient.rawRefreshDio.httpClientAdapter = adapter;
     mediaApi = MediaApi(apiClient: apiClient);
+    container = ProviderContainer(
+      overrides: [mediaApiProvider.overrideWithValue(mediaApi)],
+      retry: (_, __) => null,
+    );
   });
 
   tearDown(() {
+    container.dispose();
     apiClient.dispose();
     sessionStore.dispose();
   });
 
-  test('initialize loads first page with current filter', () async {
+  test('build loads first page with default filter (no sort param)', () async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/media',
-      body: _mediaPage(
-        items: [_javItemJson(id: 1)],
-        total: 1,
-        page: 1,
-      ),
+      body: _mediaPage(items: [_javItemJson(id: 1)], total: 1, page: 1),
     );
 
-    final controller = MediaBrowseController(mediaApi: mediaApi);
-    addTearDown(controller.dispose);
+    final state = await container.read(mediaBrowseProvider.future);
 
-    await controller.initialize();
-
-    expect(controller.items, hasLength(1));
-    expect(controller.items.first.id, 1);
-    expect(controller.filterState.isDefault, isTrue);
-    // 默认排序不下发 sort 参数
+    expect(state.paged.items, hasLength(1));
+    expect(state.paged.items.first.id, 1);
+    expect(state.filter.isDefault, isTrue);
     expect(
       adapter.requests.single.uri.queryParameters.containsKey('sort'),
       isFalse,
@@ -67,11 +67,9 @@ void main() {
       path: '/media',
       body: _mediaPage(items: [_javItemJson(id: 1)], total: 1, page: 1),
     );
-    final controller = MediaBrowseController(mediaApi: mediaApi);
-    addTearDown(controller.dispose);
-    await controller.initialize();
-    controller.toggleSelection(1);
-    expect(controller.selectionCount, 1);
+    await container.read(mediaBrowseProvider.future);
+    container.read(mediaBrowseProvider.notifier).toggleSelection(1);
+    expect(container.read(mediaBrowseProvider).requireValue.selectionCount, 1);
 
     adapter.enqueueJson(
       method: 'GET',
@@ -79,17 +77,22 @@ void main() {
       body: _mediaPage(items: const [], total: 0, page: 1),
     );
 
-    await controller.applyFilterState(
-      controller.filterState.copyWith(
-        kind: MediaListItemKind.jav,
-        libraryId: 8,
-        sortField: MediaBrowseSortField.heat,
-        sortDirection: MediaBrowseSortDirection.desc,
-      ),
-    );
+    await container.read(mediaBrowseProvider.notifier).applyFilterState(
+          const MediaBrowseFilterState().copyWith(
+            kind: MediaListItemKind.jav,
+            libraryId: 8,
+            sortField: MediaBrowseSortField.heat,
+            sortDirection: MediaBrowseSortDirection.desc,
+          ),
+        );
 
-    expect(controller.selectionCount, 0);
-    expect(adapter.requests.last.uri.queryParameters, containsPair('kind', 'jav'));
+    final state = container.read(mediaBrowseProvider).requireValue;
+    expect(state.selectionCount, 0);
+    expect(state.filter.kind, MediaListItemKind.jav);
+    expect(
+      adapter.requests.last.uri.queryParameters,
+      containsPair('kind', 'jav'),
+    );
     expect(
       adapter.requests.last.uri.queryParameters,
       containsPair('library_id', '8'),
@@ -107,16 +110,17 @@ void main() {
       path: '/media',
       body: _mediaPage(items: const [], total: 0, page: 1),
     );
-    final controller = MediaBrowseController(mediaApi: mediaApi);
-    addTearDown(controller.dispose);
-    await controller.initialize();
+    await container.read(mediaBrowseProvider.future);
 
-    await controller.applyFilterState(controller.filterState.copyWith());
+    await container
+        .read(mediaBrowseProvider.notifier)
+        .applyFilterState(const MediaBrowseFilterState().copyWith());
 
     expect(adapter.hitCount('GET', '/media'), 1);
   });
 
-  test('removeItemsByIds prunes list and adjusts total', () async {
+  test('removeItemsByIds prunes list, adjusts total, clears selection',
+      () async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/media',
@@ -126,28 +130,40 @@ void main() {
         page: 1,
       ),
     );
-    final controller = MediaBrowseController(mediaApi: mediaApi);
-    addTearDown(controller.dispose);
-    await controller.initialize();
-    controller.toggleSelection(1);
+    await container.read(mediaBrowseProvider.future);
+    container.read(mediaBrowseProvider.notifier).toggleSelection(1);
 
-    controller.removeItemsByIds(const <int>[1, 2]);
+    container.read(mediaBrowseProvider.notifier).removeItemsByIds(const [1, 2]);
 
-    expect(controller.items, isEmpty);
-    expect(controller.total, 3);
-    expect(controller.selectionCount, 0);
+    final state = container.read(mediaBrowseProvider).requireValue;
+    expect(state.paged.items, isEmpty);
+    expect(state.paged.total, 3);
+    expect(state.selectionCount, 0);
   });
 
-  test('selectAllLoaded and clearSelection maintain selection set', () {
-    final controller = MediaBrowseController(mediaApi: mediaApi);
-    addTearDown(controller.dispose);
-    // Pretend items have been loaded via direct injection through
-    // initialization is not needed for pure selection state.
-    controller.setSelected(10, true);
-    controller.setSelected(20, true);
-    expect(controller.isSelected(10), isTrue);
-    controller.clearSelection();
-    expect(controller.selectionCount, 0);
+  test('selectAllLoaded / setSelected / clearSelection', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(
+        items: [_javItemJson(id: 10), _javItemJson(id: 20)],
+        total: 2,
+        page: 1,
+      ),
+    );
+    await container.read(mediaBrowseProvider.future);
+
+    final notifier = container.read(mediaBrowseProvider.notifier);
+    notifier.selectAllLoaded();
+    expect(container.read(mediaBrowseProvider).requireValue.selectionCount, 2);
+    expect(container.read(mediaBrowseProvider).requireValue.isSelected(10),
+        isTrue);
+
+    notifier.setSelected(10, false);
+    expect(container.read(mediaBrowseProvider).requireValue.selectionCount, 1);
+
+    notifier.clearSelection();
+    expect(container.read(mediaBrowseProvider).requireValue.selectionCount, 0);
   });
 }
 

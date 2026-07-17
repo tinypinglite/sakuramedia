@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selectable_tile.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 秒传目标 115 网盘挑选弹窗。
@@ -32,7 +34,7 @@ Future<MediaLibraryDto?> showRapidUploadTargetLibraryDialog(
   );
 }
 
-class _RapidUploadTargetBody extends StatefulWidget {
+class _RapidUploadTargetBody extends HookWidget {
   const _RapidUploadTargetBody({
     required this.selectedCount,
     required this.libraries,
@@ -42,36 +44,26 @@ class _RapidUploadTargetBody extends StatefulWidget {
   final List<MediaLibraryDto> libraries;
 
   @override
-  State<_RapidUploadTargetBody> createState() => _RapidUploadTargetBodyState();
-}
+  Widget build(BuildContext context) {
+    final selectedId = useState<int?>(
+      libraries.length == 1 ? libraries.first.id : null,
+    );
+    final riskAcknowledged = useState(false);
+    final spacing = context.appSpacing;
+    final hasLibraries = libraries.isNotEmpty;
 
-class _RapidUploadTargetBodyState extends State<_RapidUploadTargetBody> {
-  int? _selectedId;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.libraries.length == 1) {
-      _selectedId = widget.libraries.first.id;
-    }
-  }
-
-  MediaLibraryDto? get _selectedLibrary {
-    if (_selectedId == null) {
+    MediaLibraryDto? resolveSelectedLibrary() {
+      final id = selectedId.value;
+      if (id == null) return null;
+      for (final library in libraries) {
+        if (library.id == id) return library;
+      }
       return null;
     }
-    for (final library in widget.libraries) {
-      if (library.id == _selectedId) {
-        return library;
-      }
-    }
-    return null;
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    final hasLibraries = widget.libraries.isNotEmpty;
+    final selectedLibrary = resolveSelectedLibrary();
+    final canSubmit = selectedLibrary != null && riskAcknowledged.value;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,8 +79,8 @@ class _RapidUploadTargetBodyState extends State<_RapidUploadTargetBody> {
         ),
         SizedBox(height: spacing.md),
         Text(
-          '已选 ${widget.selectedCount} 项本地媒体。选择目标 115 网盘后，'
-          '系统会创建后台批次逐个秒传；成功的条目会切换到云端并删除本地文件。',
+          '已选 $selectedCount 项本地媒体。选择目标 115 网盘后，'
+          '系统会创建后台批次逐个秒传。',
           style: resolveAppTextStyle(
             context,
             size: AppTextSize.s12,
@@ -103,10 +95,36 @@ class _RapidUploadTargetBodyState extends State<_RapidUploadTargetBody> {
           )
         else
           _LibraryList(
-            libraries: widget.libraries,
-            selectedId: _selectedId,
-            onSelected: (id) => setState(() => _selectedId = id),
+            libraries: libraries,
+            selectedId: selectedId.value,
+            onSelected: (id) => selectedId.value = id,
           ),
+        SizedBox(height: spacing.lg),
+        const AppNoticeCard(
+          leadingIcon: Icons.warning_amber_rounded,
+          title: '成功后会删除本地文件',
+          description: '每一项秒传成功后，SakuraMedia 会将其切换到 115 云端并删除对应的本地文件。'
+              '该操作不可恢复，请提前确认这些本地文件无需保留。',
+        ),
+        SizedBox(height: spacing.sm),
+        CheckboxListTile(
+          key: const Key('rapid-upload-risk-checkbox'),
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          value: riskAcknowledged.value,
+          onChanged: !hasLibraries
+              ? null
+              : (value) => riskAcknowledged.value = value ?? false,
+          title: Text(
+            '我已了解成功秒传的条目会删除本地文件，且该操作不可恢复。',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.primary,
+            ),
+          ),
+        ),
         SizedBox(height: spacing.xl),
         Row(
           children: [
@@ -125,9 +143,9 @@ class _RapidUploadTargetBodyState extends State<_RapidUploadTargetBody> {
                 label: '开始秒传',
                 variant: AppButtonVariant.primary,
                 icon: const Icon(Icons.cloud_upload_outlined),
-                onPressed: _selectedLibrary == null
+                onPressed: !canSubmit
                     ? null
-                    : () => Navigator.of(context).pop(_selectedLibrary),
+                    : () => Navigator.of(context).pop(selectedLibrary),
               ),
             ),
           ],

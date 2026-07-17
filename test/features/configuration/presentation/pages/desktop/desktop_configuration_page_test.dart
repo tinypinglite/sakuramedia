@@ -21,6 +21,7 @@ import 'package:sakuramedia/features/configuration/presentation/pages/desktop/de
 import 'package:sakuramedia/features/configuration/presentation/providers/llm_settings_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/llm_settings_copy.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/playlists/data/api/playlists_api.dart';
@@ -2020,10 +2021,21 @@ void main() {
           Provider<MoviesApi>.value(value: bundle.moviesApi),
           Provider<PlaylistsApi>.value(value: bundle.playlistsApi),
         ],
-        child: OKToast(
-          child: MaterialApp.router(
-            theme: sakuraThemeData,
-            routerConfig: router,
+        child: ProviderScope(
+          overrides: [
+            llmSettingsApiProvider.overrideWithValue(
+              bundle.movieDescTranslationSettingsApi,
+            ),
+            mediaApiProvider.overrideWithValue(bundle.mediaApi),
+            mediaLibrariesApiProvider.overrideWithValue(
+              bundle.mediaLibrariesApi,
+            ),
+          ],
+          child: OKToast(
+            child: MaterialApp.router(
+              theme: sakuraThemeData,
+              routerConfig: router,
+            ),
           ),
         ),
       ),
@@ -2097,6 +2109,10 @@ Future<void> _pumpPage(
         overrides: [
           llmSettingsApiProvider.overrideWithValue(
             bundle.movieDescTranslationSettingsApi,
+          ),
+          mediaApiProvider.overrideWithValue(bundle.mediaApi),
+          mediaLibrariesApiProvider.overrideWithValue(
+            bundle.mediaLibrariesApi,
           ),
         ],
         child: OKToast(

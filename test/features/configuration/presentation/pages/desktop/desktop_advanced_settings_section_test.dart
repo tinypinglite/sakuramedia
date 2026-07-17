@@ -238,16 +238,17 @@ void main() {
       );
     });
 
-    test('reports api restart when only api-scope fields pending', () {
+    test('reports container restart when only api-scope fields pending', () {
       expect(
         buildAdvancedConfigSaveSuccessMessage(const <PendingRestartFieldDto>[
           PendingRestartFieldDto(field: 'logging.level', restart: 'api'),
         ]),
-        '已保存，需重启 API 进程才生效',
+        '已保存，需重启容器才生效',
       );
     });
 
-    test('reports scheduler restart when only scheduler-scope fields pending',
+    test(
+        'reports container restart when only scheduler-scope fields pending',
         () {
       expect(
         buildAdvancedConfigSaveSuccessMessage(const <PendingRestartFieldDto>[
@@ -260,13 +261,15 @@ void main() {
             restart: 'scheduler',
           ),
         ]),
-        '已保存，需重启 aps 调度进程才生效',
+        '已保存，需重启容器才生效',
       );
     });
 
-    test('joins both restarts when logging and downloads changed together', () {
-      // C3 修复覆盖：同一次「其他」卡保存里 logging(api) + downloads(scheduler)
-      // 必须两个都在文案里，不能只报其一。
+    test('collapses both restart kinds into a single container-restart notice',
+        () {
+      // 对用户而言 api / scheduler 都是同一个容器，同一次「其他」卡改动里出现
+      // logging(api) + downloads(scheduler) 两种 restart 时不需要区分，只提示
+      // 一次「重启容器」即可。
       expect(
         buildAdvancedConfigSaveSuccessMessage(const <PendingRestartFieldDto>[
           PendingRestartFieldDto(field: 'logging.level', restart: 'api'),
@@ -275,7 +278,7 @@ void main() {
             restart: 'scheduler',
           ),
         ]),
-        '已保存，需重启 API 进程 与 aps 调度进程才生效',
+        '已保存，需重启容器才生效',
       );
     });
   });

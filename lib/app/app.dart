@@ -26,6 +26,7 @@ import 'package:sakuramedia/features/configuration/data/api/movie_desc_translati
 import 'package:sakuramedia/features/configuration/presentation/providers/llm_settings_provider.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
+import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_store.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
@@ -33,6 +34,7 @@ import 'package:sakuramedia/features/image_search/presentation/image_search_draf
 import 'package:sakuramedia/features/clips/data/api/clips_api.dart';
 import 'package:sakuramedia/features/clip_collections/data/api/clip_collections_api.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/tags/data/tags_api.dart';
 import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
@@ -310,6 +312,16 @@ class _MyAppState extends State<MyApp> {
             overrides: [
               llmSettingsApiProvider.overrideWithValue(
                 context.read<MovieDescTranslationSettingsApi>(),
+              ),
+              mediaApiProvider.overrideWithValue(context.read<MediaApi>()),
+              mediaLibrariesApiProvider.overrideWithValue(
+                context.read<MediaLibrariesApi>(),
+              ),
+              downloadsApiProvider.overrideWithValue(
+                context.read<DownloadsApi>(),
+              ),
+              downloadClientsApiProvider.overrideWithValue(
+                context.read<DownloadClientsApi>(),
               ),
             ],
             child: OKToast(

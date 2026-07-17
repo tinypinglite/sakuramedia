@@ -376,7 +376,7 @@ class _DesktopAdvancedSettingsSectionState
       headerBottomSpacing: spacing.md,
       headerTrailing: _CardBadges(
         badges: [
-          const AppBadge(label: '重启调度生效', tone: AppBadgeTone.warning),
+          const AppBadge(label: '重启容器生效', tone: AppBadgeTone.warning),
           if (_dirtyCards.contains(_AdvancedCardKind.scheduler))
             const AppBadge(label: '未保存', tone: AppBadgeTone.warning),
         ],
@@ -389,7 +389,7 @@ class _DesktopAdvancedSettingsSectionState
             const _CardTip(
               icon: Icons.schedule_outlined,
               message:
-                  'Cron 语法：分 时 日 月 周（*/N 每隔 N，逗号列表，连字符区间）。修改后需要重启 aps 调度进程才生效。',
+                  'Cron 语法：分 时 日 月 周（*/N 每隔 N，逗号列表，连字符区间）。修改后需要重启容器才生效。',
             ),
             SizedBox(height: spacing.lg),
             for (final group in _cronGroups) ...[
@@ -436,8 +436,7 @@ class _DesktopAdvancedSettingsSectionState
       headerBottomSpacing: spacing.md,
       headerTrailing: _CardBadges(
         badges: [
-          const AppBadge(label: '调度重启', tone: AppBadgeTone.warning),
-          const AppBadge(label: 'API 重启', tone: AppBadgeTone.error),
+          const AppBadge(label: '重启容器生效', tone: AppBadgeTone.warning),
           if (_dirtyCards.contains(_AdvancedCardKind.other))
             const AppBadge(label: '未保存', tone: AppBadgeTone.warning),
         ],
@@ -650,7 +649,7 @@ class _DesktopAdvancedSettingsSectionState
       final confirmed = await showAppConfirmDialog(
         context,
         title: '确认修改日志等级',
-        message: '修改日志等级将重启 API 进程，页面会临时无响应并需刷新，是否继续？',
+        message: '修改日志等级将重启容器，页面会临时无响应并需刷新，是否继续？',
         confirmLabel: '继续保存',
         dialogKey: const Key('configuration-advanced-logging-confirm-dialog'),
         confirmKey: const Key('configuration-advanced-logging-confirm-button'),
@@ -911,24 +910,20 @@ enum _AdvancedCardKind { media, metadata, scheduler, other }
 
 /// 根据 `PATCH /config` 响应里的 `pending_restart` 列表拼保存成功后的 toast 文案。
 ///
-/// 「其他」卡可能同时改 logging(restart=api) 和 downloads(restart=scheduler)——
-/// 用 Set 去重收集所有 restart 类型，避免只报 api 漏报 scheduler。
+/// 面向用户统一表述为「重启容器」——后端 api / scheduler 两种进程都由容器
+/// 承载，用户不需要区分具体是哪个子进程。
 ///
 /// 抽为顶层函数便于单元测试（widget 测里 oktoast 在 test env 下不可靠）。
 String buildAdvancedConfigSaveSuccessMessage(
   List<PendingRestartFieldDto> pendingRestart,
 ) {
-  final needs = <String>{
-    for (final item in pendingRestart)
-      if (item.restart == 'api')
-        'API 进程'
-      else if (item.restart == 'scheduler')
-        'aps 调度进程',
-  };
-  if (needs.isEmpty) {
+  final needsRestart = pendingRestart.any(
+    (item) => item.restart == 'api' || item.restart == 'scheduler',
+  );
+  if (!needsRestart) {
     return '已保存';
   }
-  return '已保存，需重启 ${needs.join(' 与 ')}才生效';
+  return '已保存，需重启容器才生效';
 }
 
 class _CardBadges extends StatelessWidget {

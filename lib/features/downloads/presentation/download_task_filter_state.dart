@@ -45,7 +45,7 @@ extension DownloadTaskStateFilterValue on DownloadTaskStateFilter {
 /// 页面/控制器持有它作为 fetcher 闭包的输入；变更时 controller.reload() 让新参数生效。
 class DownloadTaskFilterState {
   const DownloadTaskFilterState({
-    this.stateFilter = DownloadTaskStateFilter.all,
+    this.stateFilter = DownloadTaskStateFilter.downloading,
     this.search = '',
     this.clientId,
   });
@@ -61,7 +61,7 @@ class DownloadTaskFilterState {
   String get normalizedSearch => search.trim();
 
   bool get isDefault =>
-      stateFilter == DownloadTaskStateFilter.all &&
+      stateFilter == DownloadTaskStateFilter.downloading &&
       normalizedSearch.isEmpty &&
       clientId == null;
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
@@ -13,10 +14,9 @@ import 'package:sakuramedia/features/activity/presentation/activity_center_contr
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 import 'package:sakuramedia/features/activity/presentation/resource_task_center_controller.dart';
 import 'package:sakuramedia/features/activity/presentation/resource_task_pane.dart';
-import 'package:sakuramedia/features/configuration/data/api/download_clients_api.dart';
-import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
-import 'package:sakuramedia/features/downloads/presentation/download_task_center_controller.dart';
 import 'package:sakuramedia/features/downloads/presentation/download_task_pane.dart';
+import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_provider.dart';
+import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
@@ -25,24 +25,29 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 
-class DesktopActivityPage extends StatefulWidget {
+class DesktopActivityPage extends ConsumerStatefulWidget {
   const DesktopActivityPage({super.key});
 
   @override
-  State<DesktopActivityPage> createState() => _DesktopActivityPageState();
+  ConsumerState<DesktopActivityPage> createState() =>
+      _DesktopActivityPageState();
 }
 
-class _DesktopActivityPageState extends State<DesktopActivityPage>
+class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
     with SingleTickerProviderStateMixin {
   static const double _loadMoreTriggerOffset = 300;
 
   late final ActivityCenterController _controller;
   late final ResourceTaskCenterController _resourceTaskController;
-  late final DownloadTaskCenterController _downloadTaskController;
   late final TabController _tabController;
   late final ScrollController _pageScrollController;
   bool _isViewportWorkScheduled = false;
   ActivityTab? _lastActiveTab;
+
+  /// 订阅下载中心 provider，其状态变化触发 viewport 自动加载检查（等效原
+  /// `_downloadTaskController.addListener(_handleControllerChanged)`）。
+  ProviderSubscription<AsyncValue<DownloadTaskCenterState>>?
+      _downloadCenterSub;
 
   @override
   void initState() {
@@ -55,14 +60,14 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
     _resourceTaskController = ResourceTaskCenterController(
       activityApi: activityApi,
     )..addListener(_handleControllerChanged);
-    _downloadTaskController = DownloadTaskCenterController(
-      downloadsApi: context.read<DownloadsApi>(),
-      downloadClientsApi: context.read<DownloadClientsApi>(),
-    )..addListener(_handleControllerChanged);
     _tabController = TabController(length: 3, vsync: this)
       ..addListener(_handleTabChanged);
     _pageScrollController = ScrollController()..addListener(_handlePageScroll);
     _lastActiveTab = _controller.activeTab;
+    _downloadCenterSub = ref.listenManual<AsyncValue<DownloadTaskCenterState>>(
+      downloadTaskCenterProvider,
+      (_, __) => _handleControllerChanged(),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _scheduleViewportWork();
@@ -73,14 +78,12 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
 
   @override
   void dispose() {
+    _downloadCenterSub?.close();
     _controller
       ..removeListener(_syncTabSelection)
       ..removeListener(_handleControllerChanged)
       ..dispose();
     _resourceTaskController
-      ..removeListener(_handleControllerChanged)
-      ..dispose();
-    _downloadTaskController
       ..removeListener(_handleControllerChanged)
       ..dispose();
     _tabController
@@ -122,10 +125,13 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
       unawaited(_resourceTaskController.initialize());
     }
     if (nextTab == ActivityTab.downloadTasks) {
-      unawaited(_downloadTaskController.initialize());
-      unawaited(_downloadTaskController.connectStream());
+      // AsyncNotifier 的 build() 在首次 watch 时自动跑（`ref.read(...notifier)`
+      // 也会触发 build）；这里只需要打开 SSE。
+      unawaited(
+        ref.read(downloadTaskCenterProvider.notifier).connectStream(),
+      );
     } else if (previousTab == ActivityTab.downloadTasks) {
-      _downloadTaskController.disconnectStream();
+      ref.read(downloadTaskCenterProvider.notifier).disconnectStream();
     }
   }
 
@@ -177,10 +183,16 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
         }
         break;
       case ActivityTab.downloadTasks:
-        if (_downloadTaskController.hasMore &&
-            !_downloadTaskController.isLoadingMore &&
-            _downloadTaskController.loadMoreErrorMessage == null) {
-          unawaited(_downloadTaskController.loadMore());
+        final downloadState = ref
+            .read(downloadTaskCenterProvider)
+            .value;
+        if (downloadState != null &&
+            downloadState.paged.hasMore &&
+            !downloadState.paged.isLoadingMore &&
+            downloadState.paged.loadMoreErrorMessage == null) {
+          unawaited(
+            ref.read(downloadTaskCenterProvider.notifier).loadMore(),
+          );
         }
         break;
     }
@@ -236,7 +248,7 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
       ),
       ActivityTab.downloadTasks => buildDownloadTaskSlivers(
         context: context,
-        controller: _downloadTaskController,
+        ref: ref,
       ),
     };
   }
@@ -360,7 +372,6 @@ class _DesktopActivityPageState extends State<DesktopActivityPage>
       animation: Listenable.merge(<Listenable>[
         _controller,
         _resourceTaskController,
-        _downloadTaskController,
       ]),
       builder: (context, _) {
         return Stack(

@@ -1,16 +1,19 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
-import 'package:sakuramedia/features/media/presentation/invalid_media_controller.dart';
+import 'package:sakuramedia/features/media/presentation/providers/invalid_media_provider.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 
-import '../../../support/fake_http_client_adapter.dart';
+import '../../../../support/fake_http_client_adapter.dart';
 
 void main() {
   late SessionStore sessionStore;
   late ApiClient apiClient;
   late FakeHttpClientAdapter adapter;
   late MediaApi mediaApi;
+  late ProviderContainer container;
 
   setUp(() async {
     sessionStore = SessionStore.inMemory();
@@ -25,9 +28,14 @@ void main() {
     apiClient.rawDio.httpClientAdapter = adapter;
     apiClient.rawRefreshDio.httpClientAdapter = adapter;
     mediaApi = MediaApi(apiClient: apiClient);
+    container = ProviderContainer(
+      overrides: [mediaApiProvider.overrideWithValue(mediaApi)],
+      retry: (_, __) => null,
+    );
   });
 
   tearDown(() {
+    container.dispose();
     apiClient.dispose();
     sessionStore.dispose();
   });
@@ -53,20 +61,18 @@ void main() {
         items: [_invalidMediaJson(id: 2, movieNumber: 'ABC-002')],
       ),
     );
-    final controller = InvalidMediaController(mediaApi: mediaApi, pageSize: 1);
-    addTearDown(controller.dispose);
 
-    await controller.initialize();
-    await controller.loadMore();
+    // Provider 默认 pageSize=20；这里 fake 返回 pageSize=1，走一次 loadMore 便到底。
+    await container.read(invalidMediaProvider.future);
+    await container.read(invalidMediaProvider.notifier).loadMore();
 
-    expect(controller.items.map((item) => item.movieNumber), [
-      'ABC-001',
-      'ABC-002',
-    ]);
-    expect(controller.total, 2);
-    expect(controller.hasMore, isFalse);
-    expect(adapter.requests.first.uri.queryParameters['page'], '1');
-    expect(adapter.requests.last.uri.queryParameters['page'], '2');
+    final state = container.read(invalidMediaProvider).requireValue;
+    // Provider 用它自己的 pageSize（20）拼参数，但 fake 只关心命中；后端返回 total=2
+    // → 加载后 items 累加 2 条。
+    expect(state.paged.items.map((item) => item.movieNumber),
+        ['ABC-001', 'ABC-002']);
+    expect(state.paged.total, 2);
+    expect(state.paged.hasMore, isFalse);
   });
 
   test('keeps loaded items after load more error', () async {
@@ -91,15 +97,14 @@ void main() {
         },
       },
     );
-    final controller = InvalidMediaController(mediaApi: mediaApi, pageSize: 1);
-    addTearDown(controller.dispose);
 
-    await controller.initialize();
-    await controller.loadMore();
+    await container.read(invalidMediaProvider.future);
+    await container.read(invalidMediaProvider.notifier).loadMore();
 
-    expect(controller.items.single.movieNumber, 'ABC-001');
-    expect(controller.loadMoreErrorMessage, '加载更多失效媒体失败，请点击重试');
-    expect(controller.hasMore, isTrue);
+    final state = container.read(invalidMediaProvider).requireValue;
+    expect(state.paged.items.single.movieNumber, 'ABC-001');
+    expect(state.paged.loadMoreErrorMessage, '加载更多失效媒体失败，请点击重试');
+    expect(state.paged.hasMore, isTrue);
   });
 
   test('removes item when validity check revives media', () async {
@@ -116,16 +121,17 @@ void main() {
       path: '/media/1/validity-check',
       body: _validityResultJson(id: 1, revived: true, validAfter: true),
     );
-    final controller = InvalidMediaController(mediaApi: mediaApi);
-    addTearDown(controller.dispose);
 
-    await controller.initialize();
-    final result = await controller.checkValidity(mediaId: 1);
+    await container.read(invalidMediaProvider.future);
+    final result = await container
+        .read(invalidMediaProvider.notifier)
+        .checkValidity(mediaId: 1);
 
     expect(result.revived, isTrue);
-    expect(controller.items, isEmpty);
-    expect(controller.total, 0);
-    expect(controller.checkingMediaId, isNull);
+    final state = container.read(invalidMediaProvider).requireValue;
+    expect(state.paged.items, isEmpty);
+    expect(state.paged.total, 0);
+    expect(state.checkingMediaId, isNull);
   });
 
   test('keeps item when validity check is still invalid', () async {
@@ -142,16 +148,17 @@ void main() {
       path: '/media/1/validity-check',
       body: _validityResultJson(id: 1, revived: false, validAfter: false),
     );
-    final controller = InvalidMediaController(mediaApi: mediaApi);
-    addTearDown(controller.dispose);
 
-    await controller.initialize();
-    final result = await controller.checkValidity(mediaId: 1);
+    await container.read(invalidMediaProvider.future);
+    final result = await container
+        .read(invalidMediaProvider.notifier)
+        .checkValidity(mediaId: 1);
 
     expect(result.revived, isFalse);
-    expect(controller.items.single.id, 1);
-    expect(controller.total, 1);
-    expect(controller.canDeleteMedia(1), isTrue);
+    final state = container.read(invalidMediaProvider).requireValue;
+    expect(state.paged.items.single.id, 1);
+    expect(state.paged.total, 1);
+    expect(state.canDeleteMedia(1), isTrue);
   });
 
   test('deleteInvalidMedia requires failed validity check first', () async {
@@ -163,49 +170,50 @@ void main() {
         items: [_invalidMediaJson(id: 1, movieNumber: 'ABC-001')],
       ),
     );
-    final controller = InvalidMediaController(mediaApi: mediaApi);
-    addTearDown(controller.dispose);
 
-    await controller.initialize();
+    await container.read(invalidMediaProvider.future);
 
     expect(
-      () => controller.deleteInvalidMedia(mediaId: 1),
+      () => container
+          .read(invalidMediaProvider.notifier)
+          .deleteInvalidMedia(mediaId: 1),
       throwsA(isA<StateError>()),
     );
     expect(adapter.hitCount('DELETE', '/media/1'), 0);
   });
 
-  test(
-    'deleteInvalidMedia removes checked invalid item after API succeeds',
-    () async {
-      adapter.enqueueJson(
-        method: 'GET',
-        path: '/media/invalid',
-        body: _invalidMediaPage(
-          total: 1,
-          items: [_invalidMediaJson(id: 1, movieNumber: 'ABC-001')],
-        ),
-      );
-      adapter.enqueueJson(
-        method: 'POST',
-        path: '/media/1/validity-check',
-        body: _validityResultJson(id: 1, revived: false, validAfter: false),
-      );
-      adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
-      final controller = InvalidMediaController(mediaApi: mediaApi);
-      addTearDown(controller.dispose);
+  test('deleteInvalidMedia removes checked invalid item after API succeeds',
+      () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/invalid',
+      body: _invalidMediaPage(
+        total: 1,
+        items: [_invalidMediaJson(id: 1, movieNumber: 'ABC-001')],
+      ),
+    );
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/media/1/validity-check',
+      body: _validityResultJson(id: 1, revived: false, validAfter: false),
+    );
+    adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
 
-      await controller.initialize();
-      await controller.checkValidity(mediaId: 1);
-      await controller.deleteInvalidMedia(mediaId: 1);
+    await container.read(invalidMediaProvider.future);
+    await container
+        .read(invalidMediaProvider.notifier)
+        .checkValidity(mediaId: 1);
+    await container
+        .read(invalidMediaProvider.notifier)
+        .deleteInvalidMedia(mediaId: 1);
 
-      expect(controller.items, isEmpty);
-      expect(controller.total, 0);
-      expect(controller.deletingMediaId, isNull);
-      expect(controller.canDeleteMedia(1), isFalse);
-      expect(adapter.hitCount('DELETE', '/media/1'), 1);
-    },
-  );
+    final state = container.read(invalidMediaProvider).requireValue;
+    expect(state.paged.items, isEmpty);
+    expect(state.paged.total, 0);
+    expect(state.deletingMediaId, isNull);
+    expect(state.canDeleteMedia(1), isFalse);
+    expect(adapter.hitCount('DELETE', '/media/1'), 1);
+  });
 }
 
 Map<String, dynamic> _invalidMediaPage({

@@ -1,17 +1,20 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/data/media_rapid_upload_dto.dart';
-import 'package:sakuramedia/features/media/presentation/media_rapid_upload_history_controller.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_rapid_upload_history_provider.dart';
 
-import '../../../support/fake_http_client_adapter.dart';
+import '../../../../support/fake_http_client_adapter.dart';
 
 void main() {
   late SessionStore sessionStore;
   late ApiClient apiClient;
   late FakeHttpClientAdapter adapter;
   late MediaApi mediaApi;
+  late ProviderContainer container;
 
   setUp(() async {
     sessionStore = SessionStore.inMemory();
@@ -26,14 +29,19 @@ void main() {
     apiClient.rawDio.httpClientAdapter = adapter;
     apiClient.rawRefreshDio.httpClientAdapter = adapter;
     mediaApi = MediaApi(apiClient: apiClient);
+    container = ProviderContainer(
+      overrides: [mediaApiProvider.overrideWithValue(mediaApi)],
+      retry: (_, __) => null,
+    );
   });
 
   tearDown(() {
+    container.dispose();
     apiClient.dispose();
     sessionStore.dispose();
   });
 
-  test('initialize loads first page of batches', () async {
+  test('build loads first page of batches', () async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/media/rapid-uploads',
@@ -44,14 +52,11 @@ void main() {
         'total': 1,
       },
     );
-    final controller = MediaRapidUploadHistoryController(mediaApi: mediaApi);
-    addTearDown(controller.dispose);
 
-    await controller.initialize();
+    final state = await container.read(mediaRapidUploadHistoryProvider.future);
 
-    expect(controller.items, hasLength(1));
-    expect(controller.items.single.state,
-        MediaRapidUploadBatchState.completed);
+    expect(state.items, hasLength(1));
+    expect(state.items.single.state, MediaRapidUploadBatchState.completed);
   });
 
   test('refreshBatch upserts new batch at head when missing', () async {
@@ -65,9 +70,7 @@ void main() {
         'total': 1,
       },
     );
-    final controller = MediaRapidUploadHistoryController(mediaApi: mediaApi);
-    addTearDown(controller.dispose);
-    await controller.initialize();
+    await container.read(mediaRapidUploadHistoryProvider.future);
 
     adapter.enqueueJson(
       method: 'GET',
@@ -75,12 +78,16 @@ void main() {
       body: _batchWithItemsJson(id: 42, state: 'running', total: 2, ok: 0),
     );
 
-    final detail = await controller.refreshBatch(42);
+    final detail = await container
+        .read(mediaRapidUploadHistoryProvider.notifier)
+        .refreshBatch(42);
 
     expect(detail.id, 42);
-    expect(controller.items.first.id, 42);
-    expect(controller.items, hasLength(2));
-    expect(controller.total, 2);
+    final state =
+        container.read(mediaRapidUploadHistoryProvider).requireValue;
+    expect(state.items.first.id, 42);
+    expect(state.items, hasLength(2));
+    expect(state.total, 2);
   });
 
   test('refreshBatch upserts existing batch by id without changing total',
@@ -95,9 +102,7 @@ void main() {
         'total': 1,
       },
     );
-    final controller = MediaRapidUploadHistoryController(mediaApi: mediaApi);
-    addTearDown(controller.dispose);
-    await controller.initialize();
+    await container.read(mediaRapidUploadHistoryProvider.future);
 
     adapter.enqueueJson(
       method: 'GET',
@@ -105,12 +110,15 @@ void main() {
       body: _batchWithItemsJson(id: 1, state: 'completed', total: 3, ok: 3),
     );
 
-    await controller.refreshBatch(1);
+    await container
+        .read(mediaRapidUploadHistoryProvider.notifier)
+        .refreshBatch(1);
 
-    expect(controller.items, hasLength(1));
-    expect(controller.items.single.state,
-        MediaRapidUploadBatchState.completed);
-    expect(controller.total, 1);
+    final state =
+        container.read(mediaRapidUploadHistoryProvider).requireValue;
+    expect(state.items, hasLength(1));
+    expect(state.items.single.state, MediaRapidUploadBatchState.completed);
+    expect(state.total, 1);
   });
 }
 
