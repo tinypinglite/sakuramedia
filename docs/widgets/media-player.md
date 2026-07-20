@@ -10,7 +10,7 @@
 - **required**: `videoController` · `useTouchOptimizedControls`
 - **可选**: `topControls`(默认 `[]`) · `bottomControls`(默认 `[]`) · `fullscreenBottomControls`(全屏态的底控件覆盖) · `videoKey` · `fit`(默认 contain) · `fill`(默认黑) · `displaySeekBar`(默认 true)
 - **`useTouchOptimizedControls` 铁则**: **移动壳传 `true`(点击唤出控制条)、桌面 / 桌面弹窗传 `false`(hover 唤出)**。移动连播页是桌面页薄壳,**必须把该参数透传为 `true`**,否则触摸端 hover 唤不出进度条(历史 bug)。
-- **组件内部**: 复用 `movie_player_surface.dart` 里的 `buildMoviePlayerXxxControlsThemeData` + `resolveMoviePlayerVideoControlsBuilder` 套统一主题(进度条 / 全屏 / 音量样式一致)。**改控制条样式**只改这里或那两个 themeData 构建函数,一处生效。
+- **组件内部**: 复用 `base/media/video/video_controls_theme.dart` 里的 `buildMoviePlayerXxxControlsThemeData` + `resolveMoviePlayerVideoControlsBuilder` 套统一主题(进度条 / 全屏 / 音量样式一致)。**改控制条样式**只改这里或那两个 themeData 构建函数,一处生效。
 
 ### MoviePlayerSurface(重,只影片播放页用)
 - **路径**: `lib/widgets/domain/movies/player/movie_player_surface.dart`
@@ -18,6 +18,10 @@
 - **required**: `movieNumber` · `resolvedUrl` · `surfaceController: MoviePlayerSurfaceController`
 - **可选**: `initialPosition` · `onPositionChanged` · `onPlayingChanged` · `onCompleted` · `subtitleState` · `onSubtitleSelectionChanged` · `onSubtitleReloadRequested` · `onBackPressed` · `useTouchOptimizedControls`(默认 false)
 - **何时用**: 影片播放页(桌面 / 移动)。**只有影片播放页用它**,别的地方一律 `ThemedVideoPlayer`。
+- **族内文件分工(引擎 / UI / 装配三层,2026-07 拆分)**:`movie_player_surface.dart` 只是**装配宿主**(State = Player 生命周期 + stream 接线 + build),周边职责各归其文件——改哪类问题去哪个文件:
+  - 引擎层(不依赖 material,可纯 Dart 测):`movie_player_media_source.dart`(来源 enum / UA / `buildMoviePlayerMedia` / 错误文案 / `buildMoviePlayerConfiguration`)、`movie_player_surface_coordinators.dart`(打开防竞态 / 字幕应用两协调器,**函数注入 media_kit 命令**——surface 直接把 `_player.open/play/seek/setSubtitleTrack` 传进来,不再有独立 driver 层)、`movie_player_resume_seek_coordinators.dart`(续播提示 + 起播 seek 重试两状态机)、`movie_player_playback_rate_coordinator.dart`(播放速率状态机:pending 保护 + rate 流去噪 + 移动端 speed display 快照)、`movie_player_mobile_drawer_coordinator.dart`(移动底部抽屉 + info side 三态互斥状态机)、`movie_player_native_stats_sampler.dart`(播放信息采样机:mpv 原生属性轮询 + 差分,输出 `ValueListenable<MoviePlayerPlaybackInfoSnapshot>`)、`movie_player_surface_readiness.dart`。
+  - UI 层:`movie_player_controls.dart`(顶栏 / 桌面 / 移动底控制条 builder,**`buildMoviePlayerTopControls` 从这里 import**——切片 / 视频单播与合集连播页都用)、`movie_player_mobile_drawers.dart`(移动倍速 / 字幕抽屉 + 信息侧栏 overlay)、`movie_player_playback_error_overlay.dart`(播放失败覆盖层)、speed / subtitle button、playback_info 面板。
+  - `movie_player_surface.dart` **不再 re-export 族内符号**——按上述分工直接 import 对应文件;测试也已按同缝镜像拆分(`test/widgets/domain/movies/player/` 一文件一测试,控制条主题测试在 `test/widgets/base/media/video/video_controls_theme_test.dart`)。
 
 ### MoviePlayerSurfaceController
 - **路径**: `lib/widgets/domain/movies/player/movie_player_surface_controller.dart`

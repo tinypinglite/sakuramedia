@@ -30,7 +30,7 @@ import 'package:sakuramedia/widgets/domain/collections/playback/episode_selector
 import 'package:sakuramedia/widgets/domain/movies/player/merged_position_indicator.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_media_thumbnail_grid.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
 
 /// 视频合集连播独立页面：media_kit 播放器（原生 Playlist 自动连播）占满画面，

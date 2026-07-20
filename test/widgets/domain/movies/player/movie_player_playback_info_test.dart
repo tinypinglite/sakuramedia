@@ -5,7 +5,6 @@ import 'package:media_kit/media_kit.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface.dart';
 
 void main() {
   group('MoviePlayerPlaybackInfoSnapshot builder', () {
@@ -253,33 +252,6 @@ void main() {
       );
 
       expect(snapshot.playbackSourceDownloadRateLabel, isNull);
-    });
-  });
-
-  group('parseDemuxerForwardBytes', () {
-    test('extracts fw-bytes from mpv-style map string', () {
-      expect(
-        parseDemuxerForwardBytes(
-          '{cache-end=123.4, fw-bytes=8388608, cache-duration=12.3}',
-        ),
-        8388608,
-      );
-    });
-
-    test('extracts fw-bytes from JSON-style string', () {
-      expect(
-        parseDemuxerForwardBytes('{"fw-bytes": 1024, "cache-duration": 3.4}'),
-        1024,
-      );
-    });
-
-    test('returns null when key missing', () {
-      expect(parseDemuxerForwardBytes('{cache-duration=12.3}'), isNull);
-    });
-
-    test('returns null for null / empty input', () {
-      expect(parseDemuxerForwardBytes(null), isNull);
-      expect(parseDemuxerForwardBytes(''), isNull);
     });
   });
 

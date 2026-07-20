@@ -26,6 +26,7 @@ import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_media_source.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface_controller.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_player_thumbnail_panel.dart';

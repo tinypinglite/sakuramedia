@@ -23,7 +23,7 @@ import 'package:sakuramedia/widgets/domain/collections/playback/collection_playb
 import 'package:sakuramedia/widgets/domain/collections/playback/episode_selector_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/merged_position_indicator.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
 

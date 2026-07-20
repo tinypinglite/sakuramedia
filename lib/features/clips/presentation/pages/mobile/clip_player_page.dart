@@ -11,7 +11,7 @@ import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/landscape_player_system_ui.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
 
 /// 移动端单切片全屏横屏播放页：进入锁定横屏沉浸式、退出恢复原方向。
