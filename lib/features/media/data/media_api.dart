@@ -17,6 +17,8 @@ class MediaApi {
   /// - [kind] 传 `all` / `jav` / `video`，`null` 走后端默认（`all`）。
   /// - [libraryId] 指定媒体库过滤，null 时不加参数。
   /// - [actorIds] 订阅女优 OR 筛选，会拼成逗号分隔字符串下发。
+  /// - [rapidUploadStatus] 按上次秒传状态过滤：`none / not_hit / failed /
+  ///   cleanup_failed / in_progress`，`null` 时不筛选。
   /// - [sort] 例如 `heat:desc`、`file_size_bytes:desc`，`null` 时后端默认 `created_at:desc`。
   Future<PaginatedResponseDto<MediaListItemDto>> getMediaList({
     int page = 1,
@@ -24,6 +26,7 @@ class MediaApi {
     String? kind,
     int? libraryId,
     List<int>? actorIds,
+    String? rapidUploadStatus,
     String? sort,
   }) async {
     final queryParameters = <String, dynamic>{
@@ -38,6 +41,9 @@ class MediaApi {
     }
     if (actorIds != null && actorIds.isNotEmpty) {
       queryParameters['actor_ids'] = actorIds.join(',');
+    }
+    if (rapidUploadStatus != null && rapidUploadStatus.isNotEmpty) {
+      queryParameters['rapid_upload_status'] = rapidUploadStatus;
     }
     if (sort != null && sort.isNotEmpty) {
       queryParameters['sort'] = sort;

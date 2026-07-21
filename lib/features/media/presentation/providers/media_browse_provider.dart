@@ -56,6 +56,7 @@ class MediaBrowse extends _$MediaBrowse
           pageSize: pageSize,
           kind: mediaBrowseKindWire(filter.kind),
           libraryId: filter.libraryId,
+          rapidUploadStatus: filter.rapidUploadStatus?.apiValue,
           sort: filter.sortWire,
         );
   }
@@ -98,12 +99,19 @@ class MediaBrowse extends _$MediaBrowse
   }
 
   /// 选中当前已加载页面里的全部（非叠加所有页）。
+  ///
+  /// 通过 [isBulkSelectableRapidUploadStatus] 白名单过滤：`in_progress` 与未识别
+  /// 的 `unknown` 状态都不批量选，避免后端 `active_media_id` 唯一约束 422 或后端
+  /// 未来新增"不可批量"语义时前端静默混入。单点 tap 不受此限（用户主动操作）。
   void selectAllLoaded() {
     final current = state.value;
     if (current == null) return;
     final next = Set<int>.of(current.selectedIds);
     var changed = false;
     for (final item in current.paged.items) {
+      if (!isBulkSelectableRapidUploadStatus(item.lastRapidUploadStatus)) {
+        continue;
+      }
       if (next.add(item.id)) changed = true;
     }
     if (changed) {

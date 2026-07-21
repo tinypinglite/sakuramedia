@@ -103,6 +103,39 @@ void main() {
     );
   });
 
+  test('applyFilterState down-passes rapidUploadStatus to /media query',
+      () async {
+    // 首屏空载后，切筛选到 in_progress，应触发第 2 次请求，且带上
+    // rapid_upload_status=in_progress；none 值域走同一路径，只是 wire 值不同。
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: const [], total: 0, page: 1),
+    );
+    await container.read(mediaBrowseProvider.future);
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: const [], total: 0, page: 1),
+    );
+    await container.read(mediaBrowseProvider.notifier).applyFilterState(
+          const MediaBrowseFilterState().copyWith(
+            rapidUploadStatus: MediaBrowseRapidUploadFilter.inProgress,
+          ),
+        );
+
+    expect(
+      adapter.requests.last.uri.queryParameters,
+      containsPair('rapid_upload_status', 'in_progress'),
+    );
+    final state = container.read(mediaBrowseProvider).requireValue;
+    expect(
+      state.filter.rapidUploadStatus,
+      MediaBrowseRapidUploadFilter.inProgress,
+    );
+  });
+
   test('applyFilterState short-circuits when equal filters are supplied',
       () async {
     adapter.enqueueJson(
@@ -165,9 +198,43 @@ void main() {
     notifier.clearSelection();
     expect(container.read(mediaBrowseProvider).requireValue.selectionCount, 0);
   });
+
+  test(
+      'selectAllLoaded whitelists safe rapid upload statuses '
+      '(skips in_progress and unknown)', () async {
+    // 白名单：null/notHit/failed/cleanupFailed 可批量选，in_progress 因后端
+    // active_media_id 唯一约束必拒，未识别字符串（映射为 unknown）保守也拒——
+    // 防止后端未来新增"不可批量"语义时前端静默混入触发 422。
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(
+        items: [
+          _javItemJson(id: 10), // null → 允许
+          _javItemJson(id: 20, lastRapidUploadStatus: 'in_progress'),
+          _javItemJson(id: 30, lastRapidUploadStatus: 'failed'),
+          _javItemJson(id: 40, lastRapidUploadStatus: 'some_future_state'),
+        ],
+        total: 4,
+        page: 1,
+      ),
+    );
+    await container.read(mediaBrowseProvider.future);
+
+    container.read(mediaBrowseProvider.notifier).selectAllLoaded();
+    final state = container.read(mediaBrowseProvider).requireValue;
+    expect(state.selectionCount, 2);
+    expect(state.isSelected(10), isTrue);
+    expect(state.isSelected(20), isFalse);
+    expect(state.isSelected(30), isTrue);
+    expect(state.isSelected(40), isFalse);
+  });
 }
 
-Map<String, dynamic> _javItemJson({required int id}) {
+Map<String, dynamic> _javItemJson({
+  required int id,
+  String? lastRapidUploadStatus,
+}) {
   return <String, dynamic>{
     'id': id,
     'kind': 'jav',
@@ -185,6 +252,7 @@ Map<String, dynamic> _javItemJson({required int id}) {
     'special_tags': '普通',
     'valid': true,
     'heat': 100,
+    'last_rapid_upload_status': lastRapidUploadStatus,
     'created_at': '2026-03-12T10:00:00Z',
     'updated_at': '2026-03-12T10:00:00Z',
   };

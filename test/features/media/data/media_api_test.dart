@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/data/media_rapid_upload_dto.dart';
 
 import '../../../support/fake_http_client_adapter.dart';
@@ -343,7 +344,8 @@ void main() {
     },
   );
 
-  test('getMediaList sends kind/library/actor/sort query params', () async {
+  test('getMediaList sends kind/library/actor/rapid-upload/sort query params',
+      () async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/media',
@@ -361,6 +363,7 @@ void main() {
       kind: 'jav',
       libraryId: 5,
       actorIds: const <int>[12, 34],
+      rapidUploadStatus: 'in_progress',
       sort: 'heat:desc',
     );
 
@@ -370,6 +373,7 @@ void main() {
       'kind': 'jav',
       'library_id': '5',
       'actor_ids': '12,34',
+      'rapid_upload_status': 'in_progress',
       'sort': 'heat:desc',
     });
   });
@@ -423,6 +427,7 @@ void main() {
             'special_tags': '普通',
             'valid': true,
             'heat': 320,
+            'last_rapid_upload_status': 'in_progress',
             'created_at': '2026-03-12T10:20:00Z',
             'updated_at': '2026-03-12T10:20:00Z',
           },
@@ -443,6 +448,7 @@ void main() {
             'special_tags': '',
             'valid': false,
             'heat': null,
+            'last_rapid_upload_status': null,
             'created_at': '2026-03-12T10:20:00Z',
             'updated_at': '2026-03-12T10:20:00Z',
           },
@@ -469,6 +475,34 @@ void main() {
     expect(video.heat, isNull);
     expect(video.displayHeading, 'Short video');
     expect(video.displaySubtitle, isNull);
+    expect(jav.lastRapidUploadStatus, LastRapidUploadStatus.inProgress);
+    expect(video.lastRapidUploadStatus, isNull);
+  });
+
+  test('LastRapidUploadStatus.fromWire maps all public backend values', () {
+    // 后端对外值域见 src/service/transfers/media_rapid_upload_service.py 的
+    // PUBLIC_STATUS_* 常量；缺席/null → null，未识别 → unknown（UI 当无状态处理）。
+    expect(LastRapidUploadStatusX.fromWire(null), isNull);
+    expect(
+      LastRapidUploadStatusX.fromWire('not_hit'),
+      LastRapidUploadStatus.notHit,
+    );
+    expect(
+      LastRapidUploadStatusX.fromWire('failed'),
+      LastRapidUploadStatus.failed,
+    );
+    expect(
+      LastRapidUploadStatusX.fromWire('cleanup_failed'),
+      LastRapidUploadStatus.cleanupFailed,
+    );
+    expect(
+      LastRapidUploadStatusX.fromWire('in_progress'),
+      LastRapidUploadStatus.inProgress,
+    );
+    expect(
+      LastRapidUploadStatusX.fromWire('some_future_state'),
+      LastRapidUploadStatus.unknown,
+    );
   });
 
   test('createMediaRapidUpload posts media_ids + target_library_id', () async {

@@ -9,6 +9,8 @@ class OverviewSystemInfoController extends ChangeNotifier {
 
   final StatusApi _statusApi;
 
+  bool _isDisposed = false;
+
   bool isLoadingStatus = true;
   bool isLoadingImageSearchStatus = true;
   bool isTestingMetadataProviders = false;
@@ -32,31 +34,40 @@ class OverviewSystemInfoController extends ChangeNotifier {
     isLoadingStatus = true;
     isLoadingImageSearchStatus = true;
     statusError = null;
-    notifyListeners();
+    _notifyListenersSafely();
     await load();
   }
 
   Future<void> loadStatus() async {
     try {
       final nextStatus = await _statusApi.getStatus();
+      if (_isDisposed) return;
       status = nextStatus;
       statusError = null;
     } catch (_) {
+      if (_isDisposed) return;
       statusError = '系统信息加载失败，请稍后重试';
     } finally {
-      isLoadingStatus = false;
-      notifyListeners();
+      if (!_isDisposed) {
+        isLoadingStatus = false;
+        _notifyListenersSafely();
+      }
     }
   }
 
   Future<void> loadImageSearchStatus() async {
     try {
-      imageSearchStatus = await _statusApi.getImageSearchStatus();
+      final next = await _statusApi.getImageSearchStatus();
+      if (_isDisposed) return;
+      imageSearchStatus = next;
     } catch (_) {
+      if (_isDisposed) return;
       imageSearchStatus = null;
     } finally {
-      isLoadingImageSearchStatus = false;
-      notifyListeners();
+      if (!_isDisposed) {
+        isLoadingImageSearchStatus = false;
+        _notifyListenersSafely();
+      }
     }
   }
 
@@ -66,17 +77,18 @@ class OverviewSystemInfoController extends ChangeNotifier {
     }
 
     isTestingMetadataProviders = true;
-    notifyListeners();
+    _notifyListenersSafely();
 
     final results = await Future.wait<bool>([
       _testMetadataProvider('javdb'),
       _testMetadataProvider('dmm'),
     ]);
 
+    if (_isDisposed) return;
     javdbHealthy = results[0];
     dmmHealthy = results[1];
     isTestingMetadataProviders = false;
-    notifyListeners();
+    _notifyListenersSafely();
   }
 
   Future<void> testCloud115Authentication() async {
@@ -87,15 +99,20 @@ class OverviewSystemInfoController extends ChangeNotifier {
     isTestingCloud115Authentication = true;
     cloud115AuthenticationRequestFailed = false;
     cloud115CookiesStatus = null;
-    notifyListeners();
+    _notifyListenersSafely();
 
     try {
-      cloud115CookiesStatus = await _statusApi.getCloud115CookiesStatus();
+      final next = await _statusApi.getCloud115CookiesStatus();
+      if (_isDisposed) return;
+      cloud115CookiesStatus = next;
     } catch (_) {
+      if (_isDisposed) return;
       cloud115AuthenticationRequestFailed = true;
     } finally {
-      isTestingCloud115Authentication = false;
-      notifyListeners();
+      if (!_isDisposed) {
+        isTestingCloud115Authentication = false;
+        _notifyListenersSafely();
+      }
     }
   }
 
@@ -134,5 +151,16 @@ class OverviewSystemInfoController extends ChangeNotifier {
     } catch (_) {
       return false;
     }
+  }
+
+  void _notifyListenersSafely() {
+    if (_isDisposed) return;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }

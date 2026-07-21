@@ -24,6 +24,51 @@ extension MediaListItemKindX on MediaListItemKind {
       };
 }
 
+/// `GET /media` 中每条 item 的最近一次秒传投影。
+///
+/// 后端 `null` 表示「从未秒传」或「最近一次已成功（本地视角无需提示）」；
+/// 其余值用来在列表上告知「是否值得再点秒传」。未识别的字符串归 [unknown]，
+/// UI 侧当作 null 处理（不显示 badge）。
+enum LastRapidUploadStatus { notHit, failed, cleanupFailed, inProgress, unknown }
+
+extension LastRapidUploadStatusX on LastRapidUploadStatus {
+  String get label => switch (this) {
+        LastRapidUploadStatus.notHit => '115中无此文件无法秒传',
+        LastRapidUploadStatus.failed => '秒传失败',
+        LastRapidUploadStatus.cleanupFailed => '云端已传·待清理',
+        LastRapidUploadStatus.inProgress => '秒传中',
+        LastRapidUploadStatus.unknown => '未知状态',
+      };
+
+  /// null 表示线上返回缺失或显式 null；unknown 表示遇到未知字符串（同样按无状态处理）。
+  static LastRapidUploadStatus? fromWire(dynamic value) => switch (value) {
+        null => null,
+        'not_hit' => LastRapidUploadStatus.notHit,
+        'failed' => LastRapidUploadStatus.failed,
+        'cleanup_failed' => LastRapidUploadStatus.cleanupFailed,
+        'in_progress' => LastRapidUploadStatus.inProgress,
+        _ => LastRapidUploadStatus.unknown,
+      };
+}
+
+/// 批量入口（如「全选本页」）能否安全把该状态的媒体拖进新秒传/删除批次。
+///
+/// 白名单式默认：仅明确已知安全的状态返回 true，`inProgress` 因 `active_media_id`
+/// 唯一约束会 422 必拒；`unknown` 是未识别的后端字符串，保守起见一并拒——避免
+/// 后端新增"不可批量"语义时，前端只识别为 unknown 静默混入批次。
+///
+/// 单次 tap 选中不走这里（用户主动操作，允许自由选，后端兜底校验）。
+bool isBulkSelectableRapidUploadStatus(LastRapidUploadStatus? status) {
+  return switch (status) {
+    null => true,
+    LastRapidUploadStatus.notHit => true,
+    LastRapidUploadStatus.failed => true,
+    LastRapidUploadStatus.cleanupFailed => true,
+    LastRapidUploadStatus.inProgress => false,
+    LastRapidUploadStatus.unknown => false,
+  };
+}
+
 class MediaListItemDto {
   const MediaListItemDto({
     required this.id,
@@ -42,6 +87,7 @@ class MediaListItemDto {
     required this.specialTags,
     required this.valid,
     this.heat,
+    this.lastRapidUploadStatus,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -62,6 +108,7 @@ class MediaListItemDto {
   final String specialTags;
   final bool valid;
   final int? heat;
+  final LastRapidUploadStatus? lastRapidUploadStatus;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -128,6 +175,8 @@ class MediaListItemDto {
       specialTags: json['special_tags'] as String? ?? '',
       valid: json['valid'] as bool? ?? false,
       heat: asIntOrNull(json['heat']),
+      lastRapidUploadStatus:
+          LastRapidUploadStatusX.fromWire(json['last_rapid_upload_status']),
       createdAt: asDateTime(json['created_at']),
       updatedAt: asDateTime(json['updated_at']),
     );

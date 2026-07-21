@@ -139,6 +139,7 @@ class MediaListSection extends ConsumerWidget {
               unawaited(ref.read(mediaBrowseProvider.notifier).loadMore()),
           itemBuilder: (context, item, _) {
             final data = asyncState.requireValue;
+            final disabledReason = _disabledReasonFor(item);
             return _MediaRow(
               item: item,
               storage: resolveMediaStorageDescriptor(
@@ -146,9 +147,14 @@ class MediaListSection extends ConsumerWidget {
                 librariesState.storageDescriptors,
               ),
               isSelected: data.isSelected(item.id),
-              onToggle: () => ref
-                  .read(mediaBrowseProvider.notifier)
-                  .toggleSelection(item.id),
+              // 有禁选原因的行不响应 tap（且 _MediaRow 会挂 Tooltip 告诉用户原因）；
+              // 后端 active_media_id 唯一约束会拒绝新批次，前端提前拦截更友好。
+              disabledReason: disabledReason,
+              onToggle: disabledReason != null
+                  ? null
+                  : () => ref
+                      .read(mediaBrowseProvider.notifier)
+                      .toggleSelection(item.id),
             );
           },
         ),
@@ -261,19 +267,23 @@ class _MediaRow extends StatelessWidget {
     required this.storage,
     required this.isSelected,
     required this.onToggle,
+    this.disabledReason,
   });
 
   final MediaListItemDto item;
   final MediaStorageDescriptor storage;
   final bool isSelected;
-  final VoidCallback onToggle;
+
+  /// 非空时行禁选：`onToggle` 应传 null，`disabledReason` 会作为 Tooltip 文案挂在整卡上。
+  final String? disabledReason;
+  final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final componentTokens = context.appComponentTokens;
 
-    return AppLeftCoverCard(
+    final card = AppLeftCoverCard(
       key: Key('media-management-row-${item.id}'),
       coverWidth: componentTokens.downloadTaskCoverWidth,
       bodyMinHeight: componentTokens.downloadTaskCardMinHeight,
@@ -291,7 +301,23 @@ class _MediaRow extends StatelessWidget {
         ],
       ),
     );
+
+    // 项目约定没有 AppTooltip 包装件，直接用 Flutter 原生。
+    final reason = disabledReason;
+    if (reason != null) {
+      return Tooltip(message: reason, child: card);
+    }
+    return card;
   }
+}
+
+/// 集中的行禁选决策：目前仅有秒传进行中一种原因，未来加新原因（例如批量删除
+/// 排队中）直接在这里返回相应文案；`_MediaRow` 只关心"有无原因"。
+String? _disabledReasonFor(MediaListItemDto item) {
+  if (item.lastRapidUploadStatus == LastRapidUploadStatus.inProgress) {
+    return '已在秒传批次中，无法加入新操作';
+  }
+  return null;
 }
 
 /// 封面 slot：宽图横向铺满，`BoxFit.cover` 横向裁切；JAV 且有番号 → InkWell
@@ -424,6 +450,7 @@ class _MediaMetaLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final rapidUploadBadge = _rapidUploadStatusBadge(item.lastRapidUploadStatus);
     final badges = <Widget>[
       AppBadge(
         label: item.kind.label,
@@ -449,6 +476,7 @@ class _MediaMetaLine extends StatelessWidget {
         tone: AppBadgeTone.neutral,
         size: AppBadgeSize.compact,
       ),
+      if (rapidUploadBadge != null) rapidUploadBadge,
     ];
     final metrics = <String>[
       formatFileSize(item.fileSizeBytes),
@@ -473,6 +501,31 @@ class _MediaMetaLine extends StatelessWidget {
       ],
     );
   }
+}
+
+/// 秒传状态 badge 映射：null / unknown 不显示；其余按后端语义配色。
+///
+/// - `in_progress` → info（当前批次未终态；同时行也被禁选）
+/// - `cleanup_failed` → warning（云端已备份、本地待清理，重试仅做本地清理）
+/// - `failed` → warning（其它可重试失败）
+/// - `not_hit` → neutral（115 库无相同 sha1，重传大概率仍未命中）
+AppBadge? _rapidUploadStatusBadge(LastRapidUploadStatus? status) {
+  if (status == null || status == LastRapidUploadStatus.unknown) {
+    return null;
+  }
+  final tone = switch (status) {
+    LastRapidUploadStatus.inProgress => AppBadgeTone.info,
+    LastRapidUploadStatus.cleanupFailed => AppBadgeTone.warning,
+    LastRapidUploadStatus.failed => AppBadgeTone.warning,
+    LastRapidUploadStatus.notHit => AppBadgeTone.neutral,
+    LastRapidUploadStatus.unknown => AppBadgeTone.neutral,
+  };
+  // 不加 key：本行其它 badge 也没打 key；tone/label 已足够做定位与视觉区分。
+  return AppBadge(
+    label: status.label,
+    tone: tone,
+    size: AppBadgeSize.compact,
+  );
 }
 
 /// 路径行：folder icon + 相对路径 muted（省略号）；右侧「更新 …」若有。

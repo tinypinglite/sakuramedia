@@ -91,6 +91,17 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
     ),
   ];
 
+  /// 秒传状态 chip 顺序：先"全部"，再"未秒传"（最常用于找可秒传的候选），
+  /// 然后按活跃度排"进行中→失败→待清理→未命中"。
+  static const List<MediaBrowseRapidUploadFilter?> _rapidUploadOrder = [
+    null,
+    MediaBrowseRapidUploadFilter.none,
+    MediaBrowseRapidUploadFilter.inProgress,
+    MediaBrowseRapidUploadFilter.failed,
+    MediaBrowseRapidUploadFilter.cleanupFailed,
+    MediaBrowseRapidUploadFilter.notHit,
+  ];
+
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
@@ -141,6 +152,27 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
                 isSelected: filterState.libraryId == library.id,
                 onPressed: () => onChanged(
                   filterState.copyWith(libraryId: library.id),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: spacing.lg),
+        _SectionTitle(text: '秒传状态'),
+        SizedBox(height: spacing.sm),
+        Wrap(
+          spacing: spacing.sm,
+          runSpacing: spacing.sm,
+          children: [
+            for (final filter in _rapidUploadOrder)
+              AppTextButton(
+                key: Key(
+                  'media-rapid-upload-filter-${filter?.name ?? 'all'}',
+                ),
+                label: filter?.label ?? '全部',
+                size: AppTextButtonSize.xSmall,
+                isSelected: filterState.rapidUploadStatus == filter,
+                onPressed: () => onChanged(
+                  filterState.copyWith(rapidUploadStatus: filter),
                 ),
               ),
           ],

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -129,8 +130,8 @@ class ApiClient {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
-  }) async* {
-    yield* _sseRequest(
+  }) {
+    return _sseRequest(
       method: 'POST',
       path: path,
       data: data,
@@ -143,8 +144,8 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
-  }) async* {
-    yield* _sseRequest(
+  }) {
+    return _sseRequest(
       method: 'GET',
       path: path,
       queryParameters: queryParameters,
@@ -255,12 +256,14 @@ class ApiClient {
     Duration? receiveTimeout,
     Map<String, dynamic>? headers,
     bool Function(int?)? validateStatus,
+    CancelToken? cancelToken,
   }) async {
     try {
       return await _dio.request<T>(
         path,
         data: data,
         queryParameters: queryParameters,
+        cancelToken: cancelToken,
         options: Options(
           method: method,
           responseType: responseType,
@@ -275,48 +278,119 @@ class ApiClient {
     }
   }
 
+  /// SSE 请求包一层 [StreamController] 是为了把下游 `subscription.cancel()`
+  /// 桥回 dio 的 [CancelToken] —— dio 的 `handleResponseStream` 只在
+  /// `whenCancel` 分支同步取消 `receiveTimeout` 定时器，若直接 `yield*` 响应流，
+  /// 下游取消不会传导到那个定时器，测试环境（`fake_async`）会因 1 分钟计时器
+  /// 挂起而报 `!timersPending`。生产上真实 SSE 有心跳会 reset 定时器不会出问题，
+  /// 但依赖这个巧合并不稳（网络断了就是纯挂）。
   Stream<ApiSseEvent> _sseRequest({
     required String method,
     required String path,
     dynamic data,
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
-  }) async* {
-    final response = await _request<ResponseBody>(
-      method: method,
-      path: path,
-      data: data,
-      queryParameters: queryParameters,
-      requiresAuth: requiresAuth,
-      responseType: ResponseType.stream,
-      receiveTimeout: const Duration(minutes: 1),
-      headers: const <String, dynamic>{
-        Headers.acceptHeader: 'text/event-stream',
+  }) {
+    final cancelToken = CancelToken();
+    late StreamController<ApiSseEvent> controller;
+    var isStarting = false;
+
+    Future<void> start() async {
+      try {
+        final response = await _request<ResponseBody>(
+          method: method,
+          path: path,
+          data: data,
+          queryParameters: queryParameters,
+          requiresAuth: requiresAuth,
+          responseType: ResponseType.stream,
+          receiveTimeout: const Duration(minutes: 1),
+          headers: const <String, dynamic>{
+            Headers.acceptHeader: 'text/event-stream',
+          },
+          validateStatus: (_) => true,
+          cancelToken: cancelToken,
+        );
+        if (controller.isClosed) return;
+
+        final responseBody = response.data;
+        if (responseBody is! ResponseBody) {
+          throw const ApiException(
+            message:
+                'Expected event stream response but got unsupported data shape',
+          );
+        }
+
+        final statusCode = response.statusCode ?? responseBody.statusCode;
+        if (statusCode >= 400) {
+          final bodyText = await _readResponseBody(responseBody);
+          final parsedData = _decodeResponseData(bodyText);
+          final errorPayload = _extractError(parsedData);
+          throw ApiException(
+            statusCode: statusCode,
+            message: errorPayload?.message ?? 'Request failed',
+            error: errorPayload,
+          );
+        }
+
+        responseBody.stream
+            .transform(const SseDecoder())
+            .listen(
+              (event) {
+                if (!controller.isClosed) controller.add(event);
+              },
+              onError: (Object error, StackTrace stackTrace) {
+                // 主动取消触发的 DioException 是我们自己发起的（widget dispose），
+                // dio 在 cancelToken.whenCancel 里会 `addErrorAndClose(cancelError)`——
+                // 属于预期收尾，不透传给消费者，否则会变成 zone 未处理错误。
+                if (_isCancellationError(error)) {
+                  if (!controller.isClosed) controller.close();
+                  return;
+                }
+                if (!controller.isClosed) controller.addError(error, stackTrace);
+              },
+              onDone: () {
+                if (!controller.isClosed) controller.close();
+              },
+            );
+      } catch (error, stackTrace) {
+        if (controller.isClosed) return;
+        if (_isCancellationError(error)) {
+          await controller.close();
+          return;
+        }
+        controller.addError(error, stackTrace);
+        await controller.close();
+      }
+    }
+
+    controller = StreamController<ApiSseEvent>(
+      onListen: () {
+        if (isStarting) return;
+        isStarting = true;
+        unawaited(start());
       },
-      validateStatus: (_) => true,
+      onCancel: () {
+        // 只取消 CancelToken，不主动 cancel 内部 subscription：
+        // 1. dio 的 receiveTimeout 定时器**只**在 whenCancel 分支里同步取消；
+        //    subscription.cancel 反向传导到 dio 是无效的（responseSink 没挂
+        //    onCancel），所以 token 必须取消。
+        // 2. 触发 whenCancel 后 dio 会 `addErrorAndClose(cancelError)` 关闭
+        //    responseSink——我们的 subscription 会先在 onError 收到 cancelError
+        //    （被 [_isCancellationError] 过滤），再在 onDone 里 close 外层
+        //    controller，全流程自然收尾。如果这里主动 cancel subscription，
+        //    这条错误会因下游没人监听变成 zone 未处理错误。
+        if (!cancelToken.isCancelled) {
+          cancelToken.cancel();
+        }
+      },
     );
 
-    final responseBody = response.data;
-    if (responseBody is! ResponseBody) {
-      throw const ApiException(
-        message:
-            'Expected event stream response but got unsupported data shape',
-      );
-    }
+    return controller.stream;
+  }
 
-    final statusCode = response.statusCode ?? responseBody.statusCode;
-    if (statusCode >= 400) {
-      final bodyText = await _readResponseBody(responseBody);
-      final parsedData = _decodeResponseData(bodyText);
-      final errorPayload = _extractError(parsedData);
-      throw ApiException(
-        statusCode: statusCode,
-        message: errorPayload?.message ?? 'Request failed',
-        error: errorPayload,
-      );
-    }
-
-    yield* responseBody.stream.transform(const SseDecoder());
+  static bool _isCancellationError(Object error) {
+    return error is DioException && error.type == DioExceptionType.cancel;
   }
 
   Future<void> _refreshTokens() async {
