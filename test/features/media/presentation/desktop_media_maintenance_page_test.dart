@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.da
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/presentation/desktop_media_maintenance_page.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
+import 'package:sakuramedia/features/media/presentation/providers/invalid_media_provider.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
@@ -49,7 +50,12 @@ void main() {
       body: _invalidMediaPage(total: 0, items: const []),
     );
 
-    await _pumpPage(tester, mediaApi: mediaApi, apiClient: apiClient, sessionStore: sessionStore);
+    await _pumpPage(
+      tester,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      sessionStore: sessionStore,
+    );
 
     expect(
       find.byKey(const Key('desktop-media-maintenance-page')),
@@ -84,7 +90,12 @@ void main() {
       ),
     );
 
-    await _pumpPage(tester, mediaApi: mediaApi, apiClient: apiClient, sessionStore: sessionStore);
+    await _pumpPage(
+      tester,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      sessionStore: sessionStore,
+    );
 
     expect(find.text('ABC-001'), findsOneWidget);
     expect(find.text('Movie 1'), findsOneWidget);
@@ -115,67 +126,125 @@ void main() {
     expect(find.text('先复查'), findsNWidgets(3));
   });
 
-  testWidgets(
-      'cloud115 invalid media hides locator prefix and uses cloud wording', (
-    tester,
-  ) async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/media/invalid',
-      body: _invalidMediaPage(
-        total: 1,
-        items: [
-          <String, dynamic>{
-            ..._invalidMediaJson(id: 115, movieNumber: 'ABC-115'),
-            'path': 'cloud115:ABC-115.mp4',
-            'library_id': 9,
-            'library_name': '115 主库',
-          },
-        ],
-      ),
-    );
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/media-libraries',
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 9,
-          'name': '115 主库',
-          'backend': 'cloud115',
-          'backend_config': <String, dynamic>{
-            'root_cid': 'root',
-            'app': 'alipaymini',
-          },
-        },
-      ],
-    );
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/media/115/validity-check',
-      body: _validityResultJson(id: 115, revived: false, validAfter: false),
-    );
+  testWidgets('virtualizes accumulated invalid media pages', (tester) async {
+    const itemCount = 80;
+    const pageSize = 20;
+    for (var page = 1; page <= itemCount ~/ pageSize; page++) {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/invalid',
+        body: _invalidMediaPage(
+          page: page,
+          pageSize: pageSize,
+          total: itemCount,
+          items: List<Map<String, dynamic>>.generate(pageSize, (index) {
+            final id = (page - 1) * pageSize + index + 1;
+            return _invalidMediaJson(
+              id: id,
+              movieNumber: 'ABC-${id.toString().padLeft(3, '0')}',
+            );
+          }),
+        ),
+      );
+    }
 
     await _pumpPage(
       tester,
       mediaApi: mediaApi,
       apiClient: apiClient,
       sessionStore: sessionStore,
-      mediaLibrariesApi: MediaLibrariesApi(apiClient: apiClient),
     );
 
-    expect(find.text('ABC-115.mp4'), findsOneWidget);
-    expect(find.textContaining('cloud115:'), findsNothing);
-
-    await tester.tap(find.byKey(const Key('invalid-media-check-115')));
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(DesktopMediaMaintenancePage)),
+    );
+    for (var page = 2; page <= itemCount ~/ pageSize; page++) {
+      await tester.runAsync(
+        () => container.read(invalidMediaProvider.notifier).loadMore(),
+      );
+      await tester.pump();
+    }
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('invalid-media-delete-115')));
+
+    expect(
+      container.read(invalidMediaProvider).requireValue.paged.items,
+      hasLength(itemCount),
+    );
+    expect(find.byType(SliverList), findsOneWidget);
+    expect(find.byKey(const Key('invalid-media-check-80')), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('invalid-media-check-80')),
+      600,
+      scrollable: find.byType(Scrollable),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('115 网盘文件'), findsOneWidget);
-    expect(find.textContaining('进入 115 回收站'), findsOneWidget);
-
-    await tester.pump(const Duration(seconds: 4));
+    expect(find.byKey(const Key('invalid-media-check-80')), findsOneWidget);
+    expect(find.byKey(const Key('invalid-media-check-1')), findsNothing);
   });
+
+  testWidgets(
+    'cloud115 invalid media hides locator prefix and uses cloud wording',
+    (tester) async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/invalid',
+        body: _invalidMediaPage(
+          total: 1,
+          items: [
+            <String, dynamic>{
+              ..._invalidMediaJson(id: 115, movieNumber: 'ABC-115'),
+              'path': 'cloud115:ABC-115.mp4',
+              'library_id': 9,
+              'library_name': '115 主库',
+            },
+          ],
+        ),
+      );
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media-libraries',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 9,
+            'name': '115 主库',
+            'backend': 'cloud115',
+            'backend_config': <String, dynamic>{
+              'root_cid': 'root',
+              'app': 'alipaymini',
+            },
+          },
+        ],
+      );
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/media/115/validity-check',
+        body: _validityResultJson(id: 115, revived: false, validAfter: false),
+      );
+
+      await _pumpPage(
+        tester,
+        mediaApi: mediaApi,
+        apiClient: apiClient,
+        sessionStore: sessionStore,
+        mediaLibrariesApi: MediaLibrariesApi(apiClient: apiClient),
+      );
+
+      expect(find.text('ABC-115.mp4'), findsOneWidget);
+      expect(find.textContaining('cloud115:'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('invalid-media-check-115')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('invalid-media-delete-115')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('115 网盘文件'), findsOneWidget);
+      expect(find.textContaining('进入 115 回收站'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 4));
+    },
+  );
 
   testWidgets('refresh button reloads first page', (tester) async {
     adapter.enqueueJson(
@@ -195,7 +264,12 @@ void main() {
       ),
     );
 
-    await _pumpPage(tester, mediaApi: mediaApi, apiClient: apiClient, sessionStore: sessionStore);
+    await _pumpPage(
+      tester,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      sessionStore: sessionStore,
+    );
     await tester.tap(find.byKey(const Key('invalid-media-refresh-button')));
     await tester.pump();
     await tester.pumpAndSettle();
@@ -222,7 +296,12 @@ void main() {
       body: _validityResultJson(id: 1, revived: true, validAfter: true),
     );
 
-    await _pumpPage(tester, mediaApi: mediaApi, apiClient: apiClient, sessionStore: sessionStore);
+    await _pumpPage(
+      tester,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      sessionStore: sessionStore,
+    );
     await tester.tap(find.byKey(const Key('invalid-media-check-1')));
     await tester.pump();
     await tester.pumpAndSettle();
@@ -250,7 +329,12 @@ void main() {
       body: _validityResultJson(id: 1, revived: false, validAfter: false),
     );
 
-    await _pumpPage(tester, mediaApi: mediaApi, apiClient: apiClient, sessionStore: sessionStore);
+    await _pumpPage(
+      tester,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      sessionStore: sessionStore,
+    );
     await tester.tap(find.byKey(const Key('invalid-media-check-1')));
     await tester.pump();
     await tester.pumpAndSettle();
@@ -279,7 +363,12 @@ void main() {
     );
     adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
 
-    await _pumpPage(tester, mediaApi: mediaApi, apiClient: apiClient, sessionStore: sessionStore);
+    await _pumpPage(
+      tester,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      sessionStore: sessionStore,
+    );
 
     await tester.tap(find.byKey(const Key('invalid-media-delete-1')));
     await tester.pumpAndSettle();
@@ -322,7 +411,9 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  testWidgets('load more footer retries after paging failure', (tester) async {
+  testWidgets('recovers from paging failure without dropping loaded items', (
+    tester,
+  ) async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/media/invalid',
@@ -358,7 +449,12 @@ void main() {
       ),
     );
 
-    await _pumpPage(tester, mediaApi: mediaApi, apiClient: apiClient, sessionStore: sessionStore);
+    await _pumpPage(
+      tester,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      sessionStore: sessionStore,
+    );
     await tester.scrollUntilVisible(
       find.byKey(const Key('invalid-media-delete-20')),
       500,
@@ -367,17 +463,25 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle();
 
-    expect(find.text('ABC-001'), findsOneWidget);
-    expect(find.text('加载更多失效媒体失败，请点击重试'), findsOneWidget);
-
-    await tester.drag(
-      find.byType(SingleChildScrollView),
-      const Offset(0, -120),
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(DesktopMediaMaintenancePage)),
     );
-    await tester.pump();
-    await tester.pumpAndSettle();
-
+    expect(
+      container
+          .read(invalidMediaProvider)
+          .requireValue
+          .paged
+          .items
+          .any((item) => item.id == 1),
+      isTrue,
+      reason: '分页异常与重试期间不应丢失首屏数据',
+    );
     expect(find.text('ABC-021'), findsOneWidget);
+    expect(
+      container.read(invalidMediaProvider).requireValue.paged.items,
+      hasLength(21),
+    );
+    expect(adapter.hitCount('GET', '/media/invalid'), 3);
   });
 }
 
@@ -458,9 +562,10 @@ Map<String, dynamic> _invalidMediaJson({
     'movie_title': title ?? 'Movie $id',
     'cover_image':
         coverUrl == null ? null : _imageJson(id: id * 10, url: coverUrl),
-    'thin_cover_image': thinCoverUrl == null
-        ? null
-        : _imageJson(id: id * 10 + 1, url: thinCoverUrl),
+    'thin_cover_image':
+        thinCoverUrl == null
+            ? null
+            : _imageJson(id: id * 10 + 1, url: thinCoverUrl),
     'path': '/library/main/$movieNumber.mp4',
     'library_id': 1,
     'library_name': 'Main Library',

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/domain/clips/clip_cover_overlays.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/domain/media/media_duration_badge.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
 
 /// 移动端切片操作抽屉：点击切片卡 / 行任意位置后从底部弹出。
@@ -136,7 +136,7 @@ class MobileClipActionsSheet extends StatelessWidget {
                   Positioned(
                     right: spacing.xs,
                     bottom: spacing.xs,
-                    child: ClipDurationBadge(seconds: clip.durationSeconds),
+                    child: MediaDurationBadge(seconds: clip.durationSeconds),
                   ),
                 ],
               ),

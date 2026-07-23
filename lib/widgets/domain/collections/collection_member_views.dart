@@ -352,7 +352,7 @@ class CollectionMemberCard extends StatelessWidget {
   final BoxFit coverFit;
   final IconData? placeholderIcon;
 
-  /// 封面右下角徽标（如切片时长 `ClipDurationBadge`）；仅上图下文模式生效，为 `null` 时不展示。
+  /// 封面右下角徽标（如切片时长 `MediaDurationBadge`）；仅上图下文模式生效，为 `null` 时不展示。
   final Widget? coverBadge;
   final int titleMaxLines;
 

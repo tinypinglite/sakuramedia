@@ -16,6 +16,7 @@ import 'package:sakuramedia/features/shared/presentation/paged_load_controller.d
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
@@ -84,9 +85,10 @@ class _DiscoveryMoviesPageState extends State<_DiscoveryMoviesPage> {
   void initState() {
     super.initState();
     _controller = PagedLoadController<DailyRecommendationMovieDto>(
-      fetchPage: (page, pageSize) => context
-          .read<DiscoveryApi>()
-          .getDailyRecommendations(page: page, pageSize: pageSize),
+      fetchPage:
+          (page, pageSize) => context
+              .read<DiscoveryApi>()
+              .getDailyRecommendations(page: page, pageSize: pageSize),
       pageSize: _isMobile ? 18 : 24,
       loadMoreTriggerOffset: 300,
       initialLoadErrorText: '推荐影片加载失败，请稍后重试',
@@ -104,64 +106,78 @@ class _DiscoveryMoviesPageState extends State<_DiscoveryMoviesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final child = AnimatedBuilder(
+    final sliver = AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        final showFooter = _controller.items.isNotEmpty &&
+        final showFooter =
+            _controller.items.isNotEmpty &&
             (_controller.isLoadingMore ||
                 _controller.loadMoreErrorMessage != null);
-        return Column(
+        return SliverMainAxisGroup(
           key: Key(
             _isMobile
                 ? 'mobile-discover-movies-page'
                 : 'desktop-discover-movies-page',
           ),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppFilterTotalHeader(
-              leading: const SizedBox.shrink(),
-              totalText: '${_controller.total} 部',
-              totalKey: Key(
-                _isMobile
-                    ? 'mobile-discover-movies-total'
-                    : 'desktop-discover-movies-total',
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppFilterTotalHeader(
+                    leading: const SizedBox.shrink(),
+                    totalText: '${_controller.total} 部',
+                    totalKey: Key(
+                      _isMobile
+                          ? 'mobile-discover-movies-total'
+                          : 'desktop-discover-movies-total',
+                    ),
+                  ),
+                  SizedBox(
+                    height:
+                        _isMobile
+                            ? context.appSpacing.md
+                            : context.appSpacing.lg,
+                  ),
+                ],
               ),
-            ),
-            SizedBox(
-              height: _isMobile ? context.appSpacing.md : context.appSpacing.lg,
             ),
             _buildBody(context),
-            if (showFooter) ...[
-              SizedBox(height: context.appSpacing.md),
-              AppPagedLoadMoreFooter(
-                isLoading: _controller.isLoadingMore,
-                errorMessage: _controller.loadMoreErrorMessage,
-                onRetry: _controller.loadMore,
+            if (showFooter)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: context.appSpacing.md),
+                  child: AppPagedLoadMoreFooter(
+                    isLoading: _controller.isLoadingMore,
+                    errorMessage: _controller.loadMoreErrorMessage,
+                    onRetry: _controller.loadMore,
+                  ),
+                ),
               ),
-            ],
           ],
         );
       },
     );
 
-    if (_isMobile) {
-      return ColoredBox(
-        color: context.appColors.surfaceCard,
-        child: AppAdaptiveRefreshScrollView(
-          controller: _controller.scrollController,
-          onRefresh: _handleRefresh,
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: <Widget>[SliverToBoxAdapter(child: child)],
-        ),
-      );
-    }
-
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: SingleChildScrollView(
-        controller: _controller.scrollController,
-        child: child,
-      ),
+    return AppPageRefreshScope(
+      onRefresh: _handleRefresh,
+      child: _isMobile
+          ? ColoredBox(
+              color: context.appColors.surfaceCard,
+              child: AppAdaptiveRefreshScrollView(
+                controller: _controller.scrollController,
+                onRefresh: _handleRefresh,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[sliver],
+              ),
+            )
+          : ColoredBox(
+              color: context.appColors.surfaceElevated,
+              child: CustomScrollView(
+                controller: _controller.scrollController,
+                slivers: [sliver],
+              ),
+            ),
     );
   }
 
@@ -177,24 +193,28 @@ class _DiscoveryMoviesPageState extends State<_DiscoveryMoviesPage> {
 
   Widget _buildBody(BuildContext context) {
     if (_controller.initialErrorMessage != null) {
-      return _RetryEmptyState(
-        message: _controller.initialErrorMessage!,
-        onRetry: _controller.reload,
+      return SliverToBoxAdapter(
+        child: _RetryEmptyState(
+          message: _controller.initialErrorMessage!,
+          onRetry: _controller.reload,
+        ),
       );
     }
-    return MovieSummaryGrid(
-      items:
-          _controller.items.map((item) => item.movie).toList(growable: false),
+    return MovieSummarySliver(
+      items: _controller.items
+          .map((item) => item.movie)
+          .toList(growable: false),
       isLoading: _controller.isInitialLoading,
       emptyMessage: '暂无推荐影片，去搜索看看吧',
       placeholderCount: _isMobile ? 6 : 12,
       onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
-      onMovieMenuRequest: (movie, globalPosition) => requestMovieCollectionMenu(
-        context,
-        movie.movieNumber,
-        globalPosition,
-        isSubscribed: movie.isSubscribed,
-      ),
+      onMovieMenuRequest:
+          (movie, globalPosition) => requestMovieCollectionMenu(
+            context,
+            movie.movieNumber,
+            globalPosition,
+            isSubscribed: movie.isSubscribed,
+          ),
     );
   }
 
@@ -254,64 +274,78 @@ class _DiscoveryMomentsPageState extends State<_DiscoveryMomentsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final child = AnimatedBuilder(
+    final sliver = AnimatedBuilder(
       animation: _controller,
       builder: (context, _) {
-        final showFooter = _controller.items.isNotEmpty &&
+        final showFooter =
+            _controller.items.isNotEmpty &&
             (_controller.isLoadingMore ||
                 _controller.loadMoreErrorMessage != null);
-        return Column(
+        return SliverMainAxisGroup(
           key: Key(
             _isMobile
                 ? 'mobile-discover-moments-page'
                 : 'desktop-discover-moments-page',
           ),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppFilterTotalHeader(
-              leading: const SizedBox.shrink(),
-              totalText: '${_controller.total} 个',
-              totalKey: Key(
-                _isMobile
-                    ? 'mobile-discover-moments-total'
-                    : 'desktop-discover-moments-total',
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppFilterTotalHeader(
+                    leading: const SizedBox.shrink(),
+                    totalText: '${_controller.total} 个',
+                    totalKey: Key(
+                      _isMobile
+                          ? 'mobile-discover-moments-total'
+                          : 'desktop-discover-moments-total',
+                    ),
+                  ),
+                  SizedBox(
+                    height:
+                        _isMobile
+                            ? context.appSpacing.md
+                            : context.appSpacing.lg,
+                  ),
+                ],
               ),
-            ),
-            SizedBox(
-              height: _isMobile ? context.appSpacing.md : context.appSpacing.lg,
             ),
             _buildBody(context),
-            if (showFooter) ...[
-              SizedBox(height: context.appSpacing.md),
-              AppPagedLoadMoreFooter(
-                isLoading: _controller.isLoadingMore,
-                errorMessage: _controller.loadMoreErrorMessage,
-                onRetry: _controller.loadMore,
+            if (showFooter)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: context.appSpacing.md),
+                  child: AppPagedLoadMoreFooter(
+                    isLoading: _controller.isLoadingMore,
+                    errorMessage: _controller.loadMoreErrorMessage,
+                    onRetry: _controller.loadMore,
+                  ),
+                ),
               ),
-            ],
           ],
         );
       },
     );
 
-    if (_isMobile) {
-      return ColoredBox(
-        color: context.appColors.surfaceCard,
-        child: AppAdaptiveRefreshScrollView(
-          controller: _controller.scrollController,
-          onRefresh: _handleRefresh,
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: <Widget>[SliverToBoxAdapter(child: child)],
-        ),
-      );
-    }
-
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: SingleChildScrollView(
-        controller: _controller.scrollController,
-        child: child,
-      ),
+    return AppPageRefreshScope(
+      onRefresh: _handleRefresh,
+      child: _isMobile
+          ? ColoredBox(
+              color: context.appColors.surfaceCard,
+              child: AppAdaptiveRefreshScrollView(
+                controller: _controller.scrollController,
+                onRefresh: _handleRefresh,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[sliver],
+              ),
+            )
+          : ColoredBox(
+              color: context.appColors.surfaceElevated,
+              child: CustomScrollView(
+                controller: _controller.scrollController,
+                slivers: [sliver],
+              ),
+            ),
     );
   }
 
@@ -327,27 +361,31 @@ class _DiscoveryMomentsPageState extends State<_DiscoveryMomentsPage> {
 
   Widget _buildBody(BuildContext context) {
     if (_controller.isInitialLoading) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: context.appLayoutTokens.emptySectionVerticalPadding,
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: context.appLayoutTokens.emptySectionVerticalPadding,
+            ),
+            child: const CircularProgressIndicator(),
           ),
-          child: const CircularProgressIndicator(),
         ),
       );
     }
     if (_controller.initialErrorMessage != null) {
-      return _RetryEmptyState(
-        message: _controller.initialErrorMessage!,
-        onRetry: _controller.reload,
+      return SliverToBoxAdapter(
+        child: _RetryEmptyState(
+          message: _controller.initialErrorMessage!,
+          onRetry: _controller.reload,
+        ),
       );
     }
     if (_controller.items.isEmpty) {
-      return const AppEmptyState(
-        message: '暂无推荐时刻，播放时添加标记，等定时任务处理后展示',
+      return const SliverToBoxAdapter(
+        child: AppEmptyState(message: '暂无推荐时刻，播放时添加标记，等定时任务处理后展示'),
       );
     }
-    return MomentGrid(
+    return MomentSliver(
       items: _controller.items
           .map((item) => item.toMomentListItem())
           .toList(growable: false),
@@ -359,12 +397,14 @@ class _DiscoveryMomentsPageState extends State<_DiscoveryMomentsPage> {
     final action = await showMomentPreviewOverlay(
       context: context,
       item: item,
-      presentation: _isMobile
-          ? MediaPreviewPresentation.bottomDrawer
-          : MediaPreviewPresentation.dialog,
-      drawerKey: _isMobile
-          ? const Key('mobile-discover-moments-preview-bottom-sheet')
-          : null,
+      presentation:
+          _isMobile
+              ? MediaPreviewPresentation.bottomDrawer
+              : MediaPreviewPresentation.dialog,
+      drawerKey:
+          _isMobile
+              ? const Key('mobile-discover-moments-preview-bottom-sheet')
+              : null,
     );
     if (!mounted || action == null) {
       return;

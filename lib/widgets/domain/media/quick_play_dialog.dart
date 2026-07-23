@@ -31,6 +31,7 @@ class QuickPlayDialog extends StatefulWidget {
     required this.noPlayableMessage,
     this.errorFallback = '加载失败，请重试',
     this.guardInitialSeek = false,
+    this.subtitle,
   });
 
   final String title;
@@ -52,6 +53,9 @@ class QuickPlayDialog extends StatefulWidget {
 
   /// 完整媒体启用初始化 seek 保护；切片是本地产物，保持关闭。
   final bool guardInitialSeek;
+
+  /// 标题下方的可选副内容槽（例如「所属合集」chip 行）。为空则不留空隙。
+  final Widget? subtitle;
 
   @override
   State<QuickPlayDialog> createState() => _QuickPlayDialogState();
@@ -134,6 +138,10 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
               ),
             ),
           ),
+          if (widget.subtitle != null) ...[
+            SizedBox(height: spacing.sm),
+            widget.subtitle!,
+          ],
           SizedBox(height: spacing.md),
           ClipRRect(
             borderRadius: context.appRadius.smBorder,
@@ -175,10 +183,16 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
 }
 
 /// 视频列表卡 / 时刻卡「小图快播」入口——先取详情、拿首个可播源。
+///
+/// [subtitle] 是标题下方的可选副内容槽，由调用方组装（例如 videos feature
+/// 页面塞 `VideoCollectionChips` 展示所属合集，并在 chip 点击回调里
+/// `Navigator.of(context, rootNavigator: true).pop()` 先关 dialog 再跳转）。
+/// moments 等无附加上下文的入口留空即可。
 Future<void> showVideoQuickPlayDialog(
   BuildContext context, {
   required int videoId,
   required String title,
+  Widget? subtitle,
 }) {
   return showDialog<void>(
     context: context,
@@ -188,6 +202,7 @@ Future<void> showVideoQuickPlayDialog(
       videoKey: const Key('video-quick-play-video'),
       noPlayableMessage: '暂无可播放的媒体',
       guardInitialSeek: true,
+      subtitle: subtitle,
       resolvePlayUrl: (innerContext) async {
         final videosApi = innerContext.read<VideosApi>();
         final baseUrl = innerContext.read<SessionStore>().baseUrl;

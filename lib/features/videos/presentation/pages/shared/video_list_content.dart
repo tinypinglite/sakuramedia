@@ -8,7 +8,7 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_fo
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_filter_toolbar.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_summary_grid.dart';
 
-/// 视频列表「排序条 + 总数 + 网格 + 分页底栏」的呈现层。
+/// 视频列表「排序条 + 总数 + 网格 + 分页底栏」的 Sliver 呈现层。
 ///
 /// 与 `MovieListContent` 平行，但去掉订阅/合集类型变更联动，主键为 `int id`。
 /// 标签/人物筛选面板由外层页面承载（见 `desktop_video_list_page`），本组件只负责
@@ -20,8 +20,6 @@ class VideoListContent extends StatelessWidget {
     required this.filterState,
     required this.onFilterChanged,
     required this.onVideoTap,
-    this.onVideoAddToCollection,
-    this.onVideoDelete,
     this.selectionMode = false,
     this.selectedIds = const <int>{},
     this.onVideoToggleSelect,
@@ -37,8 +35,6 @@ class VideoListContent extends StatelessWidget {
   final VideoFilterState filterState;
   final ValueChanged<VideoFilterState> onFilterChanged;
   final ValueChanged<VideoItemListItemDto> onVideoTap;
-  final ValueChanged<VideoItemListItemDto>? onVideoAddToCollection;
-  final ValueChanged<VideoItemListItemDto>? onVideoDelete;
 
   /// 选择模式：网格切换为多选交互。
   final bool selectionMode;
@@ -69,48 +65,57 @@ class VideoListContent extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
-        final showFooter = controller.items.isNotEmpty &&
-            (controller.isLoadingMore || controller.loadMoreErrorMessage != null);
+        final showFooter =
+            controller.items.isNotEmpty &&
+            (controller.isLoadingMore ||
+                controller.loadMoreErrorMessage != null);
         final inlineTrailing = headerInlineTrailingBuilder?.call(context);
         final trailingBelow = headerTrailingBuilder?.call(context);
-        return Column(
+        return SliverMainAxisGroup(
           key: contentKey,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppFilterTotalHeader(
-              leading: VideoFilterToolbar(
-                filterState: filterState,
-                onChanged: onFilterChanged,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppFilterTotalHeader(
+                    leading: VideoFilterToolbar(
+                      filterState: filterState,
+                      onChanged: onFilterChanged,
+                    ),
+                    totalText: '${controller.total} 个',
+                    totalKey: totalKey ?? const Key('videos-page-total'),
+                    trailing: inlineTrailing,
+                  ),
+                  if (trailingBelow != null) ...[
+                    SizedBox(height: context.appSpacing.sm),
+                    trailingBelow,
+                  ],
+                  SizedBox(height: sectionSpacing),
+                ],
               ),
-              totalText: '${controller.total} 个',
-              totalKey: totalKey ?? const Key('videos-page-total'),
-              trailing: inlineTrailing,
             ),
-            if (trailingBelow != null) ...[
-              SizedBox(height: context.appSpacing.sm),
-              trailingBelow,
-            ],
-            SizedBox(height: sectionSpacing),
-            VideoSummaryGrid(
+            VideoSummarySliver(
               items: controller.items,
               isLoading: controller.isInitialLoading,
               errorMessage: controller.initialErrorMessage,
               onVideoTap: onVideoTap,
-              onVideoAddToCollection: onVideoAddToCollection,
-              onVideoDelete: onVideoDelete,
               selectionMode: selectionMode,
               selectedIds: selectedIds,
               onVideoToggleSelect: onVideoToggleSelect,
               emptyMessage: emptyMessage,
             ),
-            if (showFooter) ...[
-              SizedBox(height: context.appSpacing.md),
-              AppPagedLoadMoreFooter(
-                isLoading: controller.isLoadingMore,
-                errorMessage: controller.loadMoreErrorMessage,
-                onRetry: controller.loadMore,
+            if (showFooter)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: context.appSpacing.md),
+                  child: AppPagedLoadMoreFooter(
+                    isLoading: controller.isLoadingMore,
+                    errorMessage: controller.loadMoreErrorMessage,
+                    onRetry: controller.loadMore,
+                  ),
+                ),
               ),
-            ],
           ],
         );
       },

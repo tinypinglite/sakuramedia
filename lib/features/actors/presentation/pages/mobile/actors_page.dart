@@ -84,67 +84,74 @@ class _MobileActorsPageState extends State<MobileActorsPage> {
         controller: _actorsController.scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: <Widget>[
-          SliverToBoxAdapter(
-            child: AnimatedBuilder(
-              animation: _actorsController,
-              builder: (context, _) {
-                final showFooter =
-                    _actorsController.items.isNotEmpty &&
-                    (_actorsController.isLoadingMore ||
-                        _actorsController.loadMoreErrorMessage != null);
-                return Column(
-                  key: const Key('mobile-actors-page'),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppMobileTabHeader(
-                      filterButtonKey: const Key(
-                        'mobile-actors-filter-button',
-                      ),
-                      filterTooltip: '筛选',
-                      onFilterTap: _openFilterDrawer,
-                      chips: [
-                        for (final preset in ActorFilterPreset.values)
-                          AppMobileTabChip(
-                            key: Key(
-                              'mobile-actors-filter-preset-${preset.key}',
-                            ),
-                            label: preset.label,
-                            isSelected: _filterState.matchesPreset(preset),
-                            onTap: () => _applyFilter(preset.filterState),
+          AnimatedBuilder(
+            animation: _actorsController,
+            builder: (context, _) {
+              final showFooter =
+                  _actorsController.items.isNotEmpty &&
+                  (_actorsController.isLoadingMore ||
+                      _actorsController.loadMoreErrorMessage != null);
+              return SliverMainAxisGroup(
+                key: const Key('mobile-actors-page'),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppMobileTabHeader(
+                          filterButtonKey: const Key(
+                            'mobile-actors-filter-button',
                           ),
+                          filterTooltip: '筛选',
+                          onFilterTap: _openFilterDrawer,
+                          chips: [
+                            for (final preset in ActorFilterPreset.values)
+                              AppMobileTabChip(
+                                key: Key(
+                                  'mobile-actors-filter-preset-${preset.key}',
+                                ),
+                                label: preset.label,
+                                isSelected: _filterState.matchesPreset(preset),
+                                onTap: () => _applyFilter(preset.filterState),
+                              ),
+                          ],
+                        ),
+                        SizedBox(height: context.appSpacing.md),
                       ],
                     ),
-                    SizedBox(height: context.appSpacing.md),
-                    ActorSummaryGrid(
-                      items: _actorsController.items,
-                      isLoading: _actorsController.isInitialLoading,
-                      errorMessage: _actorsController.initialErrorMessage,
-                      onActorTap:
-                          (actor) => MobileActorDetailRouteData(
-                            actorId: actor.id,
-                          ).push(context),
-                      onActorSubscriptionTap:
-                          (actor) => _toggleActorSubscription(actor.id),
-                      isActorSubscriptionUpdating:
-                          (actor) => _actorsController.isSubscriptionUpdating(
-                            actor.id,
-                          ),
-                      emptyMessage: _filterState.isDefault
-                          ? '暂无女优，去搜索看看吧'
-                          : '当前筛选条件下暂无匹配女优',
-                    ),
-                    if (showFooter) ...[
-                      SizedBox(height: context.appSpacing.md),
-                      AppPagedLoadMoreFooter(
-                        isLoading: _actorsController.isLoadingMore,
-                        errorMessage: _actorsController.loadMoreErrorMessage,
-                        onRetry: _actorsController.loadMore,
+                  ),
+                  ActorSummarySliver(
+                    items: _actorsController.items,
+                    isLoading: _actorsController.isInitialLoading,
+                    errorMessage: _actorsController.initialErrorMessage,
+                    onActorTap:
+                        (actor) => MobileActorDetailRouteData(
+                          actorId: actor.id,
+                        ).push(context),
+                    onActorSubscriptionTap:
+                        (actor) => _toggleActorSubscription(actor.id),
+                    isActorSubscriptionUpdating:
+                        (actor) =>
+                            _actorsController.isSubscriptionUpdating(actor.id),
+                    emptyMessage:
+                        _filterState.isDefault
+                            ? '暂无女优，去搜索看看吧'
+                            : '当前筛选条件下暂无匹配女优',
+                  ),
+                  if (showFooter)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: context.appSpacing.md),
+                        child: AppPagedLoadMoreFooter(
+                          isLoading: _actorsController.isLoadingMore,
+                          errorMessage: _actorsController.loadMoreErrorMessage,
+                          onRetry: _actorsController.loadMore,
+                        ),
                       ),
-                    ],
-                  ],
-                );
-              },
-            ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),

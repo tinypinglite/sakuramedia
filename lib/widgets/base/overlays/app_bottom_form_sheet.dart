@@ -4,9 +4,10 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 
 /// 装进 [showAppBottomDrawer] 的表单外壳。
 ///
-/// 承担三处 mobile 页（indexers / downloaders / media_libraries）编辑抽屉共有的
-/// 外壳结构：`AnimatedPadding(viewInsets)` → `SingleChildScrollView` → `Form` →
-/// 标题 + 副标题 + [body] slot + Cancel/Submit 双按钮。
+/// 承担四处 mobile 编辑抽屉共有的外壳结构：`SingleChildScrollView` → `Form` →
+/// 标题 + 可选副标题 + [body] slot + Cancel/Submit 双按钮。键盘 inset 由
+/// [AppBottomDrawerSurface] 在抽屉外壳层统一兜底（`AnimatedPadding(viewInsets)`），
+/// 此处不再自补偿，避免双 padding。
 ///
 /// [body] 由调用方组装 —— 通常是 FormFields，也可以在其后追加探针 chips 之类
 /// 附加控件（如 downloaders 页会追加 `DownloadClientEditorProbeChips`）。
@@ -15,7 +16,7 @@ class AppBottomFormSheet extends StatelessWidget {
     super.key,
     required this.formKey,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.body,
     required this.submitKey,
     required this.isSubmitting,
@@ -27,7 +28,7 @@ class AppBottomFormSheet extends StatelessWidget {
 
   final GlobalKey<FormState> formKey;
   final String title;
-  final String subtitle;
+  final String? subtitle;
 
   /// 表单主体：一般是 FormFields；可在其内部自行追加探针 chips 等附加控件。
   final Widget body;
@@ -49,31 +50,28 @@ class AppBottomFormSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final viewInsets = MediaQuery.viewInsetsOf(context);
     final busy = isSubmitting || submitDisabled;
+    final resolvedSubtitle = subtitle;
 
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      padding: EdgeInsets.only(bottom: viewInsets.bottom),
-      child: SingleChildScrollView(
-        child: Form(
-          key: formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                title,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s16,
-                  weight: AppTextWeight.semibold,
-                  tone: AppTextTone.primary,
-                ),
+    return SingleChildScrollView(
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              title,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s16,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
               ),
+            ),
+            if (resolvedSubtitle != null) ...[
               SizedBox(height: spacing.xs),
               Text(
-                subtitle,
+                resolvedSubtitle,
                 style: resolveAppTextStyle(
                   context,
                   size: AppTextSize.s12,
@@ -81,32 +79,32 @@ class AppBottomFormSheet extends StatelessWidget {
                   tone: AppTextTone.secondary,
                 ),
               ),
-              SizedBox(height: spacing.lg),
-              body,
-              SizedBox(height: spacing.lg),
-              Row(
-                children: [
-                  Expanded(
-                    child: AppButton(
-                      label: cancelLabel,
-                      onPressed:
-                          busy ? null : () => Navigator.of(context).pop(),
-                    ),
-                  ),
-                  SizedBox(width: spacing.md),
-                  Expanded(
-                    child: AppButton(
-                      key: submitKey,
-                      label: submitLabel,
-                      variant: AppButtonVariant.primary,
-                      isLoading: isSubmitting,
-                      onPressed: submitDisabled ? null : onSubmit,
-                    ),
-                  ),
-                ],
-              ),
             ],
-          ),
+            SizedBox(height: spacing.lg),
+            body,
+            SizedBox(height: spacing.lg),
+            Row(
+              children: [
+                Expanded(
+                  child: AppButton(
+                    label: cancelLabel,
+                    onPressed:
+                        busy ? null : () => Navigator.of(context).pop(),
+                  ),
+                ),
+                SizedBox(width: spacing.md),
+                Expanded(
+                  child: AppButton(
+                    key: submitKey,
+                    label: submitLabel,
+                    variant: AppButtonVariant.primary,
+                    isLoading: isSubmitting,
+                    onPressed: submitDisabled ? null : onSubmit,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

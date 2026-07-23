@@ -1,3 +1,4 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
@@ -19,6 +20,7 @@ class VideoItemDetailDto {
     this.coverHeight,
     required this.mediaCount,
     required this.canPlay,
+    this.collections = const <VideoCollectionRef>[],
     this.createdAt,
     this.updatedAt,
     this.mediaItems = const <MovieMediaItemDto>[],
@@ -39,6 +41,10 @@ class VideoItemDetailDto {
   final int? coverHeight;
   final int mediaCount;
   final bool canPlay;
+
+  /// 该视频归属的全部合集（0..N），后端按合集名升序返回。与列表项共享同一字段。
+  final List<VideoCollectionRef> collections;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final List<MovieMediaItemDto> mediaItems;
@@ -65,6 +71,7 @@ class VideoItemDetailDto {
       coverHeight: coverHeight,
       mediaCount: mediaCount,
       canPlay: canPlay,
+      collections: collections,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -72,17 +79,18 @@ class VideoItemDetailDto {
 
   factory VideoItemDetailDto.fromJson(Map<String, dynamic> json) {
     return VideoItemDetailDto(
-      id: _intFromJson(json['id']) ?? 0,
+      id: asIntOrNull(json['id']) ?? 0,
       title: json['title'] as String? ?? '',
       summary: json['summary'] as String? ?? '',
       coverImage: videoImageFromJson(json['cover_image']),
       releaseDate: videoDateFromJson(json['release_date']),
-      durationSeconds: _intFromJson(json['duration_seconds']) ?? 0,
-      fileSizeBytes: _intFromJson(json['file_size_bytes']) ?? 0,
-      coverWidth: _intFromJson(json['cover_width']),
-      coverHeight: _intFromJson(json['cover_height']),
-      mediaCount: _intFromJson(json['media_count']) ?? 0,
+      durationSeconds: asIntOrNull(json['duration_seconds']) ?? 0,
+      fileSizeBytes: asIntOrNull(json['file_size_bytes']) ?? 0,
+      coverWidth: asIntOrNull(json['cover_width']),
+      coverHeight: asIntOrNull(json['cover_height']),
+      mediaCount: asIntOrNull(json['media_count']) ?? 0,
       canPlay: json['can_play'] as bool? ?? false,
+      collections: videoCollectionRefsFromJson(json['collections']),
       createdAt: videoDateFromJson(json['created_at']),
       updatedAt: videoDateFromJson(json['updated_at']),
       mediaItems: _listFromJson(json['media_items'], MovieMediaItemDto.fromJson),
@@ -113,19 +121,6 @@ class VideoItemUpdatePayload {
         'release_date': releaseDate!.toIso8601String(),
     };
   }
-}
-
-int? _intFromJson(dynamic value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is num) {
-    return value.toInt();
-  }
-  if (value is String) {
-    return int.tryParse(value);
-  }
-  return null;
 }
 
 List<T> _listFromJson<T>(

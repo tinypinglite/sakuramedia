@@ -21,8 +21,34 @@ class MomentGrid extends StatelessWidget {
       minColumns: 2,
       maxColumns: 4,
       childAspectRatio: 16 / 10,
-      itemBuilder: (context, item, _) =>
-          MomentCard(item: item, onTap: () => onItemTap(item)),
+      itemBuilder:
+          (context, item, _) =>
+              MomentCard(item: item, onTap: () => onItemTap(item)),
+    );
+  }
+}
+
+/// 累计分页时刻列表使用的 Sliver 网格版本。
+class MomentSliver extends StatelessWidget {
+  const MomentSliver({super.key, required this.items, required this.onItemTap});
+
+  final List<MomentListItem> items;
+  final ValueChanged<MomentListItem> onItemTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppAdaptiveCardSliver<MomentListItem>(
+      gridKey: const Key('moment-grid'),
+      items: items,
+      isLoading: false,
+      skeletonBuilder: (_, __) => const SizedBox.shrink(),
+      targetColumnWidth: 280,
+      minColumns: 2,
+      maxColumns: 4,
+      childAspectRatio: 16 / 10,
+      itemBuilder:
+          (context, item, _) =>
+              MomentCard(item: item, onTap: () => onItemTap(item)),
     );
   }
 }

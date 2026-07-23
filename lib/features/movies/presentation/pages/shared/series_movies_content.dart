@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/movies/presentation/controllers/listing/pag
 import 'package:sakuramedia/features/movies/presentation/widgets/series_import/series_import_dialog.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
@@ -18,7 +19,7 @@ typedef SeriesMoviesBodyBuilder =
     Widget Function(
       BuildContext context,
       ScrollController scrollController,
-      Widget child,
+      Widget sliver,
       Future<void> Function()? onRefresh,
     );
 
@@ -152,10 +153,7 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent> {
   }
 
   Future<void> _handleImport() async {
-    final hasNewMovies = await showSeriesImportDialog(
-      context,
-      widget.seriesId,
-    );
+    final hasNewMovies = await showSeriesImportDialog(context, widget.seriesId);
     if (hasNewMovies && mounted) {
       await _controller.refresh();
     }
@@ -163,43 +161,57 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent> {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: widget.surfaceColor,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          final showFooter =
-              _controller.items.isNotEmpty &&
-              (_controller.isLoadingMore ||
-                  _controller.loadMoreErrorMessage != null);
-          return widget.bodyBuilder(
-            context,
-            _controller.scrollController,
-            Column(
-              key: widget.contentKey,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _SeriesMoviesHeader(
-                  seriesName: _displaySeriesName,
-                  total: _controller.total,
-                  totalKey: widget.totalKey,
-                  onImport: _handleImport,
-                ),
-                SizedBox(height: widget.sectionSpacing),
-                _buildMoviesArea(context),
-                if (showFooter) ...[
-                  SizedBox(height: context.appSpacing.md),
-                  AppPagedLoadMoreFooter(
-                    isLoading: _controller.isLoadingMore,
-                    errorMessage: _controller.loadMoreErrorMessage,
-                    onRetry: _controller.loadMore,
+    // AnimatedBuilder 只包住 sliver body——bodyBuilder 产出的
+    // CustomScrollView / AppAdaptiveRefreshScrollView 不需要跟着分页 tick 重建。
+    return AppPageRefreshScope(
+      onRefresh: _handleRefresh,
+      child: ColoredBox(
+        color: widget.surfaceColor,
+        child: widget.bodyBuilder(
+          context,
+          _controller.scrollController,
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) {
+              final showFooter =
+                  _controller.items.isNotEmpty &&
+                  (_controller.isLoadingMore ||
+                      _controller.loadMoreErrorMessage != null);
+              return SliverMainAxisGroup(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      key: widget.contentKey,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SeriesMoviesHeader(
+                          seriesName: _displaySeriesName,
+                          total: _controller.total,
+                          totalKey: widget.totalKey,
+                          onImport: _handleImport,
+                        ),
+                        SizedBox(height: widget.sectionSpacing),
+                      ],
+                    ),
                   ),
+                  _buildMoviesArea(context),
+                  if (showFooter)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: context.appSpacing.md),
+                        child: AppPagedLoadMoreFooter(
+                          isLoading: _controller.isLoadingMore,
+                          errorMessage: _controller.loadMoreErrorMessage,
+                          onRetry: _controller.loadMore,
+                        ),
+                      ),
+                    ),
                 ],
-              ],
-            ),
-            widget.enableRefresh ? _handleRefresh : null,
-          );
-        },
+              );
+            },
+          ),
+          widget.enableRefresh ? _handleRefresh : null,
+        ),
       ),
     );
   }
@@ -207,22 +219,24 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent> {
   Widget _buildMoviesArea(BuildContext context) {
     if (_controller.initialErrorMessage != null &&
         !_controller.isInitialLoading) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          AppEmptyState(message: _controller.initialErrorMessage!),
-          SizedBox(height: context.appSpacing.md),
-          Center(
-            child: TextButton(
-              onPressed: _controller.reload,
-              child: const Text('重试'),
+      return SliverToBoxAdapter(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            AppEmptyState(message: _controller.initialErrorMessage!),
+            SizedBox(height: context.appSpacing.md),
+            Center(
+              child: TextButton(
+                onPressed: _controller.reload,
+                child: const Text('重试'),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
-    return MovieSummaryGrid(
+    return MovieSummarySliver(
       items: _controller.items,
       isLoading: _controller.isInitialLoading,
       onMovieTap: (movie) => widget.onMovieTap(context, movie.movieNumber),
@@ -336,9 +350,7 @@ class _ImportButton extends StatelessWidget {
         ),
         minimumSize: Size.zero,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(
-          borderRadius: context.appRadius.xsBorder,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: context.appRadius.xsBorder),
       ),
       child: Text(
         '同步系列影片',

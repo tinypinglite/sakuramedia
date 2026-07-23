@@ -18,10 +18,12 @@ import 'package:sakuramedia/features/videos/presentation/controllers/listing/vid
 import 'package:sakuramedia/features/videos/presentation/pages/shared/video_list_content.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_list_page_state.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/notifiers/video_mutation_change_notifier.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_actions_dialog.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
@@ -54,10 +56,11 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
     _pageStateHandle = obtainCachedPageState<VideoListPageStateEntry>(
       context,
       key: desktopVideosPageStateKey(),
-      create: () => VideoListPageStateEntry(
-        videosApi: context.read<VideosApi>(),
-        mutationNotifier: _mutationNotifier,
-      ),
+      create:
+          () => VideoListPageStateEntry(
+            videosApi: context.read<VideosApi>(),
+            mutationNotifier: _mutationNotifier,
+          ),
     );
     _collectionsController = VideoCollectionsOverviewController(
       collectionsApi: context.read<VideoCollectionsApi>(),
@@ -130,6 +133,25 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
     }
   }
 
+  /// 点视频卡：弹桌面版动作弹窗（对齐移动端 sheet）。用户在弹窗里选「播放」
+  /// 再走原来的快速播放弹窗；「加入合集」/「删除」都是本页原有的入口。
+  void _openActionsDialog(VideoItemListItemDto video) {
+    showDesktopVideoActionsDialog(
+      context,
+      video: video,
+      onPlay: () => showVideoQuickPlayDialog(
+        context,
+        videoId: video.id,
+        title: video.preferredTitle,
+      ),
+      onAddToCollection: () => _addToCollection(video),
+      onDelete: () => _deleteVideo(video),
+      collections: video.collections,
+      onCollectionTap: (ref) =>
+          context.pushDesktopVideoCollectionDetail(collectionId: ref.id),
+    );
+  }
+
   Future<void> _deleteVideo(VideoItemListItemDto video) async {
     final title = video.preferredTitle.trim();
     final label = title.isEmpty ? '该视频' : '“$title”';
@@ -158,9 +180,8 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
 
   List<VideoItemListItemDto> get _loadedVideos => _pageState.controller.items;
 
-  List<VideoItemListItemDto> _selectedVideos() => _loadedVideos
-      .where((v) => isSelected(v.id))
-      .toList(growable: false);
+  List<VideoItemListItemDto> _selectedVideos() =>
+      _loadedVideos.where((v) => isSelected(v.id)).toList(growable: false);
 
   void _showBatchToast(String verb, BatchRunResult<dynamic> result) {
     if (result.failed.isEmpty) {
@@ -221,10 +242,11 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
       context,
       title: '正在加入「${target.name}」',
       items: selected,
-      action: (video) => api.addCollectionItem(
-        collectionId: target.id,
-        videoItemId: video.id,
-      ),
+      action:
+          (video) => api.addCollectionItem(
+            collectionId: target.id,
+            videoItemId: video.id,
+          ),
     );
     if (!mounted) {
       return;
@@ -240,40 +262,48 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
     exitSelection();
   }
 
+  Future<void> _handlePageRefresh() async {
+    await Future.wait<void>([
+      _pageState.controller.refresh(),
+      _collectionsController.refresh(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final pageState = _pageState;
 
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: SingleChildScrollView(
-        controller: pageState.controller.scrollController,
-        child: Column(
-          key: const Key('videos-page'),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCollectionsSection(context),
-            SizedBox(height: context.appSpacing.lg),
-            VideoListContent(
-              controller: pageState.controller,
-              filterState: pageState.filterState,
-              onFilterChanged: _applySort,
-              contentKey: const Key('videos-page-list'),
-              totalKey: const Key('videos-page-total'),
-              sectionSpacing: context.appSpacing.lg,
-              onVideoTap: (video) => showVideoQuickPlayDialog(
-                context,
-                videoId: video.id,
-                title: video.preferredTitle,
-              ),
-              onVideoAddToCollection: _addToCollection,
-              onVideoDelete: _deleteVideo,
-              selectionMode: selectionMode,
-              selectedIds: selectedIds,
-              onVideoToggleSelect: (video) => toggleSelect(video.id),
-              headerTrailingBuilder: _buildSelectionControls,
-              headerInlineTrailingBuilder: _buildInlineSelectionTrigger,
+    return AppPageRefreshScope(
+      onRefresh: _handlePageRefresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceElevated,
+        child: CustomScrollView(
+          controller: pageState.controller.scrollController,
+          slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              key: const Key('videos-page'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCollectionsSection(context),
+                SizedBox(height: context.appSpacing.lg),
+              ],
             ),
+          ),
+          VideoListContent(
+            controller: pageState.controller,
+            filterState: pageState.filterState,
+            onFilterChanged: _applySort,
+            contentKey: const Key('videos-page-list'),
+            totalKey: const Key('videos-page-total'),
+            sectionSpacing: context.appSpacing.lg,
+            onVideoTap: _openActionsDialog,
+            selectionMode: selectionMode,
+            selectedIds: selectedIds,
+            onVideoToggleSelect: (video) => toggleSelect(video.id),
+            headerTrailingBuilder: _buildSelectionControls,
+            headerInlineTrailingBuilder: _buildInlineSelectionTrigger,
+          ),
           ],
         ),
       ),
@@ -419,17 +449,18 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
         key: const Key('videos-collections-row'),
         scrollDirection: Axis.horizontal,
         itemCount: collections.length,
-        separatorBuilder: (context, index) =>
-            SizedBox(width: context.appSpacing.md),
+        separatorBuilder:
+            (context, index) => SizedBox(width: context.appSpacing.md),
         itemBuilder: (context, index) {
           final collection = collections[index];
           return SizedBox(
             width: 210,
             child: CollectionCard.video(
               collection: collection,
-              onTap: () => context.pushDesktopVideoCollectionDetail(
-                collectionId: collection.id,
-              ),
+              onTap:
+                  () => context.pushDesktopVideoCollectionDetail(
+                    collectionId: collection.id,
+                  ),
             ),
           );
         },

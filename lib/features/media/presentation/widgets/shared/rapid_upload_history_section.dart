@@ -1,8 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
@@ -19,6 +18,8 @@ import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_meta_chip.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 秒传批次历史 section：批次 tab 主体。
 ///
@@ -26,94 +27,176 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_meta_chip.dart';
 /// （目标库名映射）+ `mediaRapidUploadBatchDetailProvider`（展开时按 batchId 拉
 /// items 明细）。重试动作由父页承担，因为需要处理 batch 级 spinner + toast。
 ///
-/// 展开状态用页面级 hook `useState<Set<int>>` 管：切 tab 会丢展开态（用户展开
-/// 一般立刻看，成本可忽略）。
-class RapidUploadHistorySection extends HookConsumerWidget {
+/// 批次历史与明细都使用有界 builder 列表：历史直接消费页面滚动 Sliver，明细放入
+/// 桌面弹窗，避免任一层把累计条目全部挂进渲染树。
+class RapidUploadHistorySection extends StatelessWidget {
   const RapidUploadHistorySection({
     super.key,
+    required this.scrollController,
     required this.onRetry,
     required this.retryingBatchId,
   });
 
+  final ScrollController scrollController;
   final Future<void> Function(MediaRapidUploadBatchListItemDto batch) onRetry;
   final int? retryingBatchId;
 
   @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      key: const Key('media-management-batch-scroll-view'),
+      controller: scrollController,
+      slivers: [
+        const SliverToBoxAdapter(child: _RapidUploadHistoryHeader()),
+        SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
+        _RapidUploadHistoryBodySliver(
+          retryingBatchId: retryingBatchId,
+          onRetry: onRetry,
+        ),
+        SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.xxl)),
+      ],
+    );
+  }
+}
+
+class _RapidUploadHistoryHeader extends ConsumerWidget {
+  const _RapidUploadHistoryHeader();
+
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncState = ref.watch(mediaRapidUploadHistoryProvider);
-    final librariesAsync = ref.watch(mediaLibrariesProvider);
-    final libraries = librariesAsync.value?.libraries ?? const [];
-    final expandedIds = useState<Set<int>>(const <int>{});
-
-    final spacing = context.appSpacing;
-    return AppContentCard(
-      title: '秒传批次',
-      titleStyle: resolveAppTextStyle(
-        context,
-        size: AppTextSize.s16,
-        weight: AppTextWeight.semibold,
-        tone: AppTextTone.primary,
+    final total = asyncState.value?.total ?? 0;
+    final isInitialLoading = asyncState.isLoading && !asyncState.hasValue;
+    return AppFilterTotalHeader(
+      leading: Text(
+        '秒传任务按批次记录执行状态，失败项可以在批次结束后重新提交。',
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.muted,
+        ),
       ),
-      headerTrailing: AppIconButton(
+      totalText: '共 $total 个批次',
+      totalKey: const Key('media-management-batch-total'),
+      trailing: AppIconButton(
         key: const Key('media-management-batch-refresh-button'),
-        tooltip: '刷新批次',
-        onPressed: (asyncState.isLoading && !asyncState.hasValue)
-            ? null
-            : () async {
-                final message = await ref
-                    .read(mediaRapidUploadHistoryProvider.notifier)
-                    .refresh();
-                if (message != null) showToast(message);
-              },
+        tooltip: isInitialLoading ? '刷新中' : '刷新批次',
+        onPressed:
+            isInitialLoading
+                ? null
+                : () async {
+                  final message =
+                      await ref
+                          .read(mediaRapidUploadHistoryProvider.notifier)
+                          .refresh();
+                  if (message != null) showToast(message);
+                },
         icon: const Icon(Icons.refresh_rounded),
-      ),
-      headerBottomSpacing: spacing.md,
-      child: PagedAsyncSection<
-        PagedListState<MediaRapidUploadBatchListItemDto>,
-        MediaRapidUploadBatchListItemDto
-      >(
-        asyncState: asyncState,
-        pagedOf: (s) => s,
-        itemSpacing: spacing.md,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        initialErrorMessage: '秒传批次加载失败，请稍后重试',
-        emptyMessage: '暂无秒传批次记录。选择媒体后可以从上方发起秒传。',
-        initialRetryKey: const Key('media-management-batch-retry-button'),
-        onReload: () => unawaited(
-          ref.read(mediaRapidUploadHistoryProvider.notifier).reload(),
-        ),
-        onLoadMore: () => unawaited(
-          ref.read(mediaRapidUploadHistoryProvider.notifier).loadMore(),
-        ),
-        itemBuilder: (context, batch, _) => _RapidUploadBatchCard(
-          batch: batch,
-          libraries: libraries,
-          isRetrying: retryingBatchId == batch.id,
-          canRetry: retryingBatchId == null &&
-              batch.state.isTerminal &&
-              batch.hasRetryable,
-          onRetry: () => unawaited(onRetry(batch)),
-          expanded: expandedIds.value.contains(batch.id),
-          onToggleExpand: () {
-            final next = Set<int>.of(expandedIds.value);
-            if (!next.remove(batch.id)) next.add(batch.id);
-            expandedIds.value = next;
-          },
-        ),
       ),
     );
   }
 }
 
-class _RapidUploadBatchCard extends ConsumerWidget {
+class _RapidUploadHistoryBodySliver extends ConsumerWidget {
+  const _RapidUploadHistoryBodySliver({
+    required this.retryingBatchId,
+    required this.onRetry,
+  });
+
+  final int? retryingBatchId;
+  final Future<void> Function(MediaRapidUploadBatchListItemDto batch) onRetry;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncState = ref.watch(mediaRapidUploadHistoryProvider);
+    final libraries =
+        ref.watch(mediaLibrariesProvider).value?.libraries ?? const [];
+    return SliverPagedAsyncSection<
+      PagedListState<MediaRapidUploadBatchListItemDto>,
+      MediaRapidUploadBatchListItemDto
+    >(
+      asyncState: asyncState,
+      pagedOf: (s) => s,
+      itemSpacing: context.appSpacing.md,
+      initialErrorMessage: '秒传批次加载失败，请稍后重试',
+      emptyMessage: '暂无秒传批次记录。选择媒体后可以从上方发起秒传。',
+      initialRetryKey: const Key('media-management-batch-retry-button'),
+      onReload:
+          () => unawaited(
+            ref.read(mediaRapidUploadHistoryProvider.notifier).reload(),
+          ),
+      onLoadMore:
+          () => unawaited(
+            ref.read(mediaRapidUploadHistoryProvider.notifier).loadMore(),
+          ),
+      itemBuilder:
+          (context, batch, _) => _RapidUploadBatchCard(
+            batch: batch,
+            libraries: libraries,
+            isRetrying: retryingBatchId == batch.id,
+            canRetry:
+                retryingBatchId == null &&
+                batch.state.isTerminal &&
+                batch.hasRetryable,
+            onRetry: () => unawaited(onRetry(batch)),
+            onOpenDetail:
+                () => _showRapidUploadBatchDetailDialog(context, batch),
+          ),
+    );
+  }
+}
+
+Future<void> _showRapidUploadBatchDetailDialog(
+  BuildContext context,
+  MediaRapidUploadBatchListItemDto batch,
+) {
+  return showDialog<void>(
+    context: context,
+    builder:
+        (dialogContext) => AppDesktopDialog(
+          dialogKey: Key('rapid-upload-batch-detail-dialog-${batch.id}'),
+          closeButtonKey: Key('rapid-upload-batch-detail-close-${batch.id}'),
+          width: dialogContext.appLayoutTokens.dialogWidthMd,
+          height: MediaQuery.sizeOf(dialogContext).height * 0.72,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '批次 #${batch.id} 明细',
+                style: resolveAppTextStyle(
+                  dialogContext,
+                  size: AppTextSize.s18,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.primary,
+                ),
+              ),
+              SizedBox(height: dialogContext.appSpacing.xs),
+              Text(
+                '共 ${batch.totalCount} 项 · 成功 ${batch.succeededCount} · 失败 ${batch.failedCount + batch.cleanupFailedCount}',
+                style: resolveAppTextStyle(
+                  dialogContext,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.muted,
+                ),
+              ),
+              SizedBox(height: dialogContext.appSpacing.lg),
+              Expanded(child: _RapidUploadBatchDetailBody(batchId: batch.id)),
+            ],
+          ),
+        ),
+  );
+}
+
+class _RapidUploadBatchCard extends StatelessWidget {
   const _RapidUploadBatchCard({
     required this.batch,
     required this.libraries,
     required this.isRetrying,
     required this.canRetry,
     required this.onRetry,
-    required this.expanded,
-    required this.onToggleExpand,
+    required this.onOpenDetail,
   });
 
   final MediaRapidUploadBatchListItemDto batch;
@@ -121,13 +204,12 @@ class _RapidUploadBatchCard extends ConsumerWidget {
   final bool isRetrying;
   final bool canRetry;
   final VoidCallback onRetry;
-  final bool expanded;
-  final VoidCallback onToggleExpand;
+  final VoidCallback onOpenDetail;
 
-  bool get _canExpand => batch.totalCount > 0;
+  bool get _hasDetails => batch.totalCount > 0;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     return AppContentCard(
       title: '批次 #${batch.id}',
@@ -169,9 +251,10 @@ class _RapidUploadBatchCard extends ConsumerWidget {
                 key: Key('rapid-upload-batch-succeeded-${batch.id}'),
                 icon: Icons.check_circle_outline_rounded,
                 label: '成功 ${batch.succeededCount}',
-                tone: batch.succeededCount > 0
-                    ? AppTextTone.success
-                    : AppTextTone.secondary,
+                tone:
+                    batch.succeededCount > 0
+                        ? AppTextTone.success
+                        : AppTextTone.secondary,
               ),
               if (batch.failedCount > 0)
                 AppMetaChip(
@@ -209,16 +292,14 @@ class _RapidUploadBatchCard extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (_canExpand) ...[
+              if (_hasDetails) ...[
                 SizedBox(width: spacing.md),
                 AppButton(
                   key: Key('rapid-upload-batch-toggle-${batch.id}'),
-                  label: expanded
-                      ? '收起明细'
-                      : '查看明细（${batch.totalCount}）',
+                  label: '查看明细（${batch.totalCount}）',
                   size: AppButtonSize.small,
                   variant: AppButtonVariant.ghost,
-                  onPressed: onToggleExpand,
+                  onPressed: onOpenDetail,
                 ),
               ],
               if (canRetry || isRetrying) ...[
@@ -235,10 +316,6 @@ class _RapidUploadBatchCard extends ConsumerWidget {
               ],
             ],
           ),
-          if (expanded) ...[
-            SizedBox(height: spacing.md),
-            _RapidUploadBatchDetailBody(batchId: batch.id),
-          ],
         ],
       ),
     );
@@ -277,8 +354,7 @@ class _RapidUploadBatchDetailBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final detailAsync =
-        ref.watch(mediaRapidUploadBatchDetailProvider(batchId));
+    final detailAsync = ref.watch(mediaRapidUploadBatchDetailProvider(batchId));
     final spacing = context.appSpacing;
 
     if (detailAsync.isLoading && !detailAsync.hasValue) {
@@ -315,9 +391,10 @@ class _RapidUploadBatchDetailBody extends ConsumerWidget {
             label: '重试',
             size: AppButtonSize.small,
             variant: AppButtonVariant.secondary,
-            onPressed: () => ref.invalidate(
-              mediaRapidUploadBatchDetailProvider(batchId),
-            ),
+            onPressed:
+                () => ref.invalidate(
+                  mediaRapidUploadBatchDetailProvider(batchId),
+                ),
           ),
         ],
       );
@@ -334,15 +411,12 @@ class _RapidUploadBatchDetailBody extends ConsumerWidget {
         ),
       );
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (final item in detail.items)
-          Padding(
-            padding: EdgeInsets.only(bottom: spacing.sm),
-            child: _RapidUploadItemRow(item: item),
-          ),
-      ],
+    return ListView.separated(
+      key: Key('rapid-upload-batch-detail-list-$batchId'),
+      itemCount: detail.items.length,
+      separatorBuilder: (context, index) => SizedBox(height: spacing.sm),
+      itemBuilder:
+          (context, index) => _RapidUploadItemRow(item: detail.items[index]),
     );
   }
 }
@@ -373,9 +447,10 @@ class _RapidUploadItemRow extends StatelessWidget {
       formatFileSize(item.sourceSizeBytes),
       if (finishedLabel != null) '完成 $finishedLabel',
     ];
-    final displayPath = item.targetName?.isNotEmpty == true
-        ? item.targetName!
-        : item.sourcePath;
+    final displayPath =
+        item.targetName?.isNotEmpty == true
+            ? item.targetName!
+            : item.sourcePath;
     return Container(
       key: Key('rapid-upload-item-${item.id}'),
       padding: EdgeInsets.all(spacing.md),
@@ -430,8 +505,7 @@ class _RapidUploadItemRow extends StatelessWidget {
               ],
             ),
           ],
-          if (_isFailure &&
-              (item.errorMessage ?? '').trim().isNotEmpty) ...[
+          if (_isFailure && (item.errorMessage ?? '').trim().isNotEmpty) ...[
             SizedBox(height: spacing.sm),
             Text(
               item.errorMessage!,

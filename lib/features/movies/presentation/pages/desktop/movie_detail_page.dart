@@ -32,6 +32,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
@@ -112,10 +113,12 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        if (_controller.isLoading) {
+    return AppPageRefreshScope(
+      onRefresh: _controller.refresh,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          if (_controller.isLoading) {
           return MovieDetailLoadingSkeleton(controller: _controller);
         }
 
@@ -255,6 +258,7 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
           },
         );
       },
+      ),
     );
   }
 

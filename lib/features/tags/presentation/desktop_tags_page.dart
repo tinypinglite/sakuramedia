@@ -15,6 +15,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
 class DesktopTagsPage extends StatefulWidget {
   const DesktopTagsPage({super.key, this.initialTagId});
@@ -80,62 +81,76 @@ class _DesktopTagsPageState extends State<DesktopTagsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final controller = _pageState.controller;
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: SingleChildScrollView(
-        controller: controller.scrollController,
-        child: AnimatedBuilder(
-          // 仅监听选择区：影片网格的重建由内部 MovieListContent 自行处理。
-          animation: _selection,
-          builder: (context, _) {
-            return Column(
+    return AnimatedBuilder(
+      animation: _selection,
+      builder: (context, _) {
+        if (!_selection.hasSelection) {
+          return ColoredBox(
+            color: context.appColors.surfaceElevated,
+            child: SingleChildScrollView(
               key: const Key('tags-page'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TagSelectorPanel(
-                  selection: _selection,
-                  onToggleTag: _selection.toggle,
-                  onRemoveTag: _selection.remove,
-                  onClear: _selection.clear,
-                  onQueryChanged: _selection.setQuery,
-                  onToggleExpanded: _selection.toggleExpanded,
-                  onMatchModeChanged: _selection.setMatchMode,
-                  onRetry: () => unawaited(_selection.retry()),
-                ),
-                SizedBox(height: context.appSpacing.lg),
-                _buildMoviesArea(context),
-              ],
-            );
-          },
-        ),
-      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSelectorPanel(),
+                  SizedBox(height: context.appSpacing.lg),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: context.appSpacing.xxl,
+                    ),
+                    child: const AppEmptyState(message: '请选择标签查看影片'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        return _buildMoviesArea(context);
+      },
     );
   }
 
   Widget _buildMoviesArea(BuildContext context) {
-    if (!_selection.hasSelection) {
-      return Padding(
-        padding: EdgeInsets.symmetric(vertical: context.appSpacing.xxl),
-        child: const AppEmptyState(message: '请选择标签查看影片'),
-      );
-    }
-
-    // 复用影片页同一套「筛选条 + 总数 + 网格 + 分页底栏」呈现逻辑。
-    // 外层已有 SingleChildScrollView 承载滚动，bodyBuilder 直接回传 child，
-    // 避免二次 attach 同一 scrollController。
-    return MovieListContent(
+    return AppPageRefreshScope(
+      onRefresh: _pageState.controller.refresh,
+      child: MovieListContent(
+      key: const Key('tags-page'),
       pageState: _pageState,
       surfaceColor: context.appColors.surfaceElevated,
       contentKey: const Key('tags-page-movies'),
       totalKey: const Key('tags-page-total'),
       sectionSpacing: context.appSpacing.lg,
       emptyMessage: '该标签下暂无影片',
-      onMovieTap: (context, movieNumber) => context.pushDesktopMovieDetail(
-        movieNumber: movieNumber,
-        fallbackPath: desktopTagsPath,
+      onMovieTap:
+          (context, movieNumber) => context.pushDesktopMovieDetail(
+            movieNumber: movieNumber,
+            fallbackPath: desktopTagsPath,
+          ),
+      bodyBuilder:
+          (context, scrollController, sliver, onRefresh) => CustomScrollView(
+            controller: scrollController,
+            slivers: [
+              SliverToBoxAdapter(child: _buildSelectorPanel()),
+              SliverToBoxAdapter(
+                child: SizedBox(height: context.appSpacing.lg),
+              ),
+              sliver,
+            ],
+          ),
       ),
-      bodyBuilder: (context, scrollController, child, onRefresh) => child,
+    );
+  }
+
+  Widget _buildSelectorPanel() {
+    return TagSelectorPanel(
+      selection: _selection,
+      onToggleTag: _selection.toggle,
+      onRemoveTag: _selection.remove,
+      onClear: _selection.clear,
+      onQueryChanged: _selection.setQuery,
+      onToggleExpanded: _selection.toggleExpanded,
+      onMatchModeChanged: _selection.setMatchMode,
+      onRetry: () => unawaited(_selection.retry()),
     );
   }
 }

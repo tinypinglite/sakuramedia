@@ -81,22 +81,6 @@ void main() {
   });
 
   test(
-    'pickImageSearchFile ignores missing downloads directory on Linux',
-    () async {
-      debugDefaultTargetPlatformOverride = TargetPlatform.linux;
-      debugImageSearchDownloadsDirectoryProvider =
-          () async => '/home/test/Downloads';
-      debugImageSearchEnvironmentLookup =
-          (name) => name == 'HOME' ? '/home/test' : null;
-      debugImageSearchDirectoryExists = (path) => path == '/home/test';
-
-      await pickImageSearchFile();
-
-      expect(recordingFilePicker.pickFilesInitialDirectory, '/home/test');
-    },
-  );
-
-  test(
     'pickImageSearchFile leaves initial directory empty on unsupported platforms',
     () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.fuchsia;

@@ -43,9 +43,10 @@ class _MobileTagsPageState extends State<MobileTagsPage> {
       moviesApi: context.read<MoviesApi>(),
       subscriptionChangeNotifier:
           context.read<MovieSubscriptionChangeNotifier>(),
-      initialSelectedTagIds: widget.initialTagId == null
-          ? const <int>[]
-          : <int>[widget.initialTagId!],
+      initialSelectedTagIds:
+          widget.initialTagId == null
+              ? const <int>[]
+              : <int>[widget.initialTagId!],
       popularLimit: 5,
     );
   }
@@ -99,21 +100,24 @@ class _MobileTagsPageState extends State<MobileTagsPage> {
       totalKey: const Key('tags-page-total'),
       sectionSpacing: context.appSpacing.md,
       emptyMessage: '该标签下暂无影片',
-      onMovieTap: (context, movieNumber) =>
-          MobileMovieDetailRouteData(movieNumber: movieNumber).push(context),
-      bodyBuilder: (context, scrollController, child, onRefresh) =>
-          AppAdaptiveRefreshScrollView(
-        onRefresh: onRefresh!,
-        controller: scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: <Widget>[
-          SliverToBoxAdapter(child: _buildSelectorPanel()),
-          SliverToBoxAdapter(
-            child: SizedBox(height: context.appSpacing.lg),
-          ),
-          SliverToBoxAdapter(child: child),
-        ],
-      ),
+      onMovieTap:
+          (context, movieNumber) => MobileMovieDetailRouteData(
+            movieNumber: movieNumber,
+          ).push(context),
+      bodyBuilder:
+          (context, scrollController, sliver, onRefresh) =>
+              AppAdaptiveRefreshScrollView(
+                onRefresh: onRefresh!,
+                controller: scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[
+                  SliverToBoxAdapter(child: _buildSelectorPanel()),
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: context.appSpacing.lg),
+                  ),
+                  sliver,
+                ],
+              ),
       enableRefresh: true,
       onRefreshFailure: (_) => showToast('刷新失败'),
     );

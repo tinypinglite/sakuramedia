@@ -29,8 +29,8 @@ class DesktopSeriesMoviesPage extends StatelessWidget {
             fallbackPath: desktopMoviesPath,
           ),
       bodyBuilder:
-          (context, scrollController, child, _) =>
-              SingleChildScrollView(controller: scrollController, child: child),
+          (context, scrollController, sliver, _) =>
+              CustomScrollView(controller: scrollController, slivers: [sliver]),
     );
   }
 }

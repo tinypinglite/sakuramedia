@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/m
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
 class DesktopMoviesPage extends StatefulWidget {
   const DesktopMoviesPage({super.key});
@@ -45,20 +46,25 @@ class _DesktopMoviesPageState extends State<DesktopMoviesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return MovieListContent(
-      pageState: _pageState,
-      surfaceColor: context.appColors.surfaceElevated,
-      contentKey: const Key('movies-page'),
-      totalKey: const Key('movies-page-total'),
-      sectionSpacing: context.appSpacing.lg,
-      onMovieTap:
-          (context, movieNumber) => context.pushDesktopMovieDetail(
-            movieNumber: movieNumber,
-            fallbackPath: desktopMoviesPath,
-          ),
-      bodyBuilder:
-          (context, scrollController, child, _) =>
-              SingleChildScrollView(controller: scrollController, child: child),
+    return AppPageRefreshScope(
+      onRefresh: _pageState.controller.refresh,
+      child: MovieListContent(
+        pageState: _pageState,
+        surfaceColor: context.appColors.surfaceElevated,
+        contentKey: const Key('movies-page'),
+        totalKey: const Key('movies-page-total'),
+        sectionSpacing: context.appSpacing.lg,
+        onMovieTap:
+            (context, movieNumber) => context.pushDesktopMovieDetail(
+              movieNumber: movieNumber,
+              fallbackPath: desktopMoviesPath,
+            ),
+        bodyBuilder:
+            (context, scrollController, sliver, _) => CustomScrollView(
+              controller: scrollController,
+              slivers: [sliver],
+            ),
+      ),
     );
   }
 }

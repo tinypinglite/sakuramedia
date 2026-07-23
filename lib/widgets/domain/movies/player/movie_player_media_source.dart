@@ -42,11 +42,8 @@ PlayerConfiguration buildMoviePlayerConfiguration({
   switch (platform ?? defaultTargetPlatform) {
     case TargetPlatform.macOS:
     case TargetPlatform.windows:
-    case TargetPlatform.linux:
       return const PlayerConfiguration(libass: true);
-    case TargetPlatform.android:
-    case TargetPlatform.iOS:
-    case TargetPlatform.fuchsia:
+    default:
       return const PlayerConfiguration();
   }
 }

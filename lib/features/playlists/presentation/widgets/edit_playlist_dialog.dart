@@ -107,13 +107,9 @@ class _EditPlaylistDialogState extends State<EditPlaylistDialog> {
         child: _buildFormContent(context),
       );
     }
-    final viewInsets = MediaQuery.viewInsetsOf(context);
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOut,
-      padding: EdgeInsets.only(bottom: viewInsets.bottom),
-      child: SingleChildScrollView(child: _buildFormContent(context)),
-    );
+    // 键盘 viewInsets 由 AppBottomDrawerSurface 统一处理，这里不重复贴 padding，
+    // 否则会出现「双份 bottom padding」把表单顶到远高于键盘的位置。
+    return SingleChildScrollView(child: _buildFormContent(context));
   }
 
   Widget _buildFormContent(BuildContext context) {

@@ -42,13 +42,6 @@ void main() {
         ).libass,
         isTrue,
       );
-      expect(
-        buildMoviePlayerConfiguration(
-          isWeb: false,
-          platform: TargetPlatform.linux,
-        ).libass,
-        isTrue,
-      );
     });
 
     test('mobile and web configuration keep libass disabled', () {

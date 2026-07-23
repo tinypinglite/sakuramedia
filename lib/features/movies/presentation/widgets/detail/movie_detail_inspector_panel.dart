@@ -525,14 +525,8 @@ class _ReviewSortSwitchLoadingIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final platform = Theme.of(context).platform;
-    final useCupertino = switch (platform) {
-      TargetPlatform.iOS || TargetPlatform.macOS => true,
-      TargetPlatform.android ||
-      TargetPlatform.fuchsia ||
-      TargetPlatform.linux ||
-      TargetPlatform.windows =>
-        false,
-    };
+    final useCupertino =
+        platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
 
     return SizedBox(
       key: const Key('movie-detail-review-sort-switch-loading-indicator'),

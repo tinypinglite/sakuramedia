@@ -80,10 +80,7 @@ class ImportJobCard extends StatelessWidget {
                 tone: _stateTone(job.state),
               ),
               if (job.isCloud115)
-                const AppMetaChip(
-                  icon: Icons.cloud_outlined,
-                  label: '115 网盘',
-                ),
+                const AppMetaChip(icon: Icons.cloud_outlined, label: '115 网盘'),
               AppMetaChip(
                 icon: Icons.swap_horiz_rounded,
                 label: job.transferMode.label,
@@ -91,9 +88,10 @@ class ImportJobCard extends StatelessWidget {
               AppMetaChip(
                 icon: Icons.check_circle_outline_rounded,
                 label: '导入 ${job.importedCount}',
-                tone: job.importedCount > 0
-                    ? AppTextTone.success
-                    : AppTextTone.secondary,
+                tone:
+                    job.importedCount > 0
+                        ? AppTextTone.success
+                        : AppTextTone.secondary,
               ),
               AppMetaChip(
                 icon: Icons.skip_next_rounded,
@@ -102,9 +100,10 @@ class ImportJobCard extends StatelessWidget {
               AppMetaChip(
                 icon: Icons.error_outline_rounded,
                 label: '失败 ${job.failedCount}',
-                tone: job.failedCount > 0
-                    ? AppTextTone.error
-                    : AppTextTone.secondary,
+                tone:
+                    job.failedCount > 0
+                        ? AppTextTone.error
+                        : AppTextTone.secondary,
               ),
             ],
           ),
@@ -211,24 +210,44 @@ class ImportJobCard extends StatelessWidget {
           ),
           SizedBox(height: context.appSpacing.sm),
         ],
-        ...loaded.failedFiles.map(
-          (file) => Padding(
-            padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-            child: _FailedFileRow(
-              file: file,
-              canAct: file.isActionable && loaded.isTerminal,
-              canMutateSource: _canMutateSource,
-              onRetry: () => onRetryFile(file.path),
-              onDelete: _canMutateSource
-                  ? () => onDeleteFile!(file.path)
-                  : null,
-              onRename: _canMutateSource
-                  ? () => onRenameFile!(file.path, _sourceName(file.path))
-                  : null,
+        if (loaded.failedFiles.length <= 8)
+          ...loaded.failedFiles.map(
+            (file) => Padding(
+              padding: EdgeInsets.only(bottom: context.appSpacing.sm),
+              child: _buildFailedFileRow(loaded, file),
+            ),
+          )
+        else
+          SizedBox(
+            height: MediaQuery.sizeOf(context).height * 0.45,
+            child: ListView.separated(
+              key: Key('media-import-failed-file-list-${job.id}'),
+              itemCount: loaded.failedFiles.length,
+              separatorBuilder:
+                  (context, index) => SizedBox(height: context.appSpacing.sm),
+              itemBuilder:
+                  (context, index) =>
+                      _buildFailedFileRow(loaded, loaded.failedFiles[index]),
             ),
           ),
-        ),
       ],
+    );
+  }
+
+  Widget _buildFailedFileRow(
+    ImportJobCardDetailData loaded,
+    FailedFileDto file,
+  ) {
+    return _FailedFileRow(
+      file: file,
+      canAct: file.isActionable && loaded.isTerminal,
+      canMutateSource: _canMutateSource,
+      onRetry: () => onRetryFile(file.path),
+      onDelete: _canMutateSource ? () => onDeleteFile!(file.path) : null,
+      onRename:
+          _canMutateSource
+              ? () => onRenameFile!(file.path, _sourceName(file.path))
+              : null,
     );
   }
 
@@ -263,9 +282,10 @@ class _ProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final value = taskRun.progressValue;
     final text = taskRun.progressText;
-    final counts = taskRun.hasDeterminateProgress
-        ? '${taskRun.progressCurrent}/${taskRun.progressTotal}'
-        : null;
+    final counts =
+        taskRun.hasDeterminateProgress
+            ? '${taskRun.progressCurrent}/${taskRun.progressTotal}'
+            : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -280,14 +300,14 @@ class _ProgressBar extends StatelessWidget {
         SizedBox(height: context.appSpacing.xs),
         Text(
           [
-            if (counts != null) counts,
-            if (text != null && text.trim().isNotEmpty) text,
-          ].join(' · ').trim().isEmpty
+                if (counts != null) counts,
+                if (text != null && text.trim().isNotEmpty) text,
+              ].join(' · ').trim().isEmpty
               ? '导入中…'
               : [
-                  if (counts != null) counts,
-                  if (text != null && text.trim().isNotEmpty) text,
-                ].join(' · '),
+                if (counts != null) counts,
+                if (text != null && text.trim().isNotEmpty) text,
+              ].join(' · '),
           style: resolveAppTextStyle(
             context,
             size: AppTextSize.s12,
@@ -366,10 +386,7 @@ class _FailedFileRow extends StatelessWidget {
                 ),
               ),
               SizedBox(width: spacing.sm),
-              _KindTag(
-                kind: file.kind,
-                retryOnly: !canMutateSource,
-              ),
+              _KindTag(kind: file.kind, retryOnly: !canMutateSource),
             ],
           ),
           SizedBox(height: spacing.xs),
@@ -437,9 +454,10 @@ class _KindTag extends StatelessWidget {
         context,
         size: AppTextSize.s12,
         weight: AppTextWeight.regular,
-        tone: kind == FailedFileKind.file
-            ? AppTextTone.accent
-            : AppTextTone.muted,
+        tone:
+            kind == FailedFileKind.file
+                ? AppTextTone.accent
+                : AppTextTone.muted,
       ),
     );
   }

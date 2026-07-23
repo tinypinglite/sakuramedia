@@ -17,8 +17,6 @@ class VideoSummaryGrid extends StatelessWidget {
     required this.isLoading,
     this.errorMessage,
     this.onVideoTap,
-    this.onVideoAddToCollection,
-    this.onVideoDelete,
     this.selectionMode = false,
     this.selectedIds = const <int>{},
     this.onVideoToggleSelect,
@@ -29,9 +27,9 @@ class VideoSummaryGrid extends StatelessWidget {
   final List<VideoItemListItemDto> items;
   final bool isLoading;
   final String? errorMessage;
+
+  /// 卡片点击 → 桌面走动作弹窗、移动走 sheet；两端弹窗承载播放/加入合集/删除。
   final ValueChanged<VideoItemListItemDto>? onVideoTap;
-  final ValueChanged<VideoItemListItemDto>? onVideoAddToCollection;
-  final ValueChanged<VideoItemListItemDto>? onVideoDelete;
 
   /// 选择模式：卡片切换为多选交互。
   final bool selectionMode;
@@ -65,14 +63,63 @@ class VideoSummaryGrid extends StatelessWidget {
       ),
       itemBuilder: (context, video, index) => VideoSummaryCard(
         video: video,
-        // 整卡点击 = 弹窗快速播放；不可播放的视频不响应点击。
-        onTap: (onVideoTap == null || !video.canPlay)
+        onTap: onVideoTap == null ? null : () => onVideoTap!(video),
+        selectionMode: selectionMode,
+        isSelected: selectedIds.contains(video.id),
+        onSelectedChanged: onVideoToggleSelect == null
             ? null
-            : () => onVideoTap!(video),
-        onAddToCollection: onVideoAddToCollection == null
-            ? null
-            : () => onVideoAddToCollection!(video),
-        onDelete: onVideoDelete == null ? null : () => onVideoDelete!(video),
+            : (_) => onVideoToggleSelect!(video),
+      ),
+    );
+  }
+}
+
+/// 累计分页视频列表使用的 Sliver 瀑布流版本。
+class VideoSummarySliver extends StatelessWidget {
+  const VideoSummarySliver({
+    super.key,
+    required this.items,
+    required this.isLoading,
+    this.errorMessage,
+    this.onVideoTap,
+    this.selectionMode = false,
+    this.selectedIds = const <int>{},
+    this.onVideoToggleSelect,
+    this.emptyMessage = '当前没有可展示的视频数据。',
+    this.placeholderCount = 8,
+  });
+
+  final List<VideoItemListItemDto> items;
+  final bool isLoading;
+  final String? errorMessage;
+  final ValueChanged<VideoItemListItemDto>? onVideoTap;
+  final bool selectionMode;
+  final Set<int> selectedIds;
+  final ValueChanged<VideoItemListItemDto>? onVideoToggleSelect;
+  final String emptyMessage;
+  final int placeholderCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppAdaptiveCardSliver<VideoItemListItemDto>(
+      gridKey: isLoading
+          ? const Key('video-summary-grid-skeleton')
+          : const Key('video-summary-grid'),
+      items: items,
+      isLoading: isLoading,
+      errorMessage: errorMessage,
+      emptyMessage: emptyMessage,
+      placeholderCount: placeholderCount,
+      layout: AppAdaptiveCardGridLayout.masonry,
+      tileAspect: (index) => index < items.length
+          ? _resolveAspect(items[index].coverWidth, items[index].coverHeight)
+          : kStaggeredFallbackAspect,
+      skeletonBuilder: (context, index) => AppCoverCardSkeleton(
+        key: Key('video-summary-card-skeleton-$index'),
+      ),
+      itemBuilder: (context, video, index) => VideoSummaryCard(
+        video: video,
+        onTap: onVideoTap == null ? null : () => onVideoTap!(video),
         selectionMode: selectionMode,
         isSelected: selectedIds.contains(video.id),
         onSelectedChanged: onVideoToggleSelect == null
@@ -89,4 +136,3 @@ double _resolveAspect(int? width, int? height) {
   }
   return kStaggeredFallbackAspect;
 }
-

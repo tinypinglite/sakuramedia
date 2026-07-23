@@ -317,12 +317,20 @@ class _MobileVideoCollectionDetailPageState
 
   void _openSheet(int index, VideoItemListItemDto video) {
     final itemId = _controller.items[index].itemId;
+    // 过滤掉「当前合集」这条冗余归属：用户已经在这里了。
+    final otherCollections = video.collections
+        .where((ref) => ref.id != widget.collectionId)
+        .toList(growable: false);
     showMobileVideoActionsSheet(
       context,
       video: video,
       onPlay: () => _playVideoSingle(video),
       onRemoveFromCollection: () => _removeItem(itemId, video.id),
       onDelete: () => _deleteVideo(itemId, video),
+      collections: otherCollections,
+      onCollectionTap: (ref) =>
+          MobileVideoCollectionDetailRouteData(collectionId: ref.id)
+              .push(context),
     );
   }
 

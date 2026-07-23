@@ -14,13 +14,14 @@ AppPlatform resolveAppPlatform({AppPlatform? override}) {
   switch (defaultTargetPlatform) {
     case TargetPlatform.macOS:
     case TargetPlatform.windows:
-    case TargetPlatform.linux:
       return AppPlatform.desktop;
     case TargetPlatform.iOS:
     case TargetPlatform.android:
       return AppPlatform.mobile;
-    case TargetPlatform.fuchsia:
-      return AppPlatform.desktop;
+    default:
+      throw UnsupportedError(
+        'SakuraMedia does not support ${defaultTargetPlatform.name}.',
+      );
   }
 }
 

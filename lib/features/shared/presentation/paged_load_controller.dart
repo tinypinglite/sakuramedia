@@ -37,6 +37,13 @@ class PagedLoadController<T> extends ChangeNotifier {
   bool _isDisposed = false;
   bool _scrollListenerAttached = false;
   String? _initialErrorMessage;
+
+  /// loadMore 失败后的错误文案；下一次 [loadMore] / [refresh] / [reload] 会清空。
+  ///
+  /// **调用方约定**：当本字段非 null 时，UI 必须渲染一个带「重试」按钮的 footer
+  /// （常见做法是 `AppPagedLoadMoreFooter` 或 `SliverPagedAsyncSection` 内置的
+  /// footer），否则用户没有恢复分页的手段——[_handleScroll] 在 error 存续期间不再
+  /// 自动重试，避免用户上下滑动就把失败请求反复打出去。
   String? _loadMoreErrorMessage;
   int _currentPage;
   int _total = 0;
@@ -203,10 +210,14 @@ class PagedLoadController<T> extends ChangeNotifier {
     }
   }
 
+  // loadMore 失败后 `_loadMoreErrorMessage != null` 会屏蔽自动重试（避免上下滑动
+  // 反复触发失败请求）。恢复分页的唯一入口是调用方渲染的 footer 重试按钮——见
+  // `_loadMoreErrorMessage` 字段说明。
   void _handleScroll() {
     if (!scrollController.hasClients ||
         _isInitialLoading ||
         _isLoadingMore ||
+        _loadMoreErrorMessage != null ||
         !_hasMore) {
       return;
     }

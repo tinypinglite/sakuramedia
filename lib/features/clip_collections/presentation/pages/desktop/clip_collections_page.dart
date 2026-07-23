@@ -13,6 +13,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/widgets/clip_collection_delete_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 
@@ -67,12 +68,14 @@ class _DesktopClipCollectionsPageState
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          return Column(
+    return AppPageRefreshScope(
+      onRefresh: _controller.refresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceElevated,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -100,6 +103,7 @@ class _DesktopClipCollectionsPageState
             ],
           );
         },
+      ),
       ),
     );
   }

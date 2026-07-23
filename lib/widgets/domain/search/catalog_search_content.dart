@@ -48,56 +48,68 @@ class CatalogSearchContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: context.appColors.surfaceElevated,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CatalogSearchField(
-              key: const Key('catalog-search-page-field'),
-              fieldKey: const Key('catalog-search-page-input'),
-              searchButtonKey: const Key('catalog-search-page-submit'),
-              onlineToggleKey: const Key('catalog-search-page-online-toggle'),
-              controller: textController,
-              hintText: '如 SSNI-888、三上悠亚',
-              showOnlineToggle: true,
-              isOnlineSearchEnabled: useOnlineSearch,
-              onOnlineSearchToggle: onOnlineSearchToggle,
-              onSubmitted: (_) => onSubmitSearch(),
-              onSearchTap: onSubmitSearch,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CatalogSearchField(
+                  key: const Key('catalog-search-page-field'),
+                  fieldKey: const Key('catalog-search-page-input'),
+                  searchButtonKey: const Key('catalog-search-page-submit'),
+                  onlineToggleKey: const Key(
+                    'catalog-search-page-online-toggle',
+                  ),
+                  controller: textController,
+                  hintText: '如 SSNI-888、三上悠亚',
+                  showOnlineToggle: true,
+                  isOnlineSearchEnabled: useOnlineSearch,
+                  onOnlineSearchToggle: onOnlineSearchToggle,
+                  onSubmitted: (_) => onSubmitSearch(),
+                  onSearchTap: onSubmitSearch,
+                ),
+                if (controller.streamStatus != null) ...[
+                  SizedBox(height: context.appSpacing.md),
+                  CatalogSearchStreamStatusCard(
+                    status: controller.streamStatus!,
+                  ),
+                ],
+                SizedBox(height: context.appSpacing.xs),
+                AppTabBar(
+                  controller: tabController,
+                  onTap: onTabSelected,
+                  tabs: const [Tab(text: '影片'), Tab(text: '女优')],
+                ),
+                SizedBox(height: context.appSpacing.lg),
+              ],
             ),
-            if (controller.streamStatus != null) ...[
-              SizedBox(height: context.appSpacing.md),
-              CatalogSearchStreamStatusCard(status: controller.streamStatus!),
-            ],
-            SizedBox(height: context.appSpacing.xs),
-            AppTabBar(
-              controller: tabController,
-              onTap: onTabSelected,
-              tabs: const [Tab(text: '影片'), Tab(text: '女优')],
-            ),
-            SizedBox(height: context.appSpacing.lg),
-            _buildBody(context),
-          ],
-        ),
+          ),
+          _buildBodySliver(context),
+        ],
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildBodySliver(BuildContext context) {
     if (controller.query.isEmpty && !controller.isLoading) {
-      return const AppEmptyState(message: '输入关键词开始搜索');
+      return const SliverToBoxAdapter(
+        child: AppEmptyState(message: '输入关键词开始搜索'),
+      );
     }
 
     if (controller.errorMessage != null) {
-      return AppEmptyState(
-        message: controller.errorMessage!,
-        onRetry: onSubmitSearch,
-        retryKey: const Key('catalog-search-retry'),
+      return SliverToBoxAdapter(
+        child: AppEmptyState(
+          message: controller.errorMessage!,
+          onRetry: onSubmitSearch,
+          retryKey: const Key('catalog-search-retry'),
+        ),
       );
     }
 
     if (controller.isLoading) {
-      return const _CatalogSearchLoadingIndicator();
+      return const SliverToBoxAdapter(child: _CatalogSearchLoadingIndicator());
     }
 
     switch (controller.activeKind) {
@@ -105,11 +117,13 @@ class CatalogSearchContent extends StatelessWidget {
         if (!controller.isOnlineSearchActive &&
             controller.movieResults.isEmpty &&
             onFallbackToOnlineSearch != null) {
-          return _CatalogSearchOnlineFallback(
-            onPressed: onFallbackToOnlineSearch!,
+          return SliverToBoxAdapter(
+            child: _CatalogSearchOnlineFallback(
+              onPressed: onFallbackToOnlineSearch!,
+            ),
           );
         }
-        return MovieSummaryGrid(
+        return MovieSummarySliver(
           items: controller.movieResults,
           isLoading: false,
           emptyMessage:
@@ -124,7 +138,7 @@ class CatalogSearchContent extends StatelessWidget {
                   controller.isMovieSubscriptionUpdating(movie.movieNumber),
         );
       case CatalogSearchKind.actors:
-        return ActorSummaryGrid(
+        return ActorSummarySliver(
           items: controller.actorResults,
           isLoading: false,
           emptyMessage: '在线源未找到匹配女优',

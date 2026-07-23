@@ -20,6 +20,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_page_frame.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_grid.dart';
@@ -119,13 +120,22 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
     showMovieSubscriptionFeedback(result);
   }
 
+  Future<void> _handleRefresh() async {
+    await Future.wait<void>([
+      _controller.refresh(),
+      _followController.refresh(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: AppPageFrame(
-        title: '',
-        child: AnimatedBuilder(
+    return AppPageRefreshScope(
+      onRefresh: _handleRefresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceElevated,
+        child: AppPageFrame(
+          title: '',
+          child: AnimatedBuilder(
           animation: Listenable.merge(<Listenable>[
             _controller,
             _followController,
@@ -144,6 +154,7 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
             );
           },
         ),
+      ),
       ),
     );
   }

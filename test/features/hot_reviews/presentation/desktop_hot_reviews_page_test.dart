@@ -350,7 +350,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final gridAtNarrow = tester.widget<GridView>(
+    final gridAtNarrow = tester.widget<SliverGrid>(
       find.byKey(const Key('hot-review-grid')),
     );
     expect(
@@ -362,7 +362,7 @@ void main() {
     tester.view.physicalSize = const Size(2000, 1000);
     await tester.pumpAndSettle();
 
-    final gridAtWide = tester.widget<GridView>(
+    final gridAtWide = tester.widget<SliverGrid>(
       find.byKey(const Key('hot-review-grid')),
     );
     expect(
@@ -585,7 +585,16 @@ void main() {
       await tester.pump();
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('hot-review-card-1')), findsOneWidget);
+      // 失败尾部作为新的 Sliver 插入在原滚动末端，再向下滚动一小段使其进入视口。
+      await tester.drag(
+        find.byKey(const Key('desktop-hot-reviews-scroll-view')),
+        const Offset(0, -400),
+      );
+      await tester.pumpAndSettle();
+
+      // 滚动到底部后首项已被 Sliver 回收，但末尾已加载项仍在，说明失败没有清空数据。
+      expect(find.byKey(const Key('hot-review-card-1')), findsNothing);
+      expect(find.byKey(const Key('hot-review-card-20')), findsOneWidget);
       expect(find.text('加载更多失败，请点击重试'), findsOneWidget);
 
       bundle.adapter.enqueueJson(
@@ -607,6 +616,11 @@ void main() {
       await tester.ensureVisible(find.widgetWithText(TextButton, '重试'));
       await tester.tap(find.widgetWithText(TextButton, '重试'));
       await tester.pump();
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byKey(const Key('desktop-hot-reviews-scroll-view')),
+        const Offset(0, -3000),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('hot-review-card-30')), findsOneWidget);

@@ -10,9 +10,9 @@ import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/media/presentation/media_browse_filter_state.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_browse_provider.dart';
-import 'package:sakuramedia/features/media/presentation/providers/media_browse_state.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_libraries_provider.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/media_browse_filter_toolbar.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_async_section.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
@@ -32,15 +32,18 @@ import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 /// 视觉参考「下载任务」卡片（[_DownloadTaskCard]）：页面灰底 + 每张 media card 直接浮起
 /// 为独立白卡（不再套 `AppContentCard`）。多选操作全部收敛到顶部 [AppFilterTotalHeader]
 /// 的 trailing，跟筛选、总数、刷新同一条行。
-class MediaListSection extends ConsumerWidget {
+class MediaListSection extends StatelessWidget {
   const MediaListSection({
     super.key,
+    required this.scrollController,
     required this.isTriggering,
     required this.isDeleting,
     required this.onRapidUpload,
     required this.onBatchDelete,
     this.onRefresh,
   });
+
+  final ScrollController scrollController;
 
   /// 秒传触发中——按钮 spinner；由父页承担因为秒传流程含跨库弹窗 + api + toast。
   final bool isTriggering;
@@ -57,11 +60,45 @@ class MediaListSection extends ConsumerWidget {
   /// 可选：父页复合刷新（例如同时刷新秒传批次）；不传则默认刷新媒体列表 + 媒体库。
   final Future<void> Function()? onRefresh;
 
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      key: const Key('media-management-list-scroll-view'),
+      controller: scrollController,
+      slivers: [
+        SliverToBoxAdapter(
+          child: _MediaListHeader(
+            isTriggering: isTriggering,
+            isDeleting: isDeleting,
+            onRapidUpload: onRapidUpload,
+            onBatchDelete: onBatchDelete,
+            onRefresh: onRefresh,
+          ),
+        ),
+        SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
+        const _MediaListBodySliver(),
+      ],
+    );
+  }
+}
+
+class _MediaListHeader extends ConsumerWidget {
+  const _MediaListHeader({
+    required this.isTriggering,
+    required this.isDeleting,
+    required this.onRapidUpload,
+    required this.onBatchDelete,
+    required this.onRefresh,
+  });
+
+  final bool isTriggering;
+  final bool isDeleting;
+  final Future<void> Function() onRapidUpload;
+  final Future<void> Function() onBatchDelete;
+  final Future<void> Function()? onRefresh;
+
   Future<void> _defaultRefresh(WidgetRef ref) async {
-    await Future.wait<void>([
-      _refreshBrowse(ref),
-      _refreshLibraries(ref),
-    ]);
+    await Future.wait<void>([_refreshBrowse(ref), _refreshLibraries(ref)]);
   }
 
   Future<void> _refreshBrowse(WidgetRef ref) async {
@@ -89,76 +126,110 @@ class MediaListSection extends ConsumerWidget {
     final filter = currentState?.filter ?? MediaBrowseFilterState.initial;
     final isInitialLoading = asyncState.isLoading && !asyncState.hasValue;
     final busy = isTriggering || isDeleting;
-    final spacing = context.appSpacing;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppFilterTotalHeader(
-          leading: MediaBrowseFilterToolbar(
-            filterState: filter,
-            libraries: librariesState.libraries,
-            onChanged: (next) => unawaited(
+    return AppFilterTotalHeader(
+      leading: MediaBrowseFilterToolbar(
+        filterState: filter,
+        libraries: librariesState.libraries,
+        onChanged:
+            (next) => unawaited(
               ref.read(mediaBrowseProvider.notifier).applyFilterState(next),
             ),
-            onReset: () => unawaited(
+        onReset:
+            () => unawaited(
               ref
                   .read(mediaBrowseProvider.notifier)
                   .applyFilterState(MediaBrowseFilterState.initial),
             ),
-          ),
-          totalText: hasSelection
-              ? '共 $total 条 · 已选 $selectionCount 项'
-              : '共 $total 条',
-          totalKey: const Key('media-management-total-text'),
-          trailing: _MediaListActionBar(
-            hasItems: hasItems,
-            hasSelection: hasSelection,
-            selectionCount: selectionCount,
-            isTriggering: isTriggering,
-            isDeleting: isDeleting,
-            isInitialLoading: isInitialLoading,
-            busy: busy,
-            onRapidUpload: onRapidUpload,
-            onBatchDelete: onBatchDelete,
-            onRefresh: () =>
-                unawaited((onRefresh ?? () => _defaultRefresh(ref))()),
-          ),
-        ),
-        SizedBox(height: spacing.lg),
-        PagedAsyncSection<MediaBrowseState, MediaListItemDto>(
-          asyncState: asyncState,
-          pagedOf: (s) => s.paged,
-          itemSpacing: spacing.sm,
-          initialErrorMessage: '媒体列表加载失败，请稍后重试',
-          emptyMessage: '当前筛选下没有媒体记录。调整筛选条件或稍后再试。',
-          initialRetryKey: const Key('media-management-initial-retry-button'),
-          onReload: () =>
-              unawaited(ref.read(mediaBrowseProvider.notifier).reload()),
-          onLoadMore: () =>
-              unawaited(ref.read(mediaBrowseProvider.notifier).loadMore()),
-          itemBuilder: (context, item, _) {
-            final data = asyncState.requireValue;
-            final disabledReason = _disabledReasonFor(item);
-            return _MediaRow(
-              item: item,
-              storage: resolveMediaStorageDescriptor(
-                item.libraryId,
-                librariesState.storageDescriptors,
-              ),
-              isSelected: data.isSelected(item.id),
-              // 有禁选原因的行不响应 tap（且 _MediaRow 会挂 Tooltip 告诉用户原因）；
-              // 后端 active_media_id 唯一约束会拒绝新批次，前端提前拦截更友好。
-              disabledReason: disabledReason,
-              onToggle: disabledReason != null
-                  ? null
-                  : () => ref
-                      .read(mediaBrowseProvider.notifier)
-                      .toggleSelection(item.id),
-            );
-          },
-        ),
-      ],
+      ),
+      totalText:
+          hasSelection ? '共 $total 条 · 已选 $selectionCount 项' : '共 $total 条',
+      totalKey: const Key('media-management-total-text'),
+      trailing: _MediaListActionBar(
+        hasItems: hasItems,
+        hasSelection: hasSelection,
+        selectionCount: selectionCount,
+        isTriggering: isTriggering,
+        isDeleting: isDeleting,
+        isInitialLoading: isInitialLoading,
+        busy: busy,
+        onRapidUpload: onRapidUpload,
+        onBatchDelete: onBatchDelete,
+        onRefresh: () => unawaited((onRefresh ?? () => _defaultRefresh(ref))()),
+      ),
+    );
+  }
+}
+
+class _MediaListBodySliver extends ConsumerWidget {
+  const _MediaListBodySliver();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 多选集合变化时 paged 段保持相等，因此列表 sliver 不会整体重建；
+    // 每一行通过 [_MediaRowConsumer] 只订阅自己的选中态。
+    final asyncPaged = ref.watch(
+      mediaBrowseProvider.select(
+        (asyncState) => asyncState.whenData((state) => state.paged),
+      ),
+    );
+
+    return SliverPagedAsyncSection<
+      PagedListState<MediaListItemDto>,
+      MediaListItemDto
+    >(
+      asyncState: asyncPaged,
+      pagedOf: (state) => state,
+      itemSpacing: context.appSpacing.sm,
+      fixedItemExtent: context.appComponentTokens.mediaManagementRowHeight,
+      initialErrorMessage: '媒体列表加载失败，请稍后重试',
+      emptyMessage: '当前筛选下没有媒体记录。调整筛选条件或稍后再试。',
+      initialRetryKey: const Key('media-management-initial-retry-button'),
+      onReload:
+          () => unawaited(ref.read(mediaBrowseProvider.notifier).reload()),
+      onLoadMore:
+          () => unawaited(ref.read(mediaBrowseProvider.notifier).loadMore()),
+      itemBuilder: (context, item, _) => _MediaRowConsumer(item: item),
+    );
+  }
+}
+
+class _MediaRowConsumer extends ConsumerWidget {
+  const _MediaRowConsumer({required this.item});
+
+  final MediaListItemDto item;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isSelected = ref.watch(
+      mediaBrowseProvider.select(
+        (asyncState) => asyncState.value?.isSelected(item.id) ?? false,
+      ),
+    );
+    final storageDescriptors = ref.watch(
+      mediaLibrariesProvider.select(
+        (asyncState) =>
+            asyncState.value?.storageDescriptors ??
+            const <int, MediaStorageDescriptor>{},
+      ),
+    );
+    final disabledReason = _disabledReasonFor(item);
+
+    return _MediaRow(
+      item: item,
+      storage: resolveMediaStorageDescriptor(
+        item.libraryId,
+        storageDescriptors,
+      ),
+      isSelected: isSelected,
+      // 有禁选原因的行不响应 tap（且 _MediaRow 会挂 Tooltip 告诉用户原因）；
+      // 后端 active_media_id 唯一约束会拒绝新批次，前端提前拦截更友好。
+      disabledReason: disabledReason,
+      onToggle:
+          disabledReason != null
+              ? null
+              : () => ref
+                  .read(mediaBrowseProvider.notifier)
+                  .toggleSelection(item.id),
     );
   }
 }
@@ -205,10 +276,11 @@ class _MediaListActionBar extends ConsumerWidget {
           label: '全选本页',
           size: AppButtonSize.small,
           variant: AppButtonVariant.secondary,
-          onPressed: !hasItems || busy
-              ? null
-              : () =>
-                  ref.read(mediaBrowseProvider.notifier).selectAllLoaded(),
+          onPressed:
+              !hasItems || busy
+                  ? null
+                  : () =>
+                      ref.read(mediaBrowseProvider.notifier).selectAllLoaded(),
         ),
         if (hasSelection)
           AppButton(
@@ -216,10 +288,11 @@ class _MediaListActionBar extends ConsumerWidget {
             label: '清空选择',
             size: AppButtonSize.small,
             variant: AppButtonVariant.secondary,
-            onPressed: busy
-                ? null
-                : () =>
-                    ref.read(mediaBrowseProvider.notifier).clearSelection(),
+            onPressed:
+                busy
+                    ? null
+                    : () =>
+                        ref.read(mediaBrowseProvider.notifier).clearSelection(),
           ),
         if (hasSelection)
           AppButton(
@@ -286,7 +359,11 @@ class _MediaRow extends StatelessWidget {
     final card = AppLeftCoverCard(
       key: Key('media-management-row-${item.id}'),
       coverWidth: componentTokens.downloadTaskCoverWidth,
-      bodyMinHeight: componentTokens.downloadTaskCardMinHeight,
+      bodyMinHeight: componentTokens.mediaManagementRowHeight,
+      bodyPadding: EdgeInsets.symmetric(
+        horizontal: spacing.lg,
+        vertical: spacing.md,
+      ),
       selected: isSelected,
       onTap: onToggle,
       cover: _MediaCoverSlot(item: item),
@@ -346,22 +423,23 @@ class _MediaCoverSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final url = _wideCoverUrl;
-    final image = url != null
-        ? MaskedImage(
-            key: Key('media-management-cover-${item.id}'),
-            url: url,
-            fit: BoxFit.cover,
-          )
-        : Container(
-            key: Key('media-management-cover-placeholder-${item.id}'),
-            color: colors.surfaceMuted,
-            alignment: Alignment.center,
-            child: Icon(
-              Icons.movie_creation_outlined,
-              size: context.appComponentTokens.iconSize2xl,
-              color: context.appTextPalette.muted,
-            ),
-          );
+    final image =
+        url != null
+            ? MaskedImage(
+              key: Key('media-management-cover-${item.id}'),
+              url: url,
+              fit: BoxFit.cover,
+            )
+            : Container(
+              key: Key('media-management-cover-placeholder-${item.id}'),
+              color: colors.surfaceMuted,
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.movie_creation_outlined,
+                size: context.appComponentTokens.iconSize2xl,
+                color: context.appTextPalette.muted,
+              ),
+            );
 
     // JAV 且有番号：封面独立可点，跳影片详情。videos 域无单视频详情页，视频项
     // 封面保持纯图（点击冒泡到外层触发选中）。
@@ -450,13 +528,16 @@ class _MediaMetaLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final rapidUploadBadge = _rapidUploadStatusBadge(item.lastRapidUploadStatus);
+    final rapidUploadBadge = _rapidUploadStatusBadge(
+      item.lastRapidUploadStatus,
+    );
     final badges = <Widget>[
       AppBadge(
         label: item.kind.label,
-        tone: item.kind == MediaListItemKind.jav
-            ? AppBadgeTone.primary
-            : AppBadgeTone.neutral,
+        tone:
+            item.kind == MediaListItemKind.jav
+                ? AppBadgeTone.primary
+                : AppBadgeTone.neutral,
         size: AppBadgeSize.compact,
       ),
       if (storage.isCloud115)
@@ -521,11 +602,7 @@ AppBadge? _rapidUploadStatusBadge(LastRapidUploadStatus? status) {
     LastRapidUploadStatus.unknown => AppBadgeTone.neutral,
   };
   // 不加 key：本行其它 badge 也没打 key；tone/label 已足够做定位与视觉区分。
-  return AppBadge(
-    label: status.label,
-    tone: tone,
-    size: AppBadgeSize.compact,
-  );
+  return AppBadge(label: status.label, tone: tone, size: AppBadgeSize.compact);
 }
 
 /// 路径行：folder icon + 相对路径 muted（省略号）；右侧「更新 …」若有。
@@ -547,9 +624,8 @@ class _MediaPathLine extends StatelessWidget {
       weight: AppTextWeight.regular,
       tone: AppTextTone.muted,
     );
-    final updatedLabel = item.updatedAt != null
-        ? formatUpdatedAtLabel(item.updatedAt)
-        : null;
+    final updatedLabel =
+        item.updatedAt != null ? formatUpdatedAtLabel(item.updatedAt) : null;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [

@@ -77,71 +77,82 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
         controller: _pageState.controller.scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: <Widget>[
-          SliverToBoxAdapter(
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_pageState, _pageState.controller]),
-              builder: (context, _) {
-                final showFooter =
-                    _pageState.controller.items.isNotEmpty &&
-                    (_pageState.controller.isLoadingMore ||
-                        _pageState.controller.loadMoreErrorMessage != null);
-                return Column(
-                  key: const Key('mobile-rankings-page'),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(context),
-                    SizedBox(height: context.appSpacing.md),
-                    if (_pageState.filterErrorMessage != null) ...[
-                      _FilterErrorBanner(
-                        message: _pageState.filterErrorMessage!,
-                        onRetry: _pageState.reloadFiltersAndData,
+          AnimatedBuilder(
+            animation: Listenable.merge([_pageState, _pageState.controller]),
+            builder: (context, _) {
+              final showFooter =
+                  _pageState.controller.items.isNotEmpty &&
+                  (_pageState.controller.isLoadingMore ||
+                      _pageState.controller.loadMoreErrorMessage != null);
+              final hasNoSources =
+                  _pageState.sources.isEmpty &&
+                  !_pageState.isFilterLoading &&
+                  _pageState.filterErrorMessage == null;
+              return SliverMainAxisGroup(
+                key: const Key('mobile-rankings-page'),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(context),
+                        SizedBox(height: context.appSpacing.md),
+                        if (_pageState.filterErrorMessage != null) ...[
+                          _FilterErrorBanner(
+                            message: _pageState.filterErrorMessage!,
+                            onRetry: _pageState.reloadFiltersAndData,
+                          ),
+                          SizedBox(height: context.appSpacing.md),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (hasNoSources)
+                    const SliverToBoxAdapter(
+                      child: AppEmptyState(message: '暂无可用排行榜'),
+                    )
+                  else
+                    RankedMovieSummarySliver(
+                      items: _pageState.controller.items,
+                      isLoading:
+                          _pageState.isFilterLoading
+                              ? _pageState.controller.items.isEmpty
+                              : _pageState.controller.isInitialLoading,
+                      errorMessage: _pageState.controller.initialErrorMessage,
+                      onMovieTap:
+                          (movie) => context.pushMobileMovieDetail(
+                            movieNumber: movie.movieNumber,
+                          ),
+                      onMovieMenuRequest:
+                          (movie, globalPosition) => requestMovieCollectionMenu(
+                            context,
+                            movie.movieNumber,
+                            globalPosition,
+                            isSubscribed: movie.isSubscribed,
+                          ),
+                      onMovieSubscriptionTap:
+                          (movie) =>
+                              _toggleMovieSubscription(movie.movieNumber),
+                      isMovieSubscriptionUpdating:
+                          (movie) => _pageState.controller
+                              .isSubscriptionUpdating(movie.movieNumber),
+                      emptyMessage: '暂无榜单数据',
+                    ),
+                  if (showFooter)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: context.appSpacing.md),
+                        child: AppPagedLoadMoreFooter(
+                          isLoading: _pageState.controller.isLoadingMore,
+                          errorMessage:
+                              _pageState.controller.loadMoreErrorMessage,
+                          onRetry: _pageState.controller.loadMore,
+                        ),
                       ),
-                      SizedBox(height: context.appSpacing.md),
-                    ],
-                    if (_pageState.sources.isEmpty &&
-                        !_pageState.isFilterLoading &&
-                        _pageState.filterErrorMessage == null)
-                      const AppEmptyState(message: '暂无可用排行榜')
-                    else
-                      RankedMovieSummaryGrid(
-                        items: _pageState.controller.items,
-                        isLoading:
-                            _pageState.isFilterLoading
-                                ? _pageState.controller.items.isEmpty
-                                : _pageState.controller.isInitialLoading,
-                        errorMessage: _pageState.controller.initialErrorMessage,
-                        onMovieTap:
-                            (movie) => context.pushMobileMovieDetail(
-                              movieNumber: movie.movieNumber,
-                            ),
-                        onMovieMenuRequest: (movie, globalPosition) =>
-                            requestMovieCollectionMenu(
-                              context,
-                              movie.movieNumber,
-                              globalPosition,
-                              isSubscribed: movie.isSubscribed,
-                            ),
-                        onMovieSubscriptionTap:
-                            (movie) =>
-                                _toggleMovieSubscription(movie.movieNumber),
-                        isMovieSubscriptionUpdating:
-                            (movie) => _pageState.controller
-                                .isSubscriptionUpdating(movie.movieNumber),
-                        emptyMessage: '暂无榜单数据',
-                      ),
-                    if (showFooter) ...[
-                      SizedBox(height: context.appSpacing.md),
-                      AppPagedLoadMoreFooter(
-                        isLoading: _pageState.controller.isLoadingMore,
-                        errorMessage:
-                            _pageState.controller.loadMoreErrorMessage,
-                        onRetry: _pageState.controller.loadMore,
-                      ),
-                    ],
-                  ],
-                );
-              },
-            ),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -176,45 +187,48 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
           label: sourceBoardLabel,
           isSelected: false,
           trailingIcon: Icons.expand_more,
-          onTap: () =>
-              _openFilterDrawer(initialAnchor: RankingFilterAnchor.source),
+          onTap:
+              () =>
+                  _openFilterDrawer(initialAnchor: RankingFilterAnchor.source),
         ),
       ],
-      trailing: syncedAtLabel == null
-          ? null
-          : Text(
-              key: const Key('mobile-rankings-synced-at'),
-              syncedAtLabel,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.secondary,
+      trailing:
+          syncedAtLabel == null
+              ? null
+              : Text(
+                key: const Key('mobile-rankings-synced-at'),
+                syncedAtLabel,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.secondary,
+                ),
               ),
-            ),
     );
   }
 
-  Future<void> _openFilterDrawer({
-    RankingFilterAnchor? initialAnchor,
-  }) async {
+  Future<void> _openFilterDrawer({RankingFilterAnchor? initialAnchor}) async {
     await showMobileRankingFilterDrawer(
       context,
       listenable: _pageState,
-      argsBuilder: () => RankingFilterDrawerArgs(
-        sources: _pageState.sources,
-        selectedSource: _pageState.selectedSource,
-        boards: _pageState.boards,
-        selectedBoard: _pageState.selectedBoard,
-        selectedPeriod: _pageState.selectedPeriod,
-        onSourceChanged: (value) => unawaited(_pageState.selectSource(value)),
-        onBoardChanged: (value) => unawaited(_pageState.selectBoard(value)),
-        onPeriodChanged: (value) => unawaited(_pageState.selectPeriod(value)),
-        selectedSortField: _pageState.selectedSortField,
-        selectedSortDirection: _pageState.selectedSortDirection,
-        onSortChanged: (field, dir) =>
-            unawaited(_pageState.selectSort(field, dir)),
-      ),
+      argsBuilder:
+          () => RankingFilterDrawerArgs(
+            sources: _pageState.sources,
+            selectedSource: _pageState.selectedSource,
+            boards: _pageState.boards,
+            selectedBoard: _pageState.selectedBoard,
+            selectedPeriod: _pageState.selectedPeriod,
+            onSourceChanged:
+                (value) => unawaited(_pageState.selectSource(value)),
+            onBoardChanged: (value) => unawaited(_pageState.selectBoard(value)),
+            onPeriodChanged:
+                (value) => unawaited(_pageState.selectPeriod(value)),
+            selectedSortField: _pageState.selectedSortField,
+            selectedSortDirection: _pageState.selectedSortDirection,
+            onSortChanged:
+                (field, dir) => unawaited(_pageState.selectSort(field, dir)),
+          ),
       initialAnchor: initialAnchor,
     );
   }

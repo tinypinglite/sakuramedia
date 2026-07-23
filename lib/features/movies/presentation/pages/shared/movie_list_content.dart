@@ -15,17 +15,16 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_fo
 import 'package:sakuramedia/widgets/domain/movies/movie_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 
-typedef MovieListBodyBuilder = Widget Function(
-  BuildContext context,
-  ScrollController scrollController,
-  Widget child,
-  Future<void> Function()? onRefresh,
-);
+typedef MovieListBodyBuilder =
+    Widget Function(
+      BuildContext context,
+      ScrollController scrollController,
+      Widget sliver,
+      Future<void> Function()? onRefresh,
+    );
 
-typedef MovieListHeaderBuilder = Widget Function(
-  BuildContext context,
-  MovieListHeaderArgs args,
-);
+typedef MovieListHeaderBuilder =
+    Widget Function(BuildContext context, MovieListHeaderArgs args);
 
 class MovieListHeaderArgs {
   const MovieListHeaderArgs({
@@ -163,41 +162,46 @@ class _MovieListContentState extends State<MovieListContent> {
         AnimatedBuilder(
           animation: controller,
           builder: (context, _) {
-            final showFooter = controller.items.isNotEmpty &&
+            final showFooter =
+                controller.items.isNotEmpty &&
                 (controller.isLoadingMore ||
                     controller.loadMoreErrorMessage != null);
             final headerBuilder = widget.headerBuilder;
-            final header = headerBuilder != null
-                ? headerBuilder(
-                    context,
-                    MovieListHeaderArgs(
-                      filterState: widget.pageState.filterState,
-                      onApply: _applyFilter,
-                      onReset: _resetFilters,
-                      total: controller.total,
-                    ),
-                  )
-                : AppFilterTotalHeader(
-                    leading: MovieFilterToolbar(
-                      filterState: widget.pageState.filterState,
-                      onChanged: _applyFilter,
-                      onReset: _resetFilters,
-                    ),
-                    totalText: '${controller.total} 部',
-                    totalKey: widget.totalKey,
-                  );
-            return Column(
-              key: widget.contentKey,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                header,
-                SizedBox(height: widget.sectionSpacing),
-                MovieSummaryGrid(
+            final header =
+                headerBuilder != null
+                    ? headerBuilder(
+                      context,
+                      MovieListHeaderArgs(
+                        filterState: widget.pageState.filterState,
+                        onApply: _applyFilter,
+                        onReset: _resetFilters,
+                        total: controller.total,
+                      ),
+                    )
+                    : AppFilterTotalHeader(
+                      leading: MovieFilterToolbar(
+                        filterState: widget.pageState.filterState,
+                        onChanged: _applyFilter,
+                        onReset: _resetFilters,
+                      ),
+                      totalText: '${controller.total} 部',
+                      totalKey: widget.totalKey,
+                    );
+            return SliverMainAxisGroup(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    key: widget.contentKey,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [header, SizedBox(height: widget.sectionSpacing)],
+                  ),
+                ),
+                MovieSummarySliver(
                   items: controller.items,
                   isLoading: controller.isInitialLoading,
                   errorMessage: controller.initialErrorMessage,
-                  onMovieTap: (movie) =>
-                      widget.onMovieTap(context, movie.movieNumber),
+                  onMovieTap:
+                      (movie) => widget.onMovieTap(context, movie.movieNumber),
                   onMovieMenuRequest: (movie, globalPosition) {
                     unawaited(
                       showMovieCollectionFeatureActionMenu(
@@ -208,23 +212,28 @@ class _MovieListContentState extends State<MovieListContent> {
                       ),
                     );
                   },
-                  onMovieSubscriptionTap: (movie) =>
-                      _toggleMovieSubscription(movie.movieNumber),
-                  isMovieSubscriptionUpdating: (movie) =>
-                      controller.isSubscriptionUpdating(movie.movieNumber),
-                  emptyMessage: widget.emptyMessage ??
+                  onMovieSubscriptionTap:
+                      (movie) => _toggleMovieSubscription(movie.movieNumber),
+                  isMovieSubscriptionUpdating:
+                      (movie) =>
+                          controller.isSubscriptionUpdating(movie.movieNumber),
+                  emptyMessage:
+                      widget.emptyMessage ??
                       (widget.pageState.filterState.isDefault
                           ? '暂无影片，去搜索看看吧'
                           : '当前筛选条件下暂无匹配影片'),
                 ),
-                if (showFooter) ...[
-                  SizedBox(height: context.appSpacing.md),
-                  AppPagedLoadMoreFooter(
-                    isLoading: controller.isLoadingMore,
-                    errorMessage: controller.loadMoreErrorMessage,
-                    onRetry: controller.loadMore,
+                if (showFooter)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: context.appSpacing.md),
+                      child: AppPagedLoadMoreFooter(
+                        isLoading: controller.isLoadingMore,
+                        errorMessage: controller.loadMoreErrorMessage,
+                        onRetry: controller.loadMore,
+                      ),
+                    ),
                   ),
-                ],
               ],
             );
           },

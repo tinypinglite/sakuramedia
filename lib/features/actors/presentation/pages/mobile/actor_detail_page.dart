@@ -60,7 +60,7 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
                 onRefresh: onRefresh!,
                 controller: scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[SliverToBoxAdapter(child: child)],
+                slivers: <Widget>[child],
               ),
       enableRefresh: true,
       onRefreshFailure: (_) => showToast('刷新失败'),

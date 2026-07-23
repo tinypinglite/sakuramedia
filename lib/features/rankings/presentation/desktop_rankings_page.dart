@@ -15,6 +15,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -68,98 +69,123 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: SingleChildScrollView(
-        controller: _pageState.controller.scrollController,
-        child: AnimatedBuilder(
-          animation: Listenable.merge([_pageState, _pageState.controller]),
-          builder: (context, _) {
-            final showFooter =
-                _pageState.controller.items.isNotEmpty &&
-                (_pageState.controller.isLoadingMore ||
-                    _pageState.controller.loadMoreErrorMessage != null);
-            return Column(
-              key: const Key('desktop-rankings-page'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppFilterTotalHeader(
-                  leading: RankingFilterToolbar(
-                    sources: _pageState.sources,
-                    selectedSource: _pageState.selectedSource,
-                    boards: _pageState.boards,
-                    selectedBoard: _pageState.selectedBoard,
-                    selectedPeriod: _pageState.selectedPeriod,
-                    isLoading: _pageState.isFilterLoading,
-                    onSourceChanged:
-                        (value) => unawaited(_pageState.selectSource(value)),
-                    onBoardChanged:
-                        (value) => unawaited(_pageState.selectBoard(value)),
-                    onPeriodChanged:
-                        (value) => unawaited(_pageState.selectPeriod(value)),
-                    selectedSortField: _pageState.selectedSortField,
-                    selectedSortDirection: _pageState.selectedSortDirection,
-                    onSortChanged: (field, dir) =>
-                        unawaited(_pageState.selectSort(field, dir)),
+    return AppPageRefreshScope(
+      onRefresh: _pageState.controller.refresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceElevated,
+        child: CustomScrollView(
+          controller: _pageState.controller.scrollController,
+          slivers: [
+          AnimatedBuilder(
+            animation: Listenable.merge([_pageState, _pageState.controller]),
+            builder: (context, _) {
+              final showFooter =
+                  _pageState.controller.items.isNotEmpty &&
+                  (_pageState.controller.isLoadingMore ||
+                      _pageState.controller.loadMoreErrorMessage != null);
+              final hasNoSources =
+                  _pageState.sources.isEmpty &&
+                  !_pageState.isFilterLoading &&
+                  _pageState.filterErrorMessage == null;
+              return SliverMainAxisGroup(
+                key: const Key('desktop-rankings-page'),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppFilterTotalHeader(
+                          leading: RankingFilterToolbar(
+                            sources: _pageState.sources,
+                            selectedSource: _pageState.selectedSource,
+                            boards: _pageState.boards,
+                            selectedBoard: _pageState.selectedBoard,
+                            selectedPeriod: _pageState.selectedPeriod,
+                            isLoading: _pageState.isFilterLoading,
+                            onSourceChanged:
+                                (value) =>
+                                    unawaited(_pageState.selectSource(value)),
+                            onBoardChanged:
+                                (value) =>
+                                    unawaited(_pageState.selectBoard(value)),
+                            onPeriodChanged:
+                                (value) =>
+                                    unawaited(_pageState.selectPeriod(value)),
+                            selectedSortField: _pageState.selectedSortField,
+                            selectedSortDirection:
+                                _pageState.selectedSortDirection,
+                            onSortChanged:
+                                (field, dir) => unawaited(
+                                  _pageState.selectSort(field, dir),
+                                ),
+                          ),
+                          totalText: composeTotalWithSyncedAt(
+                            '${_pageState.controller.total} 部',
+                            _pageState.controller.syncedAt,
+                          ),
+                          totalKey: const Key('desktop-rankings-page-total'),
+                        ),
+                        SizedBox(height: context.appSpacing.md),
+                        if (_pageState.filterErrorMessage != null) ...[
+                          _FilterErrorBanner(
+                            message: _pageState.filterErrorMessage!,
+                            onRetry: _pageState.reloadFiltersAndData,
+                          ),
+                          SizedBox(height: context.appSpacing.md),
+                        ],
+                        SizedBox(height: context.appSpacing.sm),
+                      ],
+                    ),
                   ),
-                  totalText: composeTotalWithSyncedAt(
-                    '${_pageState.controller.total} 部',
-                    _pageState.controller.syncedAt,
-                  ),
-                  totalKey: const Key('desktop-rankings-page-total'),
-                ),
-                SizedBox(height: context.appSpacing.md),
-                if (_pageState.filterErrorMessage != null) ...[
-                  _FilterErrorBanner(
-                    message: _pageState.filterErrorMessage!,
-                    onRetry: _pageState.reloadFiltersAndData,
-                  ),
-                  SizedBox(height: context.appSpacing.md),
+                  if (hasNoSources)
+                    const SliverToBoxAdapter(
+                      child: AppEmptyState(message: '暂无可用排行榜'),
+                    )
+                  else
+                    RankedMovieSummarySliver(
+                      items: _pageState.controller.items,
+                      isLoading:
+                          _pageState.isFilterLoading
+                              ? _pageState.controller.items.isEmpty
+                              : _pageState.controller.isInitialLoading,
+                      errorMessage: _pageState.controller.initialErrorMessage,
+                      onMovieTap:
+                          (movie) => context.pushDesktopMovieDetail(
+                            movieNumber: movie.movieNumber,
+                            fallbackPath: desktopRankingsPath,
+                          ),
+                      onMovieMenuRequest:
+                          (movie, globalPosition) => requestMovieCollectionMenu(
+                            context,
+                            movie.movieNumber,
+                            globalPosition,
+                            isSubscribed: movie.isSubscribed,
+                          ),
+                      onMovieSubscriptionTap:
+                          (movie) =>
+                              _toggleMovieSubscription(movie.movieNumber),
+                      isMovieSubscriptionUpdating:
+                          (movie) => _pageState.controller
+                              .isSubscriptionUpdating(movie.movieNumber),
+                      emptyMessage: '暂无榜单数据',
+                    ),
+                  if (showFooter)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: context.appSpacing.md),
+                        child: AppPagedLoadMoreFooter(
+                          isLoading: _pageState.controller.isLoadingMore,
+                          errorMessage:
+                              _pageState.controller.loadMoreErrorMessage,
+                          onRetry: _pageState.controller.loadMore,
+                        ),
+                      ),
+                    ),
                 ],
-                SizedBox(height: context.appSpacing.sm),
-                if (_pageState.sources.isEmpty &&
-                    !_pageState.isFilterLoading &&
-                    _pageState.filterErrorMessage == null)
-                  const AppEmptyState(message: '暂无可用排行榜')
-                else
-                  RankedMovieSummaryGrid(
-                    items: _pageState.controller.items,
-                    isLoading:
-                        _pageState.isFilterLoading
-                            ? _pageState.controller.items.isEmpty
-                            : _pageState.controller.isInitialLoading,
-                    errorMessage: _pageState.controller.initialErrorMessage,
-                    onMovieTap:
-                        (movie) => context.pushDesktopMovieDetail(
-                          movieNumber: movie.movieNumber,
-                          fallbackPath: desktopRankingsPath,
-                        ),
-                    onMovieMenuRequest: (movie, globalPosition) =>
-                        requestMovieCollectionMenu(
-                          context,
-                          movie.movieNumber,
-                          globalPosition,
-                          isSubscribed: movie.isSubscribed,
-                        ),
-                    onMovieSubscriptionTap:
-                        (movie) => _toggleMovieSubscription(movie.movieNumber),
-                    isMovieSubscriptionUpdating:
-                        (movie) => _pageState.controller.isSubscriptionUpdating(
-                          movie.movieNumber,
-                        ),
-                    emptyMessage: '暂无榜单数据',
-                  ),
-                if (showFooter) ...[
-                  SizedBox(height: context.appSpacing.md),
-                  AppPagedLoadMoreFooter(
-                    isLoading: _pageState.controller.isLoadingMore,
-                    errorMessage: _pageState.controller.loadMoreErrorMessage,
-                    onRetry: _pageState.controller.loadMore,
-                  ),
-                ],
-              ],
-            );
-          },
+              );
+            },
+          ),
+          ],
         ),
       ),
     );

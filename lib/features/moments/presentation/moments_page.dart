@@ -14,6 +14,7 @@ import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
@@ -45,8 +46,9 @@ class _MomentsPageState extends State<MomentsPage> {
   void initState() {
     super.initState();
     _controller = PagedMomentController(
-      fetchPage: (page, pageSize, sort, kind) =>
-          context.read<MediaApi>().getGlobalMediaPoints(
+      fetchPage:
+          (page, pageSize, sort, kind) =>
+              context.read<MediaApi>().getGlobalMediaPoints(
                 page: page,
                 pageSize: pageSize,
                 sort: sort,
@@ -67,53 +69,73 @@ class _MomentsPageState extends State<MomentsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceCard,
-      child: AppAdaptiveRefreshScrollView(
-        onRefresh: _handleRefresh,
-        controller: _controller.scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: <Widget>[
-          SliverToBoxAdapter(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                final showFooter = _controller.items.isNotEmpty &&
-                    (_controller.isLoadingMore ||
-                        _controller.loadMoreErrorMessage != null);
-                return Column(
-                  key: Key(
-                    _isMobile ? 'mobile-overview-moments-tab' : 'moments-page',
-                  ),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: context.appSpacing.sm),
-                    MomentSortHeader(
-                      total: _controller.total,
-                      sortOrder: _controller.sortOrder,
-                      kindFilter: _controller.kindFilter,
-                      keyPrefix: _keyPrefix,
-                      onSortChanged: (nextOrder) =>
-                          unawaited(_controller.setSortOrder(nextOrder)),
-                      onKindChanged: (nextKind) =>
-                          unawaited(_controller.setKindFilter(nextKind)),
-                    ),
-                    SizedBox(height: context.appSpacing.md),
-                    _buildBody(context),
-                    if (showFooter) ...[
-                      SizedBox(height: context.appSpacing.md),
-                      AppPagedLoadMoreFooter(
-                        isLoading: _controller.isLoadingMore,
-                        errorMessage: _controller.loadMoreErrorMessage,
-                        onRetry: _controller.loadMore,
-                      ),
-                    ],
-                  ],
-                );
-              },
-            ),
+    final sliver = AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final showFooter =
+            _controller.items.isNotEmpty &&
+            (_controller.isLoadingMore ||
+                _controller.loadMoreErrorMessage != null);
+        return SliverMainAxisGroup(
+          key: Key(
+            _isMobile ? 'mobile-overview-moments-tab' : 'moments-page',
           ),
-        ],
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: context.appSpacing.sm),
+                  MomentSortHeader(
+                    total: _controller.total,
+                    sortOrder: _controller.sortOrder,
+                    kindFilter: _controller.kindFilter,
+                    keyPrefix: _keyPrefix,
+                    onSortChanged:
+                        (nextOrder) => unawaited(
+                          _controller.setSortOrder(nextOrder),
+                        ),
+                    onKindChanged:
+                        (nextKind) => unawaited(
+                          _controller.setKindFilter(nextKind),
+                        ),
+                  ),
+                  SizedBox(height: context.appSpacing.md),
+                ],
+              ),
+            ),
+            _buildBody(context),
+            if (showFooter)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: context.appSpacing.md),
+                  child: AppPagedLoadMoreFooter(
+                    isLoading: _controller.isLoadingMore,
+                    errorMessage: _controller.loadMoreErrorMessage,
+                    onRetry: _controller.loadMore,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+
+    return AppPageRefreshScope(
+      onRefresh: _handleRefresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceCard,
+        child: _isMobile
+            ? AppAdaptiveRefreshScrollView(
+                onRefresh: _handleRefresh,
+                controller: _controller.scrollController,
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[sliver],
+              )
+            : CustomScrollView(
+                controller: _controller.scrollController,
+                slivers: <Widget>[sliver],
+              ),
       ),
     );
   }
@@ -130,21 +152,27 @@ class _MomentsPageState extends State<MomentsPage> {
 
   Widget _buildBody(BuildContext context) {
     if (_controller.isInitialLoading) {
-      return const AppMobileSkeletonList();
+      return const SliverToBoxAdapter(child: AppMobileSkeletonList());
     }
     if (_controller.initialErrorMessage != null) {
-      return AppEmptyState(message: _controller.initialErrorMessage!);
+      return SliverToBoxAdapter(
+        child: AppEmptyState(message: _controller.initialErrorMessage!),
+      );
     }
     if (_controller.items.isEmpty) {
-      return const AppEmptyState(message: '暂无时刻数据');
+      return const SliverToBoxAdapter(child: AppEmptyState(message: '暂无时刻数据'));
     }
-    return MomentGrid(items: _controller.items, onItemTap: _openMomentPreview);
+    return MomentSliver(
+      items: _controller.items,
+      onItemTap: _openMomentPreview,
+    );
   }
 
   Future<void> _openMomentPreview(MomentListItem item) async {
-    final presentation = _isMobile
-        ? MediaPreviewPresentation.bottomDrawer
-        : MediaPreviewPresentation.dialog;
+    final presentation =
+        _isMobile
+            ? MediaPreviewPresentation.bottomDrawer
+            : MediaPreviewPresentation.dialog;
     final action = await showMomentPreviewOverlay(
       context: context,
       item: item,
@@ -201,10 +229,11 @@ class _MomentsPageState extends State<MomentsPage> {
       if (_isMobile) {
         Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute<void>(
-            builder: (_) => MobileVideoPlayerPage(
-              videoId: item.videoItemId!,
-              title: item.displayLabel,
-            ),
+            builder:
+                (_) => MobileVideoPlayerPage(
+                  videoId: item.videoItemId!,
+                  title: item.displayLabel,
+                ),
           ),
         );
       } else {

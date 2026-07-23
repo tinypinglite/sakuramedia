@@ -172,7 +172,6 @@ class ImageSaveService {
     }
     if (runtime_platform.runtimeIsDesktopPlatform() ||
         defaultTargetPlatform == TargetPlatform.windows ||
-        defaultTargetPlatform == TargetPlatform.linux ||
         defaultTargetPlatform == TargetPlatform.macOS) {
       return ImageSavePlatform.desktop;
     }

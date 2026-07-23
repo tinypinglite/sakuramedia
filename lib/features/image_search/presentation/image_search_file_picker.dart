@@ -149,15 +149,13 @@ Future<String?> resolveImageSearchInitialDirectory() async {
   switch (defaultTargetPlatform) {
     case TargetPlatform.macOS:
     case TargetPlatform.windows:
-    case TargetPlatform.linux:
     case TargetPlatform.android:
       return _resolveExistingDirectoryPath(
         await _resolveDownloadsDirectoryPath(),
         fallbackPaths: <String?>[
           if (defaultTargetPlatform == TargetPlatform.windows)
             _lookupEnvironmentPath('USERPROFILE'),
-          if (defaultTargetPlatform == TargetPlatform.macOS ||
-              defaultTargetPlatform == TargetPlatform.linux)
+          if (defaultTargetPlatform == TargetPlatform.macOS)
             _lookupEnvironmentPath('HOME'),
         ],
       );
@@ -166,7 +164,7 @@ Future<String?> resolveImageSearchInitialDirectory() async {
         await _resolveDownloadsDirectoryPath(),
         fallbackPaths: <String?>[await _resolveDocumentsDirectoryPath()],
       );
-    case TargetPlatform.fuchsia:
+    default:
       return null;
   }
 }

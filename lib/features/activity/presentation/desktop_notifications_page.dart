@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/activity/presentation/notification_card.dar
 import 'package:sakuramedia/features/activity/presentation/notification_center_controller.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 
@@ -76,9 +77,11 @@ class _DesktopNotificationsPageState extends State<DesktopNotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
+    return AppPageRefreshScope(
+      onRefresh: _controller.refreshNotifications,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
             _maybeAutoLoadMore();
@@ -103,6 +106,7 @@ class _DesktopNotificationsPageState extends State<DesktopNotificationsPage> {
           slivers: _buildSlivers(context),
         );
       },
+      ),
     );
   }
 

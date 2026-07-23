@@ -112,6 +112,7 @@ void main() {
     expect(componentTokens.downloadTaskCoverWidth, 220);
     expect(componentTokens.downloadTaskCardMinHeight, 120);
     expect(componentTokens.downloadTaskProgressHeight, 6);
+    expect(componentTokens.mediaManagementRowHeight, 144);
     expect(componentTokens.movieDetailSectionGap, 16);
     expect(componentTokens.movieDetailSectionTitleGap, 8);
     expect(componentTokens.movieDetailPillHorizontalPadding, 5);

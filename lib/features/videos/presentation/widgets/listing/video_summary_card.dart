@@ -5,9 +5,12 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_cover_bottom_shade.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_card_context_menu.dart';
 
-/// 非 JAV 视频列表卡片：封面 + 标题，中部播放按钮，右键 / 长按弹菜单（加入合集 / 删除）。
+/// 非 JAV 视频列表卡片：封面 + 标题，中部播放按钮。
+///
+/// 加入合集 / 跳到合集 / 删除等动作走桌面动作弹窗（`showDesktopVideoActionsDialog`）
+/// 或移动端 sheet（`showMobileVideoActionsSheet`）——由 onTap 回调统一承载，卡片
+/// 本身不再挂右键 / 长按上下文菜单。
 ///
 /// 与 `MovieSummaryCard` 平行，但去掉订阅/热度/番号等 JAV 概念，主键为 [VideoItemListItemDto.id]。
 class VideoSummaryCard extends StatelessWidget {
@@ -15,8 +18,6 @@ class VideoSummaryCard extends StatelessWidget {
     super.key,
     required this.video,
     this.onTap,
-    this.onAddToCollection,
-    this.onDelete,
     this.selectionMode = false,
     this.isSelected = false,
     this.onSelectedChanged,
@@ -24,16 +25,10 @@ class VideoSummaryCard extends StatelessWidget {
 
   final VideoItemListItemDto video;
 
-  /// 点击卡片（弹窗快速播放）。中部播放 icon 仅作视觉提示，点击落在整卡上同样触发。
+  /// 点击卡片：桌面走动作弹窗、移动走 sheet；两端弹窗内承载播放/加入合集/删除等。
   final VoidCallback? onTap;
 
-  /// 右键 / 长按菜单的「加入合集」动作；与 [onDelete] 任一非空时启用菜单。
-  final VoidCallback? onAddToCollection;
-
-  /// 右键 / 长按菜单的「删除」动作。
-  final VoidCallback? onDelete;
-
-  /// 选择模式:整卡点击改为切换选中,隐藏播放浮层与右键菜单,叠加勾选标记。
+  /// 选择模式:整卡点击改为切换选中,隐藏播放浮层,叠加勾选标记。
   final bool selectionMode;
 
   /// 当前是否被选中（仅 [selectionMode] 下有意义）。
@@ -121,55 +116,9 @@ class VideoSummaryCard extends StatelessWidget {
       ),
     );
 
-    final hasMenuActions =
-        !selectionMode && (onAddToCollection != null || onDelete != null);
-    if (!hasMenuActions) {
-      return card;
-    }
-
-    return GestureDetector(
-      behavior: HitTestBehavior.deferToChild,
-      onSecondaryTapDown: (details) =>
-          _showContextMenu(context, details.globalPosition),
-      onLongPressStart: (details) =>
-          _showContextMenu(context, details.globalPosition),
-      child: card,
-    );
-  }
-
-  Future<void> _showContextMenu(
-    BuildContext context,
-    Offset globalPosition,
-  ) async {
-    final action = await showAppCardContextMenu<_VideoCardAction>(
-      context,
-      globalPosition: globalPosition,
-      items: [
-        if (onAddToCollection != null)
-          const AppCardContextMenuItem(
-            value: _VideoCardAction.addToCollection,
-            label: '加入合集',
-          ),
-        if (onDelete != null)
-          const AppCardContextMenuItem(
-            value: _VideoCardAction.delete,
-            label: '删除',
-          ),
-      ],
-    );
-    if (action == null) {
-      return;
-    }
-    switch (action) {
-      case _VideoCardAction.addToCollection:
-        onAddToCollection?.call();
-      case _VideoCardAction.delete:
-        onDelete?.call();
-    }
+    return card;
   }
 }
-
-enum _VideoCardAction { addToCollection, delete }
 
 class _PlayOverlay extends StatelessWidget {
   const _PlayOverlay();

@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/playlists/presentation/controllers/playlist
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -105,9 +106,11 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _pageListenable,
-      builder: (context, _) {
+    return AppPageRefreshScope(
+      onRefresh: _handleRefresh,
+      child: AnimatedBuilder(
+        animation: _pageListenable,
+        builder: (context, _) {
         if (_detailController.isLoading && _detailController.playlist == null) {
           return const SizedBox.expand(
             child: Center(child: CircularProgressIndicator()),
@@ -122,27 +125,24 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
         }
 
         final playlist = _detailController.playlist!;
-        final scrollView = SingleChildScrollView(
-          physics:
-              widget.enablePullToRefresh
-                  ? const AlwaysScrollableScrollPhysics()
-                  : null,
-          controller: _moviesController.scrollController,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              PlaylistBannerCard(
-                key: Key('playlist-banner-card-${playlist.id}'),
-                title: playlist.name,
-                coverImageUrl:
-                    _moviesController
-                        .items
-                        .firstOrNull
-                        ?.coverImage
-                        ?.bestAvailableUrl,
-              ),
-              SizedBox(height: context.appSpacing.sm),
-              Text(
+        final footer = _buildLoadMoreFooter(context);
+        final slivers = <Widget>[
+          SliverToBoxAdapter(
+            child: PlaylistBannerCard(
+              key: Key('playlist-banner-card-${playlist.id}'),
+              title: playlist.name,
+              coverImageUrl:
+                  _moviesController
+                      .items
+                      .firstOrNull
+                      ?.coverImage
+                      ?.bestAvailableUrl,
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: context.appSpacing.sm),
+              child: Text(
                 '${playlist.movieCount} 部影片',
                 style: resolveAppTextStyle(
                   context,
@@ -151,33 +151,42 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
                   tone: AppTextTone.secondary,
                 ),
               ),
-              SizedBox(height: context.appSpacing.sm),
-              MovieSummaryGrid(
-                items: _moviesController.items,
-                isLoading: _moviesController.isInitialLoading,
-                errorMessage: _moviesController.initialErrorMessage,
-                onMovieTap: widget.onMovieTap,
-                onMovieMenuRequest: (movie, globalPosition) =>
-                    requestMovieCollectionMenu(
-                      context,
-                      movie.movieNumber,
-                      globalPosition,
-                      isSubscribed: movie.isSubscribed,
-                    ),
-                onMovieSubscriptionTap:
-                    (movie) => _toggleMovieSubscription(movie.movieNumber),
-                isMovieSubscriptionUpdating:
-                    (movie) => _moviesController.isSubscriptionUpdating(
-                      movie.movieNumber,
-                    ),
-                emptyMessage: '暂无影片数据',
-              ),
-              if (_buildLoadMoreFooter(context) case final footer?) ...[
-                SizedBox(height: context.appSpacing.md),
-                footer,
-              ],
-            ],
+            ),
           ),
+          MovieSummarySliver(
+            items: _moviesController.items,
+            isLoading: _moviesController.isInitialLoading,
+            errorMessage: _moviesController.initialErrorMessage,
+            onMovieTap: widget.onMovieTap,
+            onMovieMenuRequest:
+                (movie, globalPosition) => requestMovieCollectionMenu(
+                  context,
+                  movie.movieNumber,
+                  globalPosition,
+                  isSubscribed: movie.isSubscribed,
+                ),
+            onMovieSubscriptionTap:
+                (movie) => _toggleMovieSubscription(movie.movieNumber),
+            isMovieSubscriptionUpdating:
+                (movie) =>
+                    _moviesController.isSubscriptionUpdating(movie.movieNumber),
+            emptyMessage: '暂无影片数据',
+          ),
+          if (footer != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: context.appSpacing.md),
+                child: footer,
+              ),
+            ),
+        ];
+        final scrollView = CustomScrollView(
+          physics:
+              widget.enablePullToRefresh
+                  ? const AlwaysScrollableScrollPhysics()
+                  : null,
+          controller: _moviesController.scrollController,
+          slivers: slivers,
         );
 
         if (!widget.enablePullToRefresh) {
@@ -189,12 +198,13 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
             onRefresh: _handleRefresh,
             controller: _moviesController.scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
-            slivers: <Widget>[SliverToBoxAdapter(child: scrollView.child!)],
+            slivers: slivers,
           );
         }
 
         return AppPullToRefresh(onRefresh: _handleRefresh, child: scrollView);
       },
+      ),
     );
   }
 

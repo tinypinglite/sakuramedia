@@ -62,6 +62,51 @@ void main() {
     expect(find.text('导入 5'), findsOneWidget);
   });
 
+  testWidgets('virtualizes accumulated import jobs', (tester) async {
+    _setDesktopViewport(tester, size: const Size(1200, 700));
+    final sessionStore = await _createSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+
+    _enqueueJobsPage(
+      bundle,
+      jobs: List<Map<String, dynamic>>.generate(
+        80,
+        (index) => _jobJson(
+          id: index + 1,
+          taskRunId: index + 1000,
+          state: 'completed',
+          imported: 1,
+        ),
+      ),
+      total: 80,
+    );
+    _enqueueBootstrapAndStream(bundle);
+    _enqueueVideoJobsPage(bundle);
+
+    await _pumpPage(tester, bundle: bundle);
+
+    expect(find.byKey(const Key('media-import-job-path-1')), findsOneWidget);
+    expect(find.byKey(const Key('media-import-job-path-80')), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('media-import-job-path-80')),
+      900,
+      scrollable:
+          find
+              .descendant(
+                of: find.byKey(const Key('media-import-page')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('media-import-job-path-80')), findsOneWidget);
+    expect(find.byKey(const Key('media-import-job-path-1')), findsNothing);
+  });
+
   testWidgets('shows inline progress bar from a task_run SSE event', (
     tester,
   ) async {
@@ -156,6 +201,65 @@ void main() {
     expect(find.text('重导'), findsOneWidget);
   });
 
+  testWidgets('virtualizes a large failed-file detail list', (tester) async {
+    _setDesktopViewport(tester, size: const Size(1200, 700));
+    final sessionStore = await _createSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+
+    _enqueueJobsPage(
+      bundle,
+      jobs: <Map<String, dynamic>>[
+        _jobJson(id: 33, taskRunId: 42, state: 'completed', failed: 100),
+      ],
+      total: 1,
+    );
+    _enqueueBootstrapAndStream(bundle);
+    _enqueueVideoJobsPage(bundle);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/import-jobs/33',
+      body: _jobJson(
+        id: 33,
+        taskRunId: 42,
+        state: 'completed',
+        failed: 100,
+        failedFiles: List<Map<String, dynamic>>.generate(
+          100,
+          (index) => <String, dynamic>{
+            'path': '/mnt/incoming/movies/FAILED-${index + 1}.mp4',
+            'reason': 'movie_number_not_found',
+            'detail': '',
+            'kind': 'file',
+          },
+        ),
+      ),
+    );
+
+    await _pumpPage(tester, bundle: bundle);
+    await tester.tap(find.byKey(const Key('media-import-job-toggle-33')));
+    await tester.pumpAndSettle();
+
+    final listKey = const Key('media-import-failed-file-list-33');
+    expect(find.byKey(listKey), findsOneWidget);
+    expect(find.text('/mnt/incoming/movies/FAILED-1.mp4'), findsOneWidget);
+    expect(find.text('/mnt/incoming/movies/FAILED-100.mp4'), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.text('/mnt/incoming/movies/FAILED-100.mp4'),
+      700,
+      scrollable: find.descendant(
+        of: find.byKey(listKey),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('/mnt/incoming/movies/FAILED-100.mp4'), findsOneWidget);
+    expect(find.text('/mnt/incoming/movies/FAILED-1.mp4'), findsNothing);
+  });
+
   testWidgets('cloud115 job only exposes retry for failed source files', (
     tester,
   ) async {
@@ -219,78 +323,75 @@ void main() {
     expect(find.text('删除'), findsNothing);
   });
 
-  testWidgets(
-    '纯跳过作业（failed=0、skipped>0）也能展开，渲染中文原因 + 已跳过徽标',
-    (tester) async {
-      _setDesktopViewport(tester);
-      final sessionStore = await _createSessionStore();
-      final bundle = await createTestApiBundle(sessionStore);
-      addTearDown(bundle.dispose);
-      addTearDown(sessionStore.dispose);
+  testWidgets('纯跳过作业（failed=0、skipped>0）也能展开，渲染中文原因 + 已跳过徽标', (tester) async {
+    _setDesktopViewport(tester);
+    final sessionStore = await _createSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
 
-      _enqueueJobsPage(
-        bundle,
-        jobs: <Map<String, dynamic>>[
-          _jobJson(
-            id: 7,
-            taskRunId: 99,
-            state: 'completed',
-            imported: 3,
-            skipped: 2,
-          ),
-        ],
-        total: 1,
-      );
-      _enqueueBootstrapAndStream(bundle);
-      _enqueueVideoJobsPage(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/import-jobs/7',
-        body: _jobJson(
+    _enqueueJobsPage(
+      bundle,
+      jobs: <Map<String, dynamic>>[
+        _jobJson(
           id: 7,
           taskRunId: 99,
           state: 'completed',
           imported: 3,
           skipped: 2,
-          failedFiles: <Map<String, dynamic>>[
-            <String, dynamic>{
-              'path': '/mnt/incoming/movies/DUP-001.mp4',
-              'reason': 'already_indexed_path',
-              'detail': '',
-              'kind': 'skipped',
-            },
-            <String, dynamic>{
-              'path': '/mnt/incoming/movies/DUP-002.mp4',
-              'reason': 'duplicate_fingerprint',
-              'detail': '',
-              'kind': 'skipped',
-            },
-          ],
         ),
-      );
+      ],
+      total: 1,
+    );
+    _enqueueBootstrapAndStream(bundle);
+    _enqueueVideoJobsPage(bundle);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/import-jobs/7',
+      body: _jobJson(
+        id: 7,
+        taskRunId: 99,
+        state: 'completed',
+        imported: 3,
+        skipped: 2,
+        failedFiles: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'path': '/mnt/incoming/movies/DUP-001.mp4',
+            'reason': 'already_indexed_path',
+            'detail': '',
+            'kind': 'skipped',
+          },
+          <String, dynamic>{
+            'path': '/mnt/incoming/movies/DUP-002.mp4',
+            'reason': 'duplicate_fingerprint',
+            'detail': '',
+            'kind': 'skipped',
+          },
+        ],
+      ),
+    );
 
-      await _pumpPage(tester, bundle: bundle);
+    await _pumpPage(tester, bundle: bundle);
 
-      // failedCount=0 但 skippedCount>0：展开按钮仍出现。
-      final toggle = find.byKey(const Key('media-import-job-toggle-7'));
-      expect(toggle, findsOneWidget);
-      expect(find.text('查看失败/跳过文件'), findsOneWidget);
+    // failedCount=0 但 skippedCount>0：展开按钮仍出现。
+    final toggle = find.byKey(const Key('media-import-job-toggle-7'));
+    expect(toggle, findsOneWidget);
+    expect(find.text('查看失败/跳过文件'), findsOneWidget);
 
-      await tester.tap(toggle);
-      await tester.pumpAndSettle();
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
 
-      expect(find.text('/mnt/incoming/movies/DUP-001.mp4'), findsOneWidget);
-      expect(find.text('/mnt/incoming/movies/DUP-002.mp4'), findsOneWidget);
-      expect(find.textContaining('已在库中'), findsOneWidget);
-      expect(find.textContaining('内容重复'), findsOneWidget);
-      // 两条都是 skipped → 两个「已跳过」徽标。
-      expect(find.text('已跳过'), findsNWidgets(2));
-      // actionable 为空 → 「重导全部失败」按钮不出现。
-      expect(find.byKey(const Key('media-import-retry-all-7')), findsNothing);
-      // 行内不应出现「重导」按钮（skipped 不可操作）。
-      expect(find.text('重导'), findsNothing);
-    },
-  );
+    expect(find.text('/mnt/incoming/movies/DUP-001.mp4'), findsOneWidget);
+    expect(find.text('/mnt/incoming/movies/DUP-002.mp4'), findsOneWidget);
+    expect(find.textContaining('已在库中'), findsOneWidget);
+    expect(find.textContaining('内容重复'), findsOneWidget);
+    // 两条都是 skipped → 两个「已跳过」徽标。
+    expect(find.text('已跳过'), findsNWidgets(2));
+    // actionable 为空 → 「重导全部失败」按钮不出现。
+    expect(find.byKey(const Key('media-import-retry-all-7')), findsNothing);
+    // 行内不应出现「重导」按钮（skipped 不可操作）。
+    expect(find.text('重导'), findsNothing);
+  });
 }
 
 Future<void> _pumpPage(

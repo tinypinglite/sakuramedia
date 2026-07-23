@@ -12,6 +12,7 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_summary_grid.dart';
@@ -78,50 +79,65 @@ class _DesktopActorsPageState extends State<DesktopActorsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: SingleChildScrollView(
-        controller: _actorsController.scrollController,
-        child: AnimatedBuilder(
-          animation: _actorsController,
-          builder: (context, _) {
-            final footer = _buildLoadMoreFooter(context);
-            return Column(
-              key: const Key('actors-page'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _ActorsHeader(
-                  total: _actorsController.total,
-                  filterState: _filterState,
-                  onFilterChanged: _applyFilter,
-                  onResetFilters: _resetFilters,
-                ),
-                SizedBox(height: context.appSpacing.lg),
-                ActorSummaryGrid(
-                  items: _actorsController.items,
-                  isLoading: _actorsController.isInitialLoading,
-                  errorMessage: _actorsController.initialErrorMessage,
-                  onActorTap:
-                      (actor) => context.pushDesktopActorDetail(
-                        actorId: actor.id,
-                        fallbackPath: desktopActorsPath,
+    return AppPageRefreshScope(
+      onRefresh: _actorsController.refresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceElevated,
+        child: CustomScrollView(
+          controller: _actorsController.scrollController,
+          slivers: [
+          AnimatedBuilder(
+            animation: _actorsController,
+            builder: (context, _) {
+              final footer = _buildLoadMoreFooter(context);
+              return SliverMainAxisGroup(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      key: const Key('actors-page'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ActorsHeader(
+                          total: _actorsController.total,
+                          filterState: _filterState,
+                          onFilterChanged: _applyFilter,
+                          onResetFilters: _resetFilters,
+                        ),
+                        SizedBox(height: context.appSpacing.lg),
+                      ],
+                    ),
+                  ),
+                  ActorSummarySliver(
+                    items: _actorsController.items,
+                    isLoading: _actorsController.isInitialLoading,
+                    errorMessage: _actorsController.initialErrorMessage,
+                    onActorTap:
+                        (actor) => context.pushDesktopActorDetail(
+                          actorId: actor.id,
+                          fallbackPath: desktopActorsPath,
+                        ),
+                    onActorSubscriptionTap:
+                        (actor) => _toggleActorSubscription(actor.id),
+                    isActorSubscriptionUpdating:
+                        (actor) =>
+                            _actorsController.isSubscriptionUpdating(actor.id),
+                    emptyMessage:
+                        _filterState.isDefault
+                            ? '暂无女优，去搜索看看吧'
+                            : '当前筛选条件下暂无匹配女优',
+                  ),
+                  if (footer != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: context.appSpacing.md),
+                        child: footer,
                       ),
-                  onActorSubscriptionTap:
-                      (actor) => _toggleActorSubscription(actor.id),
-                  isActorSubscriptionUpdating:
-                      (actor) =>
-                          _actorsController.isSubscriptionUpdating(actor.id),
-                  emptyMessage: _filterState.isDefault
-                      ? '暂无女优，去搜索看看吧'
-                      : '当前筛选条件下暂无匹配女优',
-                ),
-                if (footer != null) ...[
-                  SizedBox(height: context.appSpacing.md),
-                  footer,
+                    ),
                 ],
-              ],
-            );
-          },
+              );
+            },
+          ),
+          ],
         ),
       ),
     );

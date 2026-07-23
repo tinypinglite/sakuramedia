@@ -1,12 +1,11 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_result_item_dto.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_result_card.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 
-class ImageSearchResultGrid extends StatelessWidget {
-  const ImageSearchResultGrid({
+/// 累计搜索结果使用的懒构建 Sliver 网格。
+class ImageSearchResultSliver extends StatelessWidget {
+  const ImageSearchResultSliver({
     super.key,
     required this.items,
     required this.onItemTap,
@@ -20,38 +19,25 @@ class ImageSearchResultGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final spacing = context.appSpacing.md;
-        final columns = _resolveColumnCount(constraints.maxWidth, spacing);
-        return GridView.builder(
-          key: const Key('desktop-image-search-result-grid'),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: items.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: spacing,
-            mainAxisSpacing: spacing,
-            childAspectRatio: 16 / 10,
+    return AppAdaptiveCardSliver<ImageSearchResultItemDto>(
+      gridKey: const Key('desktop-image-search-result-grid'),
+      items: items,
+      isLoading: false,
+      targetColumnWidth: 220,
+      minColumns: 2,
+      maxColumns: 5,
+      childAspectRatio: 16 / 10,
+      skeletonBuilder: (context, index) => const SizedBox.shrink(),
+      itemBuilder:
+          (context, item, index) => ImageSearchResultCard(
+            item: item,
+            onTap: () => onItemTap(item),
+            onRequestMenu:
+                onItemMenuRequested == null
+                    ? null
+                    : (globalPosition) =>
+                        onItemMenuRequested!(item, globalPosition),
           ),
-          itemBuilder:
-              (context, index) => ImageSearchResultCard(
-                item: items[index],
-                onTap: () => onItemTap(items[index]),
-                onRequestMenu:
-                    onItemMenuRequested == null
-                        ? null
-                        : (globalPosition) =>
-                            onItemMenuRequested!(items[index], globalPosition),
-              ),
-        );
-      },
     );
-  }
-
-  int _resolveColumnCount(double width, double spacing) {
-    final columns = ((width + spacing) / (220 + spacing)).floor();
-    return math.max(2, math.min(5, columns));
   }
 }

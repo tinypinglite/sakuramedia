@@ -135,6 +135,10 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
       onPlay: () => _playVideo(video),
       onAddToCollection: () => _addToCollection(video),
       onDelete: () => _deleteVideo(video),
+      collections: video.collections,
+      onCollectionTap: (ref) =>
+          MobileVideoCollectionDetailRouteData(collectionId: ref.id)
+              .push(context),
     );
   }
 

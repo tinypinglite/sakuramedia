@@ -1,4 +1,42 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+
+/// 视频归属合集的精简引用（后端 `VideoCollectionRef`）：仅承载 [id]/[name]
+/// 用于列表/详情侧显式展示"所属合集"，避免复用 [VideoCollectionDto] 时把
+/// item_count / cover_image 等无关字段带过来（后端也不下发这些）。
+class VideoCollectionRef {
+  const VideoCollectionRef({required this.id, required this.name});
+
+  final int id;
+  final String name;
+
+  factory VideoCollectionRef.fromJson(Map<String, dynamic> json) {
+    return VideoCollectionRef(
+      id: asIntOrNull(json['id']) ?? 0,
+      name: asStringOrNull(json['name']) ?? '',
+    );
+  }
+}
+
+/// 解析后端 `collections` 字段：非 List / 空列表 → `const []`；元素非 Map 或 id ≤ 0 时跳过。
+List<VideoCollectionRef> videoCollectionRefsFromJson(dynamic value) {
+  if (value is! List || value.isEmpty) {
+    return const <VideoCollectionRef>[];
+  }
+  final result = <VideoCollectionRef>[];
+  for (final entry in value) {
+    final map = asMapOrNull(entry);
+    if (map == null) {
+      continue;
+    }
+    final ref = VideoCollectionRef.fromJson(map);
+    if (ref.id <= 0) {
+      continue;
+    }
+    result.add(ref);
+  }
+  return result;
+}
 
 /// 非 JAV 视频条目的列表项资源（`VideoItemListItemResource`）。
 ///
@@ -17,6 +55,7 @@ class VideoItemListItemDto {
     this.coverHeight,
     required this.mediaCount,
     required this.canPlay,
+    this.collections = const <VideoCollectionRef>[],
     this.createdAt,
     this.updatedAt,
   });
@@ -37,6 +76,10 @@ class VideoItemListItemDto {
   final int? coverHeight;
   final int mediaCount;
   final bool canPlay;
+
+  /// 该视频归属的全部合集（0..N），后端按合集名升序返回。列表/详情共享。
+  final List<VideoCollectionRef> collections;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -50,17 +93,18 @@ class VideoItemListItemDto {
 
   factory VideoItemListItemDto.fromJson(Map<String, dynamic> json) {
     return VideoItemListItemDto(
-      id: _intFromJson(json['id']) ?? 0,
+      id: asIntOrNull(json['id']) ?? 0,
       title: json['title'] as String? ?? '',
       summary: json['summary'] as String? ?? '',
       coverImage: videoImageFromJson(json['cover_image']),
       releaseDate: videoDateFromJson(json['release_date']),
-      durationSeconds: _intFromJson(json['duration_seconds']) ?? 0,
-      fileSizeBytes: _intFromJson(json['file_size_bytes']) ?? 0,
-      coverWidth: _intFromJson(json['cover_width']),
-      coverHeight: _intFromJson(json['cover_height']),
-      mediaCount: _intFromJson(json['media_count']) ?? 0,
+      durationSeconds: asIntOrNull(json['duration_seconds']) ?? 0,
+      fileSizeBytes: asIntOrNull(json['file_size_bytes']) ?? 0,
+      coverWidth: asIntOrNull(json['cover_width']),
+      coverHeight: asIntOrNull(json['cover_height']),
+      mediaCount: asIntOrNull(json['media_count']) ?? 0,
       canPlay: json['can_play'] as bool? ?? false,
+      collections: videoCollectionRefsFromJson(json['collections']),
       createdAt: videoDateFromJson(json['created_at']),
       updatedAt: videoDateFromJson(json['updated_at']),
     );
@@ -85,17 +129,4 @@ DateTime? videoDateFromJson(dynamic value) {
     return null;
   }
   return DateTime.tryParse(value);
-}
-
-int? _intFromJson(dynamic value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is num) {
-    return value.toInt();
-  }
-  if (value is String) {
-    return int.tryParse(value);
-  }
-  return null;
 }

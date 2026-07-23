@@ -16,7 +16,7 @@ import 'package:sakuramedia/features/media/presentation/widgets/shared/rapid_upl
 import 'package:sakuramedia/features/shared/presentation/hooks/paged_scroll_hook.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_page_frame.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 
 /// 「媒体管理」桌面页（Riverpod）：
@@ -103,19 +103,15 @@ class DesktopMediaManagementPage extends HookConsumerWidget {
 
     // active 懒加载：非 active 时只挂骨架，不 watch provider（不触发 build）。
     if (!active) {
-      return AppPageFrame(
-        title: '',
-        scrollController: scrollController,
-        child: const SizedBox.shrink(
-          key: Key('desktop-media-management-page-inactive'),
-        ),
+      return const SizedBox.shrink(
+        key: Key('desktop-media-management-page-inactive'),
       );
     }
 
     final spacing = context.appSpacing;
-    return AppPageFrame(
-      title: '',
-      scrollController: scrollController,
+    // 顶栏刷新按钮与 Cmd/Ctrl+R 都触发 _refreshAll（媒体列表 + 秒传批次 + 媒体库）。
+    return AppPageRefreshScope(
+      onRefresh: () => _refreshAll(ref),
       child: Column(
         key: const Key('desktop-media-management-page'),
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,40 +119,37 @@ class DesktopMediaManagementPage extends HookConsumerWidget {
           AppTabBar(
             controller: tabController,
             tabs: const [
-              Tab(
-                key: Key('media-management-tab-list'),
-                text: '媒体列表',
-              ),
-              Tab(
-                key: Key('media-management-tab-batches'),
-                text: '秒传批次',
-              ),
+              Tab(key: Key('media-management-tab-list'), text: '媒体列表'),
+              Tab(key: Key('media-management-tab-batches'), text: '秒传批次'),
             ],
           ),
           SizedBox(height: spacing.lg),
-          if (isBatchTab)
-            RapidUploadHistorySection(
-              retryingBatchId: retryingBatchId.value,
-              onRetry: (batch) =>
-                  _retryBatch(context, ref, batch, retryingBatchId),
-            )
-          else
-            MediaListSection(
-              isTriggering: isTriggeringUpload.value,
-              isDeleting: isBatchDeleting.value,
-              onRapidUpload: () => _openRapidUploadDialog(
-                context,
-                ref,
-                isTriggeringUpload,
-              ),
-              onBatchDelete: () => _openBatchDeleteDialog(
-                context,
-                ref,
-                isBatchDeleting,
-              ),
-              // 复合刷新：媒体列表 + 秒传批次 + 媒体库。
-              onRefresh: () => _refreshAll(ref),
-            ),
+          Expanded(
+            child: isBatchTab
+                ? RapidUploadHistorySection(
+                    scrollController: scrollController,
+                    retryingBatchId: retryingBatchId.value,
+                    onRetry: (batch) =>
+                        _retryBatch(context, ref, batch, retryingBatchId),
+                  )
+                : MediaListSection(
+                    scrollController: scrollController,
+                    isTriggering: isTriggeringUpload.value,
+                    isDeleting: isBatchDeleting.value,
+                    onRapidUpload: () => _openRapidUploadDialog(
+                      context,
+                      ref,
+                      isTriggeringUpload,
+                    ),
+                    onBatchDelete: () => _openBatchDeleteDialog(
+                      context,
+                      ref,
+                      isBatchDeleting,
+                    ),
+                    // 复合刷新：媒体列表 + 秒传批次 + 媒体库。
+                    onRefresh: () => _refreshAll(ref),
+                  ),
+          ),
         ],
       ),
     );
@@ -202,8 +195,8 @@ class DesktopMediaManagementPage extends HookConsumerWidget {
     final selectedIds = browseState.selectedIds.toList(growable: false);
     if (selectedIds.isEmpty) return;
 
-    final librariesState = ref.read(mediaLibrariesProvider).value ??
-        MediaLibrariesState.empty;
+    final librariesState =
+        ref.read(mediaLibrariesProvider).value ?? MediaLibrariesState.empty;
     final target = await showRapidUploadTargetLibraryDialog(
       context,
       selectedCount: selectedIds.length,
@@ -251,7 +244,8 @@ class DesktopMediaManagementPage extends HookConsumerWidget {
       confirmKey: const Key('media-management-batch-delete-confirm-button'),
       cancelKey: const Key('media-management-batch-delete-cancel-button'),
       title: '批量删除媒体',
-      message: '将删除已选 ${selectedIds.length} 项媒体，本地文件/115 云端文件会被删除，'
+      message:
+          '将删除已选 ${selectedIds.length} 项媒体，本地文件/115 云端文件会被删除，'
           '且不可恢复。请确认要继续吗？',
       confirmLabel: '删除',
       danger: true,
@@ -287,12 +281,11 @@ class DesktopMediaManagementPage extends HookConsumerWidget {
     if (failedIds.isEmpty) {
       showToast('已删除 ${okIds.length} 项媒体');
     } else {
-      final errorMessage = firstError == null
-          ? '未知错误'
-          : apiErrorMessage(firstError, fallback: '批量删除失败');
-      showToast(
-        '已删除 ${okIds.length} 项，${failedIds.length} 项失败：$errorMessage',
-      );
+      final errorMessage =
+          firstError == null
+              ? '未知错误'
+              : apiErrorMessage(firstError, fallback: '批量删除失败');
+      showToast('已删除 ${okIds.length} 项，${failedIds.length} 项失败：$errorMessage');
       // 半失败：拉服务端真实态兜底，避免前端与后端偏差。
       unawaited(ref.read(mediaBrowseProvider.notifier).refresh());
     }

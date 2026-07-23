@@ -14,13 +14,13 @@ import 'package:sakuramedia/features/videos/presentation/controllers/imports/vid
 import 'package:sakuramedia/features/videos/presentation/widgets/imports/video_import_dialog.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_page_frame.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 class DesktopMediaImportPage extends StatefulWidget {
   const DesktopMediaImportPage({super.key});
@@ -53,9 +53,11 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
     );
     _tabController = TabController(length: 2, vsync: this)
       ..addListener(_handleTabChanged);
-    _mergedListenable = Listenable.merge(
-      <Listenable>[_javController, _pornController, _tabController],
-    );
+    _mergedListenable = Listenable.merge(<Listenable>[
+      _javController,
+      _pornController,
+      _tabController,
+    ]);
     _scrollController.addListener(_handleScroll);
     unawaited(_javController.initialize());
     unawaited(_pornController.initialize());
@@ -91,6 +93,11 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
 
   void _handleScroll() {
     if (!_scrollController.hasClients) {
+      return;
+    }
+    // loadMore 失败时不再自动重试，避免用户上下滑动就把失败请求反复打出去；
+    // 由 footer 的「重试」按钮承担唯一重试入口。对齐 PagedLoadController 的约定。
+    if (_activeController.loadMoreError != null) {
       return;
     }
     final position = _scrollController.position;
@@ -147,26 +154,15 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _mergedListenable,
-      builder: (context, _) {
-        return AppPageFrame(
-          title: '',
-          scrollController: _scrollController,
-          child: Column(
-            key: const Key('media-import-page'),
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppTabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(key: Key('media-import-tab-jav'), text: 'JAV 影片'),
-                  Tab(key: Key('media-import-tab-pornbox'), text: 'PornBox 影片'),
-                ],
-              ),
-              SizedBox(height: context.appSpacing.lg),
-              if (_isPornTab)
-                _buildTab(
+    // 顶栏刷新按钮 / Cmd+R 刷新当前 tab 的导入历史；跨 tab 时也只刷激活的那个，
+    // 避免误触发另一 tab 的 SSE 重放。
+    return AppPageRefreshScope(
+      onRefresh: () => _activeController.refresh(),
+      child: AnimatedBuilder(
+        animation: _mergedListenable,
+        builder: (context, _) {
+          final tabSlivers = _isPornTab
+              ? _buildTabSlivers(
                   context,
                   controller: _pornController,
                   expanded: _expandedPorn,
@@ -174,75 +170,98 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
                       '从后端白名单目录中选择 PornBox 视频导入到媒体库，必须归入一个合集。导入在后台运行，可在此查看实时进度与失败文件处理。',
                   onCreate: () => unawaited(_openPornCreateDialog()),
                 )
-              else
-                _buildTab(
+              : _buildTabSlivers(
                   context,
                   controller: _javController,
                   expanded: _expandedJav,
                   description:
                       '从后端本地目录或 115 网盘目录中选择 JAV 媒体导入到对应媒体库。导入在后台运行，可在此查看实时进度与失败文件处理。',
                   onCreate: () => unawaited(_openJavCreateDialog()),
+                );
+          return CustomScrollView(
+            key: const Key('media-import-page'),
+            controller: _scrollController,
+            slivers: [
+              SliverToBoxAdapter(
+                child: AppTabBar(
+                  controller: _tabController,
+                  tabs: const [
+                    Tab(key: Key('media-import-tab-jav'), text: 'JAV 影片'),
+                    Tab(
+                      key: Key('media-import-tab-pornbox'),
+                      text: 'PornBox 影片',
+                    ),
+                  ],
                 ),
+              ),
+              SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
+              ...tabSlivers,
             ],
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
-  Widget _buildTab(
+  List<Widget> _buildTabSlivers(
     BuildContext context, {
     required ImportJobsViewController controller,
     required Set<int> expanded,
     required String description,
     required VoidCallback onCreate,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _Header(
+    final hasHistory =
+        !controller.isInitialLoading &&
+        controller.initialError == null &&
+        controller.jobs.isNotEmpty;
+    return [
+      SliverToBoxAdapter(
+        child: _Header(
           description: description,
           isLoading: controller.isInitialLoading,
           onCreate: onCreate,
           onRefresh: () => unawaited(controller.refresh()),
         ),
-        SizedBox(height: context.appSpacing.lg),
-        if (!controller.isInitialLoading &&
-            controller.initialError == null &&
-            controller.jobs.isNotEmpty) ...[
-          const _HistorySectionTitle(),
-          SizedBox(height: context.appSpacing.md),
-        ],
-        _buildBody(context, controller, expanded),
-        if (controller.jobs.isNotEmpty &&
-            (controller.isLoadingMore || controller.loadMoreError != null)) ...[
-          SizedBox(height: context.appSpacing.lg),
-          AppPagedLoadMoreFooter(
-            isLoading: controller.isLoadingMore,
-            errorMessage: controller.loadMoreError,
-            onRetry: () => unawaited(controller.loadMore()),
-          ),
-        ],
+      ),
+      SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
+      if (hasHistory) ...[
+        const SliverToBoxAdapter(child: _HistorySectionTitle()),
+        SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.md)),
       ],
-    );
+      _buildBodySliver(context, controller, expanded),
+      if (controller.jobs.isNotEmpty &&
+          (controller.isLoadingMore || controller.loadMoreError != null))
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(top: context.appSpacing.lg),
+            child: AppPagedLoadMoreFooter(
+              isLoading: controller.isLoadingMore,
+              errorMessage: controller.loadMoreError,
+              onRetry: () => unawaited(controller.loadMore()),
+            ),
+          ),
+        ),
+    ];
   }
 
-  Widget _buildBody(
+  Widget _buildBodySliver(
     BuildContext context,
     ImportJobsViewController controller,
     Set<int> expanded,
   ) {
     if (controller.isInitialLoading) {
-      return AppContentCard(
-        title: '正在加载',
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: context.appLayoutTokens.emptySectionVerticalPadding,
-          ),
-          child: Center(
-            child: CircularProgressIndicator(
-              strokeWidth:
-                  context.appComponentTokens.movieCardLoaderStrokeWidth,
+      return SliverToBoxAdapter(
+        child: AppContentCard(
+          title: '正在加载',
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: context.appLayoutTokens.emptySectionVerticalPadding,
+            ),
+            child: Center(
+              child: CircularProgressIndicator(
+                strokeWidth:
+                    context.appComponentTokens.movieCardLoaderStrokeWidth,
+              ),
             ),
           ),
         ),
@@ -250,62 +269,67 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
     }
 
     if (controller.initialError != null) {
-      return AppContentCard(
-        title: '加载失败',
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppEmptyState(message: controller.initialError!),
-            SizedBox(height: context.appSpacing.lg),
-            Center(
-              child: AppButton(
-                key: const Key('media-import-initial-retry-button'),
-                label: '重试',
-                variant: AppButtonVariant.primary,
-                onPressed: () => unawaited(controller.loadFirstPage()),
+      return SliverToBoxAdapter(
+        child: AppContentCard(
+          title: '加载失败',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppEmptyState(message: controller.initialError!),
+              SizedBox(height: context.appSpacing.lg),
+              Center(
+                child: AppButton(
+                  key: const Key('media-import-initial-retry-button'),
+                  label: '重试',
+                  variant: AppButtonVariant.primary,
+                  onPressed: () => unawaited(controller.loadFirstPage()),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
 
     if (controller.jobs.isEmpty) {
-      return const AppEmptyState(message: '还没有导入作业。点击「新建导入」从后端目录选择媒体导入。');
+      return const SliverToBoxAdapter(
+        child: AppEmptyState(message: '还没有导入作业。点击「新建导入」从后端目录选择媒体导入。'),
+      );
     }
 
     // 失败源文件的删除/重命名是 JAV 专属能力；PornBox 作业只保留「重导」。
     final javController =
         controller is MediaImportController ? controller : null;
-    return Column(
-      children: controller.jobs
-          .map(
-            (job) => Padding(
-              padding: EdgeInsets.only(bottom: context.appSpacing.md),
-              child: ImportJobCard(
-                job: job,
-                taskRun: controller.taskRunFor(job.taskRunId),
-                expanded: expanded.contains(job.id),
-                detail: controller.detailFor(job.id),
-                isDetailLoading: controller.isDetailLoading(job.id),
-                detailError: controller.detailError(job.id),
-                onToggle: () => _toggleExpanded(controller, job.id),
-                onRetryAll: () => _retryAll(controller, job.id),
-                onRetryFile: (path) =>
-                    _retryFiles(controller, job.id, <String>[path]),
-                onDeleteFile: javController == null
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final job = controller.jobs[index];
+        return Padding(
+          padding: EdgeInsets.only(bottom: context.appSpacing.md),
+          child: ImportJobCard(
+            job: job,
+            taskRun: controller.taskRunFor(job.taskRunId),
+            expanded: expanded.contains(job.id),
+            detail: controller.detailFor(job.id),
+            isDetailLoading: controller.isDetailLoading(job.id),
+            detailError: controller.detailError(job.id),
+            onToggle: () => _toggleExpanded(controller, job.id),
+            onRetryAll: () => _retryAll(controller, job.id),
+            onRetryFile:
+                (path) => _retryFiles(controller, job.id, <String>[path]),
+            onDeleteFile:
+                javController == null
                     ? null
                     : (path) => _deleteFile(javController, job.id, path),
-                onRenameFile: javController == null
+            onRenameFile:
+                javController == null
                     ? null
                     : (path, name) =>
                         _renameFile(javController, job.id, path, name),
-                onReloadDetail: () =>
-                    unawaited(controller.ensureDetail(job.id, force: true)),
-              ),
-            ),
-          )
-          .toList(growable: false),
+            onReloadDetail:
+                () => unawaited(controller.ensureDetail(job.id, force: true)),
+          ),
+        );
+      }, childCount: controller.jobs.length),
     );
   }
 
@@ -369,41 +393,45 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
   Future<bool?> _confirmDelete(String path) {
     return showDialog<bool>(
       context: context,
-      builder: (dialogContext) => AppDesktopDialog(
-        dialogKey: const Key('media-import-delete-confirm-dialog'),
-        width: dialogContext.appLayoutTokens.dialogWidthSm,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '删除源文件',
-              style: resolveAppTextStyle(dialogContext, size: AppTextSize.s18),
-            ),
-            SizedBox(height: dialogContext.appSpacing.lg),
-            Text('确认删除该失败源文件？该操作不可恢复。\n\n$path'),
-            SizedBox(height: dialogContext.appSpacing.xl),
-            Row(
+      builder:
+          (dialogContext) => AppDesktopDialog(
+            dialogKey: const Key('media-import-delete-confirm-dialog'),
+            width: dialogContext.appLayoutTokens.dialogWidthSm,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: AppButton(
-                    label: '取消',
-                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                Text(
+                  '删除源文件',
+                  style: resolveAppTextStyle(
+                    dialogContext,
+                    size: AppTextSize.s18,
                   ),
                 ),
-                SizedBox(width: dialogContext.appSpacing.md),
-                Expanded(
-                  child: AppButton(
-                    label: '删除',
-                    variant: AppButtonVariant.danger,
-                    onPressed: () => Navigator.of(dialogContext).pop(true),
-                  ),
+                SizedBox(height: dialogContext.appSpacing.lg),
+                Text('确认删除该失败源文件？该操作不可恢复。\n\n$path'),
+                SizedBox(height: dialogContext.appSpacing.xl),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        label: '取消',
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                      ),
+                    ),
+                    SizedBox(width: dialogContext.appSpacing.md),
+                    Expanded(
+                      child: AppButton(
+                        label: '删除',
+                        variant: AppButtonVariant.danger,
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -411,47 +439,53 @@ class _DesktopMediaImportPageState extends State<DesktopMediaImportPage>
     final textController = TextEditingController(text: currentName);
     return showDialog<String>(
       context: context,
-      builder: (dialogContext) => AppDesktopDialog(
-        dialogKey: const Key('media-import-rename-dialog'),
-        width: dialogContext.appLayoutTokens.dialogWidthSm,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '重命名源文件',
-              style: resolveAppTextStyle(dialogContext, size: AppTextSize.s18),
-            ),
-            SizedBox(height: dialogContext.appSpacing.lg),
-            AppTextField(
-              fieldKey: const Key('media-import-rename-field'),
-              controller: textController,
-              label: '新文件名',
-              hintText: '例如 ABP-123.mp4',
-            ),
-            SizedBox(height: dialogContext.appSpacing.xl),
-            Row(
+      builder:
+          (dialogContext) => AppDesktopDialog(
+            dialogKey: const Key('media-import-rename-dialog'),
+            width: dialogContext.appLayoutTokens.dialogWidthSm,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: AppButton(
-                    label: '取消',
-                    onPressed: () => Navigator.of(dialogContext).pop(),
+                Text(
+                  '重命名源文件',
+                  style: resolveAppTextStyle(
+                    dialogContext,
+                    size: AppTextSize.s18,
                   ),
                 ),
-                SizedBox(width: dialogContext.appSpacing.md),
-                Expanded(
-                  child: AppButton(
-                    label: '确认',
-                    variant: AppButtonVariant.primary,
-                    onPressed: () =>
-                        Navigator.of(dialogContext).pop(textController.text),
-                  ),
+                SizedBox(height: dialogContext.appSpacing.lg),
+                AppTextField(
+                  fieldKey: const Key('media-import-rename-field'),
+                  controller: textController,
+                  label: '新文件名',
+                  hintText: '例如 ABP-123.mp4',
+                ),
+                SizedBox(height: dialogContext.appSpacing.xl),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        label: '取消',
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                      ),
+                    ),
+                    SizedBox(width: dialogContext.appSpacing.md),
+                    Expanded(
+                      child: AppButton(
+                        label: '确认',
+                        variant: AppButtonVariant.primary,
+                        onPressed:
+                            () => Navigator.of(
+                              dialogContext,
+                            ).pop(textController.text),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
     ).whenComplete(textController.dispose);
   }
 }

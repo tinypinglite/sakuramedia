@@ -49,6 +49,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     required this.downloadTaskCoverWidth,
     required this.downloadTaskCardMinHeight,
     required this.downloadTaskProgressHeight,
+    required this.mediaManagementRowHeight,
     required this.movieDetailHeroHeight,
     required this.movieDetailThinCoverWidth,
     required this.movieDetailPlotThumbnailWidth,
@@ -127,6 +128,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
         downloadTaskCoverWidth = 220,
         downloadTaskCardMinHeight = 120,
         downloadTaskProgressHeight = 6,
+        mediaManagementRowHeight = 144,
         movieDetailHeroHeight = 420,
         movieDetailThinCoverWidth = 180,
         movieDetailPlotThumbnailWidth = 132,
@@ -204,6 +206,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
         downloadTaskCoverWidth = 220,
         downloadTaskCardMinHeight = 120,
         downloadTaskProgressHeight = 6,
+        mediaManagementRowHeight = 144,
         movieDetailHeroHeight = 420,
         movieDetailThinCoverWidth = 180,
         movieDetailPlotThumbnailWidth = 132,
@@ -280,6 +283,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
   final double downloadTaskCoverWidth;
   final double downloadTaskCardMinHeight;
   final double downloadTaskProgressHeight;
+  final double mediaManagementRowHeight;
   final double movieDetailHeroHeight;
   final double movieDetailThinCoverWidth;
   final double movieDetailPlotThumbnailWidth;
@@ -358,6 +362,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     double? downloadTaskCoverWidth,
     double? downloadTaskCardMinHeight,
     double? downloadTaskProgressHeight,
+    double? mediaManagementRowHeight,
     double? movieDetailHeroHeight,
     double? movieDetailThinCoverWidth,
     double? movieDetailPlotThumbnailWidth,
@@ -456,6 +461,8 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
           downloadTaskCardMinHeight ?? this.downloadTaskCardMinHeight,
       downloadTaskProgressHeight:
           downloadTaskProgressHeight ?? this.downloadTaskProgressHeight,
+      mediaManagementRowHeight:
+          mediaManagementRowHeight ?? this.mediaManagementRowHeight,
       movieDetailHeroHeight:
           movieDetailHeroHeight ?? this.movieDetailHeroHeight,
       movieDetailThinCoverWidth:
@@ -651,6 +658,11 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       downloadTaskProgressHeight: lerpDouble(
         downloadTaskProgressHeight,
         other.downloadTaskProgressHeight,
+        t,
+      )!,
+      mediaManagementRowHeight: lerpDouble(
+        mediaManagementRowHeight,
+        other.mediaManagementRowHeight,
         t,
       )!,
       movieDetailHeroHeight:

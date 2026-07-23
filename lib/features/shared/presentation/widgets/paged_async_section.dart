@@ -6,7 +6,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 
-/// 分页 `AsyncNotifier` 的通用「四态骨架」：
+/// 分页 `AsyncNotifier` 的 Sliver「四态骨架」：
 ///
 /// 1. `asyncState.isLoading && !hasValue` → [AppSectionSkeleton]（首次加载）
 /// 2. `asyncState.hasError && !hasValue`  → [AppEmptyState]（首次失败 + 重试）
@@ -18,10 +18,11 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_fo
 /// [onReload] / [onLoadMore] 通常直接绑 `ref.read(...notifier).reload()` /
 /// `.loadMore()`。
 ///
+/// 必须直接放进 [CustomScrollView.slivers]，确保累计分页条目由 viewport 惰性构建。
 /// 使用范式：
 ///
 /// ```dart
-/// PagedAsyncSection<MediaBrowseState, MediaListItemDto>(
+/// SliverPagedAsyncSection<MediaBrowseState, MediaListItemDto>(
 ///   asyncState: ref.watch(mediaBrowseProvider),
 ///   pagedOf: (s) => s.paged,
 ///   itemBuilder: (context, item, _) => _MediaRow(item: item, ...),
@@ -33,8 +34,13 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_fo
 ///   initialRetryKey: const Key('media-management-initial-retry-button'),
 /// );
 /// ```
-class PagedAsyncSection<S, T> extends StatelessWidget {
-  const PagedAsyncSection({
+///
+/// 只构建视口附近的条目，避免把分页接口已经加载的
+/// 所有 item 一次性挂进 Widget / RenderObject 树。调用方应把本组件直接放进
+/// [CustomScrollView.slivers]，筛选头、页签等非列表内容使用
+/// [SliverToBoxAdapter] 组合。
+class SliverPagedAsyncSection<S, T> extends StatelessWidget {
+  const SliverPagedAsyncSection({
     super.key,
     required this.asyncState,
     required this.pagedOf,
@@ -47,70 +53,86 @@ class PagedAsyncSection<S, T> extends StatelessWidget {
     this.initialRetryKey,
     this.skeletonLineCount = 6,
     this.footerTopSpacing,
-    this.crossAxisAlignment = CrossAxisAlignment.stretch,
-  });
+    this.fixedItemExtent,
+  }) : assert(fixedItemExtent == null || fixedItemExtent > 0);
 
   final AsyncValue<S> asyncState;
   final PagedListState<T> Function(S state) pagedOf;
   final Widget Function(BuildContext context, T item, int index) itemBuilder;
-
-  /// 每条 item 之间的间距（附着在 item 底部 padding 上）。
   final double itemSpacing;
-
   final String initialErrorMessage;
   final String emptyMessage;
-
   final VoidCallback onReload;
   final VoidCallback onLoadMore;
-
-  /// 首屏错误重试按钮的稳定 Key（供测试锚定）。
   final Key? initialRetryKey;
-
   final int skeletonLineCount;
-
-  /// footer 与最后一条 item 之间的额外间距；不传走 `spacing.md`。
   final double? footerTopSpacing;
 
-  final CrossAxisAlignment crossAxisAlignment;
+  /// 单个列表内容的固定高度（不含 [itemSpacing]）。
+  ///
+  /// 传值后使用 [SliverFixedExtentList]，滚动条大跨度跳转时可以直接通过索引计算
+  /// scroll offset，不必为已经离开视口的行做 dead-reckoning 测量。
+  final double? fixedItemExtent;
 
   @override
   Widget build(BuildContext context) {
     if (asyncState.isLoading && !asyncState.hasValue) {
-      return AppSectionSkeleton(lineCount: skeletonLineCount);
-    }
-    if (asyncState.hasError && !asyncState.hasValue) {
-      return AppEmptyState(
-        message: initialErrorMessage,
-        onRetry: onReload,
-        retryKey: initialRetryKey,
+      return SliverToBoxAdapter(
+        child: AppSectionSkeleton(lineCount: skeletonLineCount),
       );
     }
+    if (asyncState.hasError && !asyncState.hasValue) {
+      return SliverToBoxAdapter(
+        child: AppEmptyState(
+          message: initialErrorMessage,
+          onRetry: onReload,
+          retryKey: initialRetryKey,
+        ),
+      );
+    }
+
     final paged = pagedOf(asyncState.requireValue);
     if (paged.items.isEmpty) {
-      return AppEmptyState(message: emptyMessage);
+      return SliverToBoxAdapter(child: AppEmptyState(message: emptyMessage));
     }
 
     final spacing = context.appSpacing;
     final items = paged.items;
     final showFooter =
         paged.isLoadingMore || paged.loadMoreErrorMessage != null;
+    final delegate = SliverChildBuilderDelegate(
+      (context, index) => Padding(
+        padding: EdgeInsets.only(bottom: itemSpacing),
+        child: itemBuilder(context, items[index], index),
+      ),
+      childCount: items.length,
+    );
+    final itemSliver =
+        fixedItemExtent == null
+            ? SliverList(delegate: delegate)
+            : SliverFixedExtentList(
+              itemExtent: fixedItemExtent! + itemSpacing,
+              delegate: delegate,
+            );
 
-    return Column(
-      crossAxisAlignment: crossAxisAlignment,
-      children: [
-        for (var i = 0; i < items.length; i++)
-          Padding(
-            padding: EdgeInsets.only(bottom: itemSpacing),
-            child: itemBuilder(context, items[i], i),
+    if (!showFooter) {
+      return itemSliver;
+    }
+
+    // footer 高度并不固定，必须与固定尺寸 item sliver 分开，避免破坏滚动范围估算。
+    return SliverMainAxisGroup(
+      slivers: [
+        itemSliver,
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(top: footerTopSpacing ?? spacing.md),
+            child: AppPagedLoadMoreFooter(
+              isLoading: paged.isLoadingMore,
+              errorMessage: paged.loadMoreErrorMessage,
+              onRetry: onLoadMore,
+            ),
           ),
-        if (showFooter) ...[
-          SizedBox(height: footerTopSpacing ?? spacing.md),
-          AppPagedLoadMoreFooter(
-            isLoading: paged.isLoadingMore,
-            errorMessage: paged.loadMoreErrorMessage,
-            onRetry: onLoadMore,
-          ),
-        ],
+        ),
       ],
     );
   }

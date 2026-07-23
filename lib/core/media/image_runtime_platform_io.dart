@@ -1,7 +1,7 @@
 import 'dart:io';
 
 bool runtimeIsDesktopPlatform() {
-  return Platform.isWindows || Platform.isLinux || Platform.isMacOS;
+  return Platform.isWindows || Platform.isMacOS;
 }
 
 bool runtimeIsMobilePlatform() {

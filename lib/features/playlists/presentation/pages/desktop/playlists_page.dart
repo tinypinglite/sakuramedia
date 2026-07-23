@@ -11,6 +11,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/domain/playlists/playlist_banner_card.dart';
 
 class DesktopPlaylistsPage extends StatefulWidget {
@@ -63,10 +64,12 @@ class _DesktopPlaylistsPageState extends State<DesktopPlaylistsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        if (_controller.isLoading) {
+    return AppPageRefreshScope(
+      onRefresh: _controller.refresh,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          if (_controller.isLoading) {
           return const SizedBox.expand(
             child: Center(
               child: SizedBox(
@@ -115,6 +118,7 @@ class _DesktopPlaylistsPageState extends State<DesktopPlaylistsPage> {
           ),
         );
       },
+      ),
     );
   }
 

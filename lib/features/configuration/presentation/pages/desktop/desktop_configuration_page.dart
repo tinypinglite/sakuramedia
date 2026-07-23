@@ -200,7 +200,7 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
                     // 媒体维护页自带滚动控制器（无限滚动分页），直接铺满区域，
                     // 不再额外包一层滚动视图。
                     DesktopMediaMaintenancePage(active: _selectedIndex == 8),
-                    // 媒体管理页同样自带 AppPageFrame + 分页控制器，与维护页对称。
+                    // 媒体管理页自带页签与独立滚动区；媒体列表使用 Sliver 惰性构建。
                     DesktopMediaManagementPage(active: _selectedIndex == 9),
                   ],
                 ),

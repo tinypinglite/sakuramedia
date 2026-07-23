@@ -110,6 +110,67 @@ void main() {
       expect(find.text('当前没有失效媒体'), findsOneWidget);
     });
 
+    testWidgets('loads media management lazily with a virtualized media list', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media',
+        body: <String, Object?>{
+          'items': List<Map<String, dynamic>>.generate(
+            60,
+            (index) => _mediaManagementItemJson(index + 1),
+          ),
+          'page': 1,
+          'page_size': 60,
+          'total': 60,
+        },
+      );
+      _enqueueMediaLibraries(bundle, libraries: const []);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/rapid-uploads',
+        body: <String, Object?>{
+          'items': const <Map<String, Object?>>[],
+          'page': 1,
+          'page_size': 20,
+          'total': 0,
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      expect(bundle.adapter.hitCount('GET', '/media'), 0);
+
+      await tester.tap(
+        find.byKey(const Key('configuration-tab-media-management')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('GET', '/media'), 1);
+      expect(
+        find.byKey(const Key('desktop-media-management-page')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('media-management-list-scroll-view')),
+        findsOneWidget,
+      );
+      expect(find.text('共 60 条'), findsOneWidget);
+      expect(
+        find.byKey(const Key('media-management-row-60')),
+        findsNothing,
+        reason: '远离视口的媒体卡片不应提前挂载',
+      );
+
+      await tester.tap(find.byKey(const Key('media-management-tab-batches')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('秒传批次'), findsWidgets);
+      expect(find.text('暂无秒传批次记录。选择媒体后可以从上方发起秒传。'), findsOneWidget);
+    });
+
     testWidgets('loads download clients lazily when switching tabs', (
       WidgetTester tester,
     ) async {
@@ -2283,6 +2344,30 @@ void _enqueueMediaLibraries(
   if (includeLlmSettings) {
     _enqueueMovieDescTranslationSettings(bundle);
   }
+}
+
+Map<String, dynamic> _mediaManagementItemJson(int id) {
+  return <String, dynamic>{
+    'id': id,
+    'kind': 'jav',
+    'movie_number': 'ABC-$id',
+    'video_item_id': null,
+    'title': 'Movie $id',
+    'cover_image': null,
+    'thin_cover_image': null,
+    'library_id': 1,
+    'library_name': 'Main',
+    'path': '/library/main/abc-$id.mp4',
+    'file_size_bytes': 100,
+    'duration_seconds': 60,
+    'resolution': '1920x1080',
+    'special_tags': '普通',
+    'valid': true,
+    'heat': 100,
+    'last_rapid_upload_status': null,
+    'created_at': '2026-03-12T10:00:00Z',
+    'updated_at': '2026-03-12T10:00:00Z',
+  };
 }
 
 Map<String, dynamic> _buildAdvancedConfigResponseJson() {

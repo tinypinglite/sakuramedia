@@ -7,6 +7,7 @@ import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart'
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
@@ -82,12 +83,45 @@ class _CreateVideoCollectionDialogState
   @override
   Widget build(BuildContext context) {
     if (widget.presentation == VideoCollectionEditPresentation.dialog) {
-      return AppDesktopDialog(width: 420, child: _buildForm(context));
+      return AppDesktopDialog(width: 420, child: _buildDesktopForm(context));
     }
-    return SingleChildScrollView(child: _buildForm(context));
+    return AppBottomFormSheet(
+      formKey: _formKey,
+      title: _isEditing ? '编辑合集' : '新建合集',
+      submitKey: const Key('video-collection-submit-button'),
+      submitLabel: _isEditing ? '保存' : '创建',
+      isSubmitting: _isSubmitting,
+      onSubmit: _submit,
+      body: _buildFieldsBody(context),
+    );
   }
 
-  Widget _buildForm(BuildContext context) {
+  Widget _buildFieldsBody(BuildContext context) {
+    final spacing = context.appSpacing;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppTextField(
+          fieldKey: const Key('video-collection-name-field'),
+          controller: _nameController,
+          hintText: '合集名称',
+          enabled: !_isSubmitting,
+          validator: (value) =>
+              value == null || value.trim().isEmpty ? '请输入合集名称' : null,
+        ),
+        SizedBox(height: spacing.sm),
+        AppTextField(
+          fieldKey: const Key('video-collection-description-field'),
+          controller: _descriptionController,
+          hintText: '描述（可选）',
+          enabled: !_isSubmitting,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopForm(BuildContext context) {
     final spacing = context.appSpacing;
     return Form(
       key: _formKey,
@@ -105,21 +139,7 @@ class _CreateVideoCollectionDialogState
             ),
           ),
           SizedBox(height: spacing.md),
-          AppTextField(
-            fieldKey: const Key('video-collection-name-field'),
-            controller: _nameController,
-            hintText: '合集名称',
-            enabled: !_isSubmitting,
-            validator: (value) =>
-                value == null || value.trim().isEmpty ? '请输入合集名称' : null,
-          ),
-          SizedBox(height: spacing.sm),
-          AppTextField(
-            fieldKey: const Key('video-collection-description-field'),
-            controller: _descriptionController,
-            hintText: '描述（可选）',
-            enabled: !_isSubmitting,
-          ),
+          _buildFieldsBody(context),
           SizedBox(height: spacing.md),
           Row(
             children: [

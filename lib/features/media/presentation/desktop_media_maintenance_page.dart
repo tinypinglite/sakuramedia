@@ -2,10 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/features/media/presentation/providers/invalid_media_provider.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/invalid_media_section.dart';
 import 'package:sakuramedia/features/shared/presentation/hooks/paged_scroll_hook.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_page_frame.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
 /// 「媒体维护」（失效媒体巡检）桌面页（Riverpod）。
 ///
@@ -20,30 +21,31 @@ class DesktopMediaMaintenancePage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scrollController = usePagedLoadMoreScroll(
-      onReachBottom: () => unawaited(
-        ref.read(invalidMediaProvider.notifier).loadMore(),
-      ),
+      onReachBottom:
+          () => unawaited(ref.read(invalidMediaProvider.notifier).loadMore()),
       enabled: active,
     );
 
     if (!active) {
-      return AppPageFrame(
-        title: '',
-        scrollController: scrollController,
-        child: const SizedBox.shrink(
-          key: Key('desktop-media-maintenance-page-inactive'),
-        ),
+      return const SizedBox.shrink(
+        key: Key('desktop-media-maintenance-page-inactive'),
       );
     }
 
-    return AppPageFrame(
-      title: '',
-      scrollController: scrollController,
-      child: const Column(
-        key: Key('desktop-media-maintenance-page'),
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [InvalidMediaSection()],
+    return AppPageRefreshScope(
+      onRefresh: () => _refresh(ref),
+      child: InvalidMediaSection(
+        key: const Key('desktop-media-maintenance-page'),
+        scrollController: scrollController,
       ),
     );
+  }
+
+  Future<void> _refresh(WidgetRef ref) async {
+    final error = await ref.read(invalidMediaProvider.notifier).refresh();
+    if (error != null) {
+      // provider 约定：refresh 用返回值传错误文案（不抛异常），这里直接 toast。
+      showToast(error);
+    }
   }
 }

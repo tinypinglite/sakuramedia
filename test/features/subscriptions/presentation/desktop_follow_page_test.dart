@@ -152,14 +152,17 @@ void main() {
       await _pumpFollowPage(tester, sessionStore: sessionStore, bundle: bundle);
       await tester.pumpAndSettle();
 
-      await tester.drag(
-        find.byType(SingleChildScrollView),
-        const Offset(0, -2800),
-      );
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -2800));
       await tester.pump();
       await tester.pumpAndSettle();
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+      await tester.pumpAndSettle();
 
-      expect(find.byType(MovieSummaryCard), findsNWidgets(24));
+      expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsNothing);
+      expect(
+        find.byKey(const Key('movie-summary-card-ABC-024')),
+        findsOneWidget,
+      );
       expect(find.text('加载更多失败，请点击重试'), findsOneWidget);
 
       bundle.adapter.enqueueJson(
@@ -181,12 +184,13 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, '重试'));
       await tester.pump();
       await tester.pumpAndSettle();
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -2800));
+      await tester.pumpAndSettle();
 
       expect(
         bundle.adapter.hitCount('GET', '/movies/subscribed-actors/latest'),
         3,
       );
-      expect(find.byType(MovieSummaryCard), findsNWidgets(30));
       expect(
         find.byKey(const Key('movie-summary-card-ABC-025')),
         findsOneWidget,

@@ -21,6 +21,7 @@ import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
@@ -118,13 +119,22 @@ class _DesktopClipsPageState extends State<DesktopClipsPage>
     }
   }
 
+  Future<void> _handleRefresh() async {
+    await Future.wait<void>([
+      _clipsController.refresh(),
+      _collectionsController.refresh(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: AnimatedBuilder(
-        animation: _pageListenable,
-        builder: (context, _) {
+    return AppPageRefreshScope(
+      onRefresh: _handleRefresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceElevated,
+        child: AnimatedBuilder(
+          animation: _pageListenable,
+          builder: (context, _) {
           // 仅首屏（尚无任何切片）才整页 spinner；切换排序等重载时保留页面骨架，
           // 让合集区与标题栏不被销毁重建，旧列表沿用到新数据返回。
           if (_clipsController.isLoading && _clipsController.clips.isEmpty) {
@@ -150,6 +160,7 @@ class _DesktopClipsPageState extends State<DesktopClipsPage>
             ],
           );
         },
+      ),
       ),
     );
   }

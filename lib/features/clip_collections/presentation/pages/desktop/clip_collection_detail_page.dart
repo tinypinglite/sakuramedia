@@ -18,6 +18,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_player_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
@@ -83,12 +84,14 @@ class _DesktopClipCollectionDetailPageState
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          if (_controller.isLoading && _controller.collection == null) {
+    return AppPageRefreshScope(
+      onRefresh: _controller.refresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceElevated,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            if (_controller.isLoading && _controller.collection == null) {
             return const Center(
               child: SizedBox(
                 key: Key('clip-collection-detail-loading'),
@@ -111,6 +114,7 @@ class _DesktopClipCollectionDetailPageState
             ],
           );
         },
+      ),
       ),
     );
   }

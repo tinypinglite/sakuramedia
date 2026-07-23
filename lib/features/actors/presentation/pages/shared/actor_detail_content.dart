@@ -18,32 +18,36 @@ import 'package:sakuramedia/features/movies/presentation/controllers/listing/mov
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 
-typedef ActorDetailBodyBuilder = Widget Function(
-  BuildContext context,
-  ScrollController scrollController,
-  Widget child,
-  Future<void> Function()? onRefresh,
-);
+typedef ActorDetailBodyBuilder =
+    Widget Function(
+      BuildContext context,
+      ScrollController scrollController,
+      Widget child,
+      Future<void> Function()? onRefresh,
+    );
 
-typedef ActorDetailHeaderBuilder = Widget Function(
-  BuildContext context,
-  ActorListItemDto actor,
-  int total,
-  bool isSubscribed,
-  bool isSubscriptionUpdating,
-  VoidCallback? onSubscriptionTap,
-);
+typedef ActorDetailHeaderBuilder =
+    Widget Function(
+      BuildContext context,
+      ActorListItemDto actor,
+      int total,
+      bool isSubscribed,
+      bool isSubscriptionUpdating,
+      VoidCallback? onSubscriptionTap,
+    );
 
-typedef ActorDetailErrorBuilder = Widget Function(
-    BuildContext context, String message, VoidCallback onRetry);
+typedef ActorDetailErrorBuilder =
+    Widget Function(BuildContext context, String message, VoidCallback onRetry);
 
-typedef ActorDetailFooterBuilder = Widget? Function(
-  BuildContext context,
-  PagedMovieSummaryController moviesController,
-);
+typedef ActorDetailFooterBuilder =
+    Widget? Function(
+      BuildContext context,
+      PagedMovieSummaryController moviesController,
+    );
 
 class ActorDetailContent extends StatefulWidget {
   const ActorDetailContent({
@@ -94,9 +98,6 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
   bool? _isActorSubscribedOverride;
   bool _isActorSubscriptionUpdating = false;
 
-  Listenable get _pageListenable =>
-      Listenable.merge(<Listenable>[_actorController, _moviesController]);
-
   @override
   void initState() {
     super.initState();
@@ -112,7 +113,8 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
       fetchActorDetail: context.read<ActorsApi>().getActorDetail,
     )..load();
     _moviesController = PagedMovieSummaryController(
-      fetchPage: (page, pageSize) => context.read<MoviesApi>().getMovies(
+      fetchPage:
+          (page, pageSize) => context.read<MoviesApi>().getMovies(
             actorId: widget.actorId,
             page: page,
             pageSize: pageSize,
@@ -210,15 +212,15 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
 
     try {
       final years = await context.read<ActorsApi>().getActorMovieYears(
-            actorId: widget.actorId,
-          );
+        actorId: widget.actorId,
+      );
       if (!mounted) {
         return;
       }
       setState(() {
-        _movieYearOptions = years.map(_toFilterYearOption).toList(
-              growable: false,
-            );
+        _movieYearOptions = years
+            .map(_toFilterYearOption)
+            .toList(growable: false);
         _hasLoadedMovieYears = true;
         _isMovieYearsLoading = false;
       });
@@ -234,10 +236,7 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
   }
 
   MovieFilterYearOption _toFilterYearOption(ActorMovieYearDto item) {
-    return MovieFilterYearOption(
-      year: item.year,
-      movieCount: item.movieCount,
-    );
+    return MovieFilterYearOption(year: item.year, movieCount: item.movieCount);
   }
 
   Future<void> _toggleMovieSubscription(String movieNumber) async {
@@ -264,8 +263,8 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
     try {
       if (isSubscribed) {
         await context.read<ActorsApi>().unsubscribeActor(
-              actorId: widget.actorId,
-            );
+          actorId: widget.actorId,
+        );
         result = const ActorSubscriptionToggleResult.unsubscribed();
         _isActorSubscribedOverride = false;
       } else {
@@ -318,95 +317,120 @@ class _ActorDetailContentState extends State<ActorDetailContent> {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: widget.surfaceColor,
-      child: AnimatedBuilder(
-        animation: _pageListenable,
-        builder: (context, _) {
-          if (_actorController.isLoading && _actorController.actor == null) {
-            return widget.loadingBuilder(context);
-          }
+    // 分两层监听：外层只跟 _actorController（切 loading / error / normal 分支），
+    // 内层跟 _moviesController（分页 tick 只重建 sliver body，不重建外层
+    // CustomScrollView / RefreshIndicator）。对齐 MovieListContent 的写法。
+    return AppPageRefreshScope(
+      onRefresh: _handleRefresh,
+      child: ColoredBox(
+        color: widget.surfaceColor,
+        child: AnimatedBuilder(
+          animation: _actorController,
+          builder: (context, _) {
+            if (_actorController.isLoading && _actorController.actor == null) {
+              return widget.loadingBuilder(context);
+            }
 
-          if (_actorController.errorMessage != null ||
-              _actorController.actor == null) {
-            return widget.errorBuilder(
+            if (_actorController.errorMessage != null ||
+                _actorController.actor == null) {
+              return widget.errorBuilder(
+                context,
+                _actorController.errorMessage ?? '女优详情暂时无法加载，请稍后重试',
+                _actorController.load,
+              );
+            }
+
+            final actor = _actorController.actor!;
+            final isActorSubscribed =
+                _isActorSubscribedOverride ?? actor.isSubscribed;
+
+            return widget.bodyBuilder(
               context,
-              _actorController.errorMessage ?? '女优详情暂时无法加载，请稍后重试',
-              _actorController.load,
-            );
-          }
-
-          final actor = _actorController.actor!;
-          final isActorSubscribed =
-              _isActorSubscribedOverride ?? actor.isSubscribed;
-          final footer = widget.footerBuilder(context, _moviesController);
-
-          return widget.bodyBuilder(
-            context,
-            _moviesController.scrollController,
-            Column(
-              key: widget.contentKey,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                widget.headerBuilder(
-                  context,
-                  actor,
-                  _moviesController.total,
-                  isActorSubscribed,
-                  _isActorSubscriptionUpdating,
-                  _isActorSubscriptionUpdating
-                      ? null
-                      : () => _toggleActorSubscription(
-                            isSubscribed: isActorSubscribed,
+              _moviesController.scrollController,
+              AnimatedBuilder(
+                animation: _moviesController,
+                builder: (context, _) {
+                  final footer = widget.footerBuilder(
+                    context,
+                    _moviesController,
+                  );
+                  return SliverMainAxisGroup(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: KeyedSubtree(
+                          key: widget.contentKey,
+                          child: widget.headerBuilder(
+                            context,
+                            actor,
+                            _moviesController.total,
+                            isActorSubscribed,
+                            _isActorSubscriptionUpdating,
+                            _isActorSubscriptionUpdating
+                                ? null
+                                : () => _toggleActorSubscription(
+                                    isSubscribed: isActorSubscribed,
+                                  ),
                           ),
-                ),
-                SizedBox(height: widget.sectionSpacing),
-                MovieFilterToolbar(
-                  filterState: _filterState,
-                  onChanged: _applyFilter,
-                  onReset: _resetFilters,
-                  yearOptions: _movieYearOptions,
-                  isYearOptionsLoading: _isMovieYearsLoading,
-                  yearOptionsErrorMessage: _movieYearsErrorMessage,
-                  onYearOptionsRetry: () => unawaited(
-                    _loadMovieYears(force: true),
-                  ),
-                  onOpened: _loadMovieYearsIfNeeded,
-                ),
-                SizedBox(height: widget.sectionSpacing),
-                MovieSummaryGrid(
-                  items: _moviesController.items,
-                  isLoading: _moviesController.isInitialLoading,
-                  errorMessage: _moviesController.initialErrorMessage,
-                  onMovieTap: (movie) =>
-                      widget.onMovieTap(context, movie.movieNumber),
-                  onMovieMenuRequest: (movie, globalPosition) {
-                    unawaited(
-                      showMovieCollectionFeatureActionMenu(
-                        context: context,
-                        movieNumber: movie.movieNumber,
-                        globalPosition: globalPosition,
-                        isSubscribed: movie.isSubscribed,
+                        ),
                       ),
-                    );
-                  },
-                  onMovieSubscriptionTap: (movie) =>
-                      _toggleMovieSubscription(movie.movieNumber),
-                  isMovieSubscriptionUpdating: (movie) =>
-                      _moviesController.isSubscriptionUpdating(
-                    movie.movieNumber,
-                  ),
-                  emptyMessage: '暂无影片数据',
-                ),
-                if (footer != null) ...[
-                  SizedBox(height: context.appSpacing.md),
-                  footer,
-                ],
-              ],
-            ),
-            widget.enableRefresh ? _handleRefresh : null,
-          );
-        },
+                      SliverToBoxAdapter(
+                        child: SizedBox(height: widget.sectionSpacing),
+                      ),
+                      SliverToBoxAdapter(
+                        child: MovieFilterToolbar(
+                          filterState: _filterState,
+                          onChanged: _applyFilter,
+                          onReset: _resetFilters,
+                          yearOptions: _movieYearOptions,
+                          isYearOptionsLoading: _isMovieYearsLoading,
+                          yearOptionsErrorMessage: _movieYearsErrorMessage,
+                          onYearOptionsRetry:
+                              () => unawaited(_loadMovieYears(force: true)),
+                          onOpened: _loadMovieYearsIfNeeded,
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: SizedBox(height: widget.sectionSpacing),
+                      ),
+                      MovieSummarySliver(
+                        items: _moviesController.items,
+                        isLoading: _moviesController.isInitialLoading,
+                        errorMessage: _moviesController.initialErrorMessage,
+                        onMovieTap: (movie) =>
+                            widget.onMovieTap(context, movie.movieNumber),
+                        onMovieMenuRequest: (movie, globalPosition) {
+                          unawaited(
+                            showMovieCollectionFeatureActionMenu(
+                              context: context,
+                              movieNumber: movie.movieNumber,
+                              globalPosition: globalPosition,
+                              isSubscribed: movie.isSubscribed,
+                            ),
+                          );
+                        },
+                        onMovieSubscriptionTap: (movie) =>
+                            _toggleMovieSubscription(movie.movieNumber),
+                        isMovieSubscriptionUpdating: (movie) =>
+                            _moviesController.isSubscriptionUpdating(
+                              movie.movieNumber,
+                            ),
+                        emptyMessage: '暂无影片数据',
+                      ),
+                      if (footer != null)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.only(top: context.appSpacing.md),
+                            child: footer,
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              widget.enableRefresh ? _handleRefresh : null,
+            );
+          },
+        ),
       ),
     );
   }

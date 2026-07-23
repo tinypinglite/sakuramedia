@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -15,12 +13,14 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 typedef HotReviewMovieOpenHandler =
@@ -82,50 +82,61 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final scrollView = SingleChildScrollView(
-      key: const Key('desktop-hot-reviews-scroll-view'),
-      physics:
-          widget.enablePullToRefresh
-              ? widget.scrollPhysics ?? const AlwaysScrollableScrollPhysics()
-              : widget.scrollPhysics,
-      controller: _controller.scrollController,
-      child: AnimatedBuilder(
+    final slivers = <Widget>[
+      AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
           final showFooter =
               _controller.items.isNotEmpty &&
               (_controller.isLoadingMore ||
                   _controller.loadMoreErrorMessage != null);
-          return Column(
+          return SliverMainAxisGroup(
             key: const Key('desktop-hot-reviews-page'),
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              SizedBox(height: context.appSpacing.lg),
-              _buildBody(context),
-              if (showFooter) ...[
-                SizedBox(height: context.appSpacing.md),
-                AppPagedLoadMoreFooter(
-                  isLoading: _controller.isLoadingMore,
-                  errorMessage: _controller.loadMoreErrorMessage,
-                  onRetry: _controller.loadMore,
+            slivers: [
+              SliverToBoxAdapter(child: _buildHeader(context)),
+              SliverToBoxAdapter(
+                child: SizedBox(height: context.appSpacing.lg),
+              ),
+              _buildBodySliver(context),
+              if (showFooter)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: context.appSpacing.md),
+                    child: AppPagedLoadMoreFooter(
+                      isLoading: _controller.isLoadingMore,
+                      errorMessage: _controller.loadMoreErrorMessage,
+                      onRetry: _controller.loadMore,
+                    ),
+                  ),
                 ),
-              ],
             ],
           );
         },
       ),
+    ];
+    final scrollView = CustomScrollView(
+      key: const Key('desktop-hot-reviews-scroll-view'),
+      physics:
+          widget.enablePullToRefresh
+              ? widget.scrollPhysics ?? const AlwaysScrollableScrollPhysics()
+              : widget.scrollPhysics,
+      controller: _controller.scrollController,
+      slivers: slivers,
     );
 
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: _buildRefreshableBody(context, scrollView),
+    return AppPageRefreshScope(
+      onRefresh: _handleRefresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceElevated,
+        child: _buildRefreshableBody(context, scrollView, slivers),
+      ),
     );
   }
 
   Widget _buildRefreshableBody(
     BuildContext context,
-    SingleChildScrollView scrollView,
+    CustomScrollView scrollView,
+    List<Widget> slivers,
   ) {
     if (!widget.enablePullToRefresh) {
       return scrollView;
@@ -136,7 +147,7 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
         onRefresh: _handleRefresh,
         controller: _controller.scrollController,
         physics: widget.scrollPhysics ?? const AlwaysScrollableScrollPhysics(),
-        slivers: <Widget>[SliverToBoxAdapter(child: scrollView.child!)],
+        slivers: slivers,
       );
     }
 
@@ -201,8 +212,7 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
       builder: (drawerContext) {
         return _HotReviewPeriodPickerBody(
           currentPeriod: _controller.period,
-          onSelected:
-              (period) => Navigator.of(drawerContext).pop(period),
+          onSelected: (period) => Navigator.of(drawerContext).pop(period),
         );
       },
     );
@@ -211,9 +221,9 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
     }
   }
 
-  Widget _buildBody(BuildContext context) {
+  Widget _buildBodySliver(BuildContext context) {
     if (_controller.isInitialLoading && _controller.items.isEmpty) {
-      return _HotReviewGrid(
+      return _HotReviewSliver(
         isLoading: true,
         items: <HotReviewListItemDto>[],
         minColumns: widget.minColumns,
@@ -223,14 +233,16 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
     }
 
     if (_controller.initialErrorMessage != null && _controller.items.isEmpty) {
-      return AppEmptyState(message: _controller.initialErrorMessage!);
+      return SliverToBoxAdapter(
+        child: AppEmptyState(message: _controller.initialErrorMessage!),
+      );
     }
 
     if (_controller.items.isEmpty) {
-      return const AppEmptyState(message: '暂无热评数据');
+      return const SliverToBoxAdapter(child: AppEmptyState(message: '暂无热评数据'));
     }
 
-    return _HotReviewGrid(
+    return _HotReviewSliver(
       isLoading: false,
       items: _controller.items,
       onItemTap: _openMovieDetail,
@@ -257,8 +269,8 @@ class _DesktopHotReviewsPageState extends State<DesktopHotReviewsPage> {
   }
 }
 
-class _HotReviewGrid extends StatelessWidget {
-  const _HotReviewGrid({
+class _HotReviewSliver extends StatelessWidget {
+  const _HotReviewSliver({
     required this.items,
     required this.isLoading,
     required this.minColumns,
@@ -276,55 +288,25 @@ class _HotReviewGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final children =
-        isLoading
-            ? List<Widget>.generate(
-              8,
-              (index) => _HotReviewCardSkeleton(
-                key: Key('hot-review-card-skeleton-$index'),
-              ),
-            )
-            : items
-                .map(
-                  (item) => _HotReviewCard(
-                    item: item,
-                    onTap: onItemTap == null ? null : () => onItemTap!(item),
-                  ),
-                )
-                .toList(growable: false);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final spacing = context.appSpacing.md;
-        final columns = _resolveColumns(
-          width: constraints.maxWidth,
-          spacing: spacing,
-          targetWidth: targetCardWidth,
-        );
-        return GridView.builder(
-          key: const Key('hot-review-grid'),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: children.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: spacing,
-            mainAxisSpacing: spacing,
-            mainAxisExtent: _hotReviewCardHeight,
+    return AppAdaptiveCardSliver<HotReviewListItemDto>(
+      gridKey: const Key('hot-review-grid'),
+      items: items,
+      isLoading: isLoading,
+      placeholderCount: 8,
+      minColumns: minColumns,
+      maxColumns: maxColumns,
+      targetColumnWidth: targetCardWidth,
+      mainAxisExtent: _hotReviewCardHeight,
+      skeletonBuilder:
+          (context, index) => _HotReviewCardSkeleton(
+            key: Key('hot-review-card-skeleton-$index'),
           ),
-          itemBuilder: (context, index) => children[index],
-        );
-      },
+      itemBuilder:
+          (context, item, index) => _HotReviewCard(
+            item: item,
+            onTap: onItemTap == null ? null : () => onItemTap!(item),
+          ),
     );
-  }
-
-  int _resolveColumns({
-    required double width,
-    required double spacing,
-    required double targetWidth,
-  }) {
-    final columns = ((width + spacing) / (targetWidth + spacing)).floor();
-    return math.max(minColumns, math.min(maxColumns, columns));
   }
 }
 
@@ -383,9 +365,7 @@ class _HotReviewPeriodPickerBody extends StatelessWidget {
         ),
         for (final period in HotReviewPeriod.values)
           _HotReviewPeriodPickerRow(
-            rowKey: Key(
-              'mobile-hot-reviews-period-option-${period.apiValue}',
-            ),
+            rowKey: Key('mobile-hot-reviews-period-option-${period.apiValue}'),
             label: period.label,
             isSelected: period == currentPeriod,
             onTap: () => onSelected(period),
@@ -436,10 +416,7 @@ class _HotReviewPeriodPickerRow extends StatelessWidget {
                         isSelected
                             ? AppTextWeight.semibold
                             : AppTextWeight.regular,
-                    tone:
-                        isSelected
-                            ? AppTextTone.accent
-                            : AppTextTone.primary,
+                    tone: isSelected ? AppTextTone.accent : AppTextTone.primary,
                   ),
                 ),
               ),

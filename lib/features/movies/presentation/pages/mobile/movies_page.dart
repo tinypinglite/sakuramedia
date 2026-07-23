@@ -61,12 +61,12 @@ class _MobileMoviesPageState extends State<MobileMoviesPage> {
           ).push(context),
       headerBuilder: _buildMobileHeader,
       bodyBuilder:
-          (context, scrollController, child, onRefresh) =>
+          (context, scrollController, sliver, onRefresh) =>
               AppAdaptiveRefreshScrollView(
                 onRefresh: onRefresh!,
                 controller: scrollController,
                 physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[SliverToBoxAdapter(child: child)],
+                slivers: <Widget>[sliver],
               ),
       enableRefresh: true,
       onRefreshFailure: (_) => showToast('刷新失败'),

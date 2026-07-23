@@ -134,6 +134,60 @@ void main() {
   });
 
   testWidgets(
+    'app bottom drawer shifts up and clamps height when keyboard is visible',
+    (WidgetTester tester) async {
+      // `view.viewInsets` 存的是**物理像素**;要模拟 250 逻辑像素的软键盘,
+      // 需要乘上 devicePixelRatio。
+      final dpr = tester.view.devicePixelRatio;
+      tester.view.viewInsets = FakeViewPadding(bottom: 250 * dpr);
+      addTearDown(tester.view.resetViewInsets);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: Builder(
+            builder:
+                (context) => Scaffold(
+                  body: TextButton(
+                    onPressed: () {
+                      showAppBottomDrawer<void>(
+                        context: context,
+                        drawerKey: const Key('app-bottom-drawer-with-keyboard'),
+                        maxHeightFactor: 0.9,
+                        builder:
+                            (_) => const SizedBox(
+                              key: Key('app-bottom-drawer-keyboard-probe'),
+                              width: 24,
+                              height: 24,
+                            ),
+                      );
+                    },
+                    child: const Text('open'),
+                  ),
+                ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      final screenHeight =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      // content key 挂在内层 Padding 上,反映抽屉「可见部分」的实际 rect
+      // (外层 AnimatedPadding 的 bottom 空白不会算进去)。
+      final contentRect = tester.getRect(
+        find.byKey(const Key('app-bottom-drawer-content')),
+      );
+
+      // 抽屉不应超过「屏幕高度 - 键盘高度」的可见区。
+      expect(contentRect.height, lessThanOrEqualTo(screenHeight - 250 + 0.5));
+      // 抽屉底部不应压到屏幕底(应被 AnimatedPadding 顶起 250px 让位给键盘)。
+      expect(screenHeight - contentRect.bottom, closeTo(250, 0.5));
+    },
+  );
+
+  testWidgets(
     'app bottom drawer can ignore top safe area and keep bottom inset',
     (WidgetTester tester) async {
       tester.view.padding = const FakeViewPadding(top: 40, bottom: 24);

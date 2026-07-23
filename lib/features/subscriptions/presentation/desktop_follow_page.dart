@@ -12,6 +12,7 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
@@ -106,73 +107,84 @@ class _DesktopFollowPageState extends State<DesktopFollowPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: SingleChildScrollView(
-        controller: _moviesController.scrollController,
-        child: AnimatedBuilder(
-          animation: _moviesController,
-          builder: (context, _) {
-            final showFooter =
-                _moviesController.items.isNotEmpty &&
-                (_moviesController.isLoadingMore ||
-                    _moviesController.loadMoreErrorMessage != null);
-            return Column(
-              key: const Key('desktop-follow-page'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppFilterTotalHeader(
-                  leading: Text(
-                    '女优上新',
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s18,
-                      weight: AppTextWeight.semibold,
-                      tone: AppTextTone.primary,
+    return AppPageRefreshScope(
+      onRefresh: _moviesController.refresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceElevated,
+        child: CustomScrollView(
+          controller: _moviesController.scrollController,
+          slivers: [
+            AnimatedBuilder(
+            animation: _moviesController,
+            builder: (context, _) {
+              final showFooter =
+                  _moviesController.items.isNotEmpty &&
+                  (_moviesController.isLoadingMore ||
+                      _moviesController.loadMoreErrorMessage != null);
+              return SliverMainAxisGroup(
+                key: const Key('desktop-follow-page'),
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: AppFilterTotalHeader(
+                      leading: Text(
+                        '女优上新',
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s18,
+                          weight: AppTextWeight.semibold,
+                          tone: AppTextTone.primary,
+                        ),
+                      ),
+                      totalText: '${_moviesController.total} 部',
+                      totalKey: const Key('desktop-follow-page-total'),
                     ),
                   ),
-                  totalText: '${_moviesController.total} 部',
-                  totalKey: const Key('desktop-follow-page-total'),
-                ),
-                SizedBox(height: context.appSpacing.lg),
-                MovieSummaryGrid(
-                  items: _moviesController.items,
-                  isLoading: _moviesController.isInitialLoading,
-                  errorMessage: _moviesController.initialErrorMessage,
-                  onMovieTap:
-                      (movie) => context.pushDesktopMovieDetail(
-                        movieNumber: movie.movieNumber,
-                        fallbackPath: desktopFollowPath,
-                      ),
-                  onMovieMenuRequest: (movie, globalPosition) {
-                    unawaited(
-                      showMovieCollectionFeatureActionMenu(
-                        context: context,
-                        movieNumber: movie.movieNumber,
-                        globalPosition: globalPosition,
-                        isSubscribed: movie.isSubscribed,
-                      ),
-                    );
-                  },
-                  onMovieSubscriptionTap:
-                      (movie) => _toggleMovieSubscription(movie.movieNumber),
-                  isMovieSubscriptionUpdating:
-                      (movie) => _moviesController.isSubscriptionUpdating(
-                        movie.movieNumber,
-                      ),
-                  emptyMessage: '暂无关注影片',
-                ),
-                if (showFooter) ...[
-                  SizedBox(height: context.appSpacing.md),
-                  AppPagedLoadMoreFooter(
-                    isLoading: _moviesController.isLoadingMore,
-                    errorMessage: _moviesController.loadMoreErrorMessage,
-                    onRetry: _moviesController.loadMore,
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: context.appSpacing.lg),
                   ),
+                  MovieSummarySliver(
+                    items: _moviesController.items,
+                    isLoading: _moviesController.isInitialLoading,
+                    errorMessage: _moviesController.initialErrorMessage,
+                    onMovieTap:
+                        (movie) => context.pushDesktopMovieDetail(
+                          movieNumber: movie.movieNumber,
+                          fallbackPath: desktopFollowPath,
+                        ),
+                    onMovieMenuRequest: (movie, globalPosition) {
+                      unawaited(
+                        showMovieCollectionFeatureActionMenu(
+                          context: context,
+                          movieNumber: movie.movieNumber,
+                          globalPosition: globalPosition,
+                          isSubscribed: movie.isSubscribed,
+                        ),
+                      );
+                    },
+                    onMovieSubscriptionTap:
+                        (movie) => _toggleMovieSubscription(movie.movieNumber),
+                    isMovieSubscriptionUpdating:
+                        (movie) => _moviesController.isSubscriptionUpdating(
+                          movie.movieNumber,
+                        ),
+                    emptyMessage: '暂无关注影片',
+                  ),
+                  if (showFooter)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: context.appSpacing.md),
+                        child: AppPagedLoadMoreFooter(
+                          isLoading: _moviesController.isLoadingMore,
+                          errorMessage: _moviesController.loadMoreErrorMessage,
+                          onRetry: _moviesController.loadMore,
+                        ),
+                      ),
+                    ),
                 ],
-              ],
-            );
-          },
+              );
+            },
+          ),
+          ],
         ),
       ),
     );

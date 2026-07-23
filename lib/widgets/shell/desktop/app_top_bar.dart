@@ -5,17 +5,26 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/shell/window/app_window_drag_area.dart';
 
+/// 桌面壳顶栏。
+///
+/// 刷新按钮是**受控组件**：[onRefresh] 只是「按下的动作」（fire-and-forget），
+/// [isRefreshing] 由外部（[AppDesktopShell]）持有，用来切换按钮 / spinner。
+/// 这样点击按钮和 Cmd/Ctrl+R 快捷键可以共用同一份 in-flight 闸门与错误 toast。
 class AppTopBar extends StatelessWidget {
   const AppTopBar({
     super.key,
     required this.currentPath,
     required this.config,
     this.shellNavigatorKey,
+    this.onRefresh,
+    this.isRefreshing = false,
   });
 
   final String currentPath;
   final DesktopTopBarConfig config;
   final GlobalKey<NavigatorState>? shellNavigatorKey;
+  final VoidCallback? onRefresh;
+  final bool isRefreshing;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +77,11 @@ class AppTopBar extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onRefresh != null)
+                  _TopBarRefreshButton(
+                    onPressed: onRefresh!,
+                    isRefreshing: isRefreshing,
+                  ),
                 SizedBox(width: rightInset),
               ],
             ),
@@ -99,5 +113,49 @@ class AppTopBar extends StatelessWidget {
     if (fallbackPath != null && fallbackPath != currentPath) {
       router.go(fallbackPath);
     }
+  }
+}
+
+class _TopBarRefreshButton extends StatelessWidget {
+  const _TopBarRefreshButton({
+    required this.onPressed,
+    required this.isRefreshing,
+  });
+
+  final VoidCallback onPressed;
+  final bool isRefreshing;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.appComponentTokens;
+    final iconSize = tokens.iconSizeXs;
+
+    if (isRefreshing) {
+      return SizedBox(
+        key: const Key('topbar-refresh-button-loading'),
+        width: 40,
+        child: Center(
+          child: SizedBox(
+            width: iconSize,
+            height: iconSize,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: context.appTextPalette.muted,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 40,
+      child: AppIconButton(
+        key: const Key('topbar-refresh-button'),
+        tooltip: '刷新',
+        onPressed: onPressed,
+        padding: EdgeInsets.zero,
+        icon: Icon(Icons.refresh_rounded, size: iconSize),
+      ),
+    );
   }
 }

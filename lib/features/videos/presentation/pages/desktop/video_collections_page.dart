@@ -12,6 +12,7 @@ import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
@@ -83,9 +84,11 @@ class _DesktopVideoCollectionsPageState
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: SingleChildScrollView(
+    return AppPageRefreshScope(
+      onRefresh: _controller.refresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceElevated,
+        child: SingleChildScrollView(
         padding: EdgeInsets.all(context.appSpacing.lg),
         child: Column(
           key: const Key('video-collections-page'),
@@ -143,6 +146,7 @@ class _DesktopVideoCollectionsPageState
             ),
           ],
         ),
+      ),
       ),
     );
   }

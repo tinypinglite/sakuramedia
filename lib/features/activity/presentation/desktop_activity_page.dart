@@ -19,6 +19,7 @@ import 'package:sakuramedia/features/downloads/presentation/providers/download_t
 import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -366,15 +367,28 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
     return slivers;
   }
 
+  Future<void> _refreshActiveTab() async {
+    switch (_controller.activeTab) {
+      case ActivityTab.tasks:
+        await _controller.refreshTaskHistory();
+      case ActivityTab.resourceTasks:
+        await _resourceTaskController.refreshRecords();
+      case ActivityTab.downloadTasks:
+        await ref.read(downloadTaskCenterProvider.notifier).refresh();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge(<Listenable>[
-        _controller,
-        _resourceTaskController,
-      ]),
-      builder: (context, _) {
-        return Stack(
+    return AppPageRefreshScope(
+      onRefresh: _refreshActiveTab,
+      child: AnimatedBuilder(
+        animation: Listenable.merge(<Listenable>[
+          _controller,
+          _resourceTaskController,
+        ]),
+        builder: (context, _) {
+          return Stack(
           children: [
             CustomScrollView(
               controller: _pageScrollController,
@@ -429,6 +443,7 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
           ],
         );
       },
+      ),
     );
   }
 }

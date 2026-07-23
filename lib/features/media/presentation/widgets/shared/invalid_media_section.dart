@@ -9,9 +9,9 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/media/data/invalid_media_dto.dart';
 import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/media/presentation/providers/invalid_media_provider.dart';
-import 'package:sakuramedia/features/media/presentation/providers/invalid_media_state.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_libraries_provider.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_cover_thumbnail.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_async_section.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
@@ -25,10 +25,109 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_heade
 ///
 /// 数据源：`invalidMediaProvider` + `mediaLibrariesProvider`。复查/删除/确认弹窗内嵌，
 /// 页面只负责挂 scroll listener 与 active 懒加载。
-class InvalidMediaSection extends ConsumerWidget {
-  const InvalidMediaSection({super.key});
+class InvalidMediaSection extends StatelessWidget {
+  const InvalidMediaSection({super.key, required this.scrollController});
 
-  Future<void> _handleCheck(WidgetRef ref, BuildContext context, InvalidMediaDto item) async {
+  final ScrollController scrollController;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScrollView(
+      key: const Key('invalid-media-scroll-view'),
+      controller: scrollController,
+      slivers: [
+        const SliverToBoxAdapter(child: _InvalidMediaHeader()),
+        SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
+        const _InvalidMediaBodySliver(),
+        SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.xxl)),
+      ],
+    );
+  }
+}
+
+class _InvalidMediaHeader extends ConsumerWidget {
+  const _InvalidMediaHeader();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final headerState = ref.watch(
+      invalidMediaProvider.select(
+        (asyncState) => (
+          total: asyncState.value?.paged.total ?? 0,
+          isInitialLoading: asyncState.isLoading && !asyncState.hasValue,
+        ),
+      ),
+    );
+
+    return AppFilterTotalHeader(
+      leading: Text(
+        '巡检标记为失效的媒体库内容会出现在这里。你可以复查媒体是否恢复，或清理已经确认不可用的记录。',
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          weight: AppTextWeight.regular,
+          tone: AppTextTone.muted,
+        ),
+      ),
+      totalText: '共 ${headerState.total} 条失效媒体',
+      totalKey: const Key('invalid-media-total-text'),
+      trailing: AppIconButton(
+        key: const Key('invalid-media-refresh-button'),
+        tooltip: headerState.isInitialLoading ? '刷新中' : '刷新',
+        icon: const Icon(Icons.refresh_rounded),
+        onPressed:
+            headerState.isInitialLoading
+                ? null
+                : () async {
+                  final message =
+                      await ref.read(invalidMediaProvider.notifier).refresh();
+                  if (message != null) showToast(message);
+                },
+      ),
+    );
+  }
+}
+
+class _InvalidMediaBodySliver extends ConsumerWidget {
+  const _InvalidMediaBodySliver();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncPaged = ref.watch(
+      invalidMediaProvider.select(
+        (asyncState) => asyncState.whenData((state) => state.paged),
+      ),
+    );
+
+    return SliverPagedAsyncSection<
+      PagedListState<InvalidMediaDto>,
+      InvalidMediaDto
+    >(
+      asyncState: asyncPaged,
+      pagedOf: (state) => state,
+      itemSpacing: context.appSpacing.md,
+      initialErrorMessage: '失效媒体加载失败，请稍后重试',
+      emptyMessage: '当前没有失效媒体',
+      initialRetryKey: const Key('invalid-media-initial-retry-button'),
+      onReload:
+          () => unawaited(ref.read(invalidMediaProvider.notifier).reload()),
+      onLoadMore:
+          () => unawaited(ref.read(invalidMediaProvider.notifier).loadMore()),
+      itemBuilder: (context, item, _) => _InvalidMediaRowConsumer(item: item),
+    );
+  }
+}
+
+class _InvalidMediaRowConsumer extends ConsumerWidget {
+  const _InvalidMediaRowConsumer({required this.item});
+
+  final InvalidMediaDto item;
+
+  Future<void> _handleCheck(
+    WidgetRef ref,
+    BuildContext context,
+    InvalidMediaDto item,
+  ) async {
     try {
       final result = await ref
           .read(invalidMediaProvider.notifier)
@@ -51,9 +150,10 @@ class InvalidMediaSection extends ConsumerWidget {
     final confirmed = await showAppConfirmDialog(
       context,
       title: '删除失效媒体',
-      message: storage.isCloud115
-          ? '确认删除"${item.movieNumber}"的这条失效媒体记录和 115 网盘文件？网盘文件将进入 115 回收站。请确认刚才复查后媒体仍不可用。'
-          : storage.isLocal
+      message:
+          storage.isCloud115
+              ? '确认删除"${item.movieNumber}"的这条失效媒体记录和 115 网盘文件？网盘文件将进入 115 回收站。请确认刚才复查后媒体仍不可用。'
+              : storage.isLocal
               ? '确认删除"${item.movieNumber}"的这条失效媒体记录和本地媒体文件？该操作不可恢复。请确认刚才复查后媒体仍不可用。'
               : '确认删除"${item.movieNumber}"的这条失效媒体记录及对应媒体文件？该操作可能无法恢复。请确认刚才复查后媒体仍不可用。',
       confirmLabel: '删除',
@@ -77,81 +177,38 @@ class InvalidMediaSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncState = ref.watch(invalidMediaProvider);
-    final librariesAsync = ref.watch(mediaLibrariesProvider);
-    final storageDescriptors =
-        librariesAsync.value?.storageDescriptors ??
-            const <int, MediaStorageDescriptor>{};
-
-    final current = asyncState.value;
-    final total = current?.paged.total ?? 0;
-    final isInitialLoading = asyncState.isLoading && !asyncState.hasValue;
-
-    final spacing = context.appSpacing;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppFilterTotalHeader(
-          leading: Text(
-            '巡检标记为失效的媒体库内容会出现在这里。你可以复查媒体是否恢复，或清理已经确认不可用的记录。',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.muted,
-            ),
-          ),
-          totalText: '共 $total 条失效媒体',
-          totalKey: const Key('invalid-media-total-text'),
-          trailing: AppIconButton(
-            key: const Key('invalid-media-refresh-button'),
-            tooltip: isInitialLoading ? '刷新中' : '刷新',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: isInitialLoading
-                ? null
-                : () async {
-                    final message = await ref
-                        .read(invalidMediaProvider.notifier)
-                        .refresh();
-                    if (message != null) showToast(message);
-                  },
-          ),
+    final actionState = ref.watch(
+      invalidMediaProvider.select(
+        (asyncState) => (
+          checkingMediaId: asyncState.value?.checkingMediaId,
+          deletingMediaId: asyncState.value?.deletingMediaId,
+          canDelete: asyncState.value?.canDeleteMedia(item.id) ?? false,
         ),
-        SizedBox(height: spacing.lg),
-        PagedAsyncSection<InvalidMediaState, InvalidMediaDto>(
-          asyncState: asyncState,
-          pagedOf: (s) => s.paged,
-          itemSpacing: spacing.md,
-          initialErrorMessage: '失效媒体加载失败，请稍后重试',
-          emptyMessage: '当前没有失效媒体',
-          initialRetryKey: const Key('invalid-media-initial-retry-button'),
-          onReload: () =>
-              unawaited(ref.read(invalidMediaProvider.notifier).reload()),
-          onLoadMore: () =>
-              unawaited(ref.read(invalidMediaProvider.notifier).loadMore()),
-          itemBuilder: (context, item, _) {
-            final data = asyncState.requireValue;
-            final isCheckingAny = data.checkingMediaId != null;
-            final isDeletingAny = data.deletingMediaId != null;
-            return _InvalidMediaCard(
-              item: item,
-              storage: resolveMediaStorageDescriptor(
-                item.libraryId,
-                storageDescriptors,
-              ),
-              isChecking: data.checkingMediaId == item.id,
-              isDeleting: data.deletingMediaId == item.id,
-              canCheck: !isCheckingAny && !isDeletingAny,
-              canDelete: data.canDeleteMedia(item.id) &&
-                  !isCheckingAny &&
-                  !isDeletingAny,
-              onCheck: () => unawaited(_handleCheck(ref, context, item)),
-              onDelete: (storage) =>
-                  unawaited(_handleDelete(ref, context, item, storage)),
-            );
-          },
-        ),
-      ],
+      ),
+    );
+    final storageDescriptors = ref.watch(
+      mediaLibrariesProvider.select(
+        (asyncState) =>
+            asyncState.value?.storageDescriptors ??
+            const <int, MediaStorageDescriptor>{},
+      ),
+    );
+    final isCheckingAny = actionState.checkingMediaId != null;
+    final isDeletingAny = actionState.deletingMediaId != null;
+
+    return _InvalidMediaCard(
+      item: item,
+      storage: resolveMediaStorageDescriptor(
+        item.libraryId,
+        storageDescriptors,
+      ),
+      isChecking: actionState.checkingMediaId == item.id,
+      isDeleting: actionState.deletingMediaId == item.id,
+      canCheck: !isCheckingAny && !isDeletingAny,
+      canDelete: actionState.canDelete && !isCheckingAny && !isDeletingAny,
+      onCheck: () => unawaited(_handleCheck(ref, context, item)),
+      onDelete:
+          (storage) => unawaited(_handleDelete(ref, context, item, storage)),
     );
   }
 }
@@ -185,9 +242,8 @@ class _InvalidMediaCard extends StatelessWidget {
     final spacing = context.appSpacing;
 
     final updatedAtText = formatUpdatedAtLabel(item.updatedAt) ?? '更新时间未知';
-    final fileSizeText = item.fileSizeBytes > 0
-        ? formatFileSize(item.fileSizeBytes)
-        : '未知';
+    final fileSizeText =
+        item.fileSizeBytes > 0 ? formatFileSize(item.fileSizeBytes) : '未知';
 
     return AppContentCard(
       title: item.movieNumber,
@@ -201,8 +257,9 @@ class _InvalidMediaCard extends StatelessWidget {
             height: coverHeight,
             fit: item.usesThinCover ? BoxFit.cover : BoxFit.contain,
             imageKey: Key('invalid-media-cover-${item.movieNumber}'),
-            placeholderKey:
-                Key('invalid-media-cover-placeholder-${item.movieNumber}'),
+            placeholderKey: Key(
+              'invalid-media-cover-placeholder-${item.movieNumber}',
+            ),
             placeholderBackground: context.appColors.surfaceMuted,
           ),
           SizedBox(width: spacing.lg),
@@ -223,10 +280,7 @@ class _InvalidMediaCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: spacing.sm),
-                AppInfoBlock(
-                  label: '媒体库',
-                  value: _libraryText(),
-                ),
+                AppInfoBlock(label: '媒体库', value: _libraryText()),
                 SizedBox(height: spacing.xs),
                 AppInfoBlock(label: '文件大小', value: fileSizeText),
                 SizedBox(height: spacing.xs),

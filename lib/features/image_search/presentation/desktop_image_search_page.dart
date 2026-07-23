@@ -25,8 +25,9 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_filter_panel.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_result_grid.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_result_preview_dialog.dart';
@@ -63,11 +64,12 @@ class DesktopImageSearchPage extends StatefulWidget {
   final Future<bool> Function(
     BuildContext context,
     ImageSearchResultItemDto item,
-  )? onSearchSimilar;
+  )?
+  onSearchSimilar;
   final void Function(BuildContext context, ImageSearchResultItemDto item)?
-      onOpenPlayer;
+  onOpenPlayer;
   final void Function(BuildContext context, ImageSearchResultItemDto item)?
-      onOpenMovieDetail;
+  onOpenMovieDetail;
   final ImageSearchResultPreviewPresentation resultPreviewPresentation;
 
   @override
@@ -94,11 +96,12 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     _pageStateHandle = obtainCachedPageState<ImageSearchPageStateEntry>(
       context,
       key: _resolveStateKey(),
-      create: () => ImageSearchPageStateEntry(
-        imageSearchApi: context.read<ImageSearchApi>(),
-        actorsApi: context.read<ActorsApi>(),
-        initialCurrentMovieScope: widget.initialCurrentMovieScope,
-      ),
+      create:
+          () => ImageSearchPageStateEntry(
+            imageSearchApi: context.read<ImageSearchApi>(),
+            actorsApi: context.read<ActorsApi>(),
+            initialCurrentMovieScope: widget.initialCurrentMovieScope,
+          ),
     );
     _controller.addListener(_handleControllerChanged);
     _bootstrapInitialSource();
@@ -155,62 +158,74 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     });
   }
 
+  Future<void> _handleTopBarRefresh() async {
+    // 未选图片前刷新是没意义的（页面就一个「选择图片」空态），直接吞掉。
+    if (!_controller.hasSource) return;
+    await _runSearch();
+  }
+
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
 
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        if (!_controller.hasSource) {
-          return _buildInitialEmptyState(context);
-        }
+    return AppPageRefreshScope(
+      onRefresh: _handleTopBarRefresh,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          if (!_controller.hasSource) {
+            return _buildInitialEmptyState(context);
+          }
 
-        return Material(
-          color: context.appColors.surfaceElevated,
-          child: SingleChildScrollView(
-            controller: _controller.scrollController,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSourceCard(context),
+          final footer = _buildLoadMoreFooter(context);
+          return Material(
+            color: context.appColors.surfaceElevated,
+            child: CustomScrollView(
+              controller: _controller.scrollController,
+              slivers: [
+                SliverToBoxAdapter(child: _buildSourceCard(context)),
                 if (_controller.isPreviewExpanded) ...[
-                  SizedBox(height: spacing.lg),
-                  _buildPreviewPanel(context),
+                  SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
+                  SliverToBoxAdapter(child: _buildPreviewPanel(context)),
                 ],
                 if (_controller.isFilterExpanded) ...[
-                  SizedBox(height: spacing.lg),
-                  ImageSearchFilterPanel(
-                    filterState: _filterState,
-                    summaryText: _filterSummaryText,
-                    currentMovieNumber: widget.currentMovieNumber,
-                    onCurrentMovieScopeChanged: (scope) => setState(
-                      () => _pageState.filterState = _filterState.copyWith(
-                        currentMovieScope: scope,
+                  SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
+                  SliverToBoxAdapter(
+                    child: ImageSearchFilterPanel(
+                      filterState: _filterState,
+                      summaryText: _filterSummaryText,
+                      currentMovieNumber: widget.currentMovieNumber,
+                      onCurrentMovieScopeChanged: (scope) => setState(
+                        () => _pageState.filterState = _filterState.copyWith(
+                          currentMovieScope: scope,
+                        ),
                       ),
-                    ),
-                    isSearching: _controller.isSearching ||
-                        _controller.isResolvingActorMovieIds,
-                    onModeChanged: (mode) => setState(
-                      () => _pageState.filterState = _filterState.copyWith(
-                        actorFilterMode: mode,
+                      isSearching: _controller.isSearching ||
+                          _controller.isResolvingActorMovieIds,
+                      onModeChanged: (mode) => setState(
+                        () => _pageState.filterState = _filterState.copyWith(
+                          actorFilterMode: mode,
+                        ),
                       ),
+                      onSelectActors: _openActorSelectorDialog,
+                      onSearch: _runSearch,
                     ),
-                    onSelectActors: _openActorSelectorDialog,
-                    onSearch: _runSearch,
                   ),
                 ],
-                SizedBox(height: spacing.lg),
-                _buildResultSection(context),
-                if (_buildLoadMoreFooter(context) case final footer?) ...[
-                  SizedBox(height: spacing.md),
-                  footer,
-                ],
+                SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
+                _buildResultSectionSliver(context),
+                if (footer != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: spacing.md),
+                      child: footer,
+                    ),
+                  ),
               ],
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -336,37 +351,36 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     );
   }
 
-  Widget _buildResultSection(BuildContext context) {
+  Widget _buildResultSectionSliver(BuildContext context) {
     if (_controller.isSearching && _controller.items.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: context.appLayoutTokens.emptySectionVerticalPadding,
-          ),
-          child: CircularProgressIndicator(
-            key: Key('desktop-image-search-loading-indicator'),
+      return SliverToBoxAdapter(
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              vertical: context.appLayoutTokens.emptySectionVerticalPadding,
+            ),
+            child: CircularProgressIndicator(
+              key: Key('desktop-image-search-loading-indicator'),
+            ),
           ),
         ),
       );
     }
 
     if (_controller.errorMessage != null && _controller.items.isEmpty) {
-      return AppEmptyState(message: _controller.errorMessage!);
+      return SliverToBoxAdapter(
+        child: AppEmptyState(message: _controller.errorMessage!),
+      );
     }
 
     if (_controller.items.isEmpty) {
-      return const AppEmptyState(message: '暂无匹配结果');
+      return const SliverToBoxAdapter(child: AppEmptyState(message: '暂无匹配结果'));
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ImageSearchResultGrid(
-          items: _controller.items,
-          onItemTap: _openResultPreviewDialog,
-          onItemMenuRequested: _showResultActions,
-        ),
-      ],
+    return ImageSearchResultSliver(
+      items: _controller.items,
+      onItemTap: _openResultPreviewDialog,
+      onItemMenuRequested: _showResultActions,
     );
   }
 
@@ -454,10 +468,10 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
         normalizedMovieNumber == null || normalizedMovieNumber.isEmpty
             ? null
             : '当前影片：${_filterState.currentMovieScope.label}';
-    final actorText = _filterState.actorFilterMode ==
-            ImageSearchActorFilterMode.none
-        ? '女优：不过滤'
-        : '女优：${_filterState.actorFilterMode.label}（已选 ${_filterState.selectedActorCount} 位）';
+    final actorText =
+        _filterState.actorFilterMode == ImageSearchActorFilterMode.none
+            ? '女优：不过滤'
+            : '女优：${_filterState.actorFilterMode.label}（已选 ${_filterState.selectedActorCount} 位）';
     return currentMovieText == null
         ? actorText
         : '$currentMovieText · $actorText';
@@ -578,10 +592,11 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     }
     final selectedActors = await showDialog<List<ActorListItemDto>>(
       context: context,
-      builder: (dialogContext) => _ActorSelectorDialog(
-        actors: _controller.subscribedActors,
-        initialSelectedActors: _filterState.selectedActors,
-      ),
+      builder:
+          (dialogContext) => _ActorSelectorDialog(
+            actors: _controller.subscribedActors,
+            initialSelectedActors: _filterState.selectedActors,
+          ),
     );
     if (!mounted || selectedActors == null) {
       return;
@@ -618,20 +633,23 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
   }
 
   Future<void> _openResultPreviewDialog(ImageSearchResultItemDto item) async {
-    final presentation = widget.resultPreviewPresentation ==
-            ImageSearchResultPreviewPresentation.bottomDrawer
-        ? MediaPreviewPresentation.bottomDrawer
-        : MediaPreviewPresentation.dialog;
+    final presentation =
+        widget.resultPreviewPresentation ==
+                ImageSearchResultPreviewPresentation.bottomDrawer
+            ? MediaPreviewPresentation.bottomDrawer
+            : MediaPreviewPresentation.dialog;
     final action = await showMediaPreviewOverlay(
       context: context,
       presentation: presentation,
-      drawerKey: presentation == MediaPreviewPresentation.bottomDrawer
-          ? const Key('image-search-result-preview-bottom-sheet')
-          : null,
-      builder: (_) => ImageSearchResultPreviewDialog(
-        item: item,
-        presentation: presentation,
-      ),
+      drawerKey:
+          presentation == MediaPreviewPresentation.bottomDrawer
+              ? const Key('image-search-result-preview-bottom-sheet')
+              : null,
+      builder:
+          (_) => ImageSearchResultPreviewDialog(
+            item: item,
+            presentation: presentation,
+          ),
     );
     if (!mounted || action == null) {
       return;
@@ -744,9 +762,10 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
       AppImageActionDescriptor(
         type: AppImageActionType.toggleMark,
         label: point == null ? '添加标记' : '删除标记',
-        icon: point == null
-            ? Icons.bookmark_add_outlined
-            : Icons.bookmark_remove_outlined,
+        icon:
+            point == null
+                ? Icons.bookmark_add_outlined
+                : Icons.bookmark_remove_outlined,
         enabled: hasMedia,
       ),
       AppImageActionDescriptor(
@@ -794,8 +813,8 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
       return null;
     }
     final points = await context.read<MediaApi>().getMediaPoints(
-          mediaId: item.mediaId,
-        );
+      mediaId: item.mediaId,
+    );
     for (final point in points) {
       if (point.thumbnailId == item.thumbnailId) {
         return point;
@@ -833,18 +852,18 @@ class _DesktopImageSearchPageState extends State<DesktopImageSearchPage> {
     try {
       if (point == null) {
         await context.read<MediaApi>().createMediaPoint(
-              mediaId: item.mediaId,
-              thumbnailId: item.thumbnailId,
-            );
+          mediaId: item.mediaId,
+          thumbnailId: item.thumbnailId,
+        );
         if (mounted) {
           showToast('已添加标记');
         }
         return;
       }
       await context.read<MediaApi>().deleteMediaPoint(
-            mediaId: item.mediaId,
-            pointId: point.pointId,
-          );
+        mediaId: item.mediaId,
+        pointId: point.pointId,
+      );
       if (mounted) {
         showToast('已删除标记');
       }
@@ -875,9 +894,10 @@ class _ActorSelectorDialogState extends State<_ActorSelectorDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedActorIds = widget.initialSelectedActors
-        .map((ActorListItemDto actor) => actor.id)
-        .toSet();
+    _selectedActorIds =
+        widget.initialSelectedActors
+            .map((ActorListItemDto actor) => actor.id)
+            .toSet();
   }
 
   @override
@@ -912,21 +932,22 @@ class _ActorSelectorDialogState extends State<_ActorSelectorDialog> {
           Expanded(
             child: ListView.separated(
               itemCount: widget.actors.length,
-              separatorBuilder: (context, index) =>
-                  SizedBox(height: spacing.sm),
+              separatorBuilder:
+                  (context, index) => SizedBox(height: spacing.sm),
               itemBuilder: (context, index) {
                 final actor = widget.actors[index];
                 final selected = _selectedActorIds.contains(actor.id);
                 return InkWell(
                   key: Key('desktop-image-search-actor-option-${actor.id}'),
                   borderRadius: context.appRadius.mdBorder,
-                  onTap: () => setState(() {
-                    if (selected) {
-                      _selectedActorIds.remove(actor.id);
-                    } else {
-                      _selectedActorIds.add(actor.id);
-                    }
-                  }),
+                  onTap:
+                      () => setState(() {
+                        if (selected) {
+                          _selectedActorIds.remove(actor.id);
+                        } else {
+                          _selectedActorIds.add(actor.id);
+                        }
+                      }),
                   child: Container(
                     padding: EdgeInsets.symmetric(
                       horizontal: spacing.lg,
@@ -936,9 +957,10 @@ class _ActorSelectorDialogState extends State<_ActorSelectorDialog> {
                       color: context.appColors.surfaceCard,
                       borderRadius: context.appRadius.mdBorder,
                       border: Border.all(
-                        color: selected
-                            ? Theme.of(context).colorScheme.primary
-                            : context.appColors.borderSubtle,
+                        color:
+                            selected
+                                ? Theme.of(context).colorScheme.primary
+                                : context.appColors.borderSubtle,
                       ),
                     ),
                     child: Row(
@@ -974,14 +996,15 @@ class _ActorSelectorDialogState extends State<_ActorSelectorDialog> {
               AppButton(
                 label: '完成',
                 variant: AppButtonVariant.primary,
-                onPressed: () => Navigator.of(context).pop(
-                  widget.actors
-                      .where(
-                        (ActorListItemDto actor) =>
-                            _selectedActorIds.contains(actor.id),
-                      )
-                      .toList(growable: false),
-                ),
+                onPressed:
+                    () => Navigator.of(context).pop(
+                      widget.actors
+                          .where(
+                            (ActorListItemDto actor) =>
+                                _selectedActorIds.contains(actor.id),
+                          )
+                          .toList(growable: false),
+                    ),
               ),
             ],
           ),

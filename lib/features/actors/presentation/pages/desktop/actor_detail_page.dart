@@ -50,8 +50,10 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
               _ActorDetailErrorState(message: message, onRetry: onRetry),
       footerBuilder: _buildLoadMoreFooter,
       bodyBuilder:
-          (context, scrollController, child, _) =>
-              SingleChildScrollView(controller: scrollController, child: child),
+          (context, scrollController, child, _) => CustomScrollView(
+            controller: scrollController,
+            slivers: <Widget>[child],
+          ),
     );
   }
 

@@ -123,10 +123,9 @@ void main() {
     );
     expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
 
-    await tester.drag(
-      find.byType(SingleChildScrollView),
-      const Offset(0, -5000),
-    );
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -5000));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -1000));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('movie-summary-card-ABC-025')), findsOneWidget);
@@ -155,10 +154,9 @@ void main() {
     );
     expect(find.byKey(const Key('moment-card-1')), findsOneWidget);
 
-    await tester.drag(
-      find.byType(SingleChildScrollView),
-      const Offset(0, -5000),
-    );
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -5000));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -1000));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('moment-card-25')), findsOneWidget);
@@ -185,14 +183,14 @@ void main() {
         child: const DesktopDiscoverMoviesPage(),
       );
       await tester.pumpAndSettle();
-      await tester.drag(
-        find.byType(SingleChildScrollView),
-        const Offset(0, -5000),
-      );
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -5000));
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
       await tester.pumpAndSettle();
 
+      expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsNothing);
       expect(
-        find.byKey(const Key('movie-summary-card-ABC-001')),
+        find.byKey(const Key('movie-summary-card-ABC-024')),
         findsOneWidget,
       );
       expect(find.text('加载更多推荐影片失败，请点击重试'), findsOneWidget);
@@ -259,11 +257,7 @@ void _enqueueDiscoveryResponses(TestApiBundle bundle) {
   _enqueueMomentPage(bundle, page: 1, start: 1, count: 1, total: 1);
 }
 
-void _enqueueFollowPage(
-  TestApiBundle bundle, {
-  int page = 1,
-  int total = 1,
-}) {
+void _enqueueFollowPage(TestApiBundle bundle, {int page = 1, int total = 1}) {
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/movies/subscribed-actors/latest',

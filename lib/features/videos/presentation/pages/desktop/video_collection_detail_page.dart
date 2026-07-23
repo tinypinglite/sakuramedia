@@ -5,9 +5,9 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
-import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_actions_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/pick_video_collection_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/collections/video_collection_detail_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/notifiers/video_mutation_change_notifier.dart';
@@ -17,6 +17,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
@@ -112,13 +113,28 @@ class _DesktopVideoCollectionDetailPageState
     );
   }
 
-  /// 点单条卡片：只播这一个视频（对齐桌面 PornBox 主页 `onVideoTap`），不进合集连播。
-  /// 头部「播放全部」按钮仍走 [_playFrom] 走整张合集连播。
-  void _playVideoSingle(VideoItemListItemDto video) {
-    showVideoQuickPlayDialog(
+  /// 点单条卡片：弹桌面动作弹窗（对齐桌面 PornBox 主页与移动端 sheet）。
+  /// 播放走单集快播；「移出合集 / 删除 / 跳到其它合集」都在弹窗里。头部
+  /// 「播放全部」按钮仍走 [_playFrom] 走整张合集连播。
+  void _openActionsDialog(VideoCollectionItemDto item) {
+    final video = item.video;
+    // 过滤掉「当前合集」这条冗余归属：用户已经在这里了。
+    final otherCollections = video.collections
+        .where((ref) => ref.id != widget.collectionId)
+        .toList(growable: false);
+    showDesktopVideoActionsDialog(
       context,
-      videoId: video.id,
-      title: video.preferredTitle,
+      video: video,
+      onPlay: () => showVideoQuickPlayDialog(
+        context,
+        videoId: video.id,
+        title: video.preferredTitle,
+      ),
+      onRemoveFromCollection: () => _removeItem(item.itemId),
+      onDelete: () => _deleteVideo(item.itemId),
+      collections: otherCollections,
+      onCollectionTap: (ref) =>
+          context.pushDesktopVideoCollectionDetail(collectionId: ref.id),
     );
   }
 
@@ -320,12 +336,14 @@ class _DesktopVideoCollectionDetailPageState
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, _) {
-          if (_controller.isLoading) {
+    return AppPageRefreshScope(
+      onRefresh: _controller.refresh,
+      child: ColoredBox(
+        color: context.appColors.surfaceElevated,
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            if (_controller.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
           final error = _controller.errorMessage;
@@ -366,6 +384,7 @@ class _DesktopVideoCollectionDetailPageState
             ],
           );
         },
+      ),
       ),
     );
   }
@@ -548,7 +567,7 @@ class _DesktopVideoCollectionDetailPageState
         isHovered: _hoveredItemId == item.itemId,
         onTap: selectionMode
             ? () => toggleSelect(item.itemId)
-            : () => _playVideoSingle(item.video),
+            : () => _openActionsDialog(item),
         menuKey: Key('video-collection-menu-${item.itemId}'),
         dragHandleKey: Key('video-reorder-handle-${item.itemId}'),
         onRemove: () => _removeItem(item.itemId),
@@ -634,7 +653,7 @@ class _DesktopVideoCollectionDetailPageState
                 subtitle: _formatReleaseDate(item.video.releaseDate),
                 onTap: selectionMode
                     ? () => toggleSelect(item.itemId)
-                    : () => _playVideoSingle(item.video),
+                    : () => _openActionsDialog(item),
                 menuKey: Key('video-collection-grid-menu-${item.itemId}'),
                 onRemove: () => _removeItem(item.itemId),
                 onDelete: () => _deleteVideo(item.itemId),
