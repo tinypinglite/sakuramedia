@@ -80,6 +80,11 @@ dependency_overrides:
   # (Flutter 3.32+ 才有的 Scene API)，CI 用的是 3.29.3 会编译失败；
   # 钉回 2.1.2（v0.4.2 及以前一直在用的版本）。升级 Flutter 后可移除此行。
   screen_brightness_ios: 2.1.2
+  # screen_brightness_android 2.1.6 要求 AGP 9.0.1 + Kotlin 2.3.20 + compileSdk 36，
+  # 本项目 AGP 8.7.0 + Kotlin 2.2.10 装不下，Kotlin 编不出 ScreenBrightnessAndroidPlugin，
+  # GeneratedPluginRegistrant 找不到符号。钉回 2.1.3（AGP 8.6.1 + Kotlin 1.9.22）。
+  # 项目升级到 AGP 9.x 后可移除此行。
+  screen_brightness_android: 2.1.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
