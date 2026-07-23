@@ -62,8 +62,14 @@ class _AppDesktopShellState extends State<AppDesktopShell> {
     final phase = SchedulerBinding.instance.schedulerPhase;
     // 页面在 build 阶段通过 didChangeDependencies 注册回调时，
     // 不能立即 setState（会触发 build-during-build）。延迟到下一帧。
-    if (phase == SchedulerPhase.idle ||
-        phase == SchedulerPhase.postFrameCallbacks) {
+    // 注意：runApp 首次 attach 是在 microtask 里跑 buildScope，
+    // 此时 schedulerPhase 仍是 idle，光看 phase 会漏掉这种情况——
+    // 所以再叠一层 buildOwner.debugBuilding 判定。
+    final building =
+        WidgetsBinding.instance.buildOwner?.debugBuilding ?? false;
+    if (!building &&
+        (phase == SchedulerPhase.idle ||
+            phase == SchedulerPhase.postFrameCallbacks)) {
       setState(() {});
       return;
     }
