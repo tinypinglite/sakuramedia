@@ -9,6 +9,7 @@ import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/core/platform/clipboard_copy.dart';
 import 'package:sakuramedia/features/clips/presentation/widgets/create_clip_dialog.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_candidate_dto.dart';
@@ -966,6 +967,7 @@ class _MovieDetailMagnetTab extends StatelessWidget {
           key: Key('movie-detail-magnet-candidate-$index'),
           candidate: item,
           isSubmitting: controller.submittingCandidateKey == item.submitKey,
+          copyButtonKey: Key('movie-detail-magnet-copy-$index'),
           submitButtonKey: Key('movie-detail-magnet-submit-$index'),
           onSubmit: item.hasDownloadSource
               ? (clientId) async {
@@ -1006,12 +1008,14 @@ class _MovieDetailMagnetCandidateCard extends StatefulWidget {
     super.key,
     required this.candidate,
     required this.isSubmitting,
+    required this.copyButtonKey,
     required this.submitButtonKey,
     required this.onSubmit,
   });
 
   final DownloadCandidateDto candidate;
   final bool isSubmitting;
+  final Key copyButtonKey;
   final Key submitButtonKey;
   final ValueChanged<int>? onSubmit;
 
@@ -1052,6 +1056,8 @@ class _MovieDetailMagnetCandidateCardState
 
   @override
   Widget build(BuildContext context) {
+    final magnetUrl = candidate.magnetUrl.trim();
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(context.appSpacing.lg),
@@ -1089,6 +1095,66 @@ class _MovieDetailMagnetCandidateCardState
               ),
             ],
           ),
+          if (magnetUrl.isNotEmpty) ...[
+            SizedBox(height: context.appSpacing.md),
+            Container(
+              key: const Key('movie-detail-magnet-link'),
+              width: double.infinity,
+              padding: EdgeInsets.all(context.appSpacing.sm),
+              decoration: BoxDecoration(
+                color: context.appColors.surfaceMuted,
+                borderRadius: context.appRadius.mdBorder,
+                border: Border.all(color: context.appColors.borderSubtle),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '磁力链接',
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s12,
+                            weight: AppTextWeight.medium,
+                            tone: AppTextTone.secondary,
+                          ),
+                        ),
+                      ),
+                      AppButton(
+                        key: widget.copyButtonKey,
+                        size: AppButtonSize.xxSmall,
+                        label: '复制',
+                        icon: const Icon(Icons.copy_rounded),
+                        variant: AppButtonVariant.secondary,
+                        onPressed: () async {
+                          final copied = await copyTextToClipboard(magnetUrl);
+                          if (context.mounted) {
+                            showToast(
+                              copied ? '磁力链接已复制' : '复制失败，请手动选择链接',
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: context.appSpacing.xs),
+                  SelectableText(
+                    magnetUrl,
+                    key: const Key('movie-detail-magnet-link-text'),
+                    maxLines: 3,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s10,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.secondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           SizedBox(height: context.appSpacing.md),
           Row(
             children: [
