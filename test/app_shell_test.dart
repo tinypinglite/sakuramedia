@@ -22,6 +22,11 @@ void main() {
       final sessionStore = await _buildLoggedInSessionStore();
       final bundle = await createTestApiBundle(sessionStore);
       addTearDown(bundle.dispose);
+      // overview 页 sliver 化后靠视口惰性 build；默认 800×600 装不下
+      // SystemDiagnosticsStrip + stats + xxl 间距，'最近添加' sliver 会
+      // 落在视口外不构建。撑高视口让所有 sliver 同时进 cacheExtent。
+      await tester.binding.setSurfaceSize(const Size(1200, 2400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       _enqueueOverviewResponses(bundle);
 
       await _pumpDesktopApp(
