@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_bootstrap_dto.dart';
@@ -165,7 +166,10 @@ class NotificationCenterController extends ChangeNotifier {
         return;
       }
       _isInitialLoading = false;
-      _initialErrorMessage = '通知加载失败，请稍后重试';
+      _initialErrorMessage = apiErrorMessage(
+        error,
+        fallback: '通知加载失败，请稍后重试',
+      );
       _connectionState = NotificationConnectionState.reconnecting;
       _connectionMessage = null;
       _notifySafely();
@@ -203,11 +207,14 @@ class NotificationCenterController extends ChangeNotifier {
       _hasMore = _notifications.length < response.total;
       _loadMoreErrorMessage = null;
       _refreshErrorMessage = null;
-    } catch (_) {
+    } catch (error) {
       if (_disposed || requestId != _refreshRequestId) {
         return;
       }
-      _refreshErrorMessage = '通知筛选刷新失败，请重试';
+      _refreshErrorMessage = apiErrorMessage(
+        error,
+        fallback: '通知筛选刷新失败，请重试',
+      );
     } finally {
       if (!_disposed && requestId == _refreshRequestId) {
         _isRefreshing = false;
@@ -242,11 +249,14 @@ class NotificationCenterController extends ChangeNotifier {
       _nextPage = response.page + 1;
       _hasMore = _notifications.length < response.total;
       _loadMoreErrorMessage = null;
-    } catch (_) {
+    } catch (error) {
       if (_disposed) {
         return;
       }
-      _loadMoreErrorMessage = '加载更多通知失败，请点击重试';
+      _loadMoreErrorMessage = apiErrorMessage(
+        error,
+        fallback: '加载更多通知失败，请点击重试',
+      );
     } finally {
       if (!_disposed) {
         _isLoadingMore = false;

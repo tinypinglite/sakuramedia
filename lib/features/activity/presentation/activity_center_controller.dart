@@ -201,11 +201,14 @@ class ActivityCenterController extends ChangeNotifier {
       _hasMoreTasks = _taskRuns.length < response.total;
       _taskLoadMoreErrorMessage = null;
       _taskRefreshErrorMessage = null;
-    } catch (_) {
+    } catch (error) {
       if (_disposed || requestId != _taskRefreshRequestId) {
         return;
       }
-      _taskRefreshErrorMessage = '任务筛选刷新失败，请重试';
+      _taskRefreshErrorMessage = apiErrorMessage(
+        error,
+        fallback: '任务筛选刷新失败，请重试',
+      );
     } finally {
       if (!_disposed && requestId == _taskRefreshRequestId) {
         _isRefreshingTaskHistory = false;
@@ -279,8 +282,11 @@ class ActivityCenterController extends ChangeNotifier {
       _taskNextPage = response.page + 1;
       _hasMoreTasks = _taskRuns.length < response.total;
       _taskLoadMoreErrorMessage = null;
-    } catch (_) {
-      _taskLoadMoreErrorMessage = '加载更多任务失败，请点击重试';
+    } catch (error) {
+      _taskLoadMoreErrorMessage = apiErrorMessage(
+        error,
+        fallback: '加载更多任务失败，请点击重试',
+      );
     } finally {
       _isLoadingMoreTasks = false;
       _notifySafely();

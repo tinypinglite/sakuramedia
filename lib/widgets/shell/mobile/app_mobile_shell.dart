@@ -42,6 +42,7 @@ class AppMobileShell extends StatelessWidget {
         drawer: drawer,
         drawerEnableOpenDragGesture:
             drawer != null && drawerEnableOpenDragGesture,
+        drawerEdgeDragWidth: _resolveDrawerEdgeDragWidth(context),
         body: SafeArea(
           key: const Key('mobile-shell-body-safe-area'),
           bottom: false,
@@ -80,6 +81,20 @@ class AppMobileShell extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// 左边缘拖拽区宽度。
+  ///
+  /// Flutter 默认是 `20 + padding.left`,而 Android 手势导航的返回手势区就压在
+  /// 最外侧同一条带子上、且系统优先消费,默认值等于整条被吃掉。系统手势区宽度
+  /// 因设备/ROM 而异(只在 Android Q+ 非零),运行时从 MediaQuery 读,再往内侧
+  /// 补一段 app 独占的可用带——外侧归系统返回,内侧归抽屉。
+  double? _resolveDrawerEdgeDragWidth(BuildContext context) {
+    if (drawer == null || !drawerEnableOpenDragGesture) {
+      return null;
+    }
+    return MediaQuery.systemGestureInsetsOf(context).left +
+        context.appSpacing.xl;
   }
 
   void _handleDestinationTap(

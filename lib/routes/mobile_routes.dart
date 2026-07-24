@@ -34,6 +34,7 @@ import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_coll
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_player_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/series_movies_page.dart';
+import 'package:sakuramedia/features/overview/presentation/mobile_overview_tab_index_notifier.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_system_overview_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/pages/mobile/playlists_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/pages/mobile/playlist_detail_page.dart';
@@ -800,16 +801,93 @@ class MobileRootShellRouteData extends StatefulShellRouteData {
     GoRouterState state,
     StatefulNavigationShell navigationShell,
   ) {
-    final enableOverviewDrawer = state.uri.path == mobileOverviewPath;
+    return _MobileRootShellScope(
+      state: state,
+      navigationShell: navigationShell,
+    );
+  }
+}
+
+/// 概览分支在底栏 / shell branch 列表中的序号。
+///
+/// 分支顺序由 `@TypedStatefulShellRoute` 的 branch 列表与 [mobileNavGroups] **两处
+/// 独立维护**,硬编码 `0` 会在调序时静默把抽屉挂到错误分支上(不报错、不破测试),
+/// 所以这里按路径反查。两处顺序若失配,`AppMobileShell` 的底栏高亮同样会错——那是
+/// 更早就该暴露的问题,这里兜底回退到 0。
+final int _overviewBranchIndex = () {
+  final items = mobileNavGroups
+      .expand((group) => group.items)
+      .toList(growable: false);
+  final index = items.indexWhere((item) => item.path == mobileOverviewPath);
+  return index < 0 ? 0 : index;
+}();
+
+/// 移动壳作用域。
+///
+/// 持有 [MobileOverviewTabIndexNotifier] 并下发给壳与 `navigationShell` 两侧:
+/// 首页在子树里上报当前 tab 序号,壳在这里读回来决定是否放开左边缘侧滑。
+/// **刻意不放 `app.dart` 的全局 providers**——它是纯移动端的 UI 手势状态,放全局
+/// 会让桌面/Web 白背一份、让每个 pump 移动路由的测试都得手动注入(漏注入时静默
+/// 降级成"侧滑永久关闭"),也会和那批跨页 mutation 广播 notifier 混淆语义。
+/// 作用域收在这里后,它随壳挂载而新建、随壳销毁而释放。
+class _MobileRootShellScope extends StatefulWidget {
+  const _MobileRootShellScope({
+    required this.state,
+    required this.navigationShell,
+  });
+
+  final GoRouterState state;
+  final StatefulNavigationShell navigationShell;
+
+  @override
+  State<_MobileRootShellScope> createState() => _MobileRootShellScopeState();
+}
+
+class _MobileRootShellScopeState extends State<_MobileRootShellScope> {
+  final MobileOverviewTabIndexNotifier _overviewTabIndex =
+      MobileOverviewTabIndexNotifier();
+
+  @override
+  void dispose() {
+    _overviewTabIndex.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<MobileOverviewTabIndexNotifier>.value(
+      value: _overviewTabIndex,
+      child: Builder(builder: _buildShell),
+    );
+  }
+
+  Widget _buildShell(BuildContext context) {
+    final navigationShell = widget.navigationShell;
+    final currentPath = widget.state.uri.path;
+    // 按 branch 而非精确路径判定:概览分支内进子页时 drawer 也要保持存在。
+    // 首页顶栏菜单按钮靠 Scaffold.maybeOf 取 ScaffoldState,而该 API 走
+    // findAncestorStateOfType、不建立依赖——drawer 由 null 变为非 null 不会让
+    // 保活的首页子树重建,按钮会锁死在禁用态("有时点不动")。
+    final enableOverviewDrawer =
+        navigationShell.currentIndex == _overviewBranchIndex;
+    // 侧滑打开的门槛比 drawer 挂载更严,两个条件缺一不可:
+    // ① 停在概览根路由——子页(播放列表详情等)盖的是 body,壳的边缘拖拽区仍在
+    //    最上层,不排除的话在子页侧滑会拉出首页抽屉;
+    // ② 首页停在第一个 tab——边缘拖拽区覆盖多宽,下面的 TabBarView 就有多宽收不
+    //    到手势(实测),只有第一个 tab 右滑本就无处可去,让出来才不损失切页手势。
+    final enableOverviewDrawerDrag =
+        enableOverviewDrawer &&
+        currentPath == mobileOverviewPath &&
+        context.watch<MobileOverviewTabIndexNotifier>().value == 0;
     return AppMobileShell(
-      currentPath: state.uri.path,
+      currentPath: currentPath,
       navGroups: mobileNavGroups,
       currentIndex: navigationShell.currentIndex,
       drawer:
           enableOverviewDrawer
               ? _MobileOverviewDrawer(hostContext: context)
               : null,
-      drawerEnableOpenDragGesture: enableOverviewDrawer,
+      drawerEnableOpenDragGesture: enableOverviewDrawerDrag,
       onDestinationSelected: (index) {
         navigationShell.goBranch(
           index,

@@ -154,6 +154,58 @@ void main() {
     expect(tabBar.currentIndex, 0);
   });
 
+  // Flutter 默认的 20dp 边缘拖拽区整条落在 Android 手势导航的返回手势区里、
+  // 被系统优先消费,所以拖拽区必须从 systemGestureInsets 往内侧起算。
+  testWidgets('mobile shell edge drag width clears the system gesture inset', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const MediaQuery(
+          data: MediaQueryData(
+            systemGestureInsets: EdgeInsets.only(left: 32),
+          ),
+          child: AppMobileShell(
+            currentPath: '/mobile/overview',
+            navGroups: navGroups,
+            drawer: Drawer(child: Text('drawer-content')),
+            drawerEnableOpenDragGesture: true,
+            child: SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    expect(scaffold.drawerEdgeDragWidth, 32 + sakuraThemeData.appSpacing.xl);
+  });
+
+  testWidgets('mobile shell leaves edge drag width unset when drag is off', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const MediaQuery(
+          data: MediaQueryData(
+            systemGestureInsets: EdgeInsets.only(left: 32),
+          ),
+          child: AppMobileShell(
+            currentPath: '/mobile/overview',
+            navGroups: navGroups,
+            drawer: Drawer(child: Text('drawer-content')),
+            child: SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    expect(scaffold.drawerEnableOpenDragGesture, isFalse);
+    expect(scaffold.drawerEdgeDragWidth, isNull);
+  });
+
   testWidgets('mobile shell navigates when tapping bottom destination', (
     tester,
   ) async {

@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/clips/presentation/pages/mobile/overview_cl
 import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/overview/presentation/mobile_overview_follow_tab.dart';
+import 'package:sakuramedia/features/overview/presentation/mobile_overview_tab_index_notifier.dart';
 import 'package:sakuramedia/features/moments/presentation/mobile_overview_moments_tab.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
@@ -41,31 +42,91 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
 
     return DefaultTabController(
       length: 6,
-      child: ColoredBox(
-        key: const Key('mobile-overview-skeleton-page'),
-        color: colors.surfaceCard,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _MobileOverviewHeader(),
-            Expanded(
-              child: TabBarView(
-                key: const Key('mobile-overview-tab-view'),
-                children: [
-                  _MobileOverviewMyTab(playlistOrderStore: playlistOrderStore),
-                  const MobileOverviewClipsTab(),
-                  const MobileOverviewFollowTab(),
-                  const MobileOverviewDiscoverTab(),
-                  const MobileOverviewMomentsTab(),
-                  const MobileOverviewHotReviewsTab(),
-                ],
+      child: _MobileOverviewTabIndexReporter(
+        child: ColoredBox(
+          key: const Key('mobile-overview-skeleton-page'),
+          color: colors.surfaceCard,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _MobileOverviewHeader(),
+              Expanded(
+                child: TabBarView(
+                  key: const Key('mobile-overview-tab-view'),
+                  children: [
+                    _MobileOverviewMyTab(playlistOrderStore: playlistOrderStore),
+                    const MobileOverviewClipsTab(),
+                    const MobileOverviewFollowTab(),
+                    const MobileOverviewDiscoverTab(),
+                    const MobileOverviewMomentsTab(),
+                    const MobileOverviewHotReviewsTab(),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// 把当前 tab 序号上报给壳层,壳据此决定是否放开左边缘侧滑打开抽屉。
+/// 见 [MobileOverviewTabIndexNotifier]。
+class _MobileOverviewTabIndexReporter extends StatefulWidget {
+  const _MobileOverviewTabIndexReporter({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_MobileOverviewTabIndexReporter> createState() =>
+      _MobileOverviewTabIndexReporterState();
+}
+
+class _MobileOverviewTabIndexReporterState
+    extends State<_MobileOverviewTabIndexReporter> {
+  TabController? _controller;
+  MobileOverviewTabIndexNotifier? _notifier;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // notifier 由移动壳子树(_MobileRootShellScope)下发,首页必在其下,直接 read。
+    _notifier ??= context.read<MobileOverviewTabIndexNotifier>();
+    final controller = DefaultTabController.maybeOf(context);
+    if (identical(controller, _controller)) {
+      return;
+    }
+    _controller?.removeListener(_report);
+    _controller = controller?..addListener(_report);
+    // 这里仍在 build 期,直接写 notifier 会 markNeedsBuild 正在构建中的祖先(壳
+    // builder watch 着它),抛「setState() called during build」。挂载时的首次对齐
+    // 推迟到本帧结束;之后的变更都由 TabController 回调驱动,那本就在 build 之外。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _report();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller?.removeListener(_report);
+    super.dispose();
+  }
+
+  void _report() {
+    final controller = _controller;
+    if (controller == null) {
+      return;
+    }
+    // 相同值 ValueNotifier 不会通知,拖动动画期间的每帧回调不会引起重建。
+    _notifier?.value = controller.index;
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _MobileOverviewHeader extends StatelessWidget {
@@ -85,16 +146,21 @@ class _MobileOverviewHeader extends StatelessWidget {
           children: [
             Builder(
               builder: (buttonContext) {
-                final scaffold = Scaffold.maybeOf(buttonContext);
-                final canOpenDrawer = scaffold?.hasDrawer ?? false;
                 return Center(
                   child: AppIconButton(
                     key: const Key('mobile-overview-menu-button'),
                     tooltip: '打开菜单',
                     semanticLabel: '打开菜单',
-                    size: AppIconButtonSize.compact,
+                    // compact 的命中区只有 28dp,低于触控最小目标,手指略偏就落空
+                    // (「有时点不动」)。regular = 20 + md*2 = 44dp,图标视觉不变。
+                    size: AppIconButtonSize.regular,
                     icon: const Icon(Icons.menu_rounded),
-                    onPressed: canOpenDrawer ? scaffold!.openDrawer : null,
+                    // 不能在 build 期把 hasDrawer 快照下来当门控:Scaffold.maybeOf
+                    // 走 findAncestorStateOfType,不建立依赖,drawer 后来挂上也不会
+                    // 触发本页重建,按钮会永久停在禁用态。改为点击时现取,
+                    // openDrawer 内部对无 drawer 的情况是 null-safe 的。
+                    onPressed:
+                        () => Scaffold.maybeOf(buttonContext)?.openDrawer(),
                   ),
                 );
               },

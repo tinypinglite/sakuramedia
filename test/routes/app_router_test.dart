@@ -1732,6 +1732,108 @@ void main() {
     expect(router.canPop(), isFalse);
   });
 
+  // 回归:菜单按钮曾用 compact 尺寸(命中区仅 28dp),低于触控最小目标,
+  // 表现为「图标有时点不动」。同时锁住它确实能打开概览抽屉。
+  testWidgets('mobile overview menu button has a tappable hit area and opens '
+      'the drawer', (WidgetTester tester) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/latest',
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 12,
+        'total': 0,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists',
+      body: const <Map<String, dynamic>>[],
+    );
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    final menuButton = find.byKey(const Key('mobile-overview-menu-button'));
+    final size = tester.getSize(menuButton);
+    expect(size.width, greaterThanOrEqualTo(44));
+    expect(size.height, greaterThanOrEqualTo(44));
+
+    await tester.tap(menuButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mobile-overview-drawer')), findsOneWidget);
+  });
+
+  // 侧滑打开抽屉只在「概览根路由 + 停在第一个 tab」时放开:边缘拖拽区盖住多宽,
+  // 下面的 TabBarView 就有多宽收不到手势,只有第一个 tab 右滑本就无处可去。
+  testWidgets('mobile overview enables drawer edge swipe only on the first '
+      'tab', (WidgetTester tester) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/latest',
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 12,
+        'total': 0,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists',
+      body: const <Map<String, dynamic>>[],
+    );
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    bool dragEnabled() =>
+        tester
+            .widget<Scaffold>(
+              find.ancestor(
+                of: find.byKey(const Key('mobile-shell-body-safe-area')),
+                matching: find.byType(Scaffold),
+              ),
+            )
+            .drawerEnableOpenDragGesture;
+
+    expect(dragEnabled(), isTrue);
+
+    // 切到第二个 tab（切片）后必须让位给 TabBarView 的横滑切页。
+    await tester.tap(find.text('切片'));
+    await tester.pumpAndSettle();
+    expect(dragEnabled(), isFalse);
+
+    // 切回第一个 tab 恢复。
+    await tester.tap(find.text('我的'));
+    await tester.pumpAndSettle();
+    expect(dragEnabled(), isTrue);
+  });
+
   testWidgets('mobile image search route uses subpage shell and is reachable', (
     WidgetTester tester,
   ) async {
