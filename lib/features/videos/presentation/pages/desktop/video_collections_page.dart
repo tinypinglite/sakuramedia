@@ -90,8 +90,10 @@ class _DesktopVideoCollectionsPageState
       onRefresh: _controller.refresh,
       child: ColoredBox(
         color: context.appColors.surfaceElevated,
+        // 页面边距由桌面 shell 的 AppPageInsets.desktopStandard (24px) 统一提供，
+        // 此处不再叠加 EdgeInsets.all(spacing.lg)，否则合计 40px 比合集详情等
+        // 同类页明显宽（详情页此前已修，这里是漏掉的一处）。
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(context.appSpacing.lg),
           child: Column(
             key: const Key('video-collections-page'),
             crossAxisAlignment: CrossAxisAlignment.start,

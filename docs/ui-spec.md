@@ -1047,13 +1047,13 @@ Web 端复用同一套壳层和页面结构，但浏览器环境下不启用窗�
 - **视频详情页**（`/desktop/library/videos/:videoId`）：头部封面 + 标题 + 简介 + 标签 / 人物 chips；操作区为「播放 / 编辑 / 加入合集 / 删除」；媒体源复用 `MovieMediaItemList`，时刻复用 `MovieMediaPointGallery`（吃同形的 `MovieMediaItemDto`）。编辑 / 新建走 `VideoEditDialog`（标题 / 简介 / 发布时间 / 标签 / 人物，编辑回填、关联整体替换）。
 - **视频播放页**（`/desktop/library/videos/:videoId/player`，shell 外全屏）：复用泛化后的 `MoviePlayerController` + `MoviePlayerSurface` + `MoviePlayerThumbnailPanel`。播放器控制器经泛化——字幕来源可空（视频无字幕抓取，短路为 `unsupported`），媒体项经 `VideoItemDetailDto → MovieDetailDto` 适配器喂入，缩略图 / 进度走 mediaId 维度共享端点。
 - **人物页**（`/desktop/library/persons`）：搜索 + 新建 + 人物卡片网格（头像 + 姓名 + 性别 + 关联视频数 + 编辑 / 删除）；点击进人物详情（`/desktop/library/persons/:personId`，按 person 过滤复用视频网格）。人物增删改走 `PersonEditDialog`。
-- **视频合集页**（`/desktop/library/video-collections`）：合集卡片列表（`VideoCollectionCard`：封面图 + 底部标题 + 封面右下角视频数，编辑 / 删除收进右上角「···」菜单，参照切片「我的合集」卡）+ 新建；合集封面取按顺序排在最前的视频封面，空合集为占位图标；合集详情（`/desktop/library/video-collections/:collectionId`）头部下方为排序工具条（`VideoCollectionSortBar`：手动顺序 / 入库 / 标题 / 时长 / 文件大小 × 升降序，与视频列表对齐并额外含「手动顺序」对应后端 `position:asc`，默认手动顺序）；**仅「手动顺序」下**以 `ReorderableListView` 支持拖拽**乐观重排**（失败回滚重载），切到其它排序即退化为普通 `ListView` 并隐藏拖拽手柄（避免与排序冲突）；另支持移除、单集 / 「播放全部」。
+- **视频合集页**（`/desktop/library/video-collections`）：合集卡片列表（`VideoCollectionCard`：封面图 + 底部标题 + 封面右下角视频数，编辑 / 删除收进右上角「···」菜单，参照切片「我的合集」卡）+ 新建；合集封面取按顺序排在最前的视频封面，空合集为占位图标；合集详情（`/desktop/library/video-collections/:collectionId`）结构为「标题块（合集名 + 简介 + `播放全部`，**只有一行标题**）→ 成员列表顶栏 `AppListHeader` → 列表 / 网格」，**顶栏与移动端合集详情共用同一条**：筛选入口收排序（`VideoCollectionFilterSectionGroup`：手动顺序 / 入库 / 标题 / 时长 / 文件大小 × 升降序，与视频列表对齐并额外含「手动顺序」对应后端 `position:asc`，默认手动顺序；手动顺序固定升序、隐藏方向分节），桌面点击就地展开浮层、移动弹底部抽屉；信息槽放成员数（`N 个视频`）；右侧操作槽放「选择 / 视图切换」。**成员数放信息槽而不是标题块**——标题块再多一行文字，会在移动端把列表压得很靠下。多选态原地改写整条顶栏。**仅桌面、且在「手动顺序」下**以 `ReorderableListView` 支持拖拽**乐观重排**（失败回滚重载），切到其它排序即退化为普通 `ListView` 并隐藏拖拽手柄（避免与排序冲突）；移动端不提供拖拽重排。另支持移除、单集 / 「播放全部」。
 - **连播**：合集播放携带上下文（`collectionId` + 有序 `playlist` 视频 id），`MoviePlayerSurface` 新增可加性 `onCompleted` 回调，本集自然结束自动跳下一集，到末尾停止；非合集进入不跳转。
 - **视频导入**：PornBox 列表页不再保留导入入口；导入统一在「媒体导入」页 `PornBox 影片` 标签的「新建导入」（`showVideoImportDialog`：目录浏览选源 + 媒体库 + 合集必选 + 导入方式），触发后为异步搬库作业并在该标签历史列表跟踪进度与失败文件（详见 §6.14）。
 - **移动端视频列表**：视频区使用 `AppListHeader`，左侧筛选图标打开排序底部抽屉，中间显示当前排序与总数，右侧「选择」仅控制视频列表；进入选择态后顶栏原地显示退出、已选数量与全选，批量加入合集 / 删除仍保留在底部操作栏。合集区的「新建 / 查看全部」保持在合集标题行，后续统一顶栏迁移时再接入操作槽。
 - **多选态两端规则**：桌面进入选择后**原地改写整条顶栏**为 `AppSelectionHeaderToolbar`（计数 / 全选 / 加入合集 / 删除 / 取消，高度与常规顶栏一致，不在筛选行下方另起一行）；移动端顶栏只留退出 / 计数 / 全选，批量动作在贴底的 `AppSelectionBottomBar`。视频合集详情页因为没有筛选顶栏，选择条用不套高度容器的裸 `AppSelectionToolbar`，挂在标题块下方。
 
-新增共享组件：`lib/widgets/videos/`（`VideoSummaryCard` / `VideoSummaryGrid` / `VideoFilterSectionGroup`（双端共用的筛选分节，取代原 `VideoFilterToolbar`） / `VideoCollectionSortBar`）；合集成员行 `CollectionMemberRow` 新增 `reorderable`（默认 `true`，非手动排序时传 `false` 以隐藏拖拽手柄）；视频域专属选择器 `PersonSelectorPanel` 在 `lib/features/videos/presentation/`。`TagSelectorPanel` 新增可选 `showMatchModeToggle`（默认 `true`，影片侧不变；视频域传 `false`）。
+新增共享组件：`lib/widgets/videos/`（`VideoSummaryCard` / `VideoSummaryGrid` / `VideoFilterSectionGroup`（双端共用的筛选分节，取代原 `VideoFilterToolbar`） / `VideoCollectionFilterSectionGroup`（双端共用的合集排序分节，取代原 `VideoCollectionSortBar`））；合集成员行 `CollectionMemberRow` 新增 `reorderable`（默认 `true`，非手动排序时传 `false` 以隐藏拖拽手柄）；视频域专属选择器 `PersonSelectorPanel` 在 `lib/features/videos/presentation/`。`TagSelectorPanel` 新增可选 `showMatchModeToggle`（默认 `true`，影片侧不变；视频域传 `false`）。
 
 ## 7. 共享组件基线
 
@@ -1115,7 +1115,7 @@ Web 端复用同一套壳层和页面结构，但浏览器环境下不启用窗�
 - `actionSlots` 放「新建 / 查看全部 / 更多 / 选择」等操作，业务侧继续复用 `AppTextButton` / `AppIconButton` / `AppButton`
 - `AppListHeader.selection` 用于多选态原地改写整条顶栏；窄屏且插槽较多时，筛选按钮保持固定，其余内容横向滚动
 
-当前已迁移移动影片、女优、排行榜、PornBox 视频区、标签页影片区、热评与时刻（桌面侧影片 / 女优 / 榜单 / PornBox / 热评 / 时刻也已并入同一条顶栏）；其余历史自绘顶栏仍按页面现状运行，后续逐步迁移，不应在文档中描述为已经统一。
+当前已迁移移动影片、女优、排行榜、PornBox 视频区、标签页影片区、热评、时刻与视频合集详情（桌面侧影片 / 女优 / 女优详情 / 榜单 / PornBox / 热评 / 时刻 / 视频合集详情也已并入同一条顶栏）；其余历史自绘顶栏仍按页面现状运行，后续逐步迁移，不应在文档中描述为已经统一。
 
 ### 7.4 AppSelectField
 

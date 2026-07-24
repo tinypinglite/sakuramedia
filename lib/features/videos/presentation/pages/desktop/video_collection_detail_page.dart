@@ -22,8 +22,10 @@ import 'package:sakuramedia/widgets/domain/collections/collection_member_views.d
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_mode.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/features/videos/presentation/widgets/collections/video_collection_sort_bar.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
+import 'package:sakuramedia/features/videos/presentation/widgets/collections/video_collection_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
 
 /// 合集详情的成员排布方式：纵向列表（可拖序）或网格（侧重浏览）。
@@ -371,19 +373,14 @@ class _DesktopVideoCollectionDetailPageState
               key: const Key('video-collection-detail-page'),
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(context),
-                // 排序工具条：选择模式下隐藏（与其它头部控件一致），空合集无需排序。
-                if (!selectionMode && _controller.items.isNotEmpty) ...[
+                _buildTitleBlock(context),
+                // 空合集没什么可排序 / 可选择的，顶栏整条省掉。
+                if (_controller.items.isNotEmpty) ...[
                   SizedBox(height: context.appSpacing.md),
-                  VideoCollectionSortBar(
-                    sortField: _controller.sortField,
-                    sortDirection: _controller.sortDirection,
-                    onChanged:
-                        ({required field, direction}) => _controller.applySort(
-                          field: field,
-                          direction: direction,
-                        ),
-                  ),
+                  if (selectionMode)
+                    _buildSelectionHeader(context)
+                  else
+                    _buildListHeader(context),
                 ],
                 SizedBox(height: context.appSpacing.lg),
                 Expanded(child: _buildBody(context)),
@@ -395,10 +392,12 @@ class _DesktopVideoCollectionDetailPageState
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  /// 标题块：合集名 + 简介 + 「播放全部」主行动。
+  /// 「选择 / 视图切换」在下面那条 [AppListHeader] 的操作槽里，成员数在它的信息槽里
+  /// ——标题块只放这一页的身份信息，不再堆第二行文字。
+  Widget _buildTitleBlock(BuildContext context) {
     final collection = _controller.collection;
     final items = _controller.items;
-    final count = collection?.itemCount ?? items.length;
     final description = collection?.description.trim() ?? '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,61 +406,26 @@ class _DesktopVideoCollectionDetailPageState
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    collection?.name ?? '合集详情',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s20,
-                      weight: AppTextWeight.semibold,
-                      tone: AppTextTone.primary,
-                    ),
-                  ),
-                  SizedBox(height: context.appSpacing.xs),
-                  Text(
-                    '$count 个视频',
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s14,
-                      weight: AppTextWeight.regular,
-                      tone: AppTextTone.secondary,
-                    ),
-                  ),
-                ],
+              child: Text(
+                collection?.name ?? '合集详情',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s20,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.primary,
+                ),
               ),
             ),
-            // 选择模式下隐藏「选择/视图切换/播放全部」，仅保留标题与下方批量栏。
-            if (!selectionMode) ...[
-              if (items.isNotEmpty) ...[
-                AppSelectionEntryButton(
-                  key: const Key('video-collection-enter-selection-button'),
-                  onPressed: enterSelection,
-                ),
-                SizedBox(width: context.appSpacing.sm),
-                AppIconButton(
-                  key: const Key('video-collection-layout-toggle'),
-                  tooltip: _layout == _VideoLayout.list ? '网格视图' : '列表视图',
-                  onPressed: _toggleLayout,
-                  icon: Icon(
-                    _layout == _VideoLayout.list
-                        ? Icons.grid_view_rounded
-                        : Icons.view_agenda_outlined,
-                    size: context.appComponentTokens.iconSizeSm,
-                  ),
-                ),
-                SizedBox(width: context.appSpacing.sm),
-              ],
+            // 多选态隐藏主行动，避免和批量操作混在一起误触。
+            if (!selectionMode)
               AppButton(
                 key: const Key('video-collection-play-all-button'),
                 label: '播放全部',
                 variant: AppButtonVariant.primary,
                 onPressed: items.isEmpty ? null : () => _playFrom(0),
               ),
-            ],
           ],
         ),
         if (description.isNotEmpty) ...[
@@ -476,23 +440,66 @@ class _DesktopVideoCollectionDetailPageState
             ),
           ),
         ],
-        if (selectionMode) ...[
-          SizedBox(height: context.appSpacing.md),
-          _buildSelectionBar(context),
-        ],
       ],
     );
   }
 
-  Widget _buildSelectionBar(BuildContext context) {
+  /// 成员列表顶栏：与影片 / PornBox 列表页共用同一条 `AppListHeader`。
+  /// 筛选入口收排序（含「手动顺序」），信息槽放成员数，右侧操作槽放
+  /// 「选择 / 视图切换」。
+  Widget _buildListHeader(BuildContext context) {
+    final count =
+        _controller.collection?.itemCount ?? _controller.items.length;
+    return AppListHeader(
+      filterButtonKey: const Key('video-collection-sort-trigger'),
+      filterIcon: Icons.swap_vert_rounded,
+      filterLabel: videoCollectionSortLabel(_controller.sortField),
+      filterPanelKey: const Key('video-collection-sort-panel'),
+      filterPanelExtraWidth: 180,
+      filterPanelBuilder:
+          (_) => VideoCollectionFilterSectionGroup(
+            sortField: _controller.sortField,
+            sortDirection: _controller.sortDirection,
+            onChanged: _applySort,
+          ),
+      informationSlots: [
+        AppListHeaderInfo(
+          key: const Key('video-collection-total'),
+          label: '$count 个视频',
+        ),
+      ],
+      actionSlots: [
+        AppSelectionEntryButton(
+          key: const Key('video-collection-enter-selection-button'),
+          onPressed: enterSelection,
+        ),
+        AppIconButton(
+          key: const Key('video-collection-layout-toggle'),
+          tooltip: _layout == _VideoLayout.list ? '网格视图' : '列表视图',
+          onPressed: _toggleLayout,
+          icon: Icon(
+            _layout == _VideoLayout.list
+                ? Icons.grid_view_rounded
+                : Icons.view_agenda_outlined,
+            size: context.appComponentTokens.iconSizeSm,
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _applySort({required VideoSortField? field, SortDirection? direction}) {
+    _controller.applySort(field: field, direction: direction);
+  }
+
+  /// 多选态**原地改写整条列表顶栏**（与视频列表页一致），不在顶栏下面另起一行。
+  Widget _buildSelectionHeader(BuildContext context) {
     final items = _controller.items;
     final itemIds = items.map((it) => it.itemId);
     final allSelected = isAllSelected(itemIds);
     final hasSelection = selectedCount > 0;
 
-    // 与视频列表页同一份多选骨架（AppSelectionToolbar）；这里不套顶栏高度容器，
-    // 因为本页没有筛选顶栏，选择条挂在标题块下方。
-    return AppSelectionToolbar(
+    return AppSelectionHeaderToolbar(
       countLabel: '已选 $selectedCount 个',
       selectAllLabel: allSelected ? '取消全选' : '全选',
       selectAllKey: const Key('video-collection-select-all-button'),

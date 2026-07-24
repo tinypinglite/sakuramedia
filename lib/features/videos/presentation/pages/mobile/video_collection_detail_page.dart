@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:oktoast/oktoast.dart';
@@ -13,6 +15,7 @@ import 'package:sakuramedia/widgets/domain/collections/playback/collection_playb
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_player_page.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/pick_video_collection_dialog.dart';
+import 'package:sakuramedia/features/videos/presentation/widgets/collections/video_collection_filter_sections.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/collections/video_collection_detail_controller.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/notifiers/video_mutation_change_notifier.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
@@ -21,6 +24,9 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
@@ -97,13 +103,18 @@ class _MobileVideoCollectionDetailPageState
               _controller.collection == null) {
             return AppEmptyState(message: _controller.errorMessage!);
           }
+          // 合集名报给外层返回栏（见 AppMobileSubpageTitle），页面内不再重复写
+          // 一遍标题——省掉「返回栏静态标题 + 页内大标题」两层。
+          _reportTitle();
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (selectionMode)
-                _buildSelectionBar(context)
-              else
-                _buildHeader(context),
+              // 空合集没什么可排序 / 可选择的，顶栏整条省掉。
+              if (_controller.items.isNotEmpty)
+                if (selectionMode)
+                  _buildSelectionHeader(context)
+                else
+                  _buildListHeader(context),
               SizedBox(height: context.appSpacing.md),
               Expanded(child: _buildBody(context)),
               if (selectionMode) _buildBatchBar(context),
@@ -116,75 +127,102 @@ class _MobileVideoCollectionDetailPageState
 
   // --------------------------------------------------------- 头部
 
-  Widget _buildHeader(BuildContext context) {
-    final spacing = context.appSpacing;
-    final collection = _controller.collection;
-    final items = _controller.items;
-    final count = collection?.itemCount ?? items.length;
-    return Padding(
-      // 横向缩进由 AppMobileSubpageShell 的 8px body padding 统一提供。
-      padding: EdgeInsets.only(top: spacing.md),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  collection?.name ?? '合集',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s18,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-                SizedBox(height: spacing.xs),
-                Text(
-                  '$count 个视频',
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.secondary,
-                  ),
-                ),
-              ],
-            ),
+  /// 把合集名报给外层返回栏。数据是异步来的，所以每次 build 后用
+  /// post-frame 回调写——直接在 build 里改 notifier 会触发 build-during-build。
+  void _reportTitle() {
+    final name = _controller.collection?.name.trim();
+    if (name == null || name.isEmpty) {
+      return;
+    }
+    final notifier = AppMobileSubpageTitle.read(context);
+    if (notifier == null || notifier.value == name) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        notifier.value = name;
+      }
+    });
+  }
+
+  /// 成员列表顶栏：与桌面合集详情共用同一条 `AppListHeader`，差别只在筛选面板的
+  /// 容器——桌面就地浮层，移动底部抽屉。
+  Widget _buildListHeader(BuildContext context) {
+    final count =
+        _controller.collection?.itemCount ?? _controller.items.length;
+    return AppListHeader(
+      filterButtonKey: const Key('mobile-video-collection-sort-trigger'),
+      filterIcon: Icons.swap_vert_rounded,
+      filterTooltip: '排序',
+      filterLabel: videoCollectionSortLabel(_controller.sortField),
+      onFilterTap: () => unawaited(_openSortDrawer()),
+      informationSlots: [
+        AppListHeaderInfo(
+          key: const Key('mobile-video-collection-total'),
+          label: '$count 个视频',
+        ),
+      ],
+      actionSlots: [
+        AppTextButton(
+          key: const Key('mobile-video-collection-play-all-button'),
+          label: '播放',
+          size: AppTextButtonSize.xSmall,
+          onPressed: () => _playFrom(0),
+        ),
+        AppTextButton(
+          key: const Key('mobile-video-collection-enter-selection-button'),
+          label: '选择',
+          size: AppTextButtonSize.xSmall,
+          icon: const Icon(Icons.check_circle_outline, size: 14),
+          onPressed: enterSelection,
+        ),
+        AppIconButton(
+          key: const Key('mobile-video-collection-layout-toggle'),
+          tooltip: _layout == _VideoLayout.list ? '网格视图' : '列表视图',
+          onPressed: _toggleLayout,
+          icon: Icon(
+            _layout == _VideoLayout.list
+                ? Icons.grid_view_rounded
+                : Icons.view_agenda_outlined,
+            size: context.appComponentTokens.iconSizeSm,
           ),
-          if (items.isNotEmpty) ...[
-            AppTextButton(
-              key: const Key('mobile-video-collection-enter-selection-button'),
-              label: '选择',
-              size: AppTextButtonSize.small,
-              icon: const Icon(Icons.check_circle_outline, size: 14),
-              onPressed: enterSelection,
-            ),
-            SizedBox(width: spacing.xs),
-            AppIconButton(
-              key: const Key('mobile-video-collection-layout-toggle'),
-              tooltip: _layout == _VideoLayout.list ? '网格视图' : '列表视图',
-              onPressed: _toggleLayout,
-              icon: Icon(
-                _layout == _VideoLayout.list
-                    ? Icons.grid_view_rounded
-                    : Icons.view_agenda_outlined,
-                size: context.appComponentTokens.iconSizeSm,
-              ),
-            ),
-            SizedBox(width: spacing.xs),
-            AppTextButton(
-              key: const Key('mobile-video-collection-play-all-button'),
-              label: '播放',
-              size: AppTextButtonSize.small,
-              onPressed: () => _playFrom(0),
-            ),
-          ],
-        ],
+        ),
+      ],
+    );
+  }
+
+  /// 多选态原地改写整条顶栏：只留退出 / 计数 / 全选，批量动作在贴底的
+  /// [_buildBatchBar]（与影片 / PornBox 移动列表一致）。
+  Widget _buildSelectionHeader(BuildContext context) {
+    final itemIds = _controller.items.map((it) => it.itemId);
+    final allSelected = isAllSelected(itemIds);
+    return AppListHeader.selection(
+      selectionLabel: '已选 $selectedCount 个',
+      selectionExitButtonKey: const Key(
+        'mobile-video-collection-exit-selection-button',
       ),
+      onExitSelection: exitSelection,
+      actionSlots: [
+        AppButton(
+          key: const Key('mobile-video-collection-select-all-button'),
+          label: allSelected ? '取消全选' : '全选',
+          variant: AppButtonVariant.ghost,
+          size: AppButtonSize.xSmall,
+          isSelected: allSelected,
+          onPressed: () => toggleSelectAll(itemIds),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openSortDrawer() async {
+    await showMobileVideoCollectionFilterDrawer(
+      context,
+      sortField: _controller.sortField,
+      sortDirection: _controller.sortDirection,
+      onChanged:
+          ({required field, direction}) =>
+              _controller.applySort(field: field, direction: direction),
     );
   }
 
@@ -569,95 +607,32 @@ class _MobileVideoCollectionDetailPageState
     exitSelection();
   }
 
-  Widget _buildSelectionBar(BuildContext context) {
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final itemIds = _controller.items.map((it) => it.itemId);
-    final allSelected = isAllSelected(itemIds);
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: spacing.md,
-        vertical: spacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        border: Border(bottom: BorderSide(color: colors.divider)),
-      ),
-      child: Row(
-        children: [
-          AppTextButton(
-            key: const Key('mobile-video-collection-exit-selection-button'),
-            label: '取消',
-            size: AppTextButtonSize.small,
-            onPressed: exitSelection,
-          ),
-          SizedBox(width: spacing.sm),
-          Text(
-            '已选 $selectedCount 个',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s14,
-              weight: AppTextWeight.medium,
-              tone: AppTextTone.primary,
-            ),
-          ),
-          const Spacer(),
-          AppTextButton(
-            key: const Key('mobile-video-collection-select-all-button'),
-            label: allSelected ? '取消全选' : '全选',
-            size: AppTextButtonSize.small,
-            onPressed: () => toggleSelectAll(itemIds),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBatchBar(BuildContext context) {
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
     final hasSelection = selectedCount > 0;
-    return Container(
-      padding: EdgeInsets.all(spacing.md),
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        border: Border(top: BorderSide(color: colors.divider)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: AppButton(
-                key: const Key(
-                  'mobile-video-collection-batch-add-collection-button',
-                ),
-                label: '加入合集',
-                variant: AppButtonVariant.secondary,
-                onPressed: hasSelection ? _batchAddToOtherCollection : null,
-              ),
-            ),
-            SizedBox(width: spacing.sm),
-            Expanded(
-              child: AppButton(
-                key: const Key('mobile-video-collection-batch-remove-button'),
-                label: '移除',
-                variant: AppButtonVariant.secondary,
-                onPressed: hasSelection ? _batchRemove : null,
-              ),
-            ),
-            SizedBox(width: spacing.sm),
-            Expanded(
-              child: AppButton(
-                key: const Key('mobile-video-collection-batch-delete-button'),
-                label: '删除',
-                variant: AppButtonVariant.danger,
-                onPressed: hasSelection ? _batchDelete : null,
-              ),
-            ),
-          ],
+    return AppSelectionBottomBar(
+      key: const Key('mobile-video-collection-batch-bottom-bar'),
+      actions: [
+        AppButton(
+          key: const Key(
+            'mobile-video-collection-batch-add-collection-button',
+          ),
+          label: '加入合集',
+          variant: AppButtonVariant.secondary,
+          onPressed: hasSelection ? _batchAddToOtherCollection : null,
         ),
-      ),
+        AppButton(
+          key: const Key('mobile-video-collection-batch-remove-button'),
+          label: '移除',
+          variant: AppButtonVariant.secondary,
+          onPressed: hasSelection ? _batchRemove : null,
+        ),
+        AppButton(
+          key: const Key('mobile-video-collection-batch-delete-button'),
+          label: '删除',
+          variant: AppButtonVariant.danger,
+          onPressed: hasSelection ? _batchDelete : null,
+        ),
+      ],
     );
   }
 }

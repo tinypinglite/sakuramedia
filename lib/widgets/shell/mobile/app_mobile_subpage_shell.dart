@@ -3,7 +3,43 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/theme.dart';
 
-class AppMobileSubpageShell extends StatelessWidget {
+/// 让子页面把「真实标题」报给外层返回栏的信箱。
+///
+/// 路由层只知道静态标题（「合集」「播放列表详情」…），真正的名字要等页面把数据
+/// 拉回来才有。页面拿到后 `AppMobileSubpageTitle.of(context)?.value = name`，
+/// 返回栏立刻换成它，页面内部就不必再写一遍标题——省掉「静态标题 + 页内大标题」
+/// 两层重复，也把列表往上提了一整块。
+///
+/// 没有报的子页保持路由传进来的静态标题，行为不变。
+class AppMobileSubpageTitle extends InheritedWidget {
+  const AppMobileSubpageTitle({
+    super.key,
+    required this.notifier,
+    required super.child,
+  });
+
+  final ValueNotifier<String?> notifier;
+
+  static ValueNotifier<String?>? of(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<AppMobileSubpageTitle>()
+        ?.notifier;
+  }
+
+  /// 不建立依赖关系的读取——在 `initState` / 回调里写标题时用这个，避免把页面
+  /// 挂到 InheritedWidget 的重建链上。
+  static ValueNotifier<String?>? read(BuildContext context) {
+    return context
+        .getInheritedWidgetOfExactType<AppMobileSubpageTitle>()
+        ?.notifier;
+  }
+
+  @override
+  bool updateShouldNotify(AppMobileSubpageTitle oldWidget) =>
+      notifier != oldWidget.notifier;
+}
+
+class AppMobileSubpageShell extends StatefulWidget {
   const AppMobileSubpageShell({
     super.key,
     required this.title,
@@ -28,6 +64,20 @@ class AppMobileSubpageShell extends StatelessWidget {
   final EdgeInsetsGeometry bodyPadding;
 
   @override
+  State<AppMobileSubpageShell> createState() => _AppMobileSubpageShellState();
+}
+
+class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
+  /// 子页面报上来的真实标题；为 null 时用路由给的静态标题。
+  final ValueNotifier<String?> _titleOverride = ValueNotifier<String?>(null);
+
+  @override
+  void dispose() {
+    _titleOverride.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final router = GoRouter.maybeOf(context);
     final navigator = Navigator.maybeOf(context);
@@ -37,7 +87,7 @@ class AppMobileSubpageShell extends StatelessWidget {
         if (didPop) {
           return;
         }
-        _goToDefault(router, resolvedDefaultLocation);
+        _goToDefault(router, widget.resolvedDefaultLocation);
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         key: const Key('mobile-subpage-system-overlay'),
@@ -64,20 +114,35 @@ class AppMobileSubpageShell extends StatelessWidget {
                   icon: const Icon(Icons.arrow_back_ios_new_rounded),
                   tooltip: '返回',
                 ),
-                title: Text(
-                  title,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.medium,
-                    tone: AppTextTone.primary,
-                  ),
+                title: ValueListenableBuilder<String?>(
+                  valueListenable: _titleOverride,
+                  builder: (context, override, _) {
+                    final resolved =
+                        (override != null && override.trim().isNotEmpty)
+                            ? override
+                            : widget.title;
+                    return Text(
+                      resolved,
+                      key: const Key('mobile-subpage-title'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s14,
+                        weight: AppTextWeight.medium,
+                        tone: AppTextTone.primary,
+                      ),
+                    );
+                  },
                 ),
               ),
               body: Padding(
                 key: const Key('mobile-subpage-body-padding'),
-                padding: bodyPadding,
-                child: child,
+                padding: widget.bodyPadding,
+                child: AppMobileSubpageTitle(
+                  notifier: _titleOverride,
+                  child: widget.child,
+                ),
               ),
             ),
           ),
@@ -99,10 +164,10 @@ class AppMobileSubpageShell extends StatelessWidget {
       return;
     }
     final activePath =
-        currentPath ??
+        widget.currentPath ??
         (router != null ? GoRouterState.of(context).uri.path : null);
-    if (activePath != resolvedDefaultLocation) {
-      _goToDefault(router, resolvedDefaultLocation);
+    if (activePath != widget.resolvedDefaultLocation) {
+      _goToDefault(router, widget.resolvedDefaultLocation);
     }
   }
 
