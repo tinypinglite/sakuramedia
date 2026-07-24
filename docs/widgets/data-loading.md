@@ -50,6 +50,16 @@
 - **required**: `isSelected`
 - **何时用**: 多选模式下,卡片右上角覆盖。已经在 `ClipGridCard` / `ClipCoverCard` / `CollectionMemberCard` 等用了——新增可选卡片直接复用,**别再自己画一个**。
 
+## AppSelectionToolbar / AppSelectionEntryButton
+- **路径**: `lib/widgets/base/interaction/selection/app_selection_toolbar.dart`
+- **用途**: 多选态操作条骨架(`已选 N · Spacer · 全选/取消全选 · 批量动作… · 取消`)+ 非多选态的「选择」入口按钮。进入多选后**原地替换筛选行**,保持信息密度不变。
+- **required**(toolbar): `countLabel` · `selectAllLabel` · `onToggleAll` · `actions: List<Widget>` · `onExit`
+- **可选**(toolbar): `countKey` / `selectAllKey` / `exitKey`(测试锚点) · `exitLabel`(默认 `取消`)
+- **required**(entry button): `onPressed`(`null` 即禁用);`label` 默认 `选择`
+- **约定**: 计数单位由 caller 决定(`已选 3 部` / `已选 3 个`);「全选」文案的变体(`取消全选` / `全选(12)` / `全选可重置(2/5)`)也由 caller 拼好传入;批量动作按钮 caller 自备,通常 `AppButton(variant: primary, size: small)`,**只让正在执行的那一个 `isLoading`**,其余禁用即可。
+- **何时用**: 任何「进入多选 → 批量操作」列表的顶部条。现有薄壳:`MovieBatchSelectionToolbar`(影片批量订阅,见 [domain-widgets.md](./domain-widgets.md))、活动中心资源任务面板 `_ResourceTaskSelectionBar`。**别再手写那一坨 Row**。
+- **配合**: 状态机走 `MultiSelectStateMixin`,卡片角标走 `SelectionCheckBadge`。
+
 ## AppSelectableTile
 - **路径**: `lib/widgets/base/interaction/selection/app_selectable_tile.dart`
 - **用途**: 「可选中卡片」外壳 —— `Material→InkWell→AnimatedContainer(120ms)` 圆角边框卡,选中/未选态自动切换 `selectionSurface/selectionBorder` 与 `surfaceMuted/borderSubtle`。

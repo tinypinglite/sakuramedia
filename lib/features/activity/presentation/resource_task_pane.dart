@@ -9,13 +9,14 @@ import 'package:sakuramedia/features/activity/presentation/resource_task_filter_
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 
 /// 构建资源任务 Tab 的 sliver 列表。
 ///
@@ -540,7 +541,6 @@ class _ResourceTaskSelectionBar extends StatelessWidget {
     if (!controller.selectionMode) {
       return _ResourceTaskSelectionEntryRow(controller: controller);
     }
-    final spacing = context.appSpacing;
     final failedCount = controller.visibleFailedCount;
     final failedTotal = controller.visibleFailedTotalCount;
     final allSelected = controller.isAllVisibleFailedSelected;
@@ -555,28 +555,15 @@ class _ResourceTaskSelectionBar extends StatelessWidget {
                 ? '全选可重置($failedCount/$failedTotal)'
                 : '全选');
 
-    return Row(
-      children: [
-        Text(
-          '已选 ${controller.selectedCount} 个',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.medium,
-            tone: AppTextTone.primary,
-          ),
-        ),
-        const Spacer(),
-        AppTextButton(
-          key: const Key('resource-task-select-all-button'),
-          label: selectAllLabel,
-          size: AppTextButtonSize.small,
-          onPressed:
-              (isBusy || failedCount == 0)
-                  ? null
-                  : controller.toggleSelectAllVisibleFailed,
-        ),
-        SizedBox(width: spacing.sm),
+    return AppSelectionToolbar(
+      countLabel: '已选 ${controller.selectedCount} 个',
+      selectAllLabel: selectAllLabel,
+      selectAllKey: const Key('resource-task-select-all-button'),
+      onToggleAll:
+          (isBusy || failedCount == 0)
+              ? null
+              : controller.toggleSelectAllVisibleFailed,
+      actions: [
         AppButton(
           key: const Key('resource-task-batch-reset-button'),
           label: '重置生成状态',
@@ -584,16 +571,13 @@ class _ResourceTaskSelectionBar extends StatelessWidget {
           size: AppButtonSize.small,
           isLoading: isBusy,
           onPressed:
-              (!hasSelection || isBusy) ? null : () => _handleConfirmReset(context),
-        ),
-        SizedBox(width: spacing.sm),
-        AppTextButton(
-          key: const Key('resource-task-exit-selection-button'),
-          label: '取消',
-          size: AppTextButtonSize.small,
-          onPressed: isBusy ? null : controller.exitSelectionMode,
+              (!hasSelection || isBusy)
+                  ? null
+                  : () => _handleConfirmReset(context),
         ),
       ],
+      exitKey: const Key('resource-task-exit-selection-button'),
+      onExit: isBusy ? null : controller.exitSelectionMode,
     );
   }
 }
@@ -609,40 +593,11 @@ class _ResourceTaskSelectionEntryRow extends StatelessWidget {
     return Row(
       children: [
         const Spacer(),
-        AppTextButton(
+        AppSelectionEntryButton(
           key: const Key('resource-task-enter-selection-button'),
-          label: '选择',
-          size: AppTextButtonSize.small,
-          icon: const Icon(Icons.check_circle_outline, size: 16),
           onPressed: canEnter ? controller.enterSelectionMode : null,
         ),
       ],
-    );
-  }
-}
-
-/// 与 [SelectionCheckBadge] 同尺寸，但用 sakura 品牌 `appTextPalette.accent`
-/// 而非历史 `selectionBorder`(Ant 蓝)。仅本文件用。
-class _AccentCheckBadge extends StatelessWidget {
-  const _AccentCheckBadge({required this.isSelected});
-
-  final bool isSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isSelected
-            ? context.appTextPalette.accent
-            : Colors.black.withValues(alpha: 0.35),
-        border: Border.all(color: Colors.white, width: 1.5),
-      ),
-      child: isSelected
-          ? const Icon(Icons.check, color: Colors.white, size: 14)
-          : null,
     );
   }
 }
@@ -685,10 +640,8 @@ class _ResourceTaskRecordTile extends StatelessWidget {
         lastAttemptedLabel != null ? '最近尝试 $lastAttemptedLabel' : '尚未执行';
     final showAsBatchSelected = inSelectionMode && isBatchSelected;
     final dimmed = inSelectionMode && !isBatchSelectable;
-    // sakura 品牌选中色统一走 palette accent（0xFF6B2D2A 樱酒红），
-    // 不复用 selectionBorder(Ant 蓝)——参考 AppLeftCoverCard 里的说明。
     final borderColor = (showAsBatchSelected || isSelected)
-        ? context.appTextPalette.accent
+        ? colors.selectionBorder
         : colors.borderSubtle;
 
     return Material(
@@ -719,7 +672,7 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                     if (inSelectionMode) ...[
                       Padding(
                         padding: EdgeInsets.only(right: context.appSpacing.md),
-                        child: _AccentCheckBadge(isSelected: isBatchSelected),
+                        child: SelectionCheckBadge(isSelected: isBatchSelected),
                       ),
                     ],
                     Expanded(

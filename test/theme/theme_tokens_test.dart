@@ -58,7 +58,8 @@ void main() {
     expect(colors.desktopSidebarGlassTint, const Color(0x4CEFEFEF));
     expect(colors.desktopSidebarGlassHover, const Color(0x80FFFFFF));
     expect(colors.desktopSidebarGlassActive, const Color(0x99FFFFFF));
-    expect(colors.selectionSurface, const Color(0xFFEAF3FF));
+    expect(colors.selectionSurface, const Color(0xFFF7ECEB));
+    expect(colors.selectionBorder, const Color(0xFF6B2D2A));
     expect(colors.errorAccentForeground, const Color(0xFFF04438));
     expect(textScale.s20, 20);
     expect(textScale.s18, 18);

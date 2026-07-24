@@ -16,10 +16,12 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_tab_header.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/features/rankings/presentation/widgets/ranked_movie_summary_grid.dart';
 import 'package:sakuramedia/features/rankings/presentation/widgets/ranking_filter_sections.dart';
 
@@ -30,10 +32,25 @@ class MobileRankingsPage extends StatefulWidget {
   State<MobileRankingsPage> createState() => _MobileRankingsPageState();
 }
 
-class _MobileRankingsPageState extends State<MobileRankingsPage> {
+class _MobileRankingsPageState extends State<MobileRankingsPage>
+    with
+        MultiSelectStateMixin<MobileRankingsPage, String>,
+        MovieBatchSelectionMixin<MobileRankingsPage> {
   late final CachedPageStateHandle<RankingsListPageStateEntry> _pageStateHandle;
 
   RankingsListPageStateEntry get _pageState => _pageStateHandle.value;
+
+  @override
+  String get batchKeyPrefix => 'mobile-rankings';
+
+  @override
+  MovieBatchToggleExecutor get batchSubscriptionExecutor =>
+      _pageState.controller.batchToggleSubscription;
+
+  @override
+  List<String> get batchSelectableNumbers => _pageState.controller.items
+      .map((movie) => movie.movieNumber)
+      .toList(growable: false);
 
   @override
   void initState() {
@@ -93,9 +110,22 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
                 slivers: [
                   SliverToBoxAdapter(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildHeader(context),
+                        if (selectionMode)
+                          buildBatchSelectionToolbar()
+                        else ...[
+                          _buildHeader(context),
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: context.appSpacing.xs,
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: buildEnterSelectionButton(),
+                            ),
+                          ),
+                        ],
                         SizedBox(height: context.appSpacing.md),
                         if (_pageState.filterErrorMessage != null) ...[
                           _FilterErrorBanner(
@@ -137,6 +167,10 @@ class _MobileRankingsPageState extends State<MobileRankingsPage> {
                           (movie) => _pageState.controller
                               .isSubscriptionUpdating(movie.movieNumber),
                       emptyMessage: '暂无榜单数据',
+                      selectionMode: selectionMode,
+                      isMovieSelected: (movie) => isSelected(movie.movieNumber),
+                      onMovieSelectedChanged:
+                          (movie, _) => toggleSelect(movie.movieNumber),
                     ),
                   if (showFooter)
                     SliverToBoxAdapter(

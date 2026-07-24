@@ -17,6 +17,9 @@ class RankedMovieSummaryGrid extends StatelessWidget {
     this.isMovieSubscriptionUpdating,
     this.emptyMessage = '暂无榜单数据',
     this.placeholderCount = 8,
+    this.selectionMode = false,
+    this.isMovieSelected,
+    this.onMovieSelectedChanged,
   });
 
   final List<RankedMovieListItemDto> items;
@@ -30,6 +33,11 @@ class RankedMovieSummaryGrid extends StatelessWidget {
   isMovieSubscriptionUpdating;
   final String emptyMessage;
   final int placeholderCount;
+
+  final bool selectionMode;
+  final bool Function(RankedMovieListItemDto movie)? isMovieSelected;
+  final void Function(RankedMovieListItemDto movie, bool selected)?
+  onMovieSelectedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -46,23 +54,24 @@ class RankedMovieSummaryGrid extends StatelessWidget {
             posterKey: Key('ranked-movie-summary-card-skeleton-poster-$index'),
             aspectRatio: context.appComponentTokens.movieCardAspectRatio,
           ),
-      itemBuilder:
-          (context, item, index) => MovieSummaryCard(
-            movie: item.toMovieListItem(),
-            rank: item.rank,
-            onTap: onMovieTap == null ? null : () => onMovieTap!(item),
-            onRequestMenu:
-                onMovieMenuRequest == null
-                    ? null
-                    : (globalPosition) =>
-                        onMovieMenuRequest!(item, globalPosition),
-            onSubscriptionTap:
-                onMovieSubscriptionTap == null
-                    ? null
-                    : () => onMovieSubscriptionTap!(item),
-            isSubscriptionUpdating:
-                isMovieSubscriptionUpdating?.call(item) ?? false,
-          ),
+      itemBuilder: (context, item, index) => MovieSummaryCard(
+        movie: item.toMovieListItem(),
+        rank: item.rank,
+        onTap: onMovieTap == null ? null : () => onMovieTap!(item),
+        onRequestMenu: onMovieMenuRequest == null
+            ? null
+            : (globalPosition) => onMovieMenuRequest!(item, globalPosition),
+        onSubscriptionTap: onMovieSubscriptionTap == null
+            ? null
+            : () => onMovieSubscriptionTap!(item),
+        isSubscriptionUpdating:
+            isMovieSubscriptionUpdating?.call(item) ?? false,
+        selectionMode: selectionMode,
+        isSelected: isMovieSelected?.call(item) ?? false,
+        onSelectedChanged: onMovieSelectedChanged == null
+            ? null
+            : (selected) => onMovieSelectedChanged!(item, selected),
+      ),
     );
   }
 }
@@ -80,6 +89,9 @@ class RankedMovieSummarySliver extends StatelessWidget {
     this.isMovieSubscriptionUpdating,
     this.emptyMessage = '暂无榜单数据',
     this.placeholderCount = 8,
+    this.selectionMode = false,
+    this.isMovieSelected,
+    this.onMovieSelectedChanged,
   });
 
   final List<RankedMovieListItemDto> items;
@@ -93,6 +105,11 @@ class RankedMovieSummarySliver extends StatelessWidget {
   isMovieSubscriptionUpdating;
   final String emptyMessage;
   final int placeholderCount;
+
+  final bool selectionMode;
+  final bool Function(RankedMovieListItemDto movie)? isMovieSelected;
+  final void Function(RankedMovieListItemDto movie, bool selected)?
+  onMovieSelectedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -109,23 +126,24 @@ class RankedMovieSummarySliver extends StatelessWidget {
             posterKey: Key('ranked-movie-summary-card-skeleton-poster-$index'),
             aspectRatio: context.appComponentTokens.movieCardAspectRatio,
           ),
-      itemBuilder:
-          (context, item, index) => MovieSummaryCard(
-            movie: item.toMovieListItem(),
-            rank: item.rank,
-            onTap: onMovieTap == null ? null : () => onMovieTap!(item),
-            onRequestMenu:
-                onMovieMenuRequest == null
-                    ? null
-                    : (globalPosition) =>
-                        onMovieMenuRequest!(item, globalPosition),
-            onSubscriptionTap:
-                onMovieSubscriptionTap == null
-                    ? null
-                    : () => onMovieSubscriptionTap!(item),
-            isSubscriptionUpdating:
-                isMovieSubscriptionUpdating?.call(item) ?? false,
-          ),
+      itemBuilder: (context, item, index) => MovieSummaryCard(
+        movie: item.toMovieListItem(),
+        rank: item.rank,
+        onTap: onMovieTap == null ? null : () => onMovieTap!(item),
+        onRequestMenu: onMovieMenuRequest == null
+            ? null
+            : (globalPosition) => onMovieMenuRequest!(item, globalPosition),
+        onSubscriptionTap: onMovieSubscriptionTap == null
+            ? null
+            : () => onMovieSubscriptionTap!(item),
+        isSubscriptionUpdating:
+            isMovieSubscriptionUpdating?.call(item) ?? false,
+        selectionMode: selectionMode,
+        isSelected: isMovieSelected?.call(item) ?? false,
+        onSelectedChanged: onMovieSelectedChanged == null
+            ? null
+            : (selected) => onMovieSelectedChanged!(item, selected),
+      ),
     );
   }
 }

@@ -49,7 +49,10 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
           ),
       subscribeMovie: context.read<MoviesApi>().subscribeMovie,
       unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
+      batchSubscribeMovies: context.read<MoviesApi>().batchSubscribeMovies,
+      batchUnsubscribeMovies: context.read<MoviesApi>().batchUnsubscribeMovies,
       onSubscriptionChanged: _reportSubscriptionChange,
+      onSubscriptionsBatchChanged: _subscriptionChangeNotifier.reportBatch,
       pageSize: 24,
       loadMoreTriggerOffset: 300,
     );
@@ -73,13 +76,8 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
   }
 
   void _onMovieSubscriptionChanged() {
-    final change = _subscriptionChangeNotifier.lastChange;
-    if (change == null) {
-      return;
-    }
-    _moviesController.applySubscriptionChange(
-      movieNumber: change.movieNumber,
-      isSubscribed: change.isSubscribed,
+    _subscriptionChangeNotifier.consumePendingChanges(
+      _moviesController.applySubscriptionChanges,
     );
   }
 
@@ -215,40 +213,40 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
           controller: _moviesController.scrollController,
           slivers: [
             SliverMainAxisGroup(
-            slivers: [
-              const SliverToBoxAdapter(
-                child: KeyedSubtree(
-                  key: Key('overview-page'),
-                  child: SystemDiagnosticsStrip(),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: SizedBox(height: context.appSpacing.md),
-              ),
-              SliverToBoxAdapter(
-                child: OverviewStatsStrip(
-                  items: stats,
-                  isLoading: systemInfo.isLoadingStatus,
-                  errorMessage: systemInfo.statusError,
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: SizedBox(height: context.appSpacing.xxl),
-              ),
-              SliverToBoxAdapter(
-                child: Text(
-                  '最近添加',
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s18,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
+              slivers: [
+                const SliverToBoxAdapter(
+                  child: KeyedSubtree(
+                    key: Key('overview-page'),
+                    child: SystemDiagnosticsStrip(),
                   ),
                 ),
-              ),
-              SliverToBoxAdapter(
-                child: SizedBox(height: context.appSpacing.md),
-              ),
+                SliverToBoxAdapter(
+                  child: SizedBox(height: context.appSpacing.md),
+                ),
+                SliverToBoxAdapter(
+                  child: OverviewStatsStrip(
+                    items: stats,
+                    isLoading: systemInfo.isLoadingStatus,
+                    errorMessage: systemInfo.statusError,
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: SizedBox(height: context.appSpacing.xxl),
+                ),
+                SliverToBoxAdapter(
+                  child: Text(
+                    '最近添加',
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s18,
+                      weight: AppTextWeight.semibold,
+                      tone: AppTextTone.primary,
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: SizedBox(height: context.appSpacing.md),
+                ),
                 AnimatedBuilder(
                   animation: _moviesController,
                   builder: (context, _) {
@@ -256,49 +254,48 @@ class _DesktopOverviewPageState extends State<DesktopOverviewPage> {
                     return SliverMainAxisGroup(
                       slivers: [
                         MovieSummarySliver(
-                        items: _moviesController.items,
-                        isLoading: _moviesController.isInitialLoading,
-                        errorMessage: _moviesController.initialErrorMessage,
-                        onMovieTap:
-                            (movie) => context.pushDesktopMovieDetail(
-                              movieNumber: movie.movieNumber,
-                              fallbackPath: desktopOverviewPath,
-                            ),
-                        onMovieMenuRequest:
-                            (movie, globalPosition) =>
-                                requestMovieCollectionMenu(
-                                  context,
-                                  movie.movieNumber,
-                                  globalPosition,
-                                  isSubscribed: movie.isSubscribed,
-                                ),
-                        onMovieSubscriptionTap:
-                            (movie) =>
-                                _toggleMovieSubscription(movie.movieNumber),
-                        isMovieSubscriptionUpdating:
-                            (movie) => _moviesController.isSubscriptionUpdating(
-                              movie.movieNumber,
-                            ),
-                        emptyMessage: '暂无入库影片，去搜索看看吧',
-                      ),
-                      if (footer != null)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              top: context.appSpacing.md,
-                            ),
-                            child: footer,
-                          ),
+                          items: _moviesController.items,
+                          isLoading: _moviesController.isInitialLoading,
+                          errorMessage: _moviesController.initialErrorMessage,
+                          onMovieTap:
+                              (movie) => context.pushDesktopMovieDetail(
+                                movieNumber: movie.movieNumber,
+                                fallbackPath: desktopOverviewPath,
+                              ),
+                          onMovieMenuRequest:
+                              (movie, globalPosition) =>
+                                  requestMovieCollectionMenu(
+                                    context,
+                                    movie.movieNumber,
+                                    globalPosition,
+                                    isSubscribed: movie.isSubscribed,
+                                  ),
+                          onMovieSubscriptionTap:
+                              (movie) =>
+                                  _toggleMovieSubscription(movie.movieNumber),
+                          isMovieSubscriptionUpdating:
+                              (movie) => _moviesController
+                                  .isSubscriptionUpdating(movie.movieNumber),
+                          emptyMessage: '暂无入库影片，去搜索看看吧',
                         ),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        ],
+                        if (footer != null)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                top: context.appSpacing.md,
+                              ),
+                              child: footer,
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 

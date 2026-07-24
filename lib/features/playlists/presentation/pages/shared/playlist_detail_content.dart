@@ -14,9 +14,11 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/domain/playlists/playlist_banner_card.dart';
 
@@ -36,10 +38,25 @@ class PlaylistDetailContent extends StatefulWidget {
   State<PlaylistDetailContent> createState() => _PlaylistDetailContentState();
 }
 
-class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
+class _PlaylistDetailContentState extends State<PlaylistDetailContent>
+    with
+        MultiSelectStateMixin<PlaylistDetailContent, String>,
+        MovieBatchSelectionMixin<PlaylistDetailContent> {
   late final PlaylistDetailController _detailController;
   late final PagedMovieSummaryController _moviesController;
   late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
+
+  @override
+  String get batchKeyPrefix => 'playlist-detail';
+
+  @override
+  MovieBatchToggleExecutor get batchSubscriptionExecutor =>
+      _moviesController.batchToggleSubscription;
+
+  @override
+  List<String> get batchSelectableNumbers => _moviesController.items
+      .map((movie) => movie.movieNumber)
+      .toList(growable: false);
 
   Listenable get _pageListenable =>
       Listenable.merge(<Listenable>[_detailController, _moviesController]);
@@ -65,7 +82,10 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
           ),
       subscribeMovie: moviesApi.subscribeMovie,
       unsubscribeMovie: moviesApi.unsubscribeMovie,
+      batchSubscribeMovies: moviesApi.batchSubscribeMovies,
+      batchUnsubscribeMovies: moviesApi.batchUnsubscribeMovies,
       onSubscriptionChanged: _reportSubscriptionChange,
+      onSubscriptionsBatchChanged: _subscriptionChangeNotifier.reportBatch,
       pageSize: 24,
       loadMoreTriggerOffset: 300,
       initialLoadErrorText: '影片列表加载失败，请稍后重试',
@@ -84,13 +104,8 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
   }
 
   void _onMovieSubscriptionChanged() {
-    final change = _subscriptionChangeNotifier.lastChange;
-    if (change == null) {
-      return;
-    }
-    _moviesController.applySubscriptionChange(
-      movieNumber: change.movieNumber,
-      isSubscribed: change.isSubscribed,
+    _subscriptionChangeNotifier.consumePendingChanges(
+      _moviesController.applySubscriptionChanges,
     );
   }
 
@@ -111,99 +126,115 @@ class _PlaylistDetailContentState extends State<PlaylistDetailContent> {
       child: AnimatedBuilder(
         animation: _pageListenable,
         builder: (context, _) {
-        if (_detailController.isLoading && _detailController.playlist == null) {
-          return const SizedBox.expand(
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
+          if (_detailController.isLoading &&
+              _detailController.playlist == null) {
+            return const SizedBox.expand(
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-        if (_detailController.errorMessage != null ||
-            _detailController.playlist == null) {
-          return AppEmptyState(
-            message: _detailController.errorMessage ?? '播放列表详情暂时无法加载，请稍后重试',
-          );
-        }
+          if (_detailController.errorMessage != null ||
+              _detailController.playlist == null) {
+            return AppEmptyState(
+              message: _detailController.errorMessage ?? '播放列表详情暂时无法加载，请稍后重试',
+            );
+          }
 
-        final playlist = _detailController.playlist!;
-        final footer = _buildLoadMoreFooter(context);
-        final slivers = <Widget>[
-          SliverToBoxAdapter(
-            child: PlaylistBannerCard(
-              key: Key('playlist-banner-card-${playlist.id}'),
-              title: playlist.name,
-              coverImageUrl:
-                  _moviesController
-                      .items
-                      .firstOrNull
-                      ?.coverImage
-                      ?.bestAvailableUrl,
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: context.appSpacing.sm),
-              child: Text(
-                '${playlist.movieCount} 部影片',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s14,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
-                ),
+          final playlist = _detailController.playlist!;
+          final footer = _buildLoadMoreFooter(context);
+          final slivers = <Widget>[
+            SliverToBoxAdapter(
+              child: PlaylistBannerCard(
+                key: Key('playlist-banner-card-${playlist.id}'),
+                title: playlist.name,
+                coverImageUrl:
+                    _moviesController
+                        .items
+                        .firstOrNull
+                        ?.coverImage
+                        ?.bestAvailableUrl,
               ),
             ),
-          ),
-          MovieSummarySliver(
-            items: _moviesController.items,
-            isLoading: _moviesController.isInitialLoading,
-            errorMessage: _moviesController.initialErrorMessage,
-            onMovieTap: widget.onMovieTap,
-            onMovieMenuRequest:
-                (movie, globalPosition) => requestMovieCollectionMenu(
-                  context,
-                  movie.movieNumber,
-                  globalPosition,
-                  isSubscribed: movie.isSubscribed,
-                ),
-            onMovieSubscriptionTap:
-                (movie) => _toggleMovieSubscription(movie.movieNumber),
-            isMovieSubscriptionUpdating:
-                (movie) =>
-                    _moviesController.isSubscriptionUpdating(movie.movieNumber),
-            emptyMessage: '暂无影片数据',
-          ),
-          if (footer != null)
             SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.only(top: context.appSpacing.md),
-                child: footer,
+                padding: EdgeInsets.symmetric(vertical: context.appSpacing.sm),
+                child:
+                    selectionMode
+                        ? buildBatchSelectionToolbar()
+                        : Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${playlist.movieCount} 部影片',
+                                style: resolveAppTextStyle(
+                                  context,
+                                  size: AppTextSize.s14,
+                                  weight: AppTextWeight.regular,
+                                  tone: AppTextTone.secondary,
+                                ),
+                              ),
+                            ),
+                            buildEnterSelectionButton(),
+                          ],
+                        ),
               ),
             ),
-        ];
-        final scrollView = CustomScrollView(
-          physics:
-              widget.enablePullToRefresh
-                  ? const AlwaysScrollableScrollPhysics()
-                  : null,
-          controller: _moviesController.scrollController,
-          slivers: slivers,
-        );
-
-        if (!widget.enablePullToRefresh) {
-          return scrollView;
-        }
-
-        if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
-          return AppAdaptiveRefreshScrollView(
-            onRefresh: _handleRefresh,
+            MovieSummarySliver(
+              items: _moviesController.items,
+              isLoading: _moviesController.isInitialLoading,
+              errorMessage: _moviesController.initialErrorMessage,
+              onMovieTap: widget.onMovieTap,
+              onMovieMenuRequest:
+                  (movie, globalPosition) => requestMovieCollectionMenu(
+                    context,
+                    movie.movieNumber,
+                    globalPosition,
+                    isSubscribed: movie.isSubscribed,
+                  ),
+              onMovieSubscriptionTap:
+                  (movie) => _toggleMovieSubscription(movie.movieNumber),
+              isMovieSubscriptionUpdating:
+                  (movie) => _moviesController.isSubscriptionUpdating(
+                    movie.movieNumber,
+                  ),
+              emptyMessage: '暂无影片数据',
+              selectionMode: selectionMode,
+              isMovieSelected: (movie) => isSelected(movie.movieNumber),
+              onMovieSelectedChanged:
+                  (movie, _) => toggleSelect(movie.movieNumber),
+            ),
+            if (footer != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(top: context.appSpacing.md),
+                  child: footer,
+                ),
+              ),
+          ];
+          final scrollView = CustomScrollView(
+            physics:
+                widget.enablePullToRefresh
+                    ? const AlwaysScrollableScrollPhysics()
+                    : null,
             controller: _moviesController.scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
             slivers: slivers,
           );
-        }
 
-        return AppPullToRefresh(onRefresh: _handleRefresh, child: scrollView);
-      },
+          if (!widget.enablePullToRefresh) {
+            return scrollView;
+          }
+
+          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+            return AppAdaptiveRefreshScrollView(
+              onRefresh: _handleRefresh,
+              controller: _moviesController.scrollController,
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: slivers,
+            );
+          }
+
+          return AppPullToRefresh(onRefresh: _handleRefresh, child: scrollView);
+        },
       ),
     );
   }

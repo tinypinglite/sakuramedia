@@ -32,14 +32,16 @@ class CatalogSearchPageStateEntry implements AppPageStateEntry {
   bool hasBootstrapped = false;
 
   void _onMovieSubscriptionChanged() {
-    final change = _subscriptionChangeNotifier.lastChange;
-    if (change == null) {
-      return;
-    }
-    controller.applyMovieSubscriptionChange(
-      movieNumber: change.movieNumber,
-      isSubscribed: change.isSubscribed,
-    );
+    // 走 consumePendingChanges 而非直接读 lastChange：批量广播时 lastChange 只是
+    // changes.last，逐条读会漏掉同批的其余番号，搜索结果里的订阅心就会留在旧态。
+    _subscriptionChangeNotifier.consumePendingChanges((changes) {
+      for (final change in changes) {
+        controller.applyMovieSubscriptionChange(
+          movieNumber: change.movieNumber,
+          isSubscribed: change.isSubscribed,
+        );
+      }
+    });
   }
 
   void bootstrap({

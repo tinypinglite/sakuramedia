@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_cover_bottom_shade.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
@@ -16,6 +17,9 @@ class MovieSummaryCard extends StatelessWidget {
     this.onRequestMenu,
     this.onSubscriptionTap,
     this.isSubscriptionUpdating = false,
+    this.selectionMode = false,
+    this.isSelected = false,
+    this.onSelectedChanged,
   });
 
   final MovieListItemDto movie;
@@ -26,18 +30,28 @@ class MovieSummaryCard extends StatelessWidget {
   final VoidCallback? onSubscriptionTap;
   final bool isSubscriptionUpdating;
 
+  /// 选择模式开关：为 true 时卡片进入多选态——外圈换选中描边、叠勾选徽标、
+  /// 屏蔽 [onRequestMenu] / [onSubscriptionTap]，点击整卡切换选中。
+  final bool selectionMode;
+  final bool isSelected;
+  final ValueChanged<bool>? onSelectedChanged;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final componentTokens = context.appComponentTokens;
     final spacing = context.appSpacing;
+    final selected = selectionMode && isSelected;
 
     final card = Container(
       key: Key('movie-summary-card-${movie.movieNumber}'),
       decoration: BoxDecoration(
         color: colors.surfaceCard,
         borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: colors.borderSubtle),
+        border: Border.all(
+          color: selected ? colors.selectionBorder : colors.borderSubtle,
+          width: selected ? 2 : 1,
+        ),
         boxShadow: context.appShadows.card,
       ),
       clipBehavior: Clip.antiAlias,
@@ -87,91 +101,118 @@ class MovieSummaryCard extends StatelessWidget {
       ),
     );
 
-    final interactiveCard =
-        onTap == null && onRequestMenu == null
-            ? card
-            : AppImageActionTrigger(
-              onTap: onTap,
-              onRequestMenu: onRequestMenu,
-              child: card,
-            );
+    final Widget interactiveCard;
+    if (selectionMode) {
+      // 多选态：整卡点击切换选中，屏蔽菜单/右键。
+      interactiveCard = Material(
+        color: Colors.transparent,
+        borderRadius: context.appRadius.lgBorder,
+        child: InkWell(
+          key: Key('movie-summary-card-checkbox-${movie.movieNumber}'),
+          borderRadius: context.appRadius.lgBorder,
+          onTap: () => onSelectedChanged?.call(!isSelected),
+          child: card,
+        ),
+      );
+    } else if (onTap == null && onRequestMenu == null) {
+      interactiveCard = card;
+    } else {
+      interactiveCard = AppImageActionTrigger(
+        onTap: onTap,
+        onRequestMenu: onRequestMenu,
+        child: card,
+      );
+    }
 
-    if (!showStatusBadges) {
+    if (!showStatusBadges && !selectionMode) {
       return interactiveCard;
     }
 
     return Stack(
       children: [
         interactiveCard,
-        Positioned(
-          top: spacing.xs,
-          right: spacing.xs,
-          child: Container(
-            key: Key('movie-summary-card-heat-${movie.movieNumber}'),
-            padding: EdgeInsets.symmetric(
-              horizontal: spacing.sm,
-              vertical: spacing.xs,
-            ),
-            decoration: BoxDecoration(
-              color: colors.mediaOverlayStrong,
-              borderRadius: context.appRadius.pillBorder,
-              border: Border.all(
-                color: colors.borderSubtle.withValues(alpha: 0.42),
+        if (showStatusBadges)
+          Positioned(
+            top: spacing.xs,
+            right: spacing.xs,
+            child: Container(
+              key: Key('movie-summary-card-heat-${movie.movieNumber}'),
+              padding: EdgeInsets.symmetric(
+                horizontal: spacing.sm,
+                vertical: spacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: colors.mediaOverlayStrong,
+                borderRadius: context.appRadius.pillBorder,
+                border: Border.all(
+                  color: colors.borderSubtle.withValues(alpha: 0.42),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.local_fire_department_rounded,
+                    size: componentTokens.iconSizeXs,
+                    color: colors.movieDetailHeatIcon,
+                  ),
+                  SizedBox(width: spacing.xs),
+                  Text(
+                    _formatMovieHeat(movie.heat),
+                    key: Key(
+                      'movie-summary-card-heat-text-${movie.movieNumber}',
+                    ),
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s10,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.onMedia,
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+          ),
+        // 选择模式下屏蔽订阅心/播放态角标，避免手势冲突与信息噪音。
+        if (showStatusBadges && !selectionMode)
+          Positioned(
+            top: spacing.xs,
+            left: spacing.xs,
+            child: Wrap(
+              spacing: spacing.xs,
+              runSpacing: spacing.xs,
               children: [
-                Icon(
-                  Icons.local_fire_department_rounded,
-                  size: componentTokens.iconSizeXs,
-                  color: colors.movieDetailHeatIcon,
-                ),
-                SizedBox(width: spacing.xs),
-                Text(
-                  _formatMovieHeat(movie.heat),
-                  key: Key('movie-summary-card-heat-text-${movie.movieNumber}'),
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s10,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.onMedia,
+                SubscriptionHeartBadge(
+                  key: Key(
+                    'movie-summary-card-subscription-${movie.movieNumber}',
                   ),
+                  loadingKey: Key(
+                    'movie-summary-card-subscription-loading-${movie.movieNumber}',
+                  ),
+                  isSubscribed: movie.isSubscribed,
+                  isUpdating: isSubscriptionUpdating,
+                  onTap: onSubscriptionTap,
                 ),
+                if (movie.canPlay)
+                  _StatusBadge(
+                    key: Key(
+                      'movie-summary-card-status-playable-${movie.movieNumber}',
+                    ),
+                    icon: Icons.play_arrow_rounded,
+                    iconColor: context.appTextPalette.onMedia,
+                    background: colors.movieCardPlayableBadgeBackground,
+                  ),
               ],
             ),
           ),
-        ),
-        Positioned(
-          top: spacing.xs,
-          left: spacing.xs,
-          child: Wrap(
-            spacing: spacing.xs,
-            runSpacing: spacing.xs,
-            children: [
-              SubscriptionHeartBadge(
-                key: Key(
-                  'movie-summary-card-subscription-${movie.movieNumber}',
-                ),
-                loadingKey: Key(
-                  'movie-summary-card-subscription-loading-${movie.movieNumber}',
-                ),
-                isSubscribed: movie.isSubscribed,
-                isUpdating: isSubscriptionUpdating,
-                onTap: onSubscriptionTap,
-              ),
-              if (movie.canPlay)
-                _StatusBadge(
-                  key: Key(
-                    'movie-summary-card-status-playable-${movie.movieNumber}',
-                  ),
-                  icon: Icons.play_arrow_rounded,
-                  iconColor: context.appTextPalette.onMedia,
-                  background: colors.movieCardPlayableBadgeBackground,
-                ),
-            ],
+        if (selectionMode)
+          Positioned(
+            top: spacing.xs,
+            left: spacing.xs,
+            child: IgnorePointer(
+              child: SelectionCheckBadge(isSelected: isSelected),
+            ),
           ),
-        ),
       ],
     );
   }

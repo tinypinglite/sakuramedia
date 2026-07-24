@@ -25,7 +25,10 @@ class RankingsListPageStateEntry extends ChangeNotifier
       fetchPage: _fetchRankingPage,
       subscribeMovie: _moviesApi.subscribeMovie,
       unsubscribeMovie: _moviesApi.unsubscribeMovie,
+      batchSubscribeMovies: _moviesApi.batchSubscribeMovies,
+      batchUnsubscribeMovies: _moviesApi.batchUnsubscribeMovies,
       onSubscriptionChanged: _reportSubscriptionChange,
+      onSubscriptionsBatchChanged: _subscriptionChangeNotifier.reportBatch,
       pageSize: 24,
       loadMoreTriggerOffset: 300,
     );
@@ -53,13 +56,8 @@ class RankingsListPageStateEntry extends ChangeNotifier
   SortDirection selectedSortDirection = SortDirection.desc;
 
   void _onMovieSubscriptionChanged() {
-    final change = _subscriptionChangeNotifier.lastChange;
-    if (change == null) {
-      return;
-    }
-    controller.applySubscriptionChange(
-      movieNumber: change.movieNumber,
-      isSubscribed: change.isSubscribed,
+    _subscriptionChangeNotifier.consumePendingChanges(
+      controller.applySubscriptionChanges,
     );
   }
 
@@ -239,9 +237,10 @@ class RankingsListPageStateEntry extends ChangeNotifier
     }
 
     final sortField = selectedSortField;
-    final sort = sortField == null
-        ? null
-        : '${sortField.apiValue}:${selectedSortDirection.apiValue}';
+    final sort =
+        sortField == null
+            ? null
+            : '${sortField.apiValue}:${selectedSortDirection.apiValue}';
 
     return _rankingsApi.getRankingItems(
       sourceKey: source.sourceKey,

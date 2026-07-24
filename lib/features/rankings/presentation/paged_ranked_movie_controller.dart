@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/core/network/api_exception.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/controllers/listing/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_subscribable_list_mixin.dart';
 import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/paged_load_controller.dart';
 
@@ -13,12 +11,16 @@ typedef RankedMoviePageFetcher =
     );
 
 class PagedRankedMovieController
-    extends PagedLoadController<RankedMovieListItemDto> {
+    extends PagedLoadController<RankedMovieListItemDto>
+    with MovieSubscribableListMixin<RankedMovieListItemDto> {
   PagedRankedMovieController({
     required RankedMoviePageFetcher fetchPage,
     required this.subscribeMovie,
     required this.unsubscribeMovie,
+    this.batchSubscribeMovies = unwiredMovieBatchSubscription,
+    this.batchUnsubscribeMovies = unwiredMovieBatchSubscription,
     this.onSubscriptionChanged,
+    this.onSubscriptionsBatchChanged,
     int initialPage = 1,
     int pageSize = 24,
     double loadMoreTriggerOffset = 300,
@@ -35,80 +37,30 @@ class PagedRankedMovieController
          scrollController: scrollController,
        );
 
+  @override
   final MovieSubscriptionWriter subscribeMovie;
+  @override
   final MovieUnsubscriptionWriter unsubscribeMovie;
+  @override
+  final MovieBatchSubscriptionWriter batchSubscribeMovies;
+  @override
+  final MovieBatchSubscriptionWriter batchUnsubscribeMovies;
+  @override
   final MovieSubscriptionChangeReporter? onSubscriptionChanged;
-  final Set<String> _updatingMovieNumbers = <String>{};
+  @override
+  final MovieSubscriptionBatchReporter? onSubscriptionsBatchChanged;
 
-  bool isSubscriptionUpdating(String movieNumber) {
-    return _updatingMovieNumbers.contains(movieNumber);
-  }
+  @override
+  String movieNumberOf(RankedMovieListItemDto item) => item.movieNumber;
 
-  Future<MovieSubscriptionToggleResult> toggleSubscription({
-    required String movieNumber,
-  }) async {
-    final index = mutableItems.indexWhere(
-      (item) => item.movieNumber == movieNumber,
-    );
-    if (index == -1 || _updatingMovieNumbers.contains(movieNumber)) {
-      return const MovieSubscriptionToggleResult.ignored();
-    }
+  @override
+  bool isSubscribedOf(RankedMovieListItemDto item) => item.isSubscribed;
 
-    final movie = mutableItems[index];
-    _updatingMovieNumbers.add(movieNumber);
-    notifyListenersSafely();
-
-    try {
-      if (movie.isSubscribed) {
-        await unsubscribeMovie(movieNumber: movieNumber, deleteMedia: false);
-        mutableItems[index] = movie.copyWith(isSubscribed: false);
-        onSubscriptionChanged?.call(
-          movieNumber: movieNumber,
-          isSubscribed: false,
-        );
-        return const MovieSubscriptionToggleResult.unsubscribed();
-      }
-
-      await subscribeMovie(movieNumber: movieNumber);
-      mutableItems[index] = movie.copyWith(isSubscribed: true);
-      onSubscriptionChanged?.call(movieNumber: movieNumber, isSubscribed: true);
-      return const MovieSubscriptionToggleResult.subscribed();
-    } catch (error) {
-      if (_isBlockedByMedia(error)) {
-        return const MovieSubscriptionToggleResult.blockedByMedia();
-      }
-      return MovieSubscriptionToggleResult.failed(
-        message: apiErrorMessage(
-          error,
-          fallback: movie.isSubscribed ? '取消订阅影片失败' : '订阅影片失败',
-        ),
-      );
-    } finally {
-      _updatingMovieNumbers.remove(movieNumber);
-      notifyListenersSafely();
-    }
-  }
-
-  bool _isBlockedByMedia(Object error) {
-    return error is ApiException &&
-        error.error?.code == 'movie_subscription_has_media';
-  }
-
-  void applySubscriptionChange({
-    required String movieNumber,
-    required bool isSubscribed,
-  }) {
-    final index = mutableItems.indexWhere(
-      (item) => item.movieNumber == movieNumber,
-    );
-    if (index == -1) {
-      return;
-    }
-    final movie = mutableItems[index];
-    if (movie.isSubscribed == isSubscribed) {
-      return;
-    }
-    mutableItems[index] = movie.copyWith(isSubscribed: isSubscribed);
-    notifyListenersSafely();
+  @override
+  RankedMovieListItemDto copyWithSubscribed(
+    RankedMovieListItemDto item,
+    bool isSubscribed,
+  ) {
+    return item.copyWith(isSubscribed: isSubscribed);
   }
 }

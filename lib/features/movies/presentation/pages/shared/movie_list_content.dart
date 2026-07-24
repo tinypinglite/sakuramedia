@@ -5,13 +5,15 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
-import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_list_filterable_page_state.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_collection_type_change_notifier.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_filter_toolbar.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 
@@ -78,8 +80,23 @@ class MovieListContent extends StatefulWidget {
   State<MovieListContent> createState() => _MovieListContentState();
 }
 
-class _MovieListContentState extends State<MovieListContent> {
+class _MovieListContentState extends State<MovieListContent>
+    with
+        MultiSelectStateMixin<MovieListContent, String>,
+        MovieBatchSelectionMixin<MovieListContent> {
   late final MovieCollectionTypeChangeNotifier _collectionChangeNotifier;
+
+  @override
+  String get batchKeyPrefix => 'movie-list';
+
+  @override
+  MovieBatchToggleExecutor get batchSubscriptionExecutor =>
+      widget.pageState.controller.batchToggleSubscription;
+
+  @override
+  List<String> get batchSelectableNumbers => widget.pageState.controller.items
+      .map((movie) => movie.movieNumber)
+      .toList(growable: false);
 
   @override
   void initState() {
@@ -104,6 +121,10 @@ class _MovieListContentState extends State<MovieListContent> {
     if (change.targetType == MovieCollectionType.collection &&
         filterState.collectionType == MovieCollectionTypeFilter.single) {
       widget.pageState.controller.removeItem(change.movieNumber);
+      // 若被移除的项当前正被选中，同步从选中集合中移除。
+      if (selectionMode && selectedIds.contains(change.movieNumber)) {
+        setState(() => selectedIds.remove(change.movieNumber));
+      }
     }
   }
 
@@ -115,6 +136,10 @@ class _MovieListContentState extends State<MovieListContent> {
     setState(() {
       widget.pageState.filterState = nextState;
     });
+    // 切筛选跨结果集，选中态失去意义 —— 对齐活动中心样板行为。
+    if (selectionMode) {
+      exitSelection();
+    }
     final controller = widget.pageState.controller;
     if (controller.scrollController.hasClients) {
       controller.scrollController.jumpTo(0);
@@ -167,26 +192,45 @@ class _MovieListContentState extends State<MovieListContent> {
                 (controller.isLoadingMore ||
                     controller.loadMoreErrorMessage != null);
             final headerBuilder = widget.headerBuilder;
-            final header =
-                headerBuilder != null
-                    ? headerBuilder(
-                      context,
-                      MovieListHeaderArgs(
-                        filterState: widget.pageState.filterState,
-                        onApply: _applyFilter,
-                        onReset: _resetFilters,
-                        total: controller.total,
-                      ),
-                    )
-                    : AppFilterTotalHeader(
-                      leading: MovieFilterToolbar(
-                        filterState: widget.pageState.filterState,
-                        onChanged: _applyFilter,
-                        onReset: _resetFilters,
-                      ),
-                      totalText: '${controller.total} 部',
-                      totalKey: widget.totalKey,
-                    );
+            final Widget header;
+            if (selectionMode) {
+              // 进入多选后整行原地替换成操作条，跟活动中心元数据任务样板对齐。
+              header = buildBatchSelectionToolbar();
+            } else if (headerBuilder != null) {
+              // 自定义 header（移动影片页的 tab 头）没有 trailing 槽位，
+              // 「选择」入口另起一行右对齐——与移动排行榜/系列页一致。
+              header = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  headerBuilder(
+                    context,
+                    MovieListHeaderArgs(
+                      filterState: widget.pageState.filterState,
+                      onApply: _applyFilter,
+                      onReset: _resetFilters,
+                      total: controller.total,
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(top: context.appSpacing.xs),
+                    child: Row(
+                      children: [const Spacer(), buildEnterSelectionButton()],
+                    ),
+                  ),
+                ],
+              );
+            } else {
+              header = AppFilterTotalHeader(
+                leading: MovieFilterToolbar(
+                  filterState: widget.pageState.filterState,
+                  onChanged: _applyFilter,
+                  onReset: _resetFilters,
+                ),
+                totalText: '${controller.total} 部',
+                totalKey: widget.totalKey,
+                trailing: buildEnterSelectionButton(),
+              );
+            }
             return SliverMainAxisGroup(
               slivers: [
                 SliverToBoxAdapter(
@@ -222,6 +266,10 @@ class _MovieListContentState extends State<MovieListContent> {
                       (widget.pageState.filterState.isDefault
                           ? '暂无影片，去搜索看看吧'
                           : '当前筛选条件下暂无匹配影片'),
+                  selectionMode: selectionMode,
+                  isMovieSelected: (movie) => isSelected(movie.movieNumber),
+                  onMovieSelectedChanged:
+                      (movie, _) => toggleSelect(movie.movieNumber),
                 ),
                 if (showFooter)
                   SliverToBoxAdapter(

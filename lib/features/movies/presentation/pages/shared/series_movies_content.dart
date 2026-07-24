@@ -11,8 +11,10 @@ import 'package:sakuramedia/features/movies/presentation/widgets/series_import/s
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 
 typedef SeriesMoviesBodyBuilder =
@@ -53,10 +55,25 @@ class SeriesMoviesContent extends StatefulWidget {
   State<SeriesMoviesContent> createState() => _SeriesMoviesContentState();
 }
 
-class _SeriesMoviesContentState extends State<SeriesMoviesContent> {
+class _SeriesMoviesContentState extends State<SeriesMoviesContent>
+    with
+        MultiSelectStateMixin<SeriesMoviesContent, String>,
+        MovieBatchSelectionMixin<SeriesMoviesContent> {
   late final PagedMovieSummaryController _controller;
   late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
   late final String? _initialSeriesName;
+
+  @override
+  String get batchKeyPrefix => 'series-movies';
+
+  @override
+  MovieBatchToggleExecutor get batchSubscriptionExecutor =>
+      _controller.batchToggleSubscription;
+
+  @override
+  List<String> get batchSelectableNumbers => _controller.items
+      .map((movie) => movie.movieNumber)
+      .toList(growable: false);
 
   @override
   void initState() {
@@ -74,7 +91,10 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent> {
           ),
       subscribeMovie: context.read<MoviesApi>().subscribeMovie,
       unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
+      batchSubscribeMovies: context.read<MoviesApi>().batchSubscribeMovies,
+      batchUnsubscribeMovies: context.read<MoviesApi>().batchUnsubscribeMovies,
       onSubscriptionChanged: _reportSubscriptionChange,
+      onSubscriptionsBatchChanged: _subscriptionChangeNotifier.reportBatch,
       pageSize: 24,
       loadMoreTriggerOffset: 300,
       initialLoadErrorText: '系列影片加载失败，请稍后重试',
@@ -106,13 +126,8 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent> {
   }
 
   void _onMovieSubscriptionChanged() {
-    final change = _subscriptionChangeNotifier.lastChange;
-    if (change == null) {
-      return;
-    }
-    _controller.applySubscriptionChange(
-      movieNumber: change.movieNumber,
-      isSubscribed: change.isSubscribed,
+    _subscriptionChangeNotifier.consumePendingChanges(
+      _controller.applySubscriptionChanges,
     );
   }
 
@@ -182,14 +197,27 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent> {
                   SliverToBoxAdapter(
                     child: Column(
                       key: widget.contentKey,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _SeriesMoviesHeader(
-                          seriesName: _displaySeriesName,
-                          total: _controller.total,
-                          totalKey: widget.totalKey,
-                          onImport: _handleImport,
-                        ),
+                        if (selectionMode)
+                          buildBatchSelectionToolbar()
+                        else ...[
+                          _SeriesMoviesHeader(
+                            seriesName: _displaySeriesName,
+                            total: _controller.total,
+                            totalKey: widget.totalKey,
+                            onImport: _handleImport,
+                          ),
+                          Padding(
+                            padding: EdgeInsets.only(
+                              top: context.appSpacing.xs,
+                            ),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: buildEnterSelectionButton(),
+                            ),
+                          ),
+                        ],
                         SizedBox(height: widget.sectionSpacing),
                       ],
                     ),
@@ -255,6 +283,9 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent> {
       isMovieSubscriptionUpdating:
           (movie) => _controller.isSubscriptionUpdating(movie.movieNumber),
       emptyMessage: '该系列暂无影片',
+      selectionMode: selectionMode,
+      isMovieSelected: (movie) => isSelected(movie.movieNumber),
+      onMovieSelectedChanged: (movie, _) => toggleSelect(movie.movieNumber),
     );
   }
 

@@ -13,8 +13,10 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 
 class DesktopFollowPage extends StatefulWidget {
@@ -24,10 +26,25 @@ class DesktopFollowPage extends StatefulWidget {
   State<DesktopFollowPage> createState() => _DesktopFollowPageState();
 }
 
-class _DesktopFollowPageState extends State<DesktopFollowPage> {
+class _DesktopFollowPageState extends State<DesktopFollowPage>
+    with
+        MultiSelectStateMixin<DesktopFollowPage, String>,
+        MovieBatchSelectionMixin<DesktopFollowPage> {
   late final PagedMovieSummaryController _moviesController;
   late final MovieCollectionTypeChangeNotifier _collectionChangeNotifier;
   late final MovieSubscriptionChangeNotifier _subscriptionChangeNotifier;
+
+  @override
+  String get batchKeyPrefix => 'desktop-follow';
+
+  @override
+  MovieBatchToggleExecutor get batchSubscriptionExecutor =>
+      _moviesController.batchToggleSubscription;
+
+  @override
+  List<String> get batchSelectableNumbers => _moviesController.items
+      .map((movie) => movie.movieNumber)
+      .toList(growable: false);
 
   @override
   void initState() {
@@ -46,7 +63,10 @@ class _DesktopFollowPageState extends State<DesktopFollowPage> {
               .getSubscribedActorsLatestMovies(page: page, pageSize: pageSize),
       subscribeMovie: context.read<MoviesApi>().subscribeMovie,
       unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
+      batchSubscribeMovies: context.read<MoviesApi>().batchSubscribeMovies,
+      batchUnsubscribeMovies: context.read<MoviesApi>().batchUnsubscribeMovies,
       onSubscriptionChanged: _reportSubscriptionChange,
+      onSubscriptionsBatchChanged: _subscriptionChangeNotifier.reportBatch,
       pageSize: 24,
       loadMoreTriggerOffset: 300,
       initialLoadErrorText: '关注影片加载失败，请稍后重试',
@@ -71,17 +91,15 @@ class _DesktopFollowPageState extends State<DesktopFollowPage> {
     }
     if (change.targetType == MovieCollectionType.collection) {
       _moviesController.removeItem(change.movieNumber);
+      if (selectionMode && selectedIds.contains(change.movieNumber)) {
+        setState(() => selectedIds.remove(change.movieNumber));
+      }
     }
   }
 
   void _onMovieSubscriptionChanged() {
-    final change = _subscriptionChangeNotifier.lastChange;
-    if (change == null) {
-      return;
-    }
-    _moviesController.applySubscriptionChange(
-      movieNumber: change.movieNumber,
-      isSubscribed: change.isSubscribed,
+    _subscriptionChangeNotifier.consumePendingChanges(
+      _moviesController.applySubscriptionChanges,
     );
   }
 
@@ -115,75 +133,87 @@ class _DesktopFollowPageState extends State<DesktopFollowPage> {
           controller: _moviesController.scrollController,
           slivers: [
             AnimatedBuilder(
-            animation: _moviesController,
-            builder: (context, _) {
-              final showFooter =
-                  _moviesController.items.isNotEmpty &&
-                  (_moviesController.isLoadingMore ||
-                      _moviesController.loadMoreErrorMessage != null);
-              return SliverMainAxisGroup(
-                key: const Key('desktop-follow-page'),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: AppFilterTotalHeader(
-                      leading: Text(
-                        '女优上新',
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s18,
-                          weight: AppTextWeight.semibold,
-                          tone: AppTextTone.primary,
-                        ),
-                      ),
-                      totalText: '${_moviesController.total} 部',
-                      totalKey: const Key('desktop-follow-page-total'),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: context.appSpacing.lg),
-                  ),
-                  MovieSummarySliver(
-                    items: _moviesController.items,
-                    isLoading: _moviesController.isInitialLoading,
-                    errorMessage: _moviesController.initialErrorMessage,
-                    onMovieTap:
-                        (movie) => context.pushDesktopMovieDetail(
-                          movieNumber: movie.movieNumber,
-                          fallbackPath: desktopFollowPath,
-                        ),
-                    onMovieMenuRequest: (movie, globalPosition) {
-                      unawaited(
-                        showMovieCollectionFeatureActionMenu(
-                          context: context,
-                          movieNumber: movie.movieNumber,
-                          globalPosition: globalPosition,
-                          isSubscribed: movie.isSubscribed,
-                        ),
-                      );
-                    },
-                    onMovieSubscriptionTap:
-                        (movie) => _toggleMovieSubscription(movie.movieNumber),
-                    isMovieSubscriptionUpdating:
-                        (movie) => _moviesController.isSubscriptionUpdating(
-                          movie.movieNumber,
-                        ),
-                    emptyMessage: '暂无关注影片',
-                  ),
-                  if (showFooter)
+              animation: _moviesController,
+              builder: (context, _) {
+                final showFooter =
+                    _moviesController.items.isNotEmpty &&
+                    (_moviesController.isLoadingMore ||
+                        _moviesController.loadMoreErrorMessage != null);
+                return SliverMainAxisGroup(
+                  key: const Key('desktop-follow-page'),
+                  slivers: [
                     SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.only(top: context.appSpacing.md),
-                        child: AppPagedLoadMoreFooter(
-                          isLoading: _moviesController.isLoadingMore,
-                          errorMessage: _moviesController.loadMoreErrorMessage,
-                          onRetry: _moviesController.loadMore,
+                      child:
+                          selectionMode
+                              ? buildBatchSelectionToolbar()
+                              : AppFilterTotalHeader(
+                                leading: Text(
+                                  '女优上新',
+                                  style: resolveAppTextStyle(
+                                    context,
+                                    size: AppTextSize.s18,
+                                    weight: AppTextWeight.semibold,
+                                    tone: AppTextTone.primary,
+                                  ),
+                                ),
+                                totalText: '${_moviesController.total} 部',
+                                totalKey: const Key(
+                                  'desktop-follow-page-total',
+                                ),
+                                trailing: buildEnterSelectionButton(),
+                              ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: context.appSpacing.lg),
+                    ),
+                    MovieSummarySliver(
+                      items: _moviesController.items,
+                      isLoading: _moviesController.isInitialLoading,
+                      errorMessage: _moviesController.initialErrorMessage,
+                      onMovieTap:
+                          (movie) => context.pushDesktopMovieDetail(
+                            movieNumber: movie.movieNumber,
+                            fallbackPath: desktopFollowPath,
+                          ),
+                      onMovieMenuRequest: (movie, globalPosition) {
+                        unawaited(
+                          showMovieCollectionFeatureActionMenu(
+                            context: context,
+                            movieNumber: movie.movieNumber,
+                            globalPosition: globalPosition,
+                            isSubscribed: movie.isSubscribed,
+                          ),
+                        );
+                      },
+                      onMovieSubscriptionTap:
+                          (movie) =>
+                              _toggleMovieSubscription(movie.movieNumber),
+                      isMovieSubscriptionUpdating:
+                          (movie) => _moviesController.isSubscriptionUpdating(
+                            movie.movieNumber,
+                          ),
+                      emptyMessage: '暂无关注影片',
+                      selectionMode: selectionMode,
+                      isMovieSelected: (movie) => isSelected(movie.movieNumber),
+                      onMovieSelectedChanged:
+                          (movie, _) => toggleSelect(movie.movieNumber),
+                    ),
+                    if (showFooter)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: context.appSpacing.md),
+                          child: AppPagedLoadMoreFooter(
+                            isLoading: _moviesController.isLoadingMore,
+                            errorMessage:
+                                _moviesController.loadMoreErrorMessage,
+                            onRetry: _moviesController.loadMore,
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              );
-            },
-          ),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ),

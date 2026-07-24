@@ -57,7 +57,10 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
               .getSubscribedActorsLatestMovies(page: page, pageSize: pageSize),
       subscribeMovie: context.read<MoviesApi>().subscribeMovie,
       unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
+      batchSubscribeMovies: context.read<MoviesApi>().batchSubscribeMovies,
+      batchUnsubscribeMovies: context.read<MoviesApi>().batchUnsubscribeMovies,
       onSubscriptionChanged: _reportSubscriptionChange,
+      onSubscriptionsBatchChanged: _subscriptionChangeNotifier.reportBatch,
       pageSize: 20,
       loadMoreTriggerOffset: 300,
       initialLoadErrorText: '关注影片加载失败，请稍后重试',
@@ -87,13 +90,8 @@ class _MobileOverviewFollowTabState extends State<MobileOverviewFollowTab> {
   }
 
   void _onMovieSubscriptionChanged() {
-    final change = _subscriptionChangeNotifier.lastChange;
-    if (change == null) {
-      return;
-    }
-    _moviesController.applySubscriptionChange(
-      movieNumber: change.movieNumber,
-      isSubscribed: change.isSubscribed,
+    _subscriptionChangeNotifier.consumePendingChanges(
+      _moviesController.applySubscriptionChanges,
     );
   }
 

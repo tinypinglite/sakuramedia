@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/core/network/api_exception.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/paged_load_controller.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_subscribable_list_mixin.dart';
+
+/// 订阅相关的类型（结果/typedef/mixin）都在 `movie_subscribable_list_mixin.dart`，
+/// 这里 re-export，让既有 `import 'paged_movie_summary_controller.dart'` 的调用方
+/// 无需改动即可继续拿到 [MovieSubscriptionToggleResult] 等类型。
+export 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_subscribable_list_mixin.dart';
 
 typedef MovieSummaryPageFetcher =
     Future<PaginatedResponseDto<MovieListItemDto>> Function(
@@ -11,52 +15,16 @@ typedef MovieSummaryPageFetcher =
       int pageSize,
     );
 
-typedef MovieSubscriptionWriter =
-    Future<void> Function({required String movieNumber});
-
-typedef MovieUnsubscriptionWriter =
-    Future<void> Function({required String movieNumber, bool deleteMedia});
-
-typedef MovieSubscriptionChangeReporter =
-    void Function({required String movieNumber, required bool isSubscribed});
-
-enum MovieSubscriptionToggleStatus {
-  subscribed,
-  unsubscribed,
-  blockedByMedia,
-  failed,
-  ignored,
-}
-
-class MovieSubscriptionToggleResult {
-  const MovieSubscriptionToggleResult({required this.status, this.message});
-
-  const MovieSubscriptionToggleResult.subscribed()
-    : this(status: MovieSubscriptionToggleStatus.subscribed);
-
-  const MovieSubscriptionToggleResult.unsubscribed()
-    : this(status: MovieSubscriptionToggleStatus.unsubscribed);
-
-  const MovieSubscriptionToggleResult.blockedByMedia()
-    : this(status: MovieSubscriptionToggleStatus.blockedByMedia);
-
-  const MovieSubscriptionToggleResult.failed({required String message})
-    : this(status: MovieSubscriptionToggleStatus.failed, message: message);
-
-  const MovieSubscriptionToggleResult.ignored()
-    : this(status: MovieSubscriptionToggleStatus.ignored);
-
-  final MovieSubscriptionToggleStatus status;
-  final String? message;
-}
-
-class PagedMovieSummaryController
-    extends PagedLoadController<MovieListItemDto> {
+class PagedMovieSummaryController extends PagedLoadController<MovieListItemDto>
+    with MovieSubscribableListMixin<MovieListItemDto> {
   PagedMovieSummaryController({
     required MovieSummaryPageFetcher fetchPage,
     required this.subscribeMovie,
     required this.unsubscribeMovie,
+    this.batchSubscribeMovies = unwiredMovieBatchSubscription,
+    this.batchUnsubscribeMovies = unwiredMovieBatchSubscription,
     this.onSubscriptionChanged,
+    this.onSubscriptionsBatchChanged,
     int initialPage = 1,
     int pageSize = 24,
     double loadMoreTriggerOffset = 300,
@@ -73,98 +41,30 @@ class PagedMovieSummaryController
          scrollController: scrollController,
        );
 
+  @override
   final MovieSubscriptionWriter subscribeMovie;
+  @override
   final MovieUnsubscriptionWriter unsubscribeMovie;
+  @override
+  final MovieBatchSubscriptionWriter batchSubscribeMovies;
+  @override
+  final MovieBatchSubscriptionWriter batchUnsubscribeMovies;
+  @override
   final MovieSubscriptionChangeReporter? onSubscriptionChanged;
-  final Set<String> _updatingMovieNumbers = <String>{};
+  @override
+  final MovieSubscriptionBatchReporter? onSubscriptionsBatchChanged;
 
-  bool isSubscriptionUpdating(String movieNumber) {
-    return _updatingMovieNumbers.contains(movieNumber);
-  }
+  @override
+  String movieNumberOf(MovieListItemDto item) => item.movieNumber;
 
-  Future<MovieSubscriptionToggleResult> toggleSubscription({
-    required String movieNumber,
-  }) async {
-    final index = mutableItems.indexWhere(
-      (item) => item.movieNumber == movieNumber,
-    );
-    if (index == -1 || _updatingMovieNumbers.contains(movieNumber)) {
-      return const MovieSubscriptionToggleResult.ignored();
-    }
+  @override
+  bool isSubscribedOf(MovieListItemDto item) => item.isSubscribed;
 
-    final movie = mutableItems[index];
-    _updatingMovieNumbers.add(movieNumber);
-    notifyListenersSafely();
-
-    try {
-      if (movie.isSubscribed) {
-        await unsubscribeMovie(movieNumber: movieNumber, deleteMedia: false);
-        mutableItems[index] = movie.copyWith(isSubscribed: false);
-        onSubscriptionChanged?.call(
-          movieNumber: movieNumber,
-          isSubscribed: false,
-        );
-        return const MovieSubscriptionToggleResult.unsubscribed();
-      }
-
-      await subscribeMovie(movieNumber: movieNumber);
-      mutableItems[index] = movie.copyWith(isSubscribed: true);
-      onSubscriptionChanged?.call(movieNumber: movieNumber, isSubscribed: true);
-      return const MovieSubscriptionToggleResult.subscribed();
-    } catch (error) {
-      if (_isBlockedByMedia(error)) {
-        return const MovieSubscriptionToggleResult.blockedByMedia();
-      }
-      return MovieSubscriptionToggleResult.failed(
-        message: apiErrorMessage(
-          error,
-          fallback: movie.isSubscribed ? '取消订阅影片失败' : '订阅影片失败',
-        ),
-      );
-    } finally {
-      _updatingMovieNumbers.remove(movieNumber);
-      notifyListenersSafely();
-    }
-  }
-
-  void removeItem(String movieNumber) {
-    final index = mutableItems.indexWhere(
-      (item) => item.movieNumber == movieNumber,
-    );
-    if (index == -1) {
-      return;
-    }
-    mutableItems.removeAt(index);
-    mutableTotal = (mutableTotal - 1).clamp(0, mutableTotal);
-    notifyListenersSafely();
-  }
-
-  void applySubscriptionChange({
-    required String movieNumber,
-    required bool isSubscribed,
-    bool removeIfUnsubscribed = false,
-  }) {
-    final index = mutableItems.indexWhere(
-      (item) => item.movieNumber == movieNumber,
-    );
-    if (index == -1) {
-      return;
-    }
-    if (!isSubscribed && removeIfUnsubscribed) {
-      removeItem(movieNumber);
-      return;
-    }
-
-    final movie = mutableItems[index];
-    if (movie.isSubscribed == isSubscribed) {
-      return;
-    }
-    mutableItems[index] = movie.copyWith(isSubscribed: isSubscribed);
-    notifyListenersSafely();
-  }
-
-  bool _isBlockedByMedia(Object error) {
-    return error is ApiException &&
-        error.error?.code == 'movie_subscription_has_media';
+  @override
+  MovieListItemDto copyWithSubscribed(
+    MovieListItemDto item,
+    bool isSubscribed,
+  ) {
+    return item.copyWith(isSubscribed: isSubscribed);
   }
 }

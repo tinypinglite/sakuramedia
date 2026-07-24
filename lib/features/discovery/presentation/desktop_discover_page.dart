@@ -58,12 +58,16 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
     _subscriptionChangeNotifier.addListener(_onMovieSubscriptionChanged);
 
     _followController = PagedMovieSummaryController(
-      fetchPage: (page, pageSize) => context
-          .read<MoviesApi>()
-          .getSubscribedActorsLatestMovies(page: page, pageSize: pageSize),
+      fetchPage:
+          (page, pageSize) => context
+              .read<MoviesApi>()
+              .getSubscribedActorsLatestMovies(page: page, pageSize: pageSize),
       subscribeMovie: context.read<MoviesApi>().subscribeMovie,
       unsubscribeMovie: context.read<MoviesApi>().unsubscribeMovie,
+      batchSubscribeMovies: context.read<MoviesApi>().batchSubscribeMovies,
+      batchUnsubscribeMovies: context.read<MoviesApi>().batchUnsubscribeMovies,
       onSubscriptionChanged: _reportSubscriptionChange,
+      onSubscriptionsBatchChanged: _subscriptionChangeNotifier.reportBatch,
       pageSize: 6,
       initialLoadErrorText: '女优上新加载失败，请稍后重试',
     );
@@ -90,13 +94,8 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
   }
 
   void _onMovieSubscriptionChanged() {
-    final change = _subscriptionChangeNotifier.lastChange;
-    if (change == null) {
-      return;
-    }
-    _followController.applySubscriptionChange(
-      movieNumber: change.movieNumber,
-      isSubscribed: change.isSubscribed,
+    _subscriptionChangeNotifier.consumePendingChanges(
+      _followController.applySubscriptionChanges,
     );
   }
 
@@ -136,25 +135,25 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
         child: AppPageFrame(
           title: '',
           child: AnimatedBuilder(
-          animation: Listenable.merge(<Listenable>[
-            _controller,
-            _followController,
-          ]),
-          builder: (context, _) {
-            return Column(
-              key: const Key('desktop-discover-page'),
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildFollowSection(context),
-                SizedBox(height: context.appSpacing.xl),
-                _buildDailySection(context),
-                SizedBox(height: context.appSpacing.xl),
-                _buildMomentSection(context),
-              ],
-            );
-          },
+            animation: Listenable.merge(<Listenable>[
+              _controller,
+              _followController,
+            ]),
+            builder: (context, _) {
+              return Column(
+                key: const Key('desktop-discover-page'),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildFollowSection(context),
+                  SizedBox(height: context.appSpacing.xl),
+                  _buildDailySection(context),
+                  SizedBox(height: context.appSpacing.xl),
+                  _buildMomentSection(context),
+                ],
+              );
+            },
+          ),
         ),
-      ),
       ),
     );
   }
@@ -176,17 +175,18 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
           isLoading: _followController.isInitialLoading,
           errorMessage: _followController.initialErrorMessage,
           onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
-          onMovieMenuRequest: (movie, globalPosition) =>
-              requestMovieCollectionMenu(
-            context,
-            movie.movieNumber,
-            globalPosition,
-            isSubscribed: movie.isSubscribed,
-          ),
-          onMovieSubscriptionTap: (movie) =>
-              _toggleFollowSubscription(movie.movieNumber),
-          isMovieSubscriptionUpdating: (movie) =>
-              _followController.isSubscriptionUpdating(movie.movieNumber),
+          onMovieMenuRequest:
+              (movie, globalPosition) => requestMovieCollectionMenu(
+                context,
+                movie.movieNumber,
+                globalPosition,
+                isSubscribed: movie.isSubscribed,
+              ),
+          onMovieSubscriptionTap:
+              (movie) => _toggleFollowSubscription(movie.movieNumber),
+          isMovieSubscriptionUpdating:
+              (movie) =>
+                  _followController.isSubscriptionUpdating(movie.movieNumber),
           emptyMessage: '暂无女优上新，先订阅感兴趣的女优，等定时任务同步后展示',
           placeholderCount: 6,
         ),
@@ -226,12 +226,13 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
       emptyMessage: '暂无每日推荐，去搜索看看吧',
       placeholderCount: 6,
       onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
-      onMovieMenuRequest: (movie, globalPosition) => requestMovieCollectionMenu(
-        context,
-        movie.movieNumber,
-        globalPosition,
-        isSubscribed: movie.isSubscribed,
-      ),
+      onMovieMenuRequest:
+          (movie, globalPosition) => requestMovieCollectionMenu(
+            context,
+            movie.movieNumber,
+            globalPosition,
+            isSubscribed: movie.isSubscribed,
+          ),
     );
   }
 
@@ -270,9 +271,7 @@ class _DesktopDiscoverPageState extends State<DesktopDiscoverPage> {
       );
     }
     if (_controller.momentItems.isEmpty) {
-      return const AppEmptyState(
-        message: '暂无推荐时刻，播放时添加标记，等定时任务处理后展示',
-      );
+      return const AppEmptyState(message: '暂无推荐时刻，播放时添加标记，等定时任务处理后展示');
     }
     return MomentGrid(
       items: _controller.momentItems

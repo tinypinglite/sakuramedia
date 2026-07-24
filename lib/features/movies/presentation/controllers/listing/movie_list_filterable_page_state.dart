@@ -28,16 +28,13 @@ mixin MovieListSubscriptionSyncMixin {
   }
 
   void _onMovieSubscriptionChanged() {
-    final change = subscriptionChangeNotifier.lastChange;
-    if (change == null) {
-      return;
-    }
-    controller.applySubscriptionChange(
-      movieNumber: change.movieNumber,
-      isSubscribed: change.isSubscribed,
-      removeIfUnsubscribed:
-          !change.isSubscribed &&
-          filterState.status == MovieStatusFilter.subscribed,
+    final removeIfUnsubscribed =
+        filterState.status == MovieStatusFilter.subscribed;
+    subscriptionChangeNotifier.consumePendingChanges(
+      (changes) => controller.applySubscriptionChanges(
+        changes,
+        removeIfUnsubscribed: removeIfUnsubscribed,
+      ),
     );
   }
 
@@ -49,5 +46,9 @@ mixin MovieListSubscriptionSyncMixin {
       movieNumber: movieNumber,
       isSubscribed: isSubscribed,
     );
+  }
+
+  void reportSubscriptionBatch(List<MovieSubscriptionChange> changes) {
+    subscriptionChangeNotifier.reportBatch(changes);
   }
 }

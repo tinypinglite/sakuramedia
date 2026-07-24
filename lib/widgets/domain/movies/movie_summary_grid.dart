@@ -17,6 +17,9 @@ class MovieSummaryGrid extends StatelessWidget {
     this.isMovieSubscriptionUpdating,
     this.emptyMessage = '当前没有可展示的影片数据。',
     this.placeholderCount = 8,
+    this.selectionMode = false,
+    this.isMovieSelected,
+    this.onMovieSelectedChanged,
   });
 
   final List<MovieListItemDto> items;
@@ -29,6 +32,12 @@ class MovieSummaryGrid extends StatelessWidget {
   final bool Function(MovieListItemDto movie)? isMovieSubscriptionUpdating;
   final String emptyMessage;
   final int placeholderCount;
+
+  /// 选择模式开关：向 [MovieSummaryCard] 透传，卡片进入多选态。
+  final bool selectionMode;
+  final bool Function(MovieListItemDto movie)? isMovieSelected;
+  final void Function(MovieListItemDto movie, bool selected)?
+  onMovieSelectedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -45,22 +54,23 @@ class MovieSummaryGrid extends StatelessWidget {
             posterKey: Key('movie-summary-card-skeleton-poster-$index'),
             aspectRatio: context.appComponentTokens.movieCardAspectRatio,
           ),
-      itemBuilder:
-          (context, movie, index) => MovieSummaryCard(
-            movie: movie,
-            onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
-            onRequestMenu:
-                onMovieMenuRequest == null
-                    ? null
-                    : (globalPosition) =>
-                        onMovieMenuRequest!(movie, globalPosition),
-            onSubscriptionTap:
-                onMovieSubscriptionTap == null
-                    ? null
-                    : () => onMovieSubscriptionTap!(movie),
-            isSubscriptionUpdating:
-                isMovieSubscriptionUpdating?.call(movie) ?? false,
-          ),
+      itemBuilder: (context, movie, index) => MovieSummaryCard(
+        movie: movie,
+        onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
+        onRequestMenu: onMovieMenuRequest == null
+            ? null
+            : (globalPosition) => onMovieMenuRequest!(movie, globalPosition),
+        onSubscriptionTap: onMovieSubscriptionTap == null
+            ? null
+            : () => onMovieSubscriptionTap!(movie),
+        isSubscriptionUpdating:
+            isMovieSubscriptionUpdating?.call(movie) ?? false,
+        selectionMode: selectionMode,
+        isSelected: isMovieSelected?.call(movie) ?? false,
+        onSelectedChanged: onMovieSelectedChanged == null
+            ? null
+            : (selected) => onMovieSelectedChanged!(movie, selected),
+      ),
     );
   }
 }
@@ -78,6 +88,9 @@ class MovieSummarySliver extends StatelessWidget {
     this.isMovieSubscriptionUpdating,
     this.emptyMessage = '当前没有可展示的影片数据。',
     this.placeholderCount = 8,
+    this.selectionMode = false,
+    this.isMovieSelected,
+    this.onMovieSelectedChanged,
   });
 
   final List<MovieListItemDto> items;
@@ -90,6 +103,11 @@ class MovieSummarySliver extends StatelessWidget {
   final bool Function(MovieListItemDto movie)? isMovieSubscriptionUpdating;
   final String emptyMessage;
   final int placeholderCount;
+
+  final bool selectionMode;
+  final bool Function(MovieListItemDto movie)? isMovieSelected;
+  final void Function(MovieListItemDto movie, bool selected)?
+  onMovieSelectedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -106,22 +124,23 @@ class MovieSummarySliver extends StatelessWidget {
             posterKey: Key('movie-summary-card-skeleton-poster-$index'),
             aspectRatio: context.appComponentTokens.movieCardAspectRatio,
           ),
-      itemBuilder:
-          (context, movie, index) => MovieSummaryCard(
-            movie: movie,
-            onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
-            onRequestMenu:
-                onMovieMenuRequest == null
-                    ? null
-                    : (globalPosition) =>
-                        onMovieMenuRequest!(movie, globalPosition),
-            onSubscriptionTap:
-                onMovieSubscriptionTap == null
-                    ? null
-                    : () => onMovieSubscriptionTap!(movie),
-            isSubscriptionUpdating:
-                isMovieSubscriptionUpdating?.call(movie) ?? false,
-          ),
+      itemBuilder: (context, movie, index) => MovieSummaryCard(
+        movie: movie,
+        onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
+        onRequestMenu: onMovieMenuRequest == null
+            ? null
+            : (globalPosition) => onMovieMenuRequest!(movie, globalPosition),
+        onSubscriptionTap: onMovieSubscriptionTap == null
+            ? null
+            : () => onMovieSubscriptionTap!(movie),
+        isSubscriptionUpdating:
+            isMovieSubscriptionUpdating?.call(movie) ?? false,
+        selectionMode: selectionMode,
+        isSelected: isMovieSelected?.call(movie) ?? false,
+        onSelectedChanged: onMovieSelectedChanged == null
+            ? null
+            : (selected) => onMovieSelectedChanged!(movie, selected),
+      ),
     );
   }
 }

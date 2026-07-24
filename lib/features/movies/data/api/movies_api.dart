@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/movies/data/dto/detail/movie_review_dto.dar
 import 'package:sakuramedia/features/movies/data/dto/series_import/movie_search_stream_update.dart';
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_subscription_batch_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/parsed_movie_number_dto.dart';
 import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
@@ -272,6 +273,26 @@ class MoviesApi {
       '/movies/$movieNumber/subscription',
       queryParameters: <String, dynamic>{'delete_media': deleteMedia},
     );
+  }
+
+  Future<MovieSubscriptionBatchResultDto> batchSubscribeMovies({
+    required List<String> movieNumbers,
+  }) async {
+    final response = await _apiClient.post(
+      '/movies/subscriptions',
+      data: <String, dynamic>{'movie_numbers': movieNumbers},
+    );
+    return MovieSubscriptionBatchResultDto.fromJson(response);
+  }
+
+  Future<MovieSubscriptionBatchResultDto> batchUnsubscribeMovies({
+    required List<String> movieNumbers,
+  }) async {
+    final response = await _apiClient.post(
+      '/movies/unsubscriptions',
+      data: <String, dynamic>{'movie_numbers': movieNumbers},
+    );
+    return MovieSubscriptionBatchResultDto.fromJson(response);
   }
 
   Stream<MovieSearchStreamUpdate> importSeriesMoviesStream({

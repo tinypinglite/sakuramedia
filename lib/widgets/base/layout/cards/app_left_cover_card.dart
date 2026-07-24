@@ -8,9 +8,8 @@ import 'package:sakuramedia/theme.dart';
 ///   在 `(coverWidth × Stack 高度)` tight 约束下一次布局到位，避免 `Row(stretch)`
 ///   与 `MaskedImage` 内 `LayoutBuilder` 在 loose height 下的 race。
 /// - 视觉：`surfaceCard` 白底 + `mdBorder` 圆角 + `borderSubtle` 细边；选中态
-///   切品牌 `appTextPalette.accent`（**只换颜色不改宽度**，避免 1↔2 像素的 layout
-///   跳动）。历史 token `selectionBorder` 是 Ant 蓝 `#1677FF`，跟 sakura 深酒红
-///   品牌色不搭——这里显式走 palette accent，不复用它。
+///   切 `selectionBorder`（品牌樱酒红 `#6B2D2A`，**只换颜色不改宽度**，避免 1↔2
+///   像素的 layout 跳动）。
 /// - 可选整卡点击：`onTap` 非空时套 `Material + InkWell`，水波纹由 clipAntiAlias
 ///   自然裁剪；`onTap` 为空时不套（整卡不可点，交互留给 slot 内的按钮/子 InkWell）。
 ///
@@ -54,7 +53,6 @@ class AppLeftCoverCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final palette = context.appTextPalette;
     final radius = context.appRadius.mdBorder;
     final resolvedBodyPadding =
         bodyPadding ?? EdgeInsets.all(context.appSpacing.lg);
@@ -92,7 +90,7 @@ class AppLeftCoverCard extends StatelessWidget {
         color: colors.surfaceCard,
         borderRadius: radius,
         border: Border.all(
-          color: selected ? palette.accent : colors.borderSubtle,
+          color: selected ? colors.selectionBorder : colors.borderSubtle,
         ),
       ),
       child: Stack(children: [rightContent, leftCover]),

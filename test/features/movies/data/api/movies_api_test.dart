@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thum
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_review_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_subscription_batch_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/parsed_movie_number_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 
@@ -1784,6 +1785,94 @@ void main() {
       expect(request.method, 'DELETE');
       expect(request.path, '/movies/ABC-001/subscription');
       expect(request.uri.queryParameters['delete_media'], 'false');
+    },
+  );
+
+  test('batchSubscribeMovies posts movie_numbers and parses result', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/subscriptions',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'requested_count': 2,
+        'updated_count': 1,
+        'skipped_count': 1,
+        'skipped': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'movie_number': 'NOT-EXIST-999',
+            'reason': 'movie_not_found',
+          },
+        ],
+      },
+    );
+
+    final result = await moviesApi.batchSubscribeMovies(
+      movieNumbers: const <String>['ABC-001', 'NOT-EXIST-999'],
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/movies/subscriptions');
+    expect(request.body, <String, dynamic>{
+      'movie_numbers': <String>['ABC-001', 'NOT-EXIST-999'],
+    });
+    expect(result.requestedCount, 2);
+    expect(result.updatedCount, 1);
+    expect(result.skippedCount, 1);
+    expect(result.skipped, hasLength(1));
+    expect(result.skipped.single.movieNumber, 'NOT-EXIST-999');
+    expect(
+      result.skipped.single.reason,
+      MovieSubscriptionSkipReason.movieNotFound,
+    );
+  });
+
+  test(
+    'batchUnsubscribeMovies posts to unsubscriptions endpoint and parses '
+    'has_media skip reason',
+    () async {
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/movies/unsubscriptions',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'requested_count': 3,
+          'updated_count': 1,
+          'skipped_count': 2,
+          'skipped': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'movie_number': 'ABP-124',
+              'reason': 'has_media',
+            },
+            <String, dynamic>{
+              'movie_number': 'NOT-EXIST-999',
+              'reason': 'movie_not_found',
+            },
+          ],
+        },
+      );
+
+      final result = await moviesApi.batchUnsubscribeMovies(
+        movieNumbers: const <String>['ABC-001', 'ABP-124', 'NOT-EXIST-999'],
+      );
+
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, '/movies/unsubscriptions');
+      expect(request.body, <String, dynamic>{
+        'movie_numbers': <String>['ABC-001', 'ABP-124', 'NOT-EXIST-999'],
+      });
+      expect(result.updatedCount, 1);
+      expect(
+        result.movieNumbersSkippedBecause(MovieSubscriptionSkipReason.hasMedia),
+        <String>['ABP-124'],
+      );
+      expect(
+        result.movieNumbersSkippedBecause(
+          MovieSubscriptionSkipReason.movieNotFound,
+        ),
+        <String>['NOT-EXIST-999'],
+      );
     },
   );
 
