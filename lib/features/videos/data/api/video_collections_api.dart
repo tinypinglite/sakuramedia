@@ -13,9 +13,7 @@ class VideoCollectionsApi {
 
   Future<List<VideoCollectionDto>> getCollections() async {
     final response = await _apiClient.getList('/video-collections');
-    return response
-        .map(VideoCollectionDto.fromJson)
-        .toList(growable: false);
+    return response.map(VideoCollectionDto.fromJson).toList(growable: false);
   }
 
   Future<VideoCollectionDto> createCollection({

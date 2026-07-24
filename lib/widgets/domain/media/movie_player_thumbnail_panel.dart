@@ -186,4 +186,3 @@ class _MoviePlayerThumbnailPanelState extends State<MoviePlayerThumbnailPanel> {
     );
   }
 }
-

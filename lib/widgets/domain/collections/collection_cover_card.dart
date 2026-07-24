@@ -135,10 +135,10 @@ class CollectionCoverCard extends StatelessWidget {
     return GestureDetector(
       key: menuKey,
       behavior: HitTestBehavior.deferToChild,
-      onSecondaryTapDown: (details) =>
-          _showContextMenu(context, details.globalPosition),
-      onLongPressStart: (details) =>
-          _showContextMenu(context, details.globalPosition),
+      onSecondaryTapDown:
+          (details) => _showContextMenu(context, details.globalPosition),
+      onLongPressStart:
+          (details) => _showContextMenu(context, details.globalPosition),
       child: card,
     );
   }

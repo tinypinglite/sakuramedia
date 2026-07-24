@@ -36,9 +36,10 @@ class AppNoticeCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     final headerHasFullShape = title != null || stats.isNotEmpty;
-    final radius = headerHasFullShape
-        ? context.appRadius.lgBorder
-        : context.appRadius.mdBorder;
+    final radius =
+        headerHasFullShape
+            ? context.appRadius.lgBorder
+            : context.appRadius.mdBorder;
 
     final descriptionText = Text(
       description,
@@ -145,20 +146,23 @@ class _NoticeStatsGrid extends StatelessWidget {
         rows.add(
           Row(
             children: [
-              Expanded(child: AppStatTile(
+              Expanded(
+                child: AppStatTile(
                   label: left.label,
                   value: left.value,
                   valueSize: left.valueSize,
-                )),
+                ),
+              ),
               SizedBox(width: spacing.sm),
               Expanded(
-                child: right == null
-                    ? const SizedBox.shrink()
-                    : AppStatTile(
-                        label: right.label,
-                        value: right.value,
-                        valueSize: right.valueSize,
-                      ),
+                child:
+                    right == null
+                        ? const SizedBox.shrink()
+                        : AppStatTile(
+                          label: right.label,
+                          value: right.value,
+                          valueSize: right.valueSize,
+                        ),
               ),
             ],
           ),

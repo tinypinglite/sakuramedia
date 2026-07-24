@@ -74,11 +74,12 @@ class VideoCollectionItemDto {
 
   factory VideoCollectionItemDto.fromJson(Map<String, dynamic> json) {
     final rawVideo = json['video'];
-    final videoMap = rawVideo is Map
-        ? rawVideo.map(
-            (dynamic key, dynamic value) => MapEntry(key.toString(), value),
-          )
-        : <String, dynamic>{};
+    final videoMap =
+        rawVideo is Map
+            ? rawVideo.map(
+              (dynamic key, dynamic value) => MapEntry(key.toString(), value),
+            )
+            : <String, dynamic>{};
     return VideoCollectionItemDto(
       itemId: _intFromJson(json['item_id']) ?? 0,
       position: _intFromJson(json['position']) ?? 0,

@@ -42,8 +42,7 @@ class MovieFilterSectionGroup extends StatelessWidget {
           options: MovieStatusFilter.values,
           selectedValue: filterState.status,
           labelBuilder: (value) => value.label,
-          onSelected:
-              (value) => onChanged(filterState.copyWith(status: value)),
+          onSelected: (value) => onChanged(filterState.copyWith(status: value)),
         ),
         SizedBox(height: context.appSpacing.lg),
         MovieFilterChoiceSection<MovieCollectionTypeFilter>(
@@ -121,17 +120,16 @@ class MovieFilterChoiceSection<T> extends StatelessWidget {
         Wrap(
           spacing: context.appSpacing.sm,
           runSpacing: context.appSpacing.sm,
-          children:
-              options
-                  .map(
-                    (value) => AppTextButton(
-                      label: labelBuilder(value),
-                      size: AppTextButtonSize.xSmall,
-                      isSelected: value == selectedValue,
-                      onPressed: () => onSelected(value),
-                    ),
-                  )
-                  .toList(growable: false),
+          children: options
+              .map(
+                (value) => AppTextButton(
+                  label: labelBuilder(value),
+                  size: AppTextButtonSize.xSmall,
+                  isSelected: value == selectedValue,
+                  onPressed: () => onSelected(value),
+                ),
+              )
+              .toList(growable: false),
         ),
       ],
     );
@@ -271,32 +269,30 @@ class MovieSortSection extends StatelessWidget {
         Wrap(
           spacing: context.appSpacing.sm,
           runSpacing: context.appSpacing.sm,
-          children:
-              MovieSortField.values
-                  .map(
-                    (value) => AppTextButton(
-                      label: value.label,
-                      size: AppTextButtonSize.xSmall,
-                      isSelected: value == filterState.sortField,
-                      onPressed: () => onSortFieldChanged(value),
-                    ),
-                  )
-                  .toList(growable: false),
+          children: MovieSortField.values
+              .map(
+                (value) => AppTextButton(
+                  label: value.label,
+                  size: AppTextButtonSize.xSmall,
+                  isSelected: value == filterState.sortField,
+                  onPressed: () => onSortFieldChanged(value),
+                ),
+              )
+              .toList(growable: false),
         ),
         SizedBox(height: context.appSpacing.md),
         Wrap(
           spacing: context.appSpacing.sm,
-          children:
-              SortDirection.values
-                  .map(
-                    (value) => AppTextButton(
-                      label: value.label,
-                      size: AppTextButtonSize.xSmall,
-                      isSelected: value == filterState.sortDirection,
-                      onPressed: () => onSortDirectionChanged(value),
-                    ),
-                  )
-                  .toList(growable: false),
+          children: SortDirection.values
+              .map(
+                (value) => AppTextButton(
+                  label: value.label,
+                  size: AppTextButtonSize.xSmall,
+                  isSelected: value == filterState.sortDirection,
+                  onPressed: () => onSortDirectionChanged(value),
+                ),
+              )
+              .toList(growable: false),
         ),
       ],
     );

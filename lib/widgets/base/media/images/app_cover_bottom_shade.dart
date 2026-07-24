@@ -6,10 +6,7 @@ import 'package:sakuramedia/theme.dart';
 ///
 /// 卡片默认 stops `[0.45, 0.72, 1]`; actor 卡稍强一点用 `[0.42, 0.7, 1]`。
 class AppCoverBottomShade extends StatelessWidget {
-  const AppCoverBottomShade({
-    super.key,
-    this.stops = const [0.45, 0.72, 1],
-  });
+  const AppCoverBottomShade({super.key, this.stops = const [0.45, 0.72, 1]});
 
   final List<double> stops;
 

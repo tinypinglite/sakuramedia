@@ -54,16 +54,12 @@ class MediaImportSourcePicker extends StatefulWidget {
       library.isCloud115 ? TransferMode.copy : TransferMode.auto;
 
   /// 该媒体库允许的导入方式集合，用于渲染 transferMode 下拉的选项。
-  static List<TransferMode> availableTransferModesFor(MediaLibraryDto library) =>
+  static List<TransferMode> availableTransferModesFor(
+    MediaLibraryDto library,
+  ) =>
       library.isCloud115
-          ? const <TransferMode>[
-              TransferMode.copy,
-              TransferMode.cleanupSource,
-            ]
-          : const <TransferMode>[
-              TransferMode.auto,
-              TransferMode.cleanupSource,
-            ];
+          ? const <TransferMode>[TransferMode.copy, TransferMode.cleanupSource]
+          : const <TransferMode>[TransferMode.auto, TransferMode.cleanupSource];
 
   @override
   State<MediaImportSourcePicker> createState() =>
@@ -94,7 +90,10 @@ class _MediaImportSourcePickerState extends State<MediaImportSourcePicker> {
   List<TransferMode> get _availableTransferModes {
     final library = widget.selectedLibrary;
     if (library == null) {
-      return const <TransferMode>[TransferMode.auto, TransferMode.cleanupSource];
+      return const <TransferMode>[
+        TransferMode.auto,
+        TransferMode.cleanupSource,
+      ];
     }
     return MediaImportSourcePicker.availableTransferModesFor(library);
   }
@@ -146,11 +145,12 @@ class _MediaImportSourcePickerState extends State<MediaImportSourcePicker> {
       _localBrowsePath = null;
       _cloudPage = null;
       _cloudEntries = const <Cloud115DirectoryEntryDto>[];
-      _cloudPath = library.isCloud115
-          ? const <_CloudPathSegment>[
-              _CloudPathSegment(cid: '0', name: '115 网盘'),
-            ]
-          : const <_CloudPathSegment>[];
+      _cloudPath =
+          library.isCloud115
+              ? const <_CloudPathSegment>[
+                _CloudPathSegment(cid: '0', name: '115 网盘'),
+              ]
+              : const <_CloudPathSegment>[];
       _browseError = null;
       _loadMoreError = null;
       _isLoadingMore = false;
@@ -235,10 +235,7 @@ class _MediaImportSourcePickerState extends State<MediaImportSourcePicker> {
       _isLoadingMore = false;
       _isBrowsing = true;
     });
-    await _fetchCloudDirectory(
-      generation: generation,
-      cid: nextPath.last.cid,
-    );
+    await _fetchCloudDirectory(generation: generation, cid: nextPath.last.cid);
   }
 
   Future<void> _fetchCloudDirectory({
@@ -396,18 +393,20 @@ class _MediaImportSourcePickerState extends State<MediaImportSourcePicker> {
 
   Widget _buildPathBar(BuildContext context) {
     final listing = _localListing;
-    final canGoUp = !_isBrowsing &&
+    final canGoUp =
+        !_isBrowsing &&
         (_isCloud115 ? _cloudPath.length > 1 : listing?.parent != null);
-    final pathText = _isCloud115
-        ? (_cloudPath.isEmpty
-            ? '115 网盘'
-            : _cloudPath.map((segment) => segment.name).join(' / '))
-        : switch (listing) {
-            null when _localBrowsePath != null => _localBrowsePath!,
-            null => '加载中…',
-            final value when value.isRootsOverview => '选择一个白名单根目录',
-            final value => value.path,
-          };
+    final pathText =
+        _isCloud115
+            ? (_cloudPath.isEmpty
+                ? '115 网盘'
+                : _cloudPath.map((segment) => segment.name).join(' / '))
+            : switch (listing) {
+              null when _localBrowsePath != null => _localBrowsePath!,
+              null => '加载中…',
+              final value when value.isRootsOverview => '选择一个白名单根目录',
+              final value => value.path,
+            };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -417,15 +416,16 @@ class _MediaImportSourcePickerState extends State<MediaImportSourcePicker> {
               key: const Key('media-import-picker-up-button'),
               icon: const Icon(Icons.arrow_upward_rounded),
               tooltip: '上一级',
-              onPressed: canGoUp
-                  ? () {
-                      if (_isCloud115) {
-                        unawaited(_browseCloudParent());
-                      } else {
-                        unawaited(_browseLocal(listing!.parent));
+              onPressed:
+                  canGoUp
+                      ? () {
+                        if (_isCloud115) {
+                          unawaited(_browseCloudParent());
+                        } else {
+                          unawaited(_browseLocal(listing!.parent));
+                        }
                       }
-                    }
-                  : null,
+                      : null,
             ),
             SizedBox(width: context.appSpacing.sm),
             Expanded(
@@ -509,15 +509,16 @@ class _MediaImportSourcePickerState extends State<MediaImportSourcePicker> {
     return ListView.separated(
       padding: EdgeInsets.symmetric(vertical: context.appSpacing.xs),
       itemCount: listing.entries.length,
-      separatorBuilder: (_, __) =>
-          Divider(height: 1, color: context.appColors.divider),
+      separatorBuilder:
+          (_, __) => Divider(height: 1, color: context.appColors.divider),
       itemBuilder: (context, index) {
         final entry = listing.entries[index];
         return _LocalEntryRow(
           entry: entry,
-          onTap: entry.isDirectory
-              ? () => unawaited(_browseLocal(entry.path))
-              : null,
+          onTap:
+              entry.isDirectory
+                  ? () => unawaited(_browseLocal(entry.path))
+                  : null,
         );
       },
     );
@@ -532,8 +533,8 @@ class _MediaImportSourcePickerState extends State<MediaImportSourcePicker> {
     return ListView.separated(
       padding: EdgeInsets.symmetric(vertical: context.appSpacing.xs),
       itemCount: _cloudEntries.length + (showFooter ? 1 : 0),
-      separatorBuilder: (_, __) =>
-          Divider(height: 1, color: context.appColors.divider),
+      separatorBuilder:
+          (_, __) => Divider(height: 1, color: context.appColors.divider),
       itemBuilder: (context, index) {
         if (index == _cloudEntries.length) {
           return _buildCloudLoadMoreFooter(context);
@@ -544,9 +545,10 @@ class _MediaImportSourcePickerState extends State<MediaImportSourcePicker> {
         return _CloudEntryRow(
           entry: entry,
           isManagementDirectory: isManagementDirectory,
-          onTap: entry.isDirectory && !isManagementDirectory
-              ? () => unawaited(_browseCloudFolder(entry))
-              : null,
+          onTap:
+              entry.isDirectory && !isManagementDirectory
+                  ? () => unawaited(_browseCloudFolder(entry))
+                  : null,
         );
       },
     );
@@ -703,9 +705,10 @@ class _DirectoryEntryRow extends StatelessWidget {
             Icon(
               isDirectory ? Icons.folder_rounded : Icons.movie_outlined,
               size: context.appComponentTokens.iconSizeSm,
-              color: muted
-                  ? context.appTextPalette.muted
-                  : isDirectory
+              color:
+                  muted
+                      ? context.appTextPalette.muted
+                      : isDirectory
                       ? context.appTextPalette.accent
                       : context.appTextPalette.muted,
             ),
@@ -718,9 +721,10 @@ class _DirectoryEntryRow extends StatelessWidget {
                 style: resolveAppTextStyle(
                   context,
                   size: AppTextSize.s12,
-                  tone: muted
-                      ? AppTextTone.muted
-                      : isDirectory
+                  tone:
+                      muted
+                          ? AppTextTone.muted
+                          : isDirectory
                           ? AppTextTone.primary
                           : AppTextTone.muted,
                 ),

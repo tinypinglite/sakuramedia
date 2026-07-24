@@ -25,18 +25,19 @@ Future<VideoCollectionDto?> showVideoCollectionDialog(
     case VideoCollectionEditPresentation.dialog:
       return showDialog<VideoCollectionDto>(
         context: context,
-        builder: (dialogContext) =>
-            CreateVideoCollectionDialog(existing: existing),
+        builder:
+            (dialogContext) => CreateVideoCollectionDialog(existing: existing),
       );
     case VideoCollectionEditPresentation.bottomDrawer:
       return showAppBottomDrawer<VideoCollectionDto>(
         context: context,
         drawerKey: const Key('video-collection-edit-bottom-sheet'),
         maxHeightFactor: 0.62,
-        builder: (sheetContext) => CreateVideoCollectionDialog(
-          existing: existing,
-          presentation: VideoCollectionEditPresentation.bottomDrawer,
-        ),
+        builder:
+            (sheetContext) => CreateVideoCollectionDialog(
+              existing: existing,
+              presentation: VideoCollectionEditPresentation.bottomDrawer,
+            ),
       );
   }
 }
@@ -69,8 +70,9 @@ class _CreateVideoCollectionDialogState
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.existing?.name ?? '');
-    _descriptionController =
-        TextEditingController(text: widget.existing?.description ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.existing?.description ?? '',
+    );
   }
 
   @override
@@ -107,8 +109,9 @@ class _CreateVideoCollectionDialogState
           controller: _nameController,
           hintText: '合集名称',
           enabled: !_isSubmitting,
-          validator: (value) =>
-              value == null || value.trim().isEmpty ? '请输入合集名称' : null,
+          validator:
+              (value) =>
+                  value == null || value.trim().isEmpty ? '请输入合集名称' : null,
         ),
         SizedBox(height: spacing.sm),
         AppTextField(

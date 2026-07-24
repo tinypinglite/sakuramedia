@@ -146,9 +146,10 @@ class CollectionMemberRow extends StatelessWidget {
     final colors = context.appColors;
     final url = coverUrl?.trim();
     final sub = subtitle?.trim();
-    final borderColor = selectionMode && isSelected
-        ? colors.selectionBorder
-        : colors.borderSubtle;
+    final borderColor =
+        selectionMode && isSelected
+            ? colors.selectionBorder
+            : colors.borderSubtle;
 
     final row = Material(
       color: colors.surfaceCard,
@@ -169,22 +170,20 @@ class CollectionMemberRow extends StatelessWidget {
             children: [
               if (selectionMode) ...[
                 SizedBox(width: spacing.sm),
-                Checkbox(
-                  value: isSelected,
-                  onChanged: (_) => onTap(),
-                ),
+                Checkbox(value: isSelected, onChanged: (_) => onTap()),
               ],
               // 缩略图贴满卡片左侧，圆角由外层 Material 统一裁剪。
               SizedBox(
                 width: coverWidth,
                 child: AspectRatio(
                   aspectRatio: coverAspectRatio,
-                  child: url != null && url.isNotEmpty
-                      ? MaskedImage(url: url, fit: coverFit)
-                      : _CoverPlaceholder(
-                          icon: placeholderIcon,
-                          iconSize: context.appComponentTokens.iconSizeSm,
-                        ),
+                  child:
+                      url != null && url.isNotEmpty
+                          ? MaskedImage(url: url, fit: coverFit)
+                          : _CoverPlaceholder(
+                            icon: placeholderIcon,
+                            iconSize: context.appComponentTokens.iconSizeSm,
+                          ),
                 ),
               ),
               SizedBox(width: spacing.md),
@@ -272,26 +271,28 @@ class CollectionMemberRow extends StatelessWidget {
     return GestureDetector(
       key: menuKey,
       behavior: HitTestBehavior.deferToChild,
-      onSecondaryTapDown: (details) => _showCollectionMemberContextMenu(
-        context,
-        globalPosition: details.globalPosition,
-        onRemove: remove,
-        removeLabel: '移出合集',
-        onOpenSource: onOpenSource,
-        openSourceLabel: openSourceLabel,
-        onDelete: onDelete,
-        deleteLabel: deleteLabel,
-      ),
-      onLongPressStart: (details) => _showCollectionMemberContextMenu(
-        context,
-        globalPosition: details.globalPosition,
-        onRemove: remove,
-        removeLabel: '移出合集',
-        onOpenSource: onOpenSource,
-        openSourceLabel: openSourceLabel,
-        onDelete: onDelete,
-        deleteLabel: deleteLabel,
-      ),
+      onSecondaryTapDown:
+          (details) => _showCollectionMemberContextMenu(
+            context,
+            globalPosition: details.globalPosition,
+            onRemove: remove,
+            removeLabel: '移出合集',
+            onOpenSource: onOpenSource,
+            openSourceLabel: openSourceLabel,
+            onDelete: onDelete,
+            deleteLabel: deleteLabel,
+          ),
+      onLongPressStart:
+          (details) => _showCollectionMemberContextMenu(
+            context,
+            globalPosition: details.globalPosition,
+            onRemove: remove,
+            removeLabel: '移出合集',
+            onOpenSource: onOpenSource,
+            openSourceLabel: openSourceLabel,
+            onDelete: onDelete,
+            deleteLabel: deleteLabel,
+          ),
       child: row,
     );
   }
@@ -378,12 +379,14 @@ class CollectionMemberCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final spacing = context.appSpacing;
-    final borderColor = selectionMode && isSelected
-        ? colors.selectionBorder
-        : colors.borderSubtle;
-    final content = clipOverlay
-        ? _buildClipOverlay(context)
-        : overlayCaption
+    final borderColor =
+        selectionMode && isSelected
+            ? colors.selectionBorder
+            : colors.borderSubtle;
+    final content =
+        clipOverlay
+            ? _buildClipOverlay(context)
+            : overlayCaption
             ? _buildOverlay(context)
             : _buildBelow(context);
     final radius =
@@ -404,20 +407,21 @@ class CollectionMemberCard extends StatelessWidget {
             ),
             boxShadow: shadow,
           ),
-          child: selectionMode
-              ? Stack(
-                  children: [
-                    content,
-                    Positioned(
-                      top: spacing.xs,
-                      left: spacing.xs,
-                      child: IgnorePointer(
-                        child: SelectionCheckBadge(isSelected: isSelected),
+          child:
+              selectionMode
+                  ? Stack(
+                    children: [
+                      content,
+                      Positioned(
+                        top: spacing.xs,
+                        left: spacing.xs,
+                        child: IgnorePointer(
+                          child: SelectionCheckBadge(isSelected: isSelected),
+                        ),
                       ),
-                    ),
-                  ],
-                )
-              : content,
+                    ],
+                  )
+                  : content,
         ),
       ),
     );
@@ -429,26 +433,28 @@ class CollectionMemberCard extends StatelessWidget {
     return GestureDetector(
       key: menuKey,
       behavior: HitTestBehavior.deferToChild,
-      onSecondaryTapDown: (details) => _showCollectionMemberContextMenu(
-        context,
-        globalPosition: details.globalPosition,
-        onRemove: remove,
-        removeLabel: '移出合集',
-        onOpenSource: onOpenSource,
-        openSourceLabel: openSourceLabel,
-        onDelete: onDelete,
-        deleteLabel: deleteLabel,
-      ),
-      onLongPressStart: (details) => _showCollectionMemberContextMenu(
-        context,
-        globalPosition: details.globalPosition,
-        onRemove: remove,
-        removeLabel: '移出合集',
-        onOpenSource: onOpenSource,
-        openSourceLabel: openSourceLabel,
-        onDelete: onDelete,
-        deleteLabel: deleteLabel,
-      ),
+      onSecondaryTapDown:
+          (details) => _showCollectionMemberContextMenu(
+            context,
+            globalPosition: details.globalPosition,
+            onRemove: remove,
+            removeLabel: '移出合集',
+            onOpenSource: onOpenSource,
+            openSourceLabel: openSourceLabel,
+            onDelete: onDelete,
+            deleteLabel: deleteLabel,
+          ),
+      onLongPressStart:
+          (details) => _showCollectionMemberContextMenu(
+            context,
+            globalPosition: details.globalPosition,
+            onRemove: remove,
+            removeLabel: '移出合集',
+            onOpenSource: onOpenSource,
+            openSourceLabel: openSourceLabel,
+            onDelete: onDelete,
+            deleteLabel: deleteLabel,
+          ),
       child: card,
     );
   }
@@ -636,7 +642,6 @@ class CollectionMemberCard extends StatelessWidget {
   }
 }
 
-
 /// 封面缺图时的占位：muted 底色，可选居中图标（[icon] 为 `null` 时纯色）。
 class _CoverPlaceholder extends StatelessWidget {
   const _CoverPlaceholder({required this.icon, required this.iconSize});
@@ -650,16 +655,16 @@ class _CoverPlaceholder extends StatelessWidget {
     final iconData = icon;
     return DecoratedBox(
       decoration: BoxDecoration(color: colors.surfaceMuted),
-      child: iconData == null
-          ? null
-          : Center(
-              child: Icon(
-                iconData,
-                size: iconSize,
-                color: context.appTextPalette.muted,
+      child:
+          iconData == null
+              ? null
+              : Center(
+                child: Icon(
+                  iconData,
+                  size: iconSize,
+                  color: context.appTextPalette.muted,
+                ),
               ),
-            ),
     );
   }
 }
-

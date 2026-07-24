@@ -97,7 +97,9 @@ class _EpisodeSelectorOverlayState extends State<EpisodeSelectorOverlay> {
                 child: AnimatedOpacity(
                   opacity: widget.isOpen ? 1 : 0,
                   duration: _animationDuration,
-                  child: ColoredBox(color: context.appColors.mediaOverlayStrong),
+                  child: ColoredBox(
+                    color: context.appColors.mediaOverlayStrong,
+                  ),
                 ),
               ),
             ),
@@ -124,10 +126,11 @@ class _EpisodeSelectorOverlayState extends State<EpisodeSelectorOverlay> {
       onTap: () {},
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final panelWidth = math
-              .min(360.0, constraints.maxWidth * 0.5)
-              .clamp(280.0, 360.0)
-              .toDouble();
+          final panelWidth =
+              math
+                  .min(360.0, constraints.maxWidth * 0.5)
+                  .clamp(280.0, 360.0)
+                  .toDouble();
           return SizedBox(
             width: panelWidth,
             height: double.infinity,

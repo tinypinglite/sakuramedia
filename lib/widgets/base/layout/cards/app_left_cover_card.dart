@@ -57,10 +57,7 @@ class AppLeftCoverCard extends StatelessWidget {
     final resolvedBodyPadding =
         bodyPadding ?? EdgeInsets.all(context.appSpacing.lg);
 
-    Widget rightContent = Padding(
-      padding: resolvedBodyPadding,
-      child: body,
-    );
+    Widget rightContent = Padding(padding: resolvedBodyPadding, child: body);
     if (bodyMinHeight != null) {
       rightContent = ConstrainedBox(
         constraints: BoxConstraints(minHeight: bodyMinHeight!),
@@ -99,11 +96,7 @@ class AppLeftCoverCard extends StatelessWidget {
     if (onTap != null) {
       card = Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: radius,
-          onTap: onTap,
-          child: card,
-        ),
+        child: InkWell(borderRadius: radius, onTap: onTap, child: card),
       );
     }
     return card;

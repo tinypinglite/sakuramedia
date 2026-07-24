@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:sakuramedia/theme.dart';
 
 enum _MovieCollectionFeatureMenuAction {
+  enterSelection,
   toggleSubscription,
   toggleCollectionType,
 }
@@ -35,6 +36,7 @@ void requestMovieCollectionMenu(
   String movieNumber,
   Offset globalPosition, {
   bool? isSubscribed,
+  VoidCallback? onEnterSelection,
 }) {
   unawaited(
     showMovieCollectionFeatureActionMenu(
@@ -42,36 +44,52 @@ void requestMovieCollectionMenu(
       movieNumber: movieNumber,
       globalPosition: globalPosition,
       isSubscribed: isSubscribed,
+      onEnterSelection: onEnterSelection,
     ),
   );
 }
 
+/// [onEnterSelection] 非空时菜单首项为「选择」——移动端多选入口从此挂在卡片长按
+/// 上，列表顶栏不再常驻「选择」按钮。桌面端不传，多选入口仍在顶栏。
+///
+/// 传了它还会**跳过合集状态预查**：长按是即时交互，不该先等一个网络请求才弹菜单，
+/// 代价是合集项文案退化为中性的「标记为合集/单体」，真正点下去时才查。
 Future<void> showMovieCollectionFeatureActionMenu({
   required BuildContext context,
   required String movieNumber,
   required Offset globalPosition,
   bool? isSubscribed,
+  VoidCallback? onEnterSelection,
 }) async {
   final moviesApi = context.read<MoviesApi>();
-  final statusResult = await _lookupCollectionStatus(
-    moviesApi: moviesApi,
-    movieNumber: movieNumber,
-  );
-  if (!context.mounted) {
-    return;
+  final deferLookup = onEnterSelection != null;
+
+  _MovieCollectionStatusLookupResult? statusResult;
+  if (!deferLookup) {
+    statusResult = await _lookupCollectionStatus(
+      moviesApi: moviesApi,
+      movieNumber: movieNumber,
+    );
+    if (!context.mounted) {
+      return;
+    }
   }
 
   final action = await _showMovieCollectionFeatureMenu(
     context: context,
-    isCollection: statusResult.status?.isCollection,
+    isCollection: statusResult?.status?.isCollection,
     isSubscribed: isSubscribed,
     globalPosition: globalPosition,
+    canEnterSelection: onEnterSelection != null,
   );
   if (action == null || !context.mounted) {
     return;
   }
 
   switch (action) {
+    case _MovieCollectionFeatureMenuAction.enterSelection:
+      onEnterSelection?.call();
+      return;
     case _MovieCollectionFeatureMenuAction.toggleSubscription:
       if (isSubscribed == null) {
         return;
@@ -84,10 +102,19 @@ Future<void> showMovieCollectionFeatureActionMenu({
       );
       return;
     case _MovieCollectionFeatureMenuAction.toggleCollectionType:
+      final resolved =
+          statusResult ??
+          await _lookupCollectionStatus(
+            moviesApi: moviesApi,
+            movieNumber: movieNumber,
+          );
+      if (!context.mounted) {
+        return;
+      }
       await _handleCollectionTypeToggleAction(
         context: context,
         movieNumber: movieNumber,
-        statusResult: statusResult,
+        statusResult: resolved,
         moviesApi: moviesApi,
       );
       return;
@@ -213,6 +240,7 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
   required bool? isCollection,
   required bool? isSubscribed,
   required Offset globalPosition,
+  required bool canEnterSelection,
 }) {
   final colors = context.appColors;
   final spacing = context.appSpacing;
@@ -240,6 +268,42 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
       side: BorderSide(color: colors.borderSubtle),
     ),
     items: <PopupMenuEntry<_MovieCollectionFeatureMenuAction>>[
+      if (canEnterSelection)
+        PopupMenuItem<_MovieCollectionFeatureMenuAction>(
+          key: const Key('movie-collection-feature-menu-select-item'),
+          value: _MovieCollectionFeatureMenuAction.enterSelection,
+          height: menuItemHeight,
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.sm,
+            vertical: spacing.xs,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline,
+                size: componentTokens.iconSizeXs,
+                color: context.appTextPalette.secondary,
+              ),
+              SizedBox(width: spacing.sm),
+              Text(
+                '选择',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      if (canEnterSelection)
+        PopupMenuItem<_MovieCollectionFeatureMenuAction>(
+          enabled: false,
+          height: 1,
+          padding: EdgeInsets.zero,
+          child: Divider(height: 1, thickness: 1, color: colors.borderStrong),
+        ),
       if (isSubscribed != null)
         PopupMenuItem<_MovieCollectionFeatureMenuAction>(
           key: const Key('movie-collection-feature-menu-subscription-item'),

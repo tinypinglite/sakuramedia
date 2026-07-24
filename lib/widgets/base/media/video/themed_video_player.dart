@@ -291,9 +291,7 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
             ),
             if (!_initialFrameReady)
               const IgnorePointer(
-                child: Center(
-                  child: VideoLoadingIndicator(label: '正在加载视频…'),
-                ),
+                child: Center(child: VideoLoadingIndicator(label: '正在加载视频…')),
               ),
             if (_resumePromptVisible && widget.resumePosition != null)
               PlaybackResumePromptOverlay(

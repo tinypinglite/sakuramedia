@@ -75,6 +75,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     required this.clipPlayerDialogWidth,
     required this.mobileBottomNavHeight,
     required this.mobileTopTabHeight,
+    required this.mobileFilterEntryMaxLabelWidth,
     required this.mobileSubpageLeadingWidth,
     required this.mobileLatestMovieCardWidth,
     required this.mobileFollowMovieCardHeight,
@@ -153,7 +154,8 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
         playlistDialogWidth = 520,
         clipPlayerDialogWidth = 880,
         mobileBottomNavHeight = 52,
-        mobileTopTabHeight = 36,
+        mobileTopTabHeight = 44,
+        mobileFilterEntryMaxLabelWidth = 140,
         mobileSubpageLeadingWidth = 40,
         mobileLatestMovieCardWidth = 142,
         mobileFollowMovieCardHeight = 150,
@@ -231,7 +233,8 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
         playlistDialogWidth = 520,
         clipPlayerDialogWidth = 880,
         mobileBottomNavHeight = 56,
-        mobileTopTabHeight = 40,
+        mobileTopTabHeight = 44,
+        mobileFilterEntryMaxLabelWidth = 140,
         mobileSubpageLeadingWidth = 44,
         mobileLatestMovieCardWidth = 148,
         mobileFollowMovieCardHeight = 158,
@@ -309,6 +312,9 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
   final double clipPlayerDialogWidth;
   final double mobileBottomNavHeight;
   final double mobileTopTabHeight;
+
+  /// 顶栏筛选入口里筛选摘要的最大宽度，超出省略号，避免挤掉右侧信息/操作。
+  final double mobileFilterEntryMaxLabelWidth;
   final double mobileSubpageLeadingWidth;
   final double mobileLatestMovieCardWidth;
   final double mobileFollowMovieCardHeight;
@@ -388,6 +394,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     double? clipPlayerDialogWidth,
     double? mobileBottomNavHeight,
     double? mobileTopTabHeight,
+    double? mobileFilterEntryMaxLabelWidth,
     double? mobileSubpageLeadingWidth,
     double? mobileLatestMovieCardWidth,
     double? mobileFollowMovieCardHeight,
@@ -511,6 +518,8 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       mobileBottomNavHeight:
           mobileBottomNavHeight ?? this.mobileBottomNavHeight,
       mobileTopTabHeight: mobileTopTabHeight ?? this.mobileTopTabHeight,
+      mobileFilterEntryMaxLabelWidth:
+          mobileFilterEntryMaxLabelWidth ?? this.mobileFilterEntryMaxLabelWidth,
       mobileSubpageLeadingWidth:
           mobileSubpageLeadingWidth ?? this.mobileSubpageLeadingWidth,
       mobileLatestMovieCardWidth:
@@ -763,6 +772,11 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
           lerpDouble(mobileBottomNavHeight, other.mobileBottomNavHeight, t)!,
       mobileTopTabHeight:
           lerpDouble(mobileTopTabHeight, other.mobileTopTabHeight, t)!,
+      mobileFilterEntryMaxLabelWidth: lerpDouble(
+        mobileFilterEntryMaxLabelWidth,
+        other.mobileFilterEntryMaxLabelWidth,
+        t,
+      )!,
       mobileSubpageLeadingWidth: lerpDouble(
         mobileSubpageLeadingWidth,
         other.mobileSubpageLeadingWidth,

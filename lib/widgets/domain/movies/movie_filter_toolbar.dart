@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 
@@ -30,23 +28,20 @@ class MovieFilterToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDefault = filterState.isDefault;
-    final isPreset = MovieFilterPreset.values.any(filterState.matchesPreset);
-    final isCustom = !isDefault && !isPreset;
 
-    return Wrap(
-      spacing: context.appSpacing.sm,
-      runSpacing: context.appSpacing.sm,
-      children: [
-        AppFilterPopover(
-          triggerLabel: filterState.triggerLabel,
-          labelKey: const Key('movies-filter-trigger-label'),
-          panelKey: const Key('movies-filter-panel'),
-          scrollViewKey: const Key('movies-filter-scroll-view'),
-          isSelected: isDefault || isCustom,
-          highlightWhenOpen: false,
-          panelExtraWidth: 260,
-          onOpened: onOpened,
-          panelBuilder: (_) => MovieFilterSectionGroup(
+    // 曾经在 popover 旁边平铺过「最新订阅 / 最新入库」两个预设按钮，已删除：
+    // 移动端顶栏没有这排按钮的位置，两端对齐后预设一律走面板内的筛选项。
+    return AppFilterPopover(
+      triggerLabel: filterState.triggerLabel,
+      labelKey: const Key('movies-filter-trigger-label'),
+      panelKey: const Key('movies-filter-panel'),
+      scrollViewKey: const Key('movies-filter-scroll-view'),
+      isSelected: !isDefault,
+      highlightWhenOpen: false,
+      panelExtraWidth: 260,
+      onOpened: onOpened,
+      panelBuilder:
+          (_) => MovieFilterSectionGroup(
             filterState: filterState,
             onChanged: onChanged,
             yearOptions: yearOptions,
@@ -54,20 +49,7 @@ class MovieFilterToolbar extends StatelessWidget {
             yearOptionsErrorMessage: yearOptionsErrorMessage,
             onYearOptionsRetry: onYearOptionsRetry,
           ),
-          footer: AppFilterPanelFooter(
-            isDefault: isDefault,
-            onReset: onReset,
-          ),
-        ),
-        for (final preset in MovieFilterPreset.values)
-          AppTextButton(
-            key: Key('movies-filter-preset-${preset.key}'),
-            label: preset.label,
-            size: AppTextButtonSize.small,
-            isSelected: filterState.matchesPreset(preset),
-            onPressed: () => onChanged(preset.filterState),
-          ),
-      ],
+      footer: AppFilterPanelFooter(isDefault: isDefault, onReset: onReset),
     );
   }
 }

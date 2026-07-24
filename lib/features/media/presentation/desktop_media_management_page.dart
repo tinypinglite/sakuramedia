@@ -125,30 +125,34 @@ class DesktopMediaManagementPage extends HookConsumerWidget {
           ),
           SizedBox(height: spacing.lg),
           Expanded(
-            child: isBatchTab
-                ? RapidUploadHistorySection(
-                    scrollController: scrollController,
-                    retryingBatchId: retryingBatchId.value,
-                    onRetry: (batch) =>
-                        _retryBatch(context, ref, batch, retryingBatchId),
-                  )
-                : MediaListSection(
-                    scrollController: scrollController,
-                    isTriggering: isTriggeringUpload.value,
-                    isDeleting: isBatchDeleting.value,
-                    onRapidUpload: () => _openRapidUploadDialog(
-                      context,
-                      ref,
-                      isTriggeringUpload,
+            child:
+                isBatchTab
+                    ? RapidUploadHistorySection(
+                      scrollController: scrollController,
+                      retryingBatchId: retryingBatchId.value,
+                      onRetry:
+                          (batch) =>
+                              _retryBatch(context, ref, batch, retryingBatchId),
+                    )
+                    : MediaListSection(
+                      scrollController: scrollController,
+                      isTriggering: isTriggeringUpload.value,
+                      isDeleting: isBatchDeleting.value,
+                      onRapidUpload:
+                          () => _openRapidUploadDialog(
+                            context,
+                            ref,
+                            isTriggeringUpload,
+                          ),
+                      onBatchDelete:
+                          () => _openBatchDeleteDialog(
+                            context,
+                            ref,
+                            isBatchDeleting,
+                          ),
+                      // 复合刷新：媒体列表 + 秒传批次 + 媒体库。
+                      onRefresh: () => _refreshAll(ref),
                     ),
-                    onBatchDelete: () => _openBatchDeleteDialog(
-                      context,
-                      ref,
-                      isBatchDeleting,
-                    ),
-                    // 复合刷新：媒体列表 + 秒传批次 + 媒体库。
-                    onRefresh: () => _refreshAll(ref),
-                  ),
           ),
         ],
       ),

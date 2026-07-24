@@ -88,9 +88,7 @@ class _RailItem extends StatelessWidget {
 
     return Material(
       key: item.itemKey,
-      color: selected
-          ? primary.withValues(alpha: 0.08)
-          : Colors.transparent,
+      color: selected ? primary.withValues(alpha: 0.08) : Colors.transparent,
       borderRadius: context.appRadius.mdBorder,
       child: InkWell(
         onTap: onTap,

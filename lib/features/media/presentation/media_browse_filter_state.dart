@@ -6,14 +6,14 @@ enum MediaBrowseSortField { fileSize, heat }
 
 extension MediaBrowseSortFieldX on MediaBrowseSortField {
   String get apiValue => switch (this) {
-        MediaBrowseSortField.fileSize => 'file_size_bytes',
-        MediaBrowseSortField.heat => 'heat',
-      };
+    MediaBrowseSortField.fileSize => 'file_size_bytes',
+    MediaBrowseSortField.heat => 'heat',
+  };
 
   String get label => switch (this) {
-        MediaBrowseSortField.fileSize => '文件大小',
-        MediaBrowseSortField.heat => '热度',
-      };
+    MediaBrowseSortField.fileSize => '文件大小',
+    MediaBrowseSortField.heat => '热度',
+  };
 }
 
 /// 排序方向。默认降序。仅在 [MediaBrowseFilterState.sortField] 非 null 时生效。
@@ -21,14 +21,14 @@ enum MediaBrowseSortDirection { desc, asc }
 
 extension MediaBrowseSortDirectionX on MediaBrowseSortDirection {
   String get apiValue => switch (this) {
-        MediaBrowseSortDirection.asc => 'asc',
-        MediaBrowseSortDirection.desc => 'desc',
-      };
+    MediaBrowseSortDirection.asc => 'asc',
+    MediaBrowseSortDirection.desc => 'desc',
+  };
 
   String get label => switch (this) {
-        MediaBrowseSortDirection.asc => '升序',
-        MediaBrowseSortDirection.desc => '降序',
-      };
+    MediaBrowseSortDirection.asc => '升序',
+    MediaBrowseSortDirection.desc => '降序',
+  };
 }
 
 /// 归属筛选值：`null` 表示不限，即后端 `kind=all`。
@@ -40,27 +40,33 @@ typedef MediaBrowseKindFilter = MediaListItemKind?;
 /// 后端用 `Media.id.not_in` 反选实现。
 ///
 /// 前端筛选 `null` = 不限，不下发 `rapid_upload_status` 参数。
-enum MediaBrowseRapidUploadFilter { none, notHit, failed, cleanupFailed, inProgress }
+enum MediaBrowseRapidUploadFilter {
+  none,
+  notHit,
+  failed,
+  cleanupFailed,
+  inProgress,
+}
 
 extension MediaBrowseRapidUploadFilterX on MediaBrowseRapidUploadFilter {
   String get apiValue => switch (this) {
-        MediaBrowseRapidUploadFilter.none => 'none',
-        MediaBrowseRapidUploadFilter.notHit => 'not_hit',
-        MediaBrowseRapidUploadFilter.failed => 'failed',
-        MediaBrowseRapidUploadFilter.cleanupFailed => 'cleanup_failed',
-        MediaBrowseRapidUploadFilter.inProgress => 'in_progress',
-      };
+    MediaBrowseRapidUploadFilter.none => 'none',
+    MediaBrowseRapidUploadFilter.notHit => 'not_hit',
+    MediaBrowseRapidUploadFilter.failed => 'failed',
+    MediaBrowseRapidUploadFilter.cleanupFailed => 'cleanup_failed',
+    MediaBrowseRapidUploadFilter.inProgress => 'in_progress',
+  };
 
   /// 复用列表 badge 的 label 保持一致文案；`none` 独立文案（badge 侧不显示这个态）。
   String get label => switch (this) {
-        MediaBrowseRapidUploadFilter.none => '未秒传',
-        MediaBrowseRapidUploadFilter.notHit => LastRapidUploadStatus.notHit.label,
-        MediaBrowseRapidUploadFilter.failed => LastRapidUploadStatus.failed.label,
-        MediaBrowseRapidUploadFilter.cleanupFailed =>
-            LastRapidUploadStatus.cleanupFailed.label,
-        MediaBrowseRapidUploadFilter.inProgress =>
-            LastRapidUploadStatus.inProgress.label,
-      };
+    MediaBrowseRapidUploadFilter.none => '未秒传',
+    MediaBrowseRapidUploadFilter.notHit => LastRapidUploadStatus.notHit.label,
+    MediaBrowseRapidUploadFilter.failed => LastRapidUploadStatus.failed.label,
+    MediaBrowseRapidUploadFilter.cleanupFailed =>
+      LastRapidUploadStatus.cleanupFailed.label,
+    MediaBrowseRapidUploadFilter.inProgress =>
+      LastRapidUploadStatus.inProgress.label,
+  };
 }
 
 /// 「媒体管理」筛选状态：不可变值对象，UI 改后调 `controller.reload()` 生效。
@@ -125,12 +131,14 @@ class MediaBrowseFilterState {
       kind: resetKind ? null : (kind ?? this.kind),
       libraryId:
           identical(libraryId, _sentinel) ? this.libraryId : libraryId as int?,
-      rapidUploadStatus: identical(rapidUploadStatus, _sentinel)
-          ? this.rapidUploadStatus
-          : rapidUploadStatus as MediaBrowseRapidUploadFilter?,
-      sortField: identical(sortField, _sentinel)
-          ? this.sortField
-          : sortField as MediaBrowseSortField?,
+      rapidUploadStatus:
+          identical(rapidUploadStatus, _sentinel)
+              ? this.rapidUploadStatus
+              : rapidUploadStatus as MediaBrowseRapidUploadFilter?,
+      sortField:
+          identical(sortField, _sentinel)
+              ? this.sortField
+              : sortField as MediaBrowseSortField?,
       sortDirection: sortDirection ?? this.sortDirection,
     );
   }
@@ -146,13 +154,8 @@ class MediaBrowseFilterState {
           other.sortDirection == sortDirection;
 
   @override
-  int get hashCode => Object.hash(
-        kind,
-        libraryId,
-        rapidUploadStatus,
-        sortField,
-        sortDirection,
-      );
+  int get hashCode =>
+      Object.hash(kind, libraryId, rapidUploadStatus, sortField, sortDirection);
 }
 
 const Object _sentinel = Object();

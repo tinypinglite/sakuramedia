@@ -4,7 +4,6 @@ import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_filter_drawer.dart';
-import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_list_content.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_list_page_state.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_subscription_change_notifier.dart';
@@ -12,7 +11,7 @@ import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_mobile_tab_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 
 class MobileMoviesPage extends StatefulWidget {
   const MobileMoviesPage({super.key});
@@ -60,6 +59,7 @@ class _MobileMoviesPageState extends State<MobileMoviesPage> {
             movieNumber: movieNumber,
           ).push(context),
       headerBuilder: _buildMobileHeader,
+      useMobileSelectionLayout: true,
       bodyBuilder:
           (context, scrollController, sliver, onRefresh) =>
               AppAdaptiveRefreshScrollView(
@@ -74,24 +74,16 @@ class _MobileMoviesPageState extends State<MobileMoviesPage> {
   }
 
   Widget _buildMobileHeader(BuildContext context, MovieListHeaderArgs args) {
-    return AppMobileTabHeader(
+    return AppListHeader(
       filterButtonKey: const Key('mobile-movies-filter-button'),
       filterTooltip: '筛选',
+      filterLabel: args.filterState.triggerLabel,
       onFilterTap: () => _openFilterDrawer(context, args),
-      chips: [
-        AppMobileTabChip(
-          key: const Key('movies-filter-preset-all'),
-          label: '全部',
-          isSelected: args.filterState.isDefault,
-          onTap: args.onReset,
+      informationSlots: [
+        AppListHeaderInfo(
+          key: const Key('mobile-movies-total'),
+          label: '${args.total} 部',
         ),
-        for (final preset in MovieFilterPreset.values)
-          AppMobileTabChip(
-            key: Key('movies-filter-preset-${preset.key}'),
-            label: preset.label,
-            isSelected: args.filterState.matchesPreset(preset),
-            onTap: () => args.onApply(preset.filterState),
-          ),
       ],
     );
   }
@@ -100,12 +92,10 @@ class _MobileMoviesPageState extends State<MobileMoviesPage> {
     BuildContext context,
     MovieListHeaderArgs args,
   ) async {
-    final next = await showMobileMovieFilterDrawer(
+    await showMobileMovieFilterDrawer(
       context,
       current: args.filterState,
+      onChanged: args.onApply,
     );
-    if (next != null) {
-      args.onApply(next);
-    }
   }
 }

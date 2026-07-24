@@ -69,11 +69,7 @@ class AppEmptyState extends StatelessWidget {
               ),
               if (onRetry != null) ...[
                 SizedBox(height: spacing.lg),
-                AppButton(
-                  key: retryKey,
-                  label: retryLabel,
-                  onPressed: onRetry,
-                ),
+                AppButton(key: retryKey, label: retryLabel, onPressed: onRetry),
               ],
             ],
           ),

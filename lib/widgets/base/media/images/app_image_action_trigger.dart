@@ -22,12 +22,14 @@ class AppImageActionTrigger extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        onLongPressStart: onRequestMenu == null
-            ? null
-            : (details) => onRequestMenu(details.globalPosition),
-        onSecondaryTapDown: onRequestMenu == null
-            ? null
-            : (details) => onRequestMenu(details.globalPosition),
+        onLongPressStart:
+            onRequestMenu == null
+                ? null
+                : (details) => onRequestMenu(details.globalPosition),
+        onSecondaryTapDown:
+            onRequestMenu == null
+                ? null
+                : (details) => onRequestMenu(details.globalPosition),
         child: child,
       ),
     );

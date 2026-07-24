@@ -73,10 +73,8 @@ class MediaBrowse extends _$MediaBrowse
     if (_activeFilter == next) return;
     _activeFilter = next;
     await reload(
-      updateBaseState: (s) => s.copyWith(
-        filter: next,
-        selectedIds: const <int>{},
-      ),
+      updateBaseState:
+          (s) => s.copyWith(filter: next, selectedIds: const <int>{}),
     );
   }
 
@@ -142,8 +140,7 @@ class MediaBrowse extends _$MediaBrowse
     final removed = beforeLength - nextItems.length;
 
     final nextSelected = Set<int>.of(current.selectedIds)..removeAll(targets);
-    final selectionChanged =
-        nextSelected.length != current.selectedIds.length;
+    final selectionChanged = nextSelected.length != current.selectedIds.length;
 
     if (removed <= 0) {
       if (selectionChanged) {

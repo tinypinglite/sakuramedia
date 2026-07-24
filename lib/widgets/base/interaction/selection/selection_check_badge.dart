@@ -17,14 +17,16 @@ class SelectionCheckBadge extends StatelessWidget {
       height: 22,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isSelected
-            ? colors.selectionBorder
-            : Colors.black.withValues(alpha: 0.35),
+        color:
+            isSelected
+                ? colors.selectionBorder
+                : Colors.black.withValues(alpha: 0.35),
         border: Border.all(color: Colors.white, width: 1.5),
       ),
-      child: isSelected
-          ? const Icon(Icons.check, color: Colors.white, size: 14)
-          : null,
+      child:
+          isSelected
+              ? const Icon(Icons.check, color: Colors.white, size: 14)
+              : null,
     );
   }
 }

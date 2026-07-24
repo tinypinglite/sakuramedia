@@ -57,8 +57,14 @@ class _CollectionPlaySplitLayoutState extends State<CollectionPlaySplitLayout> {
         builder:
             (context, area) =>
                 area.index == 0
-                    ? _PlayerPanel(keyPrefix: widget.keyPrefix, child: widget.left)
-                    : _SidePanel(keyPrefix: widget.keyPrefix, child: widget.right),
+                    ? _PlayerPanel(
+                      keyPrefix: widget.keyPrefix,
+                      child: widget.left,
+                    )
+                    : _SidePanel(
+                      keyPrefix: widget.keyPrefix,
+                      child: widget.right,
+                    ),
       ),
     );
   }

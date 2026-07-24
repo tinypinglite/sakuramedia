@@ -43,7 +43,9 @@ class VideoSummaryCard extends StatelessWidget {
     final spacing = context.appSpacing;
 
     final borderColor =
-        selectionMode && isSelected ? colors.selectionBorder : colors.borderSubtle;
+        selectionMode && isSelected
+            ? colors.selectionBorder
+            : colors.borderSubtle;
 
     final card = Container(
       key: Key('video-summary-card-${video.id}'),
@@ -179,4 +181,3 @@ class _VideoCover extends StatelessWidget {
     );
   }
 }
-

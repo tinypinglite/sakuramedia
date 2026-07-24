@@ -28,8 +28,9 @@ class ActorFilterSectionGroup extends StatelessWidget {
           options: ActorSubscriptionStatus.values,
           selectedValue: filterState.subscriptionStatus,
           labelBuilder: (value) => value.label,
-          onSelected: (value) =>
-              onChanged(filterState.copyWith(subscriptionStatus: value)),
+          onSelected:
+              (value) =>
+                  onChanged(filterState.copyWith(subscriptionStatus: value)),
         ),
         SizedBox(height: context.appSpacing.lg),
         ActorFilterChoiceSection<ActorGender>(
@@ -37,16 +38,15 @@ class ActorFilterSectionGroup extends StatelessWidget {
           options: ActorGender.values,
           selectedValue: filterState.gender,
           labelBuilder: (value) => value.label,
-          onSelected: (value) =>
-              onChanged(filterState.copyWith(gender: value)),
+          onSelected: (value) => onChanged(filterState.copyWith(gender: value)),
         ),
         SizedBox(height: context.appSpacing.lg),
         ActorSortSection(
           filterState: filterState,
-          onSortFieldChanged: (value) =>
-              onChanged(filterState.copyWith(sortField: value)),
-          onSortDirectionChanged: (value) =>
-              onChanged(filterState.copyWith(sortDirection: value)),
+          onSortFieldChanged:
+              (value) => onChanged(filterState.copyWith(sortField: value)),
+          onSortDirectionChanged:
+              (value) => onChanged(filterState.copyWith(sortDirection: value)),
         ),
       ],
     );

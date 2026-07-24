@@ -36,9 +36,7 @@ class StaggeredLayoutResult {
 
   /// 整组瀑布流总高 = 最长列高（不含尾部 mainAxisSpacing）。
   double get totalHeight =>
-      columnHeights.isEmpty
-          ? 0
-          : columnHeights.reduce((a, b) => a > b ? a : b);
+      columnHeights.isEmpty ? 0 : columnHeights.reduce((a, b) => a > b ? a : b);
 }
 
 /// 计算瀑布流 tile 归位：**镜像** `SliverMasonryGrid.count` 的「当前最矮列优先」放置算法

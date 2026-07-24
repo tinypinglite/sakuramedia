@@ -30,15 +30,16 @@ Future<void> showMobileVideoActionsSheet(
     context: context,
     drawerKey: const Key('mobile-video-actions-sheet'),
     maxHeightFactor: 0.62,
-    builder: (_) => MobileVideoActionsSheet(
-      video: video,
-      onPlay: onPlay,
-      onAddToCollection: onAddToCollection,
-      onDelete: onDelete,
-      onRemoveFromCollection: onRemoveFromCollection,
-      collections: collections,
-      onCollectionTap: onCollectionTap,
-    ),
+    builder:
+        (_) => MobileVideoActionsSheet(
+          video: video,
+          onPlay: onPlay,
+          onAddToCollection: onAddToCollection,
+          onDelete: onDelete,
+          onRemoveFromCollection: onRemoveFromCollection,
+          collections: collections,
+          onCollectionTap: onCollectionTap,
+        ),
   );
 }
 
@@ -121,9 +122,10 @@ class MobileVideoActionsSheet extends StatelessWidget {
                 children: [
                   ColoredBox(
                     color: colors.surfaceMuted,
-                    child: coverUrl != null && coverUrl.isNotEmpty
-                        ? MaskedImage(url: coverUrl, fit: BoxFit.contain)
-                        : null,
+                    child:
+                        coverUrl != null && coverUrl.isNotEmpty
+                            ? MaskedImage(url: coverUrl, fit: BoxFit.contain)
+                            : null,
                   ),
                   if (video.durationSeconds > 0)
                     Positioned(

@@ -8,8 +8,8 @@ import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_i
 /// 读取 mpv 原生属性(如 `video-bitrate`)的注入点;
 /// 生产侧用 [createMediaKitNativePropertyReader] 包一层 `Player.platform`,
 /// 测试侧直接喂 map/闭包即可,不需要 media_kit 实例。
-typedef MoviePlayerNativePropertyReader = Future<String?> Function(
-    String property);
+typedef MoviePlayerNativePropertyReader =
+    Future<String?> Function(String property);
 
 MoviePlayerNativePropertyReader createMediaKitNativePropertyReader(
   Player player,
@@ -84,10 +84,10 @@ class MoviePlayerNativeStatsSampler {
     required MoviePlayerPlaybackMediaOrigin mediaOrigin,
     required String originalUrl,
     bool isWeb = kIsWeb,
-  })  : _readNativeProperty = readNativeProperty,
-        _mediaOrigin = mediaOrigin,
-        _originalUrl = originalUrl,
-        _isWeb = isWeb;
+  }) : _readNativeProperty = readNativeProperty,
+       _mediaOrigin = mediaOrigin,
+       _originalUrl = originalUrl,
+       _isWeb = isWeb;
 
   final MoviePlayerNativePropertyReader _readNativeProperty;
   final bool _isWeb;
@@ -97,8 +97,8 @@ class MoviePlayerNativeStatsSampler {
 
   final ValueNotifier<MoviePlayerPlaybackInfoSnapshot> _snapshotNotifier =
       ValueNotifier<MoviePlayerPlaybackInfoSnapshot>(
-    MoviePlayerPlaybackInfoSnapshot.empty,
-  );
+        MoviePlayerPlaybackInfoSnapshot.empty,
+      );
 
   ValueListenable<MoviePlayerPlaybackInfoSnapshot> get snapshot =>
       _snapshotNotifier;
@@ -234,9 +234,10 @@ class MoviePlayerNativeStatsSampler {
       final cacheDurationSeconds = _parseNativeDouble(results[9]);
       final forwardBytes = parseDemuxerForwardBytes(results[10]);
       final previousSampleAt = _previousCounterSampleAt;
-      final elapsedSeconds = previousSampleAt == null
-          ? null
-          : now.difference(previousSampleAt).inMilliseconds / 1000;
+      final elapsedSeconds =
+          previousSampleAt == null
+              ? null
+              : now.difference(previousSampleAt).inMilliseconds / 1000;
 
       _hwdecCurrent = results[0];
       _videoBitrate = _parseNativeDouble(results[1]);

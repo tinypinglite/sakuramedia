@@ -23,11 +23,7 @@ class AppMetaChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          size: context.appComponentTokens.iconSizeXs,
-          color: color,
-        ),
+        Icon(icon, size: context.appComponentTokens.iconSizeXs, color: color),
         SizedBox(width: context.appSpacing.xs),
         Text(
           label,

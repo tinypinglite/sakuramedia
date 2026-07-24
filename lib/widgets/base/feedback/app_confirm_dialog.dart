@@ -55,17 +55,17 @@ Future<bool> showAppConfirmDialog(
 }) async {
   final resolved = _resolveVariant(context, variant);
   Widget buildBody(BuildContext _) => _ConfirmBody(
-        title: title,
-        message: message,
-        confirmLabel: confirmLabel,
-        cancelLabel: cancelLabel,
-        danger: danger,
-        confirmKey: confirmKey,
-        cancelKey: cancelKey,
-        extraContent: extraContent,
-        onConfirm: onConfirm,
-        failureFallback: failureFallback,
-      );
+    title: title,
+    message: message,
+    confirmLabel: confirmLabel,
+    cancelLabel: cancelLabel,
+    danger: danger,
+    confirmKey: confirmKey,
+    cancelKey: cancelKey,
+    extraContent: extraContent,
+    onConfirm: onConfirm,
+    failureFallback: failureFallback,
+  );
 
   if (resolved == AppConfirmVariant.drawer) {
     final confirmed = await showAppBottomDrawer<bool>(
@@ -202,9 +202,10 @@ class _ConfirmBodyState extends State<_ConfirmBody> {
                 child: AppButton(
                   key: widget.cancelKey,
                   label: widget.cancelLabel,
-                  onPressed: _isConfirming
-                      ? null
-                      : () => Navigator.of(context).pop(false),
+                  onPressed:
+                      _isConfirming
+                          ? null
+                          : () => Navigator.of(context).pop(false),
                 ),
               ),
               SizedBox(width: spacing.md),
@@ -212,9 +213,10 @@ class _ConfirmBodyState extends State<_ConfirmBody> {
                 child: AppButton(
                   key: widget.confirmKey,
                   label: widget.confirmLabel,
-                  variant: widget.danger
-                      ? AppButtonVariant.danger
-                      : AppButtonVariant.primary,
+                  variant:
+                      widget.danger
+                          ? AppButtonVariant.danger
+                          : AppButtonVariant.primary,
                   isLoading: _isConfirming,
                   onPressed: _handleConfirm,
                 ),

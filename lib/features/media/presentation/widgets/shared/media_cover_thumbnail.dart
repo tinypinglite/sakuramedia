@@ -41,19 +41,21 @@ class MediaCoverThumbnail extends StatelessWidget {
       child: SizedBox(
         width: width,
         height: height,
-        child: _hasUrl
-            ? MaskedImage(key: imageKey, url: url!, fit: fit)
-            : DecoratedBox(
-                key: placeholderKey,
-                decoration: BoxDecoration(
-                  color: placeholderBackground ?? context.appColors.surfaceCard,
+        child:
+            _hasUrl
+                ? MaskedImage(key: imageKey, url: url!, fit: fit)
+                : DecoratedBox(
+                  key: placeholderKey,
+                  decoration: BoxDecoration(
+                    color:
+                        placeholderBackground ?? context.appColors.surfaceCard,
+                  ),
+                  child: Icon(
+                    Icons.movie_creation_outlined,
+                    size: context.appComponentTokens.iconSize2xl,
+                    color: context.appTextPalette.muted,
+                  ),
                 ),
-                child: Icon(
-                  Icons.movie_creation_outlined,
-                  size: context.appComponentTokens.iconSize2xl,
-                  color: context.appTextPalette.muted,
-                ),
-              ),
       ),
     );
   }

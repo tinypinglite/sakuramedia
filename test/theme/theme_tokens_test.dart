@@ -123,7 +123,8 @@ void main() {
     expect(componentTokens.playlistBannerHeight, 100);
     expect(componentTokens.playlistDialogWidth, 520);
     expect(componentTokens.mobileBottomNavHeight, 52);
-    expect(componentTokens.mobileTopTabHeight, 36);
+    expect(componentTokens.mobileTopTabHeight, 44);
+    expect(componentTokens.mobileFilterEntryMaxLabelWidth, 140);
     expect(componentTokens.mobileSubpageLeadingWidth, 40);
     expect(componentTokens.mobileLatestMovieCardWidth, 142);
     expect(componentTokens.mobileFollowMovieCardHeight, 150);

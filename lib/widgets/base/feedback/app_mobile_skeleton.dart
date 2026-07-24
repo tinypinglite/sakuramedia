@@ -6,12 +6,7 @@ import 'package:sakuramedia/theme.dart';
 /// 默认 [radius] 为 `null` 时沿用 `smBorder`（旧行为）；调用方可以传
 /// `context.appRadius.mdBorder` 用于头像块之类需要更大圆角的场景。
 class AppSkeletonBlock extends StatelessWidget {
-  const AppSkeletonBlock({
-    super.key,
-    this.width,
-    this.height,
-    this.radius,
-  });
+  const AppSkeletonBlock({super.key, this.width, this.height, this.radius});
 
   final double? width;
   final double? height;
@@ -80,7 +75,8 @@ class AppMobileSkeletonList extends StatelessWidget {
     final spacing = context.appSpacing;
     final effectivePadding = padding ?? EdgeInsets.all(spacing.md);
     final builder =
-        itemBuilder ?? (BuildContext _, int __) => const AppMobileSkeletonCard();
+        itemBuilder ??
+        (BuildContext _, int __) => const AppMobileSkeletonCard();
     return Padding(
       padding: effectivePadding,
       child: Column(

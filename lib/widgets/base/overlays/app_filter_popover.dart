@@ -32,6 +32,7 @@ class AppFilterPopover extends StatefulWidget {
     this.onOpened,
     this.initialTriggerSize = const Size(160, 36),
     this.alignment = AppFilterPopoverAlignment.rightAlignedToTrigger,
+    this.triggerBuilder,
   });
 
   final String triggerLabel;
@@ -73,6 +74,13 @@ class AppFilterPopover extends StatefulWidget {
   /// - `leftAlignedToTrigger`：面板左边缘对齐 trigger 左边缘，多出来的宽度
   ///   向右延伸；trigger 位于容器左侧、且右侧有富余空间时更合适。
   final AppFilterPopoverAlignment alignment;
+
+  /// 自定义触发按钮；不传时用默认的 [AppTextButton] 样式。
+  ///
+  /// 列表顶栏传 `AppFilterEntryButton`，让桌面浮层入口与移动抽屉入口**长得一样**
+  /// ——两端只有展开容器不同。回调给出 `isOpen` 与 `toggle`。
+  final Widget Function(BuildContext context, bool isOpen, VoidCallback toggle)?
+  triggerBuilder;
 
   @override
   State<AppFilterPopover> createState() => _AppFilterPopoverState();
@@ -196,13 +204,13 @@ class _AppFilterPopoverState extends State<AppFilterPopover> {
       // 左对齐：面板左边缘贴 trigger 左边缘，多出的宽度向右延伸；trigger 太
       // 靠右导致面板会超出 overlay 时，再把面板整体左移到刚好贴 overlay 右边。
       AppFilterPopoverAlignment.leftAlignedToTrigger => () {
-          final rightSpace =
-              overlayWidth - _triggerOffsetInOverlay.dx - _triggerSize.width;
-          if (overflow <= rightSpace) {
-            return 0.0;
-          }
-          return -(overflow - rightSpace).toDouble();
-        }(),
+        final rightSpace =
+            overlayWidth - _triggerOffsetInOverlay.dx - _triggerSize.width;
+        if (overflow <= rightSpace) {
+          return 0.0;
+        }
+        return -(overflow - rightSpace).toDouble();
+      }(),
     };
 
     final overlayHeight = overlayBox?.size.height ?? mediaQuery.size.height;
@@ -271,20 +279,30 @@ class _AppFilterPopoverState extends State<AppFilterPopover> {
   Widget build(BuildContext context) {
     final highlight =
         widget.isSelected || (widget.highlightWhenOpen && _isOpen);
+    final customTrigger = widget.triggerBuilder;
     return CompositedTransformTarget(
       link: _layerLink,
       child: KeyedSubtree(
         key: _triggerKey,
-        child: AppTextButton(
-          key: widget.triggerKey,
-          label: widget.triggerLabel,
-          labelKey: widget.labelKey,
-          icon: const Icon(Icons.filter_alt_outlined),
-          trailingIcon: Icon(_isOpen ? Icons.expand_less : Icons.expand_more),
-          size: AppTextButtonSize.small,
-          isSelected: highlight,
-          onPressed: widget.enabled ? _togglePanel : null,
-        ),
+        child:
+            customTrigger != null
+                ? customTrigger(
+                  context,
+                  _isOpen,
+                  widget.enabled ? _togglePanel : () {},
+                )
+                : AppTextButton(
+                  key: widget.triggerKey,
+                  label: widget.triggerLabel,
+                  labelKey: widget.labelKey,
+                  icon: const Icon(Icons.filter_alt_outlined),
+                  trailingIcon: Icon(
+                    _isOpen ? Icons.expand_less : Icons.expand_more,
+                  ),
+                  size: AppTextButtonSize.small,
+                  isSelected: highlight,
+                  onPressed: widget.enabled ? _togglePanel : null,
+                ),
       ),
     );
   }

@@ -38,7 +38,7 @@ List<Widget> buildMoviePlayerTopControls({
 List<Widget> buildMoviePlayerMobileBottomControls({
   required MoviePlayerMobileDrawerType? activeDrawer,
   required ValueListenable<MoviePlayerMobileSpeedDisplayState>
-      speedDisplayListenable,
+  speedDisplayListenable,
   required VoidCallback onSpeedButtonPressed,
   required VoidCallback onSubtitleButtonPressed,
 }) {

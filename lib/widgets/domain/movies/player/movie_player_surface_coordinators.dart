@@ -2,17 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 
-typedef MoviePlayerSurfaceSubtitleTextLoader = Future<String> Function(
-    MoviePlayerSubtitleOption option);
+typedef MoviePlayerSurfaceSubtitleTextLoader =
+    Future<String> Function(MoviePlayerSubtitleOption option);
 
-typedef MoviePlayerSurfaceSetSubtitleTrack = Future<void> Function(
-    SubtitleTrack track);
+typedef MoviePlayerSurfaceSetSubtitleTrack =
+    Future<void> Function(SubtitleTrack track);
 
-typedef MoviePlayerSurfaceOpen = Future<void> Function(
-  String resolvedUrl, {
-  required Duration? startPosition,
-  required bool play,
-});
+typedef MoviePlayerSurfaceOpen =
+    Future<void> Function(
+      String resolvedUrl, {
+      required Duration? startPosition,
+      required bool play,
+    });
 
 typedef MoviePlayerSurfaceAction = Future<void> Function();
 

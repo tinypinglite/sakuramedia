@@ -59,9 +59,7 @@ class InvalidMedia extends _$InvalidMedia
   }) {
     return super.reload(
       updateBaseState: (s) {
-        final cleared = s.copyWith(
-          deleteEnabledMediaIds: const <int>{},
-        );
+        final cleared = s.copyWith(deleteEnabledMediaIds: const <int>{});
         return updateBaseState != null ? updateBaseState(cleared) : cleared;
       },
     );
@@ -72,9 +70,7 @@ class InvalidMedia extends _$InvalidMedia
   Future<String?> refresh() async {
     final current = state.value;
     if (current != null && current.deleteEnabledMediaIds.isNotEmpty) {
-      state = AsyncData(
-        current.copyWith(deleteEnabledMediaIds: const <int>{}),
-      );
+      state = AsyncData(current.copyWith(deleteEnabledMediaIds: const <int>{}));
     }
     return super.refresh();
   }
@@ -100,7 +96,8 @@ class InvalidMedia extends _$InvalidMedia
       if (result.validAfter) {
         state = AsyncData(_withMediaRemoved(now, mediaId));
       } else {
-        final nextEnabled = Set<int>.of(now.deleteEnabledMediaIds)..add(mediaId);
+        final nextEnabled = Set<int>.of(now.deleteEnabledMediaIds)
+          ..add(mediaId);
         state = AsyncData(
           now.copyWith(
             checkingMediaId: null,
@@ -162,33 +159,30 @@ class InvalidMedia extends _$InvalidMedia
   }
 
   /// 从 items 移除 [mediaId]，同步扣减 total 与 deleteEnabled/checking/deleting 相关字段。
-  InvalidMediaState _withMediaRemoved(
-    InvalidMediaState current,
-    int mediaId,
-  ) {
+  InvalidMediaState _withMediaRemoved(InvalidMediaState current, int mediaId) {
     final beforeLength = current.paged.items.length;
     final nextItems = current.paged.items
         .where((item) => item.id != mediaId)
         .toList(growable: false);
     final removed = beforeLength - nextItems.length;
-    final nextTotal = removed > 0 && current.paged.total > 0
-        ? (current.paged.total - removed).clamp(0, 1 << 30).toInt()
-        : current.paged.total;
+    final nextTotal =
+        removed > 0 && current.paged.total > 0
+            ? (current.paged.total - removed).clamp(0, 1 << 30).toInt()
+            : current.paged.total;
     final nextPaged = current.paged.copyWith(
       items: List<InvalidMediaDto>.unmodifiable(nextItems),
       total: nextTotal,
       hasMore: nextItems.length < nextTotal,
     );
-    final nextEnabled = Set<int>.of(current.deleteEnabledMediaIds)..remove(mediaId);
+    final nextEnabled = Set<int>.of(current.deleteEnabledMediaIds)
+      ..remove(mediaId);
     return current.copyWith(
       paged: nextPaged,
       deleteEnabledMediaIds: nextEnabled,
-      checkingMediaId: current.checkingMediaId == mediaId
-          ? null
-          : current.checkingMediaId,
-      deletingMediaId: current.deletingMediaId == mediaId
-          ? null
-          : current.deletingMediaId,
+      checkingMediaId:
+          current.checkingMediaId == mediaId ? null : current.checkingMediaId,
+      deletingMediaId:
+          current.deletingMediaId == mediaId ? null : current.deletingMediaId,
     );
   }
 }

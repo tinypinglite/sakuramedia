@@ -82,8 +82,9 @@ class MovieClipsController extends ChangeNotifier {
   /// 从列表精准移除指定切片（删除广播 / 本地删除共用）。
   void removeClip(int clipId) {
     final before = _clips.length;
-    _clips =
-        _clips.where((clip) => clip.clipId != clipId).toList(growable: false);
+    _clips = _clips
+        .where((clip) => clip.clipId != clipId)
+        .toList(growable: false);
     if (_clips.length != before) {
       _notify();
     }

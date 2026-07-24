@@ -86,57 +86,58 @@ class _DesktopActorsPageState extends State<DesktopActorsPage> {
         child: CustomScrollView(
           controller: _actorsController.scrollController,
           slivers: [
-          AnimatedBuilder(
-            animation: _actorsController,
-            builder: (context, _) {
-              final footer = _buildLoadMoreFooter(context);
-              return SliverMainAxisGroup(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Column(
-                      key: const Key('actors-page'),
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _ActorsHeader(
-                          total: _actorsController.total,
-                          filterState: _filterState,
-                          onFilterChanged: _applyFilter,
-                          onResetFilters: _resetFilters,
-                        ),
-                        SizedBox(height: context.appSpacing.lg),
-                      ],
-                    ),
-                  ),
-                  ActorSummarySliver(
-                    items: _actorsController.items,
-                    isLoading: _actorsController.isInitialLoading,
-                    errorMessage: _actorsController.initialErrorMessage,
-                    onActorTap:
-                        (actor) => context.pushDesktopActorDetail(
-                          actorId: actor.id,
-                          fallbackPath: desktopActorsPath,
-                        ),
-                    onActorSubscriptionTap:
-                        (actor) => _toggleActorSubscription(actor.id),
-                    isActorSubscriptionUpdating:
-                        (actor) =>
-                            _actorsController.isSubscriptionUpdating(actor.id),
-                    emptyMessage:
-                        _filterState.isDefault
-                            ? '暂无女优，去搜索看看吧'
-                            : '当前筛选条件下暂无匹配女优',
-                  ),
-                  if (footer != null)
+            AnimatedBuilder(
+              animation: _actorsController,
+              builder: (context, _) {
+                final footer = _buildLoadMoreFooter(context);
+                return SliverMainAxisGroup(
+                  slivers: [
                     SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.only(top: context.appSpacing.md),
-                        child: footer,
+                      child: Column(
+                        key: const Key('actors-page'),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _ActorsHeader(
+                            total: _actorsController.total,
+                            filterState: _filterState,
+                            onFilterChanged: _applyFilter,
+                            onResetFilters: _resetFilters,
+                          ),
+                          SizedBox(height: context.appSpacing.lg),
+                        ],
                       ),
                     ),
-                ],
-              );
-            },
-          ),
+                    ActorSummarySliver(
+                      items: _actorsController.items,
+                      isLoading: _actorsController.isInitialLoading,
+                      errorMessage: _actorsController.initialErrorMessage,
+                      onActorTap:
+                          (actor) => context.pushDesktopActorDetail(
+                            actorId: actor.id,
+                            fallbackPath: desktopActorsPath,
+                          ),
+                      onActorSubscriptionTap:
+                          (actor) => _toggleActorSubscription(actor.id),
+                      isActorSubscriptionUpdating:
+                          (actor) => _actorsController.isSubscriptionUpdating(
+                            actor.id,
+                          ),
+                      emptyMessage:
+                          _filterState.isDefault
+                              ? '暂无女优，去搜索看看吧'
+                              : '当前筛选条件下暂无匹配女优',
+                    ),
+                    if (footer != null)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: context.appSpacing.md),
+                          child: footer,
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
           ],
         ),
       ),

@@ -60,7 +60,10 @@ Future<void> launchMoviePlayback(
           : resolveMediaUrl(rawUrl: media.playUrl, baseUrl: baseUrl);
 
   // 拿不到可播放直链时回落到应用内播放页。
-  if (detail == null || media == null || resolvedUrl == null || resolvedUrl.isEmpty) {
+  if (detail == null ||
+      media == null ||
+      resolvedUrl == null ||
+      resolvedUrl.isEmpty) {
     _pushInAppPlayer(
       context,
       movieNumber: movieNumber,

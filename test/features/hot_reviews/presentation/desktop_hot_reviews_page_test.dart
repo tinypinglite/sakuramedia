@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_review
 import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
@@ -307,22 +308,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final periodRect = tester.getRect(
-      find.byKey(const Key('mobile-hot-reviews-period-trigger')),
-    );
-    final totalRect = tester.getRect(
-      find.byKey(const Key('desktop-hot-reviews-page-total')),
-    );
+    // 量 header **容器**底部而不是里面控件的底部：容器现在是固定高度
+    // （与 AppListHeader 对齐，进出多选不跳版），控件在其中居中，
+    // 控件底部与容器底部之间本来就有留白。
+    final headerRect = tester.getRect(find.byType(AppFilterTotalHeader));
     final firstCardRect = tester.getRect(
       find.byKey(const Key('hot-review-card-101')),
     );
-    final headerBottom =
-        periodRect.bottom > totalRect.bottom
-            ? periodRect.bottom
-            : totalRect.bottom;
 
     expect(
-      firstCardRect.top - headerBottom,
+      firstCardRect.top - headerRect.bottom,
       moreOrLessEquals(sakuraThemeData.appSpacing.lg, epsilon: 1.0),
     );
   });

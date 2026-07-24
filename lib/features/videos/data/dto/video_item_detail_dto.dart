@@ -93,7 +93,10 @@ class VideoItemDetailDto {
       collections: videoCollectionRefsFromJson(json['collections']),
       createdAt: videoDateFromJson(json['created_at']),
       updatedAt: videoDateFromJson(json['updated_at']),
-      mediaItems: _listFromJson(json['media_items'], MovieMediaItemDto.fromJson),
+      mediaItems: _listFromJson(
+        json['media_items'],
+        MovieMediaItemDto.fromJson,
+      ),
     );
   }
 }
@@ -103,11 +106,7 @@ class VideoItemDetailDto {
 /// 字段为 `null` 表示「不传该键、保持原值」。[releaseDate] 仅在非 `null` 时下发，
 /// phase 1 不支持经此清空发布时间。
 class VideoItemUpdatePayload {
-  const VideoItemUpdatePayload({
-    this.title,
-    this.summary,
-    this.releaseDate,
-  });
+  const VideoItemUpdatePayload({this.title, this.summary, this.releaseDate});
 
   final String? title;
   final String? summary;
@@ -117,8 +116,7 @@ class VideoItemUpdatePayload {
     return <String, dynamic>{
       if (title != null) 'title': title,
       if (summary != null) 'summary': summary,
-      if (releaseDate != null)
-        'release_date': releaseDate!.toIso8601String(),
+      if (releaseDate != null) 'release_date': releaseDate!.toIso8601String(),
     };
   }
 }

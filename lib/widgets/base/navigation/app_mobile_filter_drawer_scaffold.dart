@@ -1,89 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 
-/// 移动端筛选底部抽屉的通用壳层：
-///   标题行（左标题 + 右「重置」文字按钮）
-///   分隔线
-///   可滚动内容区
-///   底部固定全宽「确定」主按钮
+/// 移动端筛选底部抽屉的通用壳层：可滚动内容区 + 可选 footer。
 ///
-/// 「确定才生效」模式：调用方在 [onConfirm] 里 Navigator.pop(本地副本)。
-/// [onReset] 为 null 时「重置」按钮置灰禁用。
+/// **刻意与桌面 `AppFilterPopover` 的面板结构逐行对齐**——同样是
+/// `Flexible(SingleChildScrollView)` 包内容、footer 留在滚动区之外。两端筛选
+/// 面板因此是同一套内容 + 同一套行为（即时生效、footer 里重置），只有外层容器
+/// 不同：桌面浮层、移动底抽屉。
+///
+/// 这里**没有标题行、没有确定按钮**：筛选即时生效，不需要提交动作；关闭靠下拉
+/// 或点遮罩，与桌面点面板外部收起同义。
 class AppMobileFilterDrawerScaffold extends StatelessWidget {
   const AppMobileFilterDrawerScaffold({
     super.key,
-    required this.title,
-    required this.onReset,
-    required this.onConfirm,
     required this.child,
-    this.confirmLabel = '确定',
-    this.resetLabel = '重置',
-    this.resetButtonKey,
-    this.confirmButtonKey,
+    this.footer,
+    this.scrollViewKey,
   });
 
-  final String title;
-  final VoidCallback? onReset;
-  final VoidCallback onConfirm;
   final Widget child;
-  final String confirmLabel;
-  final String resetLabel;
-  final Key? resetButtonKey;
-  final Key? confirmButtonKey;
+
+  /// 通常是 `AppFilterPanelFooter`（与桌面面板同一个组件）。
+  final Widget? footer;
+
+  final Key? scrollViewKey;
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final colors = context.appColors;
+    final footerWidget = footer;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: spacing.xs),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s16,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-              ),
-              AppTextButton(
-                key: resetButtonKey,
-                label: resetLabel,
-                size: AppTextButtonSize.small,
-                onPressed: onReset,
-              ),
-            ],
-          ),
-        ),
-        SizedBox(height: spacing.sm),
-        Divider(height: 1, color: colors.divider),
         Flexible(
           child: SingleChildScrollView(
+            key: scrollViewKey,
             padding: EdgeInsets.symmetric(vertical: spacing.md),
             child: child,
           ),
         ),
-        Divider(height: 1, color: colors.divider),
-        SafeArea(
-          top: false,
-          minimum: EdgeInsets.only(top: spacing.md, bottom: spacing.sm),
-          child: AppButton(
-            key: confirmButtonKey,
-            label: confirmLabel,
-            variant: AppButtonVariant.primary,
-            onPressed: onConfirm,
+        if (footerWidget != null)
+          SafeArea(
+            top: false,
+            minimum: EdgeInsets.only(top: spacing.sm, bottom: spacing.sm),
+            child: footerWidget,
           ),
-        ),
       ],
     );
   }

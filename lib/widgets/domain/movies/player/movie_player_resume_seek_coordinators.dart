@@ -20,12 +20,12 @@ class MoviePlayerResumePromptCoordinator extends ChangeNotifier {
     required double Function() playbackRate,
     void Function()? onResolved,
     void Function()? onResumeCompleted,
-  })  : _seek = seek,
-        _play = play,
-        _currentPosition = currentPosition,
-        _playbackRate = playbackRate,
-        _onResolved = onResolved,
-        _onResumeCompleted = onResumeCompleted;
+  }) : _seek = seek,
+       _play = play,
+       _currentPosition = currentPosition,
+       _playbackRate = playbackRate,
+       _onResolved = onResolved,
+       _onResumeCompleted = onResumeCompleted;
 
   final Future<void> Function(Duration position) _seek;
   final Future<void> Function() _play;
@@ -145,9 +145,9 @@ class MoviePlayerStartupSeekCoordinator {
     required Future<void> Function(Duration position) seek,
     required bool Function() isSurfaceReady,
     DateTime Function()? now,
-  })  : _seek = seek,
-        _isSurfaceReady = isSurfaceReady,
-        _now = now ?? DateTime.now;
+  }) : _seek = seek,
+       _isSurfaceReady = isSurfaceReady,
+       _now = now ?? DateTime.now;
 
   static const int toleranceSeconds = 2;
   static const int retryDelayMs = 800;
@@ -170,9 +170,10 @@ class MoviePlayerStartupSeekCoordinator {
 
   /// 开播新媒体:`initialPosition > 0` 才进入守卫,否则直接 settle。
   void begin(Duration? initialPosition) {
-    _target = initialPosition != null && initialPosition > Duration.zero
-        ? initialPosition
-        : null;
+    _target =
+        initialPosition != null && initialPosition > Duration.zero
+            ? initialPosition
+            : null;
     _startedAt = _now();
     _retryCount = 0;
     _nearTargetSamples = 0;

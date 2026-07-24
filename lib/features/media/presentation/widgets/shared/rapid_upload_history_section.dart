@@ -67,33 +67,43 @@ class _RapidUploadHistoryHeader extends ConsumerWidget {
     final asyncState = ref.watch(mediaRapidUploadHistoryProvider);
     final total = asyncState.value?.total ?? 0;
     final isInitialLoading = asyncState.isLoading && !asyncState.hasValue;
-    return AppFilterTotalHeader(
-      leading: Text(
-        '秒传任务按批次记录执行状态，失败项可以在批次结束后重新提交。',
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s12,
-          weight: AppTextWeight.regular,
-          tone: AppTextTone.muted,
+    // 说明文字自成一行放在顶栏下方——顶栏恒定单行、不换行，
+    // 整段说明塞进 leading 会被锁定的高度截断。
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppFilterTotalHeader(
+          leading: const SizedBox.shrink(),
+          totalText: '共 $total 个批次',
+          totalKey: const Key('media-management-batch-total'),
+          trailing: AppIconButton(
+            key: const Key('media-management-batch-refresh-button'),
+            tooltip: isInitialLoading ? '刷新中' : '刷新批次',
+            onPressed:
+                isInitialLoading
+                    ? null
+                    : () async {
+                      final message =
+                          await ref
+                              .read(mediaRapidUploadHistoryProvider.notifier)
+                              .refresh();
+                      if (message != null) showToast(message);
+                    },
+            icon: const Icon(Icons.refresh_rounded),
+          ),
         ),
-      ),
-      totalText: '共 $total 个批次',
-      totalKey: const Key('media-management-batch-total'),
-      trailing: AppIconButton(
-        key: const Key('media-management-batch-refresh-button'),
-        tooltip: isInitialLoading ? '刷新中' : '刷新批次',
-        onPressed:
-            isInitialLoading
-                ? null
-                : () async {
-                  final message =
-                      await ref
-                          .read(mediaRapidUploadHistoryProvider.notifier)
-                          .refresh();
-                  if (message != null) showToast(message);
-                },
-        icon: const Icon(Icons.refresh_rounded),
-      ),
+        SizedBox(height: context.appSpacing.xs),
+        Text(
+          '秒传任务按批次记录执行状态，失败项可以在批次结束后重新提交。',
+          key: const Key('rapid-upload-history-section-description'),
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.muted,
+          ),
+        ),
+      ],
     );
   }
 }

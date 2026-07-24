@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:sakuramedia/app/cached_page_state_handle.dart';
 import 'package:sakuramedia/app/app_page_state_cache_keys.dart';
 import 'package:sakuramedia/features/actors/data/api/actors_api.dart';
-import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_preset.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_list_page_state.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
 import 'package:sakuramedia/features/actors/presentation/pages/mobile/actor_filter_drawer.dart';
@@ -17,7 +16,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_summary_grid.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_mobile_tab_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 
 class MobileActorsPage extends StatefulWidget {
   const MobileActorsPage({super.key});
@@ -98,22 +97,18 @@ class _MobileActorsPageState extends State<MobileActorsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        AppMobileTabHeader(
+                        AppListHeader(
                           filterButtonKey: const Key(
                             'mobile-actors-filter-button',
                           ),
                           filterTooltip: '筛选',
+                          filterLabel: _filterState.triggerLabel,
                           onFilterTap: _openFilterDrawer,
-                          chips: [
-                            for (final preset in ActorFilterPreset.values)
-                              AppMobileTabChip(
-                                key: Key(
-                                  'mobile-actors-filter-preset-${preset.key}',
-                                ),
-                                label: preset.label,
-                                isSelected: _filterState.matchesPreset(preset),
-                                onTap: () => _applyFilter(preset.filterState),
-                              ),
+                          informationSlots: [
+                            AppListHeaderInfo(
+                              key: const Key('mobile-actors-total'),
+                              label: '${_actorsController.total} 位',
+                            ),
                           ],
                         ),
                         SizedBox(height: context.appSpacing.md),
@@ -169,12 +164,10 @@ class _MobileActorsPageState extends State<MobileActorsPage> {
   }
 
   Future<void> _openFilterDrawer() async {
-    final next = await showMobileActorFilterDrawer(
+    await showMobileActorFilterDrawer(
       context,
       current: _filterState,
+      onChanged: _applyFilter,
     );
-    if (next != null) {
-      _applyFilter(next);
-    }
   }
 }

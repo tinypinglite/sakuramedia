@@ -86,9 +86,10 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
     setState(() {
       _selectedLibrary = library;
       _source = null;
-      _transferMode = library == null
-          ? TransferMode.auto
-          : MediaImportSourcePicker.defaultTransferModeFor(library);
+      _transferMode =
+          library == null
+              ? TransferMode.auto
+              : MediaImportSourcePicker.defaultTransferModeFor(library);
     });
   }
 
@@ -121,7 +122,8 @@ class _VideoImportDialogState extends State<VideoImportDialog> {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final deletingCloudSource = _selectedLibrary?.isCloud115 == true &&
+    final deletingCloudSource =
+        _selectedLibrary?.isCloud115 == true &&
         _transferMode == TransferMode.cleanupSource;
     return AppDesktopDialog(
       width: context.appLayoutTokens.dialogWidthMd,

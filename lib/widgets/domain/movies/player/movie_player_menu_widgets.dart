@@ -77,18 +77,19 @@ class MoviePlayerMenuItemRow extends StatelessWidget {
             SizedBox(
               width: overlayTokens.controlCheckSlotWidth,
               child: Center(
-                child: selected
-                    ? Icon(
-                        Icons.check_rounded,
-                        key: checkKey,
-                        size: overlayTokens.controlCheckIconSize,
-                        color: checkColor,
-                      )
-                    : SizedBox(
-                        key: checkSlotKey,
-                        width: overlayTokens.controlCheckIconSize,
-                        height: overlayTokens.controlCheckIconSize,
-                      ),
+                child:
+                    selected
+                        ? Icon(
+                          Icons.check_rounded,
+                          key: checkKey,
+                          size: overlayTokens.controlCheckIconSize,
+                          color: checkColor,
+                        )
+                        : SizedBox(
+                          key: checkSlotKey,
+                          width: overlayTokens.controlCheckIconSize,
+                          height: overlayTokens.controlCheckIconSize,
+                        ),
               ),
             ),
             SizedBox(width: overlayTokens.controlTrailingGap),

@@ -54,23 +54,28 @@ class MovieSummaryGrid extends StatelessWidget {
             posterKey: Key('movie-summary-card-skeleton-poster-$index'),
             aspectRatio: context.appComponentTokens.movieCardAspectRatio,
           ),
-      itemBuilder: (context, movie, index) => MovieSummaryCard(
-        movie: movie,
-        onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
-        onRequestMenu: onMovieMenuRequest == null
-            ? null
-            : (globalPosition) => onMovieMenuRequest!(movie, globalPosition),
-        onSubscriptionTap: onMovieSubscriptionTap == null
-            ? null
-            : () => onMovieSubscriptionTap!(movie),
-        isSubscriptionUpdating:
-            isMovieSubscriptionUpdating?.call(movie) ?? false,
-        selectionMode: selectionMode,
-        isSelected: isMovieSelected?.call(movie) ?? false,
-        onSelectedChanged: onMovieSelectedChanged == null
-            ? null
-            : (selected) => onMovieSelectedChanged!(movie, selected),
-      ),
+      itemBuilder:
+          (context, movie, index) => MovieSummaryCard(
+            movie: movie,
+            onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
+            onRequestMenu:
+                onMovieMenuRequest == null
+                    ? null
+                    : (globalPosition) =>
+                        onMovieMenuRequest!(movie, globalPosition),
+            onSubscriptionTap:
+                onMovieSubscriptionTap == null
+                    ? null
+                    : () => onMovieSubscriptionTap!(movie),
+            isSubscriptionUpdating:
+                isMovieSubscriptionUpdating?.call(movie) ?? false,
+            selectionMode: selectionMode,
+            isSelected: isMovieSelected?.call(movie) ?? false,
+            onSelectedChanged:
+                onMovieSelectedChanged == null
+                    ? null
+                    : (selected) => onMovieSelectedChanged!(movie, selected),
+          ),
     );
   }
 }
@@ -124,23 +129,28 @@ class MovieSummarySliver extends StatelessWidget {
             posterKey: Key('movie-summary-card-skeleton-poster-$index'),
             aspectRatio: context.appComponentTokens.movieCardAspectRatio,
           ),
-      itemBuilder: (context, movie, index) => MovieSummaryCard(
-        movie: movie,
-        onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
-        onRequestMenu: onMovieMenuRequest == null
-            ? null
-            : (globalPosition) => onMovieMenuRequest!(movie, globalPosition),
-        onSubscriptionTap: onMovieSubscriptionTap == null
-            ? null
-            : () => onMovieSubscriptionTap!(movie),
-        isSubscriptionUpdating:
-            isMovieSubscriptionUpdating?.call(movie) ?? false,
-        selectionMode: selectionMode,
-        isSelected: isMovieSelected?.call(movie) ?? false,
-        onSelectedChanged: onMovieSelectedChanged == null
-            ? null
-            : (selected) => onMovieSelectedChanged!(movie, selected),
-      ),
+      itemBuilder:
+          (context, movie, index) => MovieSummaryCard(
+            movie: movie,
+            onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
+            onRequestMenu:
+                onMovieMenuRequest == null
+                    ? null
+                    : (globalPosition) =>
+                        onMovieMenuRequest!(movie, globalPosition),
+            onSubscriptionTap:
+                onMovieSubscriptionTap == null
+                    ? null
+                    : () => onMovieSubscriptionTap!(movie),
+            isSubscriptionUpdating:
+                isMovieSubscriptionUpdating?.call(movie) ?? false,
+            selectionMode: selectionMode,
+            isSelected: isMovieSelected?.call(movie) ?? false,
+            onSelectedChanged:
+                onMovieSelectedChanged == null
+                    ? null
+                    : (selected) => onMovieSelectedChanged!(movie, selected),
+          ),
     );
   }
 }

@@ -56,8 +56,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
       AppPlatform.mobile => AppTabBarVariant.mobileTop,
       AppPlatform.desktop ||
       AppPlatform.web ||
-      null =>
-        AppTabBarVariant.desktop,
+      null => AppTabBarVariant.desktop,
     };
   }
 
@@ -218,11 +217,12 @@ class _ThinTabIndicatorPainter extends BoxPainter {
       return;
     }
 
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = thickness
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
+    final paint =
+        Paint()
+          ..color = color
+          ..strokeWidth = thickness
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
 
     final y = offset.dy + size.height - (thickness / 2);
     final start = Offset(offset.dx + 2, y);

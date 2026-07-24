@@ -144,8 +144,9 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       setRate: _player.setRate,
       initialRate: _player.state.rate,
     )..addListener(_handlePlaybackRateChanged);
-    _mobileDrawer = MoviePlayerMobileDrawerCoordinator()
-      ..addListener(_handleMobileDrawerChanged);
+    _mobileDrawer =
+        MoviePlayerMobileDrawerCoordinator()
+          ..addListener(_handleMobileDrawerChanged);
     _seekSubscription = widget.surfaceController.seekStream.listen(
       _handleSurfaceSeekRequested,
     );
@@ -165,9 +166,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
         widget.onCompleted?.call();
       }
     });
-    _trackSubscription = _player.stream.track.listen(
-      _statsSampler.updateTrack,
-    );
+    _trackSubscription = _player.stream.track.listen(_statsSampler.updateTrack);
     _videoParamsSubscription = _player.stream.videoParams.listen(
       _statsSampler.updateVideoParams,
     );
@@ -177,7 +176,9 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     _audioBitrateSubscription = _player.stream.audioBitrate.listen(
       _statsSampler.updateAudioBitrate,
     );
-    _rateSubscription = _player.stream.rate.listen(_playbackRate.onRateStreamEvent);
+    _rateSubscription = _player.stream.rate.listen(
+      _playbackRate.onRateStreamEvent,
+    );
     _errorSubscription = _player.stream.error.listen((error) {
       _markPlaybackFailed(error);
     });
@@ -268,26 +269,28 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     _readiness.reset();
     try {
       await _openCoordinator.open(
-        open: (url, {required startPosition, required play}) => _player.open(
-          buildMoviePlayerMedia(url, startPosition: startPosition),
-          play: play,
-        ),
+        open:
+            (url, {required startPosition, required play}) => _player.open(
+              buildMoviePlayerMedia(url, startPosition: startPosition),
+              play: play,
+            ),
         play: _player.play,
         seek: _player.seek,
-        waitUntilFirstFrameRendered: () =>
-            _controller.waitUntilFirstFrameRendered,
+        waitUntilFirstFrameRendered:
+            () => _controller.waitUntilFirstFrameRendered,
         resolvedUrl: widget.resolvedUrl,
         initialPosition: widget.initialPosition,
         shouldContinue: () => mounted && requestId == _openRequestId,
-        waitUntilSeekReady: _guardsInitialSeek
-            ? () => waitUntilInitialSeekReady(
+        waitUntilSeekReady:
+            _guardsInitialSeek
+                ? () => waitUntilInitialSeekReady(
                   firstFrame: _controller.waitUntilFirstFrameRendered,
                   positionStream: _player.stream.position,
                   currentPosition: () => _player.state.position,
                   isPlaying: () => _player.state.playing,
                   isBuffering: () => _player.state.buffering,
                 )
-            : null,
+                : null,
         markReady: _markSurfaceReady,
       );
     } catch (error) {
@@ -463,10 +466,10 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     final mobileBottomControls = buildMoviePlayerMobileBottomControls(
       activeDrawer: _mobileDrawer.activeDrawer,
       speedDisplayListenable: _playbackRate.mobileSpeedDisplay,
-      onSpeedButtonPressed: () =>
-          _mobileDrawer.toggle(MoviePlayerMobileDrawerType.speed),
-      onSubtitleButtonPressed: () =>
-          _mobileDrawer.toggle(MoviePlayerMobileDrawerType.subtitle),
+      onSpeedButtonPressed:
+          () => _mobileDrawer.toggle(MoviePlayerMobileDrawerType.speed),
+      onSubtitleButtonPressed:
+          () => _mobileDrawer.toggle(MoviePlayerMobileDrawerType.subtitle),
     );
     final desktopBottomControls = buildMoviePlayerDesktopBottomControls(
       currentRate: _playbackRate.currentRate,
@@ -564,9 +567,7 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
       fit: StackFit.expand,
       children: [
         player,
-        MoviePlayerPlaybackErrorOverlay(
-          sourceKind: widget.mediaSourceKind,
-        ),
+        MoviePlayerPlaybackErrorOverlay(sourceKind: widget.mediaSourceKind),
         if (widget.onBackPressed case final onBackPressed?)
           MoviePlayerBackOverlay(onPressed: onBackPressed),
       ],
@@ -597,4 +598,3 @@ class _MoviePlayerSurfaceState extends State<MoviePlayerSurface> {
     );
   }
 }
-

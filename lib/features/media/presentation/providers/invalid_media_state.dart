@@ -34,12 +34,14 @@ class InvalidMediaState {
   }) {
     return InvalidMediaState(
       paged: paged ?? this.paged,
-      checkingMediaId: identical(checkingMediaId, _kSentinel)
-          ? this.checkingMediaId
-          : checkingMediaId as int?,
-      deletingMediaId: identical(deletingMediaId, _kSentinel)
-          ? this.deletingMediaId
-          : deletingMediaId as int?,
+      checkingMediaId:
+          identical(checkingMediaId, _kSentinel)
+              ? this.checkingMediaId
+              : checkingMediaId as int?,
+      deletingMediaId:
+          identical(deletingMediaId, _kSentinel)
+              ? this.deletingMediaId
+              : deletingMediaId as int?,
       deleteEnabledMediaIds:
           deleteEnabledMediaIds ?? this.deleteEnabledMediaIds,
     );

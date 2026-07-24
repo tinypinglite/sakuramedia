@@ -84,7 +84,9 @@ class ActorFilterState {
   String get sortExpression =>
       '${sortField.apiValue}:${sortDirection.apiValue}';
 
-  String get triggerLabel => '${subscriptionStatus.label} · ${sortField.label}';
+  /// 只反映订阅状态这一主维度；性别 / 排序有独立分节，不堆在入口上。
+  /// 语义对齐 `MovieFilterState.triggerLabel`。
+  String get triggerLabel => subscriptionStatus.label;
 
   ActorFilterState copyWith({
     ActorSubscriptionStatus? subscriptionStatus,

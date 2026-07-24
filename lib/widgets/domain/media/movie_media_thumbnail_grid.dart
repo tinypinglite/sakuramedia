@@ -70,7 +70,7 @@ class MovieMediaThumbnailGrid extends StatefulWidget {
   final ValueChanged<int> onThumbnailTap;
   final VoidCallback onRetry;
   final void Function(int index, Offset globalPosition)?
-      onThumbnailMenuRequested;
+  onThumbnailMenuRequested;
   final String keyPrefix;
 
   /// 网格布局：默认走历史的统一 16:9；pornbox 合集连播页传 [ThumbnailGridLayout.staggered]
@@ -331,16 +331,16 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     _scrollIdleTimer?.cancel();
     _scrollController
         .animateTo(
-      targetOffset,
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-    )
+          targetOffset,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+        )
         .whenComplete(() {
-      if (!mounted) {
-        return;
-      }
-      _markScrollSettled();
-    });
+          if (!mounted) {
+            return;
+          }
+          _markScrollSettled();
+        });
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {
@@ -432,7 +432,8 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
 
   bool _updateVisibleIndexRange({ScrollMetrics? metrics}) {
     if (widget.thumbnails.isEmpty) {
-      final changed = _visibleStartIndex != null ||
+      final changed =
+          _visibleStartIndex != null ||
           _visibleEndIndex != null ||
           _staggeredVisibleIndices.isNotEmpty;
       _visibleStartIndex = null;
@@ -442,7 +443,8 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       return changed;
     }
 
-    final effectiveMetrics = metrics ??
+    final effectiveMetrics =
+        metrics ??
         (_scrollController.hasClients ? _scrollController.position : null);
     final gridSize = context.size;
     if (effectiveMetrics == null || gridSize == null) {
@@ -463,10 +465,11 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       }
       // 用 tile 自身高度算 buffer：buffer ~= _visibleRowBuffer 行 * 平均 tile 高。
       // 平均高取「总高 / 平均每列 tile 数」，与 uniform 分支按行缓冲粗略对齐。
-      final averageTileHeight = layout.tiles.isEmpty
-          ? 0.0
-          : layout.tiles.map((t) => t.height).reduce((a, b) => a + b) /
-              layout.tiles.length;
+      final averageTileHeight =
+          layout.tiles.isEmpty
+              ? 0.0
+              : layout.tiles.map((t) => t.height).reduce((a, b) => a + b) /
+                  layout.tiles.length;
       final buffer = (averageTileHeight + spacing) * _visibleRowBuffer;
       final from = offset - buffer;
       final to = offset + viewportDimension + buffer;
@@ -477,7 +480,8 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
         if (tile.topOffset > to) continue;
         nextVisible.add(i);
       }
-      final changed = nextVisible.length != _staggeredVisibleIndices.length ||
+      final changed =
+          nextVisible.length != _staggeredVisibleIndices.length ||
           !nextVisible.containsAll(_staggeredVisibleIndices);
       _staggeredVisibleIndices
         ..clear()
@@ -514,7 +518,9 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
   /// 时由 `didUpdateWidget` 或 `_scheduleVisibleRangeRefreshAfterLayout` 清零，下次
   /// 调用时按当前快照重算一次并复用。
   StaggeredLayoutResult? _ensureStaggeredLayout(
-      double gridWidth, double spacing) {
+    double gridWidth,
+    double spacing,
+  ) {
     if (gridWidth <= 0 || widget.thumbnails.isEmpty) {
       return null;
     }
@@ -527,9 +533,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       return cached;
     }
     final items = widget.thumbnails
-        .map(
-          (t) => (width: t.width, height: t.height),
-        )
+        .map((t) => (width: t.width, height: t.height))
         .toList(growable: false);
     final result = computeStaggeredLayout(
       crossAxisCount: widget.columns,
@@ -642,9 +646,10 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
         _scheduleVisibleRangeRefreshIfLayoutChanged(constraints);
         return NotificationListener<ScrollNotification>(
           onNotification: _handleScrollNotification,
-          child: widget.layout == ThumbnailGridLayout.staggered
-              ? _buildStaggeredGrid(context)
-              : _buildUniformGrid(context),
+          child:
+              widget.layout == ThumbnailGridLayout.staggered
+                  ? _buildStaggeredGrid(context)
+                  : _buildUniformGrid(context),
         );
       },
     );
@@ -655,9 +660,10 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       key: Key('${widget.keyPrefix}-thumbnail-grid'),
       controller: _scrollController,
       cacheExtent: 500,
-      physics: widget.isScrollLocked
-          ? const NeverScrollableScrollPhysics()
-          : const ClampingScrollPhysics(),
+      physics:
+          widget.isScrollLocked
+              ? const NeverScrollableScrollPhysics()
+              : const ClampingScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: widget.columns,
         crossAxisSpacing: context.appSpacing.sm,
@@ -666,8 +672,9 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
             context.appComponentTokens.moviePlayerThumbnailAspectRatio,
       ),
       itemCount: widget.thumbnails.length,
-      itemBuilder: (context, index) =>
-          _buildTile(context, index, useAdaptiveFit: true, aspect: null),
+      itemBuilder:
+          (context, index) =>
+              _buildTile(context, index, useAdaptiveFit: true, aspect: null),
     );
   }
 
@@ -677,9 +684,10 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       key: Key('${widget.keyPrefix}-thumbnail-grid'),
       controller: _scrollController,
       cacheExtent: 500,
-      physics: widget.isScrollLocked
-          ? const NeverScrollableScrollPhysics()
-          : const ClampingScrollPhysics(),
+      physics:
+          widget.isScrollLocked
+              ? const NeverScrollableScrollPhysics()
+              : const ClampingScrollPhysics(),
       slivers: [
         SliverMasonryGrid.count(
           crossAxisCount: widget.columns,
@@ -690,9 +698,10 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
             final thumbnail = widget.thumbnails[index];
             final w = thumbnail.width;
             final h = thumbnail.height;
-            final aspect = (w != null && h != null && w > 0 && h > 0)
-                ? w / h
-                : kStaggeredFallbackAspect;
+            final aspect =
+                (w != null && h != null && w > 0 && h > 0)
+                    ? w / h
+                    : kStaggeredFallbackAspect;
             // AspectRatio 让 SliverMasonryGrid 无须解码图片即可定 tile 高度，懒构建照常生效。
             return AspectRatio(
               aspectRatio: aspect,
@@ -747,27 +756,28 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       borderWidth = 1;
     }
 
-    final image = _shouldBuildImageForIndex(index)
-        ? LayoutBuilder(
-            builder: (context, constraints) {
-              final decodeHint = _resolveDecodeHint(constraints);
-              if (useAdaptiveFit) {
-                return _AdaptiveFitThumbnailImage(
+    final image =
+        _shouldBuildImageForIndex(index)
+            ? LayoutBuilder(
+              builder: (context, constraints) {
+                final decodeHint = _resolveDecodeHint(constraints);
+                if (useAdaptiveFit) {
+                  return _AdaptiveFitThumbnailImage(
+                    url: thumbnail.image.bestAvailableUrl,
+                    memCacheWidth: decodeHint.width,
+                    memCacheHeight: decodeHint.height,
+                  );
+                }
+                // 瀑布流分支按真实比例切 tile，cover 不再裁掉关键内容。
+                return MaskedImage(
                   url: thumbnail.image.bestAvailableUrl,
+                  fit: BoxFit.cover,
                   memCacheWidth: decodeHint.width,
                   memCacheHeight: decodeHint.height,
                 );
-              }
-              // 瀑布流分支按真实比例切 tile，cover 不再裁掉关键内容。
-              return MaskedImage(
-                url: thumbnail.image.bestAvailableUrl,
-                fit: BoxFit.cover,
-                memCacheWidth: decodeHint.width,
-                memCacheHeight: decodeHint.height,
-              );
-            },
-          )
-        : const _MovieMediaThumbnailImagePlaceholder();
+              },
+            )
+            : const _MovieMediaThumbnailImagePlaceholder();
 
     final child = KeyedSubtree(
       key: Key('${widget.keyPrefix}-thumb-$index'),
@@ -782,21 +792,22 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
         ),
         child: ClipRRect(
           borderRadius: context.appRadius.xsBorder,
-          child: isClipEndpoint
-              ? Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    image,
-                    Positioned(
-                      top: 4,
-                      left: 4,
-                      child: _ClipEndpointBadge(
-                        label: isClipStart ? '起' : '终',
+          child:
+              isClipEndpoint
+                  ? Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      image,
+                      Positioned(
+                        top: 4,
+                        left: 4,
+                        child: _ClipEndpointBadge(
+                          label: isClipStart ? '起' : '终',
+                        ),
                       ),
-                    ),
-                  ],
-                )
-              : image,
+                    ],
+                  )
+                  : image,
         ),
       ),
     );

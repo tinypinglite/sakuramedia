@@ -76,26 +76,26 @@ class MoviePlayerPlaybackInfoSnapshot {
 
   static const MoviePlayerPlaybackInfoSnapshot empty =
       MoviePlayerPlaybackInfoSnapshot(
-    decodingModeLabel: '--',
-    videoCodecLabel: '--',
-    videoDecoderLabel: '--',
-    videoResolutionLabel: '--',
-    mediaFrameRateLabel: '--',
-    filterChainFrameRateLabel: '--',
-    actualOutputFrameRateLabel: '--',
-    videoBitrateLabel: '--',
-    renderDropFrameLabel: '--',
-    decoderDropFrameLabel: '--',
-    delayedFrameLabel: '--',
-    mistimedFrameLabel: '--',
-    videoPixelFormatLabel: '--',
-    audioCodecLabel: '--',
-    audioChannelsLabel: '--',
-    audioSampleRateLabel: '--',
-    audioBitrateLabel: '--',
-    dynamicRangeLabel: '--',
-    dynamicRangeDetailLabel: '--',
-  );
+        decodingModeLabel: '--',
+        videoCodecLabel: '--',
+        videoDecoderLabel: '--',
+        videoResolutionLabel: '--',
+        mediaFrameRateLabel: '--',
+        filterChainFrameRateLabel: '--',
+        actualOutputFrameRateLabel: '--',
+        videoBitrateLabel: '--',
+        renderDropFrameLabel: '--',
+        decoderDropFrameLabel: '--',
+        delayedFrameLabel: '--',
+        mistimedFrameLabel: '--',
+        videoPixelFormatLabel: '--',
+        audioCodecLabel: '--',
+        audioChannelsLabel: '--',
+        audioSampleRateLabel: '--',
+        audioBitrateLabel: '--',
+        dynamicRangeLabel: '--',
+        dynamicRangeDetailLabel: '--',
+      );
 
   final String decodingModeLabel;
   final String videoCodecLabel;
@@ -178,33 +178,33 @@ class MoviePlayerPlaybackInfoSnapshot {
 
   @override
   int get hashCode => Object.hashAll([
-        decodingModeLabel,
-        videoCodecLabel,
-        videoDecoderLabel,
-        videoResolutionLabel,
-        mediaFrameRateLabel,
-        filterChainFrameRateLabel,
-        actualOutputFrameRateLabel,
-        videoBitrateLabel,
-        renderDropFrameLabel,
-        decoderDropFrameLabel,
-        delayedFrameLabel,
-        mistimedFrameLabel,
-        videoPixelFormatLabel,
-        audioCodecLabel,
-        audioChannelsLabel,
-        audioSampleRateLabel,
-        audioBitrateLabel,
-        dynamicRangeLabel,
-        dynamicRangeDetailLabel,
-        playbackSourceKindLabel,
-        playbackSourceHostLabel,
-        playbackSourceRequestPathLabel,
-        playbackSourceQualityLabel,
-        playbackSourceBufferLabel,
-        playbackSourceDownloadRateLabel,
-        playbackSourceDegradedHint,
-      ]);
+    decodingModeLabel,
+    videoCodecLabel,
+    videoDecoderLabel,
+    videoResolutionLabel,
+    mediaFrameRateLabel,
+    filterChainFrameRateLabel,
+    actualOutputFrameRateLabel,
+    videoBitrateLabel,
+    renderDropFrameLabel,
+    decoderDropFrameLabel,
+    delayedFrameLabel,
+    mistimedFrameLabel,
+    videoPixelFormatLabel,
+    audioCodecLabel,
+    audioChannelsLabel,
+    audioSampleRateLabel,
+    audioBitrateLabel,
+    dynamicRangeLabel,
+    dynamicRangeDetailLabel,
+    playbackSourceKindLabel,
+    playbackSourceHostLabel,
+    playbackSourceRequestPathLabel,
+    playbackSourceQualityLabel,
+    playbackSourceBufferLabel,
+    playbackSourceDownloadRateLabel,
+    playbackSourceDegradedHint,
+  ]);
 }
 
 MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
@@ -302,13 +302,14 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     ),
     playbackSourceHostLabel: _extractHost(originalUrl),
     playbackSourceRequestPathLabel: _extractPathAndTail(originalUrl),
-    playbackSourceQualityLabel: sourceKind == MoviePlayerPlaybackSourceKind.hls
-        ? _buildHlsQualityLabel(
-            videoParams: videoParams,
-            trackVideo: track.video,
-            hlsBitrate: hlsBitrate,
-          )
-        : null,
+    playbackSourceQualityLabel:
+        sourceKind == MoviePlayerPlaybackSourceKind.hls
+            ? _buildHlsQualityLabel(
+              videoParams: videoParams,
+              trackVideo: track.video,
+              hlsBitrate: hlsBitrate,
+            )
+            : null,
     playbackSourceBufferLabel: _buildBufferLabel(
       cacheDurationSeconds: bufferCacheDurationSeconds,
       forwardBytes: bufferForwardBytes,
@@ -350,13 +351,11 @@ String _buildPlaybackSourceKindLabel({
   required MoviePlayerPlaybackSourceKind sourceKind,
   required String? fileFormat,
 }) {
-  final formatSuffix = _hasText(fileFormat)
-      ? ' · demuxer=${fileFormat!.trim()}'
-      : '';
+  final formatSuffix =
+      _hasText(fileFormat) ? ' · demuxer=${fileFormat!.trim()}' : '';
   return switch (sourceKind) {
     MoviePlayerPlaybackSourceKind.hls => 'HLS$formatSuffix',
-    MoviePlayerPlaybackSourceKind.directDegraded =>
-      '直链（HLS 不可用）$formatSuffix',
+    MoviePlayerPlaybackSourceKind.directDegraded => '直链（HLS 不可用）$formatSuffix',
     MoviePlayerPlaybackSourceKind.local => '本地文件$formatSuffix',
     MoviePlayerPlaybackSourceKind.unknown => '--',
   };
@@ -457,7 +456,8 @@ String? _buildBufferLabel({
   required int? forwardBytes,
 }) {
   final durationText =
-      (cacheDurationSeconds != null && cacheDurationSeconds.isFinite &&
+      (cacheDurationSeconds != null &&
+              cacheDurationSeconds.isFinite &&
               cacheDurationSeconds > 0)
           ? '${cacheDurationSeconds.toStringAsFixed(1)}s'
           : null;
@@ -531,11 +531,12 @@ String _buildDecodingModeLabel(
   String? hwdecCurrent,
 ) {
   return switch (mode) {
-    MoviePlayerDecodingMode.hardware => hwdecCurrent == null ||
-            hwdecCurrent.trim().isEmpty ||
-            hwdecCurrent.trim().toLowerCase() == 'yes'
-        ? '硬件解码'
-        : '硬件解码 (${hwdecCurrent.trim()})',
+    MoviePlayerDecodingMode.hardware =>
+      hwdecCurrent == null ||
+              hwdecCurrent.trim().isEmpty ||
+              hwdecCurrent.trim().toLowerCase() == 'yes'
+          ? '硬件解码'
+          : '硬件解码 (${hwdecCurrent.trim()})',
     MoviePlayerDecodingMode.software => '软件解码',
     MoviePlayerDecodingMode.unknown => '未知',
   };
@@ -1114,9 +1115,7 @@ List<Widget> _buildPlaybackSourceSection(MoviePlayerPlaybackInfoSnapshot info) {
         value: host,
         valueKey: const Key('movie-player-info-value-playback-source-host'),
         copyable: true,
-        copyButtonKey: const Key(
-          'movie-player-info-copy-playback-source-host',
-        ),
+        copyButtonKey: const Key('movie-player-info-copy-playback-source-host'),
       ),
     if (info.playbackSourceRequestPathLabel case final path?)
       _MoviePlayerPlaybackInfoRowData(
@@ -1124,17 +1123,13 @@ List<Widget> _buildPlaybackSourceSection(MoviePlayerPlaybackInfoSnapshot info) {
         value: path,
         valueKey: const Key('movie-player-info-value-playback-source-path'),
         copyable: true,
-        copyButtonKey: const Key(
-          'movie-player-info-copy-playback-source-path',
-        ),
+        copyButtonKey: const Key('movie-player-info-copy-playback-source-path'),
       ),
     if (info.playbackSourceQualityLabel case final quality?)
       _MoviePlayerPlaybackInfoRowData(
         label: '档位',
         value: quality,
-        valueKey: const Key(
-          'movie-player-info-value-playback-source-quality',
-        ),
+        valueKey: const Key('movie-player-info-value-playback-source-quality'),
       ),
     if (info.playbackSourceBufferLabel case final buffer?)
       _MoviePlayerPlaybackInfoRowData(
@@ -1156,8 +1151,7 @@ List<Widget> _buildPlaybackSourceSection(MoviePlayerPlaybackInfoSnapshot info) {
       title: '播放源',
       rows: rows,
       footnote: info.playbackSourceDegradedHint,
-      footnoteKey:
-          const Key('movie-player-info-playback-source-degraded-hint'),
+      footnoteKey: const Key('movie-player-info-playback-source-degraded-hint'),
     ),
   ];
 }

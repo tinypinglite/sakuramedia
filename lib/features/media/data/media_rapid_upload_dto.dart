@@ -17,35 +17,35 @@ enum MediaRapidUploadItemState {
 
 extension MediaRapidUploadItemStateX on MediaRapidUploadItemState {
   bool get isTerminal => switch (this) {
-        MediaRapidUploadItemState.succeeded => true,
-        MediaRapidUploadItemState.failed => true,
-        MediaRapidUploadItemState.cleanupFailed => true,
-        _ => false,
-      };
+    MediaRapidUploadItemState.succeeded => true,
+    MediaRapidUploadItemState.failed => true,
+    MediaRapidUploadItemState.cleanupFailed => true,
+    _ => false,
+  };
 
   bool get isRetryable => switch (this) {
-        MediaRapidUploadItemState.failed => true,
-        MediaRapidUploadItemState.cleanupFailed => true,
-        _ => false,
-      };
+    MediaRapidUploadItemState.failed => true,
+    MediaRapidUploadItemState.cleanupFailed => true,
+    _ => false,
+  };
 
   String get label => switch (this) {
-        MediaRapidUploadItemState.pending => '待处理',
-        MediaRapidUploadItemState.running => '进行中',
-        MediaRapidUploadItemState.succeeded => '已完成',
-        MediaRapidUploadItemState.failed => '失败',
-        MediaRapidUploadItemState.cleanupFailed => '云端已登记，本地未清理',
-        MediaRapidUploadItemState.unknown => '未知状态',
-      };
+    MediaRapidUploadItemState.pending => '待处理',
+    MediaRapidUploadItemState.running => '进行中',
+    MediaRapidUploadItemState.succeeded => '已完成',
+    MediaRapidUploadItemState.failed => '失败',
+    MediaRapidUploadItemState.cleanupFailed => '云端已登记，本地未清理',
+    MediaRapidUploadItemState.unknown => '未知状态',
+  };
 
   static MediaRapidUploadItemState fromWire(dynamic value) => switch (value) {
-        'pending' => MediaRapidUploadItemState.pending,
-        'running' => MediaRapidUploadItemState.running,
-        'succeeded' => MediaRapidUploadItemState.succeeded,
-        'failed' => MediaRapidUploadItemState.failed,
-        'cleanup_failed' => MediaRapidUploadItemState.cleanupFailed,
-        _ => MediaRapidUploadItemState.unknown,
-      };
+    'pending' => MediaRapidUploadItemState.pending,
+    'running' => MediaRapidUploadItemState.running,
+    'succeeded' => MediaRapidUploadItemState.succeeded,
+    'failed' => MediaRapidUploadItemState.failed,
+    'cleanup_failed' => MediaRapidUploadItemState.cleanupFailed,
+    _ => MediaRapidUploadItemState.unknown,
+  };
 }
 
 /// 批次整体状态。
@@ -60,36 +60,35 @@ enum MediaRapidUploadBatchState {
 
 extension MediaRapidUploadBatchStateX on MediaRapidUploadBatchState {
   bool get isTerminal => switch (this) {
-        MediaRapidUploadBatchState.completed => true,
-        MediaRapidUploadBatchState.completedWithErrors => true,
-        MediaRapidUploadBatchState.failed => true,
-        _ => false,
-      };
+    MediaRapidUploadBatchState.completed => true,
+    MediaRapidUploadBatchState.completedWithErrors => true,
+    MediaRapidUploadBatchState.failed => true,
+    _ => false,
+  };
 
   bool get isRunning => switch (this) {
-        MediaRapidUploadBatchState.pending => true,
-        MediaRapidUploadBatchState.running => true,
-        _ => false,
-      };
+    MediaRapidUploadBatchState.pending => true,
+    MediaRapidUploadBatchState.running => true,
+    _ => false,
+  };
 
   String get label => switch (this) {
-        MediaRapidUploadBatchState.pending => '排队中',
-        MediaRapidUploadBatchState.running => '进行中',
-        MediaRapidUploadBatchState.completed => '全部成功',
-        MediaRapidUploadBatchState.completedWithErrors => '部分完成',
-        MediaRapidUploadBatchState.failed => '失败',
-        MediaRapidUploadBatchState.unknown => '未知状态',
-      };
+    MediaRapidUploadBatchState.pending => '排队中',
+    MediaRapidUploadBatchState.running => '进行中',
+    MediaRapidUploadBatchState.completed => '全部成功',
+    MediaRapidUploadBatchState.completedWithErrors => '部分完成',
+    MediaRapidUploadBatchState.failed => '失败',
+    MediaRapidUploadBatchState.unknown => '未知状态',
+  };
 
   static MediaRapidUploadBatchState fromWire(dynamic value) => switch (value) {
-        'pending' => MediaRapidUploadBatchState.pending,
-        'running' => MediaRapidUploadBatchState.running,
-        'completed' => MediaRapidUploadBatchState.completed,
-        'completed_with_errors' =>
-            MediaRapidUploadBatchState.completedWithErrors,
-        'failed' => MediaRapidUploadBatchState.failed,
-        _ => MediaRapidUploadBatchState.unknown,
-      };
+    'pending' => MediaRapidUploadBatchState.pending,
+    'running' => MediaRapidUploadBatchState.running,
+    'completed' => MediaRapidUploadBatchState.completed,
+    'completed_with_errors' => MediaRapidUploadBatchState.completedWithErrors,
+    'failed' => MediaRapidUploadBatchState.failed,
+    _ => MediaRapidUploadBatchState.unknown,
+  };
 }
 
 /// `POST /media/rapid-uploads` 202 响应。
@@ -255,13 +254,14 @@ class MediaRapidUploadBatchDto extends MediaRapidUploadBatchListItemDto {
   factory MediaRapidUploadBatchDto.fromJson(Map<String, dynamic> json) {
     final base = MediaRapidUploadBatchListItemDto.fromJson(json);
     final rawItems = json['items'];
-    final items = rawItems is List
-        ? rawItems
-            .map(asMapOrNull)
-            .whereType<Map<String, dynamic>>()
-            .map(MediaRapidUploadItemDto.fromJson)
-            .toList(growable: false)
-        : const <MediaRapidUploadItemDto>[];
+    final items =
+        rawItems is List
+            ? rawItems
+                .map(asMapOrNull)
+                .whereType<Map<String, dynamic>>()
+                .map(MediaRapidUploadItemDto.fromJson)
+                .toList(growable: false)
+            : const <MediaRapidUploadItemDto>[];
     return MediaRapidUploadBatchDto(
       id: base.id,
       targetLibraryId: base.targetLibraryId,

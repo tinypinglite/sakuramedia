@@ -11,10 +11,11 @@ import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/m
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
-import 'package:sakuramedia/widgets/domain/movies/movie_filter_toolbar.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 
 typedef MovieListBodyBuilder =
@@ -32,13 +33,11 @@ class MovieListHeaderArgs {
   const MovieListHeaderArgs({
     required this.filterState,
     required this.onApply,
-    required this.onReset,
     required this.total,
   });
 
   final MovieFilterState filterState;
   final ValueChanged<MovieFilterState> onApply;
-  final VoidCallback onReset;
   final int total;
 }
 
@@ -56,6 +55,7 @@ class MovieListContent extends StatefulWidget {
     this.enableRefresh = false,
     this.onRefreshFailure,
     this.headerBuilder,
+    this.useMobileSelectionLayout = false,
   });
 
   final MovieListFilterablePageState pageState;
@@ -72,9 +72,14 @@ class MovieListContent extends StatefulWidget {
   final bool enableRefresh;
   final void Function(BuildContext context)? onRefreshFailure;
 
-  /// 可选 header builder：传入则替代默认 `AppFilterTotalHeader + MovieFilterToolbar`。
-  /// 移动 tab 主页用它注入 `AppMobileTabHeader` + 底抽屉范式。
+  /// 可选 header builder：传入则替代默认的桌面顶栏（同一个 `AppListHeader`，
+  /// 筛选走就地浮层）。移动 tab 主页用它注入自己的顶栏 + 底抽屉范式。
   final MovieListHeaderBuilder? headerBuilder;
+
+  /// 移动端多选布局：进入多选入口挂到**卡片长按浮层**（顶栏不再常驻「选择」），
+  /// 多选态顶栏只留退出/计数/全选，批量动作走贴底的 [AppSelectionBottomBar]。
+  /// 桌面端保持 `false`——右键弹定位菜单、批量动作在顶栏内联。
+  final bool useMobileSelectionLayout;
 
   @override
   State<MovieListContent> createState() => _MovieListContentState();
@@ -179,7 +184,7 @@ class _MovieListContentState extends State<MovieListContent>
   @override
   Widget build(BuildContext context) {
     final controller = widget.pageState.controller;
-    return ColoredBox(
+    final body = ColoredBox(
       color: widget.surfaceColor,
       child: widget.bodyBuilder(
         context,
@@ -194,41 +199,42 @@ class _MovieListContentState extends State<MovieListContent>
             final headerBuilder = widget.headerBuilder;
             final Widget header;
             if (selectionMode) {
-              // 进入多选后整行原地替换成操作条，跟活动中心元数据任务样板对齐。
-              header = buildBatchSelectionToolbar();
+              header =
+                  widget.useMobileSelectionLayout
+                      ? buildMobileBatchSelectionHeader()
+                      : buildBatchSelectionToolbar();
             } else if (headerBuilder != null) {
-              // 自定义 header（移动影片页的 tab 头）没有 trailing 槽位，
-              // 「选择」入口另起一行右对齐——与移动排行榜/系列页一致。
-              header = Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  headerBuilder(
-                    context,
-                    MovieListHeaderArgs(
-                      filterState: widget.pageState.filterState,
-                      onApply: _applyFilter,
-                      onReset: _resetFilters,
-                      total: controller.total,
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(top: context.appSpacing.xs),
-                    child: Row(
-                      children: [const Spacer(), buildEnterSelectionButton()],
-                    ),
-                  ),
-                ],
+              header = headerBuilder(
+                context,
+                MovieListHeaderArgs(
+                  filterState: widget.pageState.filterState,
+                  onApply: _applyFilter,
+                  total: controller.total,
+                ),
               );
             } else {
-              header = AppFilterTotalHeader(
-                leading: MovieFilterToolbar(
-                  filterState: widget.pageState.filterState,
-                  onChanged: _applyFilter,
+              // 桌面与移动共用同一条顶栏：筛选入口 + 只读信息 + 操作。
+              // 差别只在筛选面板的容器——桌面就地浮层，移动底部抽屉。
+              header = AppListHeader(
+                filterButtonKey: const Key('movies-filter-trigger'),
+                filterLabel: widget.pageState.filterState.triggerLabel,
+                filterPanelKey: const Key('movies-filter-panel'),
+                filterPanelBuilder:
+                    (_) => MovieFilterSectionGroup(
+                      filterState: widget.pageState.filterState,
+                      onChanged: _applyFilter,
+                    ),
+                filterPanelFooter: AppFilterPanelFooter(
+                  isDefault: widget.pageState.filterState.isDefault,
                   onReset: _resetFilters,
                 ),
-                totalText: '${controller.total} 部',
-                totalKey: widget.totalKey,
-                trailing: buildEnterSelectionButton(),
+                informationSlots: [
+                  AppListHeaderInfo(
+                    key: widget.totalKey,
+                    label: '${controller.total} 部',
+                  ),
+                ],
+                actionSlots: [buildEnterSelectionButton()],
               );
             }
             return SliverMainAxisGroup(
@@ -253,6 +259,14 @@ class _MovieListContentState extends State<MovieListContent>
                         movieNumber: movie.movieNumber,
                         globalPosition: globalPosition,
                         isSubscribed: movie.isSubscribed,
+                        // 移动端多选入口挂在长按菜单里，桌面仍在顶栏。
+                        onEnterSelection:
+                            widget.useMobileSelectionLayout
+                                ? () {
+                                  enterSelection();
+                                  toggleSelect(movie.movieNumber);
+                                }
+                                : null,
                       ),
                     );
                   },
@@ -288,6 +302,21 @@ class _MovieListContentState extends State<MovieListContent>
         ),
         widget.enableRefresh ? _handleRefresh : null,
       ),
+    );
+
+    if (!widget.useMobileSelectionLayout) {
+      return body;
+    }
+    // 底部批量条贴在列表下方常驻，不随列表滚动。
+    return Column(
+      children: [
+        Expanded(child: body),
+        if (selectionMode)
+          AnimatedBuilder(
+            animation: controller,
+            builder: (context, _) => buildMobileBatchSelectionBottomBar(),
+          ),
+      ],
     );
   }
 }

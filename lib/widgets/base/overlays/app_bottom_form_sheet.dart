@@ -88,8 +88,7 @@ class AppBottomFormSheet extends StatelessWidget {
                 Expanded(
                   child: AppButton(
                     label: cancelLabel,
-                    onPressed:
-                        busy ? null : () => Navigator.of(context).pop(),
+                    onPressed: busy ? null : () => Navigator.of(context).pop(),
                   ),
                 ),
                 SizedBox(width: spacing.md),

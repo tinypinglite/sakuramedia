@@ -56,12 +56,13 @@ Future<T?> showAppAdaptiveModal<T>({
   return showDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
-    builder: (dialogContext) => AppDesktopDialog(
-      dialogKey: modalKey,
-      width: desktopWidth ?? dialogContext.appLayoutTokens.dialogWidthMd,
-      showCloseButton: showDesktopCloseButton,
-      child: builder(dialogContext),
-    ),
+    builder:
+        (dialogContext) => AppDesktopDialog(
+          dialogKey: modalKey,
+          width: desktopWidth ?? dialogContext.appLayoutTokens.dialogWidthMd,
+          showCloseButton: showDesktopCloseButton,
+          child: builder(dialogContext),
+        ),
   );
 }
 

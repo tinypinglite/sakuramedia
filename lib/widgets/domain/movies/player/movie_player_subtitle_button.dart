@@ -501,11 +501,12 @@ class _MoviePlayerSubtitleMenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final overlayTokens = context.appOverlayTokens;
-    final backgroundColor = hovered
-        ? context.appTextPalette.onMedia.withValues(
-            alpha: overlayTokens.hoverAlpha,
-          )
-        : null;
+    final backgroundColor =
+        hovered
+            ? context.appTextPalette.onMedia.withValues(
+              alpha: overlayTokens.hoverAlpha,
+            )
+            : null;
 
     return MouseRegion(
       onEnter: (_) => onHoverChanged(true),

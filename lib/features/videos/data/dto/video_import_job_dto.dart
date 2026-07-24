@@ -30,6 +30,7 @@ class VideoImportJobListItemDto implements ImportJobCardData {
   final int id;
   @override
   final String sourcePath;
+
   /// 115 目录导入的 CID；本地导入为 null。用于区分作业来源类型。
   final String? sourceCid;
   @override
@@ -120,19 +121,20 @@ class VideoImportJobDto extends VideoImportJobListItemDto
   factory VideoImportJobDto.fromJson(Map<String, dynamic> json) {
     final base = VideoImportJobListItemDto.fromJson(json);
     final rawFiles = json['failed_files'];
-    final failedFiles = rawFiles is List
-        ? rawFiles
-            .whereType<Map>()
-            .map(
-              (item) => FailedFileDto.fromJson(
-                item.map(
-                  (dynamic key, dynamic value) =>
-                      MapEntry(key.toString(), value),
-                ),
-              ),
-            )
-            .toList(growable: false)
-        : const <FailedFileDto>[];
+    final failedFiles =
+        rawFiles is List
+            ? rawFiles
+                .whereType<Map>()
+                .map(
+                  (item) => FailedFileDto.fromJson(
+                    item.map(
+                      (dynamic key, dynamic value) =>
+                          MapEntry(key.toString(), value),
+                    ),
+                  ),
+                )
+                .toList(growable: false)
+            : const <FailedFileDto>[];
 
     return VideoImportJobDto(
       id: base.id,

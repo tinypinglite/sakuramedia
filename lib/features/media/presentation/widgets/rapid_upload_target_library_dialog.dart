@@ -103,7 +103,8 @@ class _RapidUploadTargetBody extends HookWidget {
         const AppNoticeCard(
           leadingIcon: Icons.warning_amber_rounded,
           title: '成功后会删除本地文件',
-          description: '每一项秒传成功后，SakuraMedia 会将其切换到 115 云端并删除对应的本地文件。'
+          description:
+              '每一项秒传成功后，SakuraMedia 会将其切换到 115 云端并删除对应的本地文件。'
               '该操作不可恢复，请提前确认这些本地文件无需保留。',
         ),
         SizedBox(height: spacing.sm),
@@ -112,9 +113,10 @@ class _RapidUploadTargetBody extends HookWidget {
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           value: riskAcknowledged.value,
-          onChanged: !hasLibraries
-              ? null
-              : (value) => riskAcknowledged.value = value ?? false,
+          onChanged:
+              !hasLibraries
+                  ? null
+                  : (value) => riskAcknowledged.value = value ?? false,
           title: Text(
             '我已了解成功秒传的条目会删除本地文件，且该操作不可恢复。',
             style: resolveAppTextStyle(
@@ -143,9 +145,10 @@ class _RapidUploadTargetBody extends HookWidget {
                 label: '开始秒传',
                 variant: AppButtonVariant.primary,
                 icon: const Icon(Icons.cloud_upload_outlined),
-                onPressed: !canSubmit
-                    ? null
-                    : () => Navigator.of(context).pop(selectedLibrary),
+                onPressed:
+                    !canSubmit
+                        ? null
+                        : () => Navigator.of(context).pop(selectedLibrary),
               ),
             ),
           ],

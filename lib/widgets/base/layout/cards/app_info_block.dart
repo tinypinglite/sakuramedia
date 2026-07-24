@@ -7,11 +7,7 @@ import 'package:sakuramedia/theme.dart';
 /// StatTile 强调数字、InfoBlock 强调标签）。
 /// 内部：宽度撑满 + `surfaceMuted` + `mdBorder`，padding `sm`。
 class AppInfoBlock extends StatelessWidget {
-  const AppInfoBlock({
-    super.key,
-    required this.label,
-    required this.value,
-  });
+  const AppInfoBlock({super.key, required this.label, required this.value});
 
   final String label;
   final String value;

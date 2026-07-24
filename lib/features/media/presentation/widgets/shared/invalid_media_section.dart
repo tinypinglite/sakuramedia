@@ -59,31 +59,43 @@ class _InvalidMediaHeader extends ConsumerWidget {
       ),
     );
 
-    return AppFilterTotalHeader(
-      leading: Text(
-        '巡检标记为失效的媒体库内容会出现在这里。你可以复查媒体是否恢复，或清理已经确认不可用的记录。',
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s12,
-          weight: AppTextWeight.regular,
-          tone: AppTextTone.muted,
+    // 说明文字自成一行放在顶栏下方——顶栏恒定单行、不换行，
+    // 整段说明塞进 leading 会被锁定的高度截断。
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppFilterTotalHeader(
+          leading: const SizedBox.shrink(),
+          totalText: '共 ${headerState.total} 条失效媒体',
+          totalKey: const Key('invalid-media-total-text'),
+          trailing: AppIconButton(
+            key: const Key('invalid-media-refresh-button'),
+            tooltip: headerState.isInitialLoading ? '刷新中' : '刷新',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed:
+                headerState.isInitialLoading
+                    ? null
+                    : () async {
+                      final message =
+                          await ref
+                              .read(invalidMediaProvider.notifier)
+                              .refresh();
+                      if (message != null) showToast(message);
+                    },
+          ),
         ),
-      ),
-      totalText: '共 ${headerState.total} 条失效媒体',
-      totalKey: const Key('invalid-media-total-text'),
-      trailing: AppIconButton(
-        key: const Key('invalid-media-refresh-button'),
-        tooltip: headerState.isInitialLoading ? '刷新中' : '刷新',
-        icon: const Icon(Icons.refresh_rounded),
-        onPressed:
-            headerState.isInitialLoading
-                ? null
-                : () async {
-                  final message =
-                      await ref.read(invalidMediaProvider.notifier).refresh();
-                  if (message != null) showToast(message);
-                },
-      ),
+        SizedBox(height: context.appSpacing.xs),
+        Text(
+          '巡检标记为失效的媒体库内容会出现在这里。你可以复查媒体是否恢复，或清理已经确认不可用的记录。',
+          key: const Key('invalid-media-section-description'),
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.muted,
+          ),
+        ),
+      ],
     );
   }
 }

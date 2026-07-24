@@ -49,11 +49,12 @@ class MediaBrowseFilterToolbar extends StatelessWidget {
           // 面板 trigger 位于 leading 最左端，向右延伸自然填入内容区、不会
           // 反过来遮挡左侧配置分类栏（默认的 right-aligned 会往左溢出）。
           alignment: AppFilterPopoverAlignment.leftAlignedToTrigger,
-          panelBuilder: (_) => MediaBrowseFilterSectionGroup(
-            filterState: filterState,
-            libraries: libraries,
-            onChanged: onChanged,
-          ),
+          panelBuilder:
+              (_) => MediaBrowseFilterSectionGroup(
+                filterState: filterState,
+                libraries: libraries,
+                onChanged: onChanged,
+              ),
           footer: AppFilterPanelFooter(
             isDefault: filterState.isDefault,
             onReset: onReset,
@@ -121,12 +122,13 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
                 label: option.label,
                 size: AppTextButtonSize.xSmall,
                 isSelected: filterState.kind == option.kind,
-                onPressed: () => onChanged(
-                  filterState.copyWith(
-                    kind: option.kind,
-                    resetKind: option.kind == null,
-                  ),
-                ),
+                onPressed:
+                    () => onChanged(
+                      filterState.copyWith(
+                        kind: option.kind,
+                        resetKind: option.kind == null,
+                      ),
+                    ),
               ),
           ],
         ),
@@ -150,9 +152,9 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
                 label: library.displayLabel,
                 size: AppTextButtonSize.xSmall,
                 isSelected: filterState.libraryId == library.id,
-                onPressed: () => onChanged(
-                  filterState.copyWith(libraryId: library.id),
-                ),
+                onPressed:
+                    () =>
+                        onChanged(filterState.copyWith(libraryId: library.id)),
               ),
           ],
         ),
@@ -165,15 +167,14 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
           children: [
             for (final filter in _rapidUploadOrder)
               AppTextButton(
-                key: Key(
-                  'media-rapid-upload-filter-${filter?.name ?? 'all'}',
-                ),
+                key: Key('media-rapid-upload-filter-${filter?.name ?? 'all'}'),
                 label: filter?.label ?? '全部',
                 size: AppTextButtonSize.xSmall,
                 isSelected: filterState.rapidUploadStatus == filter,
-                onPressed: () => onChanged(
-                  filterState.copyWith(rapidUploadStatus: filter),
-                ),
+                onPressed:
+                    () => onChanged(
+                      filterState.copyWith(rapidUploadStatus: filter),
+                    ),
               ),
           ],
         ),
@@ -191,11 +192,13 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
                 size: AppTextButtonSize.xSmall,
                 isSelected: filterState.sortField == field,
                 // 已选字段再点则清空，退回后端默认（入库时间倒序）。
-                onPressed: () => onChanged(
-                  filterState.copyWith(
-                    sortField: filterState.sortField == field ? null : field,
-                  ),
-                ),
+                onPressed:
+                    () => onChanged(
+                      filterState.copyWith(
+                        sortField:
+                            filterState.sortField == field ? null : field,
+                      ),
+                    ),
               ),
           ],
         ),
@@ -210,9 +213,10 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
                   label: direction.label,
                   size: AppTextButtonSize.xSmall,
                   isSelected: filterState.sortDirection == direction,
-                  onPressed: () => onChanged(
-                    filterState.copyWith(sortDirection: direction),
-                  ),
+                  onPressed:
+                      () => onChanged(
+                        filterState.copyWith(sortDirection: direction),
+                      ),
                 ),
             ],
           ),

@@ -31,18 +31,19 @@ class MoviePlayerController extends ChangeNotifier {
   final int? initialPositionSeconds;
   final Duration progressReportInterval;
   final Future<MovieDetailDto> Function({required String movieNumber})
-      fetchMovieDetail;
+  fetchMovieDetail;
   final Future<List<MovieMediaThumbnailDto>> Function({required int mediaId})
-      fetchMediaThumbnails;
+  fetchMediaThumbnails;
 
   /// 字幕抓取来源；为 `null` 表示该来源不支持字幕（如非 JAV 视频），
   /// [loadSubtitles] 会直接短路为 `unsupported` 状态。
   final Future<MovieSubtitleListDto> Function({required String movieNumber})?
-      fetchMovieSubtitles;
+  fetchMovieSubtitles;
   final Future<MovieMediaProgressDto> Function({
     required int mediaId,
     required int positionSeconds,
-  }) updateMediaProgress;
+  })
+  updateMediaProgress;
   final Future<List<MediaLibraryDto>> Function()? fetchMediaLibraries;
 
   MovieDetailDto? _movie;
@@ -128,12 +129,12 @@ class MoviePlayerController extends ChangeNotifier {
       _activeThumbnailIndexNotifier;
 
   MoviePlayerSubtitleState get subtitleState => MoviePlayerSubtitleState(
-        options: _subtitleOptions,
-        selectedSubtitleId: _selectedSubtitleId,
-        isLoading: _isSubtitleLoading,
-        fetchStatus: _subtitleFetchStatus,
-        errorMessage: _subtitleErrorMessage,
-      );
+    options: _subtitleOptions,
+    selectedSubtitleId: _selectedSubtitleId,
+    isLoading: _isSubtitleLoading,
+    fetchStatus: _subtitleFetchStatus,
+    errorMessage: _subtitleErrorMessage,
+  );
 
   String? get resolvedPlayUrl =>
       resolveMediaUrl(rawUrl: _selectedMedia?.playUrl, baseUrl: baseUrl);
@@ -167,9 +168,10 @@ class MoviePlayerController extends ChangeNotifier {
       _isThumbnailLoading = false;
       _resetSubtitleState();
       _startupPlaybackPosition = _resolveExplicitStartupPlaybackPosition();
-      _resumePlaybackPosition = _startupPlaybackPosition == null
-          ? _resolveResumePlaybackPosition(_selectedMedia)
-          : null;
+      _resumePlaybackPosition =
+          _startupPlaybackPosition == null
+              ? _resolveResumePlaybackPosition(_selectedMedia)
+              : null;
       _isResumeDecisionPending = _resumePlaybackPosition != null;
       debugPrint(
         '[player-debug] controller_load_resolved movie=$movieNumber selectedMediaId=${_selectedMedia?.mediaId} hasPlayUrl=${_selectedMedia?.hasPlayableUrl} storedProgress=${_selectedMedia?.progress?.lastPositionSeconds} startupPositionSeconds=${_startupPlaybackPosition?.inSeconds} resumePositionSeconds=${_resumePlaybackPosition?.inSeconds}',
@@ -264,18 +266,20 @@ class MoviePlayerController extends ChangeNotifier {
 
     try {
       final result = await fetch(movieNumber: movieNumber);
-      _subtitleFetchStatus = result.fetchStatus.trim().isEmpty
-          ? 'pending'
-          : result.fetchStatus.trim();
+      _subtitleFetchStatus =
+          result.fetchStatus.trim().isEmpty
+              ? 'pending'
+              : result.fetchStatus.trim();
       _subtitleOptions = result.items
           .map(_buildSubtitleOption)
           .whereType<MoviePlayerSubtitleOption>()
           .toList(growable: false);
-      _selectedSubtitleId = _subtitleOptions.any(
-        (item) => item.subtitleId == previousSelectedSubtitleId,
-      )
-          ? previousSelectedSubtitleId
-          : null;
+      _selectedSubtitleId =
+          _subtitleOptions.any(
+                (item) => item.subtitleId == previousSelectedSubtitleId,
+              )
+              ? previousSelectedSubtitleId
+              : null;
       _subtitleErrorMessage = _subtitleErrorMessageFromResult(result);
       debugPrint(
         '[player-debug] subtitle_state_load_success movie=$movieNumber fetchStatus=$_subtitleFetchStatus selected=$_selectedSubtitleId error=$_subtitleErrorMessage options=${_subtitleOptions.map((item) => "${item.subtitleId}:${item.label}").join("|")}',
@@ -484,9 +488,10 @@ class MoviePlayerController extends ChangeNotifier {
     if (resolvedUrl == null || resolvedUrl.isEmpty) {
       return null;
     }
-    final label = item.fileName.trim().isNotEmpty
-        ? item.fileName.trim()
-        : '字幕 ${item.subtitleId}';
+    final label =
+        item.fileName.trim().isNotEmpty
+            ? item.fileName.trim()
+            : '字幕 ${item.subtitleId}';
     return MoviePlayerSubtitleOption(
       subtitleId: item.subtitleId,
       label: label,

@@ -60,8 +60,9 @@ class VideoCollectionDetailController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      final collection =
-          await collectionsApi.getCollection(collectionId: collectionId);
+      final collection = await collectionsApi.getCollection(
+        collectionId: collectionId,
+      );
       final items = await collectionsApi.getAllCollectionItems(
         collectionId: collectionId,
         sort: sortExpression,
@@ -142,8 +143,9 @@ class VideoCollectionDetailController extends ChangeNotifier {
     try {
       await collectionsApi.reorderCollectionItems(
         collectionId: collectionId,
-        orderedItemIds:
-            reordered.map((item) => item.itemId).toList(growable: false),
+        orderedItemIds: reordered
+            .map((item) => item.itemId)
+            .toList(growable: false),
       );
     } catch (_) {
       // 失败回滚到提交前的本地顺序（即服务端真实顺序）。
@@ -160,8 +162,9 @@ class VideoCollectionDetailController extends ChangeNotifier {
       return null;
     }
     final previous = _items;
-    _items =
-        _items.where((item) => item.itemId != itemId).toList(growable: false);
+    _items = _items
+        .where((item) => item.itemId != itemId)
+        .toList(growable: false);
     _isMutating = true;
     notifyListeners();
     try {
@@ -187,8 +190,9 @@ class VideoCollectionDetailController extends ChangeNotifier {
       return null;
     }
     final previous = _items;
-    _items =
-        _items.where((item) => item.itemId != itemId).toList(growable: false);
+    _items = _items
+        .where((item) => item.itemId != itemId)
+        .toList(growable: false);
     _isMutating = true;
     notifyListeners();
     try {

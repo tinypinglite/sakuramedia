@@ -27,19 +27,21 @@ Future<VideoCollectionDto?> showPickVideoCollectionDialog(
     case PickVideoCollectionPresentation.dialog:
       return showDialog<VideoCollectionDto>(
         context: context,
-        builder: (dialogContext) => _PickVideoCollectionDialog(
-          excludedCollectionId: excludedCollectionId,
-        ),
+        builder:
+            (dialogContext) => _PickVideoCollectionDialog(
+              excludedCollectionId: excludedCollectionId,
+            ),
       );
     case PickVideoCollectionPresentation.bottomDrawer:
       return showAppBottomDrawer<VideoCollectionDto>(
         context: context,
         drawerKey: const Key('pick-video-collection-bottom-sheet'),
         maxHeightFactor: 0.7,
-        builder: (sheetContext) => _PickVideoCollectionDialog(
-          presentation: PickVideoCollectionPresentation.bottomDrawer,
-          excludedCollectionId: excludedCollectionId,
-        ),
+        builder:
+            (sheetContext) => _PickVideoCollectionDialog(
+              presentation: PickVideoCollectionPresentation.bottomDrawer,
+              excludedCollectionId: excludedCollectionId,
+            ),
       );
   }
 }
@@ -89,11 +91,12 @@ class _PickVideoCollectionDialogState
       }
       final excluded = widget.excludedCollectionId;
       setState(() {
-        _collections = excluded == null
-            ? collections
-            : collections
-                .where((c) => c.id != excluded)
-                .toList(growable: false);
+        _collections =
+            excluded == null
+                ? collections
+                : collections
+                    .where((c) => c.id != excluded)
+                    .toList(growable: false);
         _isLoading = false;
       });
     } catch (error) {
@@ -110,9 +113,10 @@ class _PickVideoCollectionDialogState
   Future<void> _createAndPick() async {
     final created = await showVideoCollectionDialog(
       context,
-      presentation: _isBottomDrawer
-          ? VideoCollectionEditPresentation.bottomDrawer
-          : VideoCollectionEditPresentation.dialog,
+      presentation:
+          _isBottomDrawer
+              ? VideoCollectionEditPresentation.bottomDrawer
+              : VideoCollectionEditPresentation.dialog,
     );
     if (created != null && mounted) {
       Navigator.of(context).pop(created);
@@ -132,12 +136,13 @@ class _PickVideoCollectionDialogState
     final spacing = context.appSpacing;
     // 抽屉形态：列表占据抽屉剩余空间并内部滚动，表头/按钮常驻，整体由抽屉 maxHeightFactor
     // 约束，避免矮屏上「表头 + 固定高列表 + 按钮」超过抽屉封顶导致溢出。桌面弹窗仍用固定上限。
-    final listSection = _isBottomDrawer
-        ? Flexible(child: _buildBody(context))
-        : ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 320),
-            child: _buildBody(context),
-          );
+    final listSection =
+        _isBottomDrawer
+            ? Flexible(child: _buildBody(context))
+            : ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 320),
+              child: _buildBody(context),
+            );
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,10 +162,7 @@ class _PickVideoCollectionDialogState
         Row(
           children: [
             Expanded(
-              child: AppButton(
-                label: '新建合集并加入',
-                onPressed: _createAndPick,
-              ),
+              child: AppButton(label: '新建合集并加入', onPressed: _createAndPick),
             ),
             SizedBox(width: spacing.md),
             AppButton(

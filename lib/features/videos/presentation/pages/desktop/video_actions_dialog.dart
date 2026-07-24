@@ -130,9 +130,10 @@ class DesktopVideoActionsDialogBody extends StatelessWidget {
               children: [
                 ColoredBox(
                   color: colors.surfaceMuted,
-                  child: coverUrl != null && coverUrl.isNotEmpty
-                      ? MaskedImage(url: coverUrl, fit: BoxFit.contain)
-                      : null,
+                  child:
+                      coverUrl != null && coverUrl.isNotEmpty
+                          ? MaskedImage(url: coverUrl, fit: BoxFit.contain)
+                          : null,
                 ),
                 if (video.durationSeconds > 0)
                   Positioned(

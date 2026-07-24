@@ -33,7 +33,8 @@ import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_mobile_tab_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_summary_card.dart';
 
@@ -69,10 +70,11 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
     _pageStateHandle = obtainCachedPageState<VideoListPageStateEntry>(
       context,
       key: mobilePornboxPageStateKey(),
-      create: () => VideoListPageStateEntry(
-        videosApi: context.read<VideosApi>(),
-        mutationNotifier: _mutationNotifier,
-      ),
+      create:
+          () => VideoListPageStateEntry(
+            videosApi: context.read<VideosApi>(),
+            mutationNotifier: _mutationNotifier,
+          ),
     );
     _collectionsController = VideoCollectionsOverviewController(
       collectionsApi: context.read<VideoCollectionsApi>(),
@@ -136,9 +138,10 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
       onAddToCollection: () => _addToCollection(video),
       onDelete: () => _deleteVideo(video),
       collections: video.collections,
-      onCollectionTap: (ref) =>
-          MobileVideoCollectionDetailRouteData(collectionId: ref.id)
-              .push(context),
+      onCollectionTap:
+          (ref) => MobileVideoCollectionDetailRouteData(
+            collectionId: ref.id,
+          ).push(context),
     );
   }
 
@@ -146,10 +149,11 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
     // 用根 Navigator 推全屏页，覆盖底部导航。
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(
-        builder: (_) => MobileVideoPlayerPage(
-          videoId: video.id,
-          title: video.preferredTitle,
-        ),
+        builder:
+            (_) => MobileVideoPlayerPage(
+              videoId: video.id,
+              title: video.preferredTitle,
+            ),
       ),
     );
   }
@@ -222,10 +226,11 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
       context,
       title: '正在加入「${target.name}」',
       items: selected,
-      action: (video) => api.addCollectionItem(
-        collectionId: target.id,
-        videoItemId: video.id,
-      ),
+      action:
+          (video) => api.addCollectionItem(
+            collectionId: target.id,
+            videoItemId: video.id,
+          ),
     );
     if (!mounted) {
       return;
@@ -308,7 +313,6 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
         builder: (context, _) {
           return Column(
             children: [
-              if (selectionMode) _buildSelectionBar(context),
               Expanded(
                 child: AppAdaptiveRefreshScrollView(
                   key: const Key('mobile-pornbox-scroll'),
@@ -316,7 +320,9 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
                   onRefresh: _refresh,
                   slivers: <Widget>[
                     if (!selectionMode)
-                      SliverToBoxAdapter(child: _buildCollectionsSection(context)),
+                      SliverToBoxAdapter(
+                        child: _buildCollectionsSection(context),
+                      ),
                     SliverToBoxAdapter(child: _buildVideosHeader(context)),
                     _buildVideosSliver(context),
                     SliverToBoxAdapter(child: _buildFooter(context)),
@@ -340,7 +346,7 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 与 _buildVideosHeader 的 AppMobileTabHeader 对齐：top: xs + 固定
+        // 与 _buildVideosHeader 的 AppListHeader 对齐：top: xs + 固定
         // mobileTopTabHeight 容器，标题行垂直居中。
         Padding(
           padding: EdgeInsets.only(top: spacing.xs),
@@ -367,20 +373,12 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
                 if (collections.isNotEmpty) ...[
                   SizedBox(width: spacing.xs),
                   AppTextButton(
-                    key: const Key('mobile-pornbox-view-all-collections-button'),
+                    key: const Key(
+                      'mobile-pornbox-view-all-collections-button',
+                    ),
                     label: '查看全部',
                     size: AppTextButtonSize.xSmall,
                     onPressed: _viewAllCollections,
-                  ),
-                ],
-                if (_loadedVideos.isNotEmpty) ...[
-                  SizedBox(width: spacing.xs),
-                  AppTextButton(
-                    key: const Key('mobile-pornbox-enter-selection-button'),
-                    label: '选择',
-                    size: AppTextButtonSize.xSmall,
-                    icon: const Icon(Icons.check_circle_outline, size: 14),
-                    onPressed: enterSelection,
                   ),
                 ],
               ],
@@ -430,9 +428,10 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
             child: CollectionCard.video(
               key: Key('mobile-video-collection-card-${collection.id}'),
               collection: collection,
-              onTap: () => MobileVideoCollectionDetailRouteData(
-                collectionId: collection.id,
-              ).push(context),
+              onTap:
+                  () => MobileVideoCollectionDetailRouteData(
+                    collectionId: collection.id,
+                  ).push(context),
             ),
           );
         },
@@ -443,38 +442,57 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
   // --------------------------------------------------------- 视频区
 
   Widget _buildVideosHeader(BuildContext context) {
+    final videos = _loadedVideos;
+    if (selectionMode) {
+      final videoIds = videos.map((video) => video.id);
+      final allSelected = isAllSelected(videoIds);
+      return AppListHeader.selection(
+        selectionLabel: '已选 $selectedCount 个',
+        selectionExitButtonKey: const Key(
+          'mobile-pornbox-exit-selection-button',
+        ),
+        onExitSelection: exitSelection,
+        actionSlots: [
+          AppButton(
+            key: const Key('mobile-pornbox-select-all-button'),
+            label: allSelected ? '取消全选' : '全选(${videos.length})',
+            variant: AppButtonVariant.ghost,
+            size: AppButtonSize.xSmall,
+            isSelected: allSelected,
+            onPressed: videos.isEmpty ? null : () => toggleSelectAll(videoIds),
+          ),
+        ],
+      );
+    }
+
     final filter = _pageState.filterState;
-    return AppMobileTabHeader(
-      chips: [
-        AppMobileTabChip(
-          key: const Key('mobile-pornbox-sort-chip'),
-          label: filter.sortField.label,
-          isSelected: false,
-          trailingIcon: Icons.expand_more,
-          onTap: _openSortDrawer,
+    return AppListHeader(
+      filterButtonKey: const Key('mobile-pornbox-filter-button'),
+      filterTooltip: '排序筛选',
+      filterLabel: filter.sortField.label,
+      onFilterTap: _openSortDrawer,
+      informationSlots: [
+        AppListHeaderInfo(
+          key: const Key('mobile-pornbox-total'),
+          label: '${_pageState.controller.total} 个',
         ),
       ],
     );
   }
 
   Future<void> _openSortDrawer() async {
-    final result = await showMobileVideoSortDrawer(
+    await showMobileVideoSortDrawer(
       context,
       current: _pageState.filterState,
+      onChanged: _applySort,
     );
-    if (!mounted || result == null) {
-      return;
-    }
-    _applySort(result);
   }
 
   Widget _buildVideosSliver(BuildContext context) {
     final controller = _pageState.controller;
     if (controller.isInitialLoading && controller.items.isEmpty) {
       return const SliverToBoxAdapter(
-        child: AppMobileSkeletonList(
-          key: Key('mobile-pornbox-loading'),
-        ),
+        child: AppMobileSkeletonList(key: Key('mobile-pornbox-loading')),
       );
     }
     if (controller.initialErrorMessage != null && controller.items.isEmpty) {
@@ -488,10 +506,7 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
     final videos = controller.items;
     if (videos.isEmpty) {
       return const SliverToBoxAdapter(
-        child: SizedBox(
-          height: 200,
-          child: AppEmptyState(message: '暂无视频数据'),
-        ),
+        child: SizedBox(height: 200, child: AppEmptyState(message: '暂无视频数据')),
       );
     }
     final spacing = context.appSpacing.md;
@@ -515,27 +530,100 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
             );
             return AspectRatio(
               aspectRatio: aspect,
-              child: GestureDetector(
-                onLongPress: selectionMode
-                    ? null
-                    : () {
-                        enterSelection();
-                        toggleSelect(video.id);
-                      },
-                child: VideoSummaryCard(
-                  video: video,
-                  onTap:
-                      selectionMode ? null : () => _openSheet(video),
-                  selectionMode: selectionMode,
-                  isSelected: isSelected(video.id),
-                  onSelectedChanged: (_) => toggleSelect(video.id),
-                ),
+              // Builder 是为了拿到**这一张卡自己**的 RenderBox，长按浮层要盖住它。
+              child: Builder(
+                builder:
+                    (cardContext) => GestureDetector(
+                      onLongPressStart:
+                          selectionMode
+                              ? null
+                              : (details) => _openCardMenu(
+                                cardContext,
+                                video,
+                                details.globalPosition,
+                              ),
+                      child: VideoSummaryCard(
+                        video: video,
+                        onTap: selectionMode ? null : () => _openSheet(video),
+                        selectionMode: selectionMode,
+                        isSelected: isSelected(video.id),
+                        onSelectedChanged: (_) => toggleSelect(video.id),
+                      ),
+                    ),
               ),
             );
           },
         );
       },
     );
+  }
+
+  /// 长按视频卡：在指尖旁弹操作菜单。目前只有「选择」——多选入口从此挂在长按
+  /// 菜单里，顶栏不再常驻「选择」按钮；其余动作仍走整卡点击的 [_openSheet]。
+  ///
+  /// 菜单样式对齐影片列表的 `_showMovieCollectionFeatureMenu`。
+  Future<void> _openCardMenu(
+    BuildContext cardContext,
+    VideoItemListItemDto video,
+    Offset globalPosition,
+  ) async {
+    final colors = context.appColors;
+    final spacing = context.appSpacing;
+    final componentTokens = Theme.of(context).appComponentTokens;
+    final navigator = Navigator.of(cardContext);
+    final overlay = navigator.overlay!.context.findRenderObject() as RenderBox;
+    final localPosition = overlay.globalToLocal(globalPosition);
+    final position = RelativeRect.fromRect(
+      Rect.fromPoints(localPosition, localPosition),
+      Offset.zero & overlay.size,
+    );
+
+    final selected = await showMenu<bool>(
+      context: cardContext,
+      position: position,
+      useRootNavigator: false,
+      color: colors.surfaceElevated,
+      elevation: 12,
+      shape: RoundedRectangleBorder(
+        borderRadius: context.appRadius.lgBorder,
+        side: BorderSide(color: colors.borderSubtle),
+      ),
+      items: <PopupMenuEntry<bool>>[
+        PopupMenuItem<bool>(
+          key: const Key('mobile-pornbox-card-menu-select-item'),
+          value: true,
+          height: componentTokens.buttonHeightSm,
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.sm,
+            vertical: spacing.xs,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.check_circle_outline,
+                size: componentTokens.iconSizeXs,
+                color: context.appTextPalette.secondary,
+              ),
+              SizedBox(width: spacing.sm),
+              Text(
+                '选择',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    if (selected != true || !mounted) {
+      return;
+    }
+    enterSelection();
+    toggleSelect(video.id);
   }
 
   double _resolveCoverAspect(int? width, int? height) {
@@ -547,7 +635,8 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
 
   Widget _buildFooter(BuildContext context) {
     final controller = _pageState.controller;
-    final showFooter = controller.items.isNotEmpty &&
+    final showFooter =
+        controller.items.isNotEmpty &&
         (controller.isLoadingMore || controller.loadMoreErrorMessage != null);
     if (!showFooter) {
       return SizedBox(height: context.appSpacing.lg);
@@ -564,82 +653,24 @@ class _MobilePornboxPageState extends State<MobilePornboxPage>
 
   // --------------------------------------------------------- 选择模式
 
-  Widget _buildSelectionBar(BuildContext context) {
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final videoIds = _loadedVideos.map((v) => v.id);
-    final allSelected = isAllSelected(videoIds);
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: spacing.md, vertical: spacing.sm),
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        border: Border(bottom: BorderSide(color: colors.divider)),
-      ),
-      child: Row(
-        children: [
-          AppTextButton(
-            key: const Key('mobile-pornbox-exit-selection-button'),
-            label: '取消',
-            size: AppTextButtonSize.small,
-            onPressed: exitSelection,
-          ),
-          SizedBox(width: spacing.sm),
-          Text(
-            '已选 $selectedCount 个',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s14,
-              weight: AppTextWeight.medium,
-              tone: AppTextTone.primary,
-            ),
-          ),
-          const Spacer(),
-          AppTextButton(
-            key: const Key('mobile-pornbox-select-all-button'),
-            label: allSelected ? '取消全选' : '全选',
-            size: AppTextButtonSize.small,
-            isSelected: allSelected,
-            onPressed: () => toggleSelectAll(videoIds),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBatchBar(BuildContext context) {
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
     final hasSelection = selectedCount > 0;
-    return Container(
-      padding: EdgeInsets.all(spacing.md),
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        border: Border(top: BorderSide(color: colors.divider)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: AppButton(
-                key: const Key('mobile-pornbox-batch-add-collection-button'),
-                label: '加入合集',
-                variant: AppButtonVariant.secondary,
-                onPressed: hasSelection ? _batchAddToCollection : null,
-              ),
-            ),
-            SizedBox(width: spacing.md),
-            Expanded(
-              child: AppButton(
-                key: const Key('mobile-pornbox-batch-delete-button'),
-                label: '删除',
-                variant: AppButtonVariant.danger,
-                onPressed: hasSelection ? _batchDelete : null,
-              ),
-            ),
-          ],
+    return AppSelectionBottomBar(
+      key: const Key('mobile-pornbox-batch-bottom-bar'),
+      actions: [
+        AppButton(
+          key: const Key('mobile-pornbox-batch-add-collection-button'),
+          label: '加入合集',
+          variant: AppButtonVariant.secondary,
+          onPressed: hasSelection ? _batchAddToCollection : null,
         ),
-      ),
+        AppButton(
+          key: const Key('mobile-pornbox-batch-delete-button'),
+          label: '删除',
+          variant: AppButtonVariant.danger,
+          onPressed: hasSelection ? _batchDelete : null,
+        ),
+      ],
     );
   }
 }

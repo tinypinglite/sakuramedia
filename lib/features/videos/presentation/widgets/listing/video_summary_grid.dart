@@ -46,30 +46,39 @@ class VideoSummaryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppAdaptiveCardGrid<VideoItemListItemDto>(
-      gridKey: isLoading
-          ? const Key('video-summary-grid-skeleton')
-          : const Key('video-summary-grid'),
+      gridKey:
+          isLoading
+              ? const Key('video-summary-grid-skeleton')
+              : const Key('video-summary-grid'),
       items: items,
       isLoading: isLoading,
       errorMessage: errorMessage,
       emptyMessage: emptyMessage,
       placeholderCount: placeholderCount,
       layout: AppAdaptiveCardGridLayout.masonry,
-      tileAspect: (index) => index < items.length
-          ? _resolveAspect(items[index].coverWidth, items[index].coverHeight)
-          : kStaggeredFallbackAspect,
-      skeletonBuilder: (context, index) => AppCoverCardSkeleton(
-        key: Key('video-summary-card-skeleton-$index'),
-      ),
-      itemBuilder: (context, video, index) => VideoSummaryCard(
-        video: video,
-        onTap: onVideoTap == null ? null : () => onVideoTap!(video),
-        selectionMode: selectionMode,
-        isSelected: selectedIds.contains(video.id),
-        onSelectedChanged: onVideoToggleSelect == null
-            ? null
-            : (_) => onVideoToggleSelect!(video),
-      ),
+      tileAspect:
+          (index) =>
+              index < items.length
+                  ? _resolveAspect(
+                    items[index].coverWidth,
+                    items[index].coverHeight,
+                  )
+                  : kStaggeredFallbackAspect,
+      skeletonBuilder:
+          (context, index) => AppCoverCardSkeleton(
+            key: Key('video-summary-card-skeleton-$index'),
+          ),
+      itemBuilder:
+          (context, video, index) => VideoSummaryCard(
+            video: video,
+            onTap: onVideoTap == null ? null : () => onVideoTap!(video),
+            selectionMode: selectionMode,
+            isSelected: selectedIds.contains(video.id),
+            onSelectedChanged:
+                onVideoToggleSelect == null
+                    ? null
+                    : (_) => onVideoToggleSelect!(video),
+          ),
     );
   }
 }
@@ -102,30 +111,39 @@ class VideoSummarySliver extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppAdaptiveCardSliver<VideoItemListItemDto>(
-      gridKey: isLoading
-          ? const Key('video-summary-grid-skeleton')
-          : const Key('video-summary-grid'),
+      gridKey:
+          isLoading
+              ? const Key('video-summary-grid-skeleton')
+              : const Key('video-summary-grid'),
       items: items,
       isLoading: isLoading,
       errorMessage: errorMessage,
       emptyMessage: emptyMessage,
       placeholderCount: placeholderCount,
       layout: AppAdaptiveCardGridLayout.masonry,
-      tileAspect: (index) => index < items.length
-          ? _resolveAspect(items[index].coverWidth, items[index].coverHeight)
-          : kStaggeredFallbackAspect,
-      skeletonBuilder: (context, index) => AppCoverCardSkeleton(
-        key: Key('video-summary-card-skeleton-$index'),
-      ),
-      itemBuilder: (context, video, index) => VideoSummaryCard(
-        video: video,
-        onTap: onVideoTap == null ? null : () => onVideoTap!(video),
-        selectionMode: selectionMode,
-        isSelected: selectedIds.contains(video.id),
-        onSelectedChanged: onVideoToggleSelect == null
-            ? null
-            : (_) => onVideoToggleSelect!(video),
-      ),
+      tileAspect:
+          (index) =>
+              index < items.length
+                  ? _resolveAspect(
+                    items[index].coverWidth,
+                    items[index].coverHeight,
+                  )
+                  : kStaggeredFallbackAspect,
+      skeletonBuilder:
+          (context, index) => AppCoverCardSkeleton(
+            key: Key('video-summary-card-skeleton-$index'),
+          ),
+      itemBuilder:
+          (context, video, index) => VideoSummaryCard(
+            video: video,
+            onTap: onVideoTap == null ? null : () => onVideoTap!(video),
+            selectionMode: selectionMode,
+            isSelected: selectedIds.contains(video.id),
+            onSelectedChanged:
+                onVideoToggleSelect == null
+                    ? null
+                    : (_) => onVideoToggleSelect!(video),
+          ),
     );
   }
 }

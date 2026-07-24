@@ -153,16 +153,20 @@ class _DesktopVideoCollectionPlayPageState
         frameLoader: (episodeIndex) async {
           final mediaId = firstMediaIds[episodeIndex];
           if (mediaId == null) {
-            return const <({
-              int offsetSeconds,
-              MovieImageDto image,
-              int mediaId,
-              int thumbnailId,
-              int? width,
-              int? height,
-            })>[];
+            return const <
+              ({
+                int offsetSeconds,
+                MovieImageDto image,
+                int mediaId,
+                int thumbnailId,
+                int? width,
+                int? height,
+              })
+            >[];
           }
-          final thumbnails = await moviesApi.getMediaThumbnails(mediaId: mediaId);
+          final thumbnails = await moviesApi.getMediaThumbnails(
+            mediaId: mediaId,
+          );
           return thumbnails
               .map(
                 (thumbnail) => (
@@ -228,7 +232,8 @@ class _DesktopVideoCollectionPlayPageState
   /// 右键/长按「整部合集」某帧 → 弹「添加/删除时刻」菜单（桌面定位弹窗、移动底部抽屉）。
   /// 时刻即 MediaPoint，故仅 pornbox（每帧带真实 media/thumbnail id）支持；无媒体的帧静默忽略。
   Future<void> _showThumbnailActions(int index, Offset globalPosition) async {
-    final thumbnails = filmstrip?.thumbnails ?? const <MovieMediaThumbnailDto>[];
+    final thumbnails =
+        filmstrip?.thumbnails ?? const <MovieMediaThumbnailDto>[];
     if (index < 0 || index >= thumbnails.length) {
       return;
     }
@@ -305,10 +310,7 @@ class _DesktopVideoCollectionPlayPageState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: _buildBody(context),
-    );
+    return Scaffold(backgroundColor: Colors.black, body: _buildBody(context));
   }
 
   Widget _buildBody(BuildContext context) {
@@ -414,5 +416,4 @@ class _DesktopVideoCollectionPlayPageState
       ),
     );
   }
-
 }

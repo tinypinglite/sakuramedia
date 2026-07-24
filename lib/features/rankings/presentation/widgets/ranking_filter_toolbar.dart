@@ -36,14 +36,10 @@ class RankingFilterToolbar extends StatelessWidget {
   final void Function(RankingSortField? field, SortDirection direction)
   onSortChanged;
 
-  String _buildTriggerLabel() {
-    final sourceLabel = selectedSource?.name ?? '全部来源';
-    final boardLabel = selectedBoard?.name ?? '全部榜单';
-    final periodLabel = selectedPeriod == null
-        ? '默认周期'
-        : rankingPeriodLabel(selectedPeriod!);
-    return '$sourceLabel / $boardLabel / $periodLabel';
-  }
+  /// 只反映「榜单」这一主维度——来源 / 周期 / 排序都有独立分节。
+  /// 语义对齐 `MovieFilterState.triggerLabel`。
+  String _buildTriggerLabel() =>
+      selectedBoard?.name ?? selectedSource?.name ?? '全部榜单';
 
   @override
   Widget build(BuildContext context) {

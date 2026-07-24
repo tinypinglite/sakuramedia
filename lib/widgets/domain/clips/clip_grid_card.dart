@@ -75,7 +75,8 @@ class ClipGridCard extends StatelessWidget {
     final spacing = context.appSpacing;
     final colors = context.appColors;
     final coverUrl = clip.coverImage?.bestAvailableUrl;
-    final number = numberOverride ??
+    final number =
+        numberOverride ??
         (clip.movieNumber?.isNotEmpty == true ? clip.movieNumber! : '无番号');
     final duration = formatMediaTimecode(clip.durationSeconds);
     final labelTextStyle = resolveAppTextStyle(
@@ -87,15 +88,15 @@ class ClipGridCard extends StatelessWidget {
     final selected = selectionMode && isSelected;
 
     final card = Material(
-      color: materialColor ??
+      color:
+          materialColor ??
           (backgroundOnDecoration ? Colors.transparent : colors.surfaceCard),
       borderRadius: context.appRadius.mdBorder,
       child: InkWell(
         key: tapKey,
         borderRadius: context.appRadius.mdBorder,
-        onTap: selectionMode
-            ? () => onSelectedChanged?.call(!isSelected)
-            : onTap,
+        onTap:
+            selectionMode ? () => onSelectedChanged?.call(!isSelected) : onTap,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: backgroundOnDecoration ? colors.surfaceCard : null,
@@ -168,10 +169,10 @@ class ClipGridCard extends StatelessWidget {
     }
     return GestureDetector(
       behavior: HitTestBehavior.deferToChild,
-      onSecondaryTapDown: (details) =>
-          _showContextMenu(context, details.globalPosition),
-      onLongPressStart: (details) =>
-          _showContextMenu(context, details.globalPosition),
+      onSecondaryTapDown:
+          (details) => _showContextMenu(context, details.globalPosition),
+      onLongPressStart:
+          (details) => _showContextMenu(context, details.globalPosition),
       child: card,
     );
   }

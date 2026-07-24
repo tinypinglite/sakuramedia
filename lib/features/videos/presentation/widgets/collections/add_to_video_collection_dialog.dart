@@ -25,18 +25,20 @@ Future<bool?> showAddToVideoCollectionDialog(
     case AddToVideoCollectionPresentation.dialog:
       return showDialog<bool>(
         context: context,
-        builder: (dialogContext) =>
-            AddToVideoCollectionDialog(videoItemId: videoItemId),
+        builder:
+            (dialogContext) =>
+                AddToVideoCollectionDialog(videoItemId: videoItemId),
       );
     case AddToVideoCollectionPresentation.bottomDrawer:
       return showAppBottomDrawer<bool>(
         context: context,
         drawerKey: const Key('add-to-video-collection-bottom-sheet'),
         maxHeightFactor: 0.7,
-        builder: (sheetContext) => AddToVideoCollectionDialog(
-          videoItemId: videoItemId,
-          presentation: AddToVideoCollectionPresentation.bottomDrawer,
-        ),
+        builder:
+            (sheetContext) => AddToVideoCollectionDialog(
+              videoItemId: videoItemId,
+              presentation: AddToVideoCollectionPresentation.bottomDrawer,
+            ),
       );
   }
 }
@@ -121,9 +123,10 @@ class _AddToVideoCollectionDialogState
   Future<void> _createAndAdd() async {
     final created = await showVideoCollectionDialog(
       context,
-      presentation: _isBottomDrawer
-          ? VideoCollectionEditPresentation.bottomDrawer
-          : VideoCollectionEditPresentation.dialog,
+      presentation:
+          _isBottomDrawer
+              ? VideoCollectionEditPresentation.bottomDrawer
+              : VideoCollectionEditPresentation.dialog,
     );
     if (created != null) {
       await _addTo(created);
@@ -143,12 +146,13 @@ class _AddToVideoCollectionDialogState
     final spacing = context.appSpacing;
     // 抽屉形态：列表占据抽屉剩余空间并内部滚动，表头/按钮常驻，整体由抽屉 maxHeightFactor
     // 约束，避免矮屏上「表头 + 固定高列表 + 按钮」超过抽屉封顶导致溢出。桌面弹窗仍用固定上限。
-    final listSection = _isBottomDrawer
-        ? Flexible(child: _buildBody(context))
-        : ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 320),
-            child: _buildBody(context),
-          );
+    final listSection =
+        _isBottomDrawer
+            ? Flexible(child: _buildBody(context))
+            : ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 320),
+              child: _buildBody(context),
+            );
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,10 +172,7 @@ class _AddToVideoCollectionDialogState
         Row(
           children: [
             Expanded(
-              child: AppButton(
-                label: '新建合集并加入',
-                onPressed: _createAndAdd,
-              ),
+              child: AppButton(label: '新建合集并加入', onPressed: _createAndAdd),
             ),
             SizedBox(width: spacing.md),
             AppButton(
@@ -211,13 +212,14 @@ class _AddToVideoCollectionDialogState
           key: Key('add-to-collection-${collection.id}'),
           title: Text(collection.name),
           subtitle: Text('${collection.itemCount} 个视频'),
-          trailing: isBusy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.add),
+          trailing:
+              isBusy
+                  ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                  : const Icon(Icons.add),
           onTap: isBusy ? null : () => _addTo(collection),
         );
       },

@@ -6,8 +6,7 @@ import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dar
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/dispose_safe_notifier.dart';
 
-class MovieDetailController extends ChangeNotifier
-    with DisposeSafeNotifier {
+class MovieDetailController extends ChangeNotifier with DisposeSafeNotifier {
   MovieDetailController({
     required this.movieNumber,
     required this.fetchMovieDetail,
@@ -17,11 +16,12 @@ class MovieDetailController extends ChangeNotifier
 
   final String movieNumber;
   final Future<MovieDetailDto> Function({required String movieNumber})
-      fetchMovieDetail;
+  fetchMovieDetail;
   final Future<List<MovieListItemDto>> Function({
     required String movieNumber,
     int limit,
-  }) fetchSimilarMovies;
+  })
+  fetchSimilarMovies;
   final Future<List<MediaLibraryDto>> Function()? fetchMediaLibraries;
 
   MovieDetailDto? _movie;
@@ -48,9 +48,10 @@ class MovieDetailController extends ChangeNotifier
 
   void applyMovie(MovieDetailDto movie, {bool resetPreview = false}) {
     _movie = movie;
-    _selectedPreview = resetPreview
-        ? _defaultPreviewFor(movie)
-        : _resolveUpdatedPreview(movie);
+    _selectedPreview =
+        resetPreview
+            ? _defaultPreviewFor(movie)
+            : _resolveUpdatedPreview(movie);
     _errorMessage = null;
     notifyListenersSafely();
   }
@@ -178,7 +179,7 @@ class _MovieDetailPreview {
   const _MovieDetailPreview({required this.key, required this.url});
 
   const _MovieDetailPreview.cover({required String url})
-      : this(key: 'cover', url: url);
+    : this(key: 'cover', url: url);
 
   const _MovieDetailPreview.placeholder() : this(key: 'placeholder', url: null);
 

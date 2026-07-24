@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 
 /// 影片批量订阅/取消订阅的执行闭包：由调用方绑定到具体分页控制器的
 /// `batchToggleSubscription` 方法。这样 helper 无需知道 controller 具体类型
@@ -81,6 +84,21 @@ class MovieBatchSelectionToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 高度与常规态顶栏（AppListHeader / AppFilterTotalHeader）对齐，
+    // 进出多选不跳版。
+    return Padding(
+      padding: EdgeInsets.only(top: context.appSpacing.xs),
+      child: SizedBox(
+        height: context.appComponentTokens.mobileTopTabHeight,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: _buildToolbar(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolbar(BuildContext context) {
     return AppSelectionToolbar(
       countLabel: '已选 $selectedCount 部',
       countKey: Key('$keyPrefix-selection-count-text'),
@@ -99,7 +117,7 @@ class MovieBatchSelectionToolbar extends StatelessWidget {
         AppButton(
           key: Key('$keyPrefix-batch-unsubscribe-button'),
           label: '取消订阅',
-          variant: AppButtonVariant.primary,
+          variant: AppButtonVariant.danger,
           size: AppButtonSize.small,
           isLoading: operatingAction == MovieBatchAction.unsubscribe,
           onPressed: onUnsubscribe,
@@ -107,6 +125,88 @@ class MovieBatchSelectionToolbar extends StatelessWidget {
       ],
       exitKey: Key('$keyPrefix-exit-selection-button'),
       onExit: onExit,
+    );
+  }
+}
+
+/// 移动端影片列表多选态**顶栏**：退出 + 计数 + 全选，仅此三样。
+///
+/// 真正的批量动作在 [MovieBatchMobileSelectionBottomBar]——顶栏只承载「我现在
+/// 选了几个、要不要全选、怎么退出」这类上下文，避免危险动作和退出按钮挤在同
+/// 一处误触，也让动作落到拇指够得到的屏幕底部。
+class MovieBatchMobileSelectionHeader extends StatelessWidget {
+  const MovieBatchMobileSelectionHeader({
+    super.key,
+    required this.keyPrefix,
+    required this.selectedCount,
+    required this.visibleTotal,
+    required this.allSelected,
+    required this.onToggleAll,
+    required this.onExit,
+  });
+
+  final String keyPrefix;
+  final int selectedCount;
+  final int visibleTotal;
+  final bool allSelected;
+  final VoidCallback? onToggleAll;
+  final VoidCallback? onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppListHeader.selection(
+      selectionLabel: '已选 $selectedCount 部',
+      selectionExitButtonKey: Key('$keyPrefix-exit-selection-button'),
+      onExitSelection: onExit,
+      actionSlots: [
+        AppButton(
+          key: Key('$keyPrefix-select-all-button'),
+          label: allSelected ? '取消全选' : '全选($visibleTotal)',
+          variant: AppButtonVariant.ghost,
+          size: AppButtonSize.xSmall,
+          isSelected: allSelected,
+          onPressed: onToggleAll,
+        ),
+      ],
+    );
+  }
+}
+
+/// 移动端影片列表多选态**底部**批量动作条：订阅 / 取消订阅等宽平分。
+class MovieBatchMobileSelectionBottomBar extends StatelessWidget {
+  const MovieBatchMobileSelectionBottomBar({
+    super.key,
+    required this.keyPrefix,
+    required this.operatingAction,
+    required this.onSubscribe,
+    required this.onUnsubscribe,
+  });
+
+  final String keyPrefix;
+  final MovieBatchAction? operatingAction;
+  final VoidCallback? onSubscribe;
+  final VoidCallback? onUnsubscribe;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppSelectionBottomBar(
+      key: Key('$keyPrefix-batch-bottom-bar'),
+      actions: [
+        AppButton(
+          key: Key('$keyPrefix-batch-subscribe-button'),
+          label: '订阅',
+          variant: AppButtonVariant.primary,
+          isLoading: operatingAction == MovieBatchAction.subscribe,
+          onPressed: onSubscribe,
+        ),
+        AppButton(
+          key: Key('$keyPrefix-batch-unsubscribe-button'),
+          label: '取消订阅',
+          variant: AppButtonVariant.danger,
+          isLoading: operatingAction == MovieBatchAction.unsubscribe,
+          onPressed: onUnsubscribe,
+        ),
+      ],
     );
   }
 }
@@ -262,6 +362,39 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
               ? null
               : () => runSubscriptionBatch(subscribe: false),
       onExit: busy ? null : exitSelection,
+    );
+  }
+
+  /// 移动端多选态下原地替换 [AppListHeader]（退出 + 计数 + 全选）。
+  /// 批量动作另见 [buildMobileBatchSelectionBottomBar]。
+  Widget buildMobileBatchSelectionHeader() {
+    final visible = batchSelectableNumbers;
+    final busy = isBatchOperating;
+    return MovieBatchMobileSelectionHeader(
+      keyPrefix: batchKeyPrefix,
+      selectedCount: selectedCount,
+      visibleTotal: visible.length,
+      allSelected: isAllSelected(visible),
+      onToggleAll:
+          (busy || visible.isEmpty) ? null : () => toggleSelectAll(visible),
+      onExit: busy ? null : exitSelection,
+    );
+  }
+
+  /// 移动端多选态贴底的批量动作条。
+  Widget buildMobileBatchSelectionBottomBar() {
+    final busy = isBatchOperating;
+    return MovieBatchMobileSelectionBottomBar(
+      keyPrefix: batchKeyPrefix,
+      operatingAction: _operatingAction,
+      onSubscribe:
+          (selectedIds.isEmpty || busy)
+              ? null
+              : () => runSubscriptionBatch(subscribe: true),
+      onUnsubscribe:
+          (selectedIds.isEmpty || busy)
+              ? null
+              : () => runSubscriptionBatch(subscribe: false),
     );
   }
 

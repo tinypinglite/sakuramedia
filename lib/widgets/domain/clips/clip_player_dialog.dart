@@ -15,15 +15,16 @@ Future<void> showClipPlayerDialog(
 }) {
   return showDialog<void>(
     context: context,
-    builder: (dialogContext) => QuickPlayDialog(
-      title: title,
-      fallbackTitle: '切片',
-      videoKey: const Key('clip-player-video'),
-      noPlayableMessage: '无效的播放地址',
-      resolvePlayUrl: (innerContext) async {
-        final baseUrl = innerContext.read<SessionStore>().baseUrl;
-        return resolveMediaUrl(rawUrl: streamUrl, baseUrl: baseUrl);
-      },
-    ),
+    builder:
+        (dialogContext) => QuickPlayDialog(
+          title: title,
+          fallbackTitle: '切片',
+          videoKey: const Key('clip-player-video'),
+          noPlayableMessage: '无效的播放地址',
+          resolvePlayUrl: (innerContext) async {
+            final baseUrl = innerContext.read<SessionStore>().baseUrl;
+            return resolveMediaUrl(rawUrl: streamUrl, baseUrl: baseUrl);
+          },
+        ),
   );
 }

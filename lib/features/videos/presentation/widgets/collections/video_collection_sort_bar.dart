@@ -24,7 +24,8 @@ class VideoCollectionSortBar extends StatelessWidget {
   final void Function({
     required VideoSortField? field,
     SortDirection? direction,
-  }) onChanged;
+  })
+  onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -62,12 +63,14 @@ class VideoCollectionSortBar extends StatelessWidget {
                     : Icons.north_rounded,
               ),
               size: AppTextButtonSize.small,
-              onPressed: () => onChanged(
-                field: sortField,
-                direction: sortDirection == SortDirection.desc
-                    ? SortDirection.asc
-                    : SortDirection.desc,
-              ),
+              onPressed:
+                  () => onChanged(
+                    field: sortField,
+                    direction:
+                        sortDirection == SortDirection.desc
+                            ? SortDirection.asc
+                            : SortDirection.desc,
+                  ),
             ),
           ),
       ],

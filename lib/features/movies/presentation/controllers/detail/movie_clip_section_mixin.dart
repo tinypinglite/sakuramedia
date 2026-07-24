@@ -78,8 +78,8 @@ mixin MovieClipSectionMixin<T extends StatefulWidget> on State<T> {
       return;
     }
     // 合集归属可能变化（含新建）：广播信号，由切片各页统一刷新合集区。
-    context.read<ClipMutationChangeNotifier>().reportCollectionMembershipChanged(
-      clipId: clip.clipId,
-    );
+    context
+        .read<ClipMutationChangeNotifier>()
+        .reportCollectionMembershipChanged(clipId: clip.clipId);
   }
 }

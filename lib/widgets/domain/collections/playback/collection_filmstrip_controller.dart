@@ -161,36 +161,36 @@ class CollectionFilmstripController extends ChangeNotifier {
       raw = await _frameLoader(episodeIndex);
     } catch (_) {
       // 单集失败静默跳过：该集帧段为空，不影响其它集与播放。
-      raw = const <({
-        int offsetSeconds,
-        MovieImageDto image,
-        int mediaId,
-        int thumbnailId,
-        int? width,
-        int? height,
-      })>[];
+      raw =
+          const <
+            ({
+              int offsetSeconds,
+              MovieImageDto image,
+              int mediaId,
+              int thumbnailId,
+              int? width,
+              int? height,
+            })
+          >[];
     }
     if (_isDisposed) {
       return;
     }
-    final frames =
-        raw
-            .map(
-              (frame) => CollectionFrame(
-                episodeIndex: episodeIndex,
-                offsetInEpisodeSeconds: frame.offsetSeconds,
-                image: frame.image,
-                mediaId: frame.mediaId,
-                thumbnailId: frame.thumbnailId,
-                width: frame.width,
-                height: frame.height,
-              ),
-            )
-            .toList(growable: false)
-          ..sort(
-            (a, b) =>
-                a.offsetInEpisodeSeconds.compareTo(b.offsetInEpisodeSeconds),
-          );
+    final frames = raw
+      .map(
+        (frame) => CollectionFrame(
+          episodeIndex: episodeIndex,
+          offsetInEpisodeSeconds: frame.offsetSeconds,
+          image: frame.image,
+          mediaId: frame.mediaId,
+          thumbnailId: frame.thumbnailId,
+          width: frame.width,
+          height: frame.height,
+        ),
+      )
+      .toList(growable: false)..sort(
+      (a, b) => a.offsetInEpisodeSeconds.compareTo(b.offsetInEpisodeSeconds),
+    );
     _episodeFrames[episodeIndex] = frames;
     _attemptedCount++;
     _rebuild();

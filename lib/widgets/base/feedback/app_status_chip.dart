@@ -136,9 +136,10 @@ class AppStatusChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: palette.background,
         borderRadius: context.appRadius.smBorder,
-        border: palette.borderColor == null
-            ? null
-            : Border.all(color: palette.borderColor!),
+        border:
+            palette.borderColor == null
+                ? null
+                : Border.all(color: palette.borderColor!),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

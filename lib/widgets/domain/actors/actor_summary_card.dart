@@ -135,4 +135,3 @@ class _ActorPoster extends StatelessWidget {
     return MaskedImage(url: imageUrl, fit: BoxFit.cover);
   }
 }
-

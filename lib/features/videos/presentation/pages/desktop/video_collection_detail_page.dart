@@ -125,16 +125,18 @@ class _DesktopVideoCollectionDetailPageState
     showDesktopVideoActionsDialog(
       context,
       video: video,
-      onPlay: () => showVideoQuickPlayDialog(
-        context,
-        videoId: video.id,
-        title: video.preferredTitle,
-      ),
+      onPlay:
+          () => showVideoQuickPlayDialog(
+            context,
+            videoId: video.id,
+            title: video.preferredTitle,
+          ),
       onRemoveFromCollection: () => _removeItem(item.itemId),
       onDelete: () => _deleteVideo(item.itemId),
       collections: otherCollections,
-      onCollectionTap: (ref) =>
-          context.pushDesktopVideoCollectionDetail(collectionId: ref.id),
+      onCollectionTap:
+          (ref) =>
+              context.pushDesktopVideoCollectionDetail(collectionId: ref.id),
     );
   }
 
@@ -238,10 +240,11 @@ class _DesktopVideoCollectionDetailPageState
       context,
       title: '正在加入「${target.name}」',
       items: selected,
-      action: (item) => api.addCollectionItem(
-        collectionId: target.id,
-        videoItemId: item.video.id,
-      ),
+      action:
+          (item) => api.addCollectionItem(
+            collectionId: target.id,
+            videoItemId: item.video.id,
+          ),
     );
     if (!mounted) {
       return;
@@ -344,47 +347,50 @@ class _DesktopVideoCollectionDetailPageState
           animation: _controller,
           builder: (context, _) {
             if (_controller.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final error = _controller.errorMessage;
-          if (error != null) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final error = _controller.errorMessage;
+            if (error != null) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AppEmptyState(message: error),
+                  SizedBox(height: context.appSpacing.md),
+                  AppButton(
+                    label: '重试',
+                    variant: AppButtonVariant.secondary,
+                    onPressed: _controller.load,
+                  ),
+                ],
+              );
+            }
+            // 页面边距由桌面 shell 的 AppPageInsets.desktopStandard (24px) 统一提供，
+            // 此处不再叠加 EdgeInsets.all(spacing.lg)，否则合计 40px 比切片合集详情等
+            // 同类页明显宽。
             return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              key: const Key('video-collection-detail-page'),
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppEmptyState(message: error),
-                SizedBox(height: context.appSpacing.md),
-                AppButton(
-                  label: '重试',
-                  variant: AppButtonVariant.secondary,
-                  onPressed: _controller.load,
-                ),
+                _buildHeader(context),
+                // 排序工具条：选择模式下隐藏（与其它头部控件一致），空合集无需排序。
+                if (!selectionMode && _controller.items.isNotEmpty) ...[
+                  SizedBox(height: context.appSpacing.md),
+                  VideoCollectionSortBar(
+                    sortField: _controller.sortField,
+                    sortDirection: _controller.sortDirection,
+                    onChanged:
+                        ({required field, direction}) => _controller.applySort(
+                          field: field,
+                          direction: direction,
+                        ),
+                  ),
+                ],
+                SizedBox(height: context.appSpacing.lg),
+                Expanded(child: _buildBody(context)),
               ],
             );
-          }
-          // 页面边距由桌面 shell 的 AppPageInsets.desktopStandard (24px) 统一提供，
-          // 此处不再叠加 EdgeInsets.all(spacing.lg)，否则合计 40px 比切片合集详情等
-          // 同类页明显宽。
-          return Column(
-            key: const Key('video-collection-detail-page'),
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              // 排序工具条：选择模式下隐藏（与其它头部控件一致），空合集无需排序。
-              if (!selectionMode && _controller.items.isNotEmpty) ...[
-                SizedBox(height: context.appSpacing.md),
-                VideoCollectionSortBar(
-                  sortField: _controller.sortField,
-                  sortDirection: _controller.sortDirection,
-                  onChanged: ({required field, direction}) =>
-                      _controller.applySort(field: field, direction: direction),
-                ),
-              ],
-              SizedBox(height: context.appSpacing.lg),
-              Expanded(child: _buildBody(context)),
-            ],
-          );
-        },
-      ),
+          },
+        ),
       ),
     );
   }
@@ -565,9 +571,10 @@ class _DesktopVideoCollectionDetailPageState
         title: item.video.preferredTitle,
         subtitle: _formatReleaseDate(item.video.releaseDate),
         isHovered: _hoveredItemId == item.itemId,
-        onTap: selectionMode
-            ? () => toggleSelect(item.itemId)
-            : () => _openActionsDialog(item),
+        onTap:
+            selectionMode
+                ? () => toggleSelect(item.itemId)
+                : () => _openActionsDialog(item),
         menuKey: Key('video-collection-menu-${item.itemId}'),
         dragHandleKey: Key('video-reorder-handle-${item.itemId}'),
         onRemove: () => _removeItem(item.itemId),
@@ -585,8 +592,8 @@ class _DesktopVideoCollectionDetailPageState
       return ListView.separated(
         key: const Key('video-collection-detail-list'),
         itemCount: items.length,
-        separatorBuilder: (context, _) =>
-            SizedBox(height: context.appSpacing.sm),
+        separatorBuilder:
+            (context, _) => SizedBox(height: context.appSpacing.sm),
         itemBuilder: (context, index) => buildRow(index),
       );
     }
@@ -597,10 +604,9 @@ class _DesktopVideoCollectionDetailPageState
       itemCount: items.length,
       onReorder: _controller.reorder,
       // 默认 proxyDecorator 会给拖动项叠加带阴影的 Material，这里换成无阴影透明包装。
-      proxyDecorator: (child, index, animation) => Material(
-        type: MaterialType.transparency,
-        child: child,
-      ),
+      proxyDecorator:
+          (child, index, animation) =>
+              Material(type: MaterialType.transparency, child: child),
       itemBuilder: (context, index) {
         final item = items[index];
         return Padding(
@@ -651,9 +657,10 @@ class _DesktopVideoCollectionDetailPageState
                 coverAspectRatio: 16 / 9,
                 title: item.video.preferredTitle,
                 subtitle: _formatReleaseDate(item.video.releaseDate),
-                onTap: selectionMode
-                    ? () => toggleSelect(item.itemId)
-                    : () => _openActionsDialog(item),
+                onTap:
+                    selectionMode
+                        ? () => toggleSelect(item.itemId)
+                        : () => _openActionsDialog(item),
                 menuKey: Key('video-collection-grid-menu-${item.itemId}'),
                 onRemove: () => _removeItem(item.itemId),
                 onDelete: () => _deleteVideo(item.itemId),

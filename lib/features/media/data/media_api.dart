@@ -75,7 +75,7 @@ class MediaApi {
 
   /// `GET /media/rapid-uploads`：分页查询秒传批次。
   Future<PaginatedResponseDto<MediaRapidUploadBatchListItemDto>>
-      getMediaRapidUploads({int page = 1, int pageSize = 20}) async {
+  getMediaRapidUploads({int page = 1, int pageSize = 20}) async {
     final response = await _apiClient.get(
       '/media/rapid-uploads',
       queryParameters: <String, dynamic>{'page': page, 'page_size': pageSize},

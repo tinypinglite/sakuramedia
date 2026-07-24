@@ -30,17 +30,12 @@ Future<BatchRunResult<T>> runBatchOperation<T>(
   final result = await showDialog<BatchRunResult<T>>(
     context: context,
     barrierDismissible: false,
-    builder: (dialogContext) => _BatchProgressDialog<T>(
-      title: title,
-      items: items,
-      action: action,
-    ),
+    builder:
+        (dialogContext) =>
+            _BatchProgressDialog<T>(title: title, items: items, action: action),
   );
   return result ??
-      BatchRunResult<T>(
-        succeeded: const [],
-        failed: List<T>.of(items),
-      );
+      BatchRunResult<T>(succeeded: const [], failed: List<T>.of(items));
 }
 
 class _BatchProgressDialog<T> extends StatefulWidget {
@@ -89,8 +84,7 @@ class _BatchProgressDialogState<T> extends State<_BatchProgressDialog<T>> {
     if (!mounted) {
       return;
     }
-    final result =
-        BatchRunResult<T>(succeeded: _succeeded, failed: _failed);
+    final result = BatchRunResult<T>(succeeded: _succeeded, failed: _failed);
     if (_failed.isEmpty) {
       // 全部成功：自动关闭并回传结果。
       Navigator.of(context).pop(result);
@@ -139,9 +133,10 @@ class _BatchProgressDialogState<T> extends State<_BatchProgressDialog<T>> {
               context,
               size: AppTextSize.s12,
               weight: AppTextWeight.regular,
-              tone: _done && _failed.isNotEmpty
-                  ? AppTextTone.error
-                  : AppTextTone.secondary,
+              tone:
+                  _done && _failed.isNotEmpty
+                      ? AppTextTone.error
+                      : AppTextTone.secondary,
             ),
           ),
           if (_done) ...[
@@ -152,9 +147,10 @@ class _BatchProgressDialogState<T> extends State<_BatchProgressDialog<T>> {
                 key: const Key('batch-progress-close-button'),
                 label: '关闭',
                 size: AppButtonSize.small,
-                onPressed: () => Navigator.of(context).pop(
-                  BatchRunResult<T>(succeeded: _succeeded, failed: _failed),
-                ),
+                onPressed:
+                    () => Navigator.of(context).pop(
+                      BatchRunResult<T>(succeeded: _succeeded, failed: _failed),
+                    ),
               ),
             ),
           ],

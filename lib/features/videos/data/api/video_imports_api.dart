@@ -10,7 +10,8 @@ import 'package:sakuramedia/features/videos/data/dto/video_import_job_dto.dart';
 /// 或活动流查询。目录浏览能力复用 `MediaImportApi.listEntries` /
 /// `MediaLibrariesApi.listCloud115Directory`。
 class VideoImportsApi {
-  const VideoImportsApi({required ApiClient apiClient}) : _apiClient = apiClient;
+  const VideoImportsApi({required ApiClient apiClient})
+    : _apiClient = apiClient;
 
   final ApiClient _apiClient;
 

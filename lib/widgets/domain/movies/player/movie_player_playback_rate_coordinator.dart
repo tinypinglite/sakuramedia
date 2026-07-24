@@ -20,14 +20,14 @@ class MoviePlayerPlaybackRateCoordinator extends ChangeNotifier {
   MoviePlayerPlaybackRateCoordinator({
     required Future<void> Function(double rate) setRate,
     required double initialRate,
-  })  : _setRate = setRate,
-        _currentRate = initialRate,
-        _mobileSpeedDisplay = ValueNotifier<MoviePlayerMobileSpeedDisplayState>(
-          MoviePlayerMobileSpeedDisplayState(
-            rate: initialRate,
-            hasExplicitSelection: false,
-          ),
-        );
+  }) : _setRate = setRate,
+       _currentRate = initialRate,
+       _mobileSpeedDisplay = ValueNotifier<MoviePlayerMobileSpeedDisplayState>(
+         MoviePlayerMobileSpeedDisplayState(
+           rate: initialRate,
+           hasExplicitSelection: false,
+         ),
+       );
 
   final Future<void> Function(double rate) _setRate;
   final ValueNotifier<MoviePlayerMobileSpeedDisplayState> _mobileSpeedDisplay;

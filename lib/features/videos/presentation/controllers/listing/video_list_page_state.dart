@@ -16,11 +16,12 @@ class VideoListPageStateEntry implements AppPageStateEntry {
     required this.mutationNotifier,
   }) {
     controller = PagedVideoSummaryController(
-      fetchPage: (page, pageSize) => videosApi.getVideos(
-        page: page,
-        pageSize: pageSize,
-        sort: filterState.sortExpression,
-      ),
+      fetchPage:
+          (page, pageSize) => videosApi.getVideos(
+            page: page,
+            pageSize: pageSize,
+            sort: filterState.sortExpression,
+          ),
       pageSize: 24,
     );
     mutationNotifier.addListener(_onMutation);

@@ -77,7 +77,10 @@ class AppBottomDrawerSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final availableHeight = (screenHeight - bottomInset).clamp(0.0, screenHeight);
+    final availableHeight = (screenHeight - bottomInset).clamp(
+      0.0,
+      screenHeight,
+    );
     final colors = context.appColors;
     final resolvedContentPadding = EdgeInsets.all(context.appSpacing.lg);
 
@@ -117,8 +120,9 @@ class AppBottomDrawerSurface extends StatelessWidget {
     if (maxHeightFactor != null) {
       final target = screenHeight * maxHeightFactor!;
       sized = ConstrainedBox(
-        constraints:
-            BoxConstraints(maxHeight: target < availableHeight ? target : availableHeight),
+        constraints: BoxConstraints(
+          maxHeight: target < availableHeight ? target : availableHeight,
+        ),
         child: content,
       );
     } else {

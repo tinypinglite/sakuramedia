@@ -51,8 +51,10 @@ class _DesktopVideoCollectionsPageState
   }
 
   Future<void> _edit(VideoCollectionDto collection) async {
-    final updated =
-        await showVideoCollectionDialog(context, existing: collection);
+    final updated = await showVideoCollectionDialog(
+      context,
+      existing: collection,
+    );
     if (updated != null) {
       unawaited(_controller.refresh());
     }
@@ -89,66 +91,66 @@ class _DesktopVideoCollectionsPageState
       child: ColoredBox(
         color: context.appColors.surfaceElevated,
         child: SingleChildScrollView(
-        padding: EdgeInsets.all(context.appSpacing.lg),
-        child: Column(
-          key: const Key('video-collections-page'),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Spacer(),
-                AppButton(
-                  key: const Key('video-collections-create-button'),
-                  label: '新建合集',
-                  variant: AppButtonVariant.primary,
-                  onPressed: _create,
-                ),
-              ],
-            ),
-            SizedBox(height: context.appSpacing.lg),
-            AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                if (_controller.isLoading) {
-                  return const Center(child: Padding(
-                    padding: EdgeInsets.all(24),
-                    child: CircularProgressIndicator(),
-                  ));
-                }
-                final error = _controller.errorMessage;
-                if (error != null) {
-                  return AppEmptyState(message: error);
-                }
-                if (_controller.collections.isEmpty) {
-                  return const AppEmptyState(
-                    message: '暂无合集，点击「新建合集」创建',
-                  );
-                }
-                return Wrap(
-                  spacing: context.appSpacing.md,
-                  runSpacing: context.appSpacing.md,
-                  children: [
-                    for (final collection in _controller.collections)
-                      SizedBox(
-                        width: 280,
-                        child: CollectionCard.video(
-                          collection: collection,
-                          onTap: () => context.go(
-                            '$desktopVideoCollectionsPath/${collection.id}',
-                          ),
-                          onEdit: () => _edit(collection),
-                          onDelete: () => _delete(collection),
-                        ),
+          padding: EdgeInsets.all(context.appSpacing.lg),
+          child: Column(
+            key: const Key('video-collections-page'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Spacer(),
+                  AppButton(
+                    key: const Key('video-collections-create-button'),
+                    label: '新建合集',
+                    variant: AppButtonVariant.primary,
+                    onPressed: _create,
+                  ),
+                ],
+              ),
+              SizedBox(height: context.appSpacing.lg),
+              AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  if (_controller.isLoading) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: CircularProgressIndicator(),
                       ),
-                  ],
-                );
-              },
-            ),
-          ],
+                    );
+                  }
+                  final error = _controller.errorMessage;
+                  if (error != null) {
+                    return AppEmptyState(message: error);
+                  }
+                  if (_controller.collections.isEmpty) {
+                    return const AppEmptyState(message: '暂无合集，点击「新建合集」创建');
+                  }
+                  return Wrap(
+                    spacing: context.appSpacing.md,
+                    runSpacing: context.appSpacing.md,
+                    children: [
+                      for (final collection in _controller.collections)
+                        SizedBox(
+                          width: 280,
+                          child: CollectionCard.video(
+                            collection: collection,
+                            onTap:
+                                () => context.go(
+                                  '$desktopVideoCollectionsPath/${collection.id}',
+                                ),
+                            onEdit: () => _edit(collection),
+                            onDelete: () => _delete(collection),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
 }
-

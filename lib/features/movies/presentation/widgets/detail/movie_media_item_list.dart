@@ -27,32 +27,35 @@ class MovieMediaItemList extends StatelessWidget {
   final bool isDeletingSelectedMedia;
   final ValueChanged<MovieMediaItemDto>? onDeleteSelectedMedia;
   final void Function(MovieMediaItemDto mediaItem, MovieMediaPointDto point)?
-      onOpenPointPreview;
+  onOpenPointPreview;
   final Future<void> Function(
     BuildContext context,
     MovieMediaItemDto mediaItem,
     MovieMediaPointDto point,
     Offset globalPosition,
-  )? onRequestPointMenu;
+  )?
+  onRequestPointMenu;
   final Map<int, MediaStorageDescriptor> storageDescriptors;
 
   @override
   Widget build(BuildContext context) {
     final contentGap = context.appComponentTokens.movieDetailSectionTitleGap;
-    final selectedItem = mediaItems
+    final selectedItem =
+        mediaItems
             .where((item) => item.mediaId == selectedMediaId)
             .cast<MovieMediaItemDto?>()
             .firstWhere((item) => item != null, orElse: () => null) ??
         (mediaItems.isNotEmpty ? mediaItems.first : null);
-    final technicalSummary = selectedItem == null
-        ? null
-        : _buildTechnicalSummary(
-            selectedItem,
-            resolveMediaStorageDescriptor(
-              selectedItem.libraryId,
-              storageDescriptors,
-            ),
-          );
+    final technicalSummary =
+        selectedItem == null
+            ? null
+            : _buildTechnicalSummary(
+              selectedItem,
+              resolveMediaStorageDescriptor(
+                selectedItem.libraryId,
+                storageDescriptors,
+              ),
+            );
     final showDeleteAction =
         selectedItem != null && onDeleteSelectedMedia != null;
 
@@ -61,14 +64,16 @@ class MovieMediaItemList extends StatelessWidget {
       children: [
         MovieDetailPillWrap(
           emptyMessage: '暂无媒体源',
-          items: mediaItems.map((item) {
-            final isSelected = item.mediaId == selectedMediaId;
-            return MovieDetailPillItem(
-              label: _buildLabel(item),
-              isSelected: isSelected,
-              onTap: () => onSelect(item),
-            );
-          }).toList(growable: false),
+          items: mediaItems
+              .map((item) {
+                final isSelected = item.mediaId == selectedMediaId;
+                return MovieDetailPillItem(
+                  label: _buildLabel(item),
+                  isSelected: isSelected,
+                  onTap: () => onSelect(item),
+                );
+              })
+              .toList(growable: false),
         ),
         if (technicalSummary != null || showDeleteAction) ...[
           SizedBox(height: contentGap),
@@ -77,46 +82,49 @@ class MovieMediaItemList extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: technicalSummary == null
-                    ? const SizedBox(
-                        key: Key('movie-media-tech-summary-placeholder'),
-                      )
-                    : Text(
-                        technicalSummary,
-                        key: const Key('movie-media-tech-summary'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s12,
-                          weight: AppTextWeight.regular,
-                          tone: AppTextTone.muted,
+                child:
+                    technicalSummary == null
+                        ? const SizedBox(
+                          key: Key('movie-media-tech-summary-placeholder'),
+                        )
+                        : Text(
+                          technicalSummary,
+                          key: const Key('movie-media-tech-summary'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s12,
+                            weight: AppTextWeight.regular,
+                            tone: AppTextTone.muted,
+                          ),
                         ),
-                      ),
               ),
               if (showDeleteAction) ...[
                 SizedBox(width: context.appSpacing.md),
                 AppIconButton(
                   key: const Key('movie-media-delete-button'),
-                  icon: isDeletingSelectedMedia
-                      ? SizedBox(
-                          width: context.appComponentTokens.iconSizeSm,
-                          height: context.appComponentTokens.iconSizeSm,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              context.appTextPalette.error,
+                  icon:
+                      isDeletingSelectedMedia
+                          ? SizedBox(
+                            width: context.appComponentTokens.iconSizeSm,
+                            height: context.appComponentTokens.iconSizeSm,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                context.appTextPalette.error,
+                              ),
                             ),
-                          ),
-                        )
-                      : const Icon(Icons.delete_outline_rounded),
+                          )
+                          : const Icon(Icons.delete_outline_rounded),
                   tooltip: '删除媒体',
                   semanticLabel: '删除媒体',
                   size: AppIconButtonSize.mini,
                   iconColor: context.appTextPalette.error,
-                  onPressed: isDeletingSelectedMedia
-                      ? null
-                      : () => onDeleteSelectedMedia?.call(selectedItem),
+                  onPressed:
+                      isDeletingSelectedMedia
+                          ? null
+                          : () => onDeleteSelectedMedia?.call(selectedItem),
                 ),
               ],
             ],
@@ -139,17 +147,20 @@ class MovieMediaItemList extends StatelessWidget {
           ),
           MovieMediaPointGallery(
             points: selectedItem.points,
-            onOpenPreview: onOpenPointPreview == null
-                ? null
-                : (point) => onOpenPointPreview!(selectedItem, point),
-            onRequestPointMenu: onRequestPointMenu == null
-                ? null
-                : (menuContext, point, globalPosition) => onRequestPointMenu!(
-                      menuContext,
-                      selectedItem,
-                      point,
-                      globalPosition,
-                    ),
+            onOpenPreview:
+                onOpenPointPreview == null
+                    ? null
+                    : (point) => onOpenPointPreview!(selectedItem, point),
+            onRequestPointMenu:
+                onRequestPointMenu == null
+                    ? null
+                    : (menuContext, point, globalPosition) =>
+                        onRequestPointMenu!(
+                          menuContext,
+                          selectedItem,
+                          point,
+                          globalPosition,
+                        ),
           ),
         ],
       ],
@@ -184,9 +195,9 @@ class MovieMediaItemList extends StatelessWidget {
       if (_formatVideoCodec(videoInfo?.video?.codecName) case final codec?)
         codec,
       if (_formatBitRate(
-        videoInfo?.video?.bitRate,
-        videoInfo?.container?.bitRate,
-      )
+            videoInfo?.video?.bitRate,
+            videoInfo?.container?.bitRate,
+          )
           case final bitRate?)
         bitRate,
       if (_formatFrameRate(videoInfo?.video?.frameRate) case final frameRate?)

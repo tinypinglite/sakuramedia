@@ -20,7 +20,7 @@ import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_stat
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_mobile_tab_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/features/rankings/presentation/widgets/ranked_movie_summary_grid.dart';
 import 'package:sakuramedia/features/rankings/presentation/widgets/ranking_filter_sections.dart';
@@ -89,107 +89,118 @@ class _MobileRankingsPageState extends State<MobileRankingsPage>
   Widget build(BuildContext context) {
     return ColoredBox(
       color: context.appColors.surfaceCard,
-      child: AppAdaptiveRefreshScrollView(
-        onRefresh: _handleRefresh,
-        controller: _pageState.controller.scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: <Widget>[
+      child: Column(
+        children: [
+          Expanded(child: _buildScrollView(context)),
+          // 多选态的批量动作贴底常驻，与影片列表 / PornBox 一致。
           AnimatedBuilder(
             animation: Listenable.merge([_pageState, _pageState.controller]),
-            builder: (context, _) {
-              final showFooter =
-                  _pageState.controller.items.isNotEmpty &&
-                  (_pageState.controller.isLoadingMore ||
-                      _pageState.controller.loadMoreErrorMessage != null);
-              final hasNoSources =
-                  _pageState.sources.isEmpty &&
-                  !_pageState.isFilterLoading &&
-                  _pageState.filterErrorMessage == null;
-              return SliverMainAxisGroup(
-                key: const Key('mobile-rankings-page'),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (selectionMode)
-                          buildBatchSelectionToolbar()
-                        else ...[
-                          _buildHeader(context),
-                          Padding(
-                            padding: EdgeInsets.only(
-                              top: context.appSpacing.xs,
-                            ),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: buildEnterSelectionButton(),
-                            ),
-                          ),
-                        ],
-                        SizedBox(height: context.appSpacing.md),
-                        if (_pageState.filterErrorMessage != null) ...[
-                          _FilterErrorBanner(
-                            message: _pageState.filterErrorMessage!,
-                            onRetry: _pageState.reloadFiltersAndData,
-                          ),
-                          SizedBox(height: context.appSpacing.md),
-                        ],
-                      ],
-                    ),
-                  ),
-                  if (hasNoSources)
-                    const SliverToBoxAdapter(
-                      child: AppEmptyState(message: '暂无可用排行榜'),
-                    )
-                  else
-                    RankedMovieSummarySliver(
-                      items: _pageState.controller.items,
-                      isLoading:
-                          _pageState.isFilterLoading
-                              ? _pageState.controller.items.isEmpty
-                              : _pageState.controller.isInitialLoading,
-                      errorMessage: _pageState.controller.initialErrorMessage,
-                      onMovieTap:
-                          (movie) => context.pushMobileMovieDetail(
-                            movieNumber: movie.movieNumber,
-                          ),
-                      onMovieMenuRequest:
-                          (movie, globalPosition) => requestMovieCollectionMenu(
-                            context,
-                            movie.movieNumber,
-                            globalPosition,
-                            isSubscribed: movie.isSubscribed,
-                          ),
-                      onMovieSubscriptionTap:
-                          (movie) =>
-                              _toggleMovieSubscription(movie.movieNumber),
-                      isMovieSubscriptionUpdating:
-                          (movie) => _pageState.controller
-                              .isSubscriptionUpdating(movie.movieNumber),
-                      emptyMessage: '暂无榜单数据',
-                      selectionMode: selectionMode,
-                      isMovieSelected: (movie) => isSelected(movie.movieNumber),
-                      onMovieSelectedChanged:
-                          (movie, _) => toggleSelect(movie.movieNumber),
-                    ),
-                  if (showFooter)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.only(top: context.appSpacing.md),
-                        child: AppPagedLoadMoreFooter(
-                          isLoading: _pageState.controller.isLoadingMore,
-                          errorMessage:
-                              _pageState.controller.loadMoreErrorMessage,
-                          onRetry: _pageState.controller.loadMore,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
+            builder:
+                (context, _) =>
+                    selectionMode
+                        ? buildMobileBatchSelectionBottomBar()
+                        : const SizedBox.shrink(),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildScrollView(BuildContext context) {
+    return AppAdaptiveRefreshScrollView(
+      onRefresh: _handleRefresh,
+      controller: _pageState.controller.scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: <Widget>[
+        AnimatedBuilder(
+          animation: Listenable.merge([_pageState, _pageState.controller]),
+          builder: (context, _) {
+            final showFooter =
+                _pageState.controller.items.isNotEmpty &&
+                (_pageState.controller.isLoadingMore ||
+                    _pageState.controller.loadMoreErrorMessage != null);
+            final hasNoSources =
+                _pageState.sources.isEmpty &&
+                !_pageState.isFilterLoading &&
+                _pageState.filterErrorMessage == null;
+            return SliverMainAxisGroup(
+              key: const Key('mobile-rankings-page'),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (selectionMode)
+                        buildMobileBatchSelectionHeader()
+                      else
+                        _buildHeader(context),
+                      SizedBox(height: context.appSpacing.md),
+                      if (_pageState.filterErrorMessage != null) ...[
+                        _FilterErrorBanner(
+                          message: _pageState.filterErrorMessage!,
+                          onRetry: _pageState.reloadFiltersAndData,
+                        ),
+                        SizedBox(height: context.appSpacing.md),
+                      ],
+                    ],
+                  ),
+                ),
+                if (hasNoSources)
+                  const SliverToBoxAdapter(
+                    child: AppEmptyState(message: '暂无可用排行榜'),
+                  )
+                else
+                  RankedMovieSummarySliver(
+                    items: _pageState.controller.items,
+                    isLoading:
+                        _pageState.isFilterLoading
+                            ? _pageState.controller.items.isEmpty
+                            : _pageState.controller.isInitialLoading,
+                    errorMessage: _pageState.controller.initialErrorMessage,
+                    onMovieTap:
+                        (movie) => context.pushMobileMovieDetail(
+                          movieNumber: movie.movieNumber,
+                        ),
+                    onMovieMenuRequest:
+                        (movie, globalPosition) => requestMovieCollectionMenu(
+                          context,
+                          movie.movieNumber,
+                          globalPosition,
+                          isSubscribed: movie.isSubscribed,
+                          onEnterSelection: () {
+                            enterSelection();
+                            toggleSelect(movie.movieNumber);
+                          },
+                        ),
+                    onMovieSubscriptionTap:
+                        (movie) => _toggleMovieSubscription(movie.movieNumber),
+                    isMovieSubscriptionUpdating:
+                        (movie) => _pageState.controller.isSubscriptionUpdating(
+                          movie.movieNumber,
+                        ),
+                    emptyMessage: '暂无榜单数据',
+                    selectionMode: selectionMode,
+                    isMovieSelected: (movie) => isSelected(movie.movieNumber),
+                    onMovieSelectedChanged:
+                        (movie, _) => toggleSelect(movie.movieNumber),
+                  ),
+                if (showFooter)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: context.appSpacing.md),
+                      child: AppPagedLoadMoreFooter(
+                        isLoading: _pageState.controller.isLoadingMore,
+                        errorMessage:
+                            _pageState.controller.loadMoreErrorMessage,
+                        onRetry: _pageState.controller.loadMore,
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -206,39 +217,27 @@ class _MobileRankingsPageState extends State<MobileRankingsPage>
   Widget _buildHeader(BuildContext context) {
     final source = _pageState.selectedSource;
     final board = _pageState.selectedBoard;
-    final sourceBoardLabel = '${source?.name ?? '来源'} · ${board?.name ?? '榜单'}';
-    final syncedAtLabel = formatSyncedAtLabel(_pageState.controller.syncedAt);
+    // 与桌面 RankingFilterToolbar._buildTriggerLabel 同一套单值语义。
+    final boardLabel = board?.name ?? source?.name ?? '全部榜单';
+    final syncedAtLabel = formatSyncedAtLabel(
+      _pageState.controller.syncedAt,
+      withPrefix: false,
+    );
 
-    // 仅保留「来源 · 榜单」单 chip；周期 / 排序 通过右上筛选 icon 弹抽屉调整。
-    // 抓取时间放到 filter icon 左侧，与 chip 同一行显示，不新开一行。
-    return AppMobileTabHeader(
+    return AppListHeader(
       filterButtonKey: const Key('mobile-rankings-filter-button'),
       filterTooltip: '筛选',
+      filterIcon: Icons.leaderboard_outlined,
+      filterLabel: boardLabel,
       onFilterTap: () => _openFilterDrawer(initialAnchor: null),
-      chips: [
-        AppMobileTabChip(
-          key: const Key('mobile-rankings-chip-source-board'),
-          label: sourceBoardLabel,
-          isSelected: false,
-          trailingIcon: Icons.expand_more,
-          onTap:
-              () =>
-                  _openFilterDrawer(initialAnchor: RankingFilterAnchor.source),
-        ),
+      informationSlots: [
+        if (syncedAtLabel != null)
+          AppListHeaderInfo(
+            key: const Key('mobile-rankings-synced-at'),
+            label: syncedAtLabel,
+            icon: Icons.schedule_rounded,
+          ),
       ],
-      trailing:
-          syncedAtLabel == null
-              ? null
-              : Text(
-                key: const Key('mobile-rankings-synced-at'),
-                syncedAtLabel,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
     );
   }
 

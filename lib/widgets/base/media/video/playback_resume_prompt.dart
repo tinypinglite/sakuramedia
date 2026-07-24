@@ -182,9 +182,10 @@ class PlaybackResumePromptOverlay extends StatelessWidget {
     final overlayTokens = context.appOverlayTokens;
     return SafeArea(
       child: Align(
-        alignment: useTouchOptimizedLayout
-            ? Alignment.bottomCenter
-            : Alignment.bottomLeft,
+        alignment:
+            useTouchOptimizedLayout
+                ? Alignment.bottomCenter
+                : Alignment.bottomLeft,
         child: Padding(
           padding: EdgeInsets.fromLTRB(
             overlayTokens.playerControlBarHorizontalInset,

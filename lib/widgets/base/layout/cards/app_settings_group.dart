@@ -169,10 +169,7 @@ class AppSettingCell extends StatelessWidget {
               ],
             ),
           ),
-          if (trailing != null) ...[
-            SizedBox(width: spacing.md),
-            trailing!,
-          ],
+          if (trailing != null) ...[SizedBox(width: spacing.md), trailing!],
         ],
       ),
     );

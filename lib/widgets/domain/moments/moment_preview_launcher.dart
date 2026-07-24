@@ -15,11 +15,12 @@ Future<MediaPreviewAction?> showMomentPreviewOverlay({
     context: context,
     presentation: presentation,
     drawerKey: drawerKey,
-    builder: (_) => MomentPreviewDialog(
-      item: item,
-      onPointRemoved: onPointRemoved,
-      closeOnPointRemoved: closeOnPointRemoved,
-      presentation: presentation,
-    ),
+    builder:
+        (_) => MomentPreviewDialog(
+          item: item,
+          onPointRemoved: onPointRemoved,
+          closeOnPointRemoved: closeOnPointRemoved,
+          presentation: presentation,
+        ),
   );
 }

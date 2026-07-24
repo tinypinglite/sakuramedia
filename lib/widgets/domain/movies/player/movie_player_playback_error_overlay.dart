@@ -3,10 +3,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_media_source.dart';
 
 class MoviePlayerPlaybackErrorOverlay extends StatelessWidget {
-  const MoviePlayerPlaybackErrorOverlay({
-    super.key,
-    required this.sourceKind,
-  });
+  const MoviePlayerPlaybackErrorOverlay({super.key, required this.sourceKind});
 
   final MoviePlayerMediaSourceKind sourceKind;
 

@@ -105,11 +105,8 @@ class _MobileRankingFilterDrawerContentState
   @override
   Widget build(BuildContext context) {
     return AppMobileFilterDrawerScaffold(
-      title: '筛选',
-      // 榜单是即时生效，没有「本地副本可重置」的概念。
-      onReset: null,
-      onConfirm: () => Navigator.of(context).pop(),
-      confirmLabel: '完成',
+      // 榜单没有「恢复默认」语义（来源/榜单必须二选一），故不带 footer。
+      scrollViewKey: const Key('mobile-rankings-filter-scroll-view'),
       child: AnimatedBuilder(
         animation: widget.listenable,
         builder: (context, _) {

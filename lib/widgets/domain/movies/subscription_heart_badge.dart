@@ -28,23 +28,24 @@ class SubscriptionHeartBadge extends StatelessWidget {
       width: componentTokens.movieCardStatusBadgeSize,
       height: componentTokens.movieCardStatusBadgeSize,
       child: Center(
-        child: isUpdating
-            ? SizedBox(
-                width: componentTokens.movieCardLoaderSize,
-                height: componentTokens.movieCardLoaderSize,
-                child: CircularProgressIndicator(
-                  key: loadingKey,
-                  strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
+        child:
+            isUpdating
+                ? SizedBox(
+                  width: componentTokens.movieCardLoaderSize,
+                  height: componentTokens.movieCardLoaderSize,
+                  child: CircularProgressIndicator(
+                    key: loadingKey,
+                    strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
+                    color: colors.subscriptionHeartIcon,
+                  ),
+                )
+                : Icon(
+                  isSubscribed
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  size: componentTokens.iconSizeXl,
                   color: colors.subscriptionHeartIcon,
                 ),
-              )
-            : Icon(
-                isSubscribed
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                size: componentTokens.iconSizeXl,
-                color: colors.subscriptionHeartIcon,
-              ),
       ),
     );
 

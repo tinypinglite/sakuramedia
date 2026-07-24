@@ -6,10 +6,7 @@ import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dar
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
-Future<bool> showSeriesImportDialog(
-  BuildContext context,
-  int seriesId,
-) async {
+Future<bool> showSeriesImportDialog(BuildContext context, int seriesId) async {
   final platform = Theme.of(context).platform;
   final isMobile =
       platform == TargetPlatform.iOS || platform == TargetPlatform.android;
@@ -57,7 +54,8 @@ class _SeriesImportHost extends StatefulWidget {
     BuildContext context,
     SeriesImportController controller,
     void Function(bool) dismiss,
-  ) builder;
+  )
+  builder;
 
   @override
   State<_SeriesImportHost> createState() => _SeriesImportHostState();
@@ -237,10 +235,7 @@ class _SeriesImportContent extends StatelessWidget {
           _StatsCard(stats: controller.stats!),
         ],
         SizedBox(height: spacing.xl),
-        _ActionRow(
-          controller: controller,
-          onDone: onDone,
-        ),
+        _ActionRow(controller: controller, onDone: onDone),
       ],
     );
   }
@@ -265,11 +260,7 @@ class _StatusRow extends StatelessWidget {
         size: 22,
       );
     } else if (controller.hasFailed) {
-      icon = Icon(
-        Icons.error_rounded,
-        color: _errorColor(context),
-        size: 22,
-      );
+      icon = Icon(Icons.error_rounded, color: _errorColor(context), size: 22);
     } else {
       icon = SizedBox(
         width: 20,
@@ -328,11 +319,12 @@ class _ProgressBar extends StatelessWidget {
         value: progress,
         minHeight: 5,
         backgroundColor: context.appColors.borderSubtle,
-        color: controller.hasFailed
-            ? _errorColor(context)
-            : controller.isCompleted
-            ? _successColor(context)
-            : _accentColor(context),
+        color:
+            controller.hasFailed
+                ? _errorColor(context)
+                : controller.isCompleted
+                ? _successColor(context)
+                : _accentColor(context),
       ),
     );
   }
@@ -510,10 +502,7 @@ class _FailureView extends StatelessWidget {
             ),
             SizedBox(width: spacing.md),
             Expanded(
-              child: FilledButton(
-                onPressed: onRetry,
-                child: const Text('重试'),
-              ),
+              child: FilledButton(onPressed: onRetry, child: const Text('重试')),
             ),
           ],
         ),

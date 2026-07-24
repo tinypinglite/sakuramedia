@@ -23,10 +23,11 @@ class ActorFilterToolbar extends StatelessWidget {
       panelKey: const Key('actors-filter-panel'),
       isSelected: !filterState.isDefault,
       panelExtraWidth: 180,
-      panelBuilder: (_) => ActorFilterSectionGroup(
-        filterState: filterState,
-        onChanged: onChanged,
-      ),
+      panelBuilder:
+          (_) => ActorFilterSectionGroup(
+            filterState: filterState,
+            onChanged: onChanged,
+          ),
       footer: AppFilterPanelFooter(
         isDefault: filterState.isDefault,
         onReset: onReset,

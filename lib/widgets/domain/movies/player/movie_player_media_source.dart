@@ -4,7 +4,8 @@ import 'package:media_kit/media_kit.dart';
 /// 播放来源类型:决定错误文案与播放信息面板里的来源诊断展示。
 enum MoviePlayerMediaSourceKind { local, cloud115, unknown }
 
-const String moviePlayerUserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+const String moviePlayerUserAgent =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
     'AppleWebKit/537.36 (KHTML, like Gecko) '
     'Chrome/125.0.0.0 Safari/537.36';
 
@@ -16,9 +17,10 @@ Media buildMoviePlayerMedia(
   return Media(
     resolvedUrl,
     start: startPosition,
-    httpHeaders: isWeb
-        ? null
-        : const <String, String>{'User-Agent': moviePlayerUserAgent},
+    httpHeaders:
+        isWeb
+            ? null
+            : const <String, String>{'User-Agent': moviePlayerUserAgent},
   );
 }
 

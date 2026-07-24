@@ -85,7 +85,7 @@ class MoviesApi {
   }
 
   Future<PaginatedResponseDto<MovieListItemDto>>
-      getSubscribedActorsLatestMovies({int page = 1, int pageSize = 20}) async {
+  getSubscribedActorsLatestMovies({int page = 1, int pageSize = 20}) async {
     final response = await _apiClient.get(
       '/movies/subscribed-actors/latest',
       queryParameters: <String, dynamic>{'page': page, 'page_size': pageSize},
@@ -244,10 +244,11 @@ class MoviesApi {
   }) async {
     final response = await _apiClient.patch(
       '/movies/collection-type',
-      data: UpdateMovieCollectionTypePayload(
-        movieNumbers: movieNumbers,
-        collectionType: collectionType,
-      ).toJson(),
+      data:
+          UpdateMovieCollectionTypePayload(
+            movieNumbers: movieNumbers,
+            collectionType: collectionType,
+          ).toJson(),
     );
     return UpdateMovieCollectionTypeResultDto.fromJson(response);
   }
@@ -255,10 +256,12 @@ class MoviesApi {
   Stream<MovieSearchStreamUpdate> searchOnlineMoviesStream({
     required String movieNumber,
   }) {
-    return _apiClient.postSse(
-      '/movies/search/javdb/stream',
-      data: <String, dynamic>{'movie_number': movieNumber},
-    ).map(_mapMovieSearchStreamEvent);
+    return _apiClient
+        .postSse(
+          '/movies/search/javdb/stream',
+          data: <String, dynamic>{'movie_number': movieNumber},
+        )
+        .map(_mapMovieSearchStreamEvent);
   }
 
   Future<void> subscribeMovie({required String movieNumber}) {
@@ -298,10 +301,12 @@ class MoviesApi {
   Stream<MovieSearchStreamUpdate> importSeriesMoviesStream({
     required int seriesId,
   }) {
-    return _apiClient.postSse(
-      '/movies/series/$seriesId/javdb/import/stream',
-      data: <String, dynamic>{},
-    ).map(_mapSeriesImportStreamEvent);
+    return _apiClient
+        .postSse(
+          '/movies/series/$seriesId/javdb/import/stream',
+          data: <String, dynamic>{},
+        )
+        .map(_mapSeriesImportStreamEvent);
   }
 
   MovieSearchStreamUpdate _mapSeriesImportStreamEvent(ApiSseEvent event) {
@@ -363,10 +368,7 @@ class MoviesApi {
           reason: payload['reason'] as String?,
         );
       default:
-        return MovieSearchStreamUpdate(
-          stage: event.event,
-          message: '正在处理...',
-        );
+        return MovieSearchStreamUpdate(stage: event.event, message: '正在处理...');
     }
   }
 
@@ -404,9 +406,10 @@ class MoviesApi {
           results: _parseMovieResults(payload['movies']),
           success: payload['success'] as bool? ?? false,
           reason: payload['reason'] as String?,
-          stats: payload.containsKey('stats') || payload.containsKey('total')
-              ? CatalogSearchStreamStats.fromLooseJson(payload)
-              : null,
+          stats:
+              payload.containsKey('stats') || payload.containsKey('total')
+                  ? CatalogSearchStreamStats.fromLooseJson(payload)
+                  : null,
         );
       default:
         return MovieSearchStreamUpdate(

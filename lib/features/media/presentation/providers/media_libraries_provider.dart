@@ -50,18 +50,15 @@ class MediaLibraries extends _$MediaLibraries {
   @override
   Future<MediaLibrariesState> build() async {
     ref.onDispose(() => _disposed = true);
-    final libraries = await ref
-        .read(mediaLibrariesApiProvider)
-        .getLibraries();
+    final libraries = await ref.read(mediaLibrariesApiProvider).getLibraries();
     return MediaLibrariesState(libraries: libraries);
   }
 
   /// 保留态刷新：不切 [AsyncLoading]；失败返回中文错误消息由页面 toast。
   Future<String?> refresh() async {
     try {
-      final libraries = await ref
-          .read(mediaLibrariesApiProvider)
-          .getLibraries();
+      final libraries =
+          await ref.read(mediaLibrariesApiProvider).getLibraries();
       if (_disposed) return null;
       state = AsyncData(MediaLibrariesState(libraries: libraries));
       return null;
@@ -74,9 +71,8 @@ class MediaLibraries extends _$MediaLibraries {
   Future<void> reload() async {
     state = AsyncLoading<MediaLibrariesState>();
     final next = await AsyncValue.guard<MediaLibrariesState>(() async {
-      final libraries = await ref
-          .read(mediaLibrariesApiProvider)
-          .getLibraries();
+      final libraries =
+          await ref.read(mediaLibrariesApiProvider).getLibraries();
       return MediaLibrariesState(libraries: libraries);
     });
     if (!_disposed) {

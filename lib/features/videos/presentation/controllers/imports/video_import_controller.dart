@@ -76,7 +76,8 @@ class VideoImportController extends ChangeNotifier
   String? get initialError => _initialError;
   @override
   String? get loadMoreError => _loadMoreError;
-  bool get isEmpty => !_isInitialLoading && _initialError == null && _jobs.isEmpty;
+  bool get isEmpty =>
+      !_isInitialLoading && _initialError == null && _jobs.isEmpty;
 
   /// 返回某作业关联的实时 task_run（若有）。
   @override
@@ -390,10 +391,11 @@ class VideoImportController extends ChangeNotifier
     if (_disposed || _reconnectTimer != null) {
       return;
     }
-    final delay = _reconnectDelays[_reconnectAttempt.clamp(
-      0,
-      _reconnectDelays.length - 1,
-    )];
+    final delay =
+        _reconnectDelays[_reconnectAttempt.clamp(
+          0,
+          _reconnectDelays.length - 1,
+        )];
     _reconnectAttempt += 1;
     _reconnectTimer = Timer(delay, () {
       _reconnectTimer = null;

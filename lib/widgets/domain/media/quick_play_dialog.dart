@@ -147,10 +147,7 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
             borderRadius: context.appRadius.smBorder,
             child: AspectRatio(
               aspectRatio: 16 / 9,
-              child: ColoredBox(
-                color: Colors.black,
-                child: _buildVideo(),
-              ),
+              child: ColoredBox(color: Colors.black, child: _buildVideo()),
             ),
           ),
         ],
@@ -196,31 +193,32 @@ Future<void> showVideoQuickPlayDialog(
 }) {
   return showDialog<void>(
     context: context,
-    builder: (dialogContext) => QuickPlayDialog(
-      title: title,
-      fallbackTitle: '视频',
-      videoKey: const Key('video-quick-play-video'),
-      noPlayableMessage: '暂无可播放的媒体',
-      guardInitialSeek: true,
-      subtitle: subtitle,
-      resolvePlayUrl: (innerContext) async {
-        final videosApi = innerContext.read<VideosApi>();
-        final baseUrl = innerContext.read<SessionStore>().baseUrl;
-        final detail = await videosApi.getVideoDetail(videoId: videoId);
-        for (final media in detail.mediaItems) {
-          if (!media.hasPlayableUrl) {
-            continue;
-          }
-          final resolved = resolveMediaUrl(
-            rawUrl: media.playUrl,
-            baseUrl: baseUrl,
-          );
-          if (resolved != null && resolved.isNotEmpty) {
-            return resolved;
-          }
-        }
-        return null;
-      },
-    ),
+    builder:
+        (dialogContext) => QuickPlayDialog(
+          title: title,
+          fallbackTitle: '视频',
+          videoKey: const Key('video-quick-play-video'),
+          noPlayableMessage: '暂无可播放的媒体',
+          guardInitialSeek: true,
+          subtitle: subtitle,
+          resolvePlayUrl: (innerContext) async {
+            final videosApi = innerContext.read<VideosApi>();
+            final baseUrl = innerContext.read<SessionStore>().baseUrl;
+            final detail = await videosApi.getVideoDetail(videoId: videoId);
+            for (final media in detail.mediaItems) {
+              if (!media.hasPlayableUrl) {
+                continue;
+              }
+              final resolved = resolveMediaUrl(
+                rawUrl: media.playUrl,
+                baseUrl: baseUrl,
+              );
+              if (resolved != null && resolved.isNotEmpty) {
+                return resolved;
+              }
+            }
+            return null;
+          },
+        ),
   );
 }

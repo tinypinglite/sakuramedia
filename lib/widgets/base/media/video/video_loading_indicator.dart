@@ -5,10 +5,7 @@ import 'package:sakuramedia/theme.dart';
 ///
 /// 深色半透明胶囊保证它在黑底和视频画面上都清晰可见，同时不使用第二套强调色。
 class VideoLoadingIndicator extends StatelessWidget {
-  const VideoLoadingIndicator({
-    super.key,
-    this.label = '正在加载…',
-  });
+  const VideoLoadingIndicator({super.key, this.label = '正在加载…'});
 
   final String label;
 

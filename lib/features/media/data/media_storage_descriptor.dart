@@ -8,8 +8,8 @@ class MediaStorageDescriptor {
   });
 
   const MediaStorageDescriptor.unknown({this.libraryId})
-      : libraryName = null,
-        backend = null;
+    : libraryName = null,
+      backend = null;
 
   final int? libraryId;
   final String? libraryName;
@@ -19,10 +19,10 @@ class MediaStorageDescriptor {
   bool get isCloud115 => backend == MediaLibraryBackend.cloud115;
 
   String get sourceLabel => switch (backend) {
-        MediaLibraryBackend.local => '本地存储',
-        MediaLibraryBackend.cloud115 => '115 网盘',
-        null => '存储来源未知',
-      };
+    MediaLibraryBackend.local => '本地存储',
+    MediaLibraryBackend.cloud115 => '115 网盘',
+    null => '存储来源未知',
+  };
 
   String? get normalizedLibraryName {
     final value = libraryName?.trim();

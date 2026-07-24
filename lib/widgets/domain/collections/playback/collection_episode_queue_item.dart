@@ -39,16 +39,18 @@ class CollectionEpisodeQueueItem extends StatelessWidget {
     Widget coverBox;
     switch (coverStyle) {
       case CollectionQueueCoverStyle.cover:
-        coverBox = hasCover
-            ? MaskedImage(url: coverUrl!, fit: BoxFit.cover)
-            : ColoredBox(color: colors.surfaceMuted);
+        coverBox =
+            hasCover
+                ? MaskedImage(url: coverUrl!, fit: BoxFit.cover)
+                : ColoredBox(color: colors.surfaceMuted);
         break;
       case CollectionQueueCoverStyle.containOnMuted:
         coverBox = ColoredBox(
           color: colors.surfaceMuted,
-          child: hasCover
-              ? MaskedImage(url: coverUrl!, fit: BoxFit.contain)
-              : null,
+          child:
+              hasCover
+                  ? MaskedImage(url: coverUrl!, fit: BoxFit.contain)
+                  : null,
         );
         break;
     }
@@ -67,10 +69,7 @@ class CollectionEpisodeQueueItem extends StatelessWidget {
                 borderRadius: context.appRadius.xsBorder,
                 child: SizedBox(
                   width: 88,
-                  child: AspectRatio(
-                    aspectRatio: 16 / 9,
-                    child: coverBox,
-                  ),
+                  child: AspectRatio(aspectRatio: 16 / 9, child: coverBox),
                 ),
               ),
               SizedBox(width: spacing.sm),
@@ -85,12 +84,14 @@ class CollectionEpisodeQueueItem extends StatelessWidget {
                       style: resolveAppTextStyle(
                         context,
                         size: AppTextSize.s12,
-                        weight: isCurrent
-                            ? AppTextWeight.semibold
-                            : AppTextWeight.regular,
-                        tone: isCurrent
-                            ? AppTextTone.primary
-                            : AppTextTone.secondary,
+                        weight:
+                            isCurrent
+                                ? AppTextWeight.semibold
+                                : AppTextWeight.regular,
+                        tone:
+                            isCurrent
+                                ? AppTextTone.primary
+                                : AppTextTone.secondary,
                       ),
                     ),
                     SizedBox(height: spacing.xs),

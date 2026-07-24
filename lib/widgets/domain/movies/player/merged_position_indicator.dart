@@ -67,7 +67,7 @@ class _MergedPositionIndicatorState extends State<MergedPositionIndicator> {
       });
     });
     // playlist 流仍订阅作兜底：mpv 进入新集但未立刻吐 position tick 时（如纯切换
-      // 暂停状态），保证 _episode 仍能更新驱动 base 重算。
+    // 暂停状态），保证 _episode 仍能更新驱动 base 重算。
     _playlistSub = widget.player.stream.playlist.listen((playlist) {
       if (!mounted) {
         return;
@@ -180,7 +180,9 @@ class _MergedPositionIndicatorState extends State<MergedPositionIndicator> {
                   thumbShape: const RoundSliderThumbShape(
                     enabledThumbRadius: 7,
                   ),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 14,
+                  ),
                 ),
                 child: Slider(
                   key: const Key('merged-position-indicator-slider'),

@@ -139,16 +139,18 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
     showDesktopVideoActionsDialog(
       context,
       video: video,
-      onPlay: () => showVideoQuickPlayDialog(
-        context,
-        videoId: video.id,
-        title: video.preferredTitle,
-      ),
+      onPlay:
+          () => showVideoQuickPlayDialog(
+            context,
+            videoId: video.id,
+            title: video.preferredTitle,
+          ),
       onAddToCollection: () => _addToCollection(video),
       onDelete: () => _deleteVideo(video),
       collections: video.collections,
-      onCollectionTap: (ref) =>
-          context.pushDesktopVideoCollectionDetail(collectionId: ref.id),
+      onCollectionTap:
+          (ref) =>
+              context.pushDesktopVideoCollectionDetail(collectionId: ref.id),
     );
   }
 
@@ -280,30 +282,30 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
         child: CustomScrollView(
           controller: pageState.controller.scrollController,
           slivers: [
-          SliverToBoxAdapter(
-            child: Column(
-              key: const Key('videos-page'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildCollectionsSection(context),
-                SizedBox(height: context.appSpacing.lg),
-              ],
+            SliverToBoxAdapter(
+              child: Column(
+                key: const Key('videos-page'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCollectionsSection(context),
+                  SizedBox(height: context.appSpacing.lg),
+                ],
+              ),
             ),
-          ),
-          VideoListContent(
-            controller: pageState.controller,
-            filterState: pageState.filterState,
-            onFilterChanged: _applySort,
-            contentKey: const Key('videos-page-list'),
-            totalKey: const Key('videos-page-total'),
-            sectionSpacing: context.appSpacing.lg,
-            onVideoTap: _openActionsDialog,
-            selectionMode: selectionMode,
-            selectedIds: selectedIds,
-            onVideoToggleSelect: (video) => toggleSelect(video.id),
-            headerTrailingBuilder: _buildSelectionControls,
-            headerInlineTrailingBuilder: _buildInlineSelectionTrigger,
-          ),
+            VideoListContent(
+              controller: pageState.controller,
+              filterState: pageState.filterState,
+              onFilterChanged: _applySort,
+              contentKey: const Key('videos-page-list'),
+              totalKey: const Key('videos-page-total'),
+              sectionSpacing: context.appSpacing.lg,
+              onVideoTap: _openActionsDialog,
+              selectionMode: selectionMode,
+              selectedIds: selectedIds,
+              onVideoToggleSelect: (video) => toggleSelect(video.id),
+              headerTrailingBuilder: _buildSelectionControls,
+              headerInlineTrailingBuilder: _buildInlineSelectionTrigger,
+            ),
           ],
         ),
       ),

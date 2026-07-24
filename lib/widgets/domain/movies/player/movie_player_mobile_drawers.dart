@@ -38,7 +38,7 @@ const String _moviePlayerMobileNoSubtitleLabel = '无可用字幕';
 List<Widget> buildMoviePlayerMobileDrawerToggleButtons({
   required MoviePlayerMobileDrawerType? activeDrawer,
   required ValueListenable<MoviePlayerMobileSpeedDisplayState>
-      speedDisplayListenable,
+  speedDisplayListenable,
   required VoidCallback onSpeedButtonPressed,
   required VoidCallback onSubtitleButtonPressed,
 }) {
@@ -130,24 +130,20 @@ Widget buildMoviePlayerMobileDrawerOverlay({
     child: _moviePlayerSideDrawerAnimatedSwitcher(
       child: switch (activeDrawer) {
         MoviePlayerMobileDrawerType.speed => _MoviePlayerMobileSpeedDrawer(
-            key: const ValueKey<String>(
-              'movie-player-mobile-speed-drawer',
-            ),
-            currentRate: currentRate,
-            onRateSelected: onRateSelected,
-          ),
+          key: const ValueKey<String>('movie-player-mobile-speed-drawer'),
+          currentRate: currentRate,
+          onRateSelected: onRateSelected,
+        ),
         MoviePlayerMobileDrawerType.subtitle =>
           _MoviePlayerMobileSubtitleDrawer(
-            key: const ValueKey<String>(
-              'movie-player-mobile-subtitle-drawer',
-            ),
+            key: const ValueKey<String>('movie-player-mobile-subtitle-drawer'),
             subtitleState: subtitleState,
             isApplyingSubtitleListenable: isApplyingSubtitleListenable,
             onSubtitleSelected: onSubtitleSelected,
           ),
         null => const SizedBox.shrink(
-            key: ValueKey<String>('movie-player-mobile-drawer-closed'),
-          ),
+          key: ValueKey<String>('movie-player-mobile-drawer-closed'),
+        ),
       },
     ),
   );
@@ -167,17 +163,16 @@ Widget buildMoviePlayerInfoSideDrawerOverlay({
     ignoring: !isOpen,
     onDismiss: onDismiss,
     child: _moviePlayerSideDrawerAnimatedSwitcher(
-      child: isOpen
-          ? _MoviePlayerInfoSideDrawer(
-              key: const ValueKey<String>('movie-player-info-side-drawer'),
-              infoListenable: infoListenable,
-              mediaInfo: mediaInfo,
-            )
-          : const SizedBox.shrink(
-              key: ValueKey<String>(
-                'movie-player-info-side-drawer-closed',
+      child:
+          isOpen
+              ? _MoviePlayerInfoSideDrawer(
+                key: const ValueKey<String>('movie-player-info-side-drawer'),
+                infoListenable: infoListenable,
+                mediaInfo: mediaInfo,
+              )
+              : const SizedBox.shrink(
+                key: ValueKey<String>('movie-player-info-side-drawer-closed'),
               ),
-            ),
     ),
   );
 }
@@ -234,7 +229,7 @@ class _MoviePlayerMobileSpeedDrawerToggleButton extends StatelessWidget {
 
   final Key buttonKey;
   final ValueListenable<MoviePlayerMobileSpeedDisplayState>
-      speedDisplayListenable;
+  speedDisplayListenable;
   final bool active;
   final VoidCallback onTap;
 
@@ -243,11 +238,13 @@ class _MoviePlayerMobileSpeedDrawerToggleButton extends StatelessWidget {
     return ValueListenableBuilder<MoviePlayerMobileSpeedDisplayState>(
       valueListenable: speedDisplayListenable,
       builder: (context, speedDisplay, child) {
-        final showsRateLabel = speedDisplay.hasExplicitSelection ||
+        final showsRateLabel =
+            speedDisplay.hasExplicitSelection ||
             (speedDisplay.rate - 1.0).abs() >= 0.001;
-        final label = showsRateLabel
-            ? formatMoviePlayerPlaybackRateLabel(speedDisplay.rate)
-            : '倍速';
+        final label =
+            showsRateLabel
+                ? formatMoviePlayerPlaybackRateLabel(speedDisplay.rate)
+                : '倍速';
         return _MoviePlayerMobileDrawerToggleButton(
           key: buttonKey,
           label: label,
@@ -325,26 +322,28 @@ class _MoviePlayerMobileSpeedDrawer extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: kMoviePlayerPlaybackRates.map((rate) {
-            final selected = (currentRate - rate).abs() < 0.001;
-            final rateKey = rate.toString().replaceAll('.', '_');
-            return GestureDetector(
-              key: Key('movie-player-mobile-speed-drawer-item-$rateKey'),
-              behavior: HitTestBehavior.opaque,
-              onTap: () => unawaited(onRateSelected(rate)),
-              child: MoviePlayerMenuItemRow(
-                label: formatMoviePlayerPlaybackRateLabel(rate),
-                selected: selected,
-                checkColor: selectedColor,
-                checkKey: Key(
-                  'movie-player-mobile-speed-drawer-item-check-$rateKey',
-                ),
-                checkSlotKey: Key(
-                  'movie-player-mobile-speed-drawer-item-check-slot-$rateKey',
-                ),
-              ),
-            );
-          }).toList(growable: false),
+          children: kMoviePlayerPlaybackRates
+              .map((rate) {
+                final selected = (currentRate - rate).abs() < 0.001;
+                final rateKey = rate.toString().replaceAll('.', '_');
+                return GestureDetector(
+                  key: Key('movie-player-mobile-speed-drawer-item-$rateKey'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => unawaited(onRateSelected(rate)),
+                  child: MoviePlayerMenuItemRow(
+                    label: formatMoviePlayerPlaybackRateLabel(rate),
+                    selected: selected,
+                    checkColor: selectedColor,
+                    checkKey: Key(
+                      'movie-player-mobile-speed-drawer-item-check-$rateKey',
+                    ),
+                    checkSlotKey: Key(
+                      'movie-player-mobile-speed-drawer-item-check-slot-$rateKey',
+                    ),
+                  ),
+                );
+              })
+              .toList(growable: false),
         ),
       ),
     );
@@ -429,53 +428,58 @@ class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: options.isEmpty
-                  ? <Widget>[
-                      SizedBox(
-                        key: const Key(
-                          'movie-player-mobile-subtitle-drawer-empty',
-                        ),
-                        height: overlayTokens.menuItemHeight,
-                        child: Center(
-                          child: Text(
-                            _moviePlayerMobileNoSubtitleLabel,
-                            style: resolveAppTextStyle(
-                              context,
-                              size: AppTextSize.s14,
-                              tone: AppTextTone.muted,
+              children:
+                  options.isEmpty
+                      ? <Widget>[
+                        SizedBox(
+                          key: const Key(
+                            'movie-player-mobile-subtitle-drawer-empty',
+                          ),
+                          height: overlayTokens.menuItemHeight,
+                          child: Center(
+                            child: Text(
+                              _moviePlayerMobileNoSubtitleLabel,
+                              style: resolveAppTextStyle(
+                                context,
+                                size: AppTextSize.s14,
+                                tone: AppTextTone.muted,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ]
-                  : options.map((option) {
-                      final selected = subtitleState.selectedSubtitleId ==
-                          option.subtitleId;
-                      return GestureDetector(
-                        key: Key(
-                          'movie-player-mobile-subtitle-drawer-item-${option.subtitleId}',
-                        ),
-                        behavior: HitTestBehavior.opaque,
-                        onTap: isApplyingSubtitle
-                            ? null
-                            : () => unawaited(
-                                  onSubtitleSelected(option.subtitleId),
+                      ]
+                      : options
+                          .map((option) {
+                            final selected =
+                                subtitleState.selectedSubtitleId ==
+                                option.subtitleId;
+                            return GestureDetector(
+                              key: Key(
+                                'movie-player-mobile-subtitle-drawer-item-${option.subtitleId}',
+                              ),
+                              behavior: HitTestBehavior.opaque,
+                              onTap:
+                                  isApplyingSubtitle
+                                      ? null
+                                      : () => unawaited(
+                                        onSubtitleSelected(option.subtitleId),
+                                      ),
+                              child: MoviePlayerMenuItemRow(
+                                label: option.label,
+                                selected: selected,
+                                checkColor: selectedColor,
+                                checkKey: Key(
+                                  'movie-player-mobile-subtitle-drawer-item-check-${option.subtitleId}',
                                 ),
-                        child: MoviePlayerMenuItemRow(
-                          label: option.label,
-                          selected: selected,
-                          checkColor: selectedColor,
-                          checkKey: Key(
-                            'movie-player-mobile-subtitle-drawer-item-check-${option.subtitleId}',
-                          ),
-                          checkSlotKey: Key(
-                            'movie-player-mobile-subtitle-drawer-item-check-slot-${option.subtitleId}',
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      );
-                    }).toList(growable: false),
+                                checkSlotKey: Key(
+                                  'movie-player-mobile-subtitle-drawer-item-check-slot-${option.subtitleId}',
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            );
+                          })
+                          .toList(growable: false),
             );
           },
         ),

@@ -38,7 +38,10 @@ enum _VideoLayout { list, grid }
 /// 长按成员进入多选模式：上方「选择栏」（取消 / 已选 N 个 / 全选），下方「批量栏」
 /// （加入合集 / 移除 / 删除），与移动 PornBox 主页对齐。
 class MobileVideoCollectionDetailPage extends StatefulWidget {
-  const MobileVideoCollectionDetailPage({super.key, required this.collectionId});
+  const MobileVideoCollectionDetailPage({
+    super.key,
+    required this.collectionId,
+  });
 
   final int collectionId;
 
@@ -208,12 +211,13 @@ class _MobileVideoCollectionDetailPageState
       itemBuilder: (context, index) {
         final item = items[index];
         return GestureDetector(
-          onLongPress: selectionMode
-              ? null
-              : () {
-                  enterSelection();
-                  toggleSelect(item.itemId);
-                },
+          onLongPress:
+              selectionMode
+                  ? null
+                  : () {
+                    enterSelection();
+                    toggleSelect(item.itemId);
+                  },
           child: CollectionMemberRow(
             key: ValueKey<int>(item.itemId),
             index: index,
@@ -230,9 +234,10 @@ class _MobileVideoCollectionDetailPageState
             reorderable: false,
             selectionMode: selectionMode,
             isSelected: isSelected(item.itemId),
-            onTap: selectionMode
-                ? () => toggleSelect(item.itemId)
-                : () => _openSheet(index, item.video),
+            onTap:
+                selectionMode
+                    ? () => toggleSelect(item.itemId)
+                    : () => _openSheet(index, item.video),
             menuKey: Key('mobile-video-collection-menu-${item.itemId}'),
             dragHandleKey: Key('mobile-video-reorder-handle-${item.itemId}'),
           ),
@@ -267,12 +272,13 @@ class _MobileVideoCollectionDetailPageState
             return AspectRatio(
               aspectRatio: aspect,
               child: GestureDetector(
-                onLongPress: selectionMode
-                    ? null
-                    : () {
-                        enterSelection();
-                        toggleSelect(item.itemId);
-                      },
+                onLongPress:
+                    selectionMode
+                        ? null
+                        : () {
+                          enterSelection();
+                          toggleSelect(item.itemId);
+                        },
                 child: CollectionMemberCard(
                   key: ValueKey<int>(item.itemId),
                   coverUrl: item.video.coverImage?.bestAvailableUrl,
@@ -285,11 +291,13 @@ class _MobileVideoCollectionDetailPageState
                   expandToParent: true,
                   selectionMode: selectionMode,
                   isSelected: isSelected(item.itemId),
-                  onTap: selectionMode
-                      ? () => toggleSelect(item.itemId)
-                      : () => _openSheet(i, item.video),
+                  onTap:
+                      selectionMode
+                          ? () => toggleSelect(item.itemId)
+                          : () => _openSheet(i, item.video),
                   menuKey: Key(
-                      'mobile-video-collection-grid-menu-${item.itemId}'),
+                    'mobile-video-collection-grid-menu-${item.itemId}',
+                  ),
                 ),
               ),
             );
@@ -328,9 +336,10 @@ class _MobileVideoCollectionDetailPageState
       onRemoveFromCollection: () => _removeItem(itemId, video.id),
       onDelete: () => _deleteVideo(itemId, video),
       collections: otherCollections,
-      onCollectionTap: (ref) =>
-          MobileVideoCollectionDetailRouteData(collectionId: ref.id)
-              .push(context),
+      onCollectionTap:
+          (ref) => MobileVideoCollectionDetailRouteData(
+            collectionId: ref.id,
+          ).push(context),
     );
   }
 
@@ -371,10 +380,11 @@ class _MobileVideoCollectionDetailPageState
     // 用根 Navigator 推全屏页，覆盖底部导航。
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(
-        builder: (_) => MobileVideoPlayerPage(
-          videoId: video.id,
-          title: video.preferredTitle,
-        ),
+        builder:
+            (_) => MobileVideoPlayerPage(
+              videoId: video.id,
+              title: video.preferredTitle,
+            ),
       ),
     );
   }
@@ -404,7 +414,9 @@ class _MobileVideoCollectionDetailPageState
       message: '确认删除$label？该操作不可恢复。',
       confirmLabel: '删除',
       drawerKey: const Key('mobile-video-collection-delete-drawer'),
-      confirmButtonKey: const Key('mobile-video-collection-delete-confirm-button'),
+      confirmButtonKey: const Key(
+        'mobile-video-collection-delete-confirm-button',
+      ),
     );
     if (!mounted || confirmed != true) {
       return;
@@ -453,10 +465,11 @@ class _MobileVideoCollectionDetailPageState
       context,
       title: '正在加入「${target.name}」',
       items: selected,
-      action: (item) => api.addCollectionItem(
-        collectionId: target.id,
-        videoItemId: item.video.id,
-      ),
+      action:
+          (item) => api.addCollectionItem(
+            collectionId: target.id,
+            videoItemId: item.video.id,
+          ),
     );
     if (!mounted) {
       return;
@@ -573,9 +586,7 @@ class _MobileVideoCollectionDetailPageState
       child: Row(
         children: [
           AppTextButton(
-            key: const Key(
-              'mobile-video-collection-exit-selection-button',
-            ),
+            key: const Key('mobile-video-collection-exit-selection-button'),
             label: '取消',
             size: AppTextButtonSize.small,
             onPressed: exitSelection,
@@ -629,9 +640,7 @@ class _MobileVideoCollectionDetailPageState
             SizedBox(width: spacing.sm),
             Expanded(
               child: AppButton(
-                key: const Key(
-                  'mobile-video-collection-batch-remove-button',
-                ),
+                key: const Key('mobile-video-collection-batch-remove-button'),
                 label: '移除',
                 variant: AppButtonVariant.secondary,
                 onPressed: hasSelection ? _batchRemove : null,
@@ -640,9 +649,7 @@ class _MobileVideoCollectionDetailPageState
             SizedBox(width: spacing.sm),
             Expanded(
               child: AppButton(
-                key: const Key(
-                  'mobile-video-collection-batch-delete-button',
-                ),
+                key: const Key('mobile-video-collection-batch-delete-button'),
                 label: '删除',
                 variant: AppButtonVariant.danger,
                 onPressed: hasSelection ? _batchDelete : null,

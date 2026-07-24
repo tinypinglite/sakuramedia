@@ -119,145 +119,161 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
         animation: _controller,
         builder: (context, child) {
           if (_controller.isLoading) {
-          return MovieDetailLoadingSkeleton(controller: _controller);
-        }
+            return MovieDetailLoadingSkeleton(controller: _controller);
+          }
 
-        if (_controller.errorMessage != null || _controller.movie == null) {
-          return MovieDetailErrorState(
-            message: _controller.errorMessage ?? '影片详情暂时无法加载，请稍后重试',
-            onRetry: _controller.load,
-          );
-        }
-
-        final movie = _controller.movie!;
-        final mediaItems = _resolveMediaItems(movie);
-        final isSubscribed = _isSubscribedOverride ?? movie.isSubscribed;
-        final isCollection = _isCollectionOverride ?? movie.isCollection;
-        final isActionControlsLocked = _isMovieActionLocked;
-        final selectedMedia = mediaItems
-                .where((item) => item.mediaId == _selectedMediaId)
-                .firstOrNull ??
-            (mediaItems.isNotEmpty ? mediaItems.first : null);
-        return AnimatedBuilder(
-          animation: _movieClipsController,
-          builder: (context, child) {
-            return MovieDetailPageContent(
-              movie: movie,
-              mediaItemsOverride: mediaItems,
-              storageDescriptors: _controller.storageDescriptors,
-              selectedPreviewKey: _controller.selectedPreviewKey,
-              selectedPreviewUrl: _controller.selectedPreviewUrl,
-              isCollection: isCollection,
-              isSubscribed: isSubscribed,
-              isCollectionUpdating: _isCollectionUpdating,
-              isSubscriptionUpdating: _isSubscriptionUpdating,
-              isMoreActionsUpdating: _activeMovieAction != null,
-              selectedMediaId: selectedMedia?.mediaId,
-              statItems: buildMovieDetailStatItems(context, movie),
-              similarMovies: _controller.similarMovies,
-              isSimilarMoviesLoading: _controller.isSimilarMoviesLoading,
-              similarMoviesErrorMessage: _controller.similarMoviesErrorMessage,
-              onRetrySimilarMovies: _controller.retryLoadSimilarMovies,
-              onSimilarMovieTap: (similarMovie) =>
-                  context.pushDesktopMovieDetail(
-                movieNumber: similarMovie.movieNumber,
-                fallbackPath: buildDesktopMovieDetailRoutePath(
-                  widget.movieNumber,
-                ),
-              ),
-              onSubscriptionTap: isActionControlsLocked
-                  ? null
-                  : () => _toggleMovieSubscription(isSubscribed: isSubscribed),
-              onMoreActionsTap: isActionControlsLocked
-                  ? null
-                  : (globalPosition) => _showMovieActionMenu(
-                        globalPosition,
-                        movie,
-                        isSubscribed,
-                        selectedMedia,
-                      ),
-              onPlayTap: selectedMedia != null && selectedMedia.hasPlayableUrl
-                  ? () => context.pushDesktopMoviePlayer(
-                        movieNumber: widget.movieNumber,
-                        fallbackPath: buildDesktopMovieDetailRoutePath(
-                          widget.movieNumber,
-                        ),
-                        mediaId: selectedMedia.mediaId,
-                      )
-                  : null,
-              onPlaylistTap: () => showMoviePlaylistPickerDialog(
-                context,
-                movieNumber: widget.movieNumber,
-                initialPlaylists: movie.playlists,
-                presentation: MoviePlaylistPickerPresentation.dialog,
-              ),
-              onCollectionToggle: isActionControlsLocked
-                  ? null
-                  : () =>
-                      _toggleMovieCollectionType(isCollection: isCollection),
-              onMediaSelect: (item) => setState(() {
-                _selectedMediaId = item.mediaId;
-              }),
-              isDeletingSelectedMedia: selectedMedia != null &&
-                  _deletingMediaId == selectedMedia.mediaId,
-              onDeleteSelectedMedia:
-                  selectedMedia == null ? null : _deleteSelectedMedia,
-              onOpenMediaPointPreview: _openMediaPointPreview,
-              onRequestMediaPointMenu: _showMediaPointActions,
-              onActorTap: (actor) => context.pushDesktopActorDetail(
-                actorId: actor.id,
-                fallbackPath: buildDesktopMovieDetailRoutePath(
-                  widget.movieNumber,
-                ),
-              ),
-              onSeriesTap: movie.seriesId == null
-                  ? null
-                  : () => context.pushDesktopMovieSeries(
-                        seriesId: movie.seriesId!,
-                        seriesName: movie.seriesName,
-                        fallbackPath: buildDesktopMovieDetailRoutePath(
-                          widget.movieNumber,
-                        ),
-                      ),
-              onTagTap: (tag) => context.pushDesktopTags(tagId: tag.tagId),
-              onRequestPlotImageMenu: (menuContext, index, globalPosition) =>
-                  showMoviePlotImageActionMenu(
-                context: menuContext,
-                hostContext: context,
-                plotImages: movie.plotImages,
-                movieNumber: widget.movieNumber,
-                index: index,
-                globalPosition: globalPosition,
-              ),
-              onOpenPlotPreview: (index) => showMoviePlotPreviewOverlay(
-                context: context,
-                plotImages: movie.plotImages,
-                initialIndex: index,
-                onRequestImageMenu:
-                    (menuContext, previewIndex, globalPosition) =>
-                        showMoviePlotImageActionMenu(
-                  context: menuContext,
-                  hostContext: context,
-                  plotImages: movie.plotImages,
-                  movieNumber: widget.movieNumber,
-                  index: previewIndex,
-                  globalPosition: globalPosition,
-                  closeCurrentRouteOnSearch: true,
-                ),
-              ),
-              onInspectorTap: () => _openInspector(movie, selectedMedia),
-              clips: _movieClipsController.clips,
-              isClipsLoading: _movieClipsController.isLoading,
-              clipsErrorMessage: _movieClipsController.errorMessage,
-              onRetryClips: _movieClipsController.retry,
-              onPlayClip: playMovieClip,
-              onRenameClip: renameMovieClip,
-              onDeleteClip: deleteMovieClip,
-              onAddClipToCollection: addMovieClipToCollection,
+          if (_controller.errorMessage != null || _controller.movie == null) {
+            return MovieDetailErrorState(
+              message: _controller.errorMessage ?? '影片详情暂时无法加载，请稍后重试',
+              onRetry: _controller.load,
             );
-          },
-        );
-      },
+          }
+
+          final movie = _controller.movie!;
+          final mediaItems = _resolveMediaItems(movie);
+          final isSubscribed = _isSubscribedOverride ?? movie.isSubscribed;
+          final isCollection = _isCollectionOverride ?? movie.isCollection;
+          final isActionControlsLocked = _isMovieActionLocked;
+          final selectedMedia =
+              mediaItems
+                  .where((item) => item.mediaId == _selectedMediaId)
+                  .firstOrNull ??
+              (mediaItems.isNotEmpty ? mediaItems.first : null);
+          return AnimatedBuilder(
+            animation: _movieClipsController,
+            builder: (context, child) {
+              return MovieDetailPageContent(
+                movie: movie,
+                mediaItemsOverride: mediaItems,
+                storageDescriptors: _controller.storageDescriptors,
+                selectedPreviewKey: _controller.selectedPreviewKey,
+                selectedPreviewUrl: _controller.selectedPreviewUrl,
+                isCollection: isCollection,
+                isSubscribed: isSubscribed,
+                isCollectionUpdating: _isCollectionUpdating,
+                isSubscriptionUpdating: _isSubscriptionUpdating,
+                isMoreActionsUpdating: _activeMovieAction != null,
+                selectedMediaId: selectedMedia?.mediaId,
+                statItems: buildMovieDetailStatItems(context, movie),
+                similarMovies: _controller.similarMovies,
+                isSimilarMoviesLoading: _controller.isSimilarMoviesLoading,
+                similarMoviesErrorMessage:
+                    _controller.similarMoviesErrorMessage,
+                onRetrySimilarMovies: _controller.retryLoadSimilarMovies,
+                onSimilarMovieTap:
+                    (similarMovie) => context.pushDesktopMovieDetail(
+                      movieNumber: similarMovie.movieNumber,
+                      fallbackPath: buildDesktopMovieDetailRoutePath(
+                        widget.movieNumber,
+                      ),
+                    ),
+                onSubscriptionTap:
+                    isActionControlsLocked
+                        ? null
+                        : () => _toggleMovieSubscription(
+                          isSubscribed: isSubscribed,
+                        ),
+                onMoreActionsTap:
+                    isActionControlsLocked
+                        ? null
+                        : (globalPosition) => _showMovieActionMenu(
+                          globalPosition,
+                          movie,
+                          isSubscribed,
+                          selectedMedia,
+                        ),
+                onPlayTap:
+                    selectedMedia != null && selectedMedia.hasPlayableUrl
+                        ? () => context.pushDesktopMoviePlayer(
+                          movieNumber: widget.movieNumber,
+                          fallbackPath: buildDesktopMovieDetailRoutePath(
+                            widget.movieNumber,
+                          ),
+                          mediaId: selectedMedia.mediaId,
+                        )
+                        : null,
+                onPlaylistTap:
+                    () => showMoviePlaylistPickerDialog(
+                      context,
+                      movieNumber: widget.movieNumber,
+                      initialPlaylists: movie.playlists,
+                      presentation: MoviePlaylistPickerPresentation.dialog,
+                    ),
+                onCollectionToggle:
+                    isActionControlsLocked
+                        ? null
+                        : () => _toggleMovieCollectionType(
+                          isCollection: isCollection,
+                        ),
+                onMediaSelect:
+                    (item) => setState(() {
+                      _selectedMediaId = item.mediaId;
+                    }),
+                isDeletingSelectedMedia:
+                    selectedMedia != null &&
+                    _deletingMediaId == selectedMedia.mediaId,
+                onDeleteSelectedMedia:
+                    selectedMedia == null ? null : _deleteSelectedMedia,
+                onOpenMediaPointPreview: _openMediaPointPreview,
+                onRequestMediaPointMenu: _showMediaPointActions,
+                onActorTap:
+                    (actor) => context.pushDesktopActorDetail(
+                      actorId: actor.id,
+                      fallbackPath: buildDesktopMovieDetailRoutePath(
+                        widget.movieNumber,
+                      ),
+                    ),
+                onSeriesTap:
+                    movie.seriesId == null
+                        ? null
+                        : () => context.pushDesktopMovieSeries(
+                          seriesId: movie.seriesId!,
+                          seriesName: movie.seriesName,
+                          fallbackPath: buildDesktopMovieDetailRoutePath(
+                            widget.movieNumber,
+                          ),
+                        ),
+                onTagTap: (tag) => context.pushDesktopTags(tagId: tag.tagId),
+                onRequestPlotImageMenu:
+                    (menuContext, index, globalPosition) =>
+                        showMoviePlotImageActionMenu(
+                          context: menuContext,
+                          hostContext: context,
+                          plotImages: movie.plotImages,
+                          movieNumber: widget.movieNumber,
+                          index: index,
+                          globalPosition: globalPosition,
+                        ),
+                onOpenPlotPreview:
+                    (index) => showMoviePlotPreviewOverlay(
+                      context: context,
+                      plotImages: movie.plotImages,
+                      initialIndex: index,
+                      onRequestImageMenu:
+                          (menuContext, previewIndex, globalPosition) =>
+                              showMoviePlotImageActionMenu(
+                                context: menuContext,
+                                hostContext: context,
+                                plotImages: movie.plotImages,
+                                movieNumber: widget.movieNumber,
+                                index: previewIndex,
+                                globalPosition: globalPosition,
+                                closeCurrentRouteOnSearch: true,
+                              ),
+                    ),
+                onInspectorTap: () => _openInspector(movie, selectedMedia),
+                clips: _movieClipsController.clips,
+                isClipsLoading: _movieClipsController.isLoading,
+                clipsErrorMessage: _movieClipsController.errorMessage,
+                onRetryClips: _movieClipsController.retry,
+                onPlayClip: playMovieClip,
+                onRenameClip: renameMovieClip,
+                onDeleteClip: deleteMovieClip,
+                onAddClipToCollection: addMovieClipToCollection,
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -265,8 +281,8 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
   Future<void> _loadMovieCollectionStatus() async {
     try {
       final status = await context.read<MoviesApi>().getMovieCollectionStatus(
-            movieNumber: widget.movieNumber,
-          );
+        movieNumber: widget.movieNumber,
+      );
       if (!mounted) {
         return;
       }
@@ -286,9 +302,10 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
       _isCollectionUpdating = true;
     });
 
-    final targetType = isCollection
-        ? MovieCollectionType.single
-        : MovieCollectionType.collection;
+    final targetType =
+        isCollection
+            ? MovieCollectionType.single
+            : MovieCollectionType.collection;
     try {
       final result = await context.read<MoviesApi>().updateMovieCollectionType(
         movieNumbers: <String>[widget.movieNumber],
@@ -305,9 +322,9 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
         _isCollectionOverride = !isCollection;
       });
       context.read<MovieCollectionTypeChangeNotifier>().reportChange(
-            movieNumber: widget.movieNumber,
-            targetType: targetType,
-          );
+        movieNumber: widget.movieNumber,
+        targetType: targetType,
+      );
       showToast(
         targetType == MovieCollectionType.collection ? '已标记为合集' : '已标记为单体',
       );
@@ -464,88 +481,92 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
 
     return showDialog<void>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) {
-          Future<void> handleConfirm() async {
-            if (isSubmitting) {
-              return;
-            }
-            setDialogState(() {
-              isSubmitting = true;
-            });
-            final succeeded = await _executeMovieAction(
-              MovieDetailActionType.refreshMetadata,
-            );
-            if (!dialogContext.mounted) {
-              return;
-            }
-            if (succeeded) {
-              Navigator.of(dialogContext).pop();
-              return;
-            }
-            setDialogState(() {
-              isSubmitting = false;
-            });
-          }
+      builder:
+          (dialogContext) => StatefulBuilder(
+            builder: (dialogContext, setDialogState) {
+              Future<void> handleConfirm() async {
+                if (isSubmitting) {
+                  return;
+                }
+                setDialogState(() {
+                  isSubmitting = true;
+                });
+                final succeeded = await _executeMovieAction(
+                  MovieDetailActionType.refreshMetadata,
+                );
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                if (succeeded) {
+                  Navigator.of(dialogContext).pop();
+                  return;
+                }
+                setDialogState(() {
+                  isSubmitting = false;
+                });
+              }
 
-          return AppDesktopDialog(
-            dialogKey: const Key('movie-detail-refresh-metadata-dialog'),
-            width: dialogContext.appLayoutTokens.dialogWidthSm,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  MovieDetailRefreshConfirmationCopy.title,
-                  style: resolveAppTextStyle(
-                    dialogContext,
-                    size: AppTextSize.s18,
-                  ),
-                ),
-                SizedBox(height: dialogContext.appSpacing.lg),
-                Text(MovieDetailRefreshConfirmationCopy.description),
-                SizedBox(height: dialogContext.appSpacing.sm),
-                Text(
-                  MovieDetailRefreshConfirmationCopy.hint,
-                  style: resolveAppTextStyle(
-                    dialogContext,
-                    size: AppTextSize.s12,
-                    tone: AppTextTone.muted,
-                  ),
-                ),
-                SizedBox(height: dialogContext.appSpacing.xl),
-                Row(
+              return AppDesktopDialog(
+                dialogKey: const Key('movie-detail-refresh-metadata-dialog'),
+                width: dialogContext.appLayoutTokens.dialogWidthSm,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: AppButton(
-                        key: const Key(
-                          'movie-detail-refresh-metadata-cancel',
-                        ),
-                        onPressed: isSubmitting
-                            ? null
-                            : () => Navigator.of(dialogContext).pop(),
-                        label: MovieDetailRefreshConfirmationCopy.cancelLabel,
+                    Text(
+                      MovieDetailRefreshConfirmationCopy.title,
+                      style: resolveAppTextStyle(
+                        dialogContext,
+                        size: AppTextSize.s18,
                       ),
                     ),
-                    SizedBox(width: dialogContext.appSpacing.md),
-                    Expanded(
-                      child: AppButton(
-                        key: const Key(
-                          'movie-detail-refresh-metadata-confirm',
-                        ),
-                        onPressed: isSubmitting ? null : handleConfirm,
-                        label: MovieDetailRefreshConfirmationCopy.confirmLabel,
-                        variant: AppButtonVariant.primary,
-                        isLoading: isSubmitting,
+                    SizedBox(height: dialogContext.appSpacing.lg),
+                    Text(MovieDetailRefreshConfirmationCopy.description),
+                    SizedBox(height: dialogContext.appSpacing.sm),
+                    Text(
+                      MovieDetailRefreshConfirmationCopy.hint,
+                      style: resolveAppTextStyle(
+                        dialogContext,
+                        size: AppTextSize.s12,
+                        tone: AppTextTone.muted,
                       ),
+                    ),
+                    SizedBox(height: dialogContext.appSpacing.xl),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppButton(
+                            key: const Key(
+                              'movie-detail-refresh-metadata-cancel',
+                            ),
+                            onPressed:
+                                isSubmitting
+                                    ? null
+                                    : () => Navigator.of(dialogContext).pop(),
+                            label:
+                                MovieDetailRefreshConfirmationCopy.cancelLabel,
+                          ),
+                        ),
+                        SizedBox(width: dialogContext.appSpacing.md),
+                        Expanded(
+                          child: AppButton(
+                            key: const Key(
+                              'movie-detail-refresh-metadata-confirm',
+                            ),
+                            onPressed: isSubmitting ? null : handleConfirm,
+                            label:
+                                MovieDetailRefreshConfirmationCopy.confirmLabel,
+                            variant: AppButtonVariant.primary,
+                            isLoading: isSubmitting,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
     );
   }
 
@@ -587,16 +608,18 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
 
   void _resetDetailOverridesAfterRefresh({required int deletedMediaId}) {
     final refreshedMediaItems = _controller.movie?.mediaItems ?? const [];
-    final retainedSelectedMediaId = _selectedMediaId != null &&
-            _selectedMediaId != deletedMediaId &&
-            refreshedMediaItems.any(
-              (item) => item.mediaId == _selectedMediaId,
-            )
-        ? _selectedMediaId
-        : null;
+    final retainedSelectedMediaId =
+        _selectedMediaId != null &&
+                _selectedMediaId != deletedMediaId &&
+                refreshedMediaItems.any(
+                  (item) => item.mediaId == _selectedMediaId,
+                )
+            ? _selectedMediaId
+            : null;
     setState(() {
       _pointOverrides.clear();
-      _selectedMediaId = retainedSelectedMediaId ??
+      _selectedMediaId =
+          retainedSelectedMediaId ??
           (refreshedMediaItems.isNotEmpty
               ? refreshedMediaItems.first.mediaId
               : null);
@@ -609,13 +632,15 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
     if (_pointOverrides.isEmpty) {
       return movie.mediaItems;
     }
-    return movie.mediaItems.map((item) {
-      final pointsOverride = _pointOverrides[item.mediaId];
-      if (pointsOverride == null) {
-        return item;
-      }
-      return _copyMediaItemWithPoints(item, pointsOverride);
-    }).toList(growable: false);
+    return movie.mediaItems
+        .map((item) {
+          final pointsOverride = _pointOverrides[item.mediaId];
+          if (pointsOverride == null) {
+            return item;
+          }
+          return _copyMediaItemWithPoints(item, pointsOverride);
+        })
+        .toList(growable: false);
   }
 
   String _buildMediaDeleteLabel(MovieMediaItemDto mediaItem) {
@@ -653,21 +678,23 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
     final action = await showMediaPreviewOverlay(
       context: context,
       presentation: MediaPreviewPresentation.dialog,
-      builder: (_) => MediaPreviewDialog(
-        item: _buildMediaPointPreviewItem(mediaItem, point),
-        availableActions: <MediaPreviewAction>{
-          if (_resolvePointImageUrl(point).isNotEmpty)
-            MediaPreviewAction.searchSimilar,
-          if (mediaItem.hasPlayableUrl) MediaPreviewAction.play,
-        },
-        onPointRemoved: () => _applyPointListOverride(
-          mediaItem.mediaId,
-          mediaItem.points
-              .where((candidate) => candidate.pointId != point.pointId)
-              .toList(growable: false),
-        ),
-        closeOnPointRemoved: true,
-      ),
+      builder:
+          (_) => MediaPreviewDialog(
+            item: _buildMediaPointPreviewItem(mediaItem, point),
+            availableActions: <MediaPreviewAction>{
+              if (_resolvePointImageUrl(point).isNotEmpty)
+                MediaPreviewAction.searchSimilar,
+              if (mediaItem.hasPlayableUrl) MediaPreviewAction.play,
+            },
+            onPointRemoved:
+                () => _applyPointListOverride(
+                  mediaItem.mediaId,
+                  mediaItem.points
+                      .where((candidate) => candidate.pointId != point.pointId)
+                      .toList(growable: false),
+                ),
+            closeOnPointRemoved: true,
+          ),
     );
     if (!mounted || action == null) {
       return;
@@ -709,10 +736,12 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
         AppImageActionDescriptor(
           type: AppImageActionType.toggleMark,
           label: currentPoint == null ? '添加标记' : '删除标记',
-          icon: currentPoint == null
-              ? Icons.bookmark_add_outlined
-              : Icons.bookmark_remove_outlined,
-          enabled: mediaItem.mediaId > 0 &&
+          icon:
+              currentPoint == null
+                  ? Icons.bookmark_add_outlined
+                  : Icons.bookmark_remove_outlined,
+          enabled:
+              mediaItem.mediaId > 0 &&
               (currentPoint != null || point.thumbnailId > 0),
         ),
         AppImageActionDescriptor(
@@ -825,9 +854,9 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
     try {
       if (existingPoint == null) {
         final createdPoint = await context.read<MediaApi>().createMediaPoint(
-              mediaId: mediaItem.mediaId,
-              thumbnailId: point.thumbnailId,
-            );
+          mediaId: mediaItem.mediaId,
+          thumbnailId: point.thumbnailId,
+        );
         if (!mounted) {
           return;
         }
@@ -841,9 +870,9 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
       }
 
       await context.read<MediaApi>().deleteMediaPoint(
-            mediaId: mediaItem.mediaId,
-            pointId: existingPoint.pointId,
-          );
+        mediaId: mediaItem.mediaId,
+        pointId: existingPoint.pointId,
+      );
       if (!mounted) {
         return;
       }
@@ -900,9 +929,10 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
     return MovieMediaPointDto(
       pointId: point.pointId,
       thumbnailId: point.thumbnailId,
-      offsetSeconds: point.offsetSeconds > 0
-          ? point.offsetSeconds
-          : fallback.offsetSeconds,
+      offsetSeconds:
+          point.offsetSeconds > 0
+              ? point.offsetSeconds
+              : fallback.offsetSeconds,
       image: point.image ?? fallback.image,
     );
   }
@@ -942,15 +972,15 @@ class _DesktopMovieDetailPageState extends State<DesktopMovieDetailPage>
     try {
       if (isSubscribed) {
         await context.read<MoviesApi>().unsubscribeMovie(
-              movieNumber: widget.movieNumber,
-              deleteMedia: false,
-            );
+          movieNumber: widget.movieNumber,
+          deleteMedia: false,
+        );
         result = const MovieSubscriptionToggleResult.unsubscribed();
         _isSubscribedOverride = false;
       } else {
         await context.read<MoviesApi>().subscribeMovie(
-              movieNumber: widget.movieNumber,
-            );
+          movieNumber: widget.movieNumber,
+        );
         result = const MovieSubscriptionToggleResult.subscribed();
         _isSubscribedOverride = true;
       }

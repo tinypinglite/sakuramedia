@@ -8,11 +8,7 @@ import 'package:sakuramedia/theme.dart';
 /// `movieCardAspectRatio`);不传时直接把整块灰色内框铺满 Container
 /// (video masonry 布局无固定长宽比)。
 class AppCoverCardSkeleton extends StatelessWidget {
-  const AppCoverCardSkeleton({
-    super.key,
-    this.posterKey,
-    this.aspectRatio,
-  });
+  const AppCoverCardSkeleton({super.key, this.posterKey, this.aspectRatio});
 
   final Key? posterKey;
   final double? aspectRatio;
@@ -32,9 +28,10 @@ class AppCoverCardSkeleton extends StatelessWidget {
         boxShadow: context.appShadows.card,
       ),
       clipBehavior: Clip.antiAlias,
-      child: aspectRatio == null
-          ? poster
-          : AspectRatio(aspectRatio: aspectRatio!, child: poster),
+      child:
+          aspectRatio == null
+              ? poster
+              : AspectRatio(aspectRatio: aspectRatio!, child: poster),
     );
   }
 }

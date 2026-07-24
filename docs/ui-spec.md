@@ -567,24 +567,27 @@ Web 端复用同一套壳层和页面结构，但浏览器环境下不启用窗�
 
 ### 6.3 影片页 / 女优页
 
-这两个页面共享同一种“筛选 + 统计 + 卡片网格 + 分页加载”模式：
+这两个页面共享同一种“筛选 + 统计 + 卡片网格 + 分页加载”模式。桌面端继续使用
+`MovieFilterToolbar` / `ActorFilterToolbar`；移动端一级列表统一使用
+`AppListHeader`：
 
-- 顶部筛选条
-- 右侧总数
+- 最左侧固定为筛选图标，所有筛选维度和快捷预设都进入底部抽屉
+- 中间只读信息胶囊展示当前筛选摘要与总数
+- 最右侧操作槽承载「选择」等动作
 - 下方网格卡片
 - 滚动触底加载更多
 - 失败时保留内容并显示底部重试条
 
-`MovieFilterToolbar` 当前由 1 个筛选按钮和 2 个快捷按钮组成，女优详情页会在筛选浮层内追加发行年份区块：
+移动端影片筛选抽屉的「快捷筛选」区包含以下预设，女优详情页仍会在自己的筛选面板内追加发行年份区块：
 
-- 默认状态下左侧触发按钮显示 `全部`，并作为当前主态高亮
+- `全部`：回到默认筛选
 - `最新订阅`：状态筛选固定为 `已订阅`，合集类型固定为 `单体`，排序方式固定为 `订阅时间`
 - `最新入库`：状态筛选固定为 `可播放`，合集类型固定为 `单体`，排序方式固定为 `最近入库`
-- 快捷按钮与筛选浮层共用同一套 `status`、`collection_type`、`sort` 参数，点击后立即生效
+- 快捷预设与完整筛选项共用同一套 `status`、`collection_type`、`sort` 参数，在抽屉中预览、点击确定后统一生效
 - 筛选浮层在「合集类型」下方提供「番号来源」单选维度（`全部` / `常规` / `FC2`），对应请求参数 `number_source=all|regular|fc2`：`fc2` 仅返回番号以 FC2 开头的影片，`regular` 排除 FC2，`all` 不限制；非 `全部` 时左侧触发按钮文案追加该维度标签
 - 女优详情页年份选项来自 `GET /actors/{actor_id}/years`，chip 显示为 `年份(数量)`，例如 `2026(18)`；选择年份后影片列表请求追加 `year`
-- 顶部三颗按钮按单一主态处理：默认态高亮 `全部`；命中预设时只高亮对应预设；进入非预设自定义筛选时高亮左侧触发按钮
-- 顶部触发器、快捷按钮与浮层内筛选项统一使用共享文字按钮；只有“重置”等操作型按钮保留 `AppButton`
+- 女优列表筛选抽屉顶部提供「我的订阅 / 全部」快捷预设，性别与排序等完整条件仍在同一抽屉内
+- 进入选择态时，移动端顶栏原地改写为「退出 / 已选数量 / 全选 / 订阅 / 取消订阅」；订阅为主操作，取消订阅使用危险操作样式
 
 当前网格列数依据容器宽度自动计算，范围是 `2` 到 `6` 列，目标卡宽为 `160`。
 
@@ -605,12 +608,12 @@ Web 端复用同一套壳层和页面结构，但浏览器环境下不启用窗�
 
 移动端影片/女优路由当前实现：
 
-- `/mobile/library/movies`：`MovieFilterToolbar` + 总数（`X 部`）+ `MovieSummaryGrid` + 底部分页反馈（加载中 / 失败重试）
-- 列表筛选即时生效，筛选参数沿用 `status`、`collection_type`、`sort`
-- 移动端影片筛选入口保持桌面式 Overlay 浮层交互（不改为底部抽屉）
+- `/mobile/library/movies`：`AppListHeader`（筛选图标 + 当前条件 + `X 部` + 选择）+ `MovieSummaryGrid` + 底部分页反馈（加载中 / 失败重试）
+- 抽屉确认后筛选立即生效并重载列表，筛选参数沿用 `status`、`collection_type`、`sort`
+- 移动端影片筛选统一使用底部抽屉，抽屉内确认后生效
 - 点击影片卡片会入栈到 `/mobile/library/movies/:movieNumber`
-- `/mobile/library/actors`：`ActorFilterToolbar` + 总数（`X 位`）+ `ActorSummaryGrid` + 底部分页反馈（加载中 / 失败重试）
-- 列表筛选即时生效，筛选参数沿用 `subscription_status`、`gender`、`sort`；默认展示已订阅女优并按 `subscribed_at:desc` 排序，筛选按钮同步展示当前订阅状态与排序条件
+- `/mobile/library/actors`：`AppListHeader`（筛选图标 + 当前条件 + `X 位`）+ `ActorSummaryGrid` + 底部分页反馈（加载中 / 失败重试）
+- 抽屉确认后筛选立即生效并重载列表，筛选参数沿用 `subscription_status`、`gender`、`sort`；默认展示已订阅女优并按 `subscribed_at:desc` 排序，只读信息胶囊同步展示当前订阅状态与排序条件
 - 点击女优卡片会入栈到 `/mobile/library/actors/:actorId`
 - `/mobile/library/actors/:actorId`：头部摘要（头像/名称/订阅/影片总数）+ `MovieFilterToolbar` + `MovieSummaryGrid` + 底部分页反馈（加载中 / 失败重试）
 - 详情页影片筛选沿用 `status`、`collection_type`、`sort`，并支持按单个 `year` 过滤；请求固定携带 `actor_id`
@@ -986,9 +989,9 @@ Web 端复用同一套壳层和页面结构，但浏览器环境下不启用窗�
 - 当前已开放榜单为：`javdb` 下的 `censored` / `uncensored` / `fc2`
 - 当前两个来源都支持 `daily` / `weekly` / `monthly`
 
-- 顶部筛选触发按钮（来源 / 榜单 / 周期摘要）
-- Overlay 浮层筛选面板（来源、榜单、周期三组按钮）
-- 总数统计（`X 部`）；若后端返回顶层 `synced_at`（该榜单+周期当前批次的抓取时间，本地时区），在总数后追加「· 更新于 MM/dd HH:mm」，无数据时（`synced_at` 为 `null`）只展示总数
+- 桌面端使用筛选触发按钮（来源 / 榜单 / 周期摘要）与 Overlay 浮层筛选面板
+- 移动端使用 `AppListHeader`：左侧筛选图标打开底部抽屉；来源/榜单与抓取时间作为不可点击信息胶囊；「选择」位于右侧操作槽
+- 桌面端展示总数统计（`X 部`）；若后端返回顶层 `synced_at`（该榜单+周期当前批次的抓取时间，本地时区），在总数后追加「· 更新于 MM/dd HH:mm」
 - 下方复用影片卡片网格 + 排名角标（右上角）
 - 底部分页加载反馈（加载中 / 失败重试）
 
@@ -998,6 +1001,7 @@ Web 端复用同一套壳层和页面结构，但浏览器环境下不启用窗�
 - 默认来源取第一个来源，默认榜单取该来源下第一个榜单
 - 默认周期优先 `default_period`，否则取 `supported_periods` 第一个
 - 筛选面板点选后立即生效并刷新列表，面板保持打开
+- 移动端进入选择态后，整条 `AppListHeader` 原地改写为批量选择栏
 - 点击榜单影片卡片入栈到影片详情页；若由榜单页进入则返回回到榜单页，若深链直达详情则按详情页默认入口回退
 
 ### 6.14 媒体导入页
@@ -1044,6 +1048,7 @@ Web 端复用同一套壳层和页面结构，但浏览器环境下不启用窗�
 - **视频合集页**（`/desktop/library/video-collections`）：合集卡片列表（`VideoCollectionCard`：封面图 + 底部标题 + 封面右下角视频数，编辑 / 删除收进右上角「···」菜单，参照切片「我的合集」卡）+ 新建；合集封面取按顺序排在最前的视频封面，空合集为占位图标；合集详情（`/desktop/library/video-collections/:collectionId`）头部下方为排序工具条（`VideoCollectionSortBar`：手动顺序 / 入库 / 标题 / 时长 / 文件大小 × 升降序，与视频列表对齐并额外含「手动顺序」对应后端 `position:asc`，默认手动顺序）；**仅「手动顺序」下**以 `ReorderableListView` 支持拖拽**乐观重排**（失败回滚重载），切到其它排序即退化为普通 `ListView` 并隐藏拖拽手柄（避免与排序冲突）；另支持移除、单集 / 「播放全部」。
 - **连播**：合集播放携带上下文（`collectionId` + 有序 `playlist` 视频 id），`MoviePlayerSurface` 新增可加性 `onCompleted` 回调，本集自然结束自动跳下一集，到末尾停止；非合集进入不跳转。
 - **视频导入**：PornBox 列表页不再保留导入入口；导入统一在「媒体导入」页 `PornBox 影片` 标签的「新建导入」（`showVideoImportDialog`：目录浏览选源 + 媒体库 + 合集必选 + 导入方式），触发后为异步搬库作业并在该标签历史列表跟踪进度与失败文件（详见 §6.14）。
+- **移动端视频列表**：视频区使用 `AppListHeader`，左侧筛选图标打开排序底部抽屉，中间显示当前排序与总数，右侧「选择」仅控制视频列表；进入选择态后顶栏原地显示退出、已选数量与全选，批量加入合集 / 删除仍保留在底部操作栏。合集区的「新建 / 查看全部」保持在合集标题行，后续统一顶栏迁移时再接入操作槽。
 
 新增共享组件：`lib/widgets/videos/`（`VideoSummaryCard` / `VideoSummaryGrid` / `VideoFilterToolbar` / `VideoCollectionSortBar`）；合集成员行 `CollectionMemberRow` 新增 `reorderable`（默认 `true`，非手动排序时传 `false` 以隐藏拖拽手柄）；视频域专属选择器 `PersonSelectorPanel` 在 `lib/features/videos/presentation/`。`TagSelectorPanel` 新增可选 `showMatchModeToggle`（默认 `true`，影片侧不变；视频域传 `false`）。
 
@@ -1097,6 +1102,17 @@ Web 端复用同一套壳层和页面结构，但浏览器环境下不启用窗�
 - 默认图标尺寸仍走 `AppComponentTokens.iconSizeMd`
 
 页面里如果只是单个图标操作，不应再直接使用原生 `IconButton` 拼样式。
+
+### 7.3.1 AppListHeader
+
+移动端列表/分区顶栏统一按三段组织：
+
+- 最左侧始终是筛选图标；筛选操作应进入底部抽屉，不再把可点击筛选 chip 铺在顶栏
+- `informationSlots` 只放不可点击信息，推荐使用 `AppListHeaderInfo`（当前条件、总数、更新时间）
+- `actionSlots` 放「新建 / 查看全部 / 更多 / 选择」等操作，业务侧继续复用 `AppTextButton` / `AppIconButton` / `AppButton`
+- `AppListHeader.selection` 用于多选态原地改写整条顶栏；窄屏且插槽较多时，筛选按钮保持固定，其余内容横向滚动
+
+当前已迁移移动影片、女优、排行榜与 PornBox 视频区；其余历史自绘顶栏仍按页面现状运行，后续逐步迁移，不应在文档中描述为已经统一。
 
 ### 7.4 AppSelectField
 

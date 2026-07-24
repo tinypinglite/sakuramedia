@@ -44,52 +44,52 @@ class AppTextButton extends StatelessWidget {
     final colors = context.appColors;
     final (height, horizontal, gap, iconSize, textSize) = switch (size) {
       AppTextButtonSize.medium => (
-          componentTokens.buttonHeightMd,
-          componentTokens.buttonHorizontalPaddingMd,
-          componentTokens.buttonGapMd,
-          componentTokens.iconSizeSm,
-          AppTextSize.s14,
-        ),
+        componentTokens.buttonHeightMd,
+        componentTokens.buttonHorizontalPaddingMd,
+        componentTokens.buttonGapMd,
+        componentTokens.iconSizeSm,
+        AppTextSize.s14,
+      ),
       AppTextButtonSize.small => (
-          componentTokens.buttonHeightSm,
-          componentTokens.buttonHorizontalPaddingSm,
-          componentTokens.buttonGapSm,
-          componentTokens.iconSizeSm,
-          AppTextSize.s14,
-        ),
+        componentTokens.buttonHeightSm,
+        componentTokens.buttonHorizontalPaddingSm,
+        componentTokens.buttonGapSm,
+        componentTokens.iconSizeSm,
+        AppTextSize.s14,
+      ),
       AppTextButtonSize.xSmall => (
-          componentTokens.buttonHeightXs,
-          componentTokens.buttonHorizontalPaddingXs,
-          componentTokens.buttonGapXs,
-          componentTokens.iconSizeXs,
-          AppTextSize.s12,
-        ),
+        componentTokens.buttonHeightXs,
+        componentTokens.buttonHorizontalPaddingXs,
+        componentTokens.buttonGapXs,
+        componentTokens.iconSizeXs,
+        AppTextSize.s12,
+      ),
       AppTextButtonSize.xxSmall => (
-          componentTokens.buttonHeight2xs,
-          componentTokens.buttonHorizontalPadding2xs,
-          componentTokens.buttonGap2xs,
-          componentTokens.iconSize2xs,
-          AppTextSize.s10,
-        ),
+        componentTokens.buttonHeight2xs,
+        componentTokens.buttonHorizontalPadding2xs,
+        componentTokens.buttonGap2xs,
+        componentTokens.iconSize2xs,
+        AppTextSize.s10,
+      ),
       AppTextButtonSize.xxxSmall => (
-          componentTokens.buttonHeight3xs,
-          componentTokens.buttonHorizontalPadding3xs,
-          componentTokens.buttonGap3xs,
-          componentTokens.iconSize3xs,
-          AppTextSize.s10,
-        ),
+        componentTokens.buttonHeight3xs,
+        componentTokens.buttonHorizontalPadding3xs,
+        componentTokens.buttonGap3xs,
+        componentTokens.iconSize3xs,
+        AppTextSize.s10,
+      ),
     };
     final borderRadius = context.appRadius.smBorder;
-    final isAccent =
-        isSelected || emphasis == AppTextButtonEmphasis.accent;
+    final isAccent = isSelected || emphasis == AppTextButtonEmphasis.accent;
     final tone = isAccent ? AppTextTone.accent : AppTextTone.muted;
     final foregroundColor = resolveAppTextToneColor(context, tone);
-    final backgroundColor = isAccent
-        ? theme.colorScheme.primary.withValues(alpha: 0.08)
-        : switch (backgroundStyle) {
-            AppTextButtonBackgroundStyle.transparent => Colors.transparent,
-            AppTextButtonBackgroundStyle.muted => colors.surfaceMuted,
-          };
+    final backgroundColor =
+        isAccent
+            ? theme.colorScheme.primary.withValues(alpha: 0.08)
+            : switch (backgroundStyle) {
+              AppTextButtonBackgroundStyle.transparent => Colors.transparent,
+              AppTextButtonBackgroundStyle.muted => colors.surfaceMuted,
+            };
     final disabledColor = colors.borderSubtle;
     final labelStyle = resolveAppTextStyle(
       context,
@@ -111,9 +111,10 @@ class AppTextButton extends StatelessWidget {
               height: height,
               padding: EdgeInsets.symmetric(horizontal: horizontal),
               decoration: BoxDecoration(
-                color: _isEnabled
-                    ? backgroundColor
-                    : disabledColor.withValues(alpha: 0.32),
+                color:
+                    _isEnabled
+                        ? backgroundColor
+                        : disabledColor.withValues(alpha: 0.32),
                 borderRadius: borderRadius,
               ),
               child: Row(
