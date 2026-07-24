@@ -19,6 +19,9 @@ import 'package:sakuramedia/features/shared/presentation/collection_playback_han
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_mode.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
@@ -97,13 +100,16 @@ class _MobileClipCollectionDetailPageState
               _controller.collection == null) {
             return AppEmptyState(message: _controller.errorMessage!);
           }
+          // 合集名报给外层返回栏（见 AppMobileSubpageTitle），页面内不再重复写
+          // 一遍标题——窄屏上标题块会把列表压得很靠下。
+          _reportTitleToShell();
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (selectionMode)
-                _buildSelectionBar(context)
+                _buildSelectionHeader(context)
               else
-                _buildHeader(context),
+                _buildListHeader(context),
               SizedBox(height: context.appSpacing.md),
               Expanded(child: _buildClips(context)),
               if (selectionMode) _buildBatchBar(context),
@@ -114,105 +120,99 @@ class _MobileClipCollectionDetailPageState
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    final spacing = context.appSpacing;
+  /// 把合集名报给外层返回栏。数据是异步来的，所以用 post-frame 回调写——直接在
+  /// build 里改 notifier 会触发 build-during-build。
+  void _reportTitleToShell() {
+    final name = _controller.collection?.name.trim();
+    if (name == null || name.isEmpty) {
+      return;
+    }
+    final notifier = AppMobileSubpageTitle.read(context);
+    if (notifier == null || notifier.value == name) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        notifier.value = name;
+      }
+    });
+  }
+
+  /// 成员列表顶栏：与桌面切片合集详情共用同一条 `AppListHeader`。
+  ///
+  /// **本页没有筛选维度**（切片合集是手动顺序，没有排序参数），所以不接筛选入口。
+  /// 「选择」也不进操作槽——移动端长按卡片即可进多选，顶栏不必常驻这个入口。
+  Widget _buildListHeader(BuildContext context) {
     final collection = _controller.collection;
     final count = collection?.clipCount ?? _controller.clips.length;
     final hasClips = _controller.clips.isNotEmpty;
-    return Padding(
-      // 横向缩进由 AppMobileSubpageShell 的 8px body padding 统一提供。
-      padding: EdgeInsets.only(top: spacing.md),
-      // 操作按钮（视图切换 / 选择 / 添加 / 播放）共四个，挤不进一行，故拆两行:
-      // 第一行只放合集元信息（名称 + 编辑 + 切片数），第二行放操作按钮组。
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Flexible(
-                child: Text(
-                  collection?.name ?? '合集',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s18,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-              ),
-              SizedBox(width: spacing.xs),
-              AppIconButton(
-                key: const Key('mobile-clip-collection-rename-button'),
-                tooltip: '编辑合集',
-                onPressed: collection == null ? null : _editCollection,
-                icon: Icon(
-                  Icons.edit_outlined,
-                  size: context.appComponentTokens.iconSizeSm,
-                ),
-              ),
-            ],
+    return AppListHeader(
+      informationSlots: [
+        AppListHeaderInfo(
+          key: const Key('mobile-clip-collection-total'),
+          label: '$count 个切片',
+        ),
+      ],
+      actionSlots: [
+        if (hasClips)
+          AppTextButton(
+            key: const Key('mobile-clip-collection-play-all-button'),
+            label: '播放',
+            size: AppTextButtonSize.xSmall,
+            onPressed: () => _playFrom(0),
           ),
-          SizedBox(height: spacing.xs),
-          Text(
-            '$count 个切片',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s14,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.secondary,
+        AppTextButton(
+          key: const Key('mobile-clip-collection-add-clips-button'),
+          label: '添加',
+          size: AppTextButtonSize.xSmall,
+          onPressed: _addClips,
+        ),
+        if (hasClips)
+          AppIconButton(
+            key: const Key('mobile-clip-collection-layout-toggle'),
+            tooltip: _layout == _ClipLayout.list ? '网格视图' : '列表视图',
+            onPressed: _toggleLayout,
+            icon: Icon(
+              _layout == _ClipLayout.list
+                  ? Icons.grid_view_rounded
+                  : Icons.view_agenda_outlined,
+              size: context.appComponentTokens.iconSizeSm,
             ),
           ),
-          SizedBox(height: spacing.sm),
-          Row(
-            children: [
-              // 视图切换在左侧，剩余按钮组靠右。
-              if (hasClips)
-                AppIconButton(
-                  key: const Key('mobile-clip-collection-layout-toggle'),
-                  tooltip: _layout == _ClipLayout.list ? '网格视图' : '列表视图',
-                  onPressed: _toggleLayout,
-                  icon: Icon(
-                    _layout == _ClipLayout.list
-                        ? Icons.grid_view_rounded
-                        : Icons.view_agenda_outlined,
-                    size: context.appComponentTokens.iconSizeSm,
-                  ),
-                ),
-              const Spacer(),
-              if (hasClips) ...[
-                AppTextButton(
-                  key: const Key(
-                    'mobile-clip-collection-enter-selection-button',
-                  ),
-                  label: '选择',
-                  size: AppTextButtonSize.small,
-                  icon: const Icon(Icons.check_circle_outline, size: 14),
-                  onPressed: enterSelection,
-                ),
-                SizedBox(width: spacing.xs),
-              ],
-              AppTextButton(
-                key: const Key('mobile-clip-collection-add-clips-button'),
-                label: '添加',
-                size: AppTextButtonSize.small,
-                onPressed: _addClips,
-              ),
-              if (hasClips) ...[
-                SizedBox(width: spacing.xs),
-                AppTextButton(
-                  key: const Key('mobile-clip-collection-play-all-button'),
-                  label: '播放',
-                  size: AppTextButtonSize.small,
-                  onPressed: () => _playFrom(0),
-                ),
-              ],
-            ],
+        AppIconButton(
+          key: const Key('mobile-clip-collection-rename-button'),
+          tooltip: '编辑合集',
+          onPressed: collection == null ? null : _editCollection,
+          icon: Icon(
+            Icons.edit_outlined,
+            size: context.appComponentTokens.iconSizeSm,
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  /// 多选态原地改写整条顶栏：只留退出 / 计数 / 全选，批量动作在贴底的
+  /// [_buildBatchBar]（与影片 / PornBox 移动列表一致）。
+  Widget _buildSelectionHeader(BuildContext context) {
+    final clipIds = _controller.clips.map((clip) => clip.clipId);
+    final allSelected = isAllSelected(clipIds);
+    return AppListHeader.selection(
+      selectionLabel: '已选 $selectedCount 个',
+      selectionExitButtonKey: const Key(
+        'mobile-clip-collection-exit-selection-button',
       ),
+      onExitSelection: exitSelection,
+      actionSlots: [
+        AppButton(
+          key: const Key('mobile-clip-collection-select-all-button'),
+          label: allSelected ? '取消全选' : '全选',
+          variant: AppButtonVariant.ghost,
+          size: AppButtonSize.xSmall,
+          isSelected: allSelected,
+          onPressed: () => toggleSelectAll(clipIds),
+        ),
+      ],
     );
   }
 
@@ -590,102 +590,30 @@ class _MobileClipCollectionDetailPageState
     exitSelection();
   }
 
-  Widget _buildSelectionBar(BuildContext context) {
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final clipIds = _controller.clips.map((c) => c.clipId);
-    final allSelected = isAllSelected(clipIds);
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: spacing.md,
-        vertical: spacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        border: Border(bottom: BorderSide(color: colors.divider)),
-      ),
-      child: Row(
-        children: [
-          AppTextButton(
-            key: const Key(
-              'mobile-clip-collection-exit-selection-button',
-            ),
-            label: '取消',
-            size: AppTextButtonSize.small,
-            onPressed: exitSelection,
-          ),
-          SizedBox(width: spacing.sm),
-          Text(
-            '已选 $selectedCount 个',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s14,
-              weight: AppTextWeight.medium,
-              tone: AppTextTone.primary,
-            ),
-          ),
-          const Spacer(),
-          AppTextButton(
-            key: const Key('mobile-clip-collection-select-all-button'),
-            label: allSelected ? '取消全选' : '全选',
-            size: AppTextButtonSize.small,
-            isSelected: allSelected,
-            onPressed: () => toggleSelectAll(clipIds),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBatchBar(BuildContext context) {
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
     final hasSelection = selectedCount > 0;
-    return Container(
-      padding: EdgeInsets.all(spacing.md),
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        border: Border(top: BorderSide(color: colors.divider)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: AppButton(
-                key: const Key(
-                  'mobile-clip-collection-batch-add-collection-button',
-                ),
-                label: '加入合集',
-                variant: AppButtonVariant.secondary,
-                onPressed: hasSelection ? _batchAddToOtherCollection : null,
-              ),
-            ),
-            SizedBox(width: spacing.sm),
-            Expanded(
-              child: AppButton(
-                key: const Key(
-                  'mobile-clip-collection-batch-remove-button',
-                ),
-                label: '移除',
-                variant: AppButtonVariant.secondary,
-                onPressed: hasSelection ? _batchRemove : null,
-              ),
-            ),
-            SizedBox(width: spacing.sm),
-            Expanded(
-              child: AppButton(
-                key: const Key(
-                  'mobile-clip-collection-batch-delete-button',
-                ),
-                label: '删除',
-                variant: AppButtonVariant.danger,
-                onPressed: hasSelection ? _batchDelete : null,
-              ),
-            ),
-          ],
+    return AppSelectionBottomBar(
+      key: const Key('mobile-clip-collection-batch-bottom-bar'),
+      actions: [
+        AppButton(
+          key: const Key('mobile-clip-collection-batch-add-collection-button'),
+          label: '加入合集',
+          variant: AppButtonVariant.secondary,
+          onPressed: hasSelection ? _batchAddToOtherCollection : null,
         ),
-      ),
+        AppButton(
+          key: const Key('mobile-clip-collection-batch-remove-button'),
+          label: '移除',
+          variant: AppButtonVariant.secondary,
+          onPressed: hasSelection ? _batchRemove : null,
+        ),
+        AppButton(
+          key: const Key('mobile-clip-collection-batch-delete-button'),
+          label: '删除',
+          variant: AppButtonVariant.danger,
+          onPressed: hasSelection ? _batchDelete : null,
+        ),
+      ],
     );
   }
 }

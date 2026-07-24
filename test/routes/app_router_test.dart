@@ -1572,7 +1572,12 @@ void main() {
 
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
-    expect(find.text('系列影片'), findsWidgets);
+    // 页面把系列名报给返回栏（AppMobileSubpageTitle），静态标题「系列影片」被
+    // 换掉——移动端窄屏放不下完整系列名，放信息槽会被压成省略号。
+    expect(
+      tester.widget<Text>(find.byKey(const Key('mobile-subpage-title'))).data,
+      'Attackers',
+    );
     expect(find.byKey(const Key('mobile-series-movies-page')), findsOneWidget);
     final seriesPage = _findPageByName(tester, 'mobile-movie-series');
     expect(seriesPage, isA<CupertinoPage<void>>());

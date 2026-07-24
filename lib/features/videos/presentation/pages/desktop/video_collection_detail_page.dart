@@ -412,7 +412,8 @@ class _DesktopVideoCollectionDetailPageState
                 overflow: TextOverflow.ellipsis,
                 style: resolveAppTextStyle(
                   context,
-                  size: AppTextSize.s20,
+                  // 与切片合集详情统一 s18——两个合集详情是姊妹页。
+                  size: AppTextSize.s18,
                   weight: AppTextWeight.semibold,
                   tone: AppTextTone.primary,
                 ),

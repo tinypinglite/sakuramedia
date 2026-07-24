@@ -38,6 +38,10 @@ class MobileSeriesMoviesPage extends StatelessWidget {
               ),
       enableRefresh: true,
       onRefreshFailure: (_) => showToast('刷新失败'),
+      // 与移动影片页同一套移动范式：多选入口挂卡片长按、批量动作下沉到底部条。
+      useMobileSelectionLayout: true,
+      // 系列名进返回栏——信息槽里会被压成省略号。
+      hoistTitleToSubpageShell: true,
     );
   }
 }

@@ -14,10 +14,13 @@
 ## AppListHeader(+ `AppListHeaderInfo`)
 - **路径**: `lib/widgets/base/navigation/app_list_header.dart`
 - **用途**: 列表/分区顶栏,**桌面与移动共用同一条**。固定三段:左「筛选入口」/ 中「只读信息槽」/ 右「操作槽」。
-- **筛选入口二选一**(有 assert 守卫):
+- **筛选入口二选一**(有 assert 守卫,最多给一个):
   - 桌面 → `filterPanelBuilder`(+`filterPanelFooter`),点击**就地展开浮层**;
   - 移动 → `onFilterTap`,点击**弹底部抽屉**。
   两端按钮外观、面板内容、即时生效行为完全一致,只有容器不同。
+- **两个都不传 = 该列表没有筛选维度**(系列影片页:后端 `/movies/by-series` 只吃
+  seriesId + 分页),此时左侧不渲染入口、信息槽从最左开始。**只有真无筛选才这么用**
+  ——有筛选却不接入口,这一行会看起来像别的东西。
 - **可选**: `filterLabel`(当前筛选摘要,长在入口里) · `filterIcon` · `filterTooltip` · `filterButtonKey` · `filterEnabled`(筛选元数据没加载完时传 `false`,两端一致地不响应点击,外观不变;榜单页用) · `informationSlots` · `actionSlots`
 - **多选态**: 用命名构造 `AppListHeader.selection(selectionLabel:, onExitSelection:, actionSlots:)` **原地改写整条**——只放退出 / 计数 / 全选,批量动作走 `AppSelectionBottomBar`。
 - **注意**: 筛选入口外观**恒定**,不随「当前有没有筛选生效」变色;当前值由 `filterLabel` 表达。`filterLabel` 一律只报**一个主维度**(见各 `XxxFilterState.triggerLabel`)。

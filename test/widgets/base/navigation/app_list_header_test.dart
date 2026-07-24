@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_filter_entry_button.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 
 void main() {
@@ -58,6 +59,26 @@ void main() {
     await tester.pump();
 
     expect(taps, 1);
+  });
+
+  testWidgets('两个筛选参数都不传时不渲染入口，信息槽从最左开始', (tester) async {
+    await tester.pumpWidget(
+      wrap(
+        const AppListHeader(
+          informationSlots: [
+            AppListHeaderInfo(key: Key('title'), label: '某个系列'),
+            AppListHeaderInfo(key: Key('total'), label: '共 12 部'),
+          ],
+        ),
+      ),
+    );
+
+    // 无筛选维度的列表（如系列影片页）左侧不占位。
+    expect(find.byType(AppFilterEntryButton), findsNothing);
+
+    final headerRect = tester.getRect(find.byType(AppListHeader));
+    final titleRect = tester.getRect(find.byKey(const Key('title')));
+    expect(titleRect.left, headerRect.left);
   });
 
   testWidgets('filterEnabled 为 false 时筛选入口不响应点击，外观不变', (tester) async {

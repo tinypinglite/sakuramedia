@@ -15,6 +15,10 @@ import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
 /// 浮层，移动传 [onFilterTap] 弹底部抽屉；按钮外观、面板内容、即时生效的行为
 /// 完全一致。
 ///
+/// **两个都不传**表示这个列表没有筛选维度（如系列影片页——后端
+/// `/movies/by-series` 只吃 seriesId/分页），此时左侧不渲染入口，信息槽从最左
+/// 开始。只有真的无筛选才这么用；有筛选却不接入口会让这一行看起来像别的东西。
+///
 /// 进入多选后使用 [AppListHeader.selection] 原地改写整条顶栏，不再显示筛选入口
 /// 与常规信息，避免两套上下文同时出现。
 class AppListHeader extends StatelessWidget {
@@ -34,9 +38,9 @@ class AppListHeader extends StatelessWidget {
     this.informationSlots = const <Widget>[],
     this.actionSlots = const <Widget>[],
   }) : assert(
-         (onFilterTap == null) != (filterPanelBuilder == null),
+         onFilterTap == null || filterPanelBuilder == null,
          'onFilterTap（移动：底部抽屉）与 filterPanelBuilder（桌面：就地浮层）'
-         '必须且只能提供一个',
+         '最多只能提供一个',
        ),
        selectionLabel = null,
        onExitSelection = null,
@@ -108,6 +112,9 @@ class AppListHeader extends StatelessWidget {
 
   bool get _isSelectionMode => selectionLabel != null;
 
+  /// 这一行有没有筛选入口。两个筛选参数都不传 = 该列表无筛选维度。
+  bool get _hasFilterEntry => onFilterTap != null || filterPanelBuilder != null;
+
   /// 两端共用同一个 [AppFilterEntryButton] 外观，只有展开方式不同：
   /// 桌面就地浮层（[AppFilterPopover]），移动底部抽屉（[onFilterTap]）。
   Widget _buildFilterEntry(BuildContext context) {
@@ -154,7 +161,8 @@ class AppListHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final componentTokens = context.appComponentTokens;
-    final leading =
+    // 无筛选维度的列表（两个筛选参数都不传）左侧不占位，信息槽从最左开始。
+    final Widget? leading =
         _isSelectionMode
             ? AppIconButton(
               key: selectionExitButtonKey,
@@ -165,7 +173,7 @@ class AppListHeader extends StatelessWidget {
               size: AppIconButtonSize.regular,
               onPressed: onExitSelection,
             )
-            : _buildFilterEntry(context);
+            : (_hasFilterEntry ? _buildFilterEntry(context) : null);
 
     return Padding(
       padding: EdgeInsets.only(top: spacing.xs),
@@ -174,8 +182,7 @@ class AppListHeader extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            leading,
-            SizedBox(width: spacing.sm),
+            if (leading != null) ...[leading, SizedBox(width: spacing.sm)],
             Expanded(
               child: _HeaderSlotsViewport(
                 informationSlots:

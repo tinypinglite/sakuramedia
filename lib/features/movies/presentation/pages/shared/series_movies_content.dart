@@ -11,7 +11,10 @@ import 'package:sakuramedia/features/movies/presentation/widgets/series_import/s
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
@@ -38,6 +41,8 @@ class SeriesMoviesContent extends StatefulWidget {
     this.initialSeriesName,
     this.enableRefresh = false,
     this.onRefreshFailure,
+    this.useMobileSelectionLayout = false,
+    this.hoistTitleToSubpageShell = false,
   });
 
   final int seriesId;
@@ -50,6 +55,16 @@ class SeriesMoviesContent extends StatefulWidget {
   final SeriesMoviesBodyBuilder bodyBuilder;
   final bool enableRefresh;
   final void Function(BuildContext context)? onRefreshFailure;
+
+  /// 移动端多选布局：入口挂到**卡片长按浮层**（顶栏不再常驻「选择」），多选态
+  /// 顶栏只留退出/计数/全选，批量动作走贴底的 `AppSelectionBottomBar`。
+  /// 桌面端保持 `false`——批量动作在顶栏内联。语义对齐 `MovieListContent`。
+  final bool useMobileSelectionLayout;
+
+  /// 把系列名报给外层移动子页壳的返回栏（见 [AppMobileSubpageTitle]），信息槽里
+  /// 就不再放它。移动端窄屏塞不下完整系列名，放返回栏才不会被压成省略号；桌面
+  /// 顶栏是静态配置，仍走信息槽。
+  final bool hoistTitleToSubpageShell;
 
   @override
   State<SeriesMoviesContent> createState() => _SeriesMoviesContentState();
@@ -176,9 +191,12 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.hoistTitleToSubpageShell) {
+      _reportTitleToShell();
+    }
     // AnimatedBuilder 只包住 sliver body——bodyBuilder 产出的
     // CustomScrollView / AppAdaptiveRefreshScrollView 不需要跟着分页 tick 重建。
-    return AppPageRefreshScope(
+    final body = AppPageRefreshScope(
       onRefresh: _handleRefresh,
       child: ColoredBox(
         color: widget.surfaceColor,
@@ -200,24 +218,11 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent>
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         if (selectionMode)
-                          buildBatchSelectionToolbar()
-                        else ...[
-                          _SeriesMoviesHeader(
-                            seriesName: _displaySeriesName,
-                            total: _controller.total,
-                            totalKey: widget.totalKey,
-                            onImport: _handleImport,
-                          ),
-                          Padding(
-                            padding: EdgeInsets.only(
-                              top: context.appSpacing.xs,
-                            ),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: buildEnterSelectionButton(),
-                            ),
-                          ),
-                        ],
+                          (widget.useMobileSelectionLayout
+                              ? buildMobileBatchSelectionHeader()
+                              : buildBatchSelectionToolbar())
+                        else
+                          _buildHeader(context),
                         SizedBox(height: widget.sectionSpacing),
                       ],
                     ),
@@ -241,6 +246,71 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent>
           widget.enableRefresh ? _handleRefresh : null,
         ),
       ),
+    );
+
+    if (!widget.useMobileSelectionLayout) {
+      return body;
+    }
+    // 底部批量条贴在列表下方常驻，不随列表滚动（对齐 MovieListContent）。
+    return Column(
+      children: [
+        Expanded(child: body),
+        if (selectionMode)
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) => buildMobileBatchSelectionBottomBar(),
+          ),
+      ],
+    );
+  }
+
+  /// 把系列名报给外层返回栏。数据是异步来的，所以用 post-frame 回调写——直接在
+  /// build 里改 notifier 会触发 build-during-build。
+  void _reportTitleToShell() {
+    final name = _displaySeriesName.trim();
+    if (name.isEmpty) {
+      return;
+    }
+    final notifier = AppMobileSubpageTitle.read(context);
+    if (notifier == null || notifier.value == name) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        notifier.value = name;
+      }
+    });
+  }
+
+  /// 列表顶栏：与其它列表页共用同一条 `AppListHeader`。
+  ///
+  /// **本页没有筛选维度**——后端 `/movies/by-series` 只吃 seriesId + 分页，所以
+  /// 不接筛选入口，左侧留给信息槽。系列名与总数都是只读信息，「同步系列影片」
+  /// 与「选择」是操作。
+  Widget _buildHeader(BuildContext context) {
+    return AppListHeader(
+      informationSlots: [
+        // 系列名报到返回栏时信息槽就不再放它，免得同一个名字出现两次。
+        if (!widget.hoistTitleToSubpageShell)
+          AppListHeaderInfo(
+            key: const Key('series-movies-title'),
+            label: _displaySeriesName,
+          ),
+        AppListHeaderInfo(
+          key: widget.totalKey,
+          label: '共 ${_controller.total} 部',
+        ),
+      ],
+      actionSlots: [
+        AppTextButton(
+          key: const Key('series-movies-import-button'),
+          label: '同步系列影片',
+          size: AppTextButtonSize.small,
+          onPressed: _handleImport,
+        ),
+        // 移动端多选入口挂在卡片长按菜单里，顶栏不常驻「选择」。
+        if (!widget.useMobileSelectionLayout) buildEnterSelectionButton(),
+      ],
     );
   }
 
@@ -275,6 +345,14 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent>
             movieNumber: movie.movieNumber,
             globalPosition: globalPosition,
             isSubscribed: movie.isSubscribed,
+            // 移动端多选入口挂在长按菜单里，桌面仍在顶栏。
+            onEnterSelection:
+                widget.useMobileSelectionLayout
+                    ? () {
+                      enterSelection();
+                      toggleSelect(movie.movieNumber);
+                    }
+                    : null,
           ),
         );
       },
@@ -295,103 +373,5 @@ class _SeriesMoviesContentState extends State<SeriesMoviesContent>
       return null;
     }
     return trimmed;
-  }
-}
-
-class _SeriesMoviesHeader extends StatelessWidget {
-  const _SeriesMoviesHeader({
-    required this.seriesName,
-    required this.total,
-    required this.totalKey,
-    this.onImport,
-  });
-
-  final String seriesName;
-  final int total;
-  final Key totalKey;
-  final VoidCallback? onImport;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    return Container(
-      key: const Key('series-movies-header-card'),
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: spacing.md,
-        vertical: spacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.smBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-        boxShadow: context.appShadows.card,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              seriesName,
-              key: const Key('series-movies-title'),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.medium,
-                tone: AppTextTone.primary,
-              ),
-            ),
-          ),
-          SizedBox(width: spacing.md),
-          if (onImport != null) ...[
-            _ImportButton(onTap: onImport!),
-            SizedBox(width: spacing.sm),
-          ],
-          Text(
-            '共 $total 部',
-            key: totalKey,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.medium,
-              tone: AppTextTone.secondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ImportButton extends StatelessWidget {
-  const _ImportButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    return TextButton(
-      onPressed: onTap,
-      style: TextButton.styleFrom(
-        padding: EdgeInsets.symmetric(
-          horizontal: spacing.sm,
-          vertical: spacing.xs,
-        ),
-        minimumSize: Size.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        shape: RoundedRectangleBorder(borderRadius: context.appRadius.xsBorder),
-      ),
-      child: Text(
-        '同步系列影片',
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s12,
-          weight: AppTextWeight.medium,
-          tone: AppTextTone.accent,
-        ),
-      ),
-    );
   }
 }
