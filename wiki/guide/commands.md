@@ -144,6 +144,40 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands scan-med
 
 如果你想把这次巡检作为“后台任务”记录到活动中心里，建议用后面的 `aps scan-media-files` 版本。
 
+## 存量数据迁移
+
+::: warning 只有从老版本升级上来的用户才需要跑
+本节命令都是**一次性升级迁移**，用来把老结构的存量数据搬到新结构上：
+
+- **后端 v0.4.6 及之后版本首次部署的**：新入库数据从一开始就是新结构，**不用跑**
+- **从更早版本升级上来的**：按下面步骤跑一次即可，跑完就不用再管了
+
+命令都是幂等的，重跑会自动收敛；Ctrl+C 中断或容器崩溃后重跑也能接着走。
+:::
+
+### 剧照路径平铺
+
+老版本的影片剧照落在 `movies/<番号>/plots/N.ext`，30 万条规模下会额外产生 30 万个空的 `plots/` 中间目录。新版本改成同层平铺的 `movies/<番号>/plot-N.ext`，这条命令用来把存量数据搬过来。
+
+**先 dry-run 预览规模**（不会动任何文件和数据库）：
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands migrate-plot-layout --dry-run
+```
+
+确认统计合理后再真跑：
+
+```bash
+docker exec --user app -w /app sakuramedia python -m src.start.commands migrate-plot-layout
+```
+
+要点：
+
+- **进度会持续打日志**：service 侧每 1000 行或每 10 秒打一次心跳（`current/total`、速率、剩余时间），CLI 侧还会额外打点，30 万条规模下也不会静默
+- **可中断重跑**：`image.origin` 的单条 UPDATE 是原子提交点，Ctrl+C 或崩溃后重跑会把中间态（文件已改名、数据库未更新）自动补齐
+- **失败不阻塞**：`images_failed` / `images_data_lost` / `images_conflict_skipped` 都只累计在结果统计里，不会让整条命令挂掉；跑完看输出再决定要不要人工排查具体条目
+- **不进服务生命周期**：这条命令不会随服务启动自动执行，也没有进数据库迁移框架 —— 30 万条规模下大事务会把 PostgreSQL 的 WAL 打满并让容器 healthcheck 超时，评估后放弃自动迁移
+
 ## 单次执行后台任务
 
 这一组命令适合“我不想等下一个定时周期，现在就跑一次”。
