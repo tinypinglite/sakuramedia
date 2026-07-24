@@ -27,6 +27,7 @@ import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_sc
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
 
@@ -303,8 +304,8 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
               selectionMode: selectionMode,
               selectedIds: selectedIds,
               onVideoToggleSelect: (video) => toggleSelect(video.id),
-              headerTrailingBuilder: _buildSelectionControls,
-              headerInlineTrailingBuilder: _buildInlineSelectionTrigger,
+              selectionHeaderBuilder: _buildSelectionHeader,
+              headerActionsBuilder: _buildInlineSelectionTrigger,
             ),
           ],
         ),
@@ -312,51 +313,31 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
     );
   }
 
-  /// 总数行右侧的「选择」入口：仅在非选择模式且有数据时显示。
+  /// 顶栏右侧的「选择」入口：仅在非选择模式且有数据时显示。
   Widget? _buildInlineSelectionTrigger(BuildContext context) {
     if (selectionMode || _loadedVideos.isEmpty) {
       return null;
     }
-    return AppTextButton(
+    return AppSelectionEntryButton(
       key: const Key('videos-enter-selection-button'),
-      label: '选择',
-      size: AppTextButtonSize.small,
-      icon: const Icon(Icons.check_circle_outline, size: 16),
       onPressed: enterSelection,
     );
   }
 
-  /// 总数行下方的批量操作栏：仅选择模式下显示。
-  Widget? _buildSelectionControls(BuildContext context) {
-    if (!selectionMode) {
-      return null;
-    }
-
-    final loaded = _loadedVideos;
-    final videoIds = loaded.map((v) => v.id);
+  /// 多选态下**原地改写整条顶栏**（与影片列表一致），不在筛选行下面另起一行。
+  Widget? _buildSelectionHeader(BuildContext context) {
+    final videoIds = _loadedVideos.map((v) => v.id);
     final allSelected = isAllSelected(videoIds);
     final hasSelection = selectedCount > 0;
-    final spacing = context.appSpacing;
 
-    return Row(
-      children: [
-        Text(
-          '已选 $selectedCount 个',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.medium,
-            tone: AppTextTone.primary,
-          ),
-        ),
-        const Spacer(),
-        AppTextButton(
-          key: const Key('videos-select-all-button'),
-          label: allSelected ? '取消全选' : '全选',
-          size: AppTextButtonSize.small,
-          onPressed: () => toggleSelectAll(videoIds),
-        ),
-        SizedBox(width: spacing.sm),
+    return AppSelectionHeaderToolbar(
+      countLabel: '已选 $selectedCount 个',
+      countKey: const Key('videos-selection-count-text'),
+      selectAllLabel: allSelected ? '取消全选' : '全选(${_loadedVideos.length})',
+      selectAllKey: const Key('videos-select-all-button'),
+      onToggleAll:
+          _loadedVideos.isEmpty ? null : () => toggleSelectAll(videoIds),
+      actions: [
         AppButton(
           key: const Key('videos-batch-add-collection-button'),
           label: '加入合集',
@@ -364,7 +345,6 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
           size: AppButtonSize.small,
           onPressed: hasSelection ? _batchAddToCollection : null,
         ),
-        SizedBox(width: spacing.sm),
         AppButton(
           key: const Key('videos-batch-delete-button'),
           label: '删除',
@@ -372,14 +352,9 @@ class _DesktopVideoListPageState extends State<DesktopVideoListPage>
           size: AppButtonSize.small,
           onPressed: hasSelection ? _batchDelete : null,
         ),
-        SizedBox(width: spacing.sm),
-        AppTextButton(
-          key: const Key('videos-exit-selection-button'),
-          label: '取消',
-          size: AppTextButtonSize.small,
-          onPressed: exitSelection,
-        ),
       ],
+      exitKey: const Key('videos-exit-selection-button'),
+      onExit: exitSelection,
     );
   }
 

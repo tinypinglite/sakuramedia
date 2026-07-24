@@ -5,7 +5,8 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 
 /// 视频合集详情的内联排序工具条：手动顺序 + 视频列表排序字段 + 升降序，均即时生效。
 ///
-/// 与全部视频页的 `VideoFilterToolbar` 同款 chip，保证排序选项视觉对齐；额外把
+/// 与全部视频页筛选面板（`VideoFilterSectionGroup`）同款 chip，保证排序选项视觉
+/// 对齐；额外把
 /// 「手动顺序」（[VideoSortField]? 为 `null`）作为首个选项。手动顺序固定升序，
 /// 故选中时隐藏方向切换；其余字段沿用全部视频页的字段标签与方向语义。
 class VideoCollectionSortBar extends StatelessWidget {

@@ -83,6 +83,65 @@ class AppSelectionToolbar extends StatelessWidget {
   }
 }
 
+/// 桌面列表「多选态顶栏」：把 [AppSelectionToolbar] 放进与常规顶栏
+/// （`AppListHeader` / `AppFilterTotalHeader`）**等高**的容器里。
+///
+/// 进入多选是**原地改写这一行**，不是在筛选行下面再加一行——多出一行会让整页
+/// 内容上下跳动，也让「筛选」和「已选 N」两套上下文同时存在。高度取
+/// `mobileTopTabHeight`（顶栏统一档位），上边距取 `spacing.xs`，与
+/// [AppListHeader] 逐值对齐。
+///
+/// 移动端对应物是 `AppListHeader.selection`（顶栏只留退出/计数/全选，批量动作
+/// 下沉到 `AppSelectionBottomBar`）。
+class AppSelectionHeaderToolbar extends StatelessWidget {
+  const AppSelectionHeaderToolbar({
+    super.key,
+    required this.countLabel,
+    required this.selectAllLabel,
+    required this.onToggleAll,
+    required this.actions,
+    required this.onExit,
+    this.countKey,
+    this.selectAllKey,
+    this.exitKey,
+    this.exitLabel = '取消',
+  });
+
+  final String countLabel;
+  final String selectAllLabel;
+  final VoidCallback? onToggleAll;
+  final List<Widget> actions;
+  final VoidCallback? onExit;
+  final Key? countKey;
+  final Key? selectAllKey;
+  final Key? exitKey;
+  final String exitLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: context.appSpacing.xs),
+      child: SizedBox(
+        height: context.appComponentTokens.mobileTopTabHeight,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: AppSelectionToolbar(
+            countLabel: countLabel,
+            countKey: countKey,
+            selectAllLabel: selectAllLabel,
+            selectAllKey: selectAllKey,
+            onToggleAll: onToggleAll,
+            actions: actions,
+            exitKey: exitKey,
+            exitLabel: exitLabel,
+            onExit: onExit,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 非多选态下的「选择」入口按钮：小号 [AppTextButton] + 勾选圈图标。
 ///
 /// 只是按钮本体，不含对齐——调用方按自己的 header 结构决定怎么摆

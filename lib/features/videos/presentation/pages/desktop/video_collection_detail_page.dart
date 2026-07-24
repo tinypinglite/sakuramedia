@@ -15,13 +15,13 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_mode.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/video_collection_sort_bar.dart';
 import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
@@ -437,11 +437,8 @@ class _DesktopVideoCollectionDetailPageState
             // 选择模式下隐藏「选择/视图切换/播放全部」，仅保留标题与下方批量栏。
             if (!selectionMode) ...[
               if (items.isNotEmpty) ...[
-                AppTextButton(
+                AppSelectionEntryButton(
                   key: const Key('video-collection-enter-selection-button'),
-                  label: '选择',
-                  size: AppTextButtonSize.small,
-                  icon: const Icon(Icons.check_circle_outline, size: 16),
                   onPressed: enterSelection,
                 ),
                 SizedBox(width: context.appSpacing.sm),
@@ -492,27 +489,15 @@ class _DesktopVideoCollectionDetailPageState
     final itemIds = items.map((it) => it.itemId);
     final allSelected = isAllSelected(itemIds);
     final hasSelection = selectedCount > 0;
-    final spacing = context.appSpacing;
 
-    return Row(
-      children: [
-        Text(
-          '已选 $selectedCount 个',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.medium,
-            tone: AppTextTone.primary,
-          ),
-        ),
-        const Spacer(),
-        AppTextButton(
-          key: const Key('video-collection-select-all-button'),
-          label: allSelected ? '取消全选' : '全选',
-          size: AppTextButtonSize.small,
-          onPressed: () => toggleSelectAll(itemIds),
-        ),
-        SizedBox(width: spacing.sm),
+    // 与视频列表页同一份多选骨架（AppSelectionToolbar）；这里不套顶栏高度容器，
+    // 因为本页没有筛选顶栏，选择条挂在标题块下方。
+    return AppSelectionToolbar(
+      countLabel: '已选 $selectedCount 个',
+      selectAllLabel: allSelected ? '取消全选' : '全选',
+      selectAllKey: const Key('video-collection-select-all-button'),
+      onToggleAll: () => toggleSelectAll(itemIds),
+      actions: [
         AppButton(
           key: const Key('video-collection-batch-add-collection-button'),
           label: '加入合集',
@@ -520,7 +505,6 @@ class _DesktopVideoCollectionDetailPageState
           size: AppButtonSize.small,
           onPressed: hasSelection ? _batchAddToOtherCollection : null,
         ),
-        SizedBox(width: spacing.sm),
         AppButton(
           key: const Key('video-collection-batch-remove-button'),
           label: '从合集移除',
@@ -528,7 +512,6 @@ class _DesktopVideoCollectionDetailPageState
           size: AppButtonSize.small,
           onPressed: hasSelection ? _batchRemove : null,
         ),
-        SizedBox(width: spacing.sm),
         AppButton(
           key: const Key('video-collection-batch-delete-button'),
           label: '删除视频',
@@ -536,14 +519,9 @@ class _DesktopVideoCollectionDetailPageState
           size: AppButtonSize.small,
           onPressed: hasSelection ? _batchDelete : null,
         ),
-        SizedBox(width: spacing.sm),
-        AppTextButton(
-          key: const Key('video-collection-exit-selection-button'),
-          label: '取消',
-          size: AppTextButtonSize.small,
-          onPressed: exitSelection,
-        ),
       ],
+      exitKey: const Key('video-collection-exit-selection-button'),
+      onExit: exitSelection,
     );
   }
 

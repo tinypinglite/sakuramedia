@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
-import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_filter_sections.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
-import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 
-/// 弹出视频排序底部抽屉。**即时生效**，语义同 `showMobileMovieFilterDrawer`。
+/// 弹出视频排序底部抽屉。内容与桌面 `AppListHeader` 的就地浮层面板**完全一致**
+/// （同一个 `VideoFilterSectionGroup`），**即时生效**，语义同
+/// `showMobileMovieFilterDrawer`。
 Future<void> showMobileVideoSortDrawer(
   BuildContext context, {
   required VideoFilterState current,
@@ -62,26 +63,7 @@ class _MobileVideoSortDrawerContentState
         isDefault: _local.isDefault,
         onReset: () => _apply(VideoFilterState.initial),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          MovieFilterChoiceSection<VideoSortField>(
-            title: '排序字段',
-            options: VideoSortField.values,
-            selectedValue: _local.sortField,
-            labelBuilder: (field) => field.label,
-            onSelected: (field) => _apply(_local.copyWith(sortField: field)),
-          ),
-          SizedBox(height: context.appSpacing.lg),
-          MovieFilterChoiceSection<SortDirection>(
-            title: '升降序',
-            options: SortDirection.values,
-            selectedValue: _local.sortDirection,
-            labelBuilder: (dir) => dir == SortDirection.desc ? '降序' : '升序',
-            onSelected: (dir) => _apply(_local.copyWith(sortDirection: dir)),
-          ),
-        ],
-      ),
+      child: VideoFilterSectionGroup(filterState: _local, onChanged: _apply),
     );
   }
 }

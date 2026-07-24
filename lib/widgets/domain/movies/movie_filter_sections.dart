@@ -94,6 +94,7 @@ class MovieFilterChoiceSection<T> extends StatelessWidget {
     required this.selectedValue,
     required this.labelBuilder,
     required this.onSelected,
+    this.optionKeyBuilder,
   });
 
   final String title;
@@ -101,6 +102,10 @@ class MovieFilterChoiceSection<T> extends StatelessWidget {
   final T selectedValue;
   final String Function(T value) labelBuilder;
   final ValueChanged<T> onSelected;
+
+  /// 给每个选项 chip 生成稳定 Key（测试锚点）。语义对齐
+  /// `RankingFilterChoiceSection.optionKeyBuilder`；不传则不挂 Key。
+  final Key Function(T value)? optionKeyBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +128,7 @@ class MovieFilterChoiceSection<T> extends StatelessWidget {
           children: options
               .map(
                 (value) => AppTextButton(
+                  key: optionKeyBuilder?.call(value),
                   label: labelBuilder(value),
                   size: AppTextButtonSize.xSmall,
                   isSelected: value == selectedValue,

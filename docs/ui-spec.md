@@ -1041,7 +1041,7 @@ Web 端复用同一套壳层和页面结构，但浏览器环境下不启用窗�
 
 非 JAV 视频域是与影片（catalog）平行的「仅播放 + 整理」体系，管理无番号、无外部元数据的视频。后端复用同一套播放底座（缩略图 / 播放进度 / 时刻 / 签名播放地址），前端因此**最大化复用影片侧组件**。PornBox 的导入入口不在本域页面内，而是统一收口到「管理」分区的 `媒体导入` 页 `PornBox 影片` 标签（走 `/video-imports` 异步搬库作业，与 JAV `/import-jobs` 同构，详见 §6.14）。
 
-- **视频列表页**（`/desktop/library/videos`）：顶部为「搜索标题 + 新建视频 + 导入」行；下方依次为标签筛选面板（复用 `TagSelectorPanel`，视频域多标签固定 OR、隐藏匹配模式开关）、人物筛选面板（`PersonSelectorPanel`，按关键词分页搜索）、排序工具条（`VideoFilterToolbar`：入库 / 标题 / 时长 / 文件大小 × 升降序，对齐后端 `sort=created_at|title|duration|file_size`，默认 `created_at:desc`）与视频卡片网格（`VideoSummaryGrid` / `VideoSummaryCard`：封面 + 标题 + 左上角媒体数角标 + 中部播放按钮 + 右上角「···」菜单（加入合集 / 删除），参照切片卡）。分页复用 `PagedLoadController` + `AppPagedLoadMoreFooter`，标签 / 人物「已选项」变化即重载列表。
+- **视频列表页**（`/desktop/library/videos`）：顶部为「搜索标题 + 新建视频 + 导入」行；下方依次为标签筛选面板（复用 `TagSelectorPanel`，视频域多标签固定 OR、隐藏匹配模式开关）、人物筛选面板（`PersonSelectorPanel`，按关键词分页搜索）、列表顶栏（`AppListHeader`，与移动端同一条：筛选入口就地展开浮层，面板是与移动抽屉共用的 `VideoFilterSectionGroup`——入库 / 标题 / 时长 / 文件大小 × 升降序，对齐后端 `sort=created_at|title|duration|file_size`，默认 `created_at:desc`；中间总数胶囊，右侧「选择」入口）与视频卡片网格（`VideoSummaryGrid` / `VideoSummaryCard`：封面 + 标题 + 左上角媒体数角标 + 中部播放按钮 + 右上角「···」菜单（加入合集 / 删除），参照切片卡）。分页复用 `PagedLoadController` + `AppPagedLoadMoreFooter`，标签 / 人物「已选项」变化即重载列表。
 - **视频详情页**（`/desktop/library/videos/:videoId`）：头部封面 + 标题 + 简介 + 标签 / 人物 chips；操作区为「播放 / 编辑 / 加入合集 / 删除」；媒体源复用 `MovieMediaItemList`，时刻复用 `MovieMediaPointGallery`（吃同形的 `MovieMediaItemDto`）。编辑 / 新建走 `VideoEditDialog`（标题 / 简介 / 发布时间 / 标签 / 人物，编辑回填、关联整体替换）。
 - **视频播放页**（`/desktop/library/videos/:videoId/player`，shell 外全屏）：复用泛化后的 `MoviePlayerController` + `MoviePlayerSurface` + `MoviePlayerThumbnailPanel`。播放器控制器经泛化——字幕来源可空（视频无字幕抓取，短路为 `unsupported`），媒体项经 `VideoItemDetailDto → MovieDetailDto` 适配器喂入，缩略图 / 进度走 mediaId 维度共享端点。
 - **人物页**（`/desktop/library/persons`）：搜索 + 新建 + 人物卡片网格（头像 + 姓名 + 性别 + 关联视频数 + 编辑 / 删除）；点击进人物详情（`/desktop/library/persons/:personId`，按 person 过滤复用视频网格）。人物增删改走 `PersonEditDialog`。
@@ -1049,8 +1049,9 @@ Web 端复用同一套壳层和页面结构，但浏览器环境下不启用窗�
 - **连播**：合集播放携带上下文（`collectionId` + 有序 `playlist` 视频 id），`MoviePlayerSurface` 新增可加性 `onCompleted` 回调，本集自然结束自动跳下一集，到末尾停止；非合集进入不跳转。
 - **视频导入**：PornBox 列表页不再保留导入入口；导入统一在「媒体导入」页 `PornBox 影片` 标签的「新建导入」（`showVideoImportDialog`：目录浏览选源 + 媒体库 + 合集必选 + 导入方式），触发后为异步搬库作业并在该标签历史列表跟踪进度与失败文件（详见 §6.14）。
 - **移动端视频列表**：视频区使用 `AppListHeader`，左侧筛选图标打开排序底部抽屉，中间显示当前排序与总数，右侧「选择」仅控制视频列表；进入选择态后顶栏原地显示退出、已选数量与全选，批量加入合集 / 删除仍保留在底部操作栏。合集区的「新建 / 查看全部」保持在合集标题行，后续统一顶栏迁移时再接入操作槽。
+- **多选态两端规则**：桌面进入选择后**原地改写整条顶栏**为 `AppSelectionHeaderToolbar`（计数 / 全选 / 加入合集 / 删除 / 取消，高度与常规顶栏一致，不在筛选行下方另起一行）；移动端顶栏只留退出 / 计数 / 全选，批量动作在贴底的 `AppSelectionBottomBar`。视频合集详情页因为没有筛选顶栏，选择条用不套高度容器的裸 `AppSelectionToolbar`，挂在标题块下方。
 
-新增共享组件：`lib/widgets/videos/`（`VideoSummaryCard` / `VideoSummaryGrid` / `VideoFilterToolbar` / `VideoCollectionSortBar`）；合集成员行 `CollectionMemberRow` 新增 `reorderable`（默认 `true`，非手动排序时传 `false` 以隐藏拖拽手柄）；视频域专属选择器 `PersonSelectorPanel` 在 `lib/features/videos/presentation/`。`TagSelectorPanel` 新增可选 `showMatchModeToggle`（默认 `true`，影片侧不变；视频域传 `false`）。
+新增共享组件：`lib/widgets/videos/`（`VideoSummaryCard` / `VideoSummaryGrid` / `VideoFilterSectionGroup`（双端共用的筛选分节，取代原 `VideoFilterToolbar`） / `VideoCollectionSortBar`）；合集成员行 `CollectionMemberRow` 新增 `reorderable`（默认 `true`，非手动排序时传 `false` 以隐藏拖拽手柄）；视频域专属选择器 `PersonSelectorPanel` 在 `lib/features/videos/presentation/`。`TagSelectorPanel` 新增可选 `showMatchModeToggle`（默认 `true`，影片侧不变；视频域传 `false`）。
 
 ## 7. 共享组件基线
 

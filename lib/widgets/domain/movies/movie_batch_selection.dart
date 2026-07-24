@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/paged_movie_summary_controller.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
@@ -84,22 +83,9 @@ class MovieBatchSelectionToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 高度与常规态顶栏（AppListHeader / AppFilterTotalHeader）对齐，
-    // 进出多选不跳版。
-    return Padding(
-      padding: EdgeInsets.only(top: context.appSpacing.xs),
-      child: SizedBox(
-        height: context.appComponentTokens.mobileTopTabHeight,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: _buildToolbar(context),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToolbar(BuildContext context) {
-    return AppSelectionToolbar(
+    // 顶栏高度对齐、原地改写筛选行的规则都在 AppSelectionHeaderToolbar 里，
+    // 这里只负责塞影片特有的两个批量动作。
+    return AppSelectionHeaderToolbar(
       countLabel: '已选 $selectedCount 部',
       countKey: Key('$keyPrefix-selection-count-text'),
       selectAllLabel: allSelected ? '取消全选' : '全选($visibleTotal)',

@@ -50,14 +50,16 @@
 - **required**: `isSelected`
 - **何时用**: 多选模式下,卡片右上角覆盖。已经在 `ClipGridCard` / `ClipCoverCard` / `CollectionMemberCard` 等用了——新增可选卡片直接复用,**别再自己画一个**。
 
-## AppSelectionToolbar / AppSelectionEntryButton
+## AppSelectionToolbar / AppSelectionHeaderToolbar / AppSelectionEntryButton
 - **路径**: `lib/widgets/base/interaction/selection/app_selection_toolbar.dart`
 - **用途**: 多选态操作条骨架(`已选 N · Spacer · 全选/取消全选 · 批量动作… · 取消`)+ 非多选态的「选择」入口按钮。进入多选后**原地替换筛选行**,保持信息密度不变。
 - **required**(toolbar): `countLabel` · `selectAllLabel` · `onToggleAll` · `actions: List<Widget>` · `onExit`
 - **可选**(toolbar): `countKey` / `selectAllKey` / `exitKey`(测试锚点) · `exitLabel`(默认 `取消`)
+- **`AppSelectionHeaderToolbar`**: 上面那条 toolbar **套一层与常规顶栏等高的容器**(`spacing.xs` 上边距 + `mobileTopTabHeight`,与 `AppListHeader` 逐值对齐),参数与 toolbar 完全一致。**桌面列表页的多选态一律用它**——直接用裸 toolbar 会让进出多选时整页上下跳版;在筛选行**下面另起一行**同样错(两套上下文并存 + 跳版)。本身没有顶栏的页面(如视频合集详情)才用裸 toolbar。
 - **required**(entry button): `onPressed`(`null` 即禁用);`label` 默认 `选择`
 - **约定**: 计数单位由 caller 决定(`已选 3 部` / `已选 3 个`);「全选」文案的变体(`取消全选` / `全选(12)` / `全选可重置(2/5)`)也由 caller 拼好传入;批量动作按钮 caller 自备,通常 `AppButton(variant: primary, size: small)`,**只让正在执行的那一个 `isLoading`**,其余禁用即可。
-- **何时用**: 任何「进入多选 → 批量操作」列表的顶部条。现有薄壳:`MovieBatchSelectionToolbar`(影片批量订阅,见 [domain-widgets.md](./domain-widgets.md))、活动中心资源任务面板 `_ResourceTaskSelectionBar`。**别再手写那一坨 Row**。
+- **何时用**: 任何「进入多选 → 批量操作」列表的顶部条。现有薄壳:`MovieBatchSelectionToolbar`(影片批量订阅,见 [domain-widgets.md](./domain-widgets.md))、桌面 PornBox 视频列表、活动中心资源任务面板 `_ResourceTaskSelectionBar`。**别再手写那一坨 Row**。
+- **移动端对应物**: `AppListHeader.selection`(顶栏只留退出/计数/全选)+ `AppSelectionBottomBar`(批量动作贴底)。
 - **配合**: 状态机走 `MultiSelectStateMixin`,卡片角标走 `SelectionCheckBadge`。
 
 ## AppSelectableTile
