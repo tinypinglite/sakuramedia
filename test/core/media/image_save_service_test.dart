@@ -25,6 +25,7 @@ void main() {
         writtenPath = path;
         writtenBytes = bytes;
       },
+      resolvePlatform: () => ImageSavePlatform.desktop,
     );
 
     final result = await service.saveImageFromUrl(
@@ -47,6 +48,7 @@ void main() {
         pickSavePath:
             ({required suggestedFileName, String? dialogTitle}) async => null,
         writeFile: (_, __) async {},
+        resolvePlatform: () => ImageSavePlatform.desktop,
       );
 
       final result = await service.saveImageFromUrl(
