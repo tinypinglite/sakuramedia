@@ -242,10 +242,8 @@ void main() {
       );
 
       await tester.enterText(
-        find.byKey(
-          const Key('configuration-advanced-collection-duration-field'),
-        ),
-        '301',
+        find.byKey(const Key('configuration-advanced-min-video-size-field')),
+        '257',
       );
       await tester.tap(find.byKey(const Key('configuration-tab-playlists')));
       await tester.pumpAndSettle();
@@ -2375,7 +2373,6 @@ Map<String, dynamic> _buildAdvancedConfigResponseJson() {
     'values': <String, dynamic>{
       'media': <String, dynamic>{
         'others_number_features': <String>['OFJE', 'CJOB'],
-        'collection_duration_threshold_minutes': 300,
         'inner_sub_tags': <String>['中字', '-C'],
         'blueray_tags': <String>['蓝光', '4K'],
         'uncensored_tags': <String>['uncensored', '-UC'],

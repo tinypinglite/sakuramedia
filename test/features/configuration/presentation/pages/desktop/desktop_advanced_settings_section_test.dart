@@ -342,7 +342,6 @@ Map<String, dynamic> _buildAdvancedConfigJson({
     'values': <String, dynamic>{
       'media': <String, dynamic>{
         'others_number_features': <String>['OFJE', 'CJOB'],
-        'collection_duration_threshold_minutes': 300,
         'inner_sub_tags': <String>['中字', '-C'],
         'blueray_tags': <String>['蓝光', '4K'],
         'uncensored_tags': <String>['uncensored', '-UC'],

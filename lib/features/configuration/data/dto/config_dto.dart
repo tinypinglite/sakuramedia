@@ -1,5 +1,21 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 
+/// `GET /config` 的整包快照。**解析容错分两档**：
+///
+/// - **节级严格**：`values` 与 `media`/`metadata`/`scheduler`/`downloads`/`logging`
+///   五节缺失或不是对象 → 抛 [FormatException]。整节没了是真·契约破裂，该炸得响。
+/// - **字段级容错**：节内单个字段缺失/类型漂移 → 走 `core/json/json_parse.dart`
+///   取默认值，不抛。
+///
+/// 之所以这么分：本 DTO 被「下载偏好」和「高级设置」两页共用，各自只关心其中一节。
+/// 早先字段级也抛异常，结果后端删掉 `media.collection_duration_threshold_minutes`
+/// 之后，只读 `downloads` 一节的下载偏好页也被 media 节拖成「加载失败」，而
+/// [apiErrorMessage] 对非 [ApiException] 只会吐兜底文案，页面上看不到任何线索。
+///
+/// 代价：后端再删字段时，该字段会静默显示默认值，且该卡片的 PATCH 会因为提交了
+/// 后端已拒绝的 key 而 422——但其余卡片和另一整页仍然可用，比两页全砖强得多。
+/// 契约漂移最终仍要靠前后端同步修，这里只保证漂移不会连坐。
 class ConfigResourceDto {
   const ConfigResourceDto({
     required this.media,
@@ -41,12 +57,9 @@ class ConfigResourceDto {
           result,
           key,
         ) {
-          final value = effects[key];
+          final value = asStringOrNull(effects[key]);
           if (value == null) {
             return result;
-          }
-          if (value is! String) {
-            throw FormatException('/config effects "$key" must be a string');
           }
           result[key] = value;
           return result;
@@ -98,7 +111,6 @@ class PendingRestartFieldDto {
 class AdvancedMediaConfigDto {
   const AdvancedMediaConfigDto({
     required this.othersNumberFeatures,
-    required this.collectionDurationThresholdMinutes,
     required this.innerSubTags,
     required this.bluerayTags,
     required this.uncensoredTags,
@@ -107,7 +119,6 @@ class AdvancedMediaConfigDto {
   });
 
   final List<String> othersNumberFeatures;
-  final int collectionDurationThresholdMinutes;
   final List<String> innerSubTags;
   final List<String> bluerayTags;
   final List<String> uncensoredTags;
@@ -118,10 +129,6 @@ class AdvancedMediaConfigDto {
     return AdvancedMediaConfigDto(
       othersNumberFeatures: List<String>.unmodifiable(
         _stringList(json, 'others_number_features'),
-      ),
-      collectionDurationThresholdMinutes: _intAt(
-        json,
-        'collection_duration_threshold_minutes',
       ),
       innerSubTags: List<String>.unmodifiable(
         _stringList(json, 'inner_sub_tags'),
@@ -140,8 +147,6 @@ class AdvancedMediaConfigDto {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'others_number_features': othersNumberFeatures,
-      'collection_duration_threshold_minutes':
-          collectionDurationThresholdMinutes,
       'inner_sub_tags': innerSubTags,
       'blueray_tags': bluerayTags,
       'uncensored_tags': uncensoredTags,
@@ -167,9 +172,9 @@ class AdvancedMetadataConfigDto {
   factory AdvancedMetadataConfigDto.fromJson(Map<String, dynamic> json) {
     return AdvancedMetadataConfigDto(
       javdbHost: _stringAt(json, 'javdb_host'),
-      javdbUsername: _nullableStringAt(json, 'javdb_username'),
-      javdbPassword: _nullableStringAt(json, 'javdb_password'),
-      proxy: _nullableStringAt(json, 'proxy'),
+      javdbUsername: _stringAt(json, 'javdb_username'),
+      javdbPassword: _stringAt(json, 'javdb_password'),
+      proxy: _stringAt(json, 'proxy'),
     );
   }
 
@@ -216,7 +221,12 @@ class AdvancedSchedulerConfigDto {
     return AdvancedSchedulerConfigDto(
       crons: Map<String, String>.unmodifiable(
         cronKeys.fold<Map<String, String>>(<String, String>{}, (result, key) {
-          result[key] = _stringAt(json, '${key}_cron');
+          final cron = asStringOrNull(json['${key}_cron']);
+          // 后端删/改某个 cron 时跳过该项，UI 侧 `crons[key] ?? ''` 已能兜住。
+          if (cron == null) {
+            return result;
+          }
+          result[key] = cron;
           return result;
         }),
       ),
@@ -294,7 +304,9 @@ class AdvancedLoggingConfigDto {
   final String level;
 
   factory AdvancedLoggingConfigDto.fromJson(Map<String, dynamic> json) {
-    return AdvancedLoggingConfigDto(level: _stringAt(json, 'level'));
+    return AdvancedLoggingConfigDto(
+      level: _stringAt(json, 'level', fallback: 'INFO'),
+    );
   }
 
   Map<String, dynamic> toJson() {
@@ -337,63 +349,37 @@ Map<String, dynamic> _optionalObjectAt(
   return Map<String, dynamic>.from(value);
 }
 
+/// 列表项里非对象的条目直接跳过（后端加了新形态的元素时不该整包解析失败）。
 List<Map<String, dynamic>> _objectList(Map<String, dynamic> json, String key) {
   final value = json[key];
-  if (value == null) {
-    return const <Map<String, dynamic>>[];
-  }
   if (value is! List) {
-    throw FormatException('object "$key" must be a list');
+    return const <Map<String, dynamic>>[];
   }
   return <Map<String, dynamic>>[
     for (final item in value)
-      if (item is Map)
-        Map<String, dynamic>.from(item)
-      else
-        throw FormatException('object "$key" contains a non-object item'),
+      if (asMapOrNull(item) case final map?) map,
   ];
 }
 
-String _stringAt(Map<String, dynamic> json, String key) {
-  final value = json[key];
-  if (value is! String) {
-    throw FormatException('object missing "$key" string');
-  }
-  return value;
+String _stringAt(
+  Map<String, dynamic> json,
+  String key, {
+  String fallback = '',
+}) {
+  return asStringOrNull(json[key]) ?? fallback;
 }
 
-String _nullableStringAt(Map<String, dynamic> json, String key) {
-  final value = json[key];
-  if (value == null) {
-    return '';
-  }
-  if (value is! String) {
-    throw FormatException('object "$key" must be a string or null');
-  }
-  return value;
-}
-
-int _intAt(Map<String, dynamic> json, String key) {
-  final value = json[key];
-  if (value is int) {
-    return value;
-  }
-  if (value is num && value == value.roundToDouble()) {
-    return value.toInt();
-  }
-  throw FormatException('object missing "$key" integer');
+int _intAt(Map<String, dynamic> json, String key, {int fallback = 0}) {
+  return asInt(json[key], fallback: fallback);
 }
 
 List<String> _stringList(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value is! List) {
-    throw FormatException('object missing "$key" list');
+    return const <String>[];
   }
   return <String>[
     for (final item in value)
-      if (item is String)
-        item
-      else
-        throw FormatException('object "$key" contains a non-string item'),
+      if (asStringOrNull(item) case final text?) text,
   ];
 }

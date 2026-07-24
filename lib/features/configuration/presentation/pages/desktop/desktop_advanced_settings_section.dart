@@ -41,7 +41,6 @@ class _DesktopAdvancedSettingsSectionState
   final GlobalKey<FormState> _otherFormKey = GlobalKey<FormState>();
 
   late final TextEditingController _othersNumberFeaturesController;
-  late final TextEditingController _collectionDurationThresholdController;
   late final TextEditingController _innerSubTagsController;
   late final TextEditingController _bluerayTagsController;
   late final TextEditingController _uncensoredTagsController;
@@ -69,7 +68,6 @@ class _DesktopAdvancedSettingsSectionState
   void initState() {
     super.initState();
     _othersNumberFeaturesController = TextEditingController();
-    _collectionDurationThresholdController = TextEditingController();
     _innerSubTagsController = TextEditingController();
     _bluerayTagsController = TextEditingController();
     _uncensoredTagsController = TextEditingController();
@@ -100,7 +98,6 @@ class _DesktopAdvancedSettingsSectionState
   @override
   void dispose() {
     _othersNumberFeaturesController.dispose();
-    _collectionDurationThresholdController.dispose();
     _innerSubTagsController.dispose();
     _bluerayTagsController.dispose();
     _uncensoredTagsController.dispose();
@@ -193,21 +190,6 @@ class _DesktopAdvancedSettingsSectionState
             _buildFieldGrid(
               context,
               children: [
-                AppTextField(
-                  fieldKey: const Key(
-                    'configuration-advanced-collection-duration-field',
-                  ),
-                  controller: _collectionDurationThresholdController,
-                  label: '合集时长阈值',
-                  hintText: '请输入分钟数',
-                  helperText: '影片时长严格大于该值时，才按时长判定为合集。',
-                  keyboardType: TextInputType.number,
-                  suffix: const _UnitSuffix(label: '分钟'),
-                  tightSuffix: true,
-                  validator: (value) =>
-                      _positiveIntError(value, label: '合集时长阈值'),
-                  onChanged: (_) => _markDirty(_AdvancedCardKind.media),
-                ),
                 AppTextField(
                   fieldKey: const Key(
                     'configuration-advanced-min-video-size-field',
@@ -712,9 +694,6 @@ class _DesktopAdvancedSettingsSectionState
       'others_number_features': _splitMultilineValues(
         _othersNumberFeaturesController.text,
       ),
-      'collection_duration_threshold_minutes': _parseInt(
-        _collectionDurationThresholdController.text,
-      ),
       'inner_sub_tags': _splitMultilineValues(_innerSubTagsController.text),
       'blueray_tags': _splitMultilineValues(_bluerayTagsController.text),
       'uncensored_tags': _splitMultilineValues(_uncensoredTagsController.text),
@@ -772,8 +751,6 @@ class _DesktopAdvancedSettingsSectionState
     _othersNumberFeaturesController.text = media.othersNumberFeatures.join(
       '\n',
     );
-    _collectionDurationThresholdController.text =
-        media.collectionDurationThresholdMinutes.toString();
     _innerSubTagsController.text = media.innerSubTags.join('\n');
     _bluerayTagsController.text = media.bluerayTags.join('\n');
     _uncensoredTagsController.text = media.uncensoredTags.join('\n');

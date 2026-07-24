@@ -88,6 +88,39 @@ void main() {
         throwsA(isA<FormatException>()),
       );
     });
+
+    // 回归：后端删掉 media.collection_duration_threshold_minutes 之后，只读
+    // downloads 一节的「下载偏好」页也被整包解析异常拖成「加载失败」。字段级
+    // 缺失必须降级成默认值，不能连坐其它节。
+    test('tolerates unknown field removal inside a section', () async {
+      final sessionStore = await _buildLoggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+
+      final body = _buildConfigResourceJson();
+      final values = body['values'] as Map<String, dynamic>;
+      (values['media'] as Map<String, dynamic>)
+        ..remove('allowed_min_video_file_size')
+        ..remove('uncensored_tags');
+      (values['logging'] as Map<String, dynamic>).remove('level');
+      (values['scheduler'] as Map<String, dynamic>).remove('movie_heat_cron');
+      bundle.adapter.enqueueJson(method: 'GET', path: '/config', body: body);
+
+      final result = await bundle.configApi.get();
+
+      // 缺失字段降级成默认值……
+      expect(result.media.allowedMinVideoFileSize, 0);
+      expect(result.media.uncensoredTags, isEmpty);
+      expect(result.logging.level, 'INFO');
+      expect(result.scheduler.crons.containsKey('movie_heat'), isFalse);
+      // ……同节其它字段与其它节完全不受影响。
+      expect(result.media.othersNumberFeatures, <String>['OFJE', 'CJOB']);
+      expect(result.downloads.smallFileCleanupThresholdMb, 256);
+      expect(result.downloads.preferredClientKinds, <DownloadClientKind>[
+        DownloadClientKind.qbittorrent,
+        DownloadClientKind.cloud115,
+      ]);
+    });
   });
 }
 
@@ -99,7 +132,6 @@ Map<String, dynamic> _buildConfigResourceJson({
     'values': <String, dynamic>{
       'media': <String, dynamic>{
         'others_number_features': <String>['OFJE', 'CJOB'],
-        'collection_duration_threshold_minutes': 300,
         'inner_sub_tags': <String>['中字', '-C'],
         'blueray_tags': <String>['蓝光', '4K'],
         'uncensored_tags': <String>['uncensored', '-UC'],
