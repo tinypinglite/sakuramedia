@@ -60,7 +60,9 @@ class AppFilterEntryButton extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: colors.surfaceMuted,
-                borderRadius: context.appRadius.mdBorder,
+                // 胶囊只有 28/32 高，md(12) 会圆到接近药丸；sm(8) 才是顶栏这
+                // 一档小控件的圆角，与 AppListHeaderInfo 保持同一档。
+                borderRadius: context.appRadius.smBorder,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

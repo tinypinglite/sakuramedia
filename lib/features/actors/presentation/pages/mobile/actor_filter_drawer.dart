@@ -5,8 +5,9 @@ import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_filter_sections.dart';
 
-/// 弹出移动端演员筛选底部抽屉。内容与行为对齐桌面 `ActorFilterToolbar` 的浮层
-/// 面板，见 `showMobileMovieFilterDrawer` 的说明。
+/// 弹出移动端演员筛选底部抽屉。内容与行为对齐桌面女优页 `AppListHeader` 的就地
+/// 浮层面板（同一个 `ActorFilterSectionGroup`），见 `showMobileMovieFilterDrawer`
+/// 的说明。
 Future<void> showMobileActorFilterDrawer(
   BuildContext context, {
   required ActorFilterState current,

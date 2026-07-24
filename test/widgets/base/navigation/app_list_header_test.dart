@@ -60,6 +60,40 @@ void main() {
     expect(taps, 1);
   });
 
+  testWidgets('filterEnabled 为 false 时筛选入口不响应点击，外观不变', (tester) async {
+    final colors = sakuraThemeData.extension<AppColors>()!;
+    var taps = 0;
+    await tester.pumpWidget(
+      wrap(
+        AppListHeader(
+          filterButtonKey: const Key('filter'),
+          filterLabel: '全部榜单',
+          filterEnabled: false,
+          onFilterTap: () => taps += 1,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('filter')));
+    await tester.pump();
+
+    expect(taps, 0);
+
+    // 只是暂时不响应，不是另一种视觉状态。
+    final container = tester.widget<Container>(
+      find
+          .descendant(
+            of: find.byKey(const Key('filter')),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    expect(
+      (container.decoration! as BoxDecoration).color,
+      colors.surfaceMuted,
+    );
+  });
+
   testWidgets('筛选入口带摘要时显示摘要与下拉箭头', (tester) async {
     await tester.pumpWidget(
       wrap(

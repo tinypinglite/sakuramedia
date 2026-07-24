@@ -13,8 +13,10 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
-import 'package:sakuramedia/widgets/domain/actors/actor_filter_toolbar.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/domain/actors/actor_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_summary_grid.dart';
 
 class DesktopActorsPage extends StatefulWidget {
@@ -89,7 +91,10 @@ class _DesktopActorsPageState extends State<DesktopActorsPage> {
             AnimatedBuilder(
               animation: _actorsController,
               builder: (context, _) {
-                final footer = _buildLoadMoreFooter(context);
+                final showFooter =
+                    _actorsController.items.isNotEmpty &&
+                    (_actorsController.isLoadingMore ||
+                        _actorsController.loadMoreErrorMessage != null);
                 return SliverMainAxisGroup(
                   slivers: [
                     SliverToBoxAdapter(
@@ -127,11 +132,16 @@ class _DesktopActorsPageState extends State<DesktopActorsPage> {
                               ? '暂无女优，去搜索看看吧'
                               : '当前筛选条件下暂无匹配女优',
                     ),
-                    if (footer != null)
+                    if (showFooter)
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: EdgeInsets.only(top: context.appSpacing.md),
-                          child: footer,
+                          child: AppPagedLoadMoreFooter(
+                            isLoading: _actorsController.isLoadingMore,
+                            errorMessage:
+                                _actorsController.loadMoreErrorMessage,
+                            onRetry: _actorsController.loadMore,
+                          ),
                         ),
                       ),
                   ],
@@ -144,83 +154,6 @@ class _DesktopActorsPageState extends State<DesktopActorsPage> {
     );
   }
 
-  Widget? _buildLoadMoreFooter(BuildContext context) {
-    if (_actorsController.items.isEmpty) {
-      return null;
-    }
-
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final componentTokens = context.appComponentTokens;
-
-    if (_actorsController.isLoadingMore) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: spacing.md),
-          child: SizedBox(
-            width: componentTokens.movieCardLoaderSize,
-            height: componentTokens.movieCardLoaderSize,
-            child: CircularProgressIndicator(
-              strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_actorsController.loadMoreErrorMessage == null) {
-      return null;
-    }
-
-    return Center(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surfaceMuted,
-          borderRadius: context.appRadius.mdBorder,
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: spacing.lg,
-            vertical: spacing.sm,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline_rounded,
-                size: componentTokens.iconSizeXl,
-                color: context.appTextPalette.secondary,
-              ),
-              SizedBox(width: spacing.sm),
-              Text(
-                _actorsController.loadMoreErrorMessage!,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              TextButton(
-                onPressed: _actorsController.loadMore,
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: spacing.sm,
-                    vertical: spacing.xs,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text('重试'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _ActorsHeader extends StatelessWidget {
@@ -238,14 +171,28 @@ class _ActorsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppFilterTotalHeader(
-      leading: ActorFilterToolbar(
-        filterState: filterState,
-        onChanged: onFilterChanged,
+    // 与移动女优页共用同一条顶栏，差别只在筛选面板的容器：
+    // 桌面就地浮层，移动底部抽屉（见 `showMobileActorFilterDrawer`）。
+    return AppListHeader(
+      filterButtonKey: const Key('actors-filter-trigger'),
+      filterLabel: filterState.triggerLabel,
+      filterPanelKey: const Key('actors-filter-panel'),
+      filterPanelExtraWidth: 180,
+      filterPanelBuilder:
+          (_) => ActorFilterSectionGroup(
+            filterState: filterState,
+            onChanged: onFilterChanged,
+          ),
+      filterPanelFooter: AppFilterPanelFooter(
+        isDefault: filterState.isDefault,
         onReset: onResetFilters,
       ),
-      totalText: '$total 位',
-      totalKey: const Key('actors-page-total'),
+      informationSlots: [
+        AppListHeaderInfo(
+          key: const Key('actors-page-total'),
+          label: '$total 位',
+        ),
+      ],
     );
   }
 }

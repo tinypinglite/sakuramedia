@@ -30,6 +30,7 @@ class AppListHeader extends StatelessWidget {
     this.filterLabel,
     this.filterTooltip = '筛选',
     this.filterButtonKey,
+    this.filterEnabled = true,
     this.informationSlots = const <Widget>[],
     this.actionSlots = const <Widget>[],
   }) : assert(
@@ -59,6 +60,7 @@ class AppListHeader extends StatelessWidget {
        filterLabel = null,
        filterTooltip = null,
        filterButtonKey = null,
+       filterEnabled = true,
        informationSlots = const <Widget>[];
 
   /// **移动端**筛选入口：点击弹底部抽屉。与 [filterPanelBuilder] 二选一。
@@ -87,6 +89,11 @@ class AppListHeader extends StatelessWidget {
   final String? filterTooltip;
   final Key? filterButtonKey;
 
+  /// 筛选入口是否可点。**两端同一个开关**：榜单页在筛选元数据（来源 / 榜单）
+  /// 还没加载完时传 `false`，避免点开一个空面板。外观不变——它只是暂时不响应，
+  /// 不是另一种状态。
+  final bool filterEnabled;
+
   /// 不可点击的信息节点，例如当前筛选摘要、总数、排行榜更新时间。
   final List<Widget> informationSlots;
 
@@ -112,7 +119,7 @@ class AppListHeader extends StatelessWidget {
           icon: filterIcon,
           label: filterLabel,
           tooltip: filterTooltip,
-          onTap: onFilterTap,
+          onTap: filterEnabled ? onFilterTap : null,
         ),
       );
     }
@@ -121,6 +128,7 @@ class AppListHeader extends StatelessWidget {
       triggerLabel: filterLabel ?? '',
       panelKey: filterPanelKey ?? const Key('app-filter-header-panel'),
       panelExtraWidth: filterPanelExtraWidth,
+      enabled: filterEnabled,
       onOpened: onFilterPanelOpened,
       alignment: AppFilterPopoverAlignment.leftAlignedToTrigger,
       panelBuilder: panelBuilder,
@@ -211,7 +219,8 @@ class AppListHeaderInfo extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: context.appColors.surfaceMuted,
-        borderRadius: context.appRadius.mdBorder,
+        // 与 AppFilterEntryButton 同一档圆角，整条顶栏的胶囊看起来是一套。
+        borderRadius: context.appRadius.smBorder,
       ),
       child: Padding(
         padding: EdgeInsets.symmetric(

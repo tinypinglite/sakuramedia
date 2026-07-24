@@ -28,10 +28,11 @@
 - **何时用**: 所有女优网格页面(女优发现、时刻里的女优、搜索结果女优 tab)。
 - **实现**: 内部走 `AppAdaptiveCardGrid<ActorListItemDto>`(fixedAspect)。改列宽 / 四态观感请去 [data-loading.md](./data-loading.md) 的 `AppAdaptiveCardGrid<T>`。
 
-### ActorFilterToolbar / ActorFilterSectionGroup / ActorFilterChoiceSection&lt;T&gt; / ActorSortSection
-- **路径**: `lib/widgets/domain/actors/actor_filter_toolbar.dart` · `actor_filter_sections.dart`
-- **用途**: 女优筛选。桌面用 toolbar(横排 popover),移动把 sections 放进 `AppMobileFilterDrawerScaffold`。
-- **ActorFilterToolbar required**: `filterState` · `onChanged` · `onReset`
+### ActorFilterSectionGroup / ActorFilterChoiceSection&lt;T&gt; / ActorSortSection
+- **路径**: `lib/widgets/domain/actors/actor_filter_sections.dart`
+- **用途**: 女优筛选分节组,**双端共用同一份**:桌面塞进 `AppListHeader.filterPanelBuilder` 的就地浮层,移动塞进 `AppMobileFilterDrawerScaffold` 的底部抽屉。
+- **required**: `filterState` · `onChanged`
+- **注意**: 已无 `ActorFilterToolbar`——桌面筛选入口统一由 `AppListHeader` 提供,重置按钮走 `AppFilterPanelFooter`。
 
 ---
 
@@ -150,10 +151,12 @@
 - **可选**: `errorMessage` · `onMovieTap` · `onMovieMenuRequest` · `onMovieSubscriptionTap` · `isMovieSubscriptionUpdating` · `emptyMessage` · `placeholderCount`
 - **实现**: 内部走 `AppAdaptiveCardGrid<RankedMovieListItemDto>`(fixedAspect)。改列宽 / 四态观感请去 [data-loading.md](./data-loading.md) 的 `AppAdaptiveCardGrid<T>`。
 
-### RankingFilterToolbar / RankingFilterSectionGroup / RankingFilterChoiceSection&lt;T&gt; / RankingSortSection / RankingFilterSectionKeys / RankingFilterAnchor
-- **路径**: `lib/features/rankings/presentation/widgets/ranking_filter_toolbar.dart` · `ranking_filter_sections.dart`
-- **用途**: 排行榜专用筛选(**多了 source / board / period 三个维度**,比 movies 复杂)。
-- **RankingFilterToolbar required**: `sources` · `selectedSource` · `boards` · `selectedBoard` · `selectedPeriod` · `onSourceChanged` · `onBoardChanged` · `onPeriodChanged` · `isLoading` · `selectedSortField` · `selectedSortDirection` · `onSortChanged`
+### RankingFilterSectionGroup / RankingFilterChoiceSection&lt;T&gt; / RankingSortSection / RankingFilterSectionKeys / RankingFilterAnchor
+- **路径**: `lib/features/rankings/presentation/widgets/ranking_filter_sections.dart`
+- **用途**: 排行榜专用筛选分节组(**多了 source / board / period 三个维度**,比 movies 复杂),**双端共用同一份**:桌面塞进 `AppListHeader.filterPanelBuilder` 的就地浮层,移动塞进 `AppMobileFilterDrawerScaffold` 的底部抽屉。
+- **required**: `sources` · `selectedSource` · `boards` · `selectedBoard` · `selectedPeriod` · `onSourceChanged` · `onBoardChanged` · `onPeriodChanged` · `selectedSortField` · `selectedSortDirection` · `onSortChanged`
+- **可选**: `sectionKeys`(配合 `RankingFilterAnchor` 让抽屉打开后滚动定位到某个分节)
+- **注意**: 已无 `RankingFilterToolbar`——桌面筛选入口统一由 `AppListHeader` 提供;筛选元数据加载中走 `AppListHeader.filterEnabled: false`(原 toolbar 的 `isLoading`)。
 
 ---
 

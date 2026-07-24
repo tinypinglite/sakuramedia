@@ -18,7 +18,7 @@
   - 桌面 → `filterPanelBuilder`(+`filterPanelFooter`),点击**就地展开浮层**;
   - 移动 → `onFilterTap`,点击**弹底部抽屉**。
   两端按钮外观、面板内容、即时生效行为完全一致,只有容器不同。
-- **可选**: `filterLabel`(当前筛选摘要,长在入口里) · `filterIcon` · `filterTooltip` · `filterButtonKey` · `informationSlots` · `actionSlots`
+- **可选**: `filterLabel`(当前筛选摘要,长在入口里) · `filterIcon` · `filterTooltip` · `filterButtonKey` · `filterEnabled`(筛选元数据没加载完时传 `false`,两端一致地不响应点击,外观不变;榜单页用) · `informationSlots` · `actionSlots`
 - **多选态**: 用命名构造 `AppListHeader.selection(selectionLabel:, onExitSelection:, actionSlots:)` **原地改写整条**——只放退出 / 计数 / 全选,批量动作走 `AppSelectionBottomBar`。
 - **注意**: 筛选入口外观**恒定**,不随「当前有没有筛选生效」变色;当前值由 `filterLabel` 表达。`filterLabel` 一律只报**一个主维度**(见各 `XxxFilterState.triggerLabel`)。
 

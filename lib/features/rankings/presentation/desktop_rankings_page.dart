@@ -17,12 +17,12 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/features/rankings/presentation/widgets/ranked_movie_summary_grid.dart';
-import 'package:sakuramedia/features/rankings/presentation/widgets/ranking_filter_toolbar.dart';
+import 'package:sakuramedia/features/rankings/presentation/widgets/ranking_filter_sections.dart';
 
 class DesktopRankingsPage extends StatefulWidget {
   const DesktopRankingsPage({super.key});
@@ -84,6 +84,59 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage>
     showMovieSubscriptionFeedback(result);
   }
 
+  /// 与移动榜单页共用同一条顶栏：筛选入口（当前榜单）+ 总数 / 更新时间信息槽。
+  /// 差别只在筛选面板的容器——桌面就地浮层，移动底部抽屉。
+  Widget _buildHeader(BuildContext context) {
+    // 与移动端同一套单值语义：只报「榜单」这一主维度。
+    final boardLabel =
+        _pageState.selectedBoard?.name ??
+        _pageState.selectedSource?.name ??
+        '全部榜单';
+    final syncedAtLabel = formatSyncedAtLabel(
+      _pageState.controller.syncedAt,
+      withPrefix: false,
+    );
+
+    return AppListHeader(
+      filterButtonKey: const Key('desktop-rankings-filter-trigger'),
+      filterIcon: Icons.leaderboard_outlined,
+      filterLabel: boardLabel,
+      filterEnabled: !_pageState.isFilterLoading,
+      filterPanelKey: const Key('rankings-filter-panel'),
+      filterPanelExtraWidth: 520,
+      filterPanelBuilder:
+          (_) => RankingFilterSectionGroup(
+            sources: _pageState.sources,
+            selectedSource: _pageState.selectedSource,
+            boards: _pageState.boards,
+            selectedBoard: _pageState.selectedBoard,
+            selectedPeriod: _pageState.selectedPeriod,
+            onSourceChanged:
+                (value) => unawaited(_pageState.selectSource(value)),
+            onBoardChanged: (value) => unawaited(_pageState.selectBoard(value)),
+            onPeriodChanged:
+                (value) => unawaited(_pageState.selectPeriod(value)),
+            selectedSortField: _pageState.selectedSortField,
+            selectedSortDirection: _pageState.selectedSortDirection,
+            onSortChanged:
+                (field, dir) => unawaited(_pageState.selectSort(field, dir)),
+          ),
+      informationSlots: [
+        AppListHeaderInfo(
+          key: const Key('desktop-rankings-page-total'),
+          label: '${_pageState.controller.total} 部',
+        ),
+        if (syncedAtLabel != null)
+          AppListHeaderInfo(
+            key: const Key('desktop-rankings-synced-at'),
+            label: syncedAtLabel,
+            icon: Icons.schedule_rounded,
+          ),
+      ],
+      actionSlots: [buildEnterSelectionButton()],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppPageRefreshScope(
@@ -114,43 +167,7 @@ class _DesktopRankingsPageState extends State<DesktopRankingsPage>
                           if (selectionMode)
                             buildBatchSelectionToolbar()
                           else
-                            AppFilterTotalHeader(
-                              leading: RankingFilterToolbar(
-                                sources: _pageState.sources,
-                                selectedSource: _pageState.selectedSource,
-                                boards: _pageState.boards,
-                                selectedBoard: _pageState.selectedBoard,
-                                selectedPeriod: _pageState.selectedPeriod,
-                                isLoading: _pageState.isFilterLoading,
-                                onSourceChanged:
-                                    (value) => unawaited(
-                                      _pageState.selectSource(value),
-                                    ),
-                                onBoardChanged:
-                                    (value) => unawaited(
-                                      _pageState.selectBoard(value),
-                                    ),
-                                onPeriodChanged:
-                                    (value) => unawaited(
-                                      _pageState.selectPeriod(value),
-                                    ),
-                                selectedSortField: _pageState.selectedSortField,
-                                selectedSortDirection:
-                                    _pageState.selectedSortDirection,
-                                onSortChanged:
-                                    (field, dir) => unawaited(
-                                      _pageState.selectSort(field, dir),
-                                    ),
-                              ),
-                              totalText: composeTotalWithSyncedAt(
-                                '${_pageState.controller.total} 部',
-                                _pageState.controller.syncedAt,
-                              ),
-                              totalKey: const Key(
-                                'desktop-rankings-page-total',
-                              ),
-                              trailing: buildEnterSelectionButton(),
-                            ),
+                            _buildHeader(context),
                           SizedBox(height: context.appSpacing.md),
                           if (_pageState.filterErrorMessage != null) ...[
                             _FilterErrorBanner(

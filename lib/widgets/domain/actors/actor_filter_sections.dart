@@ -5,7 +5,7 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 
 /// 演员筛选所有 section 的纵向 Column。
 ///
-/// 桌面 `ActorFilterToolbar` 的浮层 panel 和移动 `MobileActorFilterDrawer` 都用它，
+/// 桌面 `AppListHeader` 的就地浮层 panel 和移动 `MobileActorFilterDrawer` 都用它，
 /// 避免双份维护。底栏/重置按钮由调用方自己附加。
 class ActorFilterSectionGroup extends StatelessWidget {
   const ActorFilterSectionGroup({

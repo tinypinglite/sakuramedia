@@ -217,7 +217,7 @@ class _MobileRankingsPageState extends State<MobileRankingsPage>
   Widget _buildHeader(BuildContext context) {
     final source = _pageState.selectedSource;
     final board = _pageState.selectedBoard;
-    // 与桌面 RankingFilterToolbar._buildTriggerLabel 同一套单值语义。
+    // 与桌面榜单页同一套单值语义：只报「榜单」这一主维度。
     final boardLabel = board?.name ?? source?.name ?? '全部榜单';
     final syncedAtLabel = formatSyncedAtLabel(
       _pageState.controller.syncedAt,
@@ -229,8 +229,13 @@ class _MobileRankingsPageState extends State<MobileRankingsPage>
       filterTooltip: '筛选',
       filterIcon: Icons.leaderboard_outlined,
       filterLabel: boardLabel,
+      filterEnabled: !_pageState.isFilterLoading,
       onFilterTap: () => _openFilterDrawer(initialAnchor: null),
       informationSlots: [
+        AppListHeaderInfo(
+          key: const Key('mobile-rankings-page-total'),
+          label: '${_pageState.controller.total} 部',
+        ),
         if (syncedAtLabel != null)
           AppListHeaderInfo(
             key: const Key('mobile-rankings-synced-at'),
