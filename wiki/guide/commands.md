@@ -207,7 +207,7 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands migrate-
 
 ### 字幕位置统一
 
-老版本的字幕散在两处：本地导入的作为 sidecar 跟视频放在媒体库 `<库根>/jav/<番号>/<版本时间戳>/<番号>.srt`；115 云盘导入的落在旧字幕根 `<旧字幕根>/<番号>/<编码名>.srt`。新版本统一收敛到 `movies/<shard>/<番号>/subtitles/`，**字幕跟番号走而不跟具体媒体文件走**——媒体文件被删除或失效不会连带清掉字幕。
+老版本的字幕散在两处：本地导入的作为 sidecar 跟视频放在媒体库 `<库根>/jav/<番号>/<版本时间戳>/<番号>.srt`；115 云盘导入的落在旧字幕根 `<旧字幕根>/<番号>/<编码名>.srt`。新版本统一收敛到 `movies/<shard>/<番号>/subtitles/<番号>-<N>.srt`（N 从 1 递增），**字幕跟番号走而不跟具体媒体文件走**——媒体文件被删除或失效不会连带清掉字幕。
 
 ::: tip 不迁移也能正常用
 不跑这条命令服务照常运行——运行时同时放行**新布局**和**两处老位置**（115 旧字幕根、媒体库里视频所在版本目录的 sidecar），存量字幕继续可读，新导入的字幕直接落新布局。只有当你想**把字幕从媒体库子目录里拆出来单独管理**、或者想清空旧字幕根目录时才需要迁移。
@@ -227,9 +227,10 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands migrate-
 
 要点：
 
+- **命名分配**：按影片分组处理，每部影片下一个 seq 分配器从当前 `subtitles/` 目录已有 `<番号>-<N>.srt` 最大 N + 1 起分配；同一部影片下多份字幕（如 whisperjav 的 `.chinese.srt` + `.srt`、跨版本目录的同名 srt）都会拿到不同 N，天然不撞车
 - **单文件三步**：先把 `.srt` 硬链接（同一文件系统）或复制（跨文件系统）到新路径 → `UPDATE subtitle.file_path` → 删旧文件；`file_path` 的单条 UPDATE 是原子提交点，硬链接语义保证即使中途掉电文件也一定被至少一条路径 hold 住
-- **可中断重跑**：按 `(旧文件是否在, 新文件是否在)` 两态收敛到已迁移终态，中断后重跑会把只完成前半的行自动补齐；已在新布局的行走 fast-path 跳过
-- **失败不阻塞**：`subtitles_failed` / `subtitles_data_lost` / `subtitles_conflict_skipped` 只累计在结果统计里，不会让整条命令挂掉
+- **可中断重跑**：已在新目录且文件名符合 `<番号>-<N>.srt` 的行走 fast-path 跳过；老一轮迁移遗留的 `<版本时间戳>.srt` 命名会被本轮自动改名收敛
+- **失败不阻塞**：`subtitles_failed` / `subtitles_data_lost` 只累计在结果统计里，不会让整条命令挂掉；`data_lost` 通常是 DB 里 subtitle 行指向的物理文件已被删除（sync 后续会清）
 - **建议在上面的资产分片迁移之后跑**：这样目标目录一开始就是分片布局
 - **跑完后旧字幕根可以清空**：`/data/cache/subtitles/` 里对应的番号目录会被逐个 `unlink` 清掉；配置项 `media.subtitle_root_path` 是 legacy 目录，存量搬完后可以从 `config.toml` 里删掉，运行期不再有任何写入
 
