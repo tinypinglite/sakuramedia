@@ -82,4 +82,71 @@ void main() {
       expect(dto.resource, isNull);
     });
   });
+
+  group('ResourceTaskRecordDto.canBatchReset', () {
+    ResourceTaskRecordDto build({
+      required String state,
+      bool hasResource = true,
+      bool? valid,
+    }) {
+      return ResourceTaskRecordDto.fromJson(<String, dynamic>{
+        'task_key': 'media_thumbnail_generation',
+        'resource_type': 'media',
+        'resource_id': 7,
+        'state': state,
+        'resource':
+            hasResource
+                ? <String, dynamic>{
+                  'resource_id': 7,
+                  if (valid != null) 'valid': valid,
+                }
+                : null,
+      });
+    }
+
+    test('failed + 媒体存在且有效 → 可重置，无媒体不可用标签', () {
+      final dto = build(state: 'failed', valid: true);
+      expect(dto.canBatchReset, isTrue);
+      expect(dto.mediaUnavailableLabel, isNull);
+    });
+
+    test('valid 未下发时按未知处理，不拦截', () {
+      final dto = build(state: 'failed');
+      expect(dto.canBatchReset, isTrue);
+      expect(dto.mediaUnavailableLabel, isNull);
+    });
+
+    test('非 failed 状态不可重置，但媒体正常时不挂标签', () {
+      for (final state in <String>['pending', 'succeeded', 'running']) {
+        final dto = build(state: state, valid: true);
+        expect(dto.canBatchReset, isFalse, reason: state);
+        // 用户没打算重置一条 pending/succeeded 任务，别自作聪明挂"不可重置"。
+        expect(dto.mediaUnavailableLabel, isNull, reason: state);
+      }
+    });
+
+    test('媒体失效不可重置，标签常驻', () {
+      final dto = build(state: 'failed', valid: false);
+      expect(dto.canBatchReset, isFalse);
+      expect(dto.mediaUnavailableLabel, '媒体已失效');
+    });
+
+    test('媒体已删除（resource 为 null）不可重置，标签常驻', () {
+      final dto = build(state: 'failed', hasResource: false);
+      expect(dto.canBatchReset, isFalse);
+      expect(dto.mediaUnavailableLabel, '媒体已删除');
+    });
+
+    test('媒体不可用与任务状态无关：非 failed 也挂标签', () {
+      // 用户浏览成功列表时，也能看到"其实媒体已经没了"，方便理解现状。
+      expect(
+        build(state: 'succeeded', valid: false).mediaUnavailableLabel,
+        '媒体已失效',
+      );
+      expect(
+        build(state: 'pending', hasResource: false).mediaUnavailableLabel,
+        '媒体已删除',
+      );
+    });
+  });
 }

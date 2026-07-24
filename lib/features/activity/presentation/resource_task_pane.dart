@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
+import 'package:sakuramedia/features/activity/data/media_thumbnail_reset_result_dto.dart';
 import 'package:sakuramedia/features/activity/data/resource_task_definition_dto.dart';
 import 'package:sakuramedia/features/activity/data/resource_task_record_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/resource_task_center_controller.dart';
@@ -111,7 +112,7 @@ List<Widget> buildResourceTaskSlivers({
         final record = controller.activeRecords[index];
         final isLast = index == controller.activeRecords.length - 1;
         final inSelectionMode = controller.selectionMode;
-        final isBatchSelectable = record.isFailed;
+        final isBatchSelectable = record.canBatchReset;
         final isBatchSelected = controller.isRecordSelected(record.resourceId);
         return Padding(
           padding: EdgeInsets.only(bottom: isLast ? 0 : context.appSpacing.md),
@@ -127,7 +128,12 @@ List<Widget> buildResourceTaskSlivers({
               onTap: () {
                 if (inSelectionMode) {
                   if (!isBatchSelectable) {
-                    showToast('仅可重置失败的任务');
+                    final unavailable = record.mediaUnavailableLabel;
+                    showToast(
+                      unavailable != null
+                          ? '$unavailable，无法重置'
+                          : '仅可重置失败的任务',
+                    );
                     return;
                   }
                   final ok = controller.toggleRecordSelection(record.resourceId);
@@ -490,6 +496,7 @@ class _ResourceTaskSelectionBar extends StatelessWidget {
     if (selectedCount == 0) {
       return;
     }
+    MediaThumbnailResetResultDto? result;
     final confirmed = await showAppConfirmDialog(
       context,
       title: '重置生成状态',
@@ -499,12 +506,33 @@ class _ResourceTaskSelectionBar extends StatelessWidget {
       confirmKey: const Key('resource-task-batch-reset-confirm'),
       failureFallback: '重置失败，请稍后重试',
       onConfirm: () async {
-        await controller.resetSelectedFailed();
+        result = await controller.resetSelectedFailed();
       },
     );
-    if (confirmed) {
-      showToast('已重置 $selectedCount 条');
+    final resolved = result;
+    if (!confirmed || resolved == null) {
+      return;
     }
+    showToast(_resetResultMessage(resolved));
+  }
+
+  /// 后端是部分成功语义：`reset_count == 0` 也是 200，要按「没有可重置」提示，
+  /// 而不是当成功。跳过项仍留在列表里且保持选中，文案只做汇总。
+  static String _resetResultMessage(MediaThumbnailResetResultDto result) {
+    final resetCount = result.resetCount;
+    final skippedCount = result.skippedCount;
+    if (skippedCount <= 0) {
+      return resetCount > 0 ? '已重置 $resetCount 条' : '没有可重置的任务';
+    }
+    final reasons = result.skipped.map((item) => item.reasonLabel).toSet();
+    // 跳过原因唯一时直接点明，混合原因只给条数，避免 toast 过长。
+    final skippedText =
+        reasons.length == 1
+            ? '$skippedCount 条已跳过（${reasons.first}）'
+            : '$skippedCount 条已跳过';
+    return resetCount > 0
+        ? '已重置 $resetCount 条，$skippedText'
+        : '没有可重置的任务：$skippedText';
   }
 
   @override
@@ -514,9 +542,18 @@ class _ResourceTaskSelectionBar extends StatelessWidget {
     }
     final spacing = context.appSpacing;
     final failedCount = controller.visibleFailedCount;
+    final failedTotal = controller.visibleFailedTotalCount;
     final allSelected = controller.isAllVisibleFailedSelected;
     final hasSelection = controller.hasSelection;
     final isBusy = controller.isResetting;
+    // 有不可选项时，按钮自带计数 "全选可重置(N/M)" —— 用户在点之前就理解
+    // "为什么全选没全中"，比事后靠 toast 解释更早。
+    final selectAllLabel =
+        allSelected
+            ? '取消全选'
+            : (failedTotal > failedCount
+                ? '全选可重置($failedCount/$failedTotal)'
+                : '全选');
 
     return Row(
       children: [
@@ -532,7 +569,7 @@ class _ResourceTaskSelectionBar extends StatelessWidget {
         const Spacer(),
         AppTextButton(
           key: const Key('resource-task-select-all-button'),
-          label: allSelected ? '取消全选' : '全选',
+          label: selectAllLabel,
           size: AppTextButtonSize.small,
           onPressed:
               (isBusy || failedCount == 0)
@@ -718,6 +755,21 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: context.appSpacing.md),
+                  // 「媒体已失效/已删除」这两条是"重试也救不回来"的客观事实，
+                  // 常驻在状态徽标左侧，跟中文语序顺(定语在前)。
+                  // tone 用 neutral 灰底，是"客观告知"不是"警告"——
+                  // 别抢右侧任务状态徽标的视觉重心。
+                  if (record.mediaUnavailableLabel != null) ...[
+                    AppBadge(
+                      key: Key(
+                        'resource-task-media-unavailable-${record.recordKey}',
+                      ),
+                      label: record.mediaUnavailableLabel!,
+                      tone: AppBadgeTone.neutral,
+                      size: AppBadgeSize.compact,
+                    ),
+                    SizedBox(width: context.appSpacing.sm),
+                  ],
                   AppBadge(
                     label: _labelForResourceTaskState(record.state),
                     tone: _toneForResourceTaskState(record.state),

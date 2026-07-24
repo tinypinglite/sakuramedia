@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
+import 'package:sakuramedia/features/activity/data/media_thumbnail_reset_result_dto.dart';
 import 'package:sakuramedia/features/activity/data/resource_task_definition_dto.dart';
 import 'package:sakuramedia/features/activity/data/resource_task_record_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/resource_task_filter_state.dart';
@@ -113,8 +114,21 @@ class ResourceTaskCenterController extends ChangeNotifier {
   bool isRecordSelected(int resourceId) =>
       _selectedResourceIds.contains(resourceId);
 
-  /// 当前 bucket 里 state == 'failed' 的记录数(用于「全选」按钮的禁用/文案)。
+  /// 当前 bucket 里可批量重置的记录数(用于「全选」按钮的禁用与"可选分子")。
+  ///
+  /// 与 [ResourceTaskRecordDto.canBatchReset] 对齐:失效或已删除媒体不计入,
+  /// 否则「全选」会把注定被后端跳过的 ID 一起提交。
   int get visibleFailedCount {
+    final bucket = _bucketFor(_activeTaskKey);
+    if (bucket == null) {
+      return 0;
+    }
+    return bucket.records.where((record) => record.canBatchReset).length;
+  }
+
+  /// 当前 bucket 里所有 failed 记录数(含媒体不可用的不可选项),用作「全选」
+  /// 按钮的分母,让用户看到"因为媒体不可用而少选的差值",而不是悄悄跳过。
+  int get visibleFailedTotalCount {
     final bucket = _bucketFor(_activeTaskKey);
     if (bucket == null) {
       return 0;
@@ -122,7 +136,7 @@ class ResourceTaskCenterController extends ChangeNotifier {
     return bucket.records.where((record) => record.isFailed).length;
   }
 
-  /// 当前可见 failed 记录是否已被全部选中(超过 200 时,前 200 全选即视为全选)。
+  /// 当前可见可重置记录是否已被全部选中(超过 200 时,前 200 全选即视为全选)。
   bool get isAllVisibleFailedSelected {
     final visibleFailedIds = _visibleFailedResourceIds();
     if (visibleFailedIds.isEmpty) {
@@ -268,7 +282,7 @@ class ResourceTaskCenterController extends ChangeNotifier {
     return true;
   }
 
-  /// 全选当前可见 failed 记录(截取前 200);已全选时清空。
+  /// 全选当前可见可重置记录(截取前 200);已全选时清空。
   void toggleSelectAllVisibleFailed() {
     final visibleFailedIds = _visibleFailedResourceIds();
     if (visibleFailedIds.isEmpty) {
@@ -283,14 +297,23 @@ class ResourceTaskCenterController extends ChangeNotifier {
     _notifySafely();
   }
 
-  /// 触发批量 reset。成功后从当前 bucket 就地移除被 reset 的记录并更新
-  /// definitions 的 counts;失败时保持已选、`rethrow` 让调用方(通常是
+  /// 触发批量 reset,返回后端结果供调用方组织提示文案。
+  ///
+  /// 后端是**部分成功**语义:合格记录被重置并回报在 `resource_ids` 里,不合格的
+  /// 只出现在 `skipped` 中,全部不合格时也返回 200(`reset_count == 0`)。因此这里
+  /// 只移除 `resource_ids` 里真正被重置的记录——**不能**在 `resource_ids` 为空时
+  /// 回落成"整批已重置",那会把没重置的记录也从列表里抹掉。
+  ///
+  /// 被跳过的项保留选中态并停在选择模式,方便用户看到是哪几条没成功;全部成功
+  /// 才退出选择模式。传输/协议层失败仍保持已选并 `rethrow`,让调用方(通常是
   /// `showAppConfirmDialog(onConfirm:)`)兜底 toast + 保留 dialog。
-  Future<void> resetSelectedFailed() async {
+  ///
+  /// 未发起请求(非媒体 tab / 无选中 / 正在重置)时返回 `null`。
+  Future<MediaThumbnailResetResultDto?> resetSelectedFailed() async {
     if (_isResetting ||
         _activeTaskKey != kMediaThumbnailTaskKey ||
         _selectedResourceIds.isEmpty) {
-      return;
+      return null;
     }
     final ids = _selectedResourceIds.toList(growable: false);
     _isResetting = true;
@@ -300,18 +323,24 @@ class ResourceTaskCenterController extends ChangeNotifier {
         resourceIds: ids,
       );
       if (_disposed) {
-        return;
+        return result;
       }
-      final resetIds =
-          result.resourceIds.isNotEmpty ? result.resourceIds.toSet() : ids.toSet();
+      final resetIds = result.resourceIds.toSet();
       _applySuccessfulReset(resetIds, result.resetCount);
       _isResetting = false;
-      _selectionMode = false;
-      _selectedResourceIds.clear();
+      // 被跳过的仍留在列表里,保持选中让用户能定位;其余从选中集合里剔除。
+      final keepSelected = _selectedResourceIds
+          .where((id) => !resetIds.contains(id))
+          .toSet();
+      _selectedResourceIds
+        ..clear()
+        ..addAll(keepSelected);
+      _selectionMode = _selectedResourceIds.isNotEmpty;
       _notifySafely();
+      return result;
     } catch (error) {
       if (_disposed) {
-        return;
+        return null;
       }
       _isResetting = false;
       _notifySafely();
@@ -331,7 +360,7 @@ class ResourceTaskCenterController extends ChangeNotifier {
     }
     final ids = <int>[];
     for (final record in bucket.records) {
-      if (!record.isFailed) {
+      if (!record.canBatchReset) {
         continue;
       }
       ids.add(record.resourceId);

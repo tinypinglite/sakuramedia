@@ -71,6 +71,28 @@ class ResourceTaskRecordDto {
   bool get isPending => state == 'pending';
   bool get isSucceeded => state == 'succeeded';
 
+  /// 媒体不可用时的展示标签；媒体正常（或后端未下发 `valid`）时为 `null`。
+  ///
+  /// 这是「这条重试也救不回来」的客观事实，跟任务状态无关，任何 tab 都可以
+  /// 常驻挂在卡片上。与"是否可批量重置"是两件事：非 failed 的成功/待处理
+  /// 任务如果媒体也没了，同样会出这个标签，让用户在浏览时就理解现状。
+  String? get mediaUnavailableLabel {
+    if (resource == null) {
+      return '媒体已删除';
+    }
+    if (resource!.valid == false) {
+      return '媒体已失效';
+    }
+    return null;
+  }
+
+  /// 是否可参与批量重置。
+  ///
+  /// 与后端的重置准入条件对齐：状态必须是 failed，且对应媒体仍存在
+  /// (`resource != null`) 且未失效 (`valid != false`)。`valid` 为 null 表示
+  /// 后端没下发该字段，按「未知不拦截」处理，最终仍由后端判定并记入 skipped。
+  bool get canBatchReset => isFailed && mediaUnavailableLabel == null;
+
   String get recordKey => '$taskKey/$resourceId';
 
   factory ResourceTaskRecordDto.fromJson(Map<String, dynamic> json) {

@@ -457,6 +457,50 @@ void main() {
       expect(controller.isAllVisibleFailedSelected, isFalse);
     });
 
+    test('toggleSelectAllVisibleFailed 跳过失效与已删除媒体', () async {
+      final controller = await initMediaTab(<Map<String, dynamic>>[
+        _recordJson(
+          id: 410,
+          taskKey: 'media_thumbnail_generation',
+          state: 'failed',
+          valid: true,
+        ),
+        _recordJson(
+          id: 411,
+          taskKey: 'media_thumbnail_generation',
+          state: 'failed',
+          valid: false,
+        ),
+        _recordJson(
+          id: 412,
+          taskKey: 'media_thumbnail_generation',
+          state: 'failed',
+          hasResource: false,
+        ),
+        // valid 未下发 → 视为未知，不拦截，交由后端判定。
+        _recordJson(
+          id: 413,
+          taskKey: 'media_thumbnail_generation',
+          state: 'failed',
+        ),
+      ]);
+
+      // visibleFailedCount 只数可勾选的（410/413），失效与已删除媒体不算。
+      expect(controller.visibleFailedCount, 2);
+      // visibleFailedTotalCount 数所有 failed（410/411/412/413），给"全选可重置(N/M)"的 M。
+      expect(controller.visibleFailedTotalCount, 4);
+
+      controller.enterSelectionMode();
+      controller.toggleSelectAllVisibleFailed();
+
+      expect(controller.selectedCount, 2);
+      expect(controller.isRecordSelected(410), isTrue);
+      expect(controller.isRecordSelected(411), isFalse);
+      expect(controller.isRecordSelected(412), isFalse);
+      expect(controller.isRecordSelected(413), isTrue);
+      expect(controller.isAllVisibleFailedSelected, isTrue);
+    });
+
     test('切换 tab 自动退出多选并清空已选', () async {
       final controller = await initMediaTab(<Map<String, dynamic>>[
         _recordJson(
@@ -579,8 +623,9 @@ void main() {
         },
       );
 
-      await controller.resetSelectedFailed();
+      final result = await controller.resetSelectedFailed();
 
+      expect(result?.resetCount, 2);
       expect(controller.selectionMode, isFalse);
       expect(controller.selectedCount, 0);
       expect(controller.isResetting, isFalse);
@@ -593,6 +638,114 @@ void main() {
       );
       expect(mediaDef.stateCounts.failed, 3);
       expect(mediaDef.stateCounts.pending, 3);
+    });
+
+    test('resetSelectedFailed 部分成功：只移除已重置，跳过项保留选中', () async {
+      final controller = await initMediaTab(<Map<String, dynamic>>[
+        _recordJson(
+          id: 901,
+          taskKey: 'media_thumbnail_generation',
+          state: 'failed',
+        ),
+        _recordJson(
+          id: 902,
+          taskKey: 'media_thumbnail_generation',
+          state: 'failed',
+        ),
+        _recordJson(
+          id: 903,
+          taskKey: 'media_thumbnail_generation',
+          state: 'failed',
+        ),
+      ]);
+      controller.enterSelectionMode();
+      controller.toggleRecordSelection(901);
+      controller.toggleRecordSelection(902);
+      controller.toggleRecordSelection(903);
+
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/system/resource-task-states/media_thumbnail_generation/reset',
+        body: <String, dynamic>{
+          'task_key': 'media_thumbnail_generation',
+          'state': 'pending',
+          'reset_count': 1,
+          'resource_ids': <int>[901],
+          'skipped_count': 2,
+          'skipped': <Map<String, dynamic>>[
+            <String, dynamic>{'resource_id': 902, 'reason': 'media_invalid'},
+            <String, dynamic>{'resource_id': 903, 'reason': 'not_failed'},
+          ],
+        },
+      );
+
+      final result = await controller.resetSelectedFailed();
+
+      expect(result?.resetCount, 1);
+      expect(result?.skippedCount, 2);
+      expect(controller.isResetting, isFalse);
+      // 只有 901 真正被重置 → 只有它从列表里移除。
+      expect(
+        controller.activeRecords.map((r) => r.resourceId),
+        <int>[902, 903],
+      );
+      // 跳过项保持选中，方便用户定位。
+      expect(controller.selectionMode, isTrue);
+      expect(controller.selectedCount, 2);
+      expect(controller.isRecordSelected(901), isFalse);
+      expect(controller.isRecordSelected(902), isTrue);
+      expect(controller.isRecordSelected(903), isTrue);
+    });
+
+    test('resetSelectedFailed 全部跳过：不移除任何记录', () async {
+      final controller = await initMediaTab(<Map<String, dynamic>>[
+        _recordJson(
+          id: 951,
+          taskKey: 'media_thumbnail_generation',
+          state: 'failed',
+        ),
+        _recordJson(
+          id: 952,
+          taskKey: 'media_thumbnail_generation',
+          state: 'failed',
+        ),
+      ]);
+      controller.enterSelectionMode();
+      controller.toggleRecordSelection(951);
+      controller.toggleRecordSelection(952);
+
+      // 后端部分成功语义：全部不合格时仍返回 200 + reset_count = 0。
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/system/resource-task-states/media_thumbnail_generation/reset',
+        body: <String, dynamic>{
+          'task_key': 'media_thumbnail_generation',
+          'state': 'pending',
+          'reset_count': 0,
+          'resource_ids': <int>[],
+          'skipped_count': 2,
+          'skipped': <Map<String, dynamic>>[
+            <String, dynamic>{'resource_id': 951, 'reason': 'media_not_found'},
+            <String, dynamic>{'resource_id': 952, 'reason': 'media_invalid'},
+          ],
+        },
+      );
+
+      final result = await controller.resetSelectedFailed();
+
+      expect(result?.resetCount, 0);
+      // 一条都没重置 → 列表原封不动（旧实现会在这里把两条全抹掉）。
+      expect(
+        controller.activeRecords.map((r) => r.resourceId),
+        <int>[951, 952],
+      );
+      expect(controller.selectionMode, isTrue);
+      expect(controller.selectedCount, 2);
+      final mediaDef = controller.definitions.firstWhere(
+        (d) => d.taskKey == 'media_thumbnail_generation',
+      );
+      expect(mediaDef.stateCounts.failed, 0);
+      expect(mediaDef.stateCounts.pending, 0);
     });
 
     test('resetSelectedFailed 失败：保留已选 + rethrow', () async {
@@ -683,6 +836,8 @@ Map<String, dynamic> _recordJson({
   required int id,
   String taskKey = 'movie_desc_sync',
   String state = 'pending',
+  bool? valid,
+  bool hasResource = true,
 }) {
   return <String, dynamic>{
     'task_key': taskKey,
@@ -698,10 +853,14 @@ Map<String, dynamic> _recordJson({
     'last_trigger_type': 'scheduled',
     'created_at': '2026-04-01T00:00:00Z',
     'updated_at': '2026-04-18T10:00:00Z',
-    'resource': <String, dynamic>{
-      'resource_id': id,
-      'movie_number': 'SSIS-$id',
-      'title': '示例-$id',
-    },
+    'resource':
+        hasResource
+            ? <String, dynamic>{
+              'resource_id': id,
+              'movie_number': 'SSIS-$id',
+              'title': '示例-$id',
+              if (valid != null) 'valid': valid,
+            }
+            : null,
   };
 }
