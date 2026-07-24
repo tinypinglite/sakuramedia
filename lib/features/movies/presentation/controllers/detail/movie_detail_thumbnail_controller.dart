@@ -2,8 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
+import 'package:sakuramedia/features/shared/presentation/dispose_safe_notifier.dart';
 
-class MovieDetailThumbnailController extends ChangeNotifier {
+class MovieDetailThumbnailController extends ChangeNotifier
+    with DisposeSafeNotifier {
   static const int defaultIntervalSeconds = 10;
 
   MovieDetailThumbnailController({
@@ -80,7 +82,7 @@ class MovieDetailThumbnailController extends ChangeNotifier {
       return;
     }
     _columns = columns;
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   void setColumns(int columns) {
@@ -89,7 +91,7 @@ class MovieDetailThumbnailController extends ChangeNotifier {
       return;
     }
     _columns = columns;
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   void selectIndex(int index) {
@@ -97,7 +99,7 @@ class MovieDetailThumbnailController extends ChangeNotifier {
       return;
     }
     _activeIndex = index;
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   void setIntervalSeconds(int seconds) {
@@ -110,7 +112,7 @@ class MovieDetailThumbnailController extends ChangeNotifier {
     _clipStartIndex = null;
     _clipEndIndex = null;
     _rebuildFilteredThumbnails(preservedThumbnailId: preservedThumbnailId);
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   /// 切换「圈选切片」模式：进入与退出时均清空已选点。
@@ -118,7 +120,7 @@ class MovieDetailThumbnailController extends ChangeNotifier {
     _clipSelectionMode = !_clipSelectionMode;
     _clipStartIndex = null;
     _clipEndIndex = null;
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   /// 圈选模式下点击缩略图：第 1 次设起点，第 2 次设终点，第 3 次重置为新起点。
@@ -138,7 +140,7 @@ class MovieDetailThumbnailController extends ChangeNotifier {
       _clipStartIndex = index;
       _clipEndIndex = null;
     }
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   void clearClipSelection() {
@@ -147,7 +149,7 @@ class MovieDetailThumbnailController extends ChangeNotifier {
     }
     _clipStartIndex = null;
     _clipEndIndex = null;
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   MovieMediaThumbnailDto? _thumbnailAt(int? index) {
@@ -164,13 +166,13 @@ class MovieDetailThumbnailController extends ChangeNotifier {
       _errorMessage = null;
       _activeIndex = null;
       _hasLoaded = true;
-      notifyListeners();
+      notifyListenersSafely();
       return;
     }
 
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    notifyListenersSafely();
 
     try {
       _allThumbnails = await fetchMediaThumbnails(mediaId: mediaId!);
@@ -184,7 +186,7 @@ class MovieDetailThumbnailController extends ChangeNotifier {
     } finally {
       _isLoading = false;
       _hasLoaded = true;
-      notifyListeners();
+      notifyListenersSafely();
     }
   }
 

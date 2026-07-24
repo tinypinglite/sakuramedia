@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_review_dto.dart';
+import 'package:sakuramedia/features/shared/presentation/dispose_safe_notifier.dart';
 
-class MovieDetailReviewController extends ChangeNotifier {
+class MovieDetailReviewController extends ChangeNotifier
+    with DisposeSafeNotifier {
   MovieDetailReviewController({
     required this.movieNumber,
     required this.fetchMovieReviews,
@@ -45,7 +47,7 @@ class MovieDetailReviewController extends ChangeNotifier {
     _isInitialLoading = true;
     _initialErrorMessage = null;
     _loadMoreErrorMessage = null;
-    notifyListeners();
+    notifyListenersSafely();
 
     try {
       final reviews = await fetchMovieReviews(
@@ -65,7 +67,7 @@ class MovieDetailReviewController extends ChangeNotifier {
       _initialErrorMessage = apiErrorMessage(error, fallback: '评论加载失败，请稍后重试。');
     } finally {
       _isInitialLoading = false;
-      notifyListeners();
+      notifyListenersSafely();
     }
   }
 
@@ -74,7 +76,7 @@ class MovieDetailReviewController extends ChangeNotifier {
       return;
     }
     _sort = nextSort;
-    notifyListeners();
+    notifyListenersSafely();
     await loadInitial();
   }
 
@@ -88,7 +90,7 @@ class MovieDetailReviewController extends ChangeNotifier {
 
     _isLoadingMore = true;
     _loadMoreErrorMessage = null;
-    notifyListeners();
+    notifyListenersSafely();
 
     final nextPage = _loadedPage + 1;
     try {
@@ -113,7 +115,7 @@ class MovieDetailReviewController extends ChangeNotifier {
       );
     } finally {
       _isLoadingMore = false;
-      notifyListeners();
+      notifyListenersSafely();
     }
   }
 }

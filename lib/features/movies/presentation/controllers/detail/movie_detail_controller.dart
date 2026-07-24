@@ -4,8 +4,10 @@ import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.da
 import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/shared/presentation/dispose_safe_notifier.dart';
 
-class MovieDetailController extends ChangeNotifier {
+class MovieDetailController extends ChangeNotifier
+    with DisposeSafeNotifier {
   MovieDetailController({
     required this.movieNumber,
     required this.fetchMovieDetail,
@@ -50,7 +52,7 @@ class MovieDetailController extends ChangeNotifier {
         ? _defaultPreviewFor(movie)
         : _resolveUpdatedPreview(movie);
     _errorMessage = null;
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   Future<void> refresh() async {
@@ -67,7 +69,7 @@ class MovieDetailController extends ChangeNotifier {
     _movie = movie;
     _selectedPreview = _defaultPreviewFor(movie);
     _errorMessage = null;
-    notifyListeners();
+    notifyListenersSafely();
     await similarFuture;
   }
 
@@ -77,7 +79,7 @@ class MovieDetailController extends ChangeNotifier {
     _similarMoviesErrorMessage = null;
     _isSimilarMoviesLoading = true;
     _similarMovies = const <MovieListItemDto>[];
-    notifyListeners();
+    notifyListenersSafely();
 
     final similarFuture = _loadSimilarMovies(clearExisting: true);
 
@@ -98,7 +100,7 @@ class MovieDetailController extends ChangeNotifier {
       _errorMessage = _messageForError(error);
     } finally {
       _isLoading = false;
-      notifyListeners();
+      notifyListenersSafely();
     }
 
     await similarFuture;
@@ -154,7 +156,7 @@ class MovieDetailController extends ChangeNotifier {
     if (clearExisting) {
       _similarMovies = const <MovieListItemDto>[];
     }
-    notifyListeners();
+    notifyListenersSafely();
 
     try {
       final movies = await fetchSimilarMovies(
@@ -167,7 +169,7 @@ class MovieDetailController extends ChangeNotifier {
       _similarMoviesErrorMessage = '相似影片暂时无法加载，请稍后重试';
     } finally {
       _isSimilarMoviesLoading = false;
-      notifyListeners();
+      notifyListenersSafely();
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/features/downloads/data/download_candidate_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
+import 'package:sakuramedia/features/shared/presentation/dispose_safe_notifier.dart';
 
 enum MovieDetailMagnetSortField { sizeBytes, seeders }
 
@@ -18,7 +19,8 @@ extension MovieDetailMagnetSortDirectionValue
   bool get isAscending => this == MovieDetailMagnetSortDirection.asc;
 }
 
-class MovieDetailMagnetController extends ChangeNotifier {
+class MovieDetailMagnetController extends ChangeNotifier
+    with DisposeSafeNotifier {
   MovieDetailMagnetController({
     required this.movieNumber,
     required this.searchCandidates,
@@ -66,7 +68,7 @@ class MovieDetailMagnetController extends ChangeNotifier {
       return;
     }
     _selectedSortField = field;
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   void toggleSortDirection() {
@@ -74,7 +76,7 @@ class MovieDetailMagnetController extends ChangeNotifier {
         _selectedSortDirection == MovieDetailMagnetSortDirection.desc
             ? MovieDetailMagnetSortDirection.asc
             : MovieDetailMagnetSortDirection.desc;
-    notifyListeners();
+    notifyListenersSafely();
   }
 
   Future<void> search() async {
@@ -85,7 +87,7 @@ class MovieDetailMagnetController extends ChangeNotifier {
     _isLoading = true;
     _hasSearched = true;
     _errorMessage = null;
-    notifyListeners();
+    notifyListenersSafely();
 
     try {
       _items = await searchCandidates(movieNumber: movieNumber);
@@ -95,7 +97,7 @@ class MovieDetailMagnetController extends ChangeNotifier {
       _errorMessage = '搜索资源失败，请稍后重试。';
     } finally {
       _isLoading = false;
-      notifyListeners();
+      notifyListenersSafely();
     }
   }
 
@@ -108,7 +110,7 @@ class MovieDetailMagnetController extends ChangeNotifier {
     }
 
     _submittingCandidateKey = candidate.submitKey;
-    notifyListeners();
+    notifyListenersSafely();
 
     try {
       return await createDownloadRequest(
@@ -118,7 +120,7 @@ class MovieDetailMagnetController extends ChangeNotifier {
       );
     } finally {
       _submittingCandidateKey = null;
-      notifyListeners();
+      notifyListenersSafely();
     }
   }
 
