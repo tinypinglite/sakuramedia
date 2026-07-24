@@ -24,6 +24,7 @@
 - `[media]`
 - `[metadata]`（包含元数据代理）
 - `[movie_info_translation]`
+- `[plugins]`（可选插件，只能手改配置文件）
 - `[scheduler]`
 - `[downloads]`
 - `[media_import]`
@@ -130,7 +131,6 @@ refresh_token_expire_minutes = 10080
 ```toml
 [media]
 others_number_features = ["OFJE", "CJOB", "DVAJ", "REBD"]
-collection_duration_threshold_minutes = 300
 inner_sub_tags = ["中字", "中文", "字幕组", "-UC", "-C"]
 blueray_tags = ["蓝光", "4K", "4k"]
 uncensored_tags = ["流出", "uncensored", "無码", "無修正", "UC", "无码", "破解", "UNCENSORED", "-UC", "-U"]
@@ -148,13 +148,12 @@ media_clip_ffmpeg_timeout_seconds = 120
 
 | 字段 | 作用 |
 |---|---|
-| `others_number_features` | 合集影片番号特征关键词 |
-| `collection_duration_threshold_minutes` | 合集影片时长判定阈值（分钟），仅当影片时长严格大于该值时才按时长判定为合集 |
+| `others_number_features` | 合集影片番号特征关键词。合集判定**只看这份番号前缀清单**，不再按影片时长判定 |
 | `inner_sub_tags` | 识别“内嵌字幕”的标签关键词 |
 | `blueray_tags` | 识别“蓝光 / 高清版本”的标签关键词 |
 | `uncensored_tags` | 识别“无码资源”的标签关键词 |
 | `uncensored_prefix` | 识别“无码资源”的番号前缀 |
-| `allowed_min_video_file_size` | 允许导入的视频最小文件大小，单位**字节**。小于该值的文件会被判定为“文件太小”并跳过导入。默认 `1073741824`（= 1 GiB），即小于 1GB 的视频不会导入。常见换算：256MB = `268435456`、512MB = `536870912`、1GB = `1073741824`。若导入时提示“文件太小”，按需把该值调小即可。**不建议设为 `0` 或调得过低**：BT 种子常夹带大量垃圾小视频，阈值太低会把它们一并尝试导入，建议不要低于 256MB |
+| `allowed_min_video_file_size` | 允许导入的视频最小文件大小，单位**字节**。小于该值的文件会被判定为“文件太小”并跳过导入。默认 `268435456`（= 256 MB），即小于 256MB 的视频不会导入。常见换算：256MB = `268435456`、512MB = `536870912`、1GB = `1073741824`。若导入时提示“文件太小”，按需把该值调小即可。**不建议设为 `0` 或调得过低**：BT 种子常夹带大量垃圾小视频，阈值太低会把它们一并尝试导入，建议不要低于 256MB |
 | `import_image_root_path` | 导入时缓存图片的目录 |
 | `subtitle_root_path` | 字幕目录，用于整理导入时从影片资源同级目录识别到的字幕文件 |
 | `max_thumbnail_process_count` | 缩略图生成任务的最大并发数 |
@@ -239,6 +238,40 @@ connect_timeout_seconds = 3
 - 旧配置名 `[movie_desc_translation]` 目前仍兼容，但新配置建议统一写成 `[movie_info_translation]`
 - 文档里的 `base_url` 示例当前统一写成 `https://ollama.com`，`model` 示例当前统一写成 `gemma4:31b-cloud`
 
+## `[plugins]`
+
+这一组控制「仓库内插件」的启用。插件是随后端代码一起分发的可选能力，启用后可以往调度器里注入额外的后台任务。
+
+::: tip 绝大多数用户不用管这一节
+当前发行版里没有内置可启用的插件，保持默认（不写这一节）即可。这里写出来只是让你知道它存在，以及为什么它在设置页里看不到。
+:::
+
+```toml
+[plugins]
+enabled = ["示例插件ID"]
+
+[plugins.job_crons.示例插件ID]
+示例任务名 = "0 5 * * 1"
+
+[plugins.settings.示例插件ID]
+# 由插件自己定义的配置
+```
+
+字段说明：
+
+| 字段 | 作用 |
+|---|---|
+| `enabled` | 要启用的插件 ID 列表。**只有列在这里的插件才会被加载**，光有代码或光有配置都不会生效 |
+| `job_crons` | 按插件 ID 分组，覆盖该插件所注册任务的 cron；不写就用插件自带的默认 cron |
+| `settings` | 按插件 ID 分组的插件私有配置，具体字段由插件自己定义 |
+
+要注意：
+
+- **这一节不走设置页**。插件配置可能含凭据，而且 API 和调度器两个进程要加载同一份注册表，所以它既不能在网页上读、也不能在网页上改，只能手动改 `config.toml`。
+- 改完（启用、停用、调 cron、改插件配置）都需要**重启整个 `sakuramedia` 服务**，只重启调度器不够。
+- 停用插件不会删掉它已经产生的任务运行记录，历史在活动中心里仍然查得到。
+- 插件注册的任务会和内置任务一起出现在任务列表里，运行规则完全一致。
+
 ## `[scheduler]`
 
 这一组控制后台定时任务是否开启，以及每个任务的运行频率。
@@ -249,19 +282,19 @@ enabled = true
 log_dir = "/data/logs"
 actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
-download_task_sync_cron = "* * * * *"
-download_task_auto_import_cron = "*/3 * * * *"
+download_task_sync_cron = "*/5 * * * *"
+download_task_auto_import_cron = "*/10 * * * *"
 download_small_file_cleanup_cron = "*/5 * * * *"
 movie_collection_sync_cron = "0 1 * * *"
 movie_heat_cron = "15 0 * * *"
-movie_interaction_sync_cron = "0 * * * *"
+movie_interaction_sync_cron = "0 5 * * *"
 ranking_sync_cron = "45 1 * * *"
 hot_review_sync_cron = "20 1 * * *"
-media_file_scan_cron = "0 */6 * * *"
+media_file_scan_cron = "0 4 * * *"
 movie_desc_sync_cron = "0 4 * * *"
 movie_desc_translation_cron = "15 4 * * *"
 movie_title_translation_cron = "20 4 * * *"
-media_thumbnail_cron = "*/5 * * * *"
+media_thumbnail_cron = "*/30 * * * *"
 image_search_index_cron = "0 0 * * *"
 image_search_optimize_cron = "0 3 * * *"
 movie_similarity_recompute_cron = "30 3 * * *"
@@ -286,7 +319,7 @@ activity_notification_read_retention_days = 3
 | `download_small_file_cleanup_cron` | 下载小文件清理频率 |
 | `movie_collection_sync_cron` | 合集影片同步频率 |
 | `movie_heat_cron` | 影片热度重算频率 |
-| `movie_interaction_sync_cron` | 影片互动数同步频率；当前默认每小时执行一次，但影片是否真正进入候选仍受分层刷新规则影响 |
+| `movie_interaction_sync_cron` | 影片互动数同步频率；当前默认每天 05:00 执行一次，任务跑起来之后哪些影片真正进入候选，还要看[分层刷新规则](/guide/tasks#影片互动数同步) |
 | `ranking_sync_cron` | 排行榜同步频率 |
 | `hot_review_sync_cron` | JavDB 热评同步频率 |
 | `media_file_scan_cron` | 媒体文件巡检频率 |
@@ -309,15 +342,20 @@ activity_notification_read_retention_days = 3
 
 ## `[downloads]`
 
-这一组控制下载链路里的小文件清理行为。
+这一组控制下载链路的公共行为：小文件清理、下载器偏好顺序，以及 115 离线下载相关的节流与放弃策略。
 
 ::: tip 走[轻量部署](/guide/lightweight-deploy)可以完全忽略这一节
-你没启用 qBittorrent 下载器时，这里的所有字段都不会生效，保持默认即可。
+你既没启用 qBittorrent 下载器、也没接 115 离线下载时，这里的所有字段都不会生效，保持默认即可。
 :::
 
 ```toml
 [downloads]
 small_file_cleanup_threshold_mb = 256
+progress_stream_poll_interval_seconds = 1.0
+cloud115_progress_poll_interval_seconds = 8.0
+preferred_client_kinds = ["qbittorrent", "cloud115"]
+cloud115_offline_abandon_hours = 24
+cloud115_rapid_upload_min_interval_seconds = 1.0
 ```
 
 字段说明：
@@ -325,6 +363,15 @@ small_file_cleanup_threshold_mb = 256
 | 字段 | 默认值 | 作用 |
 |---|---|---|
 | `small_file_cleanup_threshold_mb` | `256` | 下载任务里小于该体积（MB）的文件会被当作无效文件清理，配合 `[scheduler].download_small_file_cleanup_cron` 定时执行 |
+| `progress_stream_poll_interval_seconds` | `1.0` | 下载进度实时推送时，轮询 qBittorrent 的间隔（秒）。取值范围 `0.2`–`10`，调太低只会白白加重 qB Web API 负担 |
+| `cloud115_progress_poll_interval_seconds` | `8.0` | 下载进度实时推送时，轮询 115 离线列表的间隔（秒）。取值范围 `2`–`60`，**不允许低于 2 秒**——这是公网 API 且有风控 |
+| `preferred_client_kinds` | `["qbittorrent", "cloud115"]` | 下载器类型的全局偏好顺序。一条索引器同时绑了多个下载器时，按这个顺序挑；不在列表里的类型排最后。它只影响挑选顺序，不是白名单，选中的下载器执行失败也**不会**自动换下一个。**把 `cloud115` 提到第一位，还会切换「已订阅缺失影片自动下载」的选种策略**（见 [常见问题](/faq#auto-download-candidate-selection)） |
+| `cloud115_offline_abandon_hours` | `24` | 115 离线任务超过这个小时数还没完成，本地就放弃：停止轮询并通知你，但**不会**去清理 115 那边的任务 |
+| `cloud115_rapid_upload_min_interval_seconds` | `1.0` | 批量秒传时对 115 接口的全局限速，相邻请求最小间隔（秒）。取值范围 `0`–`10`，`0` 表示关闭限速。115 接口前面有 WAF，阈值大约 1–2 次/秒，默认值就是照这个来的，**不建议调低** |
+
+::: warning 改完要重启 `aps` 进程
+`[downloads]` 的生效档位是「重启调度器」。特别是改了 `preferred_client_kinds` 之后，后台自动下载任务要等 `aps` 进程重启才会用上新顺序。
+:::
 
 ## `[media_import]`
 
