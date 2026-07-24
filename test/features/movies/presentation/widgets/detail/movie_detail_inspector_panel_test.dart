@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
@@ -399,6 +400,78 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(submittedClientId, 3);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('magnet candidate shows and copies its full magnet link', (
+    WidgetTester tester,
+  ) async {
+    const magnetUrl = 'magnet:?xt=urn:btih:abcdef&dn=ABC-001';
+    Object? clipboardArguments;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (MethodCall call) async {
+        if (call.method == 'Clipboard.setData') {
+          clipboardArguments = call.arguments;
+        }
+        return null;
+      },
+    );
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      );
+    });
+
+    await _pumpInspectorPanel(
+      tester,
+      panelHeight: 640,
+      fetchMovieReviews: ({
+        required String movieNumber,
+        required int page,
+        required int pageSize,
+        required MovieReviewSort sort,
+      }) async =>
+          const <MovieReviewDto>[],
+      searchCandidates: ({
+        required String movieNumber,
+        String? indexerKind,
+      }) async =>
+          const <DownloadCandidateDto>[
+        DownloadCandidateDto(
+          source: 'jackett',
+          indexerName: 'dmhy',
+          indexerKind: 'bt',
+          resolvedClientId: 2,
+          resolvedClientName: 'qb-main',
+          movieNumber: 'ABC-001',
+          title: 'ABC-001 中文字幕',
+          sizeBytes: 1024,
+          seeders: 8,
+          magnetUrl: magnetUrl,
+          torrentUrl: '',
+          tags: <String>[],
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('磁力搜索'));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const Key('movie-detail-magnet-search-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('磁力链接'), findsOneWidget);
+    expect(find.text(magnetUrl), findsOneWidget);
+
+    final copyButton = find.byKey(const Key('movie-detail-magnet-copy-0'));
+    await tester.ensureVisible(copyButton);
+    await tester.tap(copyButton);
+    await tester.pump();
+
+    expect(clipboardArguments, <String, dynamic>{'text': magnetUrl});
+    expect(find.text('磁力链接已复制'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
   });
 
