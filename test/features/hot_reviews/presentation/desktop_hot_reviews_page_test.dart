@@ -14,8 +14,8 @@ import 'package:sakuramedia/features/hot_reviews/presentation/desktop_hot_review
 import 'package:sakuramedia/features/hot_reviews/presentation/mobile_overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_filter_entry_button.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -84,7 +84,7 @@ void main() {
   );
 
   testWidgets(
-    'desktop hot reviews page switches period query by toolbar buttons',
+    'desktop hot reviews page switches period from the in-place filter panel',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
         method: 'GET',
@@ -110,8 +110,13 @@ void main() {
       expect(reviewRequests, hasLength(1));
       expect(reviewRequests.first.uri.queryParameters['period'], 'weekly');
 
+      // 桌面筛选走顶栏入口的就地浮层，面板内容与移动抽屉同构。
+      await tester.tap(find.byKey(const Key('hot-reviews-filter-trigger')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('hot-reviews-filter-panel')), findsOneWidget);
+
       await tester.tap(
-        find.byKey(const Key('desktop-hot-reviews-period-monthly')),
+        find.byKey(const Key('hot-reviews-filter-period-monthly')),
       );
       await tester.pump();
       await tester.pumpAndSettle();
@@ -208,7 +213,7 @@ void main() {
   });
 
   testWidgets(
-    'mobile hot reviews tab collapses periods into a bottom-drawer picker',
+    'mobile hot reviews tab opens the same filter sections in a bottom drawer',
     (WidgetTester tester) async {
       bundle.adapter.enqueueJson(
         method: 'GET',
@@ -237,41 +242,32 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 5 个周期按钮已收成单一触发按钮，桌面 key 不应存在。
-      expect(
-        find.byKey(const Key('desktop-hot-reviews-period-weekly')),
-        findsNothing,
-      );
-
-      final triggerFinder = find.byKey(
-        const Key('mobile-hot-reviews-period-trigger'),
-      );
+      // 两端共用同一个筛选入口按钮，摘要就是当前周期名，默认「本周」。
+      final triggerFinder = find.byKey(const Key('hot-reviews-filter-trigger'));
       expect(triggerFinder, findsOneWidget);
       expect(
-        tester.widget<AppTextButton>(triggerFinder).size,
-        AppTextButtonSize.small,
-      );
-      // 触发按钮的标签就是当前周期名，默认「本周」。
-      expect(
-        find.descendant(of: triggerFinder, matching: find.text('本周')),
-        findsOneWidget,
+        tester.widget<AppFilterEntryButton>(
+          find.byType(AppFilterEntryButton),
+        ).label,
+        '本周',
       );
 
       await tester.tap(triggerFinder);
       await tester.pumpAndSettle();
 
-      // 底部抽屉弹出，5 个选项都在。
+      // 移动端点开的是底部抽屉，不是桌面就地浮层；面板内容是同一组分节。
       expect(
-        find.byKey(const Key('mobile-hot-reviews-period-picker')),
+        find.byKey(const Key('mobile-hot-reviews-filter-drawer')),
         findsOneWidget,
       );
+      expect(find.byKey(const Key('hot-reviews-filter-panel')), findsNothing);
       expect(
-        find.byKey(const Key('mobile-hot-reviews-period-option-monthly')),
+        find.byKey(const Key('hot-reviews-filter-period-monthly')),
         findsOneWidget,
       );
 
       await tester.tap(
-        find.byKey(const Key('mobile-hot-reviews-period-option-monthly')),
+        find.byKey(const Key('hot-reviews-filter-period-monthly')),
       );
       await tester.pumpAndSettle();
 
@@ -308,10 +304,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 量 header **容器**底部而不是里面控件的底部：容器现在是固定高度
-    // （与 AppListHeader 对齐，进出多选不跳版），控件在其中居中，
+    // 量 header **容器**底部而不是里面控件的底部：容器是固定高度
+    // （AppListHeader，进出多选不跳版），控件在其中居中，
     // 控件底部与容器底部之间本来就有留白。
-    final headerRect = tester.getRect(find.byType(AppFilterTotalHeader));
+    final headerRect = tester.getRect(find.byType(AppListHeader));
     final firstCardRect = tester.getRect(
       find.byKey(const Key('hot-review-card-101')),
     );

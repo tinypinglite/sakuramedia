@@ -13,7 +13,7 @@ import 'package:sakuramedia/features/moments/presentation/mobile_overview_moment
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_filter_entry_button.dart';
 
 import '../../../support/test_api_bundle.dart';
 
@@ -50,22 +50,14 @@ void main() {
       find.byKey(const Key('mobile-overview-moments-tab')),
       findsOneWidget,
     );
-    final latestSortLabel = tester.widget<Text>(
-      find.descendant(
-        of: find.byKey(const Key('mobile-moments-sort-latest')),
-        matching: find.text('最新'),
-      ),
-    );
-    expect(find.byKey(const Key('mobile-moments-sort-latest')), findsOneWidget);
+    // 筛选收口到顶栏入口，摘要只报「内容类型」这一主维度。
     expect(
       tester
-          .widget<AppTextButton>(
-            find.byKey(const Key('mobile-moments-sort-latest')),
-          )
-          .size,
-      AppTextButtonSize.xSmall,
+          .widget<AppFilterEntryButton>(find.byType(AppFilterEntryButton))
+          .label,
+      'JAV',
     );
-    expect(latestSortLabel.style?.fontSize, 12);
+    expect(find.text('最新'), findsNothing);
     expect(find.byKey(const Key('mobile-moments-page-total')), findsOneWidget);
     expect(find.text('1 个时刻'), findsOneWidget);
     expect(find.text('ABC-001'), findsOneWidget);
@@ -82,6 +74,14 @@ void main() {
 
     await _pumpMomentsApp(tester, bundle: bundle, sessionStore: sessionStore);
     await tester.pumpAndSettle();
+
+    // 移动端点开的是底部抽屉，面板内容与桌面浮层同构。
+    await tester.tap(find.byKey(const Key('mobile-moments-filter-trigger')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('mobile-moments-filter-drawer')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const Key('mobile-moments-sort-earliest')));
     await tester.pumpAndSettle();

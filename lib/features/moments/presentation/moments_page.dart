@@ -5,6 +5,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/desktop_image_search_launcher.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/moments/presentation/moment_filter_sections.dart';
 import 'package:sakuramedia/features/moments/presentation/paged_moment_controller.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_player_page.dart';
@@ -17,12 +18,12 @@ import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_grid.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_image.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_preview_launcher.dart';
-import 'package:sakuramedia/widgets/domain/moments/moment_sort_header.dart';
 
 enum MomentsPagePlatform { desktop, mobile }
 
@@ -86,20 +87,7 @@ class _MomentsPageState extends State<MomentsPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SizedBox(height: context.appSpacing.sm),
-                  MomentSortHeader(
-                    total: _controller.total,
-                    sortOrder: _controller.sortOrder,
-                    kindFilter: _controller.kindFilter,
-                    keyPrefix: _keyPrefix,
-                    onSortChanged:
-                        (nextOrder) => unawaited(
-                          _controller.setSortOrder(nextOrder),
-                        ),
-                    onKindChanged:
-                        (nextKind) => unawaited(
-                          _controller.setKindFilter(nextKind),
-                        ),
-                  ),
+                  _buildHeader(context),
                   SizedBox(height: context.appSpacing.md),
                 ],
               ),
@@ -149,6 +137,52 @@ class _MomentsPageState extends State<MomentsPage> {
       }
     }
   }
+
+  /// 桌面与移动共用同一条顶栏：筛选入口（当前内容类型）+ 总数信息槽。
+  /// 差别只在筛选面板的容器——桌面就地浮层，移动底部抽屉。
+  Widget _buildHeader(BuildContext context) {
+    return AppListHeader(
+      filterButtonKey: Key('$_keyPrefix-filter-trigger'),
+      // 摘要只报「内容类型」这一主维度，排序有独立分节，不堆在入口上。
+      filterLabel: _controller.kindFilter.label,
+      filterPanelKey: Key('$_keyPrefix-filter-panel'),
+      filterPanelExtraWidth: 180,
+      onFilterTap: _isMobile ? () => unawaited(_openFilterDrawer()) : null,
+      filterPanelBuilder:
+          _isMobile
+              ? null
+              : (_) => MomentFilterSectionGroup(
+                kindFilter: _controller.kindFilter,
+                sortOrder: _controller.sortOrder,
+                keyPrefix: _keyPrefix,
+                onKindChanged: _applyKind,
+                onSortChanged: _applySort,
+              ),
+      informationSlots: [
+        AppListHeaderInfo(
+          key: Key('$_keyPrefix-page-total'),
+          label: '${_controller.total} 个时刻',
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openFilterDrawer() async {
+    await showMobileMomentFilterDrawer(
+      context,
+      kindFilter: _controller.kindFilter,
+      sortOrder: _controller.sortOrder,
+      keyPrefix: _keyPrefix,
+      onKindChanged: _applyKind,
+      onSortChanged: _applySort,
+    );
+  }
+
+  void _applyKind(MomentKindFilter next) =>
+      unawaited(_controller.setKindFilter(next));
+
+  void _applySort(MomentSortOrder next) =>
+      unawaited(_controller.setSortOrder(next));
 
   Widget _buildBody(BuildContext context) {
     if (_controller.isInitialLoading) {

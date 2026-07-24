@@ -16,12 +16,15 @@ import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/m
 import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/paged_movie_summary_controller.dart';
+import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_filter_drawer.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
-import 'package:sakuramedia/widgets/domain/movies/movie_filter_toolbar.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 
 typedef ActorDetailBodyBuilder =
@@ -66,6 +69,8 @@ class ActorDetailContent extends StatefulWidget {
     required this.bodyBuilder,
     this.enableRefresh = false,
     this.onRefreshFailure,
+    this.useMobileFilterDrawer = false,
+    this.useMobileSelectionLayout = false,
   });
 
   final int actorId;
@@ -80,6 +85,15 @@ class ActorDetailContent extends StatefulWidget {
   final ActorDetailBodyBuilder bodyBuilder;
   final bool enableRefresh;
   final void Function(BuildContext context)? onRefreshFailure;
+
+  /// 顶栏筛选入口点开什么：`true` 弹底部抽屉（移动端），`false` 就地展开浮层
+  /// （桌面端）。两端按钮外观、面板内容、即时生效行为完全一致，只有容器不同。
+  final bool useMobileFilterDrawer;
+
+  /// 移动端多选布局：入口挂到**卡片长按浮层**（顶栏不再常驻「选择」），多选态
+  /// 顶栏只留退出/计数/全选，批量动作走贴底的 `AppSelectionBottomBar`。
+  /// 桌面端保持 `false`——批量动作在顶栏内联。语义对齐 `MovieListContent`。
+  final bool useMobileSelectionLayout;
 
   @override
   State<ActorDetailContent> createState() => _ActorDetailContentState();
@@ -313,25 +327,61 @@ class _ActorDetailContentState extends State<ActorDetailContent>
     showActorSubscriptionFeedback(result);
   }
 
-  Widget _buildFilterToolbarRow() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: MovieFilterToolbar(
-            filterState: _filterState,
-            onChanged: _applyFilter,
-            onReset: _resetFilters,
-            yearOptions: _movieYearOptions,
-            isYearOptionsLoading: _isMovieYearsLoading,
-            yearOptionsErrorMessage: _movieYearsErrorMessage,
-            onYearOptionsRetry: () => unawaited(_loadMovieYears(force: true)),
-            onOpened: _loadMovieYearsIfNeeded,
-          ),
-        ),
-        SizedBox(width: context.appSpacing.md),
-        buildEnterSelectionButton(),
+  /// 影片区顶栏：与影片 / 女优列表页共用同一条 `AppListHeader`。
+  /// 差别只在筛选面板的容器——桌面就地浮层，移动底部抽屉。
+  ///
+  /// 总数不进信息槽：女优信息头里已经有「N 部」，再放一遍是重复。
+  Widget _buildFilterHeader(BuildContext context) {
+    return AppListHeader(
+      filterButtonKey: const Key('actor-detail-filter-trigger'),
+      filterLabel: _filterState.triggerLabel,
+      filterPanelKey: const Key('actor-detail-filter-panel'),
+      onFilterPanelOpened:
+          widget.useMobileFilterDrawer ? null : _loadMovieYearsIfNeeded,
+      onFilterTap:
+          widget.useMobileFilterDrawer
+              ? () => unawaited(_openFilterDrawer())
+              : null,
+      filterPanelBuilder:
+          widget.useMobileFilterDrawer
+              ? null
+              : (_) => MovieFilterSectionGroup(
+                filterState: _filterState,
+                onChanged: _applyFilter,
+                yearOptions: _movieYearOptions,
+                isYearOptionsLoading: _isMovieYearsLoading,
+                yearOptionsErrorMessage: _movieYearsErrorMessage,
+                onYearOptionsRetry:
+                    () => unawaited(_loadMovieYears(force: true)),
+              ),
+      filterPanelFooter: AppFilterPanelFooter(
+        isDefault: _filterState.isDefault,
+        onReset: _resetFilters,
+      ),
+      actionSlots: [
+        // 移动端多选入口挂在卡片长按菜单里，顶栏不常驻「选择」。
+        if (!widget.useMobileSelectionLayout) buildEnterSelectionButton(),
       ],
+    );
+  }
+
+  Future<void> _openFilterDrawer() async {
+    // 年份是懒加载的，而抽屉内容是**打开那一刻的快照**（不像桌面浮层会随
+    // didUpdateWidget 重建）。所以这里先把年份取回来再弹，否则抽屉里的年份分节
+    // 会永远停在转圈状态。只有首次点击会等这一次请求。
+    if (!_hasLoadedMovieYears) {
+      await _loadMovieYears();
+    }
+    if (!mounted) {
+      return;
+    }
+    await showMobileMovieFilterDrawer(
+      context,
+      current: _filterState,
+      onChanged: _applyFilter,
+      yearOptions: _movieYearOptions,
+      yearOptionsErrorMessage: _movieYearsErrorMessage,
+      onYearOptionsRetry: () => unawaited(_loadMovieYears(force: true)),
     );
   }
 
@@ -364,7 +414,7 @@ class _ActorDetailContentState extends State<ActorDetailContent>
     // 分两层监听：外层只跟 _actorController（切 loading / error / normal 分支），
     // 内层跟 _moviesController（分页 tick 只重建 sliver body，不重建外层
     // CustomScrollView / RefreshIndicator）。对齐 MovieListContent 的写法。
-    return AppPageRefreshScope(
+    final body = AppPageRefreshScope(
       onRefresh: _handleRefresh,
       child: ColoredBox(
         color: widget.surfaceColor,
@@ -423,8 +473,10 @@ class _ActorDetailContentState extends State<ActorDetailContent>
                       SliverToBoxAdapter(
                         child:
                             selectionMode
-                                ? buildBatchSelectionToolbar()
-                                : _buildFilterToolbarRow(),
+                                ? (widget.useMobileSelectionLayout
+                                    ? buildMobileBatchSelectionHeader()
+                                    : buildBatchSelectionToolbar())
+                                : _buildFilterHeader(context),
                       ),
                       SliverToBoxAdapter(
                         child: SizedBox(height: widget.sectionSpacing),
@@ -443,6 +495,14 @@ class _ActorDetailContentState extends State<ActorDetailContent>
                               movieNumber: movie.movieNumber,
                               globalPosition: globalPosition,
                               isSubscribed: movie.isSubscribed,
+                              // 移动端多选入口挂在长按菜单里，桌面仍在顶栏。
+                              onEnterSelection:
+                                  widget.useMobileSelectionLayout
+                                      ? () {
+                                        enterSelection();
+                                        toggleSelect(movie.movieNumber);
+                                      }
+                                      : null,
                             ),
                           );
                         },
@@ -478,6 +538,21 @@ class _ActorDetailContentState extends State<ActorDetailContent>
           },
         ),
       ),
+    );
+
+    if (!widget.useMobileSelectionLayout) {
+      return body;
+    }
+    // 底部批量条贴在列表下方常驻，不随列表滚动（对齐 MovieListContent）。
+    return Column(
+      children: [
+        Expanded(child: body),
+        if (selectionMode)
+          AnimatedBuilder(
+            animation: _moviesController,
+            builder: (context, _) => buildMobileBatchSelectionBottomBar(),
+          ),
+      ],
     );
   }
 }

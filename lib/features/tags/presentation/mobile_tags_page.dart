@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:provider/provider.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
+// 标签页展示的就是影片列表，筛选抽屉与移动影片页共用同一个（与已复用的
+// MovieListContent 同源）。
+import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_filter_drawer.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_list_content.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_subscription_change_notifier.dart';
 import 'package:sakuramedia/features/tags/data/tags_api.dart';
@@ -14,6 +17,7 @@ import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 
 /// 移动端标签页：标签多选区 + 所选标签下的影片列表。
 ///
@@ -104,6 +108,10 @@ class _MobileTagsPageState extends State<MobileTagsPage> {
           (context, movieNumber) => MobileMovieDetailRouteData(
             movieNumber: movieNumber,
           ).push(context),
+      // 与移动影片页同一套移动范式：筛选走底部抽屉（不是桌面就地浮层），
+      // 多选态顶栏只留退出/计数/全选、批量动作下沉到底部条。
+      headerBuilder: _buildMobileHeader,
+      useMobileSelectionLayout: true,
       bodyBuilder:
           (context, scrollController, sliver, onRefresh) =>
               AppAdaptiveRefreshScrollView(
@@ -120,6 +128,34 @@ class _MobileTagsPageState extends State<MobileTagsPage> {
               ),
       enableRefresh: true,
       onRefreshFailure: (_) => showToast('刷新失败'),
+    );
+  }
+
+  /// 影片区顶栏：与移动影片页逐字同构，只换 Key 前缀。标签选择区不在这条顶栏里，
+  /// 它仍是列表上方的常驻面板。
+  Widget _buildMobileHeader(BuildContext context, MovieListHeaderArgs args) {
+    return AppListHeader(
+      filterButtonKey: const Key('mobile-tags-filter-button'),
+      filterTooltip: '筛选',
+      filterLabel: args.filterState.triggerLabel,
+      onFilterTap: () => _openFilterDrawer(context, args),
+      informationSlots: [
+        AppListHeaderInfo(
+          key: const Key('mobile-tags-page-total'),
+          label: '${args.total} 部',
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openFilterDrawer(
+    BuildContext context,
+    MovieListHeaderArgs args,
+  ) async {
+    await showMobileMovieFilterDrawer(
+      context,
+      current: args.filterState,
+      onChanged: args.onApply,
     );
   }
 

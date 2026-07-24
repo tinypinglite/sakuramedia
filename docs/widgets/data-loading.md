@@ -29,7 +29,7 @@
 - **用途**: 列表顶部"筛选栏 + 总数条"通用行(左 leading + 右总数,可插 trailing)。
 - **required**: `leading` · `totalText`
 - **可选**: `totalKey` · `trailing`
-- **何时用**: 筛选驱动列表的顶部 summary,比如 `MovieFilterToolbar` 下方 "共 xxx 部" 这条。
+- **何时用**: 「区块标题 + 总数」这类还没迁到 `AppListHeader` 的顶部 summary(发现页推荐区、订阅页、媒体管理各 section)。**筛选驱动的列表顶栏一律用 `AppListHeader`**,别再用它。
 
 ## AppText
 - **路径**: `lib/widgets/base/typography/app_text.dart`

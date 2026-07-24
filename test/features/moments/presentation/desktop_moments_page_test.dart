@@ -9,7 +9,7 @@ import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/moments/presentation/desktop_moments_page.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_filter_entry_button.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -45,21 +45,32 @@ void main() {
 
     expect(find.byKey(const Key('moments-page')), findsOneWidget);
     expect(find.byKey(const Key('moments-page-total')), findsOneWidget);
-    // 2 个排序 chip + 2 个 kind chip。
-    expect(find.byType(AppTextButton), findsNWidgets(4));
+    expect(find.text('1 个时刻'), findsOneWidget);
+
+    // 筛选收口到顶栏入口，摘要只报「内容类型」这一主维度；chip 都在面板里。
     expect(
       tester
-          .widget<AppTextButton>(find.byKey(const Key('moments-sort-latest')))
-          .size,
-      AppTextButtonSize.xSmall,
+          .widget<AppFilterEntryButton>(find.byType(AppFilterEntryButton))
+          .label,
+      'JAV',
     );
+    expect(find.text('最新'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('moments-filter-trigger')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('moments-filter-panel')), findsOneWidget);
     expect(find.byKey(const Key('moments-kind-jav')), findsOneWidget);
     expect(find.byKey(const Key('moments-kind-video')), findsOneWidget);
-    expect(find.text('1 个时刻'), findsOneWidget);
-    expect(find.text('最新'), findsOneWidget);
-    expect(find.text('最早'), findsOneWidget);
-    expect(find.text('JAV'), findsOneWidget);
-    expect(find.text('视频'), findsOneWidget);
+    expect(find.byKey(const Key('moments-sort-latest')), findsOneWidget);
+    expect(find.byKey(const Key('moments-sort-earliest')), findsOneWidget);
+    expect(find.text('内容类型'), findsOneWidget);
+    expect(find.text('排序'), findsOneWidget);
+
+    // 关掉浮层，回到列表本身的断言。
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+
     expect(find.text('ABC-001'), findsOneWidget);
     expect(find.text('02:00'), findsOneWidget);
     expect(_mediaPointsQueryValue(bundle, 0, 'sort'), 'created_at:desc');
@@ -76,6 +87,8 @@ void main() {
     await _pumpMomentsApp(tester, bundle: bundle, sessionStore: sessionStore);
     await tester.pumpAndSettle();
 
+    await tester.tap(find.byKey(const Key('moments-filter-trigger')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('moments-sort-earliest')));
     await tester.pumpAndSettle();
 

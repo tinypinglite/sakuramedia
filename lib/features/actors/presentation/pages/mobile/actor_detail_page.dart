@@ -64,6 +64,10 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
               ),
       enableRefresh: true,
       onRefreshFailure: (_) => showToast('刷新失败'),
+      // 与移动影片页同一套移动范式：筛选走底部抽屉，多选态顶栏只留退出/计数/
+      // 全选、批量动作下沉到底部条。
+      useMobileFilterDrawer: true,
+      useMobileSelectionLayout: true,
     );
   }
 

@@ -5,7 +5,7 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 
 /// 影片筛选的所有 section（状态 / 合集类型 / 番号来源 / 年份 / 排序）的纵向 Column。
 ///
-/// 桌面 `MovieFilterToolbar` 的浮层 panel 和移动 `MobileMovieFilterDrawer` 都用它，
+/// 桌面 `AppListHeader` 的就地浮层 panel 和移动 `MobileMovieFilterDrawer` 都用它，
 /// 避免双份维护。底栏/重置按钮由调用方自己附加。
 class MovieFilterSectionGroup extends StatelessWidget {
   const MovieFilterSectionGroup({

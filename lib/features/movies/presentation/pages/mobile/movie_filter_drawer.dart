@@ -7,7 +7,7 @@ import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 
 /// 弹出移动端影片筛选底部抽屉。
 ///
-/// 内容与桌面 `MovieFilterToolbar` 的浮层面板**完全一致**（同一个
+/// 内容与桌面 `AppListHeader` 的就地浮层面板**完全一致**（同一个
 /// [MovieFilterSectionGroup] + 同一个 [AppFilterPanelFooter]），行为也一致：
 /// 即时生效、重置在 footer 里。两端只有外层容器不同。
 Future<void> showMobileMovieFilterDrawer(

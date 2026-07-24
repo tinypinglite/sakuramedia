@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/movies/presentation/controllers/listing/pag
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 
 class DesktopActorDetailPage extends StatefulWidget {
@@ -64,77 +65,10 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
     if (moviesController.items.isEmpty) {
       return null;
     }
-
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final componentTokens = context.appComponentTokens;
-
-    if (moviesController.isLoadingMore) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: spacing.md),
-          child: SizedBox(
-            width: componentTokens.movieCardLoaderSize,
-            height: componentTokens.movieCardLoaderSize,
-            child: CircularProgressIndicator(
-              strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (moviesController.loadMoreErrorMessage == null) {
-      return null;
-    }
-
-    return Center(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surfaceMuted,
-          borderRadius: context.appRadius.mdBorder,
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: spacing.lg,
-            vertical: spacing.sm,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline_rounded,
-                size: componentTokens.iconSizeXl,
-                color: context.appTextPalette.secondary,
-              ),
-              SizedBox(width: spacing.sm),
-              Text(
-                moviesController.loadMoreErrorMessage!,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              TextButton(
-                onPressed: moviesController.loadMore,
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: spacing.sm,
-                    vertical: spacing.xs,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text('重试'),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return AppPagedLoadMoreFooter(
+      isLoading: moviesController.isLoadingMore,
+      errorMessage: moviesController.loadMoreErrorMessage,
+      onRetry: moviesController.loadMore,
     );
   }
 }

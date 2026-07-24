@@ -52,10 +52,12 @@
 - **可选**: `errorMessage` · `onMovieTap` · `onMovieMenuRequest` · `onMovieSubscriptionTap` · `isMovieSubscriptionUpdating` · `emptyMessage` · `placeholderCount`(默认 8)
 - **实现**: 内部走 `AppAdaptiveCardGrid<MovieListItemDto>`(fixedAspect)。改列宽 / 四态观感请去 [data-loading.md](./data-loading.md) 的 `AppAdaptiveCardGrid<T>`。
 
-### MovieFilterToolbar / MovieFilterSectionGroup / MovieFilterChoiceSection&lt;T&gt; / MovieYearFilterSection / MovieSortSection
-- **路径**: `lib/widgets/domain/movies/movie_filter_toolbar.dart` · `movie_filter_sections.dart`
-- **用途**: 影片筛选。年份 section 独立(有年份选项 loading / error / retry 三态)。
-- **MovieFilterToolbar required**: `filterState` · `onChanged` · `onReset`;可选 `yearOptions` · `isYearOptionsLoading` · `yearOptionsErrorMessage` · `onYearOptionsRetry` · `onOpened`
+### MovieFilterSectionGroup / MovieFilterChoiceSection&lt;T&gt; / MovieYearFilterSection / MovieSortSection
+- **路径**: `lib/widgets/domain/movies/movie_filter_sections.dart`
+- **用途**: 影片筛选分节组(状态 / 合集类型 / 番号来源 / 年份 / 排序),**双端共用同一份**:桌面塞进 `AppListHeader.filterPanelBuilder` 的就地浮层,移动塞进 `showMobileMovieFilterDrawer` 的底部抽屉。年份 section 独立(有年份选项 loading / error / retry 三态)。
+- **required**: `filterState` · `onChanged`;可选 `yearOptions` · `isYearOptionsLoading` · `yearOptionsErrorMessage` · `onYearOptionsRetry`
+- **`MovieFilterChoiceSection` 可选 `optionKeyBuilder`**: 给每个 chip 挂稳定 Key(videos / moments / hot_reviews 侧都用它生成测试锚点)。
+- **注意**: 已无 `MovieFilterToolbar`——桌面筛选入口统一由 `AppListHeader` 提供,重置走 `AppFilterPanelFooter`。**移动抽屉的内容是打开瞬间的快照**(不像桌面浮层会随 `didUpdateWidget` 重建),所以懒加载的年份必须在弹抽屉**之前** await 回来,否则分节会永远停在转圈态(女优详情页踩过)。
 
 ### MobileFollowMovieCard
 - **路径**: `lib/widgets/domain/movies/mobile_follow_movie_card.dart`
@@ -130,12 +132,9 @@
 - **required**: `items` · `onItemTap`
 - **何时用**: 时刻库网格。已收敛为 `AppAdaptiveCardGrid<MomentListItem>` 的薄壳(`targetColumnWidth: 280` · `minColumns: 2` · `maxColumns: 4` · `childAspectRatio: 16/10`),调用方各自管加载态(内部 `isLoading` 恒 `false`,空态由调用方在渲染前拦截)。
 
-### MomentSortHeader
-- **路径**: `lib/widgets/domain/moments/moment_sort_header.dart`
-- **用途**: 时刻页顶"总数 + 类型筛选(JAV/视频)+ 排序(最新/最早)"条。
-- **required**: `total` · `sortOrder` · `onSortChanged` · `kindFilter` · `onKindChanged`
-- **可选**: `keyPrefix`（默认 `moments`，生成测试锚点）
-- **何时用**: 时刻库入口页。
+> 时刻页顶栏已并入 `AppListHeader`(原 `MomentSortHeader` 已删除):筛选分节见
+> `features/moments/presentation/moment_filter_sections.dart` 的
+> `MomentFilterSectionGroup`(内容类型 + 排序,桌面浮层与移动抽屉共用)。
 
 ### MomentPreviewDialog
 - 见 [media-images.md](./media-images.md) —— 与 `MediaPreviewDialog` 语义 alias。
