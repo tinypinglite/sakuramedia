@@ -201,6 +201,30 @@ void main() {
     expect(state.isTaskPending(5), isFalse);
   });
 
+  test('pauseTask turns a seeding task directly into completed', () async {
+    enqueueTaskPage([
+      taskJson(
+        id: 6,
+        downloadState: 'seeding',
+        importStatus: 'completed',
+        progress: 1.0,
+      ),
+    ]);
+    enqueueClients();
+    await container.read(downloadTaskCenterProvider.future);
+
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-tasks/6/pause',
+      body: <String, dynamic>{},
+    );
+    await container.read(downloadTaskCenterProvider.notifier).pauseTask(6);
+
+    final state = container.read(downloadTaskCenterProvider).requireValue;
+    expect(state.paged.items.single.downloadState, 'completed');
+    expect(state.isTaskPending(6), isFalse);
+  });
+
   test('resumeTask flips state to downloading', () async {
     enqueueTaskPage([taskJson(id: 7, downloadState: 'paused')]);
     enqueueClients();

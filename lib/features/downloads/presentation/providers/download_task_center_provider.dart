@@ -226,11 +226,19 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
   Future<void> pauseTask(int taskId) async {
     final now = state.value;
     if (now == null || now.pendingActionTaskIds.contains(taskId)) return;
+    final currentDownloadState = _stateOf(now, taskId);
     _addPending(taskId);
     try {
       await ref.read(downloadsApiProvider).pauseDownloadTask(taskId);
       if (isDisposed) return;
-      _patchRowState(taskId, downloadState: 'paused');
+      _patchRowState(
+        taskId,
+        downloadState:
+            currentDownloadState == 'seeding' ||
+                    currentDownloadState == 'completed'
+                ? 'completed'
+                : 'paused',
+      );
     } finally {
       _removePending(taskId);
     }
@@ -516,6 +524,8 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
     final next = List<DownloadTaskRowState>.from(items);
     next[index] = row.copyWith(
       task: row.task.copyWith(downloadState: downloadState),
+      // The last SSE snapshot may still contain the pre-action state.
+      live: null,
     );
     state = AsyncData(
       current.copyWith(
