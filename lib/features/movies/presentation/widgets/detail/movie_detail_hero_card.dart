@@ -15,7 +15,6 @@ class MovieDetailHeroCard extends StatelessWidget {
     required this.onPlayTap,
     this.onSubscriptionTap,
     this.onMoreActionsTap,
-    this.onPotPlayerTap,
     this.isSubscriptionUpdating = false,
     this.isMoreActionsUpdating = false,
     this.isPlayLoading = false,
@@ -31,7 +30,6 @@ class MovieDetailHeroCard extends StatelessWidget {
   final VoidCallback? onPlayTap;
   final VoidCallback? onSubscriptionTap;
   final Future<void> Function(Offset globalPosition)? onMoreActionsTap;
-  final VoidCallback? onPotPlayerTap;
   final bool isSubscriptionUpdating;
   final bool isMoreActionsUpdating;
 
@@ -143,98 +141,42 @@ class MovieDetailHeroCard extends StatelessWidget {
               child: Center(
                 child: MouseRegion(
                   cursor: SystemMouseCursors.click,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          key: const Key('movie-detail-hero-play-button'),
-                          customBorder: const CircleBorder(),
-                          onTap: isPlayLoading ? null : onPlayTap,
-                          child: Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              color: colors.movieDetailEmptyBackground.withValues(
-                                alpha: 0.28,
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                            child:
-                                isPlayLoading
-                                    ? const Padding(
-                                      padding: EdgeInsets.all(22),
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 3,
-                                        color: Colors.white,
-                                      ),
-                                    )
-                                    : Icon(
-                                      Icons.play_arrow_rounded,
-                                      color: context.appTextPalette.onMedia,
-                                      size: tokens.iconSize4xl,
-                                    ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      key: const Key('movie-detail-hero-play-button'),
+                      customBorder: const CircleBorder(),
+                      onTap: isPlayLoading ? null : onPlayTap,
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: colors.movieDetailEmptyBackground.withValues(
+                            alpha: 0.28,
                           ),
+                          shape: BoxShape.circle,
                         ),
+                        child:
+                            isPlayLoading
+                                ? const Padding(
+                                  padding: EdgeInsets.all(22),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    color: Colors.white,
+                                  ),
+                                )
+                                : Icon(
+                                  Icons.play_arrow_rounded,
+                                  color: context.appTextPalette.onMedia,
+                                  size: tokens.iconSize4xl,
+                                ),
                       ),
-                      if (onPotPlayerTap != null) ...[
-                        SizedBox(height: spacing.md),
-                        _HeroPotPlayerButton(onTap: onPotPlayerTap!),
-                      ],
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _HeroPotPlayerButton extends StatelessWidget {
-  const _HeroPotPlayerButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final tokens = context.appComponentTokens;
-    return Material(
-      color: colors.mediaOverlayStrong.withValues(alpha: 0.72),
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        key: const Key('movie-detail-hero-potplayer-button'),
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: context.appSpacing.md,
-            vertical: context.appSpacing.xs,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.play_circle_outline_rounded,
-                size: tokens.iconSizeMd,
-                color: context.appTextPalette.onMedia,
-              ),
-              SizedBox(width: context.appSpacing.xs),
-              Text(
-                'PotPlayer',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s14,
-                  weight: AppTextWeight.medium,
-                  tone: AppTextTone.onMedia,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -40,7 +40,6 @@ class MovieDetailNumberBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
@@ -54,7 +53,7 @@ class MovieDetailNumberBar extends StatelessWidget {
                 ),
               ),
               if (trailing != null) ...[
-                SizedBox(width: context.appSpacing.md),
+                const Spacer(),
                 trailing!,
               ],
             ],

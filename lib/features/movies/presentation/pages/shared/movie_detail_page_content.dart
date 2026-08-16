@@ -241,6 +241,19 @@ class MovieDetailPageContent extends StatelessWidget {
       ),
       tooltip: '加入播放列表',
     );
+    final potPlayerTrigger =
+        onPotPlayerTap == null
+            ? null
+            : AppIconButton(
+                key: const Key('movie-detail-potplayer-trigger'),
+                onPressed: onPotPlayerTap,
+                icon: Icon(
+                  Icons.play_circle_outline_rounded,
+                  size: context.appComponentTokens.iconSizeLg,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                tooltip: 'PotPlayer 播放',
+              );
     final collectionTrigger = TextButton(
       key: const Key('movie-detail-collection-trigger'),
       onPressed: isCollectionUpdating ? null : onCollectionToggle,
@@ -296,7 +309,6 @@ class MovieDetailPageContent extends StatelessWidget {
           isMoreActionsUpdating: isMoreActionsUpdating,
           isPlayLoading: isPlayLoading,
           onPlayTap: onPlayTap,
-          onPotPlayerTap: onPotPlayerTap,
         ),
         SizedBox(height: context.appSpacing.lg),
         MoviePlotGallery(
@@ -317,6 +329,10 @@ class MovieDetailPageContent extends StatelessWidget {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (potPlayerTrigger != null) ...[
+                potPlayerTrigger,
+                SizedBox(width: context.appSpacing.xs),
+              ],
               collectionTrigger,
               SizedBox(width: context.appSpacing.xs),
               playlistTrigger,
