@@ -180,10 +180,10 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
                           launchPotPlayerPlayback(
                             context,
                             movieNumber: widget.movieNumber,
-                            mediaId: selectedMedia?.mediaId,
+                            mediaId: selectedMedia.mediaId,
                             movie: movie,
                             positionSeconds:
-                                selectedMedia?.progress?.lastPositionSeconds,
+                                selectedMedia.progress?.lastPositionSeconds,
                           ),
                         )
                         : null,

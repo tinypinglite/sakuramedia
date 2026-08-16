@@ -182,7 +182,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
                 onPotPlayerTap:
                     canLaunchPotPlayer
                         ? () => _launchPotPlayer(
-                          mediaId: selectedMedia?.mediaId,
+                          mediaId: selectedMedia.mediaId,
                         )
                         : null,
                 sourceOptions: sourceOptions,
