@@ -69,6 +69,49 @@ void main() {
     expect(find.text('115 网盘 · 云盘库 · 3840x2160 · 01:01:01'), findsOneWidget);
   });
 
+  testWidgets('movie media item list shows PotPlayer button when callback provided', (
+    WidgetTester tester,
+  ) async {
+    var tapped = false;
+
+    await tester.pumpWidget(
+      _testApp(
+        child: MovieMediaItemList(
+          mediaItems: const <MovieMediaItemDto>[
+            MovieMediaItemDto(
+              mediaId: 1,
+              libraryId: 1,
+              playUrl: '/media/1/stream',
+              storageMode: 'hardlink',
+              resolution: '1920x1080',
+              fileSizeBytes: 1073741824,
+              durationSeconds: 3600,
+              specialTags: '',
+              valid: true,
+              progress: null,
+              points: <MovieMediaPointDto>[],
+              videoInfo: null,
+            ),
+          ],
+          selectedMediaId: 1,
+          onSelect: (_) {},
+          onPotPlayerTap: () {
+            tapped = true;
+          },
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('movie-media-potplayer-button')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('movie-media-potplayer-button')));
+    await tester.pump();
+
+    expect(tapped, isTrue);
+  });
+
   testWidgets(
     'movie media item list renders compact shared pills and updates selected style',
     (WidgetTester tester) async {

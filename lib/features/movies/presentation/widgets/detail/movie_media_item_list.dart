@@ -18,6 +18,7 @@ class MovieMediaItemList extends StatelessWidget {
     this.onDeleteSelectedMedia,
     this.onOpenPointPreview,
     this.onRequestPointMenu,
+    this.onPotPlayerTap,
     this.storageDescriptors = const <int, MediaStorageDescriptor>{},
   });
 
@@ -35,6 +36,7 @@ class MovieMediaItemList extends StatelessWidget {
     Offset globalPosition,
   )?
   onRequestPointMenu;
+  final VoidCallback? onPotPlayerTap;
   final Map<int, MediaStorageDescriptor> storageDescriptors;
 
   @override
@@ -58,6 +60,8 @@ class MovieMediaItemList extends StatelessWidget {
             );
     final showDeleteAction =
         selectedItem != null && onDeleteSelectedMedia != null;
+    final showPotPlayerAction =
+        selectedItem != null && onPotPlayerTap != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,7 +79,7 @@ class MovieMediaItemList extends StatelessWidget {
               })
               .toList(growable: false),
         ),
-        if (technicalSummary != null || showDeleteAction) ...[
+        if (technicalSummary != null || showDeleteAction || showPotPlayerAction) ...[
           SizedBox(height: contentGap),
           Row(
             key: const Key('movie-media-summary-row'),
@@ -125,6 +129,17 @@ class MovieMediaItemList extends StatelessWidget {
                       isDeletingSelectedMedia
                           ? null
                           : () => onDeleteSelectedMedia?.call(selectedItem),
+                ),
+              ],
+              if (showPotPlayerAction) ...[
+                SizedBox(width: context.appSpacing.md),
+                AppIconButton(
+                  key: const Key('movie-media-potplayer-button'),
+                  icon: const Icon(Icons.play_circle_outline_rounded),
+                  tooltip: 'PotPlayer 播放',
+                  semanticLabel: 'PotPlayer 播放',
+                  size: AppIconButtonSize.mini,
+                  onPressed: onPotPlayerTap,
                 ),
               ],
             ],

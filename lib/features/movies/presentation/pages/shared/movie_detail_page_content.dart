@@ -358,6 +358,7 @@ class MovieDetailPageContent extends StatelessWidget {
                   onDeleteSelectedMedia: onDeleteSelectedMedia,
                   onOpenPointPreview: onOpenMediaPointPreview,
                   onRequestPointMenu: onRequestMediaPointMenu,
+                  onPotPlayerTap: onPotPlayerTap,
                 ),
               ],
             ),
