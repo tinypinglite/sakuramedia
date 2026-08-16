@@ -175,6 +175,85 @@ void main() {
     expect(tapped, isTrue);
   });
 
+  testWidgets('movie detail hero card shows PotPlayer button when callback provided', (
+    WidgetTester tester,
+  ) async {
+    var tapped = false;
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [sessionStoreProvider.overrideWithValue(sessionStore)],
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: SizedBox(
+              width: 1200,
+              child: MovieDetailHeroCard(
+                height: 420,
+                mainImageKey: 'cover',
+                mainImageUrl: '/covers/main.jpg',
+                heat: 24,
+                canPlay: true,
+                isSubscribed: false,
+                isCollection: false,
+                onPlayTap: () {},
+                onPotPlayerTap: () {
+                  tapped = true;
+                },
+                onSubscriptionTap: null,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('movie-detail-hero-potplayer-button')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const Key('movie-detail-hero-potplayer-button')),
+    );
+    await tester.pump();
+
+    expect(tapped, isTrue);
+  });
+
+  testWidgets('movie detail hero card hides PotPlayer button when callback is null', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [sessionStoreProvider.overrideWithValue(sessionStore)],
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: SizedBox(
+              width: 1200,
+              child: MovieDetailHeroCard(
+                height: 420,
+                mainImageKey: 'cover',
+                mainImageUrl: '/covers/main.jpg',
+                heat: 24,
+                canPlay: true,
+                isSubscribed: false,
+                isCollection: false,
+                onPlayTap: () {},
+                onSubscriptionTap: null,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('movie-detail-hero-potplayer-button')),
+      findsNothing,
+    );
+  });
+
   testWidgets('movie detail hero card uses global hero play icon token', (
     WidgetTester tester,
   ) async {

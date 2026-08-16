@@ -6,6 +6,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
+import 'package:sakuramedia/features/external_player/data/potplayer_launcher.dart';
 import 'package:sakuramedia/features/external_player/presentation/external_player_availability.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
@@ -120,6 +121,10 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
           final sourceOptions = derived.sourceOptions;
           final effectivePlaySource = derived.effectivePlaySource;
           final selectedMedia = derived.selectedMedia;
+          final canLaunchPotPlayer =
+              selectedMedia != null &&
+              selectedMedia.hasPlayableUrl &&
+              isPotPlayerSupported();
           final mergedPlaybackAvailable = _isMergedPlaybackAvailable;
 
           return MovieDetailPageContent(
@@ -173,6 +178,12 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
                 onPlayTap:
                     selectedMedia != null && selectedMedia.hasPlayableUrl
                         ? () => _openMoviePlayer(mediaId: selectedMedia.mediaId)
+                        : null,
+                onPotPlayerTap:
+                    canLaunchPotPlayer
+                        ? () => _launchPotPlayer(
+                          mediaId: selectedMedia?.mediaId,
+                        )
                         : null,
                 sourceOptions: sourceOptions,
                 selectedPlaySource: effectivePlaySource,
@@ -529,6 +540,29 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
         movie: ref.read(movieDetailProvider(widget.movieNumber)).movie,
         playSource: _effectivePlaySource ?? MoviePlayUrlSource.local,
         playMode: _effectivePlayMode,
+      ).whenComplete(() {
+        if (mounted) {
+          setState(() {
+            _isLaunchingPlayback = false;
+          });
+        }
+      }),
+    );
+  }
+
+  void _launchPotPlayer({int? mediaId}) {
+    if (_isLaunchingPlayback) {
+      return;
+    }
+    setState(() {
+      _isLaunchingPlayback = true;
+    });
+    unawaited(
+      launchPotPlayerPlayback(
+        context,
+        movieNumber: widget.movieNumber,
+        mediaId: mediaId,
+        movie: ref.read(movieDetailProvider(widget.movieNumber)).movie,
       ).whenComplete(() {
         if (mounted) {
           setState(() {

@@ -61,6 +61,7 @@ class MovieDetailPageContent extends StatelessWidget {
     this.onPlayTap,
     this.onSubscriptionTap,
     this.onMoreActionsTap,
+    this.onPotPlayerTap,
     this.onActorTap,
     this.onSeriesTap,
     this.onTagTap,
@@ -123,6 +124,7 @@ class MovieDetailPageContent extends StatelessWidget {
   final VoidCallback? onPlayTap;
   final VoidCallback? onSubscriptionTap;
   final Future<void> Function(Offset globalPosition)? onMoreActionsTap;
+  final VoidCallback? onPotPlayerTap;
   final ValueChanged<MovieActorDto>? onActorTap;
   final VoidCallback? onSeriesTap;
   final ValueChanged<MovieTagDto>? onTagTap;
@@ -294,6 +296,7 @@ class MovieDetailPageContent extends StatelessWidget {
           isMoreActionsUpdating: isMoreActionsUpdating,
           isPlayLoading: isPlayLoading,
           onPlayTap: onPlayTap,
+          onPotPlayerTap: onPotPlayerTap,
         ),
         SizedBox(height: context.appSpacing.lg),
         MoviePlotGallery(

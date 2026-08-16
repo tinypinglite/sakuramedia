@@ -5,8 +5,11 @@ import 'package:sakuramedia/features/movies/presentation/providers/movies_api_pr
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/platform/clipboard_copy.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_selection.dart';
+import 'package:sakuramedia/features/external_player/data/potplayer_deep_link.dart';
+import 'package:sakuramedia/features/external_player/data/potplayer_launcher.dart';
 import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
 import 'package:sakuramedia/features/media/data/media_play_url_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
@@ -140,6 +143,93 @@ Future<void> launchMoviePlayback(
     );
   }
 }
+
+/// 在影片详情页直接拉起本机 PotPlayer 播放。
+///
+/// 实现参考 EmbyLaunchPotPlayer：
+/// 1. 把包含播放地址、续播位置、标题的深链写入剪贴板；
+/// 2. 打开 `potplayer:///current/clipboard`，由 PotPlayer 读取剪贴板并播放。
+///
+/// 仅当当前系统支持 PotPlayer（Windows 桌面 / Windows 浏览器）时调用。
+Future<void> launchPotPlayerPlayback(
+  BuildContext context, {
+  required String movieNumber,
+  int? mediaId,
+  int? positionSeconds,
+  MovieDetailDto? movie,
+}) async {
+  if (!isPotPlayerSupported()) {
+    showToast('当前系统不支持拉起 PotPlayer');
+    return;
+  }
+
+  var detail = movie;
+  if (detail == null) {
+    try {
+      detail = await ProviderScope.containerOf(
+        context,
+        listen: false,
+      ).read(moviesApiProvider).getMovieDetail(movieNumber: movieNumber);
+    } catch (_) {
+      detail = null;
+    }
+    if (!context.mounted) {
+      return;
+    }
+  }
+
+  final media = _resolvePlayableMedia(detail, mediaId);
+  final baseUrl =
+      ProviderScope.containerOf(
+        context,
+        listen: false,
+      ).read(sessionStoreProvider).baseUrl;
+  final resolvedUrl =
+      media == null
+          ? null
+          : resolveMediaUrl(
+              rawUrl: resolveExternalPlayerSingleUrl(media),
+              baseUrl: baseUrl,
+            );
+
+  if (detail == null ||
+      media == null ||
+      resolvedUrl == null ||
+      resolvedUrl.isEmpty) {
+    showToast('暂无可播放的媒体');
+    return;
+  }
+
+  final resumeSeconds =
+      positionSeconds ?? media.progress?.lastPositionSeconds ?? 0;
+  final title =
+      detail.preferredTitle.isNotEmpty ? detail.preferredTitle : movieNumber;
+  final deepLink = buildPotPlayerDeepLink(
+    streamUrl: resolvedUrl,
+    title: title,
+    positionSeconds: resumeSeconds,
+  );
+
+  final copied = await copyTextToClipboard(deepLink);
+  if (!context.mounted) {
+    return;
+  }
+  if (!copied) {
+    showToast('无法复制 PotPlayer 链接，请手动复制后重试');
+    return;
+  }
+
+  final launched = await launchPotPlayerDeepLink(
+    buildPotPlayerClipboardUrl(),
+  );
+  if (!context.mounted) {
+    return;
+  }
+  if (!launched) {
+    showToast('PotPlayer 拉起失败，请确认已安装并注册 potplayer:// 协议');
+  }
+}
+
 
 /// 合并播放走外部播放器：调 `/media/play-url` 拿合并链接后拉起外部播放器。
 Future<void> _launchExternalMergedPlayback(

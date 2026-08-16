@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/features/external_player/data/potplayer_launcher.dart';
 import 'package:sakuramedia/features/external_player/presentation/external_player_availability.dart';
 import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
 import 'package:sakuramedia/features/media/data/media_play_url_dto.dart';
@@ -13,6 +14,7 @@ import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dar
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_copy.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_menu.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_support.dart';
+import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/detail/movie_clip_section_mixin.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_behavior_mixin.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_page_content.dart';
@@ -112,6 +114,10 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
           final sourceOptions = derived.sourceOptions;
           final effectivePlaySource = derived.effectivePlaySource;
           final selectedMedia = derived.selectedMedia;
+          final canLaunchPotPlayer =
+              selectedMedia != null &&
+              selectedMedia.hasPlayableUrl &&
+              isPotPlayerSupported();
           final mergedPlaybackAvailable =
               isExternalPlayerReady(context) &&
               effectivePlaySource == MoviePlayUrlSource.local &&
@@ -166,6 +172,19 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
                             widget.movieNumber,
                           ),
                           mediaId: selectedMedia.mediaId,
+                        )
+                        : null,
+                onPotPlayerTap:
+                    canLaunchPotPlayer
+                        ? () => unawaited(
+                          launchPotPlayerPlayback(
+                            context,
+                            movieNumber: widget.movieNumber,
+                            mediaId: selectedMedia?.mediaId,
+                            movie: movie,
+                            positionSeconds:
+                                selectedMedia?.progress?.lastPositionSeconds,
+                          ),
                         )
                         : null,
                 sourceOptions: sourceOptions,
