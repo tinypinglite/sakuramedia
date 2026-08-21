@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
+import 'package:sakuramedia/features/movies/presentation/providers/movie_subscription_mutation_mixin.dart';
 import 'package:sakuramedia/features/playlists/presentation/controllers/playlist_filter_state.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 
@@ -62,15 +63,18 @@ class MovieSummaryFilter {
 }
 
 @immutable
-class MovieSummaryState {
+class MovieSummaryState
+    implements SubscriptionMovieListState<MovieSummaryState, MovieListItemDto> {
   const MovieSummaryState({
     required this.paged,
     required this.filter,
     this.subscriptionUpdatingMovieNumbers = const <String>{},
   });
 
+  @override
   final PagedListState<MovieListItemDto> paged;
   final MovieSummaryFilter filter;
+  @override
   final Set<String> subscriptionUpdatingMovieNumbers;
 
   bool isSubscriptionUpdating(String movieNumber) =>
@@ -90,4 +94,13 @@ class MovieSummaryState {
       ),
     );
   }
+
+  @override
+  MovieSummaryState applySubscriptionMutation({
+    PagedListState<MovieListItemDto>? paged,
+    Set<String>? subscriptionUpdatingMovieNumbers,
+  }) => copyWith(
+    paged: paged,
+    subscriptionUpdatingMovieNumbers: subscriptionUpdatingMovieNumbers,
+  );
 }

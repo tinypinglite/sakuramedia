@@ -2,10 +2,8 @@ import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/movies/data/dto/listing/movie_subscription_batch_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
-import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
+import 'package:sakuramedia/features/movies/presentation/providers/movie_subscription_mutation_mixin.dart';
 import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_sort.dart';
@@ -27,7 +25,11 @@ part 'ranking_summary_provider.g.dart';
 class RankingSummary extends _$RankingSummary
     with
         PagedAsyncNotifierMixin<RankingSummaryState, RankedMovieListItemDto>,
-        OptimisticPatchMixin<RankingSummaryState> {
+        OptimisticPatchMixin<RankingSummaryState>,
+        MovieSubscriptionMutationMixin<
+          RankingSummaryState,
+          RankedMovieListItemDto
+        > {
   KeepAliveLink? _cacheLink;
   RankingFilterState _activeFilters = RankingFilterState.initial;
   int _filterGeneration = 0;
@@ -65,7 +67,7 @@ class RankingSummary extends _$RankingSummary
     ref.listen(movieSubscriptionEventsProvider, (_, next) {
       final changes = next.value;
       if (changes != null) {
-        _applySubscriptionChanges(changes);
+        applySubscriptionChanges(changes);
       }
     });
 
@@ -302,154 +304,6 @@ class RankingSummary extends _$RankingSummary
     return state.value?.paged.filterUpdate.errorMessage;
   }
 
-  Future<MovieSubscriptionToggleResult> toggleSubscription(
-    String movieNumber,
-  ) async {
-    final current = state.value;
-    final movie = current?.paged.items
-        .where((item) => item.movieNumber == movieNumber)
-        .firstOrNull;
-    if (movie == null || isInFlight(movieNumber)) {
-      return const MovieSubscriptionToggleResult.ignored();
-    }
-    _setSubscriptionUpdating(movieNumber, true);
-    final subscribe = !movie.isSubscribed;
-    try {
-      final api = ref.read(moviesApiProvider);
-      if (subscribe) {
-        await api.subscribeMovie(movieNumber: movieNumber);
-      } else {
-        await api.unsubscribeMovie(
-          movieNumber: movieNumber,
-          deleteMedia: false,
-        );
-      }
-      if (isDisposed) {
-        return const MovieSubscriptionToggleResult.ignored();
-      }
-      _patchSubscription(movieNumber, subscribe);
-      _reportSubscriptionChanges(<MovieSubscriptionChange>[
-        MovieSubscriptionChange(
-          movieNumber: movieNumber,
-          isSubscribed: subscribe,
-        ),
-      ]);
-      return subscribe
-          ? const MovieSubscriptionToggleResult.subscribed()
-          : const MovieSubscriptionToggleResult.unsubscribed();
-    } catch (error) {
-      if (isMovieSubscriptionBlockedByMedia(error)) {
-        return const MovieSubscriptionToggleResult.blockedByMedia();
-      }
-      return MovieSubscriptionToggleResult.failed(
-        message: apiErrorMessage(
-          error,
-          fallback: subscribe ? '订阅影片失败' : '取消订阅影片失败',
-        ),
-      );
-    } finally {
-      if (!isDisposed) {
-        _setSubscriptionUpdating(movieNumber, false);
-      }
-    }
-  }
-
-  Future<MovieSubscriptionBatchToggleResult> batchToggleSubscription({
-    required Iterable<String> movieNumbers,
-    required bool subscribe,
-  }) async {
-    final ordered = <String>[];
-    final seen = <String>{};
-    for (final movieNumber in movieNumbers) {
-      if (movieNumber.isNotEmpty && seen.add(movieNumber)) {
-        ordered.add(movieNumber);
-      }
-    }
-    if (ordered.isEmpty) {
-      return const MovieSubscriptionBatchToggleResult(
-        requestedCount: 0,
-        updatedCount: 0,
-        skippedMovieNotFoundNumbers: <String>[],
-        skippedHasMediaNumbers: <String>[],
-      );
-    }
-
-    final patched = <String>{};
-    MovieSubscriptionBatchResultDto? response;
-    final result =
-        await withBatchOptimisticPatch<String, MovieSubscriptionBatchResultDto>(
-          keys: ordered,
-          apply: (current, applying) {
-            final items = current.paged.items
-                .map((item) {
-                  if (!applying.contains(item.movieNumber) ||
-                      item.isSubscribed == subscribe) {
-                    return item;
-                  }
-                  patched.add(item.movieNumber);
-                  return item.copyWith(isSubscribed: subscribe);
-                })
-                .toList(growable: false);
-            return current.copyWith(
-              paged: current.paged.copyWith(items: List.unmodifiable(items)),
-            );
-          },
-          action: (numbers) async {
-            final api = ref.read(moviesApiProvider);
-            response = subscribe
-                ? await api.batchSubscribeMovies(movieNumbers: numbers.toList())
-                : await api.batchUnsubscribeMovies(
-                    movieNumbers: numbers.toList(),
-                  );
-            return response!;
-          },
-          skippedFromResult: (value) => <String>{
-            ...value.movieNumbersSkippedBecause(
-              MovieSubscriptionSkipReason.movieNotFound,
-            ),
-            ...value.movieNumbersSkippedBecause(
-              MovieSubscriptionSkipReason.hasMedia,
-            ),
-          },
-          rollback: _restoreSubscriptionStatuses,
-          errorMessageOf: (error) => apiErrorMessage(
-            error,
-            fallback: subscribe ? '批量订阅影片失败' : '批量取消订阅影片失败',
-          ),
-        );
-    if (result.errorMessage != null || response == null) {
-      return MovieSubscriptionBatchToggleResult.failed(
-        requestedCount: ordered.length,
-        message: result.errorMessage ?? (subscribe ? '批量订阅影片失败' : '批量取消订阅影片失败'),
-      );
-    }
-
-    final resolved = response!;
-    final skippedNotFound = resolved.movieNumbersSkippedBecause(
-      MovieSubscriptionSkipReason.movieNotFound,
-    );
-    final skippedHasMedia = resolved.movieNumbersSkippedBecause(
-      MovieSubscriptionSkipReason.hasMedia,
-    );
-    if (!isDisposed) {
-      final acceptedPatched = result.accepted.intersection(patched);
-      _reportSubscriptionChanges(<MovieSubscriptionChange>[
-        for (final movieNumber in ordered)
-          if (acceptedPatched.contains(movieNumber))
-            MovieSubscriptionChange(
-              movieNumber: movieNumber,
-              isSubscribed: subscribe,
-            ),
-      ]);
-    }
-    return MovieSubscriptionBatchToggleResult(
-      requestedCount: resolved.requestedCount,
-      updatedCount: resolved.updatedCount,
-      skippedMovieNotFoundNumbers: skippedNotFound,
-      skippedHasMediaNumbers: skippedHasMedia,
-    );
-  }
-
   Future<RankingFilterState> _loadInitialFilters({
     RankingFilterState? base,
   }) async {
@@ -607,88 +461,6 @@ class RankingSummary extends _$RankingSummary
       return Future<void>.value();
     }
     return super.loadMore();
-  }
-
-  void _applySubscriptionChanges(List<MovieSubscriptionChange> changes) {
-    final current = state.value;
-    if (current == null || changes.isEmpty) {
-      return;
-    }
-    var paged = current.paged;
-    for (final change in changes) {
-      paged = paged.patchWhere(
-        (item) => item.movieNumber == change.movieNumber,
-        (item) => item.copyWith(isSubscribed: change.isSubscribed),
-      );
-    }
-    if (identical(paged, current.paged)) {
-      return;
-    }
-    state = AsyncData(current.copyWith(paged: paged));
-  }
-
-  void _patchSubscription(String movieNumber, bool isSubscribed) {
-    final current = state.value;
-    if (current == null) {
-      return;
-    }
-    final paged = current.paged.patchWhere(
-      (item) => item.movieNumber == movieNumber,
-      (item) => item.copyWith(isSubscribed: isSubscribed),
-    );
-    if (identical(paged, current.paged)) {
-      return;
-    }
-    state = AsyncData(current.copyWith(paged: paged));
-  }
-
-  void _setSubscriptionUpdating(String movieNumber, bool updating) {
-    final current = state.value;
-    if (current == null) {
-      return;
-    }
-    final next = Set<String>.of(current.subscriptionUpdatingMovieNumbers);
-    final changed = updating ? next.add(movieNumber) : next.remove(movieNumber);
-    if (!changed) {
-      return;
-    }
-    state = AsyncData(current.copyWith(subscriptionUpdatingMovieNumbers: next));
-  }
-
-  RankingSummaryState _restoreSubscriptionStatuses(
-    RankingSummaryState current,
-    RankingSummaryState original,
-    Set<String> movieNumbers,
-  ) {
-    final originals = <String, RankedMovieListItemDto>{
-      for (final item in original.paged.items) item.movieNumber: item,
-    };
-    final restored = current.paged.items
-        .map(
-          (item) => movieNumbers.contains(item.movieNumber)
-              ? (originals[item.movieNumber] ?? item)
-              : item,
-        )
-        .toList(growable: false);
-    return current.copyWith(
-      paged: current.paged.copyWith(items: List.unmodifiable(restored)),
-    );
-  }
-
-  void _reportSubscriptionChanges(List<MovieSubscriptionChange> changes) {
-    if (changes.isEmpty || isDisposed) {
-      return;
-    }
-    final broadcaster = ref.read(movieSubscriptionEventsProvider.notifier);
-    if (changes.length == 1) {
-      final change = changes.single;
-      broadcaster.reportChange(
-        movieNumber: change.movieNumber,
-        isSubscribed: change.isSubscribed,
-      );
-      return;
-    }
-    broadcaster.reportBatch(changes);
   }
 
   String _defaultPeriod(RankingBoardDto board) {

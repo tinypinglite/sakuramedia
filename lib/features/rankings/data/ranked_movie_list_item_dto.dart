@@ -1,6 +1,8 @@
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/subscription_movie_list_item.dart';
 
-class RankedMovieListItemDto {
+class RankedMovieListItemDto
+    implements SubscriptionMovieListItem<RankedMovieListItemDto> {
   const RankedMovieListItemDto({
     required this.rank,
     required this.javdbId,
@@ -17,6 +19,7 @@ class RankedMovieListItemDto {
 
   final int rank;
   final String javdbId;
+  @override
   final String movieNumber;
   final String title;
   final MovieImageDto? coverImage;
@@ -24,6 +27,7 @@ class RankedMovieListItemDto {
   final DateTime? releaseDate;
   final int durationMinutes;
   final int heat;
+  @override
   final bool isSubscribed;
   final bool canPlay;
 
@@ -54,6 +58,10 @@ class RankedMovieListItemDto {
       canPlay: canPlay ?? this.canPlay,
     );
   }
+
+  @override
+  RankedMovieListItemDto copyWithSubscriptionStatus(bool isSubscribed) =>
+      copyWith(isSubscribed: isSubscribed);
 
   MovieListItemDto toMovieListItem() {
     return MovieListItemDto(

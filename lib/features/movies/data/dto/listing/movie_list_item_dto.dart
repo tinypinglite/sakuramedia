@@ -1,3 +1,5 @@
+import 'package:sakuramedia/features/movies/data/dto/listing/subscription_movie_list_item.dart';
+
 class MovieImageDto {
   const MovieImageDto({
     required this.id,
@@ -45,7 +47,7 @@ class MovieImageDto {
   }
 }
 
-class MovieListItemDto {
+class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
   const MovieListItemDto({
     this.id = 0,
     required this.javdbId,
@@ -67,6 +69,7 @@ class MovieListItemDto {
   final int id;
 
   final String javdbId;
+  @override
   final String movieNumber;
   final String title;
   final int? seriesId;
@@ -76,6 +79,7 @@ class MovieListItemDto {
   final DateTime? releaseDate;
   final int durationMinutes;
   final int heat;
+  @override
   final bool isSubscribed;
   final bool canPlay;
   final double? similarityScore;
@@ -116,6 +120,10 @@ class MovieListItemDto {
       similarityScore: similarityScore ?? this.similarityScore,
     );
   }
+
+  @override
+  MovieListItemDto copyWithSubscriptionStatus(bool isSubscribed) =>
+      copyWith(isSubscribed: isSubscribed);
 
   factory MovieListItemDto.fromJson(Map<String, dynamic> json) {
     return MovieListItemDto(

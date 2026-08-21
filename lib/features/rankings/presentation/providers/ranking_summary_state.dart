@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/providers/movie_subscription_mutation_mixin.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_sort.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_source_dto.dart';
@@ -85,7 +86,12 @@ class RankingFilterState {
 const Object _sentinel = Object();
 
 @immutable
-class RankingSummaryState {
+class RankingSummaryState
+    implements
+        SubscriptionMovieListState<
+          RankingSummaryState,
+          RankedMovieListItemDto
+        > {
   const RankingSummaryState({
     required this.paged,
     required this.filters,
@@ -99,10 +105,12 @@ class RankingSummaryState {
     filters: RankingFilterState.initial,
   );
 
+  @override
   final PagedListState<RankedMovieListItemDto> paged;
   final RankingFilterState filters;
   final bool isListLoading;
   final String? initialErrorMessage;
+  @override
   final Set<String> subscriptionUpdatingMovieNumbers;
 
   bool isSubscriptionUpdating(String movieNumber) =>
@@ -129,4 +137,13 @@ class RankingSummaryState {
       ),
     );
   }
+
+  @override
+  RankingSummaryState applySubscriptionMutation({
+    PagedListState<RankedMovieListItemDto>? paged,
+    Set<String>? subscriptionUpdatingMovieNumbers,
+  }) => copyWith(
+    paged: paged,
+    subscriptionUpdatingMovieNumbers: subscriptionUpdatingMovieNumbers,
+  );
 }

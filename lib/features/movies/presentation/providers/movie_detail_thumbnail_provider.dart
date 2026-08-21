@@ -110,8 +110,6 @@ const Object _sentinel = Object();
 
 @riverpod
 class MovieDetailThumbnail extends _$MovieDetailThumbnail {
-  static const int defaultIntervalSeconds = _defaultIntervalSeconds;
-
   bool _isDisposed = false;
   KeepAliveLink? _cacheLink;
 

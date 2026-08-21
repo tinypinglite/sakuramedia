@@ -36,9 +36,6 @@ const Map<String, DiagnosticHint> javdbHints = <String, DiagnosticHint>{
   'probe-request-failed': _probeRequestFailedHint,
 };
 
-/// 元数据源标识，与后端 `/status/metadata-providers/{provider}/test` 的路径参数一致。
-const String javdbProviderKey = 'javdb';
-
 /// 按后端 `error.type` 分派 hint key。
 ///
 /// [error] 为 null（healthy=false 但没带 error，理论上不会出现）或 type 不认识时，
