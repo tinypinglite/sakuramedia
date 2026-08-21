@@ -629,8 +629,9 @@ class _ResourceTaskRecordTile extends StatelessWidget {
     final lastAttempted = record.lastAttemptedAt;
     final lastAttemptedLabel = formatUpdatedAtLabel(lastAttempted);
     final timeLabel = lastAttemptedLabel != null
-        ? '最近尝试 $lastAttemptedLabel'
+        ? '${record.isDeferred ? '最近检查' : '最近尝试'} $lastAttemptedLabel'
         : '尚未执行';
+    final nextCheckLabel = formatUpdatedAtLabel(record.nextRetryAt);
     final showAsBatchSelected = inSelectionMode && isBatchSelected;
     final dimmed = inSelectionMode && !isBatchSelectable;
     final borderColor = (showAsBatchSelected || isSelected)
@@ -717,8 +718,12 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                       SizedBox(width: context.appSpacing.sm),
                     ],
                     AppBadge(
-                      label: _labelForResourceTaskState(record.state),
-                      tone: _toneForResourceTaskState(record.state),
+                      label: record.isDeferred
+                          ? '暂缓处理'
+                          : _labelForResourceTaskState(record.state),
+                      tone: record.isDeferred
+                          ? AppBadgeTone.warning
+                          : _toneForResourceTaskState(record.state),
                     ),
                   ],
                 ),
@@ -739,11 +744,19 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                           backgroundStyle: AppTextButtonBackgroundStyle.muted,
                           onPressed: () => onAction!(action),
                         ),
-                    AppBadge(
-                      label: '尝试 ${record.attemptCount} 次',
-                      tone: AppBadgeTone.neutral,
-                      size: AppBadgeSize.compact,
-                    ),
+                    if (record.attemptCount > 0)
+                      AppBadge(
+                        label: '本轮失败 ${record.attemptCount} 次',
+                        tone: AppBadgeTone.neutral,
+                        size: AppBadgeSize.compact,
+                      ),
+                    if (record.hasDeferredHistory)
+                      AppBadge(
+                        label:
+                            '已延后 ${record.deferredCount}/${record.deferredLimit} 次',
+                        tone: AppBadgeTone.neutral,
+                        size: AppBadgeSize.compact,
+                      ),
                     if ((record.lastTriggerType ?? '').trim().isNotEmpty)
                       AppBadge(
                         label: _labelForResourceTaskTrigger(
@@ -779,6 +792,22 @@ class _ResourceTaskRecordTile extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (record.isDeferred) ...[
+                  SizedBox(height: context.appSpacing.sm),
+                  Text(
+                    nextCheckLabel == null
+                        ? (record.deferredReason ?? '资源暂不可用，等待下次检查')
+                        : '${record.deferredReason ?? '资源暂不可用'}；下次检查 $nextCheckLabel',
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.warning,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
                 if (record.isFailed &&
                     (record.lastError ?? '').trim().isNotEmpty) ...[
                   SizedBox(height: context.appSpacing.md),
@@ -883,17 +912,32 @@ class _ResourceTaskDetailDrawer extends StatelessWidget {
                             Row(
                               children: [
                                 AppBadge(
-                                  label: _labelForResourceTaskState(
-                                    record.state,
+                                  label: record.isDeferred
+                                      ? '暂缓处理'
+                                      : _labelForResourceTaskState(
+                                          record.state,
+                                        ),
+                                  tone: record.isDeferred
+                                      ? AppBadgeTone.warning
+                                      : _toneForResourceTaskState(record.state),
+                                ),
+                                if (record.attemptCount > 0) ...[
+                                  SizedBox(width: context.appSpacing.sm),
+                                  AppBadge(
+                                    label: '本轮失败 ${record.attemptCount} 次',
+                                    tone: AppBadgeTone.neutral,
+                                    size: AppBadgeSize.compact,
                                   ),
-                                  tone: _toneForResourceTaskState(record.state),
-                                ),
-                                SizedBox(width: context.appSpacing.sm),
-                                AppBadge(
-                                  label: '尝试 ${record.attemptCount} 次',
-                                  tone: AppBadgeTone.neutral,
-                                  size: AppBadgeSize.compact,
-                                ),
+                                ],
+                                if (record.hasDeferredHistory) ...[
+                                  SizedBox(width: context.appSpacing.sm),
+                                  AppBadge(
+                                    label:
+                                        '已延后 ${record.deferredCount}/${record.deferredLimit} 次',
+                                    tone: AppBadgeTone.neutral,
+                                    size: AppBadgeSize.compact,
+                                  ),
+                                ],
                               ],
                             ),
                             SizedBox(height: context.appSpacing.lg),
@@ -919,12 +963,28 @@ class _ResourceTaskDetailDrawer extends StatelessWidget {
                               title: '任务执行',
                               rows: <_DetailRow>[
                                 _DetailRow(
-                                  '最近尝试',
+                                  record.isDeferred ? '最近检查' : '最近尝试',
                                   formatUpdatedAtLabel(
                                         record.lastAttemptedAt,
                                       ) ??
                                       '—',
                                 ),
+                                if (record.hasDeferredHistory)
+                                  _DetailRow(
+                                    '延后次数',
+                                    '${record.deferredCount}/${record.deferredLimit}',
+                                  ),
+                                if (record.isDeferred)
+                                  _DetailRow(
+                                    '延后原因',
+                                    record.deferredReason ?? '资源暂不可用',
+                                  ),
+                                if (record.isDeferred)
+                                  _DetailRow(
+                                    '下次检查',
+                                    formatUpdatedAtLabel(record.nextRetryAt) ??
+                                        '等待调度',
+                                  ),
                                 _DetailRow(
                                   '最近成功',
                                   formatUpdatedAtLabel(

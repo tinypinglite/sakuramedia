@@ -66,6 +66,25 @@ void main() {
       expect(dto.resource!.valid, isTrue);
     });
 
+    test('maps a deferred thumbnail check separately from failures', () {
+      final dto = ResourceTaskRecordDto.fromJson(<String, dynamic>{
+        'task_key': 'media_thumbnail_generation',
+        'resource_type': 'media',
+        'resource_id': 43,
+        'state': 'pending',
+        'attempt_count': 0,
+        'deferred_count': 2,
+        'deferred_limit': 5,
+        'deferred_reason': '115 视频转码尚未完成',
+        'next_retry_at': '2026-08-21T15:00:00Z',
+      });
+
+      expect(dto.isDeferred, isTrue);
+      expect(dto.attemptCount, 0);
+      expect(dto.hasDeferredHistory, isTrue);
+      expect(dto.deferredReason, '115 视频转码尚未完成');
+    });
+
     test('tolerates missing optional fields and null resource', () {
       final dto = ResourceTaskRecordDto.fromJson(<String, dynamic>{
         'task_key': 'movie_interaction_sync',
@@ -94,13 +113,12 @@ void main() {
         'resource_type': 'media',
         'resource_id': 7,
         'state': state,
-        'resource':
-            hasResource
-                ? <String, dynamic>{
-                  'resource_id': 7,
-                  if (valid != null) 'valid': valid,
-                }
-                : null,
+        'resource': hasResource
+            ? <String, dynamic>{
+                'resource_id': 7,
+                if (valid != null) 'valid': valid,
+              }
+            : null,
       });
     }
 

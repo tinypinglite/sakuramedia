@@ -52,7 +52,7 @@ extension ResourceTaskRecordSortValue on ResourceTaskRecordSort {
     ResourceTaskRecordSort.lastAttemptedAtDesc => '最近尝试：新到旧',
     ResourceTaskRecordSort.lastAttemptedAtAsc => '最近尝试：旧到新',
     ResourceTaskRecordSort.lastErrorAtDesc => '最近失败：新到旧',
-    ResourceTaskRecordSort.attemptCountDesc => '尝试次数：多到少',
+    ResourceTaskRecordSort.attemptCountDesc => '本轮失败次数：多到少',
     ResourceTaskRecordSort.updatedAtDesc => '更新时间：新到旧',
     ResourceTaskRecordSort.updatedAtAsc => '更新时间：旧到新',
   };

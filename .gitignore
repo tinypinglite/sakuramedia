@@ -1,5 +1,5 @@
-# Claude Code 本地指令,不入库
-CLAUDE.md
+# Agent 本地指令,不入库
+AGENTS.md
 
 # Miscellaneous
 *.class
@@ -63,16 +63,12 @@ wiki/public/star-history-*.svg
 # Python helper scripts
 __pycache__/
 
-AGENTS.md
-
 # assets/ 整体不纳入版本库(原始大字体、临时图片等),
 # 但内嵌的 CJK 子集字体是应用必需资源,需进版本库。
 assets/*
 !assets/fonts/
 assets/fonts/*
 !assets/fonts/NotoSansSC-subset.ttf
-
-android.agents.md
 
 .vscode
 .worktrees/

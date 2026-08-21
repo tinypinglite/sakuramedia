@@ -1,107 +1,28 @@
-# data-loading —— 刷新 / 分页 / 多选 / 交错布局 / 文字
+# data-loading —— 刷新、分页、网格和选择
 
-列表页数据流路径上的公用原子件。**每一个都是"你写列表 / 网格必然要接的胶水"**,别自己拧一套。
+## 刷新与分页
 
-## AppPullToRefresh
-- **路径**: `lib/widgets/base/layout/scrolling/app_pull_to_refresh.dart`
-- **用途**: 通用下拉刷新(桌面/移动都能用的 `RefreshIndicator` 薄壳,已按 token 调色)。
-- **required**: `onRefresh: Future<void> Function()` · `child`(通常是 `ListView` / `CustomScrollView`)
-- **可选**: `notificationPredicate`(默认 Flutter 默认)
-- **何时用**: 需要下拉刷新的滚动容器。
-- **何时不用**: 需要"下拉刷新 + 内嵌 sliver"更精细组合时 → `AppAdaptiveRefreshScrollView`。
+- `AppPullToRefresh`：`lib/widgets/base/layout/scrolling/app_pull_to_refresh.dart`，移动下拉刷新。
+- `AppAdaptiveRefreshScrollView`：根据平台组合刷新和滚动行为。
+- `AppPagedLoadMoreFooter`：分页底部的加载中、失败重试和已完成状态。
+- `AppFilterTotalHeader`：筛选结果总数信息。
 
-## AppAdaptiveRefreshScrollView
-- **路径**: `lib/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart`
-- **用途**: `CustomScrollView + AppPullToRefresh` 的组合封装,直接吃 slivers。
-- **required**: `onRefresh` · `slivers: List<Widget>`
-- **可选**: `controller` · `physics` · `cacheExtent`
-- **何时用**: 页面本身是"多个 sliver 拼起来的"(SliverAppBar + SliverPersistentHeader + SliverList 之类),仍要下拉刷新。
+这些组件只表达 UI 状态；请求、页码、筛选和重试由 feature Provider 提供。
 
-## AppPagedLoadMoreFooter
-- **路径**: `lib/widgets/base/layout/scrolling/app_paged_load_more_footer.dart`
-- **用途**: 分页列表尾部"加载中 / 加载失败 + 重试"两态脚。
-- **required**: `isLoading` · `errorMessage` · `onRetry`
-- **何时用**: 所有 `PagedLoadController` 驱动的列表尾巴。
-- **约束(重要)**: 分页失败**保留原列表并提供重试**,不整页红字。见 `lib/widgets/CLAUDE.md` "状态反馈一致"。
+## 统一文字和网格
 
-## AppFilterUpdateBar
-- **路径**: `lib/widgets/base/feedback/app_filter_update_bar.dart`
-- **用途**: 服务端筛选的结果同步反馈；`idle` 不占空间，`loading` 显示 2px 线性进度与“正在更新筛选结果”，`failed` 保留旧结果并提供重试。
-- **required**: `state: FilterUpdateState` · `hasPreviousItems`
-- **可选**: `onRetry`
-- **接入**: 已使用 `AppListHeader` / `AppFilterTotalHeader` 的页面优先把 `filterUpdate`、`hasPreviousFilterItems`、`onRetryFilter` 直接传给顶栏；自定义标题行才单独放置本组件。
-- **空结果失败**: 没有旧结果可保留时，本组件改用 `AppEmptyState` 明确表达失败与重试；列表体必须隐藏普通“暂无匹配结果”空态，不能同时显示两种结论。
+- `AppText`：`lib/widgets/base/typography/app_text.dart`，按应用 token 表达文字层级。
+- `AppAdaptiveCardGrid<T>` / `AppAdaptiveCardSliver<T>`：自适应列数、固定比例或 masonry 布局，并可接入骨架、错误、空态和内容 builder。
+- `StaggeredTilePlacement` / `StaggeredLayoutResult`：`staggered_layout.dart`，只在需要自定义交错布局时使用。
 
-## AppFilterTotalHeader
-- **路径**: `lib/widgets/base/layout/scrolling/app_filter_total_header.dart`
-- **用途**: 列表顶部"筛选栏 + 总数条"通用行(左 leading + 右总数,可插 trailing)。
-- **required**: `leading` · `totalText`
-- **可选**: `totalKey` · `trailing` · `filterUpdate` · `hasPreviousFilterItems` · `onRetryFilter`
-- **何时用**: 「区块标题 + 总数」这类还没迁到 `AppListHeader` 的顶部 summary(发现页推荐区、订阅页、媒体管理各 section)。**筛选驱动的列表顶栏一律用 `AppListHeader`**,别再用它。
+普通影片、女优、视频等封面网格优先使用 `AppAdaptiveCardGrid` 及其业务薄壳。缩略图网格、图搜结果等有不同视觉/交互语义的网格保留各自实现。
 
-## AppText
-- **路径**: `lib/widgets/base/typography/app_text.dart`
-- **用途**: 走 token 的统一文字组件。**能用它就用它**,别 `Text(..., style: TextStyle(fontSize: ..., color: ...))`。
-- **required**: `data`(位置参数) · `size: AppTextSize`
-- **可选**: `weight: AppTextWeight`(默认 regular) · `tone: AppTextTone`(默认 primary) · `maxLines` · `overflow` · `textAlign` · `softWrap`
-- **何时不用**: 需要复杂 rich text 组合 → `resolveAppTextStyle(...)` 拿 `TextStyle` 自己拼 `RichText`。**任何情况下都别裸 fontSize / Color**,否则 `theme_source_guard_test` 直接红。
+## 多选
 
-## MultiSelectStateMixin
-- **路径**: `lib/widgets/base/interaction/selection/multi_select_state_mixin.dart`
-- **用途**: 多选状态机 mixin(`Set<int> selectedIds`、`toggle` / `clear` / `enterSelectionMode` / `isSelected` 等)。
-- **何时用**: 任何"点长按进入多选、勾选、批量操作"网格。**别自己维护一份 selectedIds**。
-- **配合**: 卡片对外暴露 `selectionMode` + `isSelected` + `onSelectedChanged`;顶部批量条件用 `ClipSelectionStatusBar` 之类的域内件(见 [domain-widgets.md](./domain-widgets.md))。
+- `MultiSelectStateMixin`：多选状态和值变化。
+- `SelectionCheckBadge`：卡片选中标记。
+- `AppSelectionToolbar`：桌面批量操作条。
+- `AppSelectionBottomBar`：移动批量操作条。
+- `AppSelectableTile`：可选择的通用条目。
 
-## SelectionCheckBadge
-- **路径**: `lib/widgets/base/interaction/selection/selection_check_badge.dart`
-- **用途**: 选中态右上角勾选标记(圆底 + 对勾)。
-- **required**: `isSelected`
-- **何时用**: 多选模式下,卡片右上角覆盖。已经在 `ClipGridCard` / `ClipCoverCard` / `CollectionMemberCard` 等用了——新增可选卡片直接复用,**别再自己画一个**。
-
-## AppSelectionToolbar / AppSelectionHeaderToolbar / AppSelectionEntryButton
-- **路径**: `lib/widgets/base/interaction/selection/app_selection_toolbar.dart`
-- **用途**: 多选态操作条骨架(`已选 N · Spacer · 全选/取消全选 · 批量动作… · 取消`)+ 非多选态的「选择」入口按钮。进入多选后**原地替换筛选行**,保持信息密度不变。
-- **required**(toolbar): `countLabel` · `selectAllLabel` · `onToggleAll` · `actions: List<Widget>` · `onExit`
-- **可选**(toolbar): `countKey` / `selectAllKey` / `exitKey`(测试锚点) · `exitLabel`(默认 `取消`)
-- **`AppSelectionHeaderToolbar`**: 上面那条 toolbar **套一层与常规顶栏等高的容器**(`spacing.xs` 上边距 + `mobileTopTabHeight`,与 `AppListHeader` 逐值对齐),参数与 toolbar 完全一致。**桌面列表页的多选态一律用它**——直接用裸 toolbar 会让进出多选时整页上下跳版;在筛选行**下面另起一行**同样错(两套上下文并存 + 跳版)。本身没有顶栏的页面(如视频合集详情)才用裸 toolbar。
-- **required**(entry button): `onPressed`(`null` 即禁用);`label` 默认 `选择`
-- **约定**: 计数单位由 caller 决定(`已选 3 部` / `已选 3 个`);「全选」文案的变体(`取消全选` / `全选(12)` / `全选可重置(2/5)`)也由 caller 拼好传入;批量动作按钮 caller 自备,通常 `AppButton(variant: primary, size: small)`,**只让正在执行的那一个 `isLoading`**,其余禁用即可。
-- **何时用**: 任何「进入多选 → 批量操作」列表的顶部条。现有薄壳:`MovieBatchSelectionToolbar`(影片批量订阅,见 [domain-widgets.md](./domain-widgets.md))、桌面 PornBox 视频列表、活动中心资源任务面板 `_ResourceTaskSelectionBar`。**别再手写那一坨 Row**。
-- **移动端对应物**: `AppListHeader.selection`(顶栏只留退出/计数/全选)+ `AppSelectionBottomBar`(批量动作贴底)。
-- **配合**: 状态机走 `MultiSelectStateMixin`,卡片角标走 `SelectionCheckBadge`。
-
-## AppSelectableTile
-- **路径**: `lib/widgets/base/interaction/selection/app_selectable_tile.dart`
-- **用途**: 「可选中卡片」外壳 —— `Material→InkWell→AnimatedContainer(120ms)` 圆角边框卡,选中/未选态自动切换 `selectionSurface/selectionBorder` 与 `surfaceMuted/borderSubtle`。
-- **required**: `selected` · `onTap` · `child`(Checkbox/Radio + 内容 caller 自组装)
-- **可选**: `padding`(默认 `EdgeInsets.all(spacing.md)`)
-- **何时用**: 需要"选中态卡片行/卡片"的多选(Checkbox)或单选(Radio)场景 —— 例如媒体管理页 `_MediaRow`、秒传目标库对话框 `_LibraryTile`。**别再手写 Material→InkWell→AnimatedContainer→selectionSurface 那一坨**。
-- **何时不用**: 不需要选中态、只是普通卡片 → `AppContentCard`;或者已经在网格里而选中标记只需要角标 → 用 `SelectionCheckBadge` 叠在封面上。
-
-## AppAdaptiveCardGrid&lt;T&gt;
-- **路径**: `lib/widgets/base/layout/grids/app_adaptive_card_grid.dart`
-- **用途**: **四态卡片网格的唯一入口**——按 `((width+spacing)/(target+spacing)).floor()` 算列 + 「骨架 → 错误 → 空 → 内容」四态壳一次封死。消除 movies / actors / rankings / videos 四份网格的 copy-paste,新网格**别再手写 `LayoutBuilder + GridView.builder`**。
-- **required**: `items: List<T>` · `isLoading` · `itemBuilder: (context, item, index) => Widget` · `skeletonBuilder: (context, index) => Widget`(骨架卡各域视觉不同,由 caller 提供,含 Key)
-- **可选**: `gridKey`(测试锚点,通常传 `Key('xxx-summary-grid')`) · `errorMessage` · `emptyMessage` · `placeholderCount`(默认 8) · `targetColumnWidth`(默认 `movieCardTargetWidth` token) · `minColumns` / `maxColumns`(默认 2 / 6) · `childAspectRatio`(fixedAspect 用,默认 `movieCardAspectRatio` token) · `maxRows`（首页等摘要区限制可见行数，窗口变宽时自动补足当前行）
-- **layout 分支**:
-  - `AppAdaptiveCardGridLayout.fixedAspect`(默认):走 `GridView.builder` + 固定 `childAspectRatio`,所有 tile 等宽等高——movies / actors / rankings 的标准形态。
-  - `AppAdaptiveCardGridLayout.masonry`:走 `MasonryGridView.count` + 逐 tile `tileAspect(index)`,横竖封面混排不留底色——videos 的形态,`tileAspect` **必填**。
-- **何时用**: 所有"卡片自适应网格"——影片 / 女优 / 榜单 / 短视频等。
-- **何时不用**: 缩略图专用网格(`MovieMediaThumbnailGrid`)、图搜结果(裸值 220,历史例外) → 各自组件。
-- **旧网格现状**: `MovieSummaryGrid` / `ActorSummaryGrid` / `RankedMovieSummaryGrid` / `VideoSummaryGrid` 都已改成 `AppAdaptiveCardGrid<T>` 的薄壳(保留骨架私类 + 业务回调透传)。改列宽 / 四态观感 / 列钳位一律来这里改一处。
-
-## StaggeredLayout(相关辅助)
-- **路径**: `lib/widgets/base/layout/grids/staggered_layout.dart`
-- **用途**: 交错网格的**排布计算器**(`StaggeredTilePlacement` / `StaggeredLayoutResult`)。给业务侧一个"按 tile 元数据算出瀑布位置"的工具。
-- **何时用**: 已经有裸 GridView 满足不了(如某些图集混合宽/高 tile),需要瀑布布局时。**不是 widget** 而是**布局工具类**。
-- **何时不用**: 普通等宽卡片网格 → 直接用 `AppAdaptiveCardGrid<T>`(见上)或它的域内薄壳。
-
----
-
-## 相关约定
-
-- **服务端筛选**: 控件状态同步更新 → 保留当前结果 → 250ms 尾随防抖 → 原子替换第一页。连续变化只提交最终组合；旧响应通过 request generation 失效，不得覆盖新条件。筛选期间不加载下一页。
-- **失败语义**: 筛选失败不回滚条件；有旧结果时继续展示并给行内重试，没有旧结果时显示明确失败空态。手动刷新立即请求当前条件，不再等待防抖。
-- **网格四态**:骨架 → 错误 → 空态 → 内容,顺序固定,**已封装在 `AppAdaptiveCardGrid<T>` 内**。错误 / 空态自动走 `AppEmptyState`,骨架卡由 caller 传 `skeletonBuilder`。别再手写 `if (isLoading) ... if (errorMessage != null) ...` 四态判断。
-- **列宽自适应**:`AppAdaptiveCardGrid<T>` 内部已封,公式 `((w + spacing) / (target + spacing)).floor()` + 钳位到 `[minColumns, maxColumns]`;target 默认 `movieCardTargetWidth` token,可通过 `targetColumnWidth` 覆盖(如 moment 传 280),**不要传裸值**。
-- 想抽新的"选择系"胶水前,看看 `MultiSelectStateMixin` 能不能扩,别在业务侧写第二份多选状态机。
+选中项、批量动作和失败反馈由业务页面或 Provider 管理；组件不直接发送业务请求。

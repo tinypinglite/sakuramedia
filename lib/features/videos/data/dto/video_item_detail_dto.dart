@@ -101,26 +101,6 @@ class VideoItemDetailDto {
   }
 }
 
-/// `PATCH /videos/{id}` 的局部更新载荷。
-///
-/// 字段为 `null` 表示「不传该键、保持原值」。[releaseDate] 仅在非 `null` 时下发，
-/// phase 1 不支持经此清空发布时间。
-class VideoItemUpdatePayload {
-  const VideoItemUpdatePayload({this.title, this.summary, this.releaseDate});
-
-  final String? title;
-  final String? summary;
-  final DateTime? releaseDate;
-
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      if (title != null) 'title': title,
-      if (summary != null) 'summary': summary,
-      if (releaseDate != null) 'release_date': releaseDate!.toIso8601String(),
-    };
-  }
-}
-
 List<T> _listFromJson<T>(
   dynamic value,
   T Function(Map<String, dynamic>) fromJson,

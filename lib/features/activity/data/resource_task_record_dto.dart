@@ -40,6 +40,10 @@ class ResourceTaskRecordDto {
     required this.resourceId,
     required this.state,
     required this.attemptCount,
+    required this.deferredCount,
+    required this.deferredLimit,
+    required this.deferredReason,
+    required this.nextRetryAt,
     required this.lastAttemptedAt,
     required this.lastSucceededAt,
     required this.lastError,
@@ -57,6 +61,10 @@ class ResourceTaskRecordDto {
   final int resourceId;
   final String state;
   final int attemptCount;
+  final int deferredCount;
+  final int deferredLimit;
+  final String? deferredReason;
+  final DateTime? nextRetryAt;
   final DateTime? lastAttemptedAt;
   final DateTime? lastSucceededAt;
   final String? lastError;
@@ -82,6 +90,8 @@ class ResourceTaskRecordDto {
   bool get isRunning => state == 'running';
   bool get isPending => state == 'pending';
   bool get isSucceeded => state == 'succeeded';
+  bool get isDeferred => isPending && deferredCount > 0 && nextRetryAt != null;
+  bool get hasDeferredHistory => deferredCount > 0 && deferredLimit > 0;
 
   /// 媒体不可用时的展示标签；媒体正常（或后端未下发 `valid`）时为 `null`。
   ///
@@ -115,6 +125,10 @@ class ResourceTaskRecordDto {
       resourceId: asInt(json['resource_id']),
       state: json['state'] as String? ?? '',
       attemptCount: asInt(json['attempt_count']),
+      deferredCount: asInt(json['deferred_count']),
+      deferredLimit: asInt(json['deferred_limit']),
+      deferredReason: _stringOrNull(json['deferred_reason']),
+      nextRetryAt: asDateTime(json['next_retry_at']),
       lastAttemptedAt: asDateTime(json['last_attempted_at']),
       lastSucceededAt: asDateTime(json['last_succeeded_at']),
       lastError: _stringOrNull(json['last_error']),
@@ -127,15 +141,13 @@ class ResourceTaskRecordDto {
           (json['available_actions'] as List<dynamic>? ?? const [])
               .map((value) => value.toString())
               .toList(),
-      resource:
-          rawResource is Map
-              ? ResourceTaskResourceSummaryDto.fromJson(
-                rawResource.map(
-                  (dynamic key, dynamic value) =>
-                      MapEntry(key.toString(), value),
-                ),
-              )
-              : null,
+      resource: rawResource is Map
+          ? ResourceTaskResourceSummaryDto.fromJson(
+              rawResource.map(
+                (dynamic key, dynamic value) => MapEntry(key.toString(), value),
+              ),
+            )
+          : null,
     );
   }
 

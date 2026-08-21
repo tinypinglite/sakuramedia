@@ -46,17 +46,6 @@ class VideosApi {
     return VideoItemDetailDto.fromJson(response);
   }
 
-  Future<VideoItemDetailDto> updateVideo({
-    required int videoId,
-    required VideoItemUpdatePayload payload,
-  }) async {
-    final response = await _apiClient.patch(
-      '/videos/$videoId',
-      data: payload.toJson(),
-    );
-    return VideoItemDetailDto.fromJson(response);
-  }
-
   Future<void> deleteVideo(int videoId) {
     return _apiClient.deleteNoContent('/videos/$videoId');
   }

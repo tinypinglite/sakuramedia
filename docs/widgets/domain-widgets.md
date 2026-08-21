@@ -1,264 +1,51 @@
 # domain-widgets —— 业务展示件
 
-按业务域组织的"跨 feature 复用"展示件——卡片、网格、筛选栏、预览弹窗、专用交互。**判定标准**:被 ≥ 2 个 feature 借用才在这里;单域用留在 `lib/features/<域>/presentation/widgets/`。
+业务展示件可以依赖所属 DTO、筛选值或回调，但不应把某个页面的导航流程和完整数据请求隐藏在卡片里。单 feature 专用组件留在 feature 内。
 
-各域下的**筛选栏**(`*_filter_toolbar.dart`)+ **筛选 sections**(`*_filter_sections.dart`)是**姊妹关系**:toolbar 是桌面横排入口,sections 是移动 drawer 内的通用 section 组件,两端复用同一份 filter state。
+## actors
 
----
+路径：`lib/widgets/domain/actors/`
 
-## actors —— 女优
+包含 `ActorAvatar`、`ActorSummaryCard`、`ActorSummaryGrid` 和 `ActorFilterSections`。女优数据和筛选状态由 actors feature 提供。
 
-### ActorAvatar
-- **路径**: `lib/widgets/domain/actors/actor_avatar.dart`
-- **用途**: 女优圆头像(内部包 `MaskedImage`)。
-- **required**: `imageUrl` · `size` · `placeholderKey`(可选)
-- **何时用**: 一切女优头像展示——列表、详情、搜索建议、时刻卡。
+## movies
 
-### ActorSummaryCard
-- **路径**: `lib/widgets/domain/actors/actor_summary_card.dart`
-- **用途**: 女优摘要卡(海报 + 名字 + 订阅徽标)。
-- **required**: `actor: ActorSummary`
-- **可选**: `onTap` · `onSubscriptionTap` · `isSubscriptionUpdating`
+路径：`lib/widgets/domain/movies/`
 
-### ActorSummaryGrid
-- **路径**: `lib/widgets/domain/actors/actor_summary_grid.dart`
-- **用途**: 女优网格(四态容器 + 自适应列宽 + 占位骨架)。
-- **required**: `items` · `isLoading`
-- **可选**: `errorMessage` · `onActorTap` · `onActorSubscriptionTap` · `isActorSubscriptionUpdating` · `emptyMessage` · `placeholderCount`(默认 8)
-- **何时用**: 所有女优网格页面(女优发现、时刻里的女优、搜索结果女优 tab)。
-- **实现**: 内部走 `AppAdaptiveCardGrid<ActorListItemDto>`(fixedAspect)。改列宽 / 四态观感请去 [data-loading.md](./data-loading.md) 的 `AppAdaptiveCardGrid<T>`。
+包含 `MovieSummaryCard`、`MovieSummaryGrid`、`MovieFilterSections`、`MobileFollowMovieCard`、`MovieBatchSelection` 和 `SubscriptionHeartBadge`。影片详情内部组件仍位于 `features/movies/presentation/widgets/detail/`。
 
-### ActorFilterSectionGroup / ActorFilterChoiceSection&lt;T&gt; / ActorSortSection
-- **路径**: `lib/widgets/domain/actors/actor_filter_sections.dart`
-- **用途**: 女优筛选分节组,**双端共用同一份**:桌面塞进 `AppListHeader.filterPanelBuilder` 的就地浮层,移动塞进 `AppMobileFilterDrawerScaffold` 的底部抽屉。
-- **required**: `filterState` · `onChanged`
-- **注意**: 已无 `ActorFilterToolbar`——桌面筛选入口统一由 `AppListHeader` 提供,重置按钮走 `AppFilterPanelFooter`。
+## clips
 
----
+路径：`lib/widgets/domain/clips/`
 
-## movies —— 影片
+包含 `ClipGridCard`、`ClipCoverCard`、`ClipCoverOverlays`、`ClipSelectionStatusBar` 和 `ClipPlayerDialog`。切片创建、删除和重命名动作由 clips feature 负责。
 
-### MovieSummaryCard
-- **路径**: `lib/widgets/domain/movies/movie_summary_card.dart`
-- **用途**: 影片摘要卡(封面 + 番号 + 标题 + 状态 / 订阅徽标 + rank 徽标)。
-- **required**: `movie: MovieSummary`
-- **可选**: `showStatusBadges` · `rank`(排行榜数字徽标) · `onTap` · `onRequestMenu` · `onSubscriptionTap` · `isSubscriptionUpdating`
-- **何时用**: 所有影片网格 item——发现、搜索、女优详情、时刻库、订阅。
+## collections
 
-### MovieSummaryGrid
-- **路径**: `lib/widgets/domain/movies/movie_summary_grid.dart`
-- **用途**: 影片网格(四态 + 自适应列宽,列宽用 `movieCardTargetWidth` token)。
-- **required**: `items` · `isLoading`
-- **可选**: `errorMessage` · `onMovieTap` · `onMovieMenuRequest` · `onMovieSubscriptionTap` · `isMovieSubscriptionUpdating` · `emptyMessage` · `placeholderCount`(默认 8)
-- **实现**: 内部走 `AppAdaptiveCardGrid<MovieListItemDto>`(fixedAspect)。改列宽 / 四态观感请去 [data-loading.md](./data-loading.md) 的 `AppAdaptiveCardGrid<T>`。
+路径：`lib/widgets/domain/collections/`
 
-### MovieFilterSectionGroup / MovieFilterChoiceSection&lt;T&gt; / MovieYearFilterSection / MovieSortSection
-- **路径**: `lib/widgets/domain/movies/movie_filter_sections.dart`
-- **用途**: 影片筛选分节组(状态 / 合集类型 / 番号来源 / 年份 / 排序),**双端共用同一份**:桌面塞进 `AppListHeader.filterPanelBuilder` 的就地浮层,移动塞进 `showMobileMovieFilterDrawer` 的底部抽屉。年份 section 独立，收起时按实际面板宽度最多展示两行，支持展开/收起。
-- **年份来源**: `yearOptions` 不传时自动生成从当前年到 2008 年的纯年份 chip（普通影片库 / 标签影片）；女优详情显式传入 `GET /actors/{actor_id}/years` 的选项，以显示 `年份(数量)`，并保留 loading / error / retry 三态。
-- **required**: `filterState` · `onChanged`;可选 `yearOptions` · `isYearOptionsLoading` · `yearOptionsErrorMessage` · `onYearOptionsRetry`
-- **`MovieFilterChoiceSection` 可选 `optionKeyBuilder`**: 给每个 chip 挂稳定 Key(videos / moments / hot_reviews 侧都用它生成测试锚点)。
-- **注意**: 已无 `MovieFilterToolbar`——桌面筛选入口统一由 `AppListHeader` 提供,重置走 `AppFilterPanelFooter`。**移动抽屉的内容是打开瞬间的快照**(不像桌面浮层会随 `didUpdateWidget` 重建),所以懒加载的年份必须在弹抽屉**之前** await 回来,否则分节会永远停在转圈态(女优详情页踩过)。
+包含 `CollectionCard`、`CollectionCoverCard`、`CollectionMemberViews` 以及 `playback/` 下的合集连播组件。影片合集、视频合集和切片合集的数据适配由各自 feature 完成。
 
-### MobileFollowMovieCard
-- **路径**: `lib/widgets/domain/movies/mobile_follow_movie_card.dart`
-- **用途**: 移动"我的订阅"专用大卡(细封面 + 详情图 strip + 简介)。有延迟加载详情。
-- **required**: `movie` · `onTap` · `onSubscriptionTap` · `isSubscriptionUpdating` · `isDetailLoading` · `detailStillImageUrls` · `detailSummary` · `detailThinCoverUrl` · `detailCoverUrl`
-- **何时用**: 移动订阅页的"新映影片"这种详情 preview 卡。
-- **何时不用**: 通用列表 → `MovieSummaryCard`。
+## media and preview
 
----
+路径：`lib/widgets/domain/media/`
 
-## clips —— 切片
+包含媒体时长徽标、快速播放、媒体缩略图网格、播放器缩略图面板和预览组件。图片预览的统一入口见 [media-images.md](media-images.md)。
 
-### ClipGridCard(网格 tile,推荐主用)
-- **路径**: `lib/widgets/domain/clips/clip_grid_card.dart`
-- **用途**: 切片**网格 tile**——支持多选、右键 / 长按上下文菜单、跳转原影片。
-- **required**: `clip` · `onPlay` · `onRename` · `onDelete` · `onAddToCollection`
-- **可选**: `onOpenMovie` · `selectionMode` · `isSelected` · `onSelectedChanged`
-- **何时用**: 所有切片网格(切片总览、合集成员、时刻库切片)。
+## moments
 
-### ClipCoverCard
-- **路径**: `lib/widgets/domain/clips/clip_cover_card.dart`
-- **用途**: 切片"纯封面 tile"(**无标题 / 菜单**),供合集封面 grid 拼图用。
-- **required**: `clip` · `onTap`
-- **可选**: `selectionMode` · `isSelected` · `onSelectedChanged`
+路径：`lib/widgets/domain/moments/`
 
-### ClipPlayOverlay / ClipDurationBadge
-- **路径**: `lib/widgets/domain/clips/clip_cover_overlays.dart`
-- **用途**: 切片封面上的两个覆盖层——中间"播放三角"和右下"时长徽标"。
-- **ClipDurationBadge required**: `seconds`
-- **何时用**: 自建切片封面时叠加。目前 `CollectionMemberCard`(合集成员网格 tile)在用 `ClipPlayOverlay`;`ClipGridCard` / `ClipCoverCard` 走"整卡点击直接播"路径,未叠此遮罩。
+包含 `MomentCard`、`MomentGrid`、`MomentImage`、`MomentPreviewDialog` 和预览启动器。时刻筛选和数据加载由 moments feature 负责。
 
-### ClipSelectionStatusBar
-- **路径**: `lib/widgets/domain/clips/clip_selection_status_bar.dart`
-- **用途**: 影片播放页缩略图圈选后底部的"起止 / 时长 / 生成 / 清除"状态条。
-- **required**: `keyPrefix` · `startSeconds` · `endSeconds` · `durationSeconds` · `canCreate` · `onCreate` · `onClear`
-- **何时用**: 影片播放页缩略图圈选场景。
+## playlists and search
 
-### showClipPlayerDialog
-- **路径**: `lib/widgets/domain/clips/clip_player_dialog.dart`
-- **签名**: `Future<void> showClipPlayerDialog(BuildContext context, { required String streamUrl, required String title })`
-- **用途**: 切片快播弹窗。薄壳, 底层用 [QuickPlayDialog](#quickplaydialog) 承载(resolver 为同步 baseUrl 拼接)。
-- **何时用**: 任何"点小切片弹出播放"入口。**别自己 wrap `showDialog + Video`**。
+- `lib/widgets/domain/playlists/`：`PlaylistBannerCard`、`PlaylistManagementCard`。
+- `lib/widgets/domain/search/`：`CatalogSearchField`、`CatalogSearchContent`、`CatalogSearchStreamStatusCard`。
 
----
+## media import and batch
 
-## collections —— 合集
+- `lib/widgets/domain/media_import/`：媒体来源选择器和媒体库选择字段。
+- `lib/widgets/base/operations/batch/`：`BatchProgressDialog` 等通用批量任务反馈，不绑定单一业务域。
 
-### CollectionCard / CollectionCoverCard
-- **路径**: `lib/widgets/domain/collections/collection_card.dart` · `collection_cover_card.dart`
-- **用途**: 合集封面卡——`CollectionCard` 是内部私有 `._` 构造(不直接 new),`CollectionCoverCard` 是**对外的合集封面卡**(标题 + 计数 + 封面 + 编辑 / 删除菜单)。
-- **CollectionCoverCard required**: `title` · `count` · `coverUrl` · `onTap`;可选 `tapKey` / `menuKey` · `coverFit`(默认 cover) · `placeholderIcon`(默认 `video_library_outlined`) · `onEdit` / `onDelete`
-- **何时用**: 切片合集 / 视频合集的网格。
-- **CollectionCardSkeleton / CollectionCardSkeletonRow**: 与合集卡相同的 `16:9` 封面 + 标题结构，用于合集横滑区首屏加载；卡片与横滑行容器均由移动端与桌面端共用，行容器通过参数适配尺寸。
-
-### CollectionMemberRow / CollectionMemberCard
-- **路径**: `lib/widgets/domain/collections/collection_member_views.dart`
-- **用途**: 合集**成员**两种形态——`CollectionMemberRow` 是横排行(拖拽排序),`CollectionMemberCard` 是网格 tile。
-- **CollectionMemberRow required**: `index` · `coverUrl` · `coverWidth` · `coverAspectRatio` · `title` · `isHovered` · `onTap` · `menuKey` · `dragHandleKey`
-- **CollectionMemberCard**: 参见文件内 constructor,类似 grid tile 形态。
-- **何时用**: 合集详情页里的成员列表 / 网格。
-
----
-
-## moments —— 时刻
-
-### MomentCard
-- **路径**: `lib/widgets/domain/moments/moment_card.dart`
-- **required**: `item: MomentItem`
-- **可选**: `onTap`
-
-### MomentGrid
-- **路径**: `lib/widgets/domain/moments/moment_grid.dart`
-- **required**: `items` · `onItemTap`
-- **何时用**: 时刻库网格。已收敛为 `AppAdaptiveCardGrid<MomentListItem>` 的薄壳(`targetColumnWidth: 280` · `minColumns: 2` · `maxColumns: 4` · `childAspectRatio: 16/10`),调用方各自管加载态(内部 `isLoading` 恒 `false`,空态由调用方在渲染前拦截)。
-
-> 时刻页顶栏已并入 `AppListHeader`(原 `MomentSortHeader` 已删除):筛选分节见
-> `features/moments/presentation/moment_filter_sections.dart` 的
-> `MomentFilterSectionGroup`(内容类型 + 排序,桌面浮层与移动抽屉共用)。
-
-### MomentPreviewDialog
-- 见 [media-images.md](./media-images.md) —— 与 `MediaPreviewDialog` 语义 alias。
-
----
-
-## rankings —— 排行榜
-
-### RankedMovieSummaryGrid
-- **路径**: `lib/features/rankings/presentation/widgets/ranked_movie_summary_grid.dart`
-- **用途**: 排行榜网格(与 `MovieSummaryGrid` 类似,但每张卡带 rank 徽标)。
-- **required**: `items` · `isLoading`
-- **可选**: `errorMessage` · `onMovieTap` · `onMovieMenuRequest` · `onMovieSubscriptionTap` · `isMovieSubscriptionUpdating` · `emptyMessage` · `placeholderCount`
-- **实现**: 内部走 `AppAdaptiveCardGrid<RankedMovieListItemDto>`(fixedAspect)。改列宽 / 四态观感请去 [data-loading.md](./data-loading.md) 的 `AppAdaptiveCardGrid<T>`。
-
-### RankingFilterSectionGroup / RankingFilterChoiceSection&lt;T&gt; / RankingSortSection / RankingFilterSectionKeys / RankingFilterAnchor
-- **路径**: `lib/features/rankings/presentation/widgets/ranking_filter_sections.dart`
-- **用途**: 排行榜专用筛选分节组(**多了 source / board / period 三个维度**,比 movies 复杂),**双端共用同一份**:桌面塞进 `AppListHeader.filterPanelBuilder` 的就地浮层,移动塞进 `AppMobileFilterDrawerScaffold` 的底部抽屉。
-- **required**: `sources` · `selectedSource` · `boards` · `selectedBoard` · `selectedPeriod` · `onSourceChanged` · `onBoardChanged` · `onPeriodChanged` · `selectedSortField` · `selectedSortDirection` · `onSortChanged`
-- **可选**: `sectionKeys`(配合 `RankingFilterAnchor` 让抽屉打开后滚动定位到某个分节)
-- **注意**: 已无 `RankingFilterToolbar`——桌面筛选入口统一由 `AppListHeader` 提供;筛选元数据加载中走 `AppListHeader.filterEnabled: false`(原 toolbar 的 `isLoading`)。
-
----
-
-## playlists —— 播放列表
-
-### PlaylistBannerCard
-- **路径**: `lib/widgets/domain/playlists/playlist_banner_card.dart`
-- **用途**: 播放列表 banner 大卡(标题 + 封面)。
-- **required**: `title`;可选 `coverImageUrl` · `onTap`
-- **何时用**: 播放列表页顶部"这里是 xxx 播放列表"横幅。
-
-### PlaylistManagementCard
-- **路径**: `lib/widgets/domain/playlists/playlist_management_card.dart`
-- **用途**: 播放列表管理卡(封面 + 标题 + 元数据 + 查看/编辑/删除三个按钮)。
-- **required**: `playlist: Playlist` · `layout: PlaylistCardLayout.normal|dense`
-- **可选**: `coverImageUrl` · `keyPrefix`(默认 `'playlist'`) · `onViewTap` · `onEditTap` · `onDeleteTap`
-- **何时用**: 播放列表管理页(设置 / activity center 里的列表)。
-
----
-
-## overview —— 概览
-
-### OverviewStatsStrip(+ `OverviewStatItem`)
-- **路径**: `lib/features/overview/presentation/widgets/overview_stats_strip.dart`
-- **用途**: 主页 overview 顶部横排统计条(loading / error 兜底)。
-- **required**: `items: List<OverviewStatItem>` · `isLoading`
-- **可选**: `errorMessage`
-- **何时用**: overview 桌面 / 移动主页顶部。
-
----
-
-## search —— 目录搜索
-
-### CatalogSearchField
-- **路径**: `lib/widgets/domain/search/catalog_search_field.dart`
-- **用途**: 目录搜索输入框(带图搜按钮 + 在线搜索开关)。
-- **required**: `controller` · `hintText`
-- **可选**: `fieldKey` / `searchButtonKey` / `imageSearchButtonKey` / `onlineToggleKey` · `onSubmitted` · `onSearchTap` · `onImageSearchTap` · `showImageSearchButton` · `showOnlineToggle` · `isOnlineSearchEnabled` · `onOnlineSearchToggle` · `autofocus` · `compact`
-- **何时用**: 目录 / sidebar 搜索、全局搜索。
-
-### CatalogSearchContent
-- **路径**: `lib/widgets/domain/search/catalog_search_content.dart`
-- **用途**: 完整搜索面板(输入 + tab + 影片/女优/时刻结果)。
-- **required**: `controller` · `textController` · `tabController` · `useOnlineSearch` · `onOnlineSearchToggle` · `onSubmitSearch` · `onTabSelected` · `onMovieTap` · `onActorTap` · `onMovieSubscriptionTap` · `onActorSubscriptionTap`
-- **可选**: `onMovieMenuRequest`
-
-### CatalogSearchStreamStatusCard
-- **路径**: `lib/widgets/domain/search/catalog_search_stream_status_card.dart`
-- **用途**: 搜索**流式**状态提示卡(SSE 拉搜索时"正在从 xxx 拉"这种)。
-- **required**: `status`
-
----
-
-## image_search —— 图搜
-
-### ImageSearchFilterPanel
-- **路径**: `lib/features/image_search/presentation/widgets/image_search_filter_panel.dart`
-- **用途**: 图搜筛选面板(当前影片范围 / 模式 / 女优选择)。
-- **required**: `filterState` · `summaryText` · `onCurrentMovieScopeChanged` · `onModeChanged` · `onSelectActors` · `onSearch`
-- **可选**: `currentMovieNumber` · `isSearching`
-
-### ImageSearchResultCard
-- **路径**: `lib/features/image_search/presentation/widgets/image_search_result_card.dart`
-- **required**: `item: ImageSearchResult`
-- **可选**: `onTap` · `onRequestMenu`
-
-### ImageSearchResultGrid
-- **路径**: `lib/features/image_search/presentation/widgets/image_search_result_grid.dart`
-- **required**: `items` · `onItemTap`
-- **可选**: `onItemMenuRequested`
-
-### ImageSearchResultPreviewDialog
-- **路径**: `lib/features/image_search/presentation/widgets/image_search_result_preview_dialog.dart`
-- **用途**: 图搜结果预览浮层(`MediaPreviewDialog` 家族的语义包装)。
-- **required**: `item`
-- **可选**: `presentation: dialog|bottomDrawer`
-
-### ImageSearchToolbarIconButton
-- **路径**: `lib/features/image_search/presentation/widgets/image_search_toolbar_icon_button.dart`
-- **用途**: 图搜工具栏专用图标按钮(`AppIconButton` 之上的一层业务外观)。
-- **required**: `tooltip` · `icon`
-- **可选**: `onPressed` · `isSelected`
-- **何时用**: 只有图搜工具栏内用;别处用 `AppIconButton`。
-
----
-
-## batch —— 批量任务
-
-### runBatchOperation&lt;T&gt;
-- **路径**: `lib/widgets/base/operations/batch/batch_progress_dialog.dart`
-- **签名**: `Future<BatchRunResult<T>> runBatchOperation<T>(...)`(具体参数见源码)
-- **用途**: 批量操作进度弹窗——内部起 `_BatchProgressDialog`,追踪 N 个任务(排队 / 进行中 / 成功 / 失败),返回聚合结果 `BatchRunResult<T>`。
-- **何时用**: 任何"批量删除 / 批量下载 / 批量补数据 / 批量刷新"操作,都走它,不要自己写 progress 弹窗。
-- **注意**: 返回类型是 `BatchRunResult<T>`(带成功列表 / 失败列表 / 计数),caller 用它决定后续行为(比如"成功 3 个,失败 2 个,是否重试失败的?")。
-
----
-
-## 相关约定
-
-- **域内的展示件**(单域用)保留在 `lib/features/<域>/presentation/widgets/`,**不要**移到 `lib/widgets/<域>/`;真被两个 feature 借用了再上抬。
-- **卡片上下文菜单**:clip / collection 封面 / collection 成员 / video 四处**共享** `showAppCardContextMenu<T>`(见 [sheets-dialogs.md](./sheets-dialogs.md))。调用方保留私有 enum + items 组装 + 派发 switch; 弹菜单骨架统一走原子件。
-- **SubscriptionHeartBadge**: `lib/widgets/domain/movies/subscription_heart_badge.dart`——movie / actor 摘要卡片、影片详情 hero、演员详情（桌面 / 移动）共用的心形订阅徽标。视觉图标与布局盒固定 24，命中区经 `expand_tap_area` 外扩到 `subscriptionHeartHitSize`（44），不改变布局与相邻对齐；加载态用 `AppInlineSpinner`。移动端 follow 卡片仍是 IconButton 变体（带水波纹），视觉按钮保持 30、命中区同为 44。
-- **多选勾选标记**统一走 `SelectionCheckBadge`(见 [data-loading.md](./data-loading.md)),别再自绘。
-- **筛选状态**:filter state 是纯数据模型；控件变化后先同步写入状态，再由 Provider 经过 250ms 尾随防抖刷新服务端结果。本目录只是**渲染 UI**,不发请求、不等待接口后再点亮选中态。
+新增业务展示件时先确认复用范围，再决定放在这里还是 feature 私有目录；文档只同步当前实际文件和公共使用边界。

@@ -4,7 +4,7 @@ import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 /// 「会话级常驻列表」(`@Riverpod(keepAlive: true)`) 的登出失效样板。
 ///
 /// keepAlive 的列表状态不随页面卸载释放,不处理登出边沿的话,换账号登录后新
-/// 会话会读到上一账号的数据（`lib/features/CLAUDE.md`「keepAlive 策略两轨」
+/// 会话会读到上一账号的数据（`lib/features/AGENTS.md`「状态与数据」
 /// 对这一轨的硬性要求）。导航级保活列表不需要它——那一轨由
 /// `RiverpodPageCache` 在登出边沿统一 `clearAll`。
 ///

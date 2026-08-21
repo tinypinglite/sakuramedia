@@ -106,20 +106,6 @@ void main() {
     });
   });
 
-  test('getClipsByMedia maps GET /media/{media_id}/clips', () async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/media/34/clips',
-      body: <Map<String, dynamic>>[_clipJson(), _clipJson(clipId: 13)],
-    );
-
-    final clips = await clipsApi.getClipsByMedia(mediaId: 34);
-
-    expect(clips, hasLength(2));
-    expect(clips.first.clipId, 12);
-    expect(clips.last.clipId, 13);
-  });
-
   test(
     'getClipDetail maps GET /media-clips/{clip_id} with detail fields',
     () async {

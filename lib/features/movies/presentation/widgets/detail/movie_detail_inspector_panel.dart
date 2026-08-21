@@ -77,7 +77,7 @@ class _MovieDetailInspectorPanelState
   /// 由**面板**关闭：面板打开期间保活（切 Tab 不丢已加载的评论/磁力/缩略图），
   /// [dispose] 时逐个 close → provider 释放。若无人 close 会形成「link 不关 →
   /// provider 永不 dispose → onDispose 里的 close 永不执行」的死锁式泄漏
-  /// （见 `lib/features/CLAUDE.md`「页面保活缓存」）。缩略图按 mediaId 分实例，
+  /// （见 `lib/features/AGENTS.md`「状态与数据」）。缩略图按 mediaId 分实例，
   /// 切换媒体源时新实例也要登记，故用 map 而非三个字段。
   final Map<String, KeepAliveLink> _retainedLinks = <String, KeepAliveLink>{};
 

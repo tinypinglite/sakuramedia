@@ -53,12 +53,6 @@ class ClipsApi {
     );
   }
 
-  /// 列出某媒体的切片（创建时间倒序）。
-  Future<List<MediaClipDto>> getClipsByMedia({required int mediaId}) async {
-    final response = await _apiClient.getList('/media/$mediaId/clips');
-    return response.map(MediaClipDto.fromJson).toList(growable: false);
-  }
-
   /// 按番号拉取影片的切片（命中后端 `MediaClip.movie_number` 快照列）。
   ///
   /// Media 源删除后 `movie_number` 仍保留，故影片仍可查到其切片。

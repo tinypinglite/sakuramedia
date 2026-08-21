@@ -1,91 +1,30 @@
-# feedback —— 空态 / 错误 / 骨架 / 确认框
+# feedback —— 加载、错误、空态和确认
 
-列表"四态"(骨架 → 错误 → 空 → 内容)一律走这里的原子件。**不要自己拼**。
+## 空态和错误
 
-## AppEmptyState
-- **路径**: `lib/widgets/base/feedback/app_empty_state.dart`
-- **用途**: 空态卡:message + 可选 icon + 可选标题 + 可选重试按钮。
-- **required**: `message`
-- **可选**: `icon` · `title`(s16 semibold,渲染在 icon 之后 / message 之前) · `onRetry` · `retryLabel`(默认 "重试") · `retryKey`
-- **何时用**: 列表 / 网格空态,也可作为轻量错误态(带 `title` 概括 + `message` 详情,如缩略图加载失败)。
-- **注意**: 只是**展示**;桌面/移动区块级错误态更推荐 `AppSectionError`(有区分)。
+- `AppEmptyState`：路径 `lib/widgets/base/feedback/app_empty_state.dart`，用于无数据、无匹配结果或无可用功能。
+- `AppSectionError`：路径 `lib/widgets/base/feedback/app_section_error.dart`，桌面内容区的错误和重试。
+- `AppMobileSectionError`：路径 `lib/widgets/base/feedback/app_mobile_section_error.dart`，移动内容区的错误和重试。
 
-## AppSectionError(桌面)
-- **路径**: `lib/widgets/base/feedback/app_section_error.dart`
-- **用途**: 桌面端"区块加载失败"提示(无卡壳、左对齐、重试按钮靠左)。
-- **required**: `title` · `message` · `onRetry`
-- **何时用**: 桌面页里某个 section / grid 加载失败。
-- **和移动版的关系**: 是姊妹关系,**不要合并成自适应组件**——见下一条。
+错误态要提供用户能执行的重试或返回动作；没有旧内容时才用整块错误态。
 
-## AppMobileSectionError(移动)
-- **路径**: `lib/widgets/base/feedback/app_mobile_section_error.dart`
-- **用途**: 移动端"区块加载失败":卡壳 + `AppEmptyState(title)` + 居中消息 + 全宽重试按钮。
-- **required**: `title` · `message` · `onRetry`
-- **可选**: `retryButtonKey`
-- **和 `AppSectionError` 的差异**: 桌面无卡壳 / 左对齐;移动有卡壳 / 居中 / 全宽按钮。**共享 `{title, message, onRetry}` 参数命名方便文案复用**,但**不合并成自适应组件**(视觉与交互两端要求不同)。
+## 骨架和加载
 
-## AppSectionSkeleton
-- **路径**: `lib/widgets/base/feedback/app_section_skeleton.dart`
-- **用途**: 桌面通用"多行骨架条"。
-- **required**: `lineCount`
-- **何时用**: 桌面页 section 加载中态。
+- `AppSectionSkeleton`：桌面 section 骨架。
+- `AppSkeletonBlock`、`AppMobileSkeletonCard`、`AppMobileSkeletonList`：移动页面和局部占位。
+- `AppCoverCardSkeleton`：封面网格占位。
+- `AppInlineSpinner`：按钮、卡片或局部异步操作中的小型 loading。
+- `AppFilterUpdateBar`：筛选请求更新中的行内反馈。
 
-## AppSkeletonBlock
-- **路径**: `lib/widgets/base/feedback/app_mobile_skeleton.dart`
-- **用途**: 基础骨架块(可配 width / height / radius)。默认 `smBorder`,传 `mdBorder` 用于头像块。
-- **可选**: `width` · `height`(为 `null` 时交给父级约束定尺寸,常见于网格 tile 场景) · `radius`
-- **何时用**: 拼自定义骨架布局的最小积木。
+文件均位于 `lib/widgets/base/feedback/`。骨架只描述布局轮廓，不应把真实业务数据写进组件。
 
-## AppMobileSkeletonCard
-- **路径**: `lib/widgets/base/feedback/app_mobile_skeleton.dart`
-- **用途**: 移动页"标题 + 副标题 + 一行元数据"骨架卡。
-- **何时用**: 直接充列表骨架 item。
+## 确认和状态
 
-## AppMobileSkeletonList
-- **路径**: `lib/widgets/base/feedback/app_mobile_skeleton.dart`
-- **用途**: 上面那个 Card 的 List 版(默认 3 个 item,可传 `itemBuilder`)。
-- **可选**: `itemCount`(默认 3) · `itemBuilder` · `padding`
-- **何时用**: 移动列表骨架直接用它,别循环写 `AppSkeletonBlock`。
+- `showAppConfirmDialog`：路径 `app_confirm_dialog.dart`，桌面/移动自适应确认弹窗；破坏性动作传 danger 语义。
+- `AppStatusChip`：路径 `app_status_chip.dart`，展示有限集合的状态标签。
 
-## AppCoverCardSkeleton
-- **路径**: `lib/widgets/base/feedback/app_cover_card_skeleton.dart`
-- **用途**: 封面卡骨架 = 圆角 Container(surfaceCard) + 可选 AspectRatio + surfaceMuted 内框。movie / actor / rankedMovie / video 四份网格 skeleton 复用它。
-- **可选**: `posterKey`(内层 DecoratedBox 的 Key, 通常拼 `xxx-skeleton-poster-$index`) · `aspectRatio`(不传 = video masonry, 传 = movieCardAspectRatio)
-- **何时用**: 需要「四态卡片网格」骨架时。别再手写"圆角 + 灰色内框"。
+异步确认动作应使用组件提供的 loading、取消禁用和错误反馈；API 请求仍由调用方或 Provider 负责。
 
-## AppInlineSpinner
-- **路径**: `lib/widgets/base/feedback/app_inline_spinner.dart`
-- **用途**: 行内小转圈 —— `movieCardLoaderSize` 见方 + `movieCardLoaderStrokeWidth` 线宽的 `CircularProgressIndicator`。
-- **可选**: `color`(不传走主题 primary；订阅心形等有专属语义色的位置才传)
-- **何时用**: 「某个小控件正在忙」——卡片上的订阅心形、列表行的动作按钮、加载更多页脚。演员详情(桌面/移动)、播放列表详情、`SubscriptionHeartBadge` 此前各写了一份逐字相同的 `SizedBox + CircularProgressIndicator`，已收口到这里。
-- **何时不用**: 整页 / 整区块加载态 → `AppSectionSkeleton` / `AppMobileSkeletonList` 等骨架屏。转圈只用于局部、短时的忙碌指示。
+## 页面状态顺序
 
-## showAppConfirmDialog
-- **路径**: `lib/widgets/base/feedback/app_confirm_dialog.dart`
-- **用途**: **自适应**确认框——一套 API 双端通用。
-- **签名**: `Future<bool> showAppConfirmDialog(BuildContext context, { required String title, required String message, String confirmLabel = '确认', String cancelLabel = '取消', bool danger = false, AppConfirmVariant variant = AppConfirmVariant.auto, Future<void> Function()? onConfirm, String failureFallback = '操作失败', Key? dialogKey, Key? cancelKey, Key? confirmKey })`
-- **variant**:
-  - `auto`(默认): 读 `AppPlatformScope.maybeOf` → `mobile` = `showAppBottomDrawer`;桌面/web/null = `showDialog + AppDesktopDialog`。
-  - `dialog` / `drawer`:显式覆盖。
-- **返回类型**: `Future<bool>` **恒非空**(drawer 分支 `?? false`),契约不变。
-- **`onConfirm` slot**(推荐):传了 → 点确认时内部把确认按钮置 `isLoading`、禁用取消,`await onConfirm()` 成功后 pop(true);抛异常 → toast(`apiErrorMessage(error, fallback: failureFallback)`) + 恢复按钮 + **不 pop**。
-- **何时用**: 任何"确认吗?"弹窗。删除、退出、断开、放弃编辑。**别再手写抽屉+双按钮**。
-- **相关**: `AppMobileConfirmActions` 是抽屉里"取消 / 确认"这一条 row 的原子件,通常已由本函数包好了不用你直接调;真要在自定义抽屉里放这条 row 时才用它——见 [sheets-dialogs.md](./sheets-dialogs.md)。
-
-## AppStatusChip
-- **路径**: `lib/widgets/base/feedback/app_status_chip.dart`
-- **用途**: 状态徽章的纯展示层——`[图标或 spinner] 标签 (可选 detail)`，圆角色块底。不含点击/tooltip 交互，业务方按需在外面包一层。
-- **required**: `label` · `palette`(`AppStatusChipPalette`：`background` / `borderColor` / `tone` / `foreground` / `icon`)
-- **可选**: `isBusy`(true 用 spinner 替代 `icon`) · `detail` · `dense`(更紧凑的横条/阵列场景)
-- **配色**: 标准 5 态一律走命名工厂 `AppStatusChipPalette.neutral(context) / .success / .warning / .error / .muted`，图标可覆盖(如 probing 传 `icon: Icons.hourglass_top`)。**不要在业务侧再写 `_xxxPalette(context)` helper** —— 之前 5 处逐字复制已收敛。真的非标 tone(如 accent 色 radar)才就地构造 `AppStatusChipPalette(...)`。
-- **何时用**: 任何"探针/诊断类状态指示"——连通性检测、健康检查这类多态徽章。
-- **现有用例**: `DownloadClientProbeStatusChip`（下载器探针）、`DiagnosticStatusBadge`（组件诊断 6 态）、`Cloud115AuthenticationStatusChips`（115 认证）、`ExternalDataSourceStatusChips`（JavDB）、`IndexerConnectionTestPanel`（索引器连测）。
-
----
-
-## 相关约定
-
-- **四态顺序**: **骨架 → 错误 → 空态(`AppEmptyState`)→ 内容**,顺序固定。见 `lib/widgets/CLAUDE.md` "网格四态容器"段。
-- 错误文案统一走 `apiErrorMessage(error, fallback: ...)`,`fallback` 用具体动词(如 "删除下载器失败"),不要 "操作失败" 一把梭。
-- 轻量反馈用 `oktoast`(顶层已 wrap `OKToast`),别用 SnackBar。
-- toast 底色/文字统一由主题层 `kAppToastBackgroundColor` / `kAppToastTextStyle` 提供，业务侧不要给 `showToast` 传裸颜色。
+通常按“初始加载 → 错误/重试 → 空态 → 内容”表达状态。分页加载失败保留已有内容，在列表底部使用分页反馈，不要用整页错误覆盖已有结果。

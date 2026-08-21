@@ -135,37 +135,6 @@ void main() {
     expect(media.points.single.offsetSeconds, 90);
   });
 
-  test('updateVideo 仅下发 payload 中非空字段', () async {
-    adapter.enqueueJson(
-      method: 'PATCH',
-      path: '/videos/9',
-      body: <String, dynamic>{
-        'id': 9,
-        'title': '改后标题',
-        'summary': '',
-        'media_count': 0,
-        'can_play': false,
-        'created_at': '2026-01-02T03:04:05',
-        'updated_at': '2026-01-02T03:04:05',
-        'media_items': <dynamic>[],
-      },
-    );
-
-    await videosApi.updateVideo(
-      videoId: 9,
-      payload: const VideoItemUpdatePayload(title: '改后标题'),
-    );
-
-    final body = adapter.requests.single.body as Map<String, dynamic>;
-    expect(body.containsKey('title'), isTrue);
-    expect(body['title'], '改后标题');
-    // 未传的字段不应出现，避免误清空。
-    expect(body.containsKey('summary'), isFalse);
-    expect(body.containsKey('release_date'), isFalse);
-    expect(body.containsKey('tag_ids'), isFalse);
-    expect(body.containsKey('person_ids'), isFalse);
-  });
-
   test('updateMediaProgress 写回普通视频媒体进度', () async {
     adapter.enqueueJson(
       method: 'PUT',

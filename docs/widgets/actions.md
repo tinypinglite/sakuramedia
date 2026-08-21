@@ -1,50 +1,35 @@
-# actions —— 按钮系
+# actions —— 操作控件
 
-按钮四件套 + 启停开关,**别再自己 wrap `ElevatedButton`/`TextButton`/`IconButton`/`Switch`**。选一个填就完事。
+## `AppButton`
 
-## AppButton
-- **路径**: `lib/widgets/base/actions/app_button.dart`
-- **用途**: 实心 / 边框按钮,4 种 variant × 5 种 size。
-- **required**: `label`
-- **关键可选**: `onPressed` · `icon` · `trailingIcon` · `labelKey` · `variant: primary|secondary(默认)|ghost|danger` · `size: medium|small|xSmall|xxSmall|xxxSmall` · `isLoading` · `isSelected`
-- **何时用**: 页面主行动、表单提交、危险操作(danger)、次要操作(ghost)。
-- **何时不用**: 纯文字链接 → `AppTextButton`;仅一个图标(工具栏、卡片右上角) → `AppIconButton`。
+路径：`lib/widgets/base/actions/app_button.dart`
 
-## AppTextButton
-- **路径**: `lib/widgets/base/actions/app_text_button.dart`
-- **用途**: 纯文字按钮(可带图标),支持透明 / muted 背景与 accent 强调色。
-- **required**: `label`
-- **关键可选**: `onPressed` · `icon` · `trailingIcon` · `size: medium|small|xSmall|xxSmall|xxxSmall` · `isSelected` · `emphasis: normal|accent` · `backgroundStyle: transparent(默认)|muted`
-- **何时用**: 卡片内嵌操作、行尾"编辑 / 删除"、`AppSettingsGroup` 尾部"更多"。
-- **和 `AppButton` 的边界**: 有背景块 → `AppButton`;纯文字或"文字气泡"感 → `AppTextButton`。
+主要按钮，支持 `primary`、`secondary`、`ghost`、`danger` 变体以及多档尺寸。用于提交、保存、确认等有明确动作的场景。
 
-## AppIconButton
-- **路径**: `lib/widgets/base/actions/app_icon_button.dart`
-- **用途**: 单图标按钮,统一 hover / selected 态与命中区。
-- **required**: `icon`
-- **关键可选**: `onPressed` · `tooltip` · `isSelected` · `size: mini|compact(默认)|regular` · `iconColor` / `selectedIconColor` / `backgroundColor` / `selectedBackgroundColor` / `borderColor` / `selectedBorderColor` · `padding` · `borderRadius` · `semanticLabel`
-- **何时用**: 工具栏、`AppTopBar` 右侧、卡片右上角、播放器控制条按钮外壳。
-- **备注**: 传入的 `Key` 会挂到内部按钮上,方便测试锚定。
+## `AppTextButton`
 
-## AppInlineActionButton
-- **路径**: `lib/widgets/base/actions/app_inline_action_button.dart`
-- **用途**: 极简"嵌行小图标按钮"(hover 态自绘,无背景块),常见在卡片信息条里紧贴文字。
-- **required**: `icon` · `onTap`
-- **何时用**: `MoviePlayerPlaybackInfo` / 详情页正文中间那种"删除 / 复制"极小图标。
-- **和 `AppIconButton` 的边界**: 前者有 hover 背景 / tooltip / size 系统;这个更轻,只在**紧凑排版**中用。别当默认 IconButton 用。
+路径：`lib/widgets/base/actions/app_text_button.dart`
 
-## AppSwitch
-- **路径**: `lib/widgets/base/actions/app_switch.dart`
-- **用途**: 紧凑启停开关(桌面 36×20 / 移动 44×24),开启态走品牌色,禁用态置灰。
-- **required**: `value` · `onChanged`
-- **关键可选**: `onChanged` 传 `null` 即禁用。
-- **何时用**: 设置 / 管理列表行尾的"启用 / 停用"。
-- **何时不用**: 需要选中态按钮 → `AppButton(isSelected:)`;状态只读展示 → `AppBadge`。
+低强调文字操作，支持背景样式、强调色和尺寸。用于次要操作、筛选清除和卡片内联动作。
 
----
+## `AppIconButton`
 
-## 相关约定
+路径：`lib/widgets/base/actions/app_icon_button.dart`
 
-- 按钮上的 `Key` 用 `labelKey` / `fieldKey` / 自己传的 `key`——**改 Key = 破测试**,详见 `lib/widgets/CLAUDE.md` "Widget Key 约定"。
-- 危险动作按钮:`AppButton(variant: danger)` 或 `showAppConfirmDialog(danger: true)` 双端一致,别自己染色。
-- toast 一律走 `oktoast` + `apiErrorMessage(error, fallback: ...)`,不要用 SnackBar。
+图标操作按钮，支持 `mini`、`compact`、`regular` 尺寸。必须提供可理解的 tooltip 或等价语义。
+
+## `AppInlineActionButton`
+
+路径：`lib/widgets/base/actions/app_inline_action_button.dart`
+
+适合列表行或信息块内的轻量操作。需要异步反馈时使用它已有的 loading/disabled 语义，不要在页面外层再套一套状态。
+
+## `AppSwitch`
+
+路径：`lib/widgets/base/actions/app_switch.dart`
+
+设置项启停开关。远端保存状态由页面或 Provider 管理，组件只负责展示和值变化回调。
+
+## 共同约定
+
+按钮尺寸、圆角、颜色和文字样式由主题 token 控制。已有 `Key` 或 `labelKey` 属于测试和可访问性契约，修改前检查对应测试。

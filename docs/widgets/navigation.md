@@ -1,47 +1,27 @@
-# navigation —— Tab / 移动筛选抽屉
+# navigation —— Tab、列表头和筛选入口
 
-三个原子件,足够覆盖"横向切分 + 移动筛选进入"两种交互。
+## `AppTabBar`
 
-## AppTabBar
-- **路径**: `lib/widgets/base/navigation/app_tab_bar.dart`
-- **用途**: 通用 tab 条,`PreferredSizeWidget`。**四种 variant 自动分流**。
-- **required**: `tabs`
-- **可选**: `controller` · `onTap` · `variant: auto|desktop|compact|mobileTop`(默认 auto) · `tabHeight` · `indicatorSize`
-- **`variant: auto`**: 读 `AppPlatformScope.maybeOf`——移动 → `mobileTop` 样式;桌面/web → `desktop` 样式。参考 `feedback/app_confirm_dialog.dart` 的分流风格。
-- **何时用**: 任何 tab 场景——列表 tab、详情 tab、批量任务 tab。**不要**用 Material `TabBar`。
-- **注意**: 指示器是自绘 `_ThinTabIndicator`。改样式改这里,别在业务侧覆盖。
+路径：`lib/widgets/base/navigation/app_tab_bar.dart`
 
-## AppListHeader(+ `AppListHeaderInfo`)
-- **路径**: `lib/widgets/base/navigation/app_list_header.dart`
-- **用途**: 列表/分区顶栏,**桌面与移动共用同一条**。固定三段:左「筛选入口」/ 中「只读信息槽」/ 右「操作槽」。
-- **筛选入口二选一**(有 assert 守卫,最多给一个):
-  - 桌面 → `filterPanelBuilder`(+`filterPanelFooter`),点击**就地展开浮层**;
-  - 移动 → `onFilterTap`,点击**弹底部抽屉**。
-  两端按钮外观、面板内容、条件即时更新行为完全一致,只有容器不同。服务端结果
-  统一在 250ms 尾随防抖后更新,期间保留上一版内容。
-- **两个都不传 = 该列表没有筛选维度**(系列影片页:后端 `/movies/by-series` 只吃
-  seriesId + 分页),此时左侧不渲染入口、信息槽从最左开始。**只有真无筛选才这么用**
-  ——有筛选却不接入口,这一行会看起来像别的东西。
-- **可选**: `filterLabel`(当前筛选摘要,长在入口里) · `filterIcon` · `filterTooltip` · `filterButtonKey` · `filterEnabled`(筛选元数据没加载完时传 `false`,两端一致地不响应点击,外观不变;榜单页用) · `filterUpdate` / `hasPreviousFilterItems` / `onRetryFilter`(列表结果追赶条件时的共享反馈) · `informationSlots` · `actionSlots`
-- **多选态**: 用命名构造 `AppListHeader.selection(selectionLabel:, onExitSelection:, actionSlots:)` **原地改写整条**——只放退出 / 计数 / 全选,批量动作走 `AppSelectionBottomBar`。
-- **注意**: 筛选入口外观**恒定**,不随「当前有没有筛选生效」变色;当前值由 `filterLabel` 表达。`filterLabel` 一律只报**一个主维度**(见各 `XxxFilterState.triggerLabel`)。
+统一桌面、紧凑和移动顶部 Tab 的样式与选中态。Tab 的数据和切换行为由页面或路由负责。
 
-## AppFilterEntryButton
-- **路径**: `lib/widgets/base/navigation/app_filter_entry_button.dart`
-- **用途**: 上面那条顶栏的筛选入口按钮本体:实底胶囊 + 摘要 + 下拉箭头。也用作 `AppFilterPopover.triggerBuilder` 让桌面 trigger 与移动一致。
-- **注意**: 视觉胶囊只有 `buttonHeightXs` 高,但**手势区撑满父级高度**(顶栏 44)以满足 iOS HIG 44×44。别把手势挪进胶囊内部。
+## `AppListHeader`
 
-## AppMobileFilterDrawerScaffold
-- **路径**: `lib/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart`
-- **用途**: 移动筛选抽屉外壳,**与桌面 `AppFilterPopover` 面板逐行同构**:`Flexible(SingleChildScrollView)` + 滚动区外的 footer。
-- **required**: `child`
-- **可选**: `footer`(通常是 `AppFilterPanelFooter`,重置在这里) · `scrollViewKey`
-- **注意**: **没有标题行、没有确定按钮**——控件选中态即时更新,关闭靠下拉/点遮罩(对应桌面点面板外部)。这里的“即时”只指 UI,不表示服务端结果已经返回。
+路径：`app_list_header.dart`
 
----
+列表页标题、筛选入口、结果信息和操作槽的统一容器。`AppListHeaderInfo` 用于显示总数、更新时间等辅助信息。
 
-## 相关约定
+## `AppFilterEntryButton`
 
-- 路由 tab(切页) → `AppTabBar`;列表顶栏(筛选 / 信息 / 操作) → `AppListHeader`(双端同一条)。
-- 平台判定:统一读 `AppPlatformScope.maybeOf(context)`(InheritedWidget,`lib/app/app_platform.dart`)。`AppTabBar(variant: auto)` 已经内部读了,不要在业务侧再判一次。
-- 筛选抽屉里的具体筛选控件(Choice / Sort / Chips)由各业务域自建(见 movies / actors / rankings 的 `filter_sections.dart` / `filter_toolbar.dart`),本目录只管外壳。
+路径：`app_filter_entry_button.dart`
+
+列表页打开筛选浮层或抽屉的入口。当前筛选摘要由调用方提供。
+
+## `AppMobileFilterDrawerScaffold`
+
+路径：`app_mobile_filter_drawer_scaffold.dart`
+
+移动筛选抽屉的标题、内容和底部操作结构。筛选值和提交动作仍由 feature 管理。
+
+新列表页优先组合 `AppListHeader` + 页面已有筛选容器，不要为每个 feature 重新实现顶栏布局。

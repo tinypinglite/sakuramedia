@@ -175,6 +175,11 @@ services:
     volumes:
       # 图片搜索向量库存储；务必放 SSD
       - ./sakuramedia-data/image-search-index:/qdrant/storage
+    ulimits:
+      # 向量库基于 RocksDB，写入/优化时同时打开大量段文件，默认 1024 不够会报 Too many open files
+      nofile:
+        soft: 65536
+        hard: 65536
 
   sakuramedia-web:
     image: tinyping/sakuramedia-web:latest
