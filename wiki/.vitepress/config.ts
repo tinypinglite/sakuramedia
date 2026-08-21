@@ -20,7 +20,6 @@ export default defineConfig({
           items: [
             { text: '快速开始', link: '/guide/quick-start' },
             { text: '配置说明', link: '/guide/config' },
-            { text: '插件化机制', link: '/guide/plugins' },
             { text: '进阶部署', link: '/guide/docker' },
             { text: '后台任务', link: '/guide/tasks' },
             { text: '115 网盘接入', link: '/guide/cloud115' },

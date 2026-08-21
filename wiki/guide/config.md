@@ -194,33 +194,6 @@ JavDB 排行榜账号不再属于 `[metadata]`。安装排行榜插件后，应�
 
 > JavDB 站点访问依托 `javdb_host` 自身的直连/反代能力。
 
-## `[plugins]`
-
-这一组控制「仓库内插件」的目录、启用清单、任务 cron 覆盖和私有配置。常用配置如下：
-
-```toml
-[plugins]
-root_dir = "/data/plugins"
-enabled = ["sakuramedia_javdb_ranking"]
-
-[plugins.job_crons.sakuramedia_javdb_ranking]
-sakuramedia_javdb_ranking_sync = "45 1 * * *"
-
-[plugins.settings.sakuramedia_javdb_ranking]
-javdb_username = ""
-javdb_password = ""
-```
-
-- `root_dir`：插件根目录，默认 `/data/plugins`；
-- `enabled`：显式启用的插件 ID，不在清单中的插件不会被加载；
-- `job_crons.<plugin_id>.<task_key>`：覆盖插件任务的默认 cron；
-- `settings.<plugin_id>`：插件私有配置，插件通过 `context.settings` 只读读取。
-
-插件安装、启停和私有配置也可以通过「系统设置 → 插件」或插件管理 API 完成；这些操作
-修改后需要重启 api 与 aps。通用 `/config` API 不返回也不修改整个 `[plugins]` 节。
-完整契约见[插件化机制](/guide/plugins)。
-
-
 ## `[scheduler]`
 
 这一组控制后台定时任务是否开启，以及每个任务的运行频率。
