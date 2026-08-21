@@ -561,11 +561,11 @@ class _ConnectionBanner extends StatelessWidget {
     final colors = context.appColors;
     final backgroundColor = switch (state) {
       ActivityConnectionState.connecting => colors.surfaceMuted,
-      ActivityConnectionState.polling => colors.infoSurface,
+      ActivityConnectionState.polling => colors.selectionSurface,
     };
     final foregroundColor = switch (state) {
       ActivityConnectionState.connecting => context.appTextPalette.secondary,
-      ActivityConnectionState.polling => context.appTextPalette.info,
+      ActivityConnectionState.polling => context.appTextPalette.accent,
     };
     final icon = switch (state) {
       ActivityConnectionState.connecting => Icons.sync_rounded,
