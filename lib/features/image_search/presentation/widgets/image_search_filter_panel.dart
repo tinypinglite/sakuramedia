@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sakuramedia/features/image_search/data/image_search_target.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
@@ -8,6 +9,7 @@ class ImageSearchFilterPanel extends StatelessWidget {
     super.key,
     required this.filterState,
     required this.summaryText,
+    required this.onSearchTargetChanged,
     required this.onCurrentMovieScopeChanged,
     required this.onModeChanged,
     required this.onSelectActors,
@@ -19,6 +21,7 @@ class ImageSearchFilterPanel extends StatelessWidget {
   final ImageSearchFilterState filterState;
   final String summaryText;
   final String? currentMovieNumber;
+  final ValueChanged<ImageSearchTarget> onSearchTargetChanged;
   final ValueChanged<ImageSearchCurrentMovieScope> onCurrentMovieScopeChanged;
   final ValueChanged<ImageSearchActorFilterMode> onModeChanged;
   final VoidCallback onSelectActors;
@@ -56,6 +59,32 @@ class ImageSearchFilterPanel extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          SizedBox(height: spacing.sm),
+          Text(
+            '搜索范围',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.secondary,
+            ),
+          ),
+          SizedBox(height: spacing.xs),
+          Wrap(
+            spacing: spacing.sm,
+            runSpacing: spacing.sm,
+            children: ImageSearchTarget.values
+                .map(
+                  (target) => AppButton(
+                    label: target.label,
+                    size: AppButtonSize.xSmall,
+                    variant: AppButtonVariant.secondary,
+                    isSelected: filterState.searchTarget == target,
+                    onPressed: () => onSearchTargetChanged(target),
+                  ),
+                )
+                .toList(growable: false),
           ),
           if (currentMovieNumber != null &&
               currentMovieNumber!.trim().isNotEmpty) ...[

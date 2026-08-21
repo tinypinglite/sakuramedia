@@ -9,6 +9,7 @@ class ImageSearchResultItemDto {
     required this.offsetSeconds,
     required this.score,
     required this.image,
+    this.plotImageId,
   });
 
   final int thumbnailId;
@@ -18,6 +19,9 @@ class ImageSearchResultItemDto {
   final int offsetSeconds;
   final double score;
   final MovieImageDto image;
+  final int? plotImageId;
+
+  int get resultImageId => plotImageId ?? thumbnailId;
 
   factory ImageSearchResultItemDto.fromJson(Map<String, dynamic> json) {
     return ImageSearchResultItemDto(
@@ -28,6 +32,21 @@ class ImageSearchResultItemDto {
       offsetSeconds: json['offset_seconds'] as int? ?? 0,
       score: (json['score'] as num?)?.toDouble() ?? 0,
       image: MovieImageDto.fromJson(_toMap(json['image'])),
+    );
+  }
+
+  factory ImageSearchResultItemDto.fromPlotImageJson(
+    Map<String, dynamic> json,
+  ) {
+    return ImageSearchResultItemDto(
+      thumbnailId: 0,
+      mediaId: 0,
+      movieId: json['movie_id'] as int? ?? 0,
+      movieNumber: json['movie_number'] as String? ?? '',
+      offsetSeconds: 0,
+      score: (json['score'] as num?)?.toDouble() ?? 0,
+      image: MovieImageDto.fromJson(_toMap(json['image'])),
+      plotImageId: json['plot_image_id'] as int? ?? 0,
     );
   }
 

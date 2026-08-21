@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_session_dto.dart';
+import 'package:sakuramedia/features/image_search/data/image_search_target.dart';
 
 class ImageSearchApi {
   const ImageSearchApi({required ApiClient apiClient}) : _apiClient = apiClient;
@@ -18,6 +19,7 @@ class ImageSearchApi {
     List<int>? movieIds,
     List<int>? excludeMovieIds,
     double? scoreThreshold,
+    ImageSearchTarget target = ImageSearchTarget.thumbnail,
   }) async {
     final formData = FormData.fromMap(<String, dynamic>{
       'file': MultipartFile.fromBytes(
@@ -33,21 +35,29 @@ class ImageSearchApi {
       if (scoreThreshold != null) 'score_threshold': '$scoreThreshold',
     });
     final response = await _apiClient.post(
-      '/image-search/sessions',
+      _sessionPath(target),
       data: formData,
     );
-    return ImageSearchSessionDto.fromJson(response);
+    return ImageSearchSessionDto.fromJson(response, target: target);
   }
 
   Future<ImageSearchSessionDto> getNextResults({
     required String sessionId,
     required String cursor,
+    ImageSearchTarget target = ImageSearchTarget.thumbnail,
   }) async {
     final response = await _apiClient.get(
-      '/image-search/sessions/$sessionId/results',
+      '${_sessionPath(target)}/$sessionId/results',
       queryParameters: <String, dynamic>{'cursor': cursor},
     );
-    return ImageSearchSessionDto.fromJson(response);
+    return ImageSearchSessionDto.fromJson(response, target: target);
+  }
+
+  String _sessionPath(ImageSearchTarget target) {
+    return switch (target) {
+      ImageSearchTarget.thumbnail => '/image-search/sessions',
+      ImageSearchTarget.plot => '/image-search/plot-sessions',
+    };
   }
 
   String _encodeIdList(List<int>? ids) {

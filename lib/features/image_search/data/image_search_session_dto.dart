@@ -1,4 +1,5 @@
 import 'package:sakuramedia/features/image_search/data/image_search_result_item_dto.dart';
+import 'package:sakuramedia/features/image_search/data/image_search_target.dart';
 
 class ImageSearchSessionDto {
   const ImageSearchSessionDto({
@@ -17,8 +18,15 @@ class ImageSearchSessionDto {
   final DateTime? expiresAt;
   final List<ImageSearchResultItemDto> items;
 
-  factory ImageSearchSessionDto.fromJson(Map<String, dynamic> json) {
+  factory ImageSearchSessionDto.fromJson(
+    Map<String, dynamic> json, {
+    ImageSearchTarget target = ImageSearchTarget.thumbnail,
+  }) {
     final itemsValue = json['items'];
+    final itemParser =
+        target == ImageSearchTarget.plot
+            ? ImageSearchResultItemDto.fromPlotImageJson
+            : ImageSearchResultItemDto.fromJson;
     return ImageSearchSessionDto(
       sessionId: json['session_id'] as String? ?? '',
       status: json['status'] as String? ?? '',
@@ -30,8 +38,7 @@ class ImageSearchSessionDto {
               ? itemsValue
                   .whereType<Object?>()
                   .map(
-                    (Object? item) =>
-                        ImageSearchResultItemDto.fromJson(_toMap(item)),
+                    (Object? item) => itemParser(_toMap(item)),
                   )
                   .toList(growable: false)
               : const <ImageSearchResultItemDto>[],

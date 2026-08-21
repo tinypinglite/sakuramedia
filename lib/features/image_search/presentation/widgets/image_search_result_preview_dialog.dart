@@ -18,7 +18,7 @@ class ImageSearchResultPreviewDialog extends StatelessWidget {
     final imageUrl = item.image.resolvedUrl;
     final previewItem = MediaPreviewItem(
       imageUrl: imageUrl,
-      fileName: 'image_search_${item.movieNumber}_${item.thumbnailId}.webp',
+      fileName: 'image_search_${item.movieNumber}_${item.resultImageId}.webp',
       mediaId: item.mediaId,
       movieNumber: item.movieNumber,
       thumbnailId: item.thumbnailId,

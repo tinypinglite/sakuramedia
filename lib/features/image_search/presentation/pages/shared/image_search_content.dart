@@ -217,6 +217,10 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
                           filterState: searchState.filterState,
                           summaryText: _filterSummaryText,
                           currentMovieNumber: widget.currentMovieNumber,
+                          onSearchTargetChanged:
+                              (target) => _notifier.updateFilter(
+                                _filterState.copyWith(searchTarget: target),
+                              ),
                           onCurrentMovieScopeChanged:
                               (scope) => _notifier.updateFilter(
                                 _filterState.copyWith(currentMovieScope: scope),
@@ -747,7 +751,7 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
 
   String _resultImageFileName(ImageSearchResultItemDto item) {
     final extension = guessImageFileExtension(_resultImageUrl(item));
-    return 'image_search_${item.movieNumber}_${item.thumbnailId}.$extension';
+    return 'image_search_${item.movieNumber}_${item.resultImageId}.$extension';
   }
 
   Future<void> _showResultActions(

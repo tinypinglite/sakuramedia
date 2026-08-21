@@ -1,4 +1,5 @@
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
+import 'package:sakuramedia/features/image_search/data/image_search_target.dart';
 
 enum ImageSearchActorFilterMode { none, includeSelected, excludeSelected }
 
@@ -30,14 +31,27 @@ extension ImageSearchCurrentMovieScopeLabel on ImageSearchCurrentMovieScope {
   }
 }
 
+extension ImageSearchTargetLabel on ImageSearchTarget {
+  String get label {
+    switch (this) {
+      case ImageSearchTarget.thumbnail:
+        return '缩略图';
+      case ImageSearchTarget.plot:
+        return '剧情图';
+    }
+  }
+}
+
 class ImageSearchFilterState {
   const ImageSearchFilterState({
+    this.searchTarget = ImageSearchTarget.thumbnail,
     this.currentMovieScope = ImageSearchCurrentMovieScope.all,
     this.actorFilterMode = ImageSearchActorFilterMode.none,
     this.selectedActors = const <ActorListItemDto>[],
     this.scoreThreshold,
   });
 
+  final ImageSearchTarget searchTarget;
   final ImageSearchCurrentMovieScope currentMovieScope;
   final ImageSearchActorFilterMode actorFilterMode;
   final List<ActorListItemDto> selectedActors;
@@ -55,6 +69,7 @@ class ImageSearchFilterState {
       actorFilterMode != ImageSearchActorFilterMode.none;
 
   ImageSearchFilterState copyWith({
+    ImageSearchTarget? searchTarget,
     ImageSearchCurrentMovieScope? currentMovieScope,
     ImageSearchActorFilterMode? actorFilterMode,
     List<ActorListItemDto>? selectedActors,
@@ -62,6 +77,7 @@ class ImageSearchFilterState {
     bool clearScoreThreshold = false,
   }) {
     return ImageSearchFilterState(
+      searchTarget: searchTarget ?? this.searchTarget,
       currentMovieScope: currentMovieScope ?? this.currentMovieScope,
       actorFilterMode: actorFilterMode ?? this.actorFilterMode,
       selectedActors: selectedActors ?? this.selectedActors,

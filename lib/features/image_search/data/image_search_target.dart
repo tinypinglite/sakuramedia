@@ -1,0 +1,1 @@
+enum ImageSearchTarget { thumbnail, plot }

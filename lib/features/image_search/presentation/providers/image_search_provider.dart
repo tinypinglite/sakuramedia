@@ -172,6 +172,7 @@ class ImageSearch extends _$ImageSearch {
             movieIds: resolved.includeMovieIds,
             excludeMovieIds: resolved.excludeMovieIds,
             scoreThreshold: filter.scoreThreshold,
+            target: filter.searchTarget,
           );
       if (!_isCurrentSearch(requestVersion)) {
         return;
@@ -217,6 +218,7 @@ class ImageSearch extends _$ImageSearch {
           .getNextResults(
             sessionId: requestedSessionId,
             cursor: requestedCursor,
+            target: current.activeFilter.searchTarget,
           );
       if (!_isCurrentSearch(requestVersion) ||
           state.sessionId != requestedSessionId) {
