@@ -54,6 +54,7 @@ MovieDetailRemoteActionSpec? movieDetailRemoteActionSpecFor({
     case MovieDetailActionType.openInspector:
       return null;
     case MovieDetailActionType.toggleSubscription:
+    case MovieDetailActionType.toggleBlacklist:
       return null;
     case MovieDetailActionType.refreshMetadata:
       return MovieDetailRemoteActionSpec(
@@ -129,11 +130,9 @@ MovieDetailApplyResult applyReturnedMovieDetail({
 }) {
   final resolvedSelectedMediaId =
       selectedMediaId != null &&
-              movie.mediaItems.any((item) => item.mediaId == selectedMediaId)
-          ? selectedMediaId
-          : (movie.mediaItems.isNotEmpty
-              ? movie.mediaItems.first.mediaId
-              : null);
+          movie.mediaItems.any((item) => item.mediaId == selectedMediaId)
+      ? selectedMediaId
+      : (movie.mediaItems.isNotEmpty ? movie.mediaItems.first.mediaId : null);
   ref
       .read(movieDetailProvider(movieNumber).notifier)
       .applyMovie(movie, resetPreview: resetPreview);

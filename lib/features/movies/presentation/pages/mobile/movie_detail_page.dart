@@ -121,6 +121,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
           final movie = detailState.movie!;
           final derived = resolveDerived(movie, detailState);
           final isSubscribed = derived.isSubscribed;
+          final isBlacklisted = derived.isBlacklisted;
           final isCollection = derived.isCollection;
           final isActionControlsLocked = derived.isActionControlsLocked;
           final sourceOptions = derived.sourceOptions;
@@ -159,7 +160,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
                   physics: scrollPhysics,
                   slivers: <Widget>[SliverToBoxAdapter(child: content)],
                 ),
-            onSubscriptionTap: isActionControlsLocked
+            onSubscriptionTap: isActionControlsLocked || isBlacklisted
                 ? null
                 : () => toggleMovieSubscription(isSubscribed: isSubscribed),
             onMoreActionsTap: isActionControlsLocked
@@ -167,6 +168,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
                 : (_) => _showMovieActionDrawer(
                     movie,
                     isSubscribed,
+                    isBlacklisted,
                     selectedMedia,
                   ),
             onPlayTap: selectedMedia != null && selectedMedia.hasPlayableUrl
@@ -350,6 +352,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
   Future<void> _showMovieActionDrawer(
     MovieDetailDto movie,
     bool isSubscribed,
+    bool isBlacklisted,
     MovieMediaItemDto? selectedMedia,
   ) async {
     final action = await showMovieDetailMobileActionDrawer(
@@ -358,6 +361,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
       actions: buildMovieDetailActionDescriptors(
         movie: movie,
         isSubscribed: isSubscribed,
+        isBlacklisted: isBlacklisted,
       ),
       onExecuteAction: executeMovieAction,
     );

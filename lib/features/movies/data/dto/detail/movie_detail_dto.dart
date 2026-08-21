@@ -21,6 +21,7 @@ class MovieDetailDto {
     required this.scoreNumber,
     required this.isCollection,
     required this.isSubscribed,
+    this.isBlacklisted = false,
     required this.canPlay,
     required this.summary,
     required this.thinCoverImage,
@@ -52,6 +53,7 @@ class MovieDetailDto {
   final int scoreNumber;
   final bool isCollection;
   final bool isSubscribed;
+  final bool isBlacklisted;
   final bool canPlay;
   final String summary;
   final MovieImageDto? thinCoverImage;
@@ -89,6 +91,7 @@ class MovieDetailDto {
       scoreNumber: json['score_number'] as int? ?? 0,
       isCollection: json['is_collection'] as bool? ?? false,
       isSubscribed: json['is_subscribed'] as bool? ?? false,
+      isBlacklisted: json['is_blacklisted'] as bool? ?? false,
       canPlay: json['can_play'] as bool? ?? false,
       summary: json['summary'] as String? ?? '',
       thinCoverImage: _movieImageFromJson(json['thin_cover_image']),
@@ -263,12 +266,12 @@ class MovieMediaItemDto {
   }) {
     return MovieMediaItemDto(
       mediaId: mediaId ?? this.mediaId,
-      libraryId:
-          identical(libraryId, _sentinel) ? this.libraryId : libraryId as int?,
-      libraryBackend:
-          identical(libraryBackend, _sentinel)
-              ? this.libraryBackend
-              : libraryBackend as String?,
+      libraryId: identical(libraryId, _sentinel)
+          ? this.libraryId
+          : libraryId as int?,
+      libraryBackend: identical(libraryBackend, _sentinel)
+          ? this.libraryBackend
+          : libraryBackend as String?,
       playUrl: playUrl ?? this.playUrl,
       storageMode: storageMode ?? this.storageMode,
       resolution: resolution ?? this.resolution,
@@ -276,15 +279,13 @@ class MovieMediaItemDto {
       durationSeconds: durationSeconds ?? this.durationSeconds,
       specialTags: specialTags ?? this.specialTags,
       valid: valid ?? this.valid,
-      progress:
-          identical(progress, _sentinel)
-              ? this.progress
-              : progress as MovieMediaProgressDto?,
+      progress: identical(progress, _sentinel)
+          ? this.progress
+          : progress as MovieMediaProgressDto?,
       points: points ?? this.points,
-      videoInfo:
-          identical(videoInfo, _sentinel)
-              ? this.videoInfo
-              : videoInfo as MovieMediaVideoInfoDto?,
+      videoInfo: identical(videoInfo, _sentinel)
+          ? this.videoInfo
+          : videoInfo as MovieMediaVideoInfoDto?,
     );
   }
 }

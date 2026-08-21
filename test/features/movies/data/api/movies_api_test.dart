@@ -606,10 +606,9 @@ void main() {
       ],
     );
 
-    final updates =
-        await moviesApi
-            .searchOnlineMoviesStream(movieNumber: 'ABP-123')
-            .toList();
+    final updates = await moviesApi
+        .searchOnlineMoviesStream(movieNumber: 'ABP-123')
+        .toList();
 
     final request = adapter.requests.single;
     expect(request.method, 'POST');
@@ -634,10 +633,9 @@ void main() {
         ],
       );
 
-      final updates =
-          await moviesApi
-              .searchOnlineMoviesStream(movieNumber: 'ABP-404')
-              .toList();
+      final updates = await moviesApi
+          .searchOnlineMoviesStream(movieNumber: 'ABP-404')
+          .toList();
 
       expect(updates.last.success, isFalse);
       expect(updates.last.reason, 'movie_not_found');
@@ -657,10 +655,9 @@ void main() {
       ],
     );
 
-    final updates =
-        await moviesApi
-            .searchOnlineMoviesStream(movieNumber: 'ABP-123')
-            .toList();
+    final updates = await moviesApi
+        .searchOnlineMoviesStream(movieNumber: 'ABP-123')
+        .toList();
 
     expect(updates.single.results.single.movieNumber, 'ABP-123');
   });
@@ -851,6 +848,7 @@ void main() {
         'score_number': 45,
         'is_collection': true,
         'is_subscribed': false,
+        'is_blacklisted': true,
         'can_play': true,
         'series_id': 7,
         'series_name': 'Series 1',
@@ -985,6 +983,7 @@ void main() {
     expect(detail.title, 'Movie 1');
     expect(detail.preferredTitle, 'Movie 1');
     expect(detail.heat, 27);
+    expect(detail.isBlacklisted, isTrue);
     expect(detail.seriesId, 7);
     expect(detail.seriesName, 'Series 1');
     expect(detail.makerName, 'S1 NO.1 STYLE');
@@ -1161,28 +1160,31 @@ void main() {
     expect(detail.preferredDescription, 'summary fallback');
   });
 
-  test('getMovieDetail preferred description is empty when summary is blank', () async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/movies/ABC-022',
-      statusCode: 200,
-      body: <String, dynamic>{
-        'javdb_id': 'MovieA22',
-        'movie_number': 'ABC-022',
-        'title': 'Movie 22',
-        'summary': '  ',
-        'actors': const <Map<String, dynamic>>[],
-        'tags': const <Map<String, dynamic>>[],
-        'plot_images': const <Map<String, dynamic>>[],
-        'playlists': const <Map<String, dynamic>>[],
-        'media_items': const <Map<String, dynamic>>[],
-      },
-    );
+  test(
+    'getMovieDetail preferred description is empty when summary is blank',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-022',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'javdb_id': 'MovieA22',
+          'movie_number': 'ABC-022',
+          'title': 'Movie 22',
+          'summary': '  ',
+          'actors': const <Map<String, dynamic>>[],
+          'tags': const <Map<String, dynamic>>[],
+          'plot_images': const <Map<String, dynamic>>[],
+          'playlists': const <Map<String, dynamic>>[],
+          'media_items': const <Map<String, dynamic>>[],
+        },
+      );
 
-    final detail = await moviesApi.getMovieDetail(movieNumber: 'ABC-022');
+      final detail = await moviesApi.getMovieDetail(movieNumber: 'ABC-022');
 
-    expect(detail.preferredDescription, isEmpty);
-  });
+      expect(detail.preferredDescription, isEmpty);
+    },
+  );
 
   test('getMovieDetail handles missing video info sections', () async {
     adapter.enqueueJson(
@@ -1706,6 +1708,39 @@ void main() {
       MovieSubscriptionSkipReason.movieNotFound,
     );
   });
+
+  test(
+    'setMoviesBlacklisted uses the blacklist endpoint for both states',
+    () async {
+      adapter
+        ..enqueueJson(method: 'PUT', path: '/movies/blacklist', statusCode: 204)
+        ..enqueueJson(
+          method: 'DELETE',
+          path: '/movies/blacklist',
+          statusCode: 204,
+        );
+
+      await moviesApi.setMoviesBlacklisted(
+        movieNumbers: const <String>['ABC-001', 'ABC-002'],
+        isBlacklisted: true,
+      );
+      await moviesApi.setMoviesBlacklisted(
+        movieNumbers: const <String>['ABC-001'],
+        isBlacklisted: false,
+      );
+
+      expect(adapter.requests.map((request) => request.method), <String>[
+        'PUT',
+        'DELETE',
+      ]);
+      expect(adapter.requests.first.body, <String, dynamic>{
+        'movie_numbers': <String>['ABC-001', 'ABC-002'],
+      });
+      expect(adapter.requests.last.body, <String, dynamic>{
+        'movie_numbers': <String>['ABC-001'],
+      });
+    },
+  );
 
   test('batchUnsubscribeMovies posts to unsubscriptions endpoint and parses '
       'has_media skip reason', () async {

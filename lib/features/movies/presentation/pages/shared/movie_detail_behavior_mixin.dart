@@ -24,6 +24,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/mutation_even
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_playback_options.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 
 /// 影片详情页双端共用的**业务行为 mixin**——把桌面 / 移动详情页里逐字重复的
@@ -93,6 +94,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
       <int, List<MovieMediaPointDto>>{};
   int? selectedMediaId;
   bool? isSubscribedOverride;
+  bool? isBlacklistedOverride;
   bool? isCollectionOverride;
   bool isSubscriptionUpdating = false;
   bool isCollectionUpdating = false;
@@ -134,10 +136,9 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
       isCollectionUpdating = true;
     });
 
-    final targetType =
-        isCollection
-            ? MovieCollectionType.single
-            : MovieCollectionType.collection;
+    final targetType = isCollection
+        ? MovieCollectionType.single
+        : MovieCollectionType.collection;
     try {
       final result = await ref
           .read(moviesApiProvider)
@@ -238,10 +239,10 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     final currentId = selectedMediaId;
     final retainedSelectedMediaId =
         currentId != null &&
-                currentId != deletedMediaId &&
-                refreshedMediaItems.any((item) => item.mediaId == currentId)
-            ? currentId
-            : null;
+            currentId != deletedMediaId &&
+            refreshedMediaItems.any((item) => item.mediaId == currentId)
+        ? currentId
+        : null;
     setState(() {
       pointOverrides.clear();
       selectedMediaId =
@@ -250,6 +251,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
               ? refreshedMediaItems.first.mediaId
               : null);
       isSubscribedOverride = null;
+      isBlacklistedOverride = null;
       isCollectionOverride = null;
     });
   }
@@ -321,13 +323,14 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     if (imageUrl.isEmpty) {
       return;
     }
-    final result = await ImageSaveService(
-      fetchBytes: ref.read(apiClientProvider).getBytes,
-    ).saveImageFromUrl(
-      imageUrl: imageUrl,
-      fileName: buildPointFileName(point),
-      dialogTitle: '保存到本地',
-    );
+    final result =
+        await ImageSaveService(
+          fetchBytes: ref.read(apiClientProvider).getBytes,
+        ).saveImageFromUrl(
+          imageUrl: imageUrl,
+          fileName: buildPointFileName(point),
+          dialogTitle: '保存到本地',
+        );
     if (!mounted) {
       return;
     }
@@ -427,10 +430,9 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     return MovieMediaPointDto(
       pointId: point.pointId,
       thumbnailId: point.thumbnailId,
-      offsetSeconds:
-          point.offsetSeconds > 0
-              ? point.offsetSeconds
-              : fallback.offsetSeconds,
+      offsetSeconds: point.offsetSeconds > 0
+          ? point.offsetSeconds
+          : fallback.offsetSeconds,
       image: point.image ?? fallback.image,
     );
   }
@@ -457,6 +459,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
   ) {
     final mediaItems = resolveMediaItems(movie);
     final isSubscribed = isSubscribedOverride ?? movie.isSubscribed;
+    final isBlacklisted = isBlacklistedOverride ?? movie.isBlacklisted;
     final isCollection = isCollectionOverride ?? movie.isCollection;
     final sourceOptions = resolveMoviePlaybackSourceOptions(
       mediaItems: mediaItems,
@@ -472,12 +475,13 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     );
     final selectedMedia =
         visibleMediaItems
-                .where((item) => item.mediaId == selectedMediaId)
-                .firstOrNull ??
-            (visibleMediaItems.isNotEmpty ? visibleMediaItems.first : null);
+            .where((item) => item.mediaId == selectedMediaId)
+            .firstOrNull ??
+        (visibleMediaItems.isNotEmpty ? visibleMediaItems.first : null);
     return MovieDetailDerived(
       mediaItems: mediaItems,
       isSubscribed: isSubscribed,
+      isBlacklisted: isBlacklisted,
       isCollection: isCollection,
       isActionControlsLocked: isMovieActionLocked,
       sourceOptions: sourceOptions,
@@ -525,12 +529,12 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
       AppImageActionDescriptor(
         type: AppImageActionType.toggleMark,
         label: currentPoint == null ? '添加标记' : '删除标记',
-        icon:
-            currentPoint == null
-                ? Icons.bookmark_add_outlined
-                : Icons.bookmark_remove_outlined,
+        icon: currentPoint == null
+            ? Icons.bookmark_add_outlined
+            : Icons.bookmark_remove_outlined,
         enabled:
-            mediaItem.mediaId > 0 && (currentPoint != null || point.thumbnailId > 0),
+            mediaItem.mediaId > 0 &&
+            (currentPoint != null || point.thumbnailId > 0),
       ),
       AppImageActionDescriptor(
         type: AppImageActionType.play,
@@ -595,6 +599,67 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     showMovieSubscriptionFeedback(result);
     return result.status == MovieSubscriptionToggleStatus.subscribed ||
         result.status == MovieSubscriptionToggleStatus.unsubscribed;
+  }
+
+  Future<bool> toggleMovieBlacklist({required bool isBlacklisted}) async {
+    if (isMovieActionLocked) {
+      return false;
+    }
+    final targetBlacklisted = !isBlacklisted;
+    if (targetBlacklisted) {
+      final confirmed = await showAppConfirmDialog(
+        context,
+        title: '屏蔽影片',
+        message: '已订阅影片无法屏蔽，请先取消订阅。屏蔽后将从正常列表和推荐中隐藏。',
+        confirmLabel: '屏蔽',
+        danger: true,
+        failureFallback: '屏蔽影片失败',
+        onConfirm: () => ref
+            .read(moviesApiProvider)
+            .setMoviesBlacklisted(
+              movieNumbers: <String>[movieNumber],
+              isBlacklisted: true,
+            ),
+      );
+      if (confirmed && mounted) {
+        setState(() {
+          isBlacklistedOverride = true;
+        });
+        showToast('已屏蔽影片');
+      }
+      return confirmed;
+    }
+
+    setState(() {
+      activeMovieAction = MovieDetailActionType.toggleBlacklist;
+    });
+    try {
+      await ref
+          .read(moviesApiProvider)
+          .setMoviesBlacklisted(
+            movieNumbers: <String>[movieNumber],
+            isBlacklisted: false,
+          );
+      if (!mounted) {
+        return false;
+      }
+      setState(() {
+        isBlacklistedOverride = false;
+      });
+      showToast('已取消屏蔽影片');
+      return true;
+    } catch (error) {
+      if (mounted) {
+        showToast(apiErrorMessage(error, fallback: '取消屏蔽影片失败'));
+      }
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() {
+          activeMovieAction = null;
+        });
+      }
+    }
   }
 
   bool isBlockedByMedia(Object error) {
@@ -680,6 +745,14 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
             false,
       );
     }
+    if (action == MovieDetailActionType.toggleBlacklist) {
+      return toggleMovieBlacklist(
+        isBlacklisted:
+            isBlacklistedOverride ??
+            ref.read(movieDetailProvider(movieNumber)).movie?.isBlacklisted ??
+            false,
+      );
+    }
 
     return executeMovieDetailRemoteAction(
       context: context,
@@ -736,6 +809,7 @@ class MovieDetailDerived {
   const MovieDetailDerived({
     required this.mediaItems,
     required this.isSubscribed,
+    required this.isBlacklisted,
     required this.isCollection,
     required this.isActionControlsLocked,
     required this.sourceOptions,
@@ -746,6 +820,7 @@ class MovieDetailDerived {
 
   final List<MovieMediaItemDto> mediaItems;
   final bool isSubscribed;
+  final bool isBlacklisted;
   final bool isCollection;
   final bool isActionControlsLocked;
   final MoviePlaybackSourceOptions sourceOptions;

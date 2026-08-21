@@ -17,8 +17,11 @@ typedef MovieBatchToggleExecutor =
       required bool subscribe,
     });
 
+typedef MovieBlacklistBatchExecutor =
+    Future<void> Function({required Iterable<String> movieNumbers});
+
 /// 批量动作种类，用于区分「哪个按钮该转圈」。
-enum MovieBatchAction { subscribe, unsubscribe }
+enum MovieBatchAction { subscribe, unsubscribe, blacklist }
 
 /// 影片列表的「进入多选」按钮：[AppSelectionEntryButton] 的薄壳，只负责按
 /// [keyPrefix] 生成稳定 Key。列表为空时禁用。
@@ -57,6 +60,7 @@ class MovieBatchSelectionToolbar extends StatelessWidget {
     required this.onToggleAll,
     required this.onSubscribe,
     required this.onUnsubscribe,
+    this.onBlacklist,
     required this.onExit,
   });
 
@@ -77,6 +81,8 @@ class MovieBatchSelectionToolbar extends StatelessWidget {
 
   /// 「取消订阅」批量按钮回调；同上。
   final VoidCallback? onUnsubscribe;
+
+  final VoidCallback? onBlacklist;
 
   /// 「取消」（退出多选）按钮回调；正在提交时禁用。
   final VoidCallback? onExit;
@@ -108,6 +114,15 @@ class MovieBatchSelectionToolbar extends StatelessWidget {
           isLoading: operatingAction == MovieBatchAction.unsubscribe,
           onPressed: onUnsubscribe,
         ),
+        if (onBlacklist != null)
+          AppButton(
+            key: Key('$keyPrefix-batch-blacklist-button'),
+            label: '屏蔽',
+            variant: AppButtonVariant.danger,
+            size: AppButtonSize.small,
+            isLoading: operatingAction == MovieBatchAction.blacklist,
+            onPressed: onBlacklist,
+          ),
       ],
       exitKey: Key('$keyPrefix-exit-selection-button'),
       onExit: onExit,
@@ -166,12 +181,14 @@ class MovieBatchMobileSelectionBottomBar extends StatelessWidget {
     required this.operatingAction,
     required this.onSubscribe,
     required this.onUnsubscribe,
+    this.onBlacklist,
   });
 
   final String keyPrefix;
   final MovieBatchAction? operatingAction;
   final VoidCallback? onSubscribe;
   final VoidCallback? onUnsubscribe;
+  final VoidCallback? onBlacklist;
 
   @override
   Widget build(BuildContext context) {
@@ -192,6 +209,14 @@ class MovieBatchMobileSelectionBottomBar extends StatelessWidget {
           isLoading: operatingAction == MovieBatchAction.unsubscribe,
           onPressed: onUnsubscribe,
         ),
+        if (onBlacklist != null)
+          AppButton(
+            key: Key('$keyPrefix-batch-blacklist-button'),
+            label: '屏蔽',
+            variant: AppButtonVariant.danger,
+            isLoading: operatingAction == MovieBatchAction.blacklist,
+            onPressed: onBlacklist,
+          ),
       ],
     );
   }
@@ -216,10 +241,9 @@ Future<MovieSubscriptionBatchToggleResult?> runMovieSubscriptionBatch({
     return null;
   }
   final actionVerb = subscribe ? '订阅' : '取消订阅';
-  final message =
-      subscribe
-          ? '将订阅选中的 ${numbers.length} 部影片。'
-          : '将取消选中的 ${numbers.length} 部影片的订阅，存在本地媒体的影片会自动跳过。';
+  final message = subscribe
+      ? '将订阅选中的 ${numbers.length} 部影片。'
+      : '将取消选中的 ${numbers.length} 部影片的订阅，存在本地媒体的影片会自动跳过。';
   final action = subscribe ? 'subscribe' : 'unsubscribe';
   MovieSubscriptionBatchToggleResult? result;
   final confirmed = await showAppConfirmDialog(
@@ -285,6 +309,8 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
   /// 绑定到本页分页控制器的 `batchToggleSubscription`。
   MovieBatchToggleExecutor get batchSubscriptionExecutor;
 
+  MovieBlacklistBatchExecutor? get batchBlacklistExecutor => null;
+
   /// 当前可见（即「全选」覆盖范围）的番号列表。
   List<String> get batchSelectableNumbers;
 
@@ -295,11 +321,9 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
       return;
     }
     setState(
-      () =>
-          _operatingAction =
-              subscribe
-                  ? MovieBatchAction.subscribe
-                  : MovieBatchAction.unsubscribe,
+      () => _operatingAction = subscribe
+          ? MovieBatchAction.subscribe
+          : MovieBatchAction.unsubscribe,
     );
     final result = await runMovieSubscriptionBatch(
       context: context,
@@ -327,26 +351,55 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
     }
   }
 
+  Future<void> runBlacklistBatch() async {
+    final execute = batchBlacklistExecutor;
+    if (execute == null || isBatchOperating || selectedIds.isEmpty) {
+      return;
+    }
+    setState(() => _operatingAction = MovieBatchAction.blacklist);
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '批量屏蔽',
+      message: '已订阅影片无法屏蔽，请先取消订阅。屏蔽后将从正常列表和推荐中隐藏。',
+      confirmLabel: '屏蔽',
+      danger: true,
+      dialogKey: Key('$batchKeyPrefix-batch-blacklist-dialog'),
+      confirmKey: Key('$batchKeyPrefix-batch-blacklist-confirm'),
+      failureFallback: '批量屏蔽影片失败',
+      onConfirm: () => execute(movieNumbers: selectedIds),
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() => _operatingAction = null);
+    if (confirmed) {
+      exitSelection();
+    }
+  }
+
   /// 多选态下原地替换筛选行的操作条。
   Widget buildBatchSelectionToolbar() {
     final visible = batchSelectableNumbers;
     final busy = isBatchOperating;
+    final blacklist = batchBlacklistExecutor;
     return MovieBatchSelectionToolbar(
       keyPrefix: batchKeyPrefix,
       selectedCount: selectedCount,
       visibleTotal: visible.length,
       allSelected: isAllSelected(visible),
       operatingAction: _operatingAction,
-      onToggleAll:
-          (busy || visible.isEmpty) ? null : () => toggleSelectAll(visible),
-      onSubscribe:
-          (selectedIds.isEmpty || busy)
-              ? null
-              : () => runSubscriptionBatch(subscribe: true),
-      onUnsubscribe:
-          (selectedIds.isEmpty || busy)
-              ? null
-              : () => runSubscriptionBatch(subscribe: false),
+      onToggleAll: (busy || visible.isEmpty)
+          ? null
+          : () => toggleSelectAll(visible),
+      onSubscribe: (selectedIds.isEmpty || busy)
+          ? null
+          : () => runSubscriptionBatch(subscribe: true),
+      onUnsubscribe: (selectedIds.isEmpty || busy)
+          ? null
+          : () => runSubscriptionBatch(subscribe: false),
+      onBlacklist: (blacklist == null || selectedIds.isEmpty || busy)
+          ? null
+          : runBlacklistBatch,
       onExit: busy ? null : exitSelection,
     );
   }
@@ -361,8 +414,9 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
       selectedCount: selectedCount,
       visibleTotal: visible.length,
       allSelected: isAllSelected(visible),
-      onToggleAll:
-          (busy || visible.isEmpty) ? null : () => toggleSelectAll(visible),
+      onToggleAll: (busy || visible.isEmpty)
+          ? null
+          : () => toggleSelectAll(visible),
       onExit: busy ? null : exitSelection,
     );
   }
@@ -370,17 +424,19 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
   /// 移动端多选态贴底的批量动作条。
   Widget buildMobileBatchSelectionBottomBar() {
     final busy = isBatchOperating;
+    final blacklist = batchBlacklistExecutor;
     return MovieBatchMobileSelectionBottomBar(
       keyPrefix: batchKeyPrefix,
       operatingAction: _operatingAction,
-      onSubscribe:
-          (selectedIds.isEmpty || busy)
-              ? null
-              : () => runSubscriptionBatch(subscribe: true),
-      onUnsubscribe:
-          (selectedIds.isEmpty || busy)
-              ? null
-              : () => runSubscriptionBatch(subscribe: false),
+      onSubscribe: (selectedIds.isEmpty || busy)
+          ? null
+          : () => runSubscriptionBatch(subscribe: true),
+      onUnsubscribe: (selectedIds.isEmpty || busy)
+          ? null
+          : () => runSubscriptionBatch(subscribe: false),
+      onBlacklist: (blacklist == null || selectedIds.isEmpty || busy)
+          ? null
+          : runBlacklistBatch,
     );
   }
 

@@ -235,11 +235,10 @@ class MoviesApi {
   }) async {
     final response = await _apiClient.patch(
       '/movies/collection-type',
-      data:
-          UpdateMovieCollectionTypePayload(
-            movieNumbers: movieNumbers,
-            collectionType: collectionType,
-          ).toJson(),
+      data: UpdateMovieCollectionTypePayload(
+        movieNumbers: movieNumbers,
+        collectionType: collectionType,
+      ).toJson(),
     );
     return UpdateMovieCollectionTypeResultDto.fromJson(response);
   }
@@ -267,6 +266,17 @@ class MoviesApi {
       '/movies/$movieNumber/subscription',
       queryParameters: <String, dynamic>{'delete_media': deleteMedia},
     );
+  }
+
+  Future<void> setMoviesBlacklisted({
+    required List<String> movieNumbers,
+    required bool isBlacklisted,
+  }) {
+    const path = '/movies/blacklist';
+    final data = <String, dynamic>{'movie_numbers': movieNumbers};
+    return isBlacklisted
+        ? _apiClient.putNoContent(path, data: data)
+        : _apiClient.deleteNoContent(path, data: data);
   }
 
   Future<MovieSubscriptionBatchResultDto> batchSubscribeMovies({
@@ -397,10 +407,9 @@ class MoviesApi {
           results: _parseMovieResults(payload['movies']),
           success: payload['success'] as bool? ?? false,
           reason: payload['reason'] as String?,
-          stats:
-              payload.containsKey('stats') || payload.containsKey('total')
-                  ? CatalogSearchStreamStats.fromLooseJson(payload)
-                  : null,
+          stats: payload.containsKey('stats') || payload.containsKey('total')
+              ? CatalogSearchStreamStats.fromLooseJson(payload)
+              : null,
         );
       default:
         return MovieSearchStreamUpdate(

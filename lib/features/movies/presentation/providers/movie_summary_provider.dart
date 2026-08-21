@@ -107,8 +107,11 @@ class MovieSummary extends _$MovieSummary
         heatMin: filter.movie.heatMin,
         heatMax: filter.movie.heatMax,
       ),
-      MovieSummarySource.subscribedActorsLatest => moviesApi
-          .getSubscribedActorsLatestMovies(page: page, pageSize: pageSize),
+      MovieSummarySource.subscribedActorsLatest =>
+        moviesApi.getSubscribedActorsLatestMovies(
+          page: page,
+          pageSize: pageSize,
+        ),
       MovieSummarySource.actor => moviesApi.getMovies(
         actorId: scope.resourceId!,
         page: page,
@@ -121,15 +124,16 @@ class MovieSummary extends _$MovieSummary
         heatMin: filter.movie.heatMin,
         heatMax: filter.movie.heatMax,
       ),
-      MovieSummarySource.playlist => ref
-          .read(playlistsApiProvider)
-          .getPlaylistMovies(
-            playlistId: scope.resourceId!,
-            page: page,
-            pageSize: pageSize,
-            sort: filter.playlist.sortExpression,
-            resolution: filter.playlist.resolution?.apiValue,
-          ),
+      MovieSummarySource.playlist =>
+        ref
+            .read(playlistsApiProvider)
+            .getPlaylistMovies(
+              playlistId: scope.resourceId!,
+              page: page,
+              pageSize: pageSize,
+              sort: filter.playlist.sortExpression,
+              resolution: filter.playlist.resolution?.apiValue,
+            ),
       MovieSummarySource.series => moviesApi.getMoviesBySeries(
         seriesId: scope.resourceId!,
         page: page,
@@ -201,10 +205,9 @@ class MovieSummary extends _$MovieSummary
     String movieNumber,
   ) async {
     final current = state.value;
-    final movie =
-        current?.paged.items
-            .where((item) => item.movieNumber == movieNumber)
-            .firstOrNull;
+    final movie = current?.paged.items
+        .where((item) => item.movieNumber == movieNumber)
+        .firstOrNull;
     if (movie == null || isInFlight(movieNumber)) {
       return const MovieSubscriptionToggleResult.ignored();
     }
@@ -295,31 +298,26 @@ class MovieSummary extends _$MovieSummary
           },
           action: (numbers) async {
             final api = ref.read(moviesApiProvider);
-            response =
-                subscribe
-                    ? await api.batchSubscribeMovies(
-                      movieNumbers: numbers.toList(),
-                    )
-                    : await api.batchUnsubscribeMovies(
-                      movieNumbers: numbers.toList(),
-                    );
+            response = subscribe
+                ? await api.batchSubscribeMovies(movieNumbers: numbers.toList())
+                : await api.batchUnsubscribeMovies(
+                    movieNumbers: numbers.toList(),
+                  );
             return response!;
           },
-          skippedFromResult:
-              (value) => <String>{
-                ...value.movieNumbersSkippedBecause(
-                  MovieSubscriptionSkipReason.movieNotFound,
-                ),
-                ...value.movieNumbersSkippedBecause(
-                  MovieSubscriptionSkipReason.hasMedia,
-                ),
-              },
+          skippedFromResult: (value) => <String>{
+            ...value.movieNumbersSkippedBecause(
+              MovieSubscriptionSkipReason.movieNotFound,
+            ),
+            ...value.movieNumbersSkippedBecause(
+              MovieSubscriptionSkipReason.hasMedia,
+            ),
+          },
           rollback: _restoreSubscriptionStatuses,
-          errorMessageOf:
-              (error) => apiErrorMessage(
-                error,
-                fallback: subscribe ? '批量订阅影片失败' : '批量取消订阅影片失败',
-              ),
+          errorMessageOf: (error) => apiErrorMessage(
+            error,
+            fallback: subscribe ? '批量订阅影片失败' : '批量取消订阅影片失败',
+          ),
         );
 
     if (result.errorMessage != null || response == null) {
@@ -355,6 +353,38 @@ class MovieSummary extends _$MovieSummary
     );
   }
 
+  Future<void> blacklistMovies({required Iterable<String> movieNumbers}) async {
+    final ordered = <String>[];
+    final seen = <String>{};
+    for (final movieNumber in movieNumbers) {
+      if (movieNumber.isNotEmpty && seen.add(movieNumber)) {
+        ordered.add(movieNumber);
+      }
+    }
+    if (ordered.isEmpty) {
+      return;
+    }
+    await ref
+        .read(moviesApiProvider)
+        .setMoviesBlacklisted(movieNumbers: ordered, isBlacklisted: true);
+    removeMovies(ordered);
+  }
+
+  void removeMovies(Iterable<String> movieNumbers) {
+    final numbers = movieNumbers.toSet();
+    final current = state.value;
+    if (numbers.isEmpty || current == null) {
+      return;
+    }
+    final paged = current.paged.removeWhere(
+      (item) => numbers.contains(item.movieNumber),
+    );
+    if (identical(paged, current.paged)) {
+      return;
+    }
+    state = AsyncData(current.copyWith(paged: paged));
+  }
+
   void _applySubscriptionChanges(List<MovieSubscriptionChange> changes) {
     final current = state.value;
     if (current == null || changes.isEmpty) {
@@ -368,13 +398,11 @@ class MovieSummary extends _$MovieSummary
               ? !change.isSubscribed
               : change.isSubscribed);
       paged = shouldRemoveRow
-          ? paged.removeWhere(
-            (item) => item.movieNumber == change.movieNumber,
-          )
+          ? paged.removeWhere((item) => item.movieNumber == change.movieNumber)
           : paged.patchWhere(
-            (item) => item.movieNumber == change.movieNumber,
-            (item) => item.copyWith(isSubscribed: change.isSubscribed),
-          );
+              (item) => item.movieNumber == change.movieNumber,
+              (item) => item.copyWith(isSubscribed: change.isSubscribed),
+            );
     }
     if (identical(paged, current.paged)) {
       return;

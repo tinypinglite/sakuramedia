@@ -26,14 +26,27 @@ void main() {
       final actions = buildMovieDetailActionDescriptors(
         movie: movie,
         isSubscribed: false,
+        isBlacklisted: false,
       );
 
       expect(actions.map((action) => action.type), <MovieDetailActionType>[
         MovieDetailActionType.openInspector,
         MovieDetailActionType.toggleSubscription,
+        MovieDetailActionType.toggleBlacklist,
         MovieDetailActionType.refreshMetadata,
         MovieDetailActionType.recomputeHeat,
       ]);
+
+      final blacklistedActions = buildMovieDetailActionDescriptors(
+        movie: movie,
+        isSubscribed: false,
+        isBlacklisted: true,
+      );
+      expect(
+        blacklistedActions.map((action) => action.type),
+        isNot(contains(MovieDetailActionType.toggleSubscription)),
+      );
+      expect(blacklistedActions[1].label, '取消屏蔽');
     },
   );
 
@@ -173,11 +186,10 @@ Future<MovieDetailRemoteActionSpec> _runRemoteActionSpec({
   apiClient.rawDio.httpClientAdapter = adapter;
   apiClient.rawRefreshDio.httpClientAdapter = adapter;
   final moviesApi = MoviesApi(apiClient: apiClient);
-  final spec =
-      movieDetailRemoteActionSpecFor(
-        action: action,
-        movieNumber: 'ABC-001',
-      )!;
+  final spec = movieDetailRemoteActionSpecFor(
+    action: action,
+    movieNumber: 'ABC-001',
+  )!;
   final response = action == MovieDetailActionType.recomputeHeat
       ? <String, dynamic>{
           'task_run_id': 42,

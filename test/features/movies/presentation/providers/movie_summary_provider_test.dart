@@ -227,7 +227,9 @@ void main() {
       isSubscribed: false,
     );
     await _settleEvents();
-    var state = container.read(movieSummaryProvider(subscribedScope)).requireValue;
+    var state = container
+        .read(movieSummaryProvider(subscribedScope))
+        .requireValue;
     expect(state.paged.items.map((item) => item.movieNumber), <String>[
       'ABC-002',
     ]);
@@ -278,6 +280,29 @@ void main() {
     final state = container.read(movieSummaryProvider(scope)).requireValue;
     expect(state.paged.items.single.isSubscribed, isTrue);
     expect(state.isSubscriptionUpdating('ABC-001'), isFalse);
+  });
+
+  test('屏蔽成功后从当前影片列表移除对应条目', () async {
+    const scope = MovieSummaryScope.latest();
+    await prime(scope, <Map<String, dynamic>>[
+      _movie('ABC-001'),
+      _movie('ABC-002'),
+    ]);
+    adapter.enqueueJson(
+      method: 'PUT',
+      path: '/movies/blacklist',
+      statusCode: 204,
+    );
+
+    await container
+        .read(movieSummaryProvider(scope).notifier)
+        .blacklistMovies(movieNumbers: const <String>['ABC-002']);
+
+    final state = container.read(movieSummaryProvider(scope)).requireValue;
+    expect(state.paged.items.map((item) => item.movieNumber), <String>[
+      'ABC-001',
+    ]);
+    expect(state.paged.total, 1);
   });
 
   test('批量取消订阅精确回滚 skipped 条目且只保留已接受变更', () async {

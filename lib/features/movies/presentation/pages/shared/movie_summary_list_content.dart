@@ -103,6 +103,10 @@ class _MovieSummaryListContentState
       .batchToggleSubscription;
 
   @override
+  MovieBlacklistBatchExecutor get batchBlacklistExecutor =>
+      ref.read(movieSummaryProvider(widget.scope).notifier).blacklistMovies;
+
+  @override
   List<String> get batchSelectableNumbers =>
       ref
           .read(movieSummaryProvider(widget.scope))
@@ -294,6 +298,9 @@ class _MovieSummaryListContentState
                       movieNumber: movie.movieNumber,
                       globalPosition: globalPosition,
                       isSubscribed: movie.isSubscribed,
+                      onBlacklisted: () => ref
+                          .read(movieSummaryProvider(widget.scope).notifier)
+                          .removeMovies(<String>[movie.movieNumber]),
                       onEnterSelection: widget.useMobileSelectionLayout
                           ? () {
                               enterSelection();

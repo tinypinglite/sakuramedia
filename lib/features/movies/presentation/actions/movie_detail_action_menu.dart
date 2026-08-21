@@ -8,6 +8,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 enum MovieDetailActionType {
   openInspector,
   toggleSubscription,
+  toggleBlacklist,
   refreshMetadata,
   recomputeHeat,
 }
@@ -31,6 +32,7 @@ class MovieDetailActionDescriptor {
 List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
   required MovieDetailDto movie,
   required bool isSubscribed,
+  required bool isBlacklisted,
 }) {
   return <MovieDetailActionDescriptor>[
     const MovieDetailActionDescriptor(
@@ -38,13 +40,22 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
       label: '更多信息',
       icon: Icons.info_outline_rounded,
     ),
-    MovieDetailActionDescriptor(
-      type: MovieDetailActionType.toggleSubscription,
-      label: isSubscribed ? '取消订阅' : '订阅影片',
-      icon:
-          isSubscribed ? Icons.favorite_border_rounded : Icons.favorite_rounded,
-      tone: isSubscribed ? AppTextTone.error : AppTextTone.primary,
-    ),
+    if (!isBlacklisted)
+      MovieDetailActionDescriptor(
+        type: MovieDetailActionType.toggleSubscription,
+        label: isSubscribed ? '取消订阅' : '订阅影片',
+        icon: isSubscribed
+            ? Icons.favorite_border_rounded
+            : Icons.favorite_rounded,
+        tone: isSubscribed ? AppTextTone.error : AppTextTone.primary,
+      ),
+    if (isBlacklisted || !isSubscribed)
+      MovieDetailActionDescriptor(
+        type: MovieDetailActionType.toggleBlacklist,
+        label: isBlacklisted ? '取消屏蔽' : '屏蔽影片',
+        icon: isBlacklisted ? Icons.undo_rounded : Icons.block_rounded,
+        tone: isBlacklisted ? AppTextTone.primary : AppTextTone.error,
+      ),
     const MovieDetailActionDescriptor(
       type: MovieDetailActionType.refreshMetadata,
       label: '刷新元数据',
@@ -101,10 +112,9 @@ Future<MovieDetailActionType?> showMovieDetailDesktopActionMenu({
                 Icon(
                   action.icon,
                   size: componentTokens.iconSizeXs,
-                  color:
-                      action.enabled
-                          ? resolveAppTextToneColor(context, action.tone)
-                          : context.appTextPalette.muted,
+                  color: action.enabled
+                      ? resolveAppTextToneColor(context, action.tone)
+                      : context.appTextPalette.muted,
                 ),
                 SizedBox(width: spacing.sm),
                 Text(
@@ -136,12 +146,11 @@ Future<MovieDetailActionType?> showMovieDetailMobileActionDrawer({
     context: context,
     drawerKey: const Key('movie-detail-actions-drawer'),
     maxHeightFactor: 0.64,
-    builder:
-        (drawerContext) => _MovieDetailActionDrawer(
-          movieNumber: movieNumber,
-          actions: actions,
-          onExecuteAction: onExecuteAction,
-        ),
+    builder: (drawerContext) => _MovieDetailActionDrawer(
+      movieNumber: movieNumber,
+      actions: actions,
+      onExecuteAction: onExecuteAction,
+    ),
   );
 }
 
@@ -173,59 +182,52 @@ class _MovieDetailActionDrawerState extends State<_MovieDetailActionDrawer> {
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 160),
-      child:
-          _isConfirmingRefreshMetadata
-              ? _buildRefreshMetadataConfirmation(context)
-              : Column(
-                key: const Key('movie-detail-actions-list'),
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    '影片操作',
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s18,
-                      weight: AppTextWeight.semibold,
-                      tone: AppTextTone.primary,
-                    ),
+      child: _isConfirmingRefreshMetadata
+          ? _buildRefreshMetadataConfirmation(context)
+          : Column(
+              key: const Key('movie-detail-actions-list'),
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '影片操作',
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s18,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.primary,
                   ),
-                  SizedBox(height: spacing.xs),
-                  Text(
-                    widget.movieNumber,
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s12,
-                      weight: AppTextWeight.regular,
-                      tone: AppTextTone.secondary,
-                    ),
+                ),
+                SizedBox(height: spacing.xs),
+                Text(
+                  widget.movieNumber,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.secondary,
                   ),
-                  SizedBox(height: spacing.lg),
-                  for (
-                    var index = 0;
-                    index < widget.actions.length;
-                    index++
-                  ) ...[
-                    _MovieDetailDrawerActionRow(
-                      key: Key(
-                        'movie-detail-actions-${widget.actions[index].type.name}',
-                      ),
-                      icon: widget.actions[index].icon,
-                      label: widget.actions[index].label,
-                      tone: widget.actions[index].tone,
-                      isEnabled: widget.actions[index].enabled && !_isBusy,
-                      isLoading: _pendingAction == widget.actions[index].type,
-                      onTap:
-                          widget.actions[index].enabled && !_isBusy
-                              ? () =>
-                                  _handleActionTap(widget.actions[index].type)
-                              : null,
+                ),
+                SizedBox(height: spacing.lg),
+                for (var index = 0; index < widget.actions.length; index++) ...[
+                  _MovieDetailDrawerActionRow(
+                    key: Key(
+                      'movie-detail-actions-${widget.actions[index].type.name}',
                     ),
-                    if (index != widget.actions.length - 1)
-                      SizedBox(height: spacing.sm),
-                  ],
+                    icon: widget.actions[index].icon,
+                    label: widget.actions[index].label,
+                    tone: widget.actions[index].tone,
+                    isEnabled: widget.actions[index].enabled && !_isBusy,
+                    isLoading: _pendingAction == widget.actions[index].type,
+                    onTap: widget.actions[index].enabled && !_isBusy
+                        ? () => _handleActionTap(widget.actions[index].type)
+                        : null,
+                  ),
+                  if (index != widget.actions.length - 1)
+                    SizedBox(height: spacing.sm),
                 ],
-              ),
+              ],
+            ),
     );
   }
 
@@ -273,14 +275,13 @@ class _MovieDetailActionDrawerState extends State<_MovieDetailActionDrawer> {
               child: AppButton(
                 key: const Key('movie-detail-refresh-metadata-cancel'),
                 label: MovieDetailRefreshConfirmationCopy.cancelLabel,
-                onPressed:
-                    _isBusy
-                        ? null
-                        : () {
-                          setState(() {
-                            _isConfirmingRefreshMetadata = false;
-                          });
-                        },
+                onPressed: _isBusy
+                    ? null
+                    : () {
+                        setState(() {
+                          _isConfirmingRefreshMetadata = false;
+                        });
+                      },
               ),
             ),
             SizedBox(width: spacing.md),
@@ -291,12 +292,10 @@ class _MovieDetailActionDrawerState extends State<_MovieDetailActionDrawer> {
                 variant: AppButtonVariant.primary,
                 isLoading:
                     _pendingAction == MovieDetailActionType.refreshMetadata,
-                onPressed:
-                    _isBusy
-                        ? null
-                        : () => _executeAction(
-                          MovieDetailActionType.refreshMetadata,
-                        ),
+                onPressed: _isBusy
+                    ? null
+                    : () =>
+                          _executeAction(MovieDetailActionType.refreshMetadata),
               ),
             ),
           ],

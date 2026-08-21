@@ -117,6 +117,7 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
           final movie = detailState.movie!;
           final derived = resolveDerived(movie, detailState);
           final isSubscribed = derived.isSubscribed;
+          final isBlacklisted = derived.isBlacklisted;
           final isCollection = derived.isCollection;
           final isActionControlsLocked = derived.isActionControlsLocked;
           final sourceOptions = derived.sourceOptions;
@@ -151,7 +152,7 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
                 widget.movieNumber,
               ),
             ),
-            onSubscriptionTap: isActionControlsLocked
+            onSubscriptionTap: isActionControlsLocked || isBlacklisted
                 ? null
                 : () => toggleMovieSubscription(isSubscribed: isSubscribed),
             onMoreActionsTap: isActionControlsLocked
@@ -160,6 +161,7 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
                     globalPosition,
                     movie,
                     isSubscribed,
+                    isBlacklisted,
                     selectedMedia,
                   ),
             onPlayTap: selectedMedia != null && selectedMedia.hasPlayableUrl
@@ -297,6 +299,7 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
     Offset globalPosition,
     MovieDetailDto movie,
     bool isSubscribed,
+    bool isBlacklisted,
     MovieMediaItemDto? selectedMedia,
   ) async {
     final action = await showMovieDetailDesktopActionMenu(
@@ -305,6 +308,7 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
       actions: buildMovieDetailActionDescriptors(
         movie: movie,
         isSubscribed: isSubscribed,
+        isBlacklisted: isBlacklisted,
       ),
     );
     if (!mounted || action == null) {

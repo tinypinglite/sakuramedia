@@ -46,6 +46,7 @@ void main() {
           operatingAction: null,
           onSubscribe: () {},
           onUnsubscribe: () {},
+          onBlacklist: () {},
         ),
       ),
     );
@@ -56,9 +57,13 @@ void main() {
     final unsubscribe = tester.widget<AppButton>(
       find.byKey(const Key('test-batch-unsubscribe-button')),
     );
+    final blacklist = tester.widget<AppButton>(
+      find.byKey(const Key('test-batch-blacklist-button')),
+    );
 
     expect(subscribe.variant, AppButtonVariant.primary);
     expect(unsubscribe.variant, AppButtonVariant.danger);
+    expect(blacklist.variant, AppButtonVariant.danger);
   });
 
   testWidgets('桌面批量栏的取消订阅同样使用危险样式', (tester) async {

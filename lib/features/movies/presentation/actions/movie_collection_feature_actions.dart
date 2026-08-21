@@ -12,11 +12,13 @@ import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
 enum _MovieCollectionFeatureMenuAction {
   enterSelection,
   toggleSubscription,
   toggleCollectionType,
+  blacklist,
 }
 
 class _MovieCollectionStatusLookupResult {
@@ -60,6 +62,7 @@ Future<void> showMovieCollectionFeatureActionMenu({
   required Offset globalPosition,
   bool? isSubscribed,
   VoidCallback? onEnterSelection,
+  VoidCallback? onBlacklisted,
 }) async {
   final moviesApi = ProviderScope.containerOf(
     context,
@@ -120,6 +123,24 @@ Future<void> showMovieCollectionFeatureActionMenu({
         statusResult: resolved,
         moviesApi: moviesApi,
       );
+      return;
+    case _MovieCollectionFeatureMenuAction.blacklist:
+      final confirmed = await showAppConfirmDialog(
+        context,
+        title: '屏蔽影片',
+        message: '已订阅影片无法屏蔽，请先取消订阅。屏蔽后将从正常列表和推荐中隐藏。',
+        confirmLabel: '屏蔽',
+        danger: true,
+        failureFallback: '屏蔽影片失败',
+        onConfirm: () => moviesApi.setMoviesBlacklisted(
+          movieNumbers: <String>[movieNumber],
+          isBlacklisted: true,
+        ),
+      );
+      if (confirmed && context.mounted) {
+        onBlacklisted?.call();
+        showToast('已屏蔽影片');
+      }
       return;
   }
 }
@@ -186,15 +207,13 @@ Future<void> _handleCollectionTypeToggleAction({
     return;
   }
 
-  final targetCollectionType =
-      status.isCollection
-          ? MovieCollectionType.single
-          : MovieCollectionType.collection;
+  final targetCollectionType = status.isCollection
+      ? MovieCollectionType.single
+      : MovieCollectionType.collection;
   final normalizedMovieNumber = status.movieNumber.trim();
-  final displayMovieNumber =
-      normalizedMovieNumber.isNotEmpty
-          ? normalizedMovieNumber
-          : movieNumber.trim().toUpperCase();
+  final displayMovieNumber = normalizedMovieNumber.isNotEmpty
+      ? normalizedMovieNumber
+      : movieNumber.trim().toUpperCase();
 
   try {
     final result = await moviesApi.updateMovieCollectionType(
@@ -262,8 +281,9 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
     Offset.zero & overlay.size,
   );
 
-  final subscriptionTone =
-      isSubscribed == true ? AppTextTone.error : AppTextTone.primary;
+  final subscriptionTone = isSubscribed == true
+      ? AppTextTone.error
+      : AppTextTone.primary;
 
   return showMenu<_MovieCollectionFeatureMenuAction>(
     context: context,
@@ -380,6 +400,42 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
           ],
         ),
       ),
+      if (isSubscribed != true)
+        PopupMenuItem<_MovieCollectionFeatureMenuAction>(
+          enabled: false,
+          height: 1,
+          padding: EdgeInsets.zero,
+          child: Divider(height: 1, thickness: 1, color: colors.borderStrong),
+        ),
+      if (isSubscribed != true)
+        PopupMenuItem<_MovieCollectionFeatureMenuAction>(
+          key: const Key('movie-collection-feature-menu-blacklist-item'),
+          value: _MovieCollectionFeatureMenuAction.blacklist,
+          height: menuItemHeight,
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.sm,
+            vertical: spacing.xs,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.block_rounded,
+                size: componentTokens.iconSizeXs,
+                color: resolveAppTextToneColor(context, AppTextTone.error),
+              ),
+              SizedBox(width: spacing.sm),
+              Text(
+                '屏蔽影片',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.error,
+                ),
+              ),
+            ],
+          ),
+        ),
     ],
   );
 }
