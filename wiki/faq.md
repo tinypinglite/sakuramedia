@@ -333,7 +333,7 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands reset-ac
 
 ### PornBox 视频（非 JAV）怎么纳管？和导入影片有什么区别？
 
-结论：在 Web 界面「媒体导入」页的「PornBox 影片」标签导入，搬入媒体库但不抓元数据。
+结论：在客户端「媒体导入」页的「PornBox 影片」标签导入，搬入媒体库但不抓元数据。
 
 说明：
 

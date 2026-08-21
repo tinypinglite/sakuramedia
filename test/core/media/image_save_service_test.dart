@@ -161,28 +161,4 @@ void main() {
     expect(result.message, '保存失败，请稍后重试');
   });
 
-  test('image save service triggers browser download on web', () async {
-    Uint8List? savedBytes;
-    String? savedFileName;
-
-    final service = ImageSaveService(
-      fetchBytes: (_) async => Uint8List.fromList(const <int>[7, 8, 9]),
-      resolvePlatform: () => ImageSavePlatform.web,
-      saveByBrowserDownload: ({required bytes, required fileName}) async {
-        savedBytes = bytes;
-        savedFileName = fileName;
-        return true;
-      },
-    );
-
-    final result = await service.saveImageFromUrl(
-      imageUrl: '/images/thumb.webp',
-      fileName: 'thumb.webp',
-    );
-
-    expect(savedBytes, Uint8List.fromList(const <int>[7, 8, 9]));
-    expect(savedFileName, 'thumb.webp');
-    expect(result.status, ImageSaveStatus.success);
-    expect(result.message, '已触发浏览器下载');
-  });
 }

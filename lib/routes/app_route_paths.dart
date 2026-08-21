@@ -150,7 +150,5 @@ String overviewPathForPlatform(AppPlatform platform) {
       return desktopOverviewPath;
     case AppPlatform.mobile:
       return mobileOverviewPath;
-    case AppPlatform.web:
-      return desktopOverviewPath;
   }
 }

@@ -20,7 +20,7 @@ enum MoviePlayerPlaybackMediaOrigin { local, cloud115, unknown }
 /// - [directDegraded]：cloud115 媒体，但 libmpv 走的是渐进 mp4/mkv 等——即
 ///   后端 `/stream` 因 HLS 不可用（未转码 / 非 VIP / 上游异常）静默降级到直链
 /// - [local]：本地媒体
-/// - [unknown]：还没拿到 `file-format`，或平台不给（Web）
+/// - [unknown]：还没拿到 `file-format`，或平台暂时没有提供
 enum MoviePlayerPlaybackSourceKind { hls, directDegraded, local, unknown }
 
 /// 面板左侧 label 列固定宽度（供 label 列 + 缩进 footnote 复用）。

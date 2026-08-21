@@ -1,2 +1,10 @@
-export 'clipboard_copy_stub.dart'
-    if (dart.library.js_interop) 'clipboard_copy_web.dart';
+import 'package:flutter/services.dart';
+
+Future<bool> copyTextToClipboard(String text) async {
+  try {
+    await Clipboard.setData(ClipboardData(text: text));
+    return true;
+  } catch (_) {
+    return false;
+  }
+}

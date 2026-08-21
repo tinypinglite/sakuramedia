@@ -793,7 +793,7 @@ final int _overviewBranchIndex = () {
 /// int Notifier)承载:首页在子树里经 notifier 上报,壳在这里 `ref.watch`
 /// 读回来决定是否放开
 /// 左边缘侧滑。**刻意不放 `app.dart` 的全局 providers**——它是纯移动端的
-/// UI 手势状态,放全局会让桌面/Web 白背一份、让每个 pump 移动路由的测试都得
+/// UI 手势状态,放全局会让桌面端白背一份、让每个 pump 移动路由的测试都得
 /// 手动注入(漏注入时静默降级成"侧滑永久关闭"),也会和那批跨页 mutation
 /// 广播 notifier 混淆语义。autoDispose 随壳挂载而新建、随壳销毁而释放。
 class _MobileRootShellScope extends ConsumerStatefulWidget {
@@ -913,7 +913,7 @@ class _MobileOverviewDrawer extends ConsumerWidget {
 
   // 调用外部播放器仅在 Android 原生实现，其它平台不展示该入口。
   static bool get _supportsExternalPlayer =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+      defaultTargetPlatform == TargetPlatform.android;
 
   static const _MobileOverviewDrawerMenuItem _usernameItem =
       _MobileOverviewDrawerMenuItem(

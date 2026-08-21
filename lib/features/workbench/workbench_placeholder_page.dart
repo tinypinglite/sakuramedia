@@ -120,8 +120,6 @@ class WorkbenchPlaceholderPage extends StatelessWidget {
         return 'Desktop';
       case AppPlatform.mobile:
         return 'Mobile';
-      case AppPlatform.web:
-        return 'Web';
     }
   }
 }

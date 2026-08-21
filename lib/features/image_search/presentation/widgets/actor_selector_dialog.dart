@@ -8,7 +8,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 以图搜图「选择女优」弹层。
 ///
-/// 按 `AppPlatformScope` 分派：mobile → 底部抽屉，其余（desktop / web / 无
+/// 按 `AppPlatformScope` 分派：mobile → 底部抽屉，其余（desktop / 无
 /// scope）→ 桌面对话框。返回选中的女优列表；取消 / 点遮罩返回 null。
 Future<List<ActorListItemDto>?> showActorSelectorOverlay(
   BuildContext context, {

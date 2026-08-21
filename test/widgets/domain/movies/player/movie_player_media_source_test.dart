@@ -8,7 +8,6 @@ void main() {
       final media = buildMoviePlayerMedia(
         'https://example.com/media/1/stream',
         startPosition: const Duration(seconds: 12),
-        isWeb: false,
       );
 
       expect(media.start, const Duration(seconds: 12));
@@ -18,52 +17,24 @@ void main() {
       expect(moviePlayerUserAgent, isNot(contains('SakuraMedia')));
     });
 
-    test('web media leaves user agent ownership to the browser', () {
-      final media = buildMoviePlayerMedia(
-        'https://example.com/media/2/stream',
-        isWeb: true,
-      );
-
-      expect(media.httpHeaders, isNull);
-    });
-
     test('desktop configuration enables libass subtitles', () {
       expect(
-        buildMoviePlayerConfiguration(
-          isWeb: false,
-          platform: TargetPlatform.macOS,
-        ).libass,
+        buildMoviePlayerConfiguration(platform: TargetPlatform.macOS).libass,
         isTrue,
       );
       expect(
-        buildMoviePlayerConfiguration(
-          isWeb: false,
-          platform: TargetPlatform.windows,
-        ).libass,
+        buildMoviePlayerConfiguration(platform: TargetPlatform.windows).libass,
         isTrue,
       );
     });
 
-    test('mobile and web configuration keep libass disabled', () {
+    test('mobile configuration keeps libass disabled', () {
       expect(
-        buildMoviePlayerConfiguration(
-          isWeb: false,
-          platform: TargetPlatform.android,
-        ).libass,
+        buildMoviePlayerConfiguration(platform: TargetPlatform.android).libass,
         isFalse,
       );
       expect(
-        buildMoviePlayerConfiguration(
-          isWeb: false,
-          platform: TargetPlatform.iOS,
-        ).libass,
-        isFalse,
-      );
-      expect(
-        buildMoviePlayerConfiguration(
-          isWeb: true,
-          platform: TargetPlatform.macOS,
-        ).libass,
+        buildMoviePlayerConfiguration(platform: TargetPlatform.iOS).libass,
         isFalse,
       );
     });

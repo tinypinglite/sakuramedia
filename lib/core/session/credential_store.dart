@@ -20,7 +20,7 @@ class CredentialStore {
         _storage.write(key: _passwordKey, value: password),
       ]);
     } catch (error, stackTrace) {
-      // 存储不可用（如测试、Web）时不阻断登录，但记录下来便于排查，
+      // 存储不可用（如测试环境）时不阻断登录，但记录下来便于排查，
       // 而不是完全静默。
       debugPrint('CredentialStore.saveCredentials failed: $error\n$stackTrace');
     }

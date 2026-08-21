@@ -5,9 +5,8 @@ import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 /// 「外部数据源」JavDB 连通性状态徽章行，桌面 overview 瓦片与
 /// 移动系统概览瓦片共用。
 ///
-/// 不用 ✅/❌ emoji 文本表达状态：Web 端主字体是 NotoSansSC 子集，
-/// 不含 emoji 字形且 fallback 需联网，会渲染成空白；
-/// [AppStatusChip] 走 MaterialIcons 图标字体，双端可靠。
+/// 不用 ✅/❌ emoji 文本表达状态；[AppStatusChip] 走 MaterialIcons 图标字体，
+/// 在桌面端和移动端保持一致。
 class ExternalDataSourceStatusChips extends StatelessWidget {
   const ExternalDataSourceStatusChips({
     super.key,

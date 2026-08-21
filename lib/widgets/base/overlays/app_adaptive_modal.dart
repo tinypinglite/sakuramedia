@@ -7,7 +7,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 /// 决定 [showAppAdaptiveModal] 用哪种壳显示。
 enum AppAdaptiveModalVariant {
   /// 读 `Provider<AppPlatform?>`：`mobile` → 底部抽屉，其余（`desktop` /
-  /// `web` / null）→ 桌面对话框。参考 `AppTabBar._resolveVariant`。
+  /// null）→ 桌面对话框。参考 `AppTabBar._resolveVariant`。
   auto,
 
   /// 显式强制走桌面对话框（`AppDesktopDialog`）。

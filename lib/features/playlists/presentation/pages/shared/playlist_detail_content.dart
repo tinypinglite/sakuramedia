@@ -199,7 +199,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
             return scrollView;
           }
 
-          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+          if (defaultTargetPlatform == TargetPlatform.iOS) {
             return AppAdaptiveRefreshScrollView(
               onRefresh: _handleRefresh,
               controller: _scrollController,

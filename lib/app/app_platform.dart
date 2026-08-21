@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-enum AppPlatform { desktop, mobile, web }
+enum AppPlatform { desktop, mobile }
 
 /// 把全程不变的 [AppPlatform] 挂进 widget 树的 InheritedWidget。
 ///
@@ -36,9 +36,6 @@ enum AppShellLayout { standard, fullscreen }
 AppPlatform resolveAppPlatform({AppPlatform? override}) {
   if (override != null) {
     return override;
-  }
-  if (kIsWeb) {
-    return AppPlatform.web;
   }
   switch (defaultTargetPlatform) {
     case TargetPlatform.macOS:

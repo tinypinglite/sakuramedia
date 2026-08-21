@@ -48,7 +48,7 @@ class MediaPreviewItem {
 
 enum MediaPreviewPresentation {
   /// 读 `AppPlatformScope.maybeOf`：`mobile` → 底部抽屉，其余（`desktop` /
-  /// `web` / null）→ 桌面对话框。与 `AppConfirmVariant.auto` 同范式。
+  /// null）→ 桌面对话框。与 `AppConfirmVariant.auto` 同范式。
   auto,
   dialog,
   bottomDrawer,

@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart'
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
-import 'package:sakuramedia/app/web_platform_notice.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/routes/app_router.dart';
@@ -123,16 +122,12 @@ class _MyAppState extends State<MyApp> {
                 : sakuraDesktopThemeData,
             routerConfig: _router,
             builder: (context, child) {
-              return WebPlatformNoticeHost(
-                enabled: _platform == AppPlatform.web,
-                navigatorKey: _router.routerDelegate.navigatorKey,
-                child: AppImageFullscreenHost(
-                  child: ScrollConfiguration(
-                    behavior: const MaterialScrollBehavior().copyWith(
-                      dragDevices: kAppScrollDragDevices,
-                    ),
-                    child: child ?? const SizedBox.shrink(),
+              return AppImageFullscreenHost(
+                child: ScrollConfiguration(
+                  behavior: const MaterialScrollBehavior().copyWith(
+                    dragDevices: kAppScrollDragDevices,
                   ),
+                  child: child ?? const SizedBox.shrink(),
                 ),
               );
             },

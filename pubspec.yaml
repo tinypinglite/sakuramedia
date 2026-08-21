@@ -34,7 +34,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  web: ^1.1.1
 
   go_router: ^16.3.0
   flutter_riverpod: 3.1.0
@@ -95,16 +94,3 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
-  # 内嵌 CJK 子集字体(覆盖中日常用字),Web(CanvasKit)端设为主字体以消除首屏方块字。
-  # 子集由 tool/subset_font.py 生成,体积约 5.5MB。
-  fonts:
-    - family: NotoSansSC
-      fonts:
-        - asset: assets/fonts/NotoSansSC-subset.ttf
-    # 劫持 Roboto family 到本地字体：CanvasKit 引擎会预加载默认 Roboto，
-    # 若走 fonts.gstatic.com 拉取，在离线/国内网络下会报 "Failed to load font Roboto"。
-    # 用本地 asset 顶替后引擎命中本地资源，不再发起网络请求。
-    - family: Roboto
-      fonts:
-        - asset: assets/fonts/NotoSansSC-subset.ttf

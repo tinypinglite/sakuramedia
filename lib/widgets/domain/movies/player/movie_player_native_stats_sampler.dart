@@ -76,21 +76,17 @@ MoviePlayerPlaybackMediaOrigin moviePlayerPlaybackMediaOriginFor(
 /// - **原生轮询**([start] 后每秒一次 [refreshNative]):hwdec、码率、fps、
 ///   丢帧计数(含每秒差分)、demuxer 缓冲与下载速率(字节差分)。
 ///
-/// 快照经 `==` 去抖后写入 [snapshot];Web 端无 NativePlayer,[refreshNative]
-/// 直接跳过,快照只反映流式输入。换片时调 [updateContext] + [reset]。
+/// 快照经 `==` 去抖后写入 [snapshot]。换片时调 [updateContext] + [reset]。
 class MoviePlayerNativeStatsSampler {
   MoviePlayerNativeStatsSampler({
     required MoviePlayerNativePropertyReader readNativeProperty,
     required MoviePlayerPlaybackMediaOrigin mediaOrigin,
     required String originalUrl,
-    bool isWeb = kIsWeb,
   }) : _readNativeProperty = readNativeProperty,
        _mediaOrigin = mediaOrigin,
-       _originalUrl = originalUrl,
-       _isWeb = isWeb;
+       _originalUrl = originalUrl;
 
   final MoviePlayerNativePropertyReader _readNativeProperty;
-  final bool _isWeb;
 
   MoviePlayerPlaybackMediaOrigin _mediaOrigin;
   String _originalUrl;
@@ -203,7 +199,7 @@ class MoviePlayerNativeStatsSampler {
   }
 
   Future<void> refreshNative() async {
-    if (_isRefreshing || _isWeb || _isDisposed) {
+    if (_isRefreshing || _isDisposed) {
       return;
     }
     _isRefreshing = true;

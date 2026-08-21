@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:sakuramedia/features/image_search/presentation/image_search_file_system_stub.dart'
-    if (dart.library.io) 'package:sakuramedia/features/image_search/presentation/image_search_file_system_io.dart'
+import 'package:sakuramedia/features/image_search/presentation/image_search_file_system_io.dart'
     as file_system;
 import 'package:sakuramedia/features/shared/presentation/file_picker_with_bytes.dart';
 
@@ -79,9 +78,8 @@ Future<ImageSearchPickedFile?> pickMobileImageSearchFile() async {
   if (override != null) {
     return override();
   }
-  if (kIsWeb ||
-      (defaultTargetPlatform != TargetPlatform.android &&
-          defaultTargetPlatform != TargetPlatform.iOS)) {
+  if (defaultTargetPlatform != TargetPlatform.android &&
+      defaultTargetPlatform != TargetPlatform.iOS) {
     return pickImageSearchFile();
   }
 
@@ -108,10 +106,6 @@ Future<ImageSearchPickedFile?> pickMobileImageSearchFile() async {
 
 @visibleForTesting
 Future<String?> resolveImageSearchInitialDirectory() async {
-  if (kIsWeb) {
-    return null;
-  }
-
   switch (defaultTargetPlatform) {
     case TargetPlatform.macOS:
     case TargetPlatform.windows:

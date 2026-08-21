@@ -123,8 +123,8 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
     final triggerOffset = triggerBox.localToGlobal(Offset.zero);
     final triggerBottom = triggerOffset.dy + _triggerHeight;
     final spaceAbove = triggerOffset.dy;
-    // 用 MediaQuery 拿逻辑视口高度：View.physicalSize 在 Flutter Web
-    // 上不一定等于浏览器 CSS 视口，可能压得下拉只剩一行。
+    // 用 MediaQuery 拿逻辑视口高度，避免物理尺寸与逻辑尺寸不一致时
+    // 压得下拉菜单只剩一行。
     final viewportHeight = MediaQuery.sizeOf(context).height;
     final formTokens = context.appFormTokens;
     final spaceBelow = viewportHeight - triggerBottom;

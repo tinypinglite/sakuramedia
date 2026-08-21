@@ -1,7 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/core/network/sse_event_stream_client.dart';
-import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 
 part 'sse_event_stream_client_provider.g.dart';
 
@@ -10,7 +9,6 @@ part 'sse_event_stream_client_provider.g.dart';
 SseEventStreamClient sseEventStreamClient(Ref ref) {
   final client = createSseEventStreamClient(
     apiClient: ref.watch(apiClientProvider),
-    sessionStore: ref.watch(sessionStoreProvider),
   );
   ref.onDispose(client.dispose);
   return client;

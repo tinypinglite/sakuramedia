@@ -19,7 +19,7 @@ part of 'mobile_overview_tab_index_provider.dart';
 ///
 /// **作用域是移动壳子树,不是 app 全局**:autoDispose——壳与首页 reporter
 /// `ref.watch` 时创建,双方都不在时自动释放,随壳挂载/销毁的生命周期语义与旧
-/// 局部 provider 一致。刻意不 keepAlive:它是纯移动端 UI 手势状态,桌面/Web
+/// 局部 provider 一致。刻意不 keepAlive:它是纯移动端 UI 手势状态,桌面端
 /// 永不创建。因此壳侧与首页侧都可以按「必然存在」直接 `watch` / `read`。
 ///
 /// 迁移前形态:`MobileOverviewTabIndexNotifier extends ValueNotifier<int>`
@@ -39,7 +39,7 @@ final mobileOverviewTabIndexProvider = MobileOverviewTabIndexProvider._();
 ///
 /// **作用域是移动壳子树,不是 app 全局**:autoDispose——壳与首页 reporter
 /// `ref.watch` 时创建,双方都不在时自动释放,随壳挂载/销毁的生命周期语义与旧
-/// 局部 provider 一致。刻意不 keepAlive:它是纯移动端 UI 手势状态,桌面/Web
+/// 局部 provider 一致。刻意不 keepAlive:它是纯移动端 UI 手势状态,桌面端
 /// 永不创建。因此壳侧与首页侧都可以按「必然存在」直接 `watch` / `read`。
 ///
 /// 迁移前形态:`MobileOverviewTabIndexNotifier extends ValueNotifier<int>`
@@ -57,7 +57,7 @@ final class MobileOverviewTabIndexProvider
   ///
   /// **作用域是移动壳子树,不是 app 全局**:autoDispose——壳与首页 reporter
   /// `ref.watch` 时创建,双方都不在时自动释放,随壳挂载/销毁的生命周期语义与旧
-  /// 局部 provider 一致。刻意不 keepAlive:它是纯移动端 UI 手势状态,桌面/Web
+  /// 局部 provider 一致。刻意不 keepAlive:它是纯移动端 UI 手势状态,桌面端
   /// 永不创建。因此壳侧与首页侧都可以按「必然存在」直接 `watch` / `read`。
   ///
   /// 迁移前形态:`MobileOverviewTabIndexNotifier extends ValueNotifier<int>`
@@ -103,7 +103,7 @@ String _$mobileOverviewTabIndexHash() =>
 ///
 /// **作用域是移动壳子树,不是 app 全局**:autoDispose——壳与首页 reporter
 /// `ref.watch` 时创建,双方都不在时自动释放,随壳挂载/销毁的生命周期语义与旧
-/// 局部 provider 一致。刻意不 keepAlive:它是纯移动端 UI 手势状态,桌面/Web
+/// 局部 provider 一致。刻意不 keepAlive:它是纯移动端 UI 手势状态,桌面端
 /// 永不创建。因此壳侧与首页侧都可以按「必然存在」直接 `watch` / `read`。
 ///
 /// 迁移前形态:`MobileOverviewTabIndexNotifier extends ValueNotifier<int>`

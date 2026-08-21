@@ -4,7 +4,7 @@ import 'package:sakuramedia/features/external_player/data/external_player_app.da
 
 /// 与原生（仅 Android）交互的外部播放器通道：枚举可用播放器、显式拉起播放。
 ///
-/// 非 Android / Web 平台上 [isSupported] 为 false，所有方法安全降级（不抛出）。
+/// 非 Android 平台上 [isSupported] 为 false，所有方法安全降级（不抛出）。
 class ExternalPlayerChannel {
   const ExternalPlayerChannel();
 
@@ -13,8 +13,7 @@ class ExternalPlayerChannel {
   );
 
   /// 仅 Android 原生实现该通道。
-  bool get isSupported =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get isSupported => defaultTargetPlatform == TargetPlatform.android;
 
   /// 列出系统中可播放视频的应用。
   ///

@@ -37,10 +37,6 @@ migrate_working_dir/
 /build/
 devtools_options.yaml
 
-# Web CanvasKit 本地副本(24MB),从 $FLUTTER_ROOT/bin/cache/flutter_web_sdk/canvaskit 拷贝,
-# 用于绕过 gstatic CDN。首次 clone 后需手动 cp -r 一次;升级 Flutter 后需重新覆盖。
-/web/canvaskit/
-
 # Symbolication related
 app.*.symbols
 
@@ -62,12 +58,8 @@ wiki/.vitepress/cache/
 # Python helper scripts
 __pycache__/
 
-# assets/ 整体不纳入版本库(原始大字体、临时图片等),
-# 但内嵌的 CJK 子集字体是应用必需资源,需进版本库。
+# 本地资源和临时图片不纳入版本库。
 assets/*
-!assets/fonts/
-assets/fonts/*
-!assets/fonts/NotoSansSC-subset.ttf
 
 .vscode
 .worktrees/

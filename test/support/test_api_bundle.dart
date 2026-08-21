@@ -226,10 +226,7 @@ class TestApiBundle {
 Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
   final credentialStore = InMemoryCredentialStore();
   final apiClient = ApiClient(sessionStore: sessionStore);
-  final sseEventStreamClient = createSseEventStreamClient(
-    apiClient: apiClient,
-    sessionStore: sessionStore,
-  );
+  final sseEventStreamClient = createSseEventStreamClient(apiClient: apiClient);
   final adapter = FakeHttpClientAdapter();
   apiClient.rawDio.httpClientAdapter = adapter;
   apiClient.rawRefreshDio.httpClientAdapter = adapter;

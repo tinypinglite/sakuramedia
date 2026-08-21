@@ -27,10 +27,7 @@ void main() {
     adapter = FakeHttpClientAdapter();
     apiClient.rawDio.httpClientAdapter = adapter;
     apiClient.rawRefreshDio.httpClientAdapter = adapter;
-    streamClient = createSseEventStreamClient(
-      apiClient: apiClient,
-      sessionStore: sessionStore,
-    );
+    streamClient = createSseEventStreamClient(apiClient: apiClient);
   });
 
   tearDown(() {

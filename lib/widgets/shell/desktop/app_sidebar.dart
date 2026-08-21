@@ -758,7 +758,7 @@ class _AppSidebarItemState extends State<AppSidebarItem> {
 }
 
 bool get _useMacSidebarGlass =>
-    !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
+    defaultTargetPlatform == TargetPlatform.macOS;
 
 Color _sidebarDividerColor(AppColors appColors, bool useMacSidebarGlass) =>
     useMacSidebarGlass

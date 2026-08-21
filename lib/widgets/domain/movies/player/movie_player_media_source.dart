@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform;
 import 'package:media_kit/media_kit.dart';
 
 /// 播放来源类型:决定错误文案与播放信息面板里的来源诊断展示。
@@ -9,18 +10,11 @@ const String moviePlayerUserAgent =
     'AppleWebKit/537.36 (KHTML, like Gecko) '
     'Chrome/125.0.0.0 Safari/537.36';
 
-Media buildMoviePlayerMedia(
-  String resolvedUrl, {
-  Duration? startPosition,
-  bool isWeb = kIsWeb,
-}) {
+Media buildMoviePlayerMedia(String resolvedUrl, {Duration? startPosition}) {
   return Media(
     resolvedUrl,
     start: startPosition,
-    httpHeaders:
-        isWeb
-            ? null
-            : const <String, String>{'User-Agent': moviePlayerUserAgent},
+    httpHeaders: const <String, String>{'User-Agent': moviePlayerUserAgent},
   );
 }
 
@@ -33,14 +27,7 @@ String moviePlayerPlaybackErrorMessage(MoviePlayerMediaSourceKind sourceKind) {
   };
 }
 
-PlayerConfiguration buildMoviePlayerConfiguration({
-  bool isWeb = kIsWeb,
-  TargetPlatform? platform,
-}) {
-  if (isWeb) {
-    return const PlayerConfiguration();
-  }
-
+PlayerConfiguration buildMoviePlayerConfiguration({TargetPlatform? platform}) {
   switch (platform ?? defaultTargetPlatform) {
     case TargetPlatform.macOS:
     case TargetPlatform.windows:

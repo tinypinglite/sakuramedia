@@ -59,4 +59,4 @@ final class SseEventStreamClientProvider
 }
 
 String _$sseEventStreamClientHash() =>
-    r'ce8638e2e0a117b6e1809c4e536a9b27bd4d6f2b';
+    r'cd67e4307aebe739d1e0fb95c97353614b6ffd63';

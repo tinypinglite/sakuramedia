@@ -22,11 +22,10 @@ outline: [2, 4]
 - 一个机械硬盘存储空间用来存放媒体文件。
 
 
-### 部署后会有 5 个服务
+### 部署后会有 4 个服务
 
 - `sakuramedia`：后端服务，负责媒体管理和任务调度等核心能力
 - `postgres`：PostgreSQL 数据库，存储所有业务数据；照抄 compose 即可，无需任何数据库配置
-- `sakuramedia-web`：Web 客户端，用浏览器临时访问和管理 SakuraMedia。
 - `joytag-infer`：以图搜图推理服务，负责图片向量化能力
 - `qdrant`：图片搜索向量数据库，存储缩略图向量并提供检索
 
@@ -181,14 +180,6 @@ services:
         soft: 65536
         hard: 65536
 
-  sakuramedia-web:
-    image: tinyping/sakuramedia-web:latest
-    container_name: sakuramedia-web
-    restart: unless-stopped
-    depends_on:
-      - sakuramedia
-    ports:
-      - "38080:80"
 ```
 
 ::: tip 数据库无需任何配置
@@ -206,10 +197,6 @@ docker compose up -d
 ### 5. 访问
 
 默认用户名和密码是`account` 和 `account`，登录后建议第一时间修改密码。
-
-#### 浏览器（Web 端）
-
-直接访问 `http://你的IP:38080`。
 
 #### 桌面端 / 移动端 APP
 
@@ -264,7 +251,7 @@ http://你的IP:38000
 
 #### 4. 用组件诊断验证配置
 
-回到「概览」页，顶部有一条「组件诊断」横条（桌面端和 Web 端都有），点「开始检测」会一键检测媒体库、下载器、索引器、JavDB 与 JoyTag 的连通性。
+回到「概览」页，顶部有一条「组件诊断」横条，点「开始检测」会一键检测媒体库、下载器、索引器、JavDB 与 JoyTag 的连通性。
 
 #### 5. 在线搜索影片或女优
 

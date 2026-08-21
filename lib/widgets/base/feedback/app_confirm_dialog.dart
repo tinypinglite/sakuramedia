@@ -10,7 +10,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 /// 决定 [showAppConfirmDialog] 用哪种壳显示。
 enum AppConfirmVariant {
   /// 读 `AppPlatformScope.maybeOf`：`mobile` → 底部抽屉，其余（`desktop` /
-  /// `web` / null）→ 桌面对话框。参考 `AppTabBar._resolveVariant`。
+  /// null）→ 桌面对话框。参考 `AppTabBar._resolveVariant`。
   auto,
 
   /// 显式强制走桌面对话框（`AppDesktopDialog`）。

@@ -106,7 +106,7 @@ class _AppDesktopShellState extends State<AppDesktopShell> {
   @override
   Widget build(BuildContext context) {
     final useMacSidebarGlass =
-        !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
+        defaultTargetPlatform == TargetPlatform.macOS;
 
     final current = _current;
     return AppPageRefreshRegistrarScope(

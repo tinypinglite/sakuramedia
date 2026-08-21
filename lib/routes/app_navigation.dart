@@ -370,7 +370,6 @@ List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
   final prefix = switch (platform) {
     AppPlatform.desktop => '/desktop',
     AppPlatform.mobile => '/mobile',
-    AppPlatform.web => '/desktop',
   };
 
   AppNavItem item({
@@ -391,7 +390,6 @@ List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
   final seeds = switch (platform) {
     AppPlatform.desktop => _desktopNavSeeds,
     AppPlatform.mobile => _mobileNavSeeds,
-    AppPlatform.web => _desktopNavSeeds,
   };
 
   return seeds
@@ -421,12 +419,10 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
   final platformLabel = switch (platform) {
     AppPlatform.desktop => '桌面端',
     AppPlatform.mobile => '移动端',
-    AppPlatform.web => 'Web 端',
   };
   final routeBuilders = switch (platform) {
     AppPlatform.desktop => _desktopRouteBuilders,
     AppPlatform.mobile => _mobileRouteBuilders,
-    AppPlatform.web => _desktopRouteBuilders,
   };
 
   return navGroupsForPlatform(platform)
@@ -467,13 +463,11 @@ List<AppRouteSpec> get desktopRouteSpecs =>
     routeSpecsForPlatform(AppPlatform.desktop);
 List<AppRouteSpec> get mobileRouteSpecs =>
     routeSpecsForPlatform(AppPlatform.mobile);
-List<AppRouteSpec> get webRouteSpecs => routeSpecsForPlatform(AppPlatform.web);
 
 List<AppNavGroup> get desktopNavGroups =>
     navGroupsForPlatform(AppPlatform.desktop);
 List<AppNavGroup> get mobileNavGroups =>
     navGroupsForPlatform(AppPlatform.mobile);
-List<AppNavGroup> get webNavGroups => navGroupsForPlatform(AppPlatform.web);
 
 class _NavSeed {
   const _NavSeed({

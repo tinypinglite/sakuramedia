@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
-import 'package:sakuramedia/core/network/sse_event_stream_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 
 import 'fake_sse_event_stream_client.dart';
@@ -30,11 +29,7 @@ class _ProbeHome extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // 触发一次依赖解析：bundle overrides 未正确安装时这里会抛。
     ref.watch(apiClientProvider);
-    return Scaffold(
-      body: Center(
-        child: Text(extraOverrideText ?? 'has-api'),
-      ),
-    );
+    return Scaffold(body: Center(child: Text(extraOverrideText ?? 'has-api')));
   }
 }
 
@@ -77,17 +72,6 @@ void main() {
       expect(errors.single, isA<StateError>());
     });
 
-    test('emitUnsupported：抛 SseEventStreamUnsupportedException', () async {
-      final fake = FakeSseEventStreamClient();
-      addTearDown(fake.dispose);
-      final errors = <Object>[];
-      fake.connect('/x').listen((_) {}, onError: errors.add);
-
-      fake.emitUnsupported('/x');
-      await pumpMicrotasks();
-      expect(errors.single, isA<SseEventStreamUnsupportedException>());
-    });
-
     test('endpoint 隔离：不同 endpoint 互不干扰；closeAll 幂等', () async {
       final fake = FakeSseEventStreamClient();
       addTearDown(fake.dispose);
@@ -115,11 +99,7 @@ void main() {
       final bundle = await createTestApiBundle(sessionStore);
       addTearDown(bundle.dispose);
 
-      await pumpWithProviders(
-        tester,
-        home: const _ProbeHome(),
-        bundle: bundle,
-      );
+      await pumpWithProviders(tester, home: const _ProbeHome(), bundle: bundle);
 
       // bundle 的 apiClient override 生效：ref.watch(apiClientProvider) 非 null。
       expect(find.text('has-api'), findsOneWidget);

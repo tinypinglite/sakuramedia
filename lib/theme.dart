@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme/app_component_tokens.dart';
 import 'package:sakuramedia/theme/app_colors.dart';
@@ -26,22 +25,9 @@ export 'package:sakuramedia/theme/app_spacing.dart';
 export 'package:sakuramedia/theme/app_typography.dart';
 export 'package:sakuramedia/widgets/base/typography/app_text.dart';
 
-/// 应用内嵌字体族名,与 pubspec.yaml 的 fonts.family 一致。
-/// Web(CanvasKit) 必须把它设为主 fontFamily,否则中日文首屏会因联网下载
-/// Noto fallback 而出现方块字。子集字体由 tool/subset_font.py 生成。
-const kAppFontFamily = 'NotoSansSC';
-
 /// oktoast 在 MaterialApp 之外用独立 overlay 树显示 toast, 拿不到 ThemeData
-/// 里的 fontFamily/fontVariations。Web 端 NotoSansSC 是可变字体, wght 轴不显式
-/// 设就停在 Thin 100(发丝细几乎看不见); 桌面/移动用系统字体不受影响。
-const TextStyle kAppToastTextStyle = kIsWeb
-    ? TextStyle(
-        fontSize: 15,
-        color: Colors.white,
-        fontFamily: kAppFontFamily,
-        fontVariations: [FontVariation('wght', 400)],
-      )
-    : TextStyle(fontSize: 15, color: Colors.white);
+const TextStyle kAppToastTextStyle =
+    TextStyle(fontSize: 15, color: Colors.white);
 
 /// oktoast 的 toast 底色。
 ///
@@ -89,8 +75,6 @@ ThemeData _buildSakuraThemeData({
   return ThemeData(
     brightness: Brightness.light,
     useMaterial3: true,
-    // 仅 Web 用内嵌字体消除方块字;桌面/移动(mac/Win/iOS/Android)用系统原生字体。
-    fontFamily: kIsWeb ? kAppFontFamily : null,
   ).copyWith(
     scaffoldBackgroundColor: const Color(0xFFF5F5F5),
     colorScheme: const ColorScheme(
@@ -123,9 +107,7 @@ ThemeData _buildSakuraThemeData({
       onInverseSurface: Color(0xFFF8EEEA),
       inversePrimary: Color(0xFFFFB4A9),
     ),
-    textTheme: kIsWeb
-        ? textScale.toTextTheme(textWeights).apply(fontFamily: kAppFontFamily)
-        : textScale.toTextTheme(textWeights),
+    textTheme: textScale.toTextTheme(textWeights),
     extensions: <ThemeExtension<dynamic>>[
       const AppColors.defaults(),
       componentTokens,

@@ -136,7 +136,7 @@ class HotReviewsContent extends HookConsumerWidget {
       return scrollView;
     }
 
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
       return AppAdaptiveRefreshScrollView(
         onRefresh: () => _handleRefresh(context, ref),
         controller: scrollController,

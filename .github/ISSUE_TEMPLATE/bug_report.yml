@@ -41,7 +41,6 @@ body:
         - 桌面端 (Windows)
         - 移动端 (iOS)
         - 移动端 (Android)
-        - Web
     validations:
       required: true
 

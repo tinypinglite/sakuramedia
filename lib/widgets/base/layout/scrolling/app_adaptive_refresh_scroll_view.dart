@@ -23,7 +23,7 @@ class AppAdaptiveRefreshScrollView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isIosRefresh = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    final isIosRefresh = defaultTargetPlatform == TargetPlatform.iOS;
     final scrollView = CustomScrollView(
       key: key,
       controller: controller,

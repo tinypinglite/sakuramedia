@@ -14,7 +14,7 @@ enum AppImageActionType {
 
 enum AppImageActionMenuPresentation {
   /// 读 `AppPlatformScope.maybeOf`：`mobile` → 底部抽屉，其余（`desktop` /
-  /// `web` / null）→ 定位弹出菜单。与 `AppConfirmVariant.auto` 同范式。
+  /// null）→ 定位弹出菜单。与 `AppConfirmVariant.auto` 同范式。
   auto,
   popup,
   bottomDrawer,

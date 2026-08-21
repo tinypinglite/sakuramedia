@@ -10,7 +10,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/activity/presentation/pages/desktop/activity_page.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_result_item_dto.dart';
 import 'package:sakuramedia/features/image_search/presentation/pages/shared/image_search_content.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
@@ -141,75 +140,6 @@ void main() {
     ]);
   });
 
-  test('web overview path resolves to desktop overview path', () {
-    expect(overviewPathForPlatform(AppPlatform.web), desktopOverviewPath);
-    expect(
-      webRouteSpecs.every((spec) => spec.path.startsWith('/desktop/')),
-      isTrue,
-    );
-  });
-
-  testWidgets('web platform reuses desktop router shell and paths', (
-    WidgetTester tester,
-  ) async {
-    final sessionStore = await _buildLoggedInSessionStore(
-      platform: AppPlatform.web,
-    );
-    addTearDown(sessionStore.dispose);
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    _enqueueDesktopOverviewResponses(bundle);
-    final router = buildAppRouter(AppPlatform.web, sessionStore);
-
-    await _pumpRouterApp(
-      tester,
-      router: router,
-      sessionStore: sessionStore,
-      bundle: bundle,
-      includeShellController: true,
-    );
-    await tester.pumpAndSettle();
-
-    expect(router.routeInformationProvider.value.uri.path, desktopOverviewPath);
-    expect(find.byKey(const Key('desktop-shell-sidebar')), findsOneWidget);
-    expect(find.byKey(const Key('nav-group-follow')), findsNothing);
-    expect(find.byKey(const Key('nav-group-rankings')), findsOneWidget);
-    expect(find.text('排行榜'), findsOneWidget);
-  });
-
-  testWidgets('web rankings route renders desktop rankings page', (
-    WidgetTester tester,
-  ) async {
-    final sessionStore = await _buildLoggedInSessionStore(
-      platform: AppPlatform.web,
-    );
-    addTearDown(sessionStore.dispose);
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    _enqueueDesktopOverviewResponses(bundle);
-    _enqueueDesktopRankingsResponses(bundle);
-    final router = buildAppRouter(AppPlatform.web, sessionStore);
-
-    await _pumpRouterApp(
-      tester,
-      router: router,
-      sessionStore: sessionStore,
-      bundle: bundle,
-      includeShellController: true,
-    );
-    await tester.pumpAndSettle();
-
-    router.go(desktopRankingsPath);
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('desktop-rankings-page')), findsOneWidget);
-    expect(
-      find.byKey(const Key('desktop-rankings-page-total')),
-      findsOneWidget,
-    );
-    expect(find.text('1 部'), findsOneWidget);
-  });
-
   testWidgets('desktop follow route renders desktop follow page', (
     WidgetTester tester,
   ) async {
@@ -235,70 +165,6 @@ void main() {
 
     expect(find.byKey(const Key('desktop-follow-page')), findsOneWidget);
     expect(find.byKey(const Key('desktop-follow-page-total')), findsOneWidget);
-  });
-
-  testWidgets('web hot reviews route renders desktop hot reviews page', (
-    WidgetTester tester,
-  ) async {
-    final sessionStore = await _buildLoggedInSessionStore(
-      platform: AppPlatform.web,
-    );
-    addTearDown(sessionStore.dispose);
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    _enqueueDesktopOverviewResponses(bundle);
-    _enqueueDesktopHotReviewsResponses(bundle);
-    final router = buildAppRouter(AppPlatform.web, sessionStore);
-
-    await _pumpRouterApp(
-      tester,
-      router: router,
-      sessionStore: sessionStore,
-      bundle: bundle,
-      includeShellController: true,
-    );
-    await tester.pumpAndSettle();
-
-    router.go(desktopHotReviewsPath);
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('desktop-hot-reviews-page')), findsOneWidget);
-    expect(
-      find.byKey(const Key('desktop-hot-reviews-page-total')),
-      findsOneWidget,
-    );
-    expect(find.text('1 条'), findsOneWidget);
-  });
-
-  testWidgets('web activity route renders desktop activity page', (
-    WidgetTester tester,
-  ) async {
-    final sessionStore = await _buildLoggedInSessionStore(
-      platform: AppPlatform.web,
-    );
-    addTearDown(sessionStore.dispose);
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    _enqueueDesktopOverviewResponses(bundle);
-    _enqueueActivityResponses(bundle);
-    final router = buildAppRouter(AppPlatform.web, sessionStore);
-
-    await _pumpRouterApp(
-      tester,
-      router: router,
-      sessionStore: sessionStore,
-      bundle: bundle,
-      includeShellController: true,
-    );
-    await tester.pumpAndSettle();
-
-    router.go(desktopActivityPath);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(DesktopActivityPage), findsOneWidget);
-    expect(find.byKey(const Key('desktop-activity-page')), findsOneWidget);
-    expect(find.byKey(const Key('activity-tab-tasks')), findsOneWidget);
-    expect(find.byKey(const Key('activity-tab-notifications')), findsNothing);
   });
 
   test('desktop top bar config disables back on overview', () {
@@ -3552,78 +3418,6 @@ Future<void> _pumpRouterApp(
   );
 }
 
-void _enqueueActivityResponses(TestApiBundle bundle) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/system/activity/bootstrap',
-    body: <String, dynamic>{
-      'notifications': <String, dynamic>{
-        'items': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 101,
-            'category': 'reminder',
-            'title': '有新的影片可以播放了',
-            'content': '本次后台处理新增可播放影片 1 部：SSIS-123',
-            'is_read': false,
-            'created_at': '2026-03-26T09:10:00Z',
-            'updated_at': '2026-03-26T09:10:00Z',
-            'related_task_run_id': 88,
-            'related_resource_type': 'movie',
-            'related_resource_id': 123,
-          },
-        ],
-        'page': 1,
-        'page_size': 20,
-        'total': 1,
-      },
-      'unread_count': 1,
-      'active_task_runs': <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 88,
-          'task_key': 'download_task_import',
-          'task_name': '下载任务导入 SSIS-123',
-          'trigger_type': 'manual',
-          'state': 'running',
-          'progress_current': 1,
-          'progress_total': 3,
-          'progress_text': '正在导入影片文件 SSIS-123',
-          'result_text': null,
-          'result_summary': <String, dynamic>{'imported_count': 1},
-          'error_message': null,
-          'started_at': '2026-03-26T09:10:00Z',
-          'finished_at': null,
-          'created_at': '2026-03-26T09:10:00Z',
-          'updated_at': '2026-03-26T09:11:00Z',
-        },
-      ],
-      'task_runs': <String, dynamic>{
-        'items': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 88,
-            'task_key': 'download_task_import',
-            'task_name': '下载任务导入 SSIS-123',
-            'trigger_type': 'manual',
-            'state': 'running',
-            'progress_current': 1,
-            'progress_total': 3,
-            'progress_text': '正在导入影片文件 SSIS-123',
-            'result_text': null,
-            'result_summary': <String, dynamic>{'imported_count': 1},
-            'error_message': null,
-            'started_at': '2026-03-26T09:10:00Z',
-            'finished_at': null,
-            'created_at': '2026-03-26T09:10:00Z',
-            'updated_at': '2026-03-26T09:11:00Z',
-          },
-        ],
-        'page': 1,
-        'page_size': 20,
-        'total': 1,
-      },
-    },
-  );
-}
-
 Page<dynamic> _findPageByName(WidgetTester tester, String pageName) {
   for (final navigator in tester.widgetList<Navigator>(
     find.byType(Navigator),
@@ -3904,40 +3698,6 @@ void _enqueueDesktopRankingsResponses(TestApiBundle bundle) {
       ],
       'page': 1,
       'page_size': 24,
-      'total': 1,
-    },
-  );
-}
-
-void _enqueueDesktopHotReviewsResponses(TestApiBundle bundle) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/hot-reviews',
-    body: <String, dynamic>{
-      'items': <Map<String, dynamic>>[
-        <String, dynamic>{
-          'rank': 1,
-          'review_id': 101,
-          'score': 5,
-          'content': '值得反复看',
-          'created_at': '2026-03-21T01:00:00Z',
-          'username': 'demo-user',
-          'like_count': 11,
-          'watch_count': 21,
-          'movie': <String, dynamic>{
-            'javdb_id': 'javdb-abp001',
-            'movie_number': 'ABP-001',
-            'title': 'Movie A',
-            'cover_image': null,
-            'release_date': null,
-            'duration_minutes': 0,
-            'is_subscribed': false,
-            'can_play': false,
-          },
-        },
-      ],
-      'page': 1,
-      'page_size': 20,
       'total': 1,
     },
   );

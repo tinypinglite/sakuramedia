@@ -6,7 +6,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 /// 「媒体库存储类型」选择器：本地目录 / 115 网盘。
 ///
-/// 平台自适应：mobile 走底部抽屉，桌面/Web 走对话框。
+/// 平台自适应：mobile 走底部抽屉，桌面端走对话框。
 /// 用户选中一项后 pop 返回对应 [MediaLibraryBackend]，取消返回 `null`。
 /// 由「新建媒体库」入口调用，115 分支再链到 `showCloud115LibraryLoginFlow`。
 Future<MediaLibraryBackend?> showMediaLibraryBackendPicker(

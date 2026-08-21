@@ -33,8 +33,3 @@ jobs:
     name: iOS
     uses: ./.github/workflows/release-ios.yml
     secrets: inherit
-
-  web:
-    name: Web
-    uses: ./.github/workflows/release-web.yml
-    secrets: inherit

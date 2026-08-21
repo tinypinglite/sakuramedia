@@ -10,7 +10,6 @@ void main() {
     MoviePlayerPlaybackMediaOrigin mediaOrigin =
         MoviePlayerPlaybackMediaOrigin.cloud115,
     String originalUrl = 'https://backend.example.com/media/1/stream',
-    bool isWeb = false,
   }) {
     return MoviePlayerNativeStatsSampler(
       readNativeProperty: (property) async {
@@ -19,7 +18,6 @@ void main() {
       },
       mediaOrigin: mediaOrigin,
       originalUrl: originalUrl,
-      isWeb: isWeb,
     );
   }
 
@@ -128,19 +126,6 @@ void main() {
 
     expect(afterFirst, greaterThan(0));
     expect(notifications, afterFirst);
-    sampler.dispose();
-  });
-
-  test('Web 端跳过原生轮询', () async {
-    final requestLog = <String>[];
-    final sampler = buildSampler(
-      requestLog: requestLog,
-      properties: const <String, String?>{},
-      isWeb: true,
-    );
-
-    await sampler.refreshNative();
-    expect(requestLog, isEmpty);
     sampler.dispose();
   });
 

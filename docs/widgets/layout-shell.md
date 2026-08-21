@@ -6,7 +6,7 @@
 - `AppSidebar`、`AppSidebarGroup`、`AppSidebarItem`：`app_sidebar.dart`，桌面导航分组和条目。
 - `AppTopBar`：`app_top_bar.dart`，桌面页面顶栏和操作区。
 - `AppMobileShell`、`AppMobileSubpageShell`：`lib/widgets/shell/mobile/`，移动一级入口和子页面容器。
-- `AppWindowDragArea`：`lib/widgets/shell/window/`，桌面窗口拖拽区，Web/非桌面使用条件导出实现。
+- `AppWindowDragArea`：`lib/widgets/shell/window/`，桌面窗口拖拽区。
 
 新页面先选择对应平台 shell，再在内容区编排 feature 页面；不要在 feature 页面重新搭一套应用级导航。
 

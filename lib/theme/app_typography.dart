@@ -1,6 +1,5 @@
-import 'dart:ui' show FontVariation, lerpDouble;
+import 'dart:ui' show lerpDouble;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 enum AppTextSize { s20, s18, s16, s14, s12, s10 }
@@ -79,16 +78,7 @@ class AppTextScale extends ThemeExtension<AppTextScale> {
   TextTheme toTextTheme(AppTextWeights weights) {
     TextStyle style(AppTextSize size, AppTextWeight weight) {
       final fontWeight = weights.weightFor(weight);
-      return TextStyle(
-        fontSize: sizeOf(size),
-        fontWeight: fontWeight,
-        // 仅 Web 内嵌的可变字体需要:把字重喂给 wght 轴(默认停在 Thin 100)。
-        // 其他平台用系统字体,靠 fontWeight 即可。
-        fontVariations:
-            kIsWeb
-                ? [FontVariation('wght', fontWeight.value.toDouble())]
-                : null,
-      );
+      return TextStyle(fontSize: sizeOf(size), fontWeight: fontWeight);
     }
 
     return TextTheme(
@@ -321,14 +311,6 @@ Color resolveAppTextToneColor(BuildContext context, AppTextTone tone) {
   return Theme.of(context).appTextPalette.colorFor(tone);
 }
 
-String? resolveAppTextFontFamily(BuildContext context) {
-  if (!kIsWeb) {
-    return null;
-  }
-  return Theme.of(context).textTheme.bodyMedium?.fontFamily ??
-      DefaultTextStyle.of(context).style.fontFamily;
-}
-
 TextStyle resolveAppTextStyle(
   BuildContext context, {
   required AppTextSize size,
@@ -339,11 +321,6 @@ TextStyle resolveAppTextStyle(
   return TextStyle(
     fontSize: resolveAppTextFontSize(context, size),
     fontWeight: fontWeight,
-    fontFamily: resolveAppTextFontFamily(context),
-    // 仅 Web 内嵌的可变字体需要:把字重喂给 wght 轴(默认停在 Thin 100)。
-    // 其他平台用系统字体,靠 fontWeight 即可。
-    fontVariations:
-        kIsWeb ? [FontVariation('wght', fontWeight.value.toDouble())] : null,
     color: resolveAppTextToneColor(context, tone),
   );
 }

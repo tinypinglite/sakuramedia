@@ -131,39 +131,7 @@ void main() {
     );
   });
 
-  testWidgets('MyApp shows the platform notice once for web', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const MyApp(platformOverride: AppPlatform.web));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('web-platform-notice-dialog')), findsOneWidget);
-    expect(find.text('建议使用 SakuraMedia 客户端'), findsOneWidget);
-    expect(find.text('我知道了'), findsOneWidget);
-
-    await tester.tap(find.text('我知道了'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('web-platform-notice-dialog')), findsNothing);
-
-    final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    (materialApp.routerConfig! as GoRouter).go(desktopOverviewPath);
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('web-platform-notice-dialog')), findsNothing);
-  });
-
-  testWidgets('MyApp does not show the platform notice outside web', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const MyApp(platformOverride: AppPlatform.desktop));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('web-platform-notice-dialog')), findsNothing);
-  });
-
-  testWidgets('移动主要路由在真实组合根下都能建起来（provider 接线冒烟）', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('移动主要路由在真实组合根下都能建起来（provider 接线冒烟）', (WidgetTester tester) async {
     final recorder = _WiringFailureRecorder();
     final router = await _pumpApp(
       tester,
@@ -175,9 +143,7 @@ void main() {
     expect(recorder.failures, isEmpty, reason: _wiringFailureReason);
   });
 
-  testWidgets('桌面主要路由在真实组合根下都能建起来（provider 接线冒烟）', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('桌面主要路由在真实组合根下都能建起来（provider 接线冒烟）', (WidgetTester tester) async {
     final recorder = _WiringFailureRecorder();
     final router = await _pumpApp(
       tester,
@@ -273,11 +239,7 @@ Future<void> _walkRoutes(
       isNull,
       reason: '$path 在真实组合根下渲染抛异常——通常是 provider 漏接线',
     );
-    expect(
-      find.byType(Scaffold),
-      findsWidgets,
-      reason: '$path 没渲染出页面骨架',
-    );
+    expect(find.byType(Scaffold), findsWidgets, reason: '$path 没渲染出页面骨架');
   }
 }
 
