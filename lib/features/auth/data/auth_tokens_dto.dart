@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/session/session_token_payload.dart';
+
 class AuthUserDto {
   const AuthUserDto({required this.username});
 
@@ -32,14 +34,13 @@ class AuthTokensDto {
   final AuthUserDto user;
 
   factory AuthTokensDto.fromJson(Map<String, dynamic> json) {
+    final tokenPayload = SessionTokenPayload.fromJson(json);
     return AuthTokensDto(
-      accessToken: json['access_token'] as String? ?? '',
-      refreshToken: json['refresh_token'] as String? ?? '',
+      accessToken: tokenPayload.accessToken,
+      refreshToken: tokenPayload.refreshToken,
       tokenType: json['token_type'] as String? ?? 'Bearer',
       expiresIn: json['expires_in'] as int? ?? 0,
-      expiresAt:
-          DateTime.tryParse(json['expires_at'] as String? ?? '') ??
-          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+      expiresAt: tokenPayload.expiresAt,
       refreshExpiresAt:
           DateTime.tryParse(json['refresh_expires_at'] as String? ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),

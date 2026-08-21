@@ -11,6 +11,7 @@ void main() {
   late SessionStore sessionStore;
   late ApiClient apiClient;
   late FakeHttpClientAdapter adapter;
+  late int unauthorizedCalls;
 
   setUp(() async {
     sessionStore = SessionStore.inMemory();
@@ -21,7 +22,11 @@ void main() {
       expiresAt: DateTime.parse('2026-03-08T10:00:00Z'),
     );
 
-    apiClient = ApiClient(sessionStore: sessionStore);
+    unauthorizedCalls = 0;
+    apiClient = ApiClient(
+      sessionStore: sessionStore,
+      onUnauthorized: () => unauthorizedCalls++,
+    );
     adapter = FakeHttpClientAdapter();
     apiClient.rawDio.httpClientAdapter = adapter;
     apiClient.rawRefreshDio.httpClientAdapter = adapter;
@@ -224,4 +229,100 @@ void main() {
     expect(adapter.hitCount('POST', '/auth/token-refreshes'), 0);
     expect(sessionStore.hasSession, isTrue);
   });
+
+  test(
+    'malformed successful refresh keeps the previous session and surfaces the error',
+    () async {
+      final oldExpiresAt = sessionStore.expiresAt;
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/status',
+        statusCode: 401,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{
+            'code': 'unauthorized',
+            'message': 'expired',
+          },
+        },
+      );
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/auth/token-refreshes',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'access_token': '',
+          'refresh_token': 'new-refresh',
+          'expires_at': '2026-03-08T11:00:00Z',
+        },
+      );
+
+      await expectLater(
+        () => apiClient.get('/status'),
+        throwsA(
+          isA<ApiException>()
+              .having(
+                (ApiException error) => error.message,
+                'message',
+                '认证响应格式错误',
+              )
+              .having(
+                (ApiException error) => error.error?.code,
+                'error.code',
+                'invalid_auth_response',
+              ),
+        ),
+      );
+
+      expect(sessionStore.accessToken, 'old-access');
+      expect(sessionStore.refreshToken, 'refresh-1');
+      expect(sessionStore.expiresAt, oldExpiresAt);
+      expect(unauthorizedCalls, 0);
+    },
+  );
+
+  test(
+    'non-object successful refresh keeps the previous session and surfaces the error',
+    () async {
+      final oldExpiresAt = sessionStore.expiresAt;
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/status',
+        statusCode: 401,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{
+            'code': 'unauthorized',
+            'message': 'expired',
+          },
+        },
+      );
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/auth/token-refreshes',
+        statusCode: 200,
+        body: <dynamic>['not', 'a', 'token', 'object'],
+      );
+
+      await expectLater(
+        () => apiClient.get('/status'),
+        throwsA(
+          isA<ApiException>()
+              .having(
+                (ApiException error) => error.message,
+                'message',
+                '认证响应格式错误',
+              )
+              .having(
+                (ApiException error) => error.error?.code,
+                'error.code',
+                'invalid_auth_response',
+              ),
+        ),
+      );
+
+      expect(sessionStore.accessToken, 'old-access');
+      expect(sessionStore.refreshToken, 'refresh-1');
+      expect(sessionStore.expiresAt, oldExpiresAt);
+      expect(unauthorizedCalls, 0);
+    },
+  );
 }

@@ -9,7 +9,7 @@ import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/network/auth_interceptor.dart';
 import 'package:sakuramedia/core/network/sse_decoder.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/auth/data/auth_tokens_dto.dart';
+import 'package:sakuramedia/core/session/session_token_payload.dart';
 
 class ApiClient {
   ApiClient({
@@ -407,7 +407,7 @@ class ApiClient {
     _refreshDio.options.baseUrl = _sessionStore.baseUrl;
 
     try {
-      final response = await _refreshDio.post<Map<String, dynamic>>(
+      final response = await _refreshDio.post<dynamic>(
         '/auth/token-refreshes',
         data: <String, dynamic>{'refresh_token': _sessionStore.refreshToken},
         options: Options(
@@ -417,7 +417,11 @@ class ApiClient {
           },
         ),
       );
-      final tokens = AuthTokensDto.fromJson(_asJsonMap(response.data));
+      final responseData = response.data;
+      if (responseData is! Map) {
+        throw SessionTokenPayload.invalidResponseException;
+      }
+      final tokens = SessionTokenPayload.fromJson(_asJsonMap(responseData));
       await _sessionStore.saveTokens(
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,

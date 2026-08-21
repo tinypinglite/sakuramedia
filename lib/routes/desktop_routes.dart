@@ -27,6 +27,7 @@ import 'package:sakuramedia/routes/app_route_helpers.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
+import 'package:sakuramedia/routes/desktop_navigation_route_state.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_desktop_shell.dart';
 
@@ -84,6 +85,7 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     // 兼容 typed route 新参数名与现有 URL 中的旧参数名。
     return DesktopMoviePlayerPage(
       movieNumber: movieNumber,
+      fallbackPath: desktopNavigationFallbackPathFromExtra(state.extra),
       initialMediaId: resolveIntQueryParameter(
         state,
         names: const <String>['mediaId', 'media-id'],

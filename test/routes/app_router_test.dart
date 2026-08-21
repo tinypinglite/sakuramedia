@@ -21,6 +21,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/routes/desktop_routes.dart';
 import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
+import 'package:sakuramedia/routes/desktop_navigation_route_state.dart';
 import 'package:sakuramedia/routes/desktop_search_route_state.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
@@ -354,6 +355,30 @@ void main() {
       expect(config.fallbackPath, desktopMoviesPath);
     },
   );
+
+  test('desktop top bar config reads generic navigation route state', () {
+    final config = resolveDesktopTopBarConfig(
+      currentPath: '/desktop/library/actors/1',
+      routeSpecs: desktopRouteSpecs,
+      routeExtra: const DesktopNavigationRouteState(
+        fallbackPath: desktopSearchPath,
+      ),
+    );
+
+    expect(config.fallbackPath, desktopSearchPath);
+  });
+
+  test('desktop top bar config ignores non-desktop navigation fallback', () {
+    final config = resolveDesktopTopBarConfig(
+      currentPath: '/desktop/library/actors/1',
+      routeSpecs: desktopRouteSpecs,
+      routeExtra: const DesktopNavigationRouteState(
+        fallbackPath: '/mobile/overview',
+      ),
+    );
+
+    expect(config.fallbackPath, desktopActorsPath);
+  });
 
   test('desktop top bar config decodes encoded search title', () {
     final config = resolveDesktopTopBarConfig(

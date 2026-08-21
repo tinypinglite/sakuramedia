@@ -94,4 +94,85 @@ void main() {
       ),
     );
   });
+
+  test(
+    'createToken rejects malformed token payload without replacing session',
+    () async {
+      await sessionStore.saveTokens(
+        accessToken: 'old-access',
+        refreshToken: 'old-refresh',
+        expiresAt: DateTime.parse('2026-03-08T10:00:00Z'),
+      );
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/auth/tokens',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'access_token': '',
+          'refresh_token': 'new-refresh',
+          'expires_at': '2026-03-08T11:00:00Z',
+          'user': <String, dynamic>{'username': 'account'},
+        },
+      );
+
+      await expectLater(
+        () => authApi.createToken(username: 'account', password: 'pwd'),
+        throwsA(
+          isA<ApiException>()
+              .having(
+                (ApiException error) => error.message,
+                'message',
+                '认证响应格式错误',
+              )
+              .having(
+                (ApiException error) => error.error?.code,
+                'error.code',
+                'invalid_auth_response',
+              ),
+        ),
+      );
+
+      expect(sessionStore.accessToken, 'old-access');
+      expect(sessionStore.refreshToken, 'old-refresh');
+      expect(sessionStore.expiresAt, DateTime.parse('2026-03-08T10:00:00Z'));
+      expect(credentialStore.username, isNull);
+      expect(credentialStore.password, isNull);
+    },
+  );
+
+  test(
+    'createToken rejects an unparseable expires_at without replacing session',
+    () async {
+      await sessionStore.saveTokens(
+        accessToken: 'old-access',
+        refreshToken: 'old-refresh',
+        expiresAt: DateTime.parse('2026-03-08T10:00:00Z'),
+      );
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/auth/tokens',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'access_token': 'new-access',
+          'refresh_token': 'new-refresh',
+          'expires_at': 'not-a-date',
+        },
+      );
+
+      await expectLater(
+        () => authApi.createToken(username: 'account', password: 'pwd'),
+        throwsA(
+          isA<ApiException>().having(
+            (ApiException error) => error.message,
+            'message',
+            '认证响应格式错误',
+          ),
+        ),
+      );
+
+      expect(sessionStore.accessToken, 'old-access');
+      expect(sessionStore.refreshToken, 'old-refresh');
+      expect(sessionStore.expiresAt, DateTime.parse('2026-03-08T10:00:00Z'));
+    },
+  );
 }

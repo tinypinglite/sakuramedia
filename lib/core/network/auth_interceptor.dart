@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/core/session/session_token_payload.dart';
 
 class AuthInterceptor extends Interceptor {
   AuthInterceptor({
@@ -62,7 +63,19 @@ class AuthInterceptor extends Interceptor {
       );
       final response = await _dio.fetch<dynamic>(retriedRequest);
       handler.resolve(response);
-    } catch (_) {
+    } catch (error) {
+      if (_isInvalidAuthResponse(error)) {
+        handler.reject(
+          DioException(
+            requestOptions: err.requestOptions,
+            response: err.response,
+            type: DioExceptionType.badResponse,
+            error: error,
+          ),
+        );
+        return;
+      }
+
       await _clearSession();
       _onUnauthorized?.call();
       handler.reject(
@@ -86,6 +99,11 @@ class AuthInterceptor extends Interceptor {
         ),
       );
     }
+  }
+
+  bool _isInvalidAuthResponse(Object error) {
+    return error is ApiException &&
+        error.error?.code == SessionTokenPayload.invalidResponseCode;
   }
 
   bool _shouldAttemptRefresh(DioException err) {
