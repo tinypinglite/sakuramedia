@@ -3,8 +3,6 @@ import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
-import 'package:sakuramedia/core/network/providers/sse_event_stream_client_provider.dart';
-import 'package:sakuramedia/core/network/sse_event_stream_client.dart';
 import 'package:sakuramedia/core/session/credential_store.dart';
 import 'package:sakuramedia/core/session/providers/credential_store_provider.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
@@ -76,7 +74,6 @@ class TestApiBundle {
     required this.downloadClientsApi,
     required this.discoveryApi,
     required this.downloadsApi,
-    required this.sseEventStreamClient,
     required this.indexerSettingsApi,
     required this.mediaApi,
     required this.mediaImportApi,
@@ -107,7 +104,6 @@ class TestApiBundle {
   final DownloadClientsApi downloadClientsApi;
   final DiscoveryApi discoveryApi;
   final DownloadsApi downloadsApi;
-  final SseEventStreamClient sseEventStreamClient;
   final IndexerSettingsApi indexerSettingsApi;
   final MediaApi mediaApi;
   final MediaImportApi mediaImportApi;
@@ -164,9 +160,6 @@ class TestApiBundle {
     MediaLibrariesApi? mediaLibrariesApi,
     DownloadClientsApi? downloadClientsApi,
     IndexerSettingsApi? indexerSettingsApi,
-    // SSE 流客户端：默认用 bundle 实例（静默不推事件）；要打事件的测试传
-    // FakeSseEventStreamClient / 自定义实例。
-    SseEventStreamClient? sseEventStreamClient,
     ActivityApi? activityApi,
   }) {
     return <Override>[
@@ -211,14 +204,10 @@ class TestApiBundle {
       collectionPlaybackHandoffProvider.overrideWithValue(
         collectionPlaybackHandoff ?? this.collectionPlaybackHandoff,
       ),
-      sseEventStreamClientProvider.overrideWithValue(
-        sseEventStreamClient ?? this.sseEventStreamClient,
-      ),
     ];
   }
 
   void dispose() {
-    sseEventStreamClient.dispose();
     apiClient.dispose();
   }
 }
@@ -226,7 +215,6 @@ class TestApiBundle {
 Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
   final credentialStore = InMemoryCredentialStore();
   final apiClient = ApiClient(sessionStore: sessionStore);
-  final sseEventStreamClient = createSseEventStreamClient(apiClient: apiClient);
   final adapter = FakeHttpClientAdapter();
   apiClient.rawDio.httpClientAdapter = adapter;
   apiClient.rawRefreshDio.httpClientAdapter = adapter;
@@ -256,7 +244,6 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     downloadClientsApi: DownloadClientsApi(apiClient: apiClient),
     discoveryApi: DiscoveryApi(apiClient: apiClient),
     downloadsApi: DownloadsApi(apiClient: apiClient),
-    sseEventStreamClient: sseEventStreamClient,
     indexerSettingsApi: IndexerSettingsApi(apiClient: apiClient),
     mediaApi: MediaApi(apiClient: apiClient),
     mediaImportApi: MediaImportApi(apiClient: apiClient),

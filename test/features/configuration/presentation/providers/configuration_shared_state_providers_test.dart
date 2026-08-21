@@ -249,7 +249,7 @@ void main() {
     expect(fetches, 2);
   });
 
-  test('媒体库 CRUD 让 media 域那份副本失效（否则媒体管理页库筛选一直是旧的）', () async {
+  test('媒体库 CRUD 更新 media 域派生状态且只请求一次', () async {
     final api = _FakeMediaLibrariesApi(apiClient: apiClient);
     final container = ProviderContainer(
       overrides: [
@@ -267,7 +267,15 @@ void main() {
     };
     await container.read(mediaLibrariesProvider.future);
     await container.read(media.mediaLibrariesProvider.future);
-    expect(fetches, 2); // 两份副本各拉一次
+    expect(fetches, 1); // media 域从 configuration provider 派生
+    expect(
+      container
+          .read(media.mediaLibrariesProvider)
+          .requireValue
+          .libraries
+          .map((library) => library.id),
+      [1],
+    );
 
     api.createHandler = (_) async => _library(2, 'Archive');
     await container
@@ -279,10 +287,11 @@ void main() {
           ),
         );
 
-    // media 域那份被 invalidate，下次读重新拉取。
+    // media 域实时派生 configuration provider 的更新，不再重新请求。
     final refreshed = await container.read(media.mediaLibrariesProvider.future);
-    expect(fetches, 3);
-    expect(refreshed.libraries, isNotEmpty);
+    expect(fetches, 1);
+    expect(refreshed.libraries.map((library) => library.id), [2, 1]);
+    expect(refreshed.storageDescriptors.keys, containsAll([1, 2]));
   });
 }
 

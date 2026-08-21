@@ -2,8 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
-import 'package:sakuramedia/features/media/presentation/providers/media_libraries_provider.dart'
-    as media;
 import 'package:sakuramedia/features/shared/presentation/providers/async_notifier_dispose_guard.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/session_scoped_invalidation.dart';
 
@@ -75,18 +73,6 @@ class MediaLibraries extends _$MediaLibraries
           .where((library) => library.id != libraryId)
           .toList(growable: false),
     );
-    _invalidateMediaDomainCopy();
-  }
-
-  /// media 域另有一份 keepAlive 的媒体库快照（`MediaLibrariesState`，多带一层
-  /// 派生的 storageDescriptors / cloud115Libraries，媒体管理与维护页在用）。
-  /// 两份是各自拉取的，本域改完库不通知它的话，媒体管理页的库筛选会一直显示
-  /// 旧列表直到重启——CRUD 后让它失效，下次进页面自然重拉。
-  ///
-  /// 用 invalidate 而不是补丁：那份状态的派生字段在构造函数里算，就地打补丁
-  /// 还得重算一遍，不如让它重拉。
-  void _invalidateMediaDomainCopy() {
-    ref.invalidate(media.mediaLibrariesProvider);
   }
 
   /// Cloud115 流程在 View 中完成后，调用方用其返回 DTO 回写共享列表。
@@ -102,6 +88,5 @@ class MediaLibraries extends _$MediaLibraries
       next[index] = library;
     }
     state = AsyncData(next);
-    _invalidateMediaDomainCopy();
   }
 }

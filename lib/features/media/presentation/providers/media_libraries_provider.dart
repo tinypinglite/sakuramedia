@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/media_libraries_provider.dart'
+    as configuration;
 import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
-import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/async_notifier_dispose_guard.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/session_scoped_invalidation.dart';
 
@@ -40,9 +40,9 @@ class MediaLibrariesState {
   bool get isNotEmpty => libraries.isNotEmpty;
 }
 
-/// 媒体库列表 provider：keepAlive；两页（媒体管理 + 媒体维护）与秒传弹窗共享一份，
-/// 避免每次进 tab 各拉一次。加载失败以 `AsyncError` 呈现，消费方可 fallback
-/// 到 [MediaLibrariesState.empty]（对齐 legacy 行为——库加载失败不阻断主流程）。
+/// 配置域媒体库 provider 的派生投影：keepAlive；两页（媒体管理 + 媒体维护）与秒传
+/// 弹窗共享一份，避免每次进 tab 各拉一次。列表更新由配置域 owner 推送，
+/// 本 provider 只负责构造 [MediaLibrariesState] 的派生字段。
 @Riverpod(keepAlive: true, retry: kNoAsyncNotifierRetry)
 class MediaLibraries extends _$MediaLibraries
     with AsyncNotifierDisposeGuardMixin<MediaLibrariesState> {
@@ -50,33 +50,17 @@ class MediaLibraries extends _$MediaLibraries
   Future<MediaLibrariesState> build() async {
     invalidateOnSignOut(ref);
     attachDisposeGuard();
-    final libraries = await ref.read(mediaLibrariesApiProvider).getLibraries();
+    final libraries = await ref.watch(
+      configuration.mediaLibrariesProvider.future,
+    );
     return MediaLibrariesState(libraries: libraries);
   }
 
-  /// 保留态刷新：不切 [AsyncLoading]；失败返回中文错误消息由页面 toast。
-  Future<String?> refresh() async {
-    try {
-      final libraries =
-          await ref.read(mediaLibrariesApiProvider).getLibraries();
-      if (isDisposed) return null;
-      state = AsyncData(MediaLibrariesState(libraries: libraries));
-      return null;
-    } catch (error) {
-      return apiErrorMessage(error, fallback: '媒体库加载失败');
-    }
-  }
+  /// 委托配置域 owner 保留态刷新；失败返回中文错误消息由页面 toast。
+  Future<String?> refresh() =>
+      ref.read(configuration.mediaLibrariesProvider.notifier).refresh();
 
-  /// 强制重新加载：切 [AsyncLoading] → 拉列表 → 覆盖。
-  Future<void> reload() async {
-    state = AsyncLoading<MediaLibrariesState>();
-    final next = await AsyncValue.guard<MediaLibrariesState>(() async {
-      final libraries =
-          await ref.read(mediaLibrariesApiProvider).getLibraries();
-      return MediaLibrariesState(libraries: libraries);
-    });
-    if (!isDisposed) {
-      state = next;
-    }
-  }
+  /// 委托配置域 owner 强制重新加载。
+  Future<void> reload() =>
+      ref.read(configuration.mediaLibrariesProvider.notifier).reload();
 }

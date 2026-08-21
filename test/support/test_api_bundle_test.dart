@@ -2,13 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/collection_playback_handoff_provider.dart';
-import 'package:sakuramedia/core/network/providers/sse_event_stream_client_provider.dart';
 
 import 'test_api_bundle.dart';
 
 /// 0-2 快速回归：TestApiBundle.riverpodOverrides() 补齐的 override
 /// 必须全部可读且不抛——widget 测试树里凡是读这些 provider 的消费方都不再
-/// 撞 UnimplementedError 或静默连上真实 SSE 客户端。
+/// 撞 UnimplementedError。
 ///
 /// 批 8 后：四个 mutation broadcaster 本体化为 Riverpod class Notifier
 /// (`xxxEventsProvider`)、不再由 bundle 注入实例，故本回归不再覆盖它们。
@@ -27,30 +26,14 @@ void main() {
   });
 
   test('riverpodOverrides 补齐的 provider 均可用且身份唯一', () {
-    final container = ProviderContainer(
-      overrides: bundle.riverpodOverrides(),
-    );
+    final container = ProviderContainer(overrides: bundle.riverpodOverrides());
     addTearDown(container.dispose);
 
     // externalPlayerPreference 已迁 AsyncNotifier 且不再由 bundle 注入,
     // 无 SharedPreferences mock 时读盘异常被吞、降级为「未选择」。
-    expect(container.read(collectionPlaybackHandoffProvider),
-        same(bundle.collectionPlaybackHandoff));
     expect(
-      container.read(sseEventStreamClientProvider),
-      same(bundle.sseEventStreamClient),
+      container.read(collectionPlaybackHandoffProvider),
+      same(bundle.collectionPlaybackHandoff),
     );
-  });
-
-  test('SSE client override 缺省值不触发真实连接副作用', () {
-    final container = ProviderContainer(
-      overrides: bundle.riverpodOverrides(),
-    );
-    addTearDown(container.dispose);
-
-    // bundle 构造的真实 client 绑定的是 FakeHttpClientAdapter，没有打桩时
-    // connect 会抛适配器异常而非泄漏到真实网络；这里只验证 provider 读值
-    // 本身不抛、返回同一实例即可（默认场景不消费 SSE）。
-    expect(container.read(sseEventStreamClientProvider), isNotNull);
   });
 }
