@@ -58,7 +58,6 @@ android/keystore/
 wiki/node_modules/
 wiki/.vitepress/dist/
 wiki/.vitepress/cache/
-wiki/public/star-history-*.svg
 
 # Python helper scripts
 __pycache__/
