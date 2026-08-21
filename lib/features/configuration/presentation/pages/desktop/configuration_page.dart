@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/configuration/presentation/pages/desktop/do
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/indexer_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/media_libraries_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/playlists_section.dart';
+import 'package:sakuramedia/features/movies/presentation/pages/desktop/blacklisted_movies_section.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/desktop/plugins_section.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
@@ -81,6 +82,14 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
           icon: Icons.playlist_play_outlined,
         ),
         builder: (active) => PlaylistsSection(active: active),
+      ),
+      _ConfigurationTab(
+        category: const _ConfigurationCategory(
+          itemKey: Key('configuration-tab-blacklisted-movies'),
+          label: '屏蔽影片',
+          icon: Icons.block_outlined,
+        ),
+        builder: (active) => BlacklistedMoviesSection(active: active),
       ),
       _ConfigurationTab(
         category: const _ConfigurationCategory(

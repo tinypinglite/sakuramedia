@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
@@ -45,6 +46,7 @@ void main() {
           'configuration-tab-indexers',
           'configuration-tab-download-preference',
           'configuration-tab-playlists',
+          'configuration-tab-blacklisted-movies',
           'configuration-tab-advanced',
           'configuration-tab-plugins',
         ];
@@ -89,6 +91,97 @@ void main() {
       expect(bundle.adapter.hitCount('GET', '/download-clients'), 1);
       expect(bundle.adapter.hitCount('GET', '/media-libraries'), 1);
       expect(find.text('还没有下载器配置'), findsOneWidget);
+    });
+
+    testWidgets('loads blacklisted movies lazily when switching tabs', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle, libraries: const []);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        body: <String, dynamic>{
+          'items': const <Map<String, dynamic>>[],
+          'page': 1,
+          'page_size': 24,
+          'total': 0,
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+
+      expect(bundle.adapter.hitCount('GET', '/movies'), 0);
+
+      await tester.tap(
+        find.byKey(const Key('configuration-tab-blacklisted-movies')),
+      );
+      await tester.pumpAndSettle();
+
+      final request = bundle.adapter.requests.firstWhere(
+        (request) => request.method == 'GET' && request.path == '/movies',
+      );
+      expect(request.uri.queryParameters['blacklisted'], 'true');
+      expect(find.text('还没有屏蔽任何影片'), findsOneWidget);
+    });
+
+    testWidgets('unblacklists a movie from its context menu', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle, libraries: const []);
+      bundle.adapter
+        ..enqueueJson(
+          method: 'GET',
+          path: '/movies',
+          body: <String, dynamic>{
+            'items': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'id': 1,
+                'javdb_id': 'javdb-BL-001',
+                'movie_number': 'BL-001',
+                'title': 'Blocked Movie',
+                'cover_image': null,
+                'release_date': '2026-01-01',
+                'duration_minutes': 120,
+                'heat': 10,
+                'is_subscribed': false,
+                'can_play': false,
+              },
+            ],
+            'page': 1,
+            'page_size': 24,
+            'total': 1,
+          },
+        )
+        ..enqueueJson(
+          method: 'DELETE',
+          path: '/movies/blacklist',
+          statusCode: 204,
+        );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(
+        find.byKey(const Key('configuration-tab-blacklisted-movies')),
+      );
+      await tester.pumpAndSettle();
+
+      final card = find.byKey(const Key('movie-summary-card-BL-001'));
+      await tester.ensureVisible(card);
+      await tester.tapAt(
+        tester.getCenter(card),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('取消屏蔽'));
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('DELETE', '/movies/blacklist'), 1);
+      final request = bundle.adapter.requests.last;
+      expect(request.body, <String, dynamic>{
+        'movie_numbers': <String>['BL-001'],
+      });
+      expect(card, findsNothing);
+      expect(find.text('还没有屏蔽任何影片'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
     });
 
     testWidgets('confirms before leaving dirty advanced settings tab', (

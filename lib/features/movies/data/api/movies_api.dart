@@ -30,6 +30,7 @@ class MoviesApi {
     TagMatchMode? tagMatch,
     int? heatMin,
     int? heatMax,
+    bool? blacklisted,
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -60,6 +61,9 @@ class MoviesApi {
     }
     if (heatMax != null) {
       queryParameters['heat_max'] = heatMax;
+    }
+    if (blacklisted != null) {
+      queryParameters['blacklisted'] = blacklisted;
     }
     if (tagIds != null && tagIds.isNotEmpty) {
       queryParameters['tag_ids'] = tagIds.join(',');

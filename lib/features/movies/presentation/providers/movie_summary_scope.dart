@@ -10,6 +10,7 @@ enum MovieSummarySource {
   movies,
   tags,
   subscribedActorsLatest,
+  blacklisted,
   actor,
   playlist,
   series,
@@ -51,6 +52,13 @@ class MovieSummaryScope {
          pageSize: pageSize,
          initialLoadErrorText: initialLoadErrorText,
        );
+
+  const MovieSummaryScope.blacklisted({int pageSize = 24})
+    : this._(
+        source: MovieSummarySource.blacklisted,
+        pageSize: pageSize,
+        initialLoadErrorText: '屏蔽影片加载失败，请稍后重试',
+      );
 
   /// 所选标签下的影片列表。首次没有标签时 provider 只返回空分页状态、不请求；
   /// 页面在标签选择发生后通过 `applyTagFilter` 显式发起首拉。

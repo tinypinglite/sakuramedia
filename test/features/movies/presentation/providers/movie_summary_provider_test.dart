@@ -67,6 +67,7 @@ void main() {
       MovieSummarySource.tags => '/movies',
       MovieSummarySource.subscribedActorsLatest =>
         '/movies/subscribed-actors/latest',
+      MovieSummarySource.blacklisted => '/movies',
       MovieSummarySource.actor => '/movies',
       MovieSummarySource.playlist => '/playlists/${scope.resourceId}/movies',
       MovieSummarySource.series => '/movies/by-series',
@@ -138,6 +139,41 @@ void main() {
       'ABC-001',
     ]);
     expect(state.paged.total, 1);
+  });
+
+  test('屏蔽影片 scope 只请求已屏蔽影片，取消屏蔽后就地移除条目', () async {
+    const scope = MovieSummaryScope.blacklisted();
+    await prime(scope, <Map<String, dynamic>>[
+      _movie('ABC-001'),
+      _movie('ABC-002'),
+    ]);
+
+    final listRequest = adapter.requests.single;
+    expect(listRequest.path, '/movies');
+    expect(listRequest.uri.queryParameters['blacklisted'], 'true');
+    expect(
+      listRequest.uri.queryParameters.containsKey('collection_type'),
+      isFalse,
+    );
+
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/movies/blacklist',
+      statusCode: 204,
+    );
+    await container
+        .read(movieSummaryProvider(scope).notifier)
+        .unblacklistMovie(movieNumber: 'ABC-001');
+
+    final state = container.read(movieSummaryProvider(scope)).requireValue;
+    expect(state.paged.items.map((item) => item.movieNumber), <String>[
+      'ABC-002',
+    ]);
+    expect(state.paged.total, 1);
+    expect(adapter.requests.last.method, 'DELETE');
+    expect(adapter.requests.last.body, <String, dynamic>{
+      'movie_numbers': <String>['ABC-001'],
+    });
   });
 
   test('播放列表和系列各自保持 family 实例隔离', () async {

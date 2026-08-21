@@ -337,6 +337,25 @@ void main() {
     expect(request.uri.queryParameters.containsKey('year'), isFalse);
   });
 
+  test('getMovies sends blacklisted filter when requested', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(blacklisted: true, page: 1, pageSize: 24);
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters['blacklisted'], 'true');
+  });
+
   test('getMovies converts backend error to ApiException', () async {
     adapter.enqueueJson(
       method: 'GET',

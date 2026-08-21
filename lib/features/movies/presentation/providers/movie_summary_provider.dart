@@ -109,6 +109,11 @@ class MovieSummary extends _$MovieSummary
           page: page,
           pageSize: pageSize,
         ),
+      MovieSummarySource.blacklisted => moviesApi.getMovies(
+        blacklisted: true,
+        page: page,
+        pageSize: pageSize,
+      ),
       MovieSummarySource.actor => moviesApi.getMovies(
         actorId: scope.resourceId!,
         page: page,
@@ -211,6 +216,19 @@ class MovieSummary extends _$MovieSummary
         .read(moviesApiProvider)
         .setMoviesBlacklisted(movieNumbers: ordered, isBlacklisted: true);
     removeMovies(ordered);
+  }
+
+  Future<void> unblacklistMovie({required String movieNumber}) async {
+    if (movieNumber.isEmpty) {
+      return;
+    }
+    await ref
+        .read(moviesApiProvider)
+        .setMoviesBlacklisted(
+          movieNumbers: <String>[movieNumber],
+          isBlacklisted: false,
+        );
+    removeMovies(<String>[movieNumber]);
   }
 
   void removeMovies(Iterable<String> movieNumbers) {
