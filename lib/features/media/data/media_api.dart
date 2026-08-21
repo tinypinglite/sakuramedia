@@ -28,6 +28,7 @@ class MediaApi {
     int? libraryId,
     List<int>? actorIds,
     String? rapidUploadStatus,
+    String? thumbnailGenerationState,
     String? sort,
   }) async {
     final queryParameters = <String, dynamic>{
@@ -45,6 +46,10 @@ class MediaApi {
     }
     if (rapidUploadStatus != null && rapidUploadStatus.isNotEmpty) {
       queryParameters['rapid_upload_status'] = rapidUploadStatus;
+    }
+    if (thumbnailGenerationState != null &&
+        thumbnailGenerationState.isNotEmpty) {
+      queryParameters['thumbnail_generation_state'] = thumbnailGenerationState;
     }
     if (sort != null && sort.isNotEmpty) {
       queryParameters['sort'] = sort;

@@ -28,8 +28,7 @@ SakuraMedia 宿主内置后台定时任务的作用和默认频率。
 | 推荐时刻生成 | 生成推荐时刻候选列表 | 每天 04:00 |
 | 每日推荐生成 | 生成每日推荐快照 | 每天 05:00 |
 | GFriends 头像缓存刷新 | 拉取 GFriends 文件树索引到本地缓存 | 每周一 04:00 |
-| 活动记录清理 | 清理事件流、任务运行记录和已读通知 | 每天 05:30 |
-| 资源任务尝试记录清理 | 清理过期的资源任务尝试历史 | 每天 06:00 |
+| 活动记录清理 | 清理任务运行记录和已读通知 | 每天 05:30 |
 | 115 Cookies 保活 | 探活 115 媒体库 cookies，凭据失效时发通知 | 每 20 分钟 |
 
 ## 按任务说明
@@ -160,15 +159,9 @@ SakuraMedia 宿主内置后台定时任务的作用和默认频率。
 
 ### 活动记录清理
 
-清理活动中心三类记录：事件流（保留最近 `activity_event_retention_days` 天）、每个任务保留最近 `activity_task_run_retention_per_key` 条运行记录、已读通知保留最近 `activity_notification_read_retention_days` 天。
+清理活动中心的任务运行记录和已读通知：每个任务保留最近 `activity_task_run_retention_per_key` 条运行记录，已读通知保留最近 `activity_notification_read_retention_days` 天。
 
 默认频率：每天 `05:30`
-
-### 资源任务尝试记录清理
-
-清理过期的资源任务尝试历史记录。
-
-默认频率：每天 `06:00`
 
 ### 115 Cookies 保活
 
@@ -202,10 +195,8 @@ moment_recommendation_generate_cron = "0 4 * * *"
 daily_recommendation_generate_cron = "0 5 * * *"
 gfriends_filetree_refresh_cron = "0 4 * * 1"
 activity_cleanup_cron = "30 5 * * *"
-resource_task_attempt_cleanup_cron = "0 6 * * *"
 cloud115_keepalive_cron = "*/20 * * * *"
 
-activity_event_retention_days = 1
 activity_task_run_retention_per_key = 200
 activity_notification_read_retention_days = 3
 ```
@@ -244,8 +235,7 @@ activity_notification_read_retention_days = 3
 
 ### 系统维护相关
 
-- `activity_cleanup_cron` — 活动中心历史记录清理
-- `resource_task_attempt_cleanup_cron` — 资源任务尝试历史清理
+- `activity_cleanup_cron` — 活动中心任务运行记录和已读通知清理
 - `gfriends_filetree_refresh_cron` — GFriends 头像缓存定期刷新
 
 ## 任务运行规则

@@ -2177,13 +2177,7 @@ Map<String, dynamic> _buildAdvancedConfigResponseJson() {
       },
       'logging': <String, dynamic>{'level': 'INFO'},
     },
-    'effects': <String, dynamic>{
-      'media': 'hot',
-      'metadata': 'hot',
-      'scheduler': 'restart_scheduler',
-      'downloads': 'restart_scheduler',
-      'logging': 'restart_api',
-    },
+    'restart_required': const <String>[],
   };
 }
 
@@ -2193,13 +2187,7 @@ void _enqueueDownloadPreferencePatch(TestApiBundle bundle) {
     path: '/config',
     body: <String, dynamic>{
       ..._buildAdvancedConfigResponseJson(),
-      'applied': <String>['downloads.preferred_client_kinds'],
-      'pending_restart': <Map<String, dynamic>>[
-        <String, dynamic>{
-          'field': 'downloads.preferred_client_kinds',
-          'restart': 'scheduler',
-        },
-      ],
+      'restart_required': <String>['api'],
     },
   );
 }

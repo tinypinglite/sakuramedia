@@ -3,7 +3,6 @@ import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/videos_api_provider.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
-import 'package:sakuramedia/features/media_import/data/import_job_dto.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/create_video_collection_dialog.dart';
@@ -155,6 +154,7 @@ class _VideoImportDialogState extends ConsumerState<VideoImportDialog> {
                     MediaImportSourcePicker(
                       selectedLibrary: _selectedLibrary,
                       transferMode: _transferMode,
+                      allowFileSource: true,
                       onSourceChanged: (source) {
                         if (source == _source) {
                           return;

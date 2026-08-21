@@ -88,19 +88,6 @@ void main() {
       expect(errors.single, isA<SseEventStreamUnsupportedException>());
     });
 
-    test('活动接口：FakeActivityEventStreamClient 与 activityEndpoint 同流', () async {
-      final fake = FakeSseEventStreamClient();
-      addTearDown(fake.dispose);
-      final received = <ApiSseEvent>[];
-
-      final activityClient = FakeActivityEventStreamClient(fake);
-      activityClient.connect(afterEventId: 3).listen(received.add);
-
-      fake.emit(FakeSseEventStreamClient.activityEndpoint, id: 9);
-      await pumpMicrotasks();
-      expect(received.single.id, 9);
-    });
-
     test('endpoint 隔离：不同 endpoint 互不干扰；closeAll 幂等', () async {
       final fake = FakeSseEventStreamClient();
       addTearDown(fake.dispose);

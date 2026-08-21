@@ -8,43 +8,16 @@ part of 'download_task_center_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 下载任务中心（Riverpod）：分页拉 `/download-tasks` + SSE 实时进度 + 暂停/恢复/删除。
-///
-/// 迁移前对应：`DownloadTaskCenterController extends ChangeNotifier`。
-///
-/// 差异：
-/// - 首屏 loading / error 由外层 [AsyncValue] 表达（[AsyncLoading]/[AsyncError]）；
-///   retry 走 `ref.invalidateSelf()`。
-/// - 筛选切换（[applyFilter]）先同步更新筛选控件，保留旧列表并防抖刷新第一页。
-/// - SSE 触发的「首页去抖合并」维持原生流程：独立 fetchPage(1) + 手工 upsert，
-///   有 [_minMergeInterval] 限流兜底。
+/// 下载任务中心：列表快照轮询 + 暂停/恢复/删除。
 
 @ProviderFor(DownloadTaskCenter)
 final downloadTaskCenterProvider = DownloadTaskCenterProvider._();
 
-/// 下载任务中心（Riverpod）：分页拉 `/download-tasks` + SSE 实时进度 + 暂停/恢复/删除。
-///
-/// 迁移前对应：`DownloadTaskCenterController extends ChangeNotifier`。
-///
-/// 差异：
-/// - 首屏 loading / error 由外层 [AsyncValue] 表达（[AsyncLoading]/[AsyncError]）；
-///   retry 走 `ref.invalidateSelf()`。
-/// - 筛选切换（[applyFilter]）先同步更新筛选控件，保留旧列表并防抖刷新第一页。
-/// - SSE 触发的「首页去抖合并」维持原生流程：独立 fetchPage(1) + 手工 upsert，
-///   有 [_minMergeInterval] 限流兜底。
+/// 下载任务中心：列表快照轮询 + 暂停/恢复/删除。
 final class DownloadTaskCenterProvider
     extends
         $AsyncNotifierProvider<DownloadTaskCenter, DownloadTaskCenterState> {
-  /// 下载任务中心（Riverpod）：分页拉 `/download-tasks` + SSE 实时进度 + 暂停/恢复/删除。
-  ///
-  /// 迁移前对应：`DownloadTaskCenterController extends ChangeNotifier`。
-  ///
-  /// 差异：
-  /// - 首屏 loading / error 由外层 [AsyncValue] 表达（[AsyncLoading]/[AsyncError]）；
-  ///   retry 走 `ref.invalidateSelf()`。
-  /// - 筛选切换（[applyFilter]）先同步更新筛选控件，保留旧列表并防抖刷新第一页。
-  /// - SSE 触发的「首页去抖合并」维持原生流程：独立 fetchPage(1) + 手工 upsert，
-  ///   有 [_minMergeInterval] 限流兜底。
+  /// 下载任务中心：列表快照轮询 + 暂停/恢复/删除。
   DownloadTaskCenterProvider._()
     : super(
         from: null,
@@ -67,16 +40,7 @@ final class DownloadTaskCenterProvider
 String _$downloadTaskCenterHash() =>
     r'f59705ed4e19faf4a34e49ac10260c40c791d2a0';
 
-/// 下载任务中心（Riverpod）：分页拉 `/download-tasks` + SSE 实时进度 + 暂停/恢复/删除。
-///
-/// 迁移前对应：`DownloadTaskCenterController extends ChangeNotifier`。
-///
-/// 差异：
-/// - 首屏 loading / error 由外层 [AsyncValue] 表达（[AsyncLoading]/[AsyncError]）；
-///   retry 走 `ref.invalidateSelf()`。
-/// - 筛选切换（[applyFilter]）先同步更新筛选控件，保留旧列表并防抖刷新第一页。
-/// - SSE 触发的「首页去抖合并」维持原生流程：独立 fetchPage(1) + 手工 upsert，
-///   有 [_minMergeInterval] 限流兜底。
+/// 下载任务中心：列表快照轮询 + 暂停/恢复/删除。
 
 abstract class _$DownloadTaskCenter
     extends $AsyncNotifier<DownloadTaskCenterState> {

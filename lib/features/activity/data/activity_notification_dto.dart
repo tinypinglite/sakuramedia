@@ -6,6 +6,10 @@ class ActivityNotificationDto {
     required this.category,
     required this.title,
     required this.content,
+    required this.eventType,
+    required this.dedupeKey,
+    required this.resourceType,
+    required this.resourceId,
     required this.isRead,
     required this.createdAt,
     required this.updatedAt,
@@ -18,6 +22,10 @@ class ActivityNotificationDto {
   final String category;
   final String title;
   final String content;
+  final String? eventType;
+  final String? dedupeKey;
+  final String? resourceType;
+  final int? resourceId;
   final bool isRead;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -29,6 +37,10 @@ class ActivityNotificationDto {
     String? category,
     String? title,
     String? content,
+    Object? eventType = _sentinel,
+    Object? dedupeKey = _sentinel,
+    Object? resourceType = _sentinel,
+    Object? resourceId = _sentinel,
     bool? isRead,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -41,6 +53,18 @@ class ActivityNotificationDto {
       category: category ?? this.category,
       title: title ?? this.title,
       content: content ?? this.content,
+      eventType: identical(eventType, _sentinel)
+          ? this.eventType
+          : eventType as String?,
+      dedupeKey: identical(dedupeKey, _sentinel)
+          ? this.dedupeKey
+          : dedupeKey as String?,
+      resourceType: identical(resourceType, _sentinel)
+          ? this.resourceType
+          : resourceType as String?,
+      resourceId: identical(resourceId, _sentinel)
+          ? this.resourceId
+          : resourceId as int?,
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -64,6 +88,10 @@ class ActivityNotificationDto {
       category: next.category,
       title: next.title,
       content: next.content,
+      eventType: next.eventType,
+      dedupeKey: next.dedupeKey,
+      resourceType: next.resourceType,
+      resourceId: next.resourceId,
       isRead: next.isRead,
       createdAt: next.createdAt,
       updatedAt: next.updatedAt,
@@ -79,6 +107,10 @@ class ActivityNotificationDto {
       category: json['category'] as String? ?? '',
       title: json['title'] as String? ?? '',
       content: json['content'] as String? ?? '',
+      eventType: json['event_type'] as String?,
+      dedupeKey: json['dedupe_key'] as String?,
+      resourceType: json['resource_type'] as String?,
+      resourceId: asIntOrNull(json['resource_id']),
       isRead: json['is_read'] as bool? ?? false,
       createdAt: asDateTime(json['created_at']),
       updatedAt: asDateTime(json['updated_at']),

@@ -77,7 +77,7 @@ extension AppNavigationActions on BuildContext {
     DesktopActivityRouteData(downloadMovieNumber: movieNumber).go(this);
   }
 
-  /// 跳到资源导入中心（订阅页 import_failed 行看失败文件明细的落点）。
+  /// 跳到资源导入中心，创建媒体或字幕导入任务。
   void goDesktopMediaImport() {
     GoRouter.optionURLReflectsImperativeAPIs = true;
     const DesktopMediaImportRouteData().go(this);

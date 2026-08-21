@@ -64,7 +64,7 @@ void main() {
   test('getSse sends GET request with event stream accept header', () async {
     adapter.enqueueSse(
       method: 'GET',
-      path: '/system/events/stream',
+      path: '/test/stream',
       chunks: <String>[
         'id: 12\n'
             'event: heartbeat\n'
@@ -75,7 +75,7 @@ void main() {
     final events =
         await apiClient
             .getSse(
-              '/system/events/stream',
+              '/test/stream',
               queryParameters: <String, dynamic>{'after_event_id': 11},
             )
             .toList();

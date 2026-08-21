@@ -1,6 +1,7 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
+import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
@@ -137,35 +138,13 @@ class MoviesApi {
     return MovieDetailDto.fromJson(response);
   }
 
-  /// 入队互动数同步任务（统一 action）：执行在后台 worker，`rerun` 是强制语义。
-  Future<void> syncMovieInteraction({required int movieId}) async {
-    await _applyMovieResourceTaskRerun(
-      taskKey: 'movie_interaction_sync',
-      movieId: movieId,
-    );
-  }
-
-  Future<void> _applyMovieResourceTaskRerun({
-    required String taskKey,
-    required int movieId,
-  }) async {
-    await _apiClient.post(
-      '/system/resource-task-actions',
-      data: <String, dynamic>{
-        'task_key': taskKey,
-        'action': 'rerun',
-        'resource_ids': <int>[movieId],
-      },
-    );
-  }
-
-  Future<MovieDetailDto> recomputeMovieHeat({
+  Future<ManualJobTriggerResponseDto> recomputeMovieHeat({
     required String movieNumber,
   }) async {
     final response = await _apiClient.post(
       '/movies/$movieNumber/heat-recompute',
     );
-    return MovieDetailDto.fromJson(response);
+    return ManualJobTriggerResponseDto.fromJson(response);
   }
 
   Future<List<MovieListItemDto>> getSimilarMovies({

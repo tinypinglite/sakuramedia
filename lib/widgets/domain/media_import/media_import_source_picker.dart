@@ -9,7 +9,6 @@ import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.
 import 'package:sakuramedia/features/configuration/data/dto/cloud115_directory_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/media_import/data/filesystem_entry_dto.dart';
-import 'package:sakuramedia/features/media_import/data/import_job_dto.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
 import 'package:sakuramedia/features/media_import/presentation/providers/media_import_api_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
@@ -22,8 +21,7 @@ import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 
 /// 导入源选择器：媒体库确定后，让用户在本地文件系统或 115 目录树里下钻选定
-/// 一个可导入的目录，并选择 `transferMode`。被 JAV `/import-jobs` 与非 JAV
-/// `/video-imports` 两条导入弹窗共同复用。
+/// 一个可导入的目录（普通视频也可直接选视频文件），并选择统一导入接口的传输策略。
 ///
 /// ⚠️ **胶水层例外（与 `MediaPreviewDialog` 同类）**：
 /// 本组件位于 `widgets/domain/`，但会自行 `ref.read(mediaImportApiProvider)`
@@ -34,8 +32,8 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 /// - **不含**媒体库下拉——由 caller 自行渲染并驱动。picker 通过 [selectedLibrary]
 ///   感知当前库；库变化时自动重置浏览状态并把 mode 回落到该库的默认值。
 /// - 选中源只在合法可提交时通过 [onSourceChanged] 吐 non-null 值；否则吐 `null`。
-///   合法性包括：本地已下钻到具体目录、115 已下钻到非根目录。caller 只需按
-///   `source != null` 判断是否可提交，不用重复实现规则。
+///   默认选择目录；[allowFileSource] 开启后普通视频也可选择本地视频文件或 115 FID。
+///   caller 只需按 `source != null` 判断是否可提交，不用重复实现规则。
 class MediaImportSourcePicker extends ConsumerStatefulWidget {
   const MediaImportSourcePicker({
     super.key,
@@ -44,12 +42,16 @@ class MediaImportSourcePicker extends ConsumerStatefulWidget {
     required this.onSourceChanged,
     required this.onTransferModeChanged,
     this.localOnly = false,
+    this.allowFileSource = false,
   });
 
   final MediaLibraryDto? selectedLibrary;
   final TransferMode transferMode;
   final ValueChanged<MediaImportSource?> onSourceChanged;
   final ValueChanged<TransferMode> onTransferModeChanged;
+
+  /// 普通视频允许直接选择本地视频文件或 115 FID；JAV/字幕仍只选择目录。
+  final bool allowFileSource;
 
   /// 仅浏览服务器本地白名单目录，不依赖媒体库或展示导入方式。
   ///
@@ -59,13 +61,13 @@ class MediaImportSourcePicker extends ConsumerStatefulWidget {
   /// 该媒体库对应的默认导入方式。caller 首次加载媒体库时用它初始化 `transferMode`，
   /// picker 自己在库切换时也走这里，避免规则在三处漂移。
   static TransferMode defaultTransferModeFor(MediaLibraryDto library) =>
-      library.isCloud115 ? TransferMode.copy : TransferMode.auto;
+      library.isCloud115 ? TransferMode.cleanupSource : TransferMode.auto;
 
   /// 该媒体库允许的导入方式集合，用于渲染 transferMode 下拉的选项。
   static List<TransferMode> availableTransferModesFor(
     MediaLibraryDto library,
   ) => library.isCloud115
-      ? const <TransferMode>[TransferMode.copy, TransferMode.cleanupSource]
+      ? const <TransferMode>[TransferMode.cleanupSource]
       : const <TransferMode>[TransferMode.auto, TransferMode.cleanupSource];
 
   @override
@@ -82,10 +84,12 @@ class _MediaImportSourcePickerState
 
   FilesystemListResponseDto? _localListing;
   String? _localBrowsePath;
+  String? _selectedLocalFilePath;
   Cloud115DirectoryPageDto? _cloudPage;
   List<Cloud115DirectoryEntryDto> _cloudEntries =
       const <Cloud115DirectoryEntryDto>[];
   List<_CloudPathSegment> _cloudPath = const <_CloudPathSegment>[];
+  String? _selectedCloudFileId;
 
   bool _isBrowsing = false;
   bool _isLoadingMore = false;
@@ -156,6 +160,7 @@ class _MediaImportSourcePickerState
     setState(() {
       _localListing = null;
       _localBrowsePath = null;
+      _selectedLocalFilePath = null;
       _cloudPage = null;
       _cloudEntries = const <Cloud115DirectoryEntryDto>[];
       _cloudPath = library.isCloud115
@@ -163,6 +168,7 @@ class _MediaImportSourcePickerState
               _CloudPathSegment(cid: '0', name: '115 网盘'),
             ]
           : const <_CloudPathSegment>[];
+      _selectedCloudFileId = null;
       _browseError = null;
       _loadMoreError = null;
       _isLoadingMore = false;
@@ -181,9 +187,11 @@ class _MediaImportSourcePickerState
     setState(() {
       _localListing = null;
       _localBrowsePath = null;
+      _selectedLocalFilePath = null;
       _cloudPage = null;
       _cloudEntries = const <Cloud115DirectoryEntryDto>[];
       _cloudPath = const <_CloudPathSegment>[];
+      _selectedCloudFileId = null;
       _browseError = null;
       _loadMoreError = null;
       _isLoadingMore = false;
@@ -198,6 +206,7 @@ class _MediaImportSourcePickerState
     setState(() {
       _localBrowsePath = path;
       _localListing = null;
+      _selectedLocalFilePath = null;
       _browseError = null;
       _isBrowsing = true;
     });
@@ -240,6 +249,7 @@ class _MediaImportSourcePickerState
       ];
       _cloudPage = null;
       _cloudEntries = const <Cloud115DirectoryEntryDto>[];
+      _selectedCloudFileId = null;
       _browseError = null;
       _loadMoreError = null;
       _isLoadingMore = false;
@@ -259,6 +269,7 @@ class _MediaImportSourcePickerState
       _cloudPath = nextPath;
       _cloudPage = null;
       _cloudEntries = const <Cloud115DirectoryEntryDto>[];
+      _selectedCloudFileId = null;
       _browseError = null;
       _loadMoreError = null;
       _isLoadingMore = false;
@@ -343,6 +354,11 @@ class _MediaImportSourcePickerState
   }
 
   void _publishLocalSource() {
+    final selectedFilePath = _selectedLocalFilePath;
+    if (selectedFilePath != null) {
+      widget.onSourceChanged(MediaImportSource.local(selectedFilePath));
+      return;
+    }
     final listing = _localListing;
     if (listing == null || listing.isRootsOverview || listing.path.isEmpty) {
       widget.onSourceChanged(null);
@@ -351,7 +367,20 @@ class _MediaImportSourcePickerState
     widget.onSourceChanged(MediaImportSource.local(listing.path));
   }
 
+  void _selectLocalFile(FilesystemEntryDto entry) {
+    if (!widget.allowFileSource || !entry.isVideo) return;
+    setState(() => _selectedLocalFilePath = entry.path);
+    widget.onSourceChanged(MediaImportSource.local(entry.path));
+  }
+
   void _publishCloudSource() {
+    final selectedFileId = _selectedCloudFileId;
+    if (selectedFileId != null) {
+      widget.onSourceChanged(
+        MediaImportSource.cloud115File(selectedFileId),
+      );
+      return;
+    }
     final page = _cloudPage;
     if (page == null || _cloudPath.length <= 1) {
       widget.onSourceChanged(null);
@@ -364,6 +393,12 @@ class _MediaImportSourcePickerState
       return;
     }
     widget.onSourceChanged(MediaImportSource.cloud115(currentCid));
+  }
+
+  void _selectCloudFile(Cloud115DirectoryEntryDto entry) {
+    if (!widget.allowFileSource || !entry.isVideo) return;
+    setState(() => _selectedCloudFileId = entry.entryId);
+    widget.onSourceChanged(MediaImportSource.cloud115File(entry.entryId));
   }
 
   String _browseErrorMessage(Object error) {
@@ -544,9 +579,10 @@ class _MediaImportSourcePickerState
         final entry = listing.entries[index];
         return _LocalEntryRow(
           entry: entry,
+          selected: entry.path == _selectedLocalFilePath,
           onTap: entry.isDirectory
               ? () => unawaited(_browseLocal(entry.path))
-              : null,
+              : () => _selectLocalFile(entry),
         );
       },
     );
@@ -573,9 +609,10 @@ class _MediaImportSourcePickerState
         return _CloudEntryRow(
           entry: entry,
           isManagementDirectory: isManagementDirectory,
+          selected: entry.entryId == _selectedCloudFileId,
           onTap: entry.isDirectory && !isManagementDirectory
               ? () => unawaited(_browseCloudFolder(entry))
-              : null,
+              : () => _selectCloudFile(entry),
         );
       },
     );
@@ -658,9 +695,14 @@ class _CloudPathSegment {
 }
 
 class _LocalEntryRow extends StatelessWidget {
-  const _LocalEntryRow({required this.entry, required this.onTap});
+  const _LocalEntryRow({
+    required this.entry,
+    required this.selected,
+    required this.onTap,
+  });
 
   final FilesystemEntryDto entry;
+  final bool selected;
   final VoidCallback? onTap;
 
   @override
@@ -670,6 +712,7 @@ class _LocalEntryRow extends StatelessWidget {
       isDirectory: entry.isDirectory,
       size: entry.size,
       onTap: onTap,
+      selected: selected,
     );
   }
 }
@@ -678,11 +721,13 @@ class _CloudEntryRow extends StatelessWidget {
   const _CloudEntryRow({
     required this.entry,
     required this.isManagementDirectory,
+    required this.selected,
     required this.onTap,
   });
 
   final Cloud115DirectoryEntryDto entry;
   final bool isManagementDirectory;
+  final bool selected;
   final VoidCallback? onTap;
 
   @override
@@ -695,6 +740,7 @@ class _CloudEntryRow extends StatelessWidget {
       trailingText: isManagementDirectory ? '媒体库管理目录，不可选择' : null,
       muted: isManagementDirectory,
       onTap: onTap,
+      selected: selected,
     );
   }
 }
@@ -706,6 +752,7 @@ class _DirectoryEntryRow extends StatelessWidget {
     required this.isDirectory,
     required this.size,
     required this.onTap,
+    this.selected = false,
     this.trailingText,
     this.muted = false,
   });
@@ -714,6 +761,7 @@ class _DirectoryEntryRow extends StatelessWidget {
   final bool isDirectory;
   final int size;
   final VoidCallback? onTap;
+  final bool selected;
   final String? trailingText;
   final bool muted;
 
@@ -732,7 +780,9 @@ class _DirectoryEntryRow extends StatelessWidget {
             Icon(
               isDirectory ? Icons.folder_rounded : Icons.movie_outlined,
               size: context.appComponentTokens.iconSizeSm,
-              color: muted
+              color: selected
+                  ? context.appTextPalette.accent
+                  : muted
                   ? context.appTextPalette.muted
                   : isDirectory
                   ? context.appTextPalette.accent
@@ -755,6 +805,15 @@ class _DirectoryEntryRow extends StatelessWidget {
                 ),
               ),
             ),
+            if (selected)
+              Padding(
+                padding: EdgeInsets.only(left: spacing.sm),
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  size: context.appComponentTokens.iconSizeSm,
+                  color: context.appTextPalette.accent,
+                ),
+              ),
             if (trailingText != null) ...[
               SizedBox(width: spacing.sm),
               Text(

@@ -349,7 +349,7 @@ void main() {
   );
 
   test(
-    'getMediaList sends kind/library/actor/rapid-upload/sort query params',
+    'getMediaList sends kind/library/actor/thumbnail/rapid-upload/sort params',
     () async {
       adapter.enqueueJson(
         method: 'GET',
@@ -368,6 +368,7 @@ void main() {
         kind: 'jav',
         libraryId: 5,
         actorIds: const <int>[12, 34],
+        thumbnailGenerationState: 'terminal',
         rapidUploadStatus: 'in_progress',
         sort: 'heat:desc',
       );
@@ -378,6 +379,7 @@ void main() {
         'kind': 'jav',
         'library_id': '5',
         'actor_ids': '12,34',
+        'thumbnail_generation_state': 'terminal',
         'rapid_upload_status': 'in_progress',
         'sort': 'heat:desc',
       });
@@ -432,6 +434,8 @@ void main() {
             'resolution': '1920x1080',
             'special_tags': '普通',
             'valid': true,
+            'thumbnail_generation_state': 'terminal',
+            'thumbnail_last_error_code': 'thumbnail_backend_failed',
             'heat': 320,
             'last_rapid_upload_status': 'in_progress',
             'created_at': '2026-03-12T10:20:00Z',
@@ -453,6 +457,7 @@ void main() {
             'resolution': null,
             'special_tags': '',
             'valid': false,
+            'thumbnail_generation_state': 'succeeded',
             'heat': null,
             'last_rapid_upload_status': null,
             'created_at': '2026-03-12T10:20:00Z',
@@ -482,7 +487,16 @@ void main() {
     expect(video.displayHeading, 'Short video');
     expect(video.displaySubtitle, isNull);
     expect(jav.lastRapidUploadStatus, LastRapidUploadStatus.inProgress);
+    expect(
+      jav.thumbnailGenerationState,
+      MediaThumbnailGenerationState.terminal,
+    );
+    expect(jav.thumbnailLastErrorCode, 'thumbnail_backend_failed');
     expect(video.lastRapidUploadStatus, isNull);
+    expect(
+      video.thumbnailGenerationState,
+      MediaThumbnailGenerationState.succeeded,
+    );
   });
 
   test('LastRapidUploadStatus.fromWire maps all public backend values', () {

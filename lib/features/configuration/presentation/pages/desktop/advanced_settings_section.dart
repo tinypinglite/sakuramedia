@@ -146,7 +146,7 @@ class _DesktopAdvancedSettingsSectionState
       headerBottomSpacing: spacing.md,
       headerTrailing: _CardBadges(
         badges: [
-          const AppBadge(label: '即时生效', tone: AppBadgeTone.success),
+          const AppBadge(label: '重启容器生效', tone: AppBadgeTone.warning),
           if (_dirtyCards.contains(_AdvancedCardKind.media))
             const AppBadge(label: '未保存', tone: AppBadgeTone.warning),
         ],
@@ -260,7 +260,7 @@ class _DesktopAdvancedSettingsSectionState
       headerBottomSpacing: spacing.md,
       headerTrailing: _CardBadges(
         badges: [
-          const AppBadge(label: '即时生效', tone: AppBadgeTone.success),
+          const AppBadge(label: '重启容器生效', tone: AppBadgeTone.warning),
           if (_dirtyCards.contains(_AdvancedCardKind.metadata))
             const AppBadge(label: '未保存', tone: AppBadgeTone.warning),
         ],
@@ -623,7 +623,7 @@ class _DesktopAdvancedSettingsSectionState
         _dirtyCards.remove(card);
       });
       _notifyDirtyChanged();
-      showToast(buildAdvancedConfigSaveSuccessMessage(result.pendingRestart));
+      showToast(buildAdvancedConfigSaveSuccessMessage(result.restartRequired));
     } catch (error) {
       if (!mounted) {
         return;
@@ -813,19 +813,13 @@ class _DesktopAdvancedSettingsSectionState
 
 enum _AdvancedCardKind { media, metadata, scheduler, other }
 
-/// 根据 `PATCH /config` 响应里的 `pending_restart` 列表拼保存成功后的 toast 文案。
-///
-/// 面向用户统一表述为「重启容器」——后端 api / scheduler 两种进程都由容器
-/// 承载，用户不需要区分具体是哪个子进程。
+/// 根据 `PATCH /config` 响应里的 `restart_required` 列表拼保存成功后的 toast 文案。
 ///
 /// 抽为顶层函数便于单元测试（widget 测里 oktoast 在 test env 下不可靠）。
 String buildAdvancedConfigSaveSuccessMessage(
-  List<PendingRestartFieldDto> pendingRestart,
+  List<String> restartRequired,
 ) {
-  final needsRestart = pendingRestart.any(
-    (item) => item.restart == 'api' || item.restart == 'scheduler',
-  );
-  if (!needsRestart) {
+  if (restartRequired.isEmpty) {
     return '已保存';
   }
   return buildRestartRequiredMessage('已保存');

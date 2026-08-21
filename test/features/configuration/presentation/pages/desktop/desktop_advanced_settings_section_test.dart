@@ -46,10 +46,7 @@ void main() {
       WidgetTester tester,
     ) async {
       _enqueueAdvancedConfig(bundle);
-      _enqueueAdvancedConfigPatch(
-        bundle,
-        applied: const <String>['media.others_number_features'],
-      );
+      _enqueueAdvancedConfigPatch(bundle);
 
       await _pumpSection(tester, bundle, active: true);
       await tester.enterText(
@@ -86,10 +83,7 @@ void main() {
       WidgetTester tester,
     ) async {
       _enqueueAdvancedConfig(bundle);
-      _enqueueAdvancedConfigPatch(
-        bundle,
-        applied: const <String>['metadata.javdb_host'],
-      );
+      _enqueueAdvancedConfigPatch(bundle);
 
       await _pumpSection(tester, bundle, active: true);
       await tester.ensureVisible(
@@ -122,13 +116,7 @@ void main() {
       _enqueueAdvancedConfig(bundle);
       _enqueueAdvancedConfigPatch(
         bundle,
-        applied: const <String>['scheduler.movie_heat_cron'],
-        pendingRestart: const <Map<String, dynamic>>[
-          <String, dynamic>{
-            'field': 'scheduler.movie_heat_cron',
-            'restart': 'scheduler',
-          },
-        ],
+        restartRequired: const <String>['aps'],
       );
 
       await _pumpSection(tester, bundle, active: true);
@@ -167,10 +155,7 @@ void main() {
       _enqueueAdvancedConfig(bundle);
       _enqueueAdvancedConfigPatch(
         bundle,
-        applied: const <String>['logging.level'],
-        pendingRestart: const <Map<String, dynamic>>[
-          <String, dynamic>{'field': 'logging.level', 'restart': 'api'},
-        ],
+        restartRequired: const <String>['api'],
       );
 
       await _pumpSection(tester, bundle, active: true);
@@ -206,17 +191,17 @@ void main() {
   });
 
   group('buildAdvancedConfigSaveSuccessMessage', () {
-    test('returns default message when pending_restart is empty', () {
+    test('returns default message when restart_required is empty', () {
       expect(
-        buildAdvancedConfigSaveSuccessMessage(const <PendingRestartFieldDto>[]),
+        buildAdvancedConfigSaveSuccessMessage(const <String>[]),
         '已保存',
       );
     });
 
     test('reports container restart when only api-scope fields pending', () {
       expect(
-        buildAdvancedConfigSaveSuccessMessage(const <PendingRestartFieldDto>[
-          PendingRestartFieldDto(field: 'logging.level', restart: 'api'),
+        buildAdvancedConfigSaveSuccessMessage(const <String>[
+          'logging.level',
         ]),
         '已保存，需重启容器才生效',
       );
@@ -226,15 +211,9 @@ void main() {
       'reports container restart when only scheduler-scope fields pending',
       () {
         expect(
-          buildAdvancedConfigSaveSuccessMessage(const <PendingRestartFieldDto>[
-            PendingRestartFieldDto(
-              field: 'scheduler.hot_review_sync_cron',
-              restart: 'scheduler',
-            ),
-            PendingRestartFieldDto(
-              field: 'scheduler.movie_heat_cron',
-              restart: 'scheduler',
-            ),
+          buildAdvancedConfigSaveSuccessMessage(const <String>[
+            'scheduler.hot_review_sync_cron',
+            'scheduler.movie_heat_cron',
           ]),
           '已保存，需重启容器才生效',
         );
@@ -248,12 +227,9 @@ void main() {
         // logging(api) + downloads(scheduler) 两种 restart 时不需要区分，只提示
         // 一次「重启容器」即可。
         expect(
-          buildAdvancedConfigSaveSuccessMessage(const <PendingRestartFieldDto>[
-            PendingRestartFieldDto(field: 'logging.level', restart: 'api'),
-            PendingRestartFieldDto(
-              field: 'downloads.small_file_cleanup_threshold_mb',
-              restart: 'scheduler',
-            ),
+          buildAdvancedConfigSaveSuccessMessage(const <String>[
+            'logging.level',
+            'downloads.small_file_cleanup_threshold_mb',
           ]),
           '已保存，需重启容器才生效',
         );
@@ -298,16 +274,14 @@ void _enqueueAdvancedConfig(TestApiBundle bundle) {
 
 void _enqueueAdvancedConfigPatch(
   TestApiBundle bundle, {
-  List<String> applied = const <String>[],
-  List<Map<String, dynamic>> pendingRestart = const <Map<String, dynamic>>[],
+  List<String> restartRequired = const <String>[],
 }) {
   bundle.adapter.enqueueJson(
     method: 'PATCH',
     path: '/config',
     body: _buildAdvancedConfigJson(
       extra: <String, dynamic>{
-        'applied': applied,
-        'pending_restart': pendingRestart,
+        'restart_required': restartRequired,
       },
     ),
   );
@@ -339,13 +313,7 @@ Map<String, dynamic> _buildAdvancedConfigJson({
       },
       'logging': <String, dynamic>{'level': 'INFO'},
     },
-    'effects': <String, dynamic>{
-      'media': 'hot',
-      'metadata': 'hot',
-      'scheduler': 'restart_scheduler',
-      'downloads': 'restart_scheduler',
-      'logging': 'restart_api',
-    },
+    'restart_required': const <String>[],
     ...extra,
   };
 }

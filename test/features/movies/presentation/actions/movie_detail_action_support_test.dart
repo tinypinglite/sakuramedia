@@ -33,9 +33,7 @@ void main() {
         MovieDetailActionType.toggleSubscription,
         MovieDetailActionType.refreshMetadata,
         MovieDetailActionType.recomputeHeat,
-        MovieDetailActionType.syncInteraction,
       ]);
-      expect(actions[4].enabled, isFalse);
     },
   );
 
@@ -69,44 +67,9 @@ void main() {
       expectedPath: '/movies/ABC-001/heat-recompute',
     );
 
-    expect(spec.successMessage, '影片热度已更新');
+    expect(spec.successMessage, '影片热度重算任务已提交，请在活动中心查看进度');
     expect(spec.failureMessage, '计算影片热度失败');
     expect(spec.resetPreview, isFalse);
-  });
-
-  test('movieDetailRemoteActionSpecFor maps sync interaction action', () async {
-    final spec = await _runRemoteActionSpec(
-      action: MovieDetailActionType.syncInteraction,
-      expectedPath: '/system/resource-task-actions',
-      movieId: 77,
-      expectedBody: <String, dynamic>{
-        'task_key': 'movie_interaction_sync',
-        'action': 'rerun',
-        'resource_ids': <int>[77],
-      },
-    );
-
-    expect(spec.successMessage, '互动数同步任务已提交，完成后刷新可见');
-    expect(spec.failureMessage, '提交互动数同步失败');
-    expect(spec.resetPreview, isFalse);
-  });
-
-  test('queue-style specs refuse to run without an integer movie id', () {
-    // 老后端详情响应不带 id 时（movieId 缺省 0），不能拿 0 去打统一 action
-    // 端点——request 直接抛错，由 executeMovieDetailRemoteAction 的 catch
-    // 转 failureMessage toast。
-    final spec =
-        movieDetailRemoteActionSpecFor(
-          action: MovieDetailActionType.syncInteraction,
-          movieNumber: 'ABC-001',
-        )!;
-
-    expect(
-      () => spec.request(
-        MoviesApi(apiClient: ApiClient(sessionStore: SessionStore.inMemory())),
-      ),
-      throwsStateError,
-    );
   });
 
   testWidgets(
@@ -196,7 +159,6 @@ void main() {
 Future<MovieDetailRemoteActionSpec> _runRemoteActionSpec({
   required MovieDetailActionType action,
   required String expectedPath,
-  int movieId = 0,
   Map<String, dynamic>? expectedBody,
 }) async {
   final sessionStore = SessionStore.inMemory();
@@ -215,38 +177,45 @@ Future<MovieDetailRemoteActionSpec> _runRemoteActionSpec({
       movieDetailRemoteActionSpecFor(
         action: action,
         movieNumber: 'ABC-001',
-        movieId: movieId,
       )!;
+  final response = action == MovieDetailActionType.recomputeHeat
+      ? <String, dynamic>{
+          'task_run_id': 42,
+          'task_key': 'movie_heat_update',
+          'state': 'pending',
+        }
+      : <String, dynamic>{
+          'javdb_id': 'movie-1',
+          'movie_number': 'ABC-001',
+          'title': 'Movie',
+          'series_name': '',
+          'maker_name': '',
+          'director_name': '',
+          'cover_image': null,
+          'release_date': '2024-01-01',
+          'duration_minutes': 120,
+          'score': 4.5,
+          'heat': 1,
+          'watched_count': 1,
+          'want_watch_count': 2,
+          'comment_count': 3,
+          'score_number': 4,
+          'is_collection': false,
+          'is_subscribed': false,
+          'can_play': true,
+          'summary': '',
+          'thin_cover_image': null,
+          'plot_images': const <Map<String, dynamic>>[],
+          'actors': const <Map<String, dynamic>>[],
+          'tags': const <Map<String, dynamic>>[],
+          'media_items': const <Map<String, dynamic>>[],
+          'playlists': const <Map<String, dynamic>>[],
+        };
   adapter.enqueueJson(
     method: 'POST',
     path: expectedPath,
-    body: <String, dynamic>{
-      'javdb_id': 'movie-1',
-      'movie_number': 'ABC-001',
-      'title': 'Movie',
-      'series_name': '',
-      'maker_name': '',
-      'director_name': '',
-      'cover_image': null,
-      'release_date': '2024-01-01',
-      'duration_minutes': 120,
-      'score': 4.5,
-      'heat': 1,
-      'watched_count': 1,
-      'want_watch_count': 2,
-      'comment_count': 3,
-      'score_number': 4,
-      'is_collection': false,
-      'is_subscribed': false,
-      'can_play': true,
-      'summary': '',
-      'thin_cover_image': null,
-      'plot_images': const <Map<String, dynamic>>[],
-      'actors': const <Map<String, dynamic>>[],
-      'tags': const <Map<String, dynamic>>[],
-      'media_items': const <Map<String, dynamic>>[],
-      'playlists': const <Map<String, dynamic>>[],
-    },
+    statusCode: action == MovieDetailActionType.recomputeHeat ? 202 : 200,
+    body: response,
   );
 
   await spec.request(moviesApi);

@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/subscriptions/data/api/movie_subscriptions_api.dart';
-import 'package:sakuramedia/features/subscriptions/data/dto/movie_subscription_list_item_dto.dart';
 import 'package:sakuramedia/features/subscriptions/data/dto/movie_subscription_status.dart';
 
 import '../../../../support/fake_http_client_adapter.dart';
@@ -208,98 +207,6 @@ void main() {
     expect(MovieSubscriptionStatus.failed.label, '查询出错');
   });
 
-  test('import_failed 解析导入作业失败原因摘要', () async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/movie-subscriptions',
-      body: _page(
-        items: <Map<String, dynamic>>[
-          <String, dynamic>{
-            'movie_number': 'IPX-451',
-            'status': 'import_failed',
-            'import_operation': <String, dynamic>{
-              'import_job_id': 525,
-              'download_task_id': 516,
-              'state': 'failed',
-              'imported_count': 0,
-              'skipped_count': 0,
-              'failed_count': 1,
-              'retryable_file_count': 0,
-              'available_actions': [
-                'open_import_job',
-                'rerun_import',
-                'delete_failed_download',
-              ],
-              'failure_reason': 'no_media_files_found',
-              'failure_detail': '下载目录中没有扫描到可导入的视频',
-            },
-          },
-        ],
-        total: 1,
-      ),
-    );
-
-    final item = (await api.getSubscriptions()).items.single;
-    final operation = item.importOperation!;
-
-    expect(operation.importJobId, 525);
-    expect(operation.downloadTaskId, 516);
-    expect(operation.canOpenImportJob, isTrue);
-    expect(operation.canRerun, isTrue);
-    expect(operation.canRetryFailedFiles, isFalse);
-    expect(operation.canDeleteFailedDownload, isTrue);
-    expect(operation.failureReason, 'no_media_files_found');
-    expect(operation.failureDetail, '下载目录中没有扫描到可导入的视频');
-    // 描述本身已含 detail，不重复拼接。
-    expect(operation.importFailureMessage, '未发现媒体文件：下载目录中没有扫描到可导入的视频');
-  });
-
-  test('失败详情与描述不重合时拼接展示', () {
-    const operation = MovieSubscriptionImportOperationDto(
-      importJobId: 1,
-      state: 'failed',
-      failureReason: 'media_import_failed',
-      failureDetail: '磁盘写入异常',
-    );
-
-    expect(operation.importFailureMessage, '文件导入失败：单个媒体文件搬运/落库异常：磁盘写入异常');
-  });
-
-  test('零产出导入解析为 no_media，并使用未产出媒体文案', () async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/movie-subscriptions',
-      body: _page(
-        items: <Map<String, dynamic>>[
-          <String, dynamic>{
-            'movie_number': 'CWPBD-99',
-            'status': 'import_failed',
-            'import_operation': <String, dynamic>{
-              'import_job_id': 783,
-              'download_task_id': 787,
-              'state': 'completed',
-              'outcome': 'no_media',
-              'imported_count': 0,
-              'skipped_count': 6,
-              'failed_count': 0,
-              'available_actions': ['open_import_job', 'rerun_import'],
-              'failure_reason': 'file_too_small',
-            },
-          },
-        ],
-      ),
-    );
-
-    final item = (await api.getSubscriptions()).items.single;
-
-    expect(item.isNoMediaImport, isTrue);
-    expect(item.displayStatusLabel, '未产出媒体');
-    expect(
-      item.importOperation!.importFailureMessage,
-      '未产出媒体：跳过 6 个文件；文件过小：低于最小体积阈值，按样本/残片跳过',
-    );
-  });
-
   test('getStatusCounts 解析各状态计数并按状态取值', () async {
     adapter.enqueueJson(
       method: 'GET',
@@ -336,8 +243,20 @@ void main() {
     expect(sum, counts.total);
   });
 
-  // 重置资源查询状态已迁统一 action（POST /system/resource-task-actions），
-  // 请求拼装与响应解析由 test/features/activity/data/activity_api_test.dart 覆盖。
+  test('resetSearches posts optional movie ids to the reset endpoint', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movie-subscriptions/search-resets',
+      body: <String, dynamic>{'reset_count': 2},
+    );
+
+    final result = await api.resetSearches(movieIds: <int>[11, 12]);
+
+    expect(result.resetCount, 2);
+    expect(adapter.requests.single.body, <String, dynamic>{
+      'movie_ids': <int>[11, 12],
+    });
+  });
 }
 
 Map<String, dynamic> _page({

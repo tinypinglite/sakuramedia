@@ -1,21 +1,7 @@
 import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 
-/// `GET /config` 的整包快照。**解析容错分两档**：
-///
-/// - **节级严格**：`values` 与 `media`/`metadata`/`scheduler`/`downloads`/`logging`
-///   五节缺失或不是对象 → 抛 [FormatException]。整节没了是真·契约破裂，该炸得响。
-/// - **字段级容错**：节内单个字段缺失/类型漂移 → 走 `core/json/json_parse.dart`
-///   取默认值，不抛。
-///
-/// 之所以这么分：本 DTO 被「下载偏好」和「高级设置」两页共用，各自只关心其中一节。
-/// 早先字段级也抛异常，结果后端删掉 `media.collection_duration_threshold_minutes`
-/// 之后，只读 `downloads` 一节的下载偏好页也被 media 节拖成「加载失败」，而
-/// [apiErrorMessage] 对非 [ApiException] 只会吐兜底文案，页面上看不到任何线索。
-///
-/// 代价：后端再删字段时，该字段会静默显示默认值，且该卡片的 PATCH 会因为提交了
-/// 后端已拒绝的 key 而 422——但其余卡片和另一整页仍然可用，比两页全砖强得多。
-/// 契约漂移最终仍要靠前后端同步修，这里只保证漂移不会连坐。
+/// `GET /config` 返回的整包配置快照。
 class ConfigResourceDto {
   const ConfigResourceDto({
     required this.media,
@@ -23,7 +9,6 @@ class ConfigResourceDto {
     required this.scheduler,
     required this.downloads,
     required this.logging,
-    required this.effects,
   });
 
   final AdvancedMediaConfigDto media;
@@ -31,11 +16,9 @@ class ConfigResourceDto {
   final AdvancedSchedulerConfigDto scheduler;
   final AdvancedDownloadsConfigDto downloads;
   final AdvancedLoggingConfigDto logging;
-  final Map<String, String> effects;
 
   factory ConfigResourceDto.fromJson(Map<String, dynamic> json) {
     final values = _objectAt(json, 'values', '/config response');
-    final effects = _optionalObjectAt(json, 'effects', '/config response');
     return ConfigResourceDto(
       media: AdvancedMediaConfigDto.fromJson(
         _objectAt(values, 'media', '/config values'),
@@ -52,19 +35,6 @@ class ConfigResourceDto {
       logging: AdvancedLoggingConfigDto.fromJson(
         _objectAt(values, 'logging', '/config values'),
       ),
-      effects: Map<String, String>.unmodifiable(
-        _targetSectionKeys.fold<Map<String, String>>(<String, String>{}, (
-          result,
-          key,
-        ) {
-          final value = asStringOrNull(effects[key]);
-          if (value == null) {
-            return result;
-          }
-          result[key] = value;
-          return result;
-        }),
-      ),
     );
   }
 }
@@ -72,38 +42,18 @@ class ConfigResourceDto {
 class ConfigUpdateResultDto {
   const ConfigUpdateResultDto({
     required this.values,
-    required this.applied,
-    required this.pendingRestart,
+    required this.restartRequired,
   });
 
   final ConfigResourceDto values;
-  final List<String> applied;
-  final List<PendingRestartFieldDto> pendingRestart;
+  final List<String> restartRequired;
 
   factory ConfigUpdateResultDto.fromJson(Map<String, dynamic> json) {
     return ConfigUpdateResultDto(
       values: ConfigResourceDto.fromJson(json),
-      applied: List<String>.unmodifiable(asStringList(json['applied'])),
-      pendingRestart: List<PendingRestartFieldDto>.unmodifiable(
-        _objectList(
-          json,
-          'pending_restart',
-        ).map(PendingRestartFieldDto.fromJson),
+      restartRequired: List<String>.unmodifiable(
+        asStringList(json['restart_required']),
       ),
-    );
-  }
-}
-
-class PendingRestartFieldDto {
-  const PendingRestartFieldDto({required this.field, required this.restart});
-
-  final String field;
-  final String restart;
-
-  factory PendingRestartFieldDto.fromJson(Map<String, dynamic> json) {
-    return PendingRestartFieldDto(
-      field: _stringAt(json, 'field'),
-      restart: _stringAt(json, 'restart'),
     );
   }
 }
@@ -298,14 +248,6 @@ class AdvancedLoggingConfigDto {
   }
 }
 
-const List<String> _targetSectionKeys = <String>[
-  'media',
-  'metadata',
-  'scheduler',
-  'downloads',
-  'logging',
-];
-
 Map<String, dynamic> _objectAt(
   Map<String, dynamic> json,
   String key, [
@@ -316,33 +258,6 @@ Map<String, dynamic> _objectAt(
     throw FormatException('$path missing "$key" object');
   }
   return Map<String, dynamic>.from(value);
-}
-
-Map<String, dynamic> _optionalObjectAt(
-  Map<String, dynamic> json,
-  String key, [
-  String path = 'object',
-]) {
-  final value = json[key];
-  if (value == null) {
-    return const <String, dynamic>{};
-  }
-  if (value is! Map) {
-    throw FormatException('$path "$key" must be an object');
-  }
-  return Map<String, dynamic>.from(value);
-}
-
-/// 列表项里非对象的条目直接跳过（后端加了新形态的元素时不该整包解析失败）。
-List<Map<String, dynamic>> _objectList(Map<String, dynamic> json, String key) {
-  final value = json[key];
-  if (value is! List) {
-    return const <Map<String, dynamic>>[];
-  }
-  return <Map<String, dynamic>>[
-    for (final item in value)
-      if (asMapOrNull(item) case final map?) map,
-  ];
 }
 
 String _stringAt(

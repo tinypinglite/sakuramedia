@@ -1295,70 +1295,26 @@ void main() {
     );
   });
 
-  test('syncMovieInteraction posts rerun to unified action endpoint', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/system/resource-task-actions',
-      body: <String, dynamic>{
-        'task_key': 'movie_interaction_sync',
-        'action': 'rerun',
-        'task_run_id': 9,
-        'accepted_resource_ids': <int>[1],
-        'skipped': <Map<String, dynamic>>[],
-      },
-    );
-
-    await moviesApi.syncMovieInteraction(movieId: 1);
-
-    final request = adapter.requests.single;
-    expect(request.method, 'POST');
-    expect(request.path, '/system/resource-task-actions');
-    expect(request.body, <String, dynamic>{
-      'task_key': 'movie_interaction_sync',
-      'action': 'rerun',
-      'resource_ids': <int>[1],
-    });
-  });
-
-  test('syncMovieInteraction preserves backend ApiException payload', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/system/resource-task-actions',
-      statusCode: 502,
-      body: <String, dynamic>{
-        'error': <String, dynamic>{
-          'code': 'movie_interaction_sync_failed',
-          'message': '同步失败',
-        },
-      },
-    );
-
-    expect(
-      () => moviesApi.syncMovieInteraction(movieId: 1),
-      throwsA(
-        isA<ApiException>().having(
-          (ApiException error) => error.error?.code,
-          'error.code',
-          'movie_interaction_sync_failed',
-        ),
-      ),
-    );
-  });
-
   test('recomputeMovieHeat posts to heat recompute endpoint', () async {
     adapter.enqueueJson(
       method: 'POST',
       path: '/movies/ABC-001/heat-recompute',
-      statusCode: 200,
-      body: movieDetailBody(title: 'Recomputed movie'),
+      statusCode: 202,
+      body: <String, dynamic>{
+        'task_run_id': 42,
+        'task_key': 'movie_heat_update',
+        'state': 'pending',
+      },
     );
 
-    final detail = await moviesApi.recomputeMovieHeat(movieNumber: 'ABC-001');
+    final accepted = await moviesApi.recomputeMovieHeat(movieNumber: 'ABC-001');
 
     final request = adapter.requests.single;
     expect(request.method, 'POST');
     expect(request.path, '/movies/ABC-001/heat-recompute');
-    expect(detail.title, 'Recomputed movie');
+    expect(accepted.taskRunId, 42);
+    expect(accepted.taskKey, 'movie_heat_update');
+    expect(accepted.state, 'pending');
   });
 
   test('recomputeMovieHeat preserves backend ApiException payload', () async {

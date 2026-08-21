@@ -10,7 +10,6 @@ enum MovieDetailActionType {
   toggleSubscription,
   refreshMetadata,
   recomputeHeat,
-  syncInteraction,
 }
 
 class MovieDetailActionDescriptor {
@@ -33,8 +32,6 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
   required MovieDetailDto movie,
   required bool isSubscribed,
 }) {
-  final hasJavdbId = movie.javdbId.trim().isNotEmpty;
-
   return <MovieDetailActionDescriptor>[
     const MovieDetailActionDescriptor(
       type: MovieDetailActionType.openInspector,
@@ -57,12 +54,6 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
       type: MovieDetailActionType.recomputeHeat,
       label: '计算热度',
       icon: Icons.local_fire_department_outlined,
-    ),
-    MovieDetailActionDescriptor(
-      type: MovieDetailActionType.syncInteraction,
-      label: '刷新互动数',
-      icon: Icons.bar_chart_rounded,
-      enabled: hasJavdbId,
     ),
   ];
 }

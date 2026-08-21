@@ -172,6 +172,13 @@ void main() {
                 'save_path': '/mnt/a',
                 'progress': 0.3,
                 'download_state': 'downloading',
+                'raw_state': 'downloading',
+                'download_speed_bytes': 2048,
+                'uploaded_speed_bytes': 256,
+                'downloaded_bytes': 750,
+                'total_size_bytes': 1250,
+                'eta_seconds': 60,
+                'progress_synced_at': '2026-03-10T08:11:00Z',
                 'import_status': 'pending',
                 'import_status_label': '等待导入',
                 'movie_title': '中文标题',
@@ -216,6 +223,10 @@ void main() {
           result.items.single.movieCover?.small,
           '/files/images/small.jpg',
         );
+        expect(result.items.single.downloadSpeedBytes, 2048);
+        expect(result.items.single.uploadedSpeedBytes, 256);
+        expect(result.items.single.totalSizeBytes, 1250);
+        expect(result.items.single.etaSeconds, 60);
       },
     );
 
@@ -370,73 +381,6 @@ void main() {
         final request = bundle.adapter.requests.single;
         expect(request.uri.queryParameters['delete_files'], 'true');
         expect(request.uri.queryParameters['confirm_delete_files'], 'true');
-      },
-    );
-
-    test('streamDownloadTasks maps snapshot/updated/removed frames', () async {
-      final sessionStore = await _buildLoggedInSessionStore();
-      final bundle = await createTestApiBundle(sessionStore);
-      addTearDown(bundle.dispose);
-
-      bundle.adapter.enqueueSse(
-        method: 'GET',
-        path: '/download-tasks/stream',
-        chunks: <String>[
-          'event: snapshot\n'
-              'data: {"client_id":2,"items":[{"task_id":11,"client_id":2,"movie_number":"ABC-001","name":"ABC-001","info_hash":"aa","progress":0.4,"raw_state":"downloading","download_state":"downloading","download_speed_bytes":1024,"uploaded_speed_bytes":128,"downloaded_bytes":500,"total_size_bytes":1250,"eta_seconds":120}]}\n\n',
-          'event: download_task_updated\n'
-              'data: {"task_id":11,"client_id":2,"movie_number":"ABC-001","name":"ABC-001","info_hash":"aa","progress":0.6,"raw_state":"downloading","download_state":"downloading","download_speed_bytes":2048,"uploaded_speed_bytes":256,"downloaded_bytes":750,"total_size_bytes":1250,"eta_seconds":60}\n\n',
-          'event: download_task_removed\n'
-              'data: {"task_id":11,"client_id":2,"info_hash":"aa"}\n\n',
-          'event: heartbeat\n'
-              'data: {}\n\n',
-        ],
-      );
-
-      final events =
-          await bundle.downloadsApi.streamDownloadTasks(clientId: 2).toList();
-
-      expect(events, hasLength(4));
-      expect(events[0].isSnapshot, isTrue);
-      expect(events[0].snapshotItems.single.uploadedSpeedBytes, 128);
-      expect(events[1].isTaskUpdated, isTrue);
-      expect(events[1].progress?.progress, closeTo(0.6, 1e-9));
-      expect(events[1].progress?.uploadedSpeedBytes, 256);
-      expect(events[2].isTaskRemoved, isTrue);
-      expect(events[2].removed?.taskId, 11);
-      expect(events[3].isHeartbeat, isTrue);
-
-      final recorded = bundle.adapter.requests.single;
-      expect(recorded.uri.queryParameters['client_id'], '2');
-    });
-
-    test(
-      'streamDownloadTasks splits download_client_status into transfer vs health',
-      () async {
-        final sessionStore = await _buildLoggedInSessionStore();
-        final bundle = await createTestApiBundle(sessionStore);
-        addTearDown(bundle.dispose);
-
-        bundle.adapter.enqueueSse(
-          method: 'GET',
-          path: '/download-tasks/stream',
-          chunks: <String>[
-            'event: download_client_status\n'
-                'data: {"client_id":2,"download_speed_bytes":1024,"upload_speed_bytes":128,"connection_status":"connected"}\n\n',
-            'event: download_client_status\n'
-                'data: {"client_id":2,"status":"unavailable","message":"qb offline"}\n\n',
-          ],
-        );
-
-        final events = await bundle.downloadsApi.streamDownloadTasks().toList();
-
-        expect(events, hasLength(2));
-        expect(events[0].isClientTransfer, isTrue);
-        expect(events[0].clientTransfer?.uploadSpeedBytes, 128);
-        expect(events[0].clientTransfer?.connectionStatus, 'connected');
-        expect(events[1].isClientHealth, isTrue);
-        expect(events[1].clientHealth?.isAvailable, isFalse);
-        expect(events[1].clientHealth?.message, 'qb offline');
       },
     );
 

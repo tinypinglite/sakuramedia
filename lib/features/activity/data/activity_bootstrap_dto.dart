@@ -5,14 +5,12 @@ import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 
 class ActivityBootstrapDto {
   const ActivityBootstrapDto({
-    required this.latestEventId,
     required this.notifications,
     required this.unreadCount,
     required this.activeTaskRuns,
     required this.taskRuns,
   });
 
-  final int latestEventId;
   final PaginatedResponseDto<ActivityNotificationDto> notifications;
   final int unreadCount;
   final List<TaskRunDto> activeTaskRuns;
@@ -36,7 +34,6 @@ class ActivityBootstrapDto {
             : const <TaskRunDto>[];
 
     return ActivityBootstrapDto(
-      latestEventId: asInt(json['latest_event_id']),
       notifications: PaginatedResponseDto<ActivityNotificationDto>.fromJson(
         asMap(json['notifications']),
         ActivityNotificationDto.fromJson,

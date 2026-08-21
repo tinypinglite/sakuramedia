@@ -1,18 +1,14 @@
 import 'package:sakuramedia/core/network/api_client.dart';
-import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/media_import/data/filesystem_entry_dto.dart';
-import 'package:sakuramedia/features/media_import/data/import_job_dto.dart';
+import 'package:sakuramedia/features/media_import/data/import_accepted_response_dto.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
 
-/// 媒体导入接口封装（后端 `media-import` 标签，挂载于根路径）。
+/// 统一媒体导入接口封装。
 class MediaImportApi {
   const MediaImportApi({required ApiClient apiClient}) : _apiClient = apiClient;
 
   final ApiClient _apiClient;
 
-  /// 浏览后端文件系统目录。
-  ///
-  /// [path] 为空时：单白名单根直接列内容，多根返回各根概览（响应 `path` 为空串）。
   Future<FilesystemListResponseDto> listEntries({String? path}) async {
     final response = await _apiClient.get(
       '/filesystem/entries',
@@ -23,84 +19,25 @@ class MediaImportApi {
     return FilesystemListResponseDto.fromJson(response);
   }
 
-  /// 触发目录导入。
-  Future<ImportJobTriggerResponseDto> createImportJob({
+  /// JAV 与普通视频统一进入 `/imports`，进度和结果由 task run 提供。
+  Future<ImportAcceptedResponseDto> createImport({
+    required String mediaKind,
     required int libraryId,
     required MediaImportSource source,
-    TransferMode transferMode = TransferMode.auto,
+    TransferMode? transferMode,
+    int? collectionId,
   }) async {
     final response = await _apiClient.post(
-      '/import-jobs',
+      '/imports',
       data: <String, dynamic>{
+        'media_kind': mediaKind,
+        'backend': source.backend,
         'library_id': libraryId,
         ...source.toJson(),
-        'transfer_mode': transferMode.wireValue,
+        if (transferMode != null) 'transfer_mode': transferMode.wireValue,
+        if (collectionId != null) 'collection_id': collectionId,
       },
     );
-    return ImportJobTriggerResponseDto.fromJson(response);
-  }
-
-  /// 分页查询导入作业（按 id 倒序）。
-  Future<PaginatedResponseDto<ImportJobListItemDto>> listImportJobs({
-    int page = 1,
-    int pageSize = 20,
-  }) async {
-    final response = await _apiClient.get(
-      '/import-jobs',
-      queryParameters: <String, dynamic>{'page': page, 'page_size': pageSize},
-    );
-    return PaginatedResponseDto<ImportJobListItemDto>.fromJson(
-      response,
-      ImportJobListItemDto.fromJson,
-    );
-  }
-
-  /// 查询导入作业详情（含 `failed_files`）。
-  Future<ImportJobDto> getImportJob(int importJobId) async {
-    final response = await _apiClient.get('/import-jobs/$importJobId');
-    return ImportJobDto.fromJson(response);
-  }
-
-  /// 重导失败文件。[files] 为空表示重导全部可重导（kind=file）失败文件。
-  Future<ImportJobTriggerResponseDto> retryFailedFiles(
-    int importJobId, {
-    List<String>? files,
-  }) async {
-    final response = await _apiClient.post(
-      '/import-jobs/$importJobId/retry',
-      data: <String, dynamic>{if (files != null) 'files': files},
-    );
-    return ImportJobTriggerResponseDto.fromJson(response);
-  }
-
-  /// 整作业重跑：不论上次成败按原源整目录重扫（completed 零产出的恢复通路）。
-  Future<ImportJobTriggerResponseDto> rerunImportJob(int importJobId) async {
-    final response = await _apiClient.post('/import-jobs/$importJobId/rerun');
-    return ImportJobTriggerResponseDto.fromJson(response);
-  }
-
-  /// 删除失败源文件，返回更新后的作业详情。
-  Future<ImportJobDto> deleteFailedFile(
-    int importJobId, {
-    required String path,
-  }) async {
-    final response = await _apiClient.delete(
-      '/import-jobs/$importJobId/failed-files',
-      data: <String, dynamic>{'path': path},
-    );
-    return ImportJobDto.fromJson(response);
-  }
-
-  /// 重命名失败源文件，返回更新后的作业详情。
-  Future<ImportJobDto> renameFailedFile(
-    int importJobId, {
-    required String path,
-    required String newName,
-  }) async {
-    final response = await _apiClient.post(
-      '/import-jobs/$importJobId/failed-files/rename',
-      data: <String, dynamic>{'path': path, 'new_name': newName},
-    );
-    return ImportJobDto.fromJson(response);
+    return ImportAcceptedResponseDto.fromJson(response);
   }
 }

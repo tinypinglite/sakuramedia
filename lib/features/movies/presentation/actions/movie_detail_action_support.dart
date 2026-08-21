@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/activity/data/resource_task_action_result_dto.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_menu.dart';
@@ -18,8 +17,8 @@ class MovieDetailRemoteActionSpec {
     this.resetPreview = false,
   });
 
-  // 返回 null 表示排队型动作（202）：只提示已提交，不回填影片详情。
-  final Future<MovieDetailDto?> Function(MoviesApi api) request;
+  // 返回非 MovieDetailDto 表示排队型动作（202）：只提示已提交，不回填影片详情。
+  final Future<Object?> Function(MoviesApi api) request;
   final String successMessage;
   final String failureMessage;
   final bool resetPreview;
@@ -46,12 +45,9 @@ MovieSubscriptionEvents resolveMovieSubscriptionNotifier(BuildContext context) {
   ).read(movieSubscriptionEventsProvider.notifier);
 }
 
-/// 互动同步走统一 action（整数 movie id 寻址）；[movieId] 缺省 0 表示
-/// 详情还没加载出 id（或老后端不下发），该动作会以失败 toast 兜底。
 MovieDetailRemoteActionSpec? movieDetailRemoteActionSpecFor({
   required MovieDetailActionType action,
   required String movieNumber,
-  int movieId = 0,
 }) {
   switch (action) {
     // 本地动作:只开检查器,不发请求,由页面自行接管。
@@ -69,28 +65,10 @@ MovieDetailRemoteActionSpec? movieDetailRemoteActionSpecFor({
     case MovieDetailActionType.recomputeHeat:
       return MovieDetailRemoteActionSpec(
         request: (api) => api.recomputeMovieHeat(movieNumber: movieNumber),
-        successMessage: '影片热度已更新',
+        successMessage: '影片热度重算任务已提交，请在活动中心查看进度',
         failureMessage: '计算影片热度失败',
       );
-    case MovieDetailActionType.syncInteraction:
-      return MovieDetailRemoteActionSpec(
-        request: (api) async {
-          await api.syncMovieInteraction(movieId: _requireMovieId(movieId));
-          return null;
-        },
-        successMessage: '互动数同步任务已提交，完成后刷新可见',
-        failureMessage: '提交互动数同步失败',
-      );
   }
-}
-
-int _requireMovieId(int movieId) {
-  if (movieId <= 0) {
-    // 详情响应没带 id（老后端）——让 catch 走 failureMessage 兜底，而不是
-    // 拿 0 去打统一 action 端点。
-    throw StateError('movie detail is missing an integer id');
-  }
-  return movieId;
 }
 
 /// 详情页远程动作的统一入口。批 8 前 `controller: MovieDetailController` 参数
@@ -106,11 +84,9 @@ Future<bool> executeMovieDetailRemoteAction({
   required void Function(MovieDetailActionType? action) onActiveActionChanged,
   required void Function(MovieDetailApplyResult result) onMovieApplied,
 }) async {
-  final currentMovie = ref.read(movieDetailProvider(movieNumber)).movie;
   final spec = movieDetailRemoteActionSpecFor(
     action: action,
     movieNumber: movieNumber,
-    movieId: currentMovie?.id ?? 0,
   );
   if (spec == null || isLocked) {
     return false;
@@ -118,15 +94,15 @@ Future<bool> executeMovieDetailRemoteAction({
 
   onActiveActionChanged(action);
   try {
-    final movie = await spec.request(ref.read(moviesApiProvider));
+    final response = await spec.request(ref.read(moviesApiProvider));
     if (!context.mounted) {
       return false;
     }
-    if (movie != null) {
+    if (response is MovieDetailDto) {
       final applyResult = applyReturnedMovieDetail(
         ref: ref,
         movieNumber: movieNumber,
-        movie: movie,
+        movie: response,
         selectedMediaId: selectedMediaId,
         resetPreview: spec.resetPreview,
       );
@@ -136,11 +112,7 @@ Future<bool> executeMovieDetailRemoteAction({
     return true;
   } catch (error) {
     if (context.mounted) {
-      showToast(
-        isResourceTaskActionConflict(error)
-            ? '已有相同操作在执行中，请稍后再试'
-            : apiErrorMessage(error, fallback: spec.failureMessage),
-      );
+      showToast(apiErrorMessage(error, fallback: spec.failureMessage));
     }
     return false;
   } finally {

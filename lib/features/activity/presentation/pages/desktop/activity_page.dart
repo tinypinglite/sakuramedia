@@ -12,8 +12,6 @@ import 'package:sakuramedia/features/activity/presentation/activity_filter_state
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_provider.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_state.dart';
 import 'package:sakuramedia/features/activity/presentation/job_params_dialog.dart';
-import 'package:sakuramedia/features/activity/presentation/providers/resource_task_center_provider.dart';
-import 'package:sakuramedia/features/activity/presentation/resource_task_pane.dart';
 import 'package:sakuramedia/features/downloads/presentation/download_task_pane.dart';
 import 'package:sakuramedia/features/downloads/presentation/download_task_filter_state.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_provider.dart';
@@ -50,17 +48,14 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
   late final ScrollController _pageScrollController;
   bool _isViewportWorkScheduled = false;
   ActivityTab? _lastActiveTab = ActivityTab.tasks;
-  bool _hasOpenedResourceTasks = false;
   bool _hasOpenedDownloadTasks = false;
 
   ActivityCenter get _controller => ref.read(activityCenterProvider.notifier);
-  ResourceTaskCenter get _resourceTaskController =>
-      ref.read(resourceTaskCenterProvider.notifier);
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this)
+    _tabController = TabController(length: 2, vsync: this)
       ..addListener(_handleTabChanged);
     _pageScrollController = ScrollController()..addListener(_handlePageScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -79,8 +74,7 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
     }
   }
 
-  /// 消费「打开即看某番号下载任务」的意图：先应用筛选再切 tab，保证
-  /// connectStream 在 _activeFilter 就位后才建立 SSE。
+  /// 消费「打开即看某番号下载任务」的意图：先应用筛选再切 tab。
   Future<void> _applyInitialDownloadIntent() async {
     final movieNumber = widget.initialDownloadMovieNumber?.trim();
     if (movieNumber == null || movieNumber.isEmpty) {
@@ -128,7 +122,7 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
   }
 
   /// 收敛 tab 切换的副作用：手势切 tab、程序化 setActiveTab（如 triggerJob）
-  /// 都过这条路径。切进 → initialize/connect；切走下载 → disconnect。
+  /// 都过这条路径。切进下载任务时开始轮询，切走后停止轮询。
   void _handleActiveTabDiff(ActivityTab nextTab) {
     if (nextTab == _lastActiveTab) {
       return;
@@ -136,22 +130,15 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
     final previousTab = _lastActiveTab;
     _lastActiveTab = nextTab;
 
-    if (nextTab == ActivityTab.resourceTasks && !_hasOpenedResourceTasks) {
-      setState(() {
-        _hasOpenedResourceTasks = true;
-      });
-    }
     if (nextTab == ActivityTab.downloadTasks) {
       if (!_hasOpenedDownloadTasks) {
         setState(() {
           _hasOpenedDownloadTasks = true;
         });
       }
-      // AsyncNotifier 的 build() 在首次 watch 时自动跑（`ref.read(...notifier)`
-      // 也会触发 build）；这里只需要打开 SSE。
-      unawaited(ref.read(downloadTaskCenterProvider.notifier).connectStream());
+      unawaited(ref.read(downloadTaskCenterProvider.notifier).startPolling());
     } else if (previousTab == ActivityTab.downloadTasks) {
-      ref.read(downloadTaskCenterProvider.notifier).disconnectStream();
+      ref.read(downloadTaskCenterProvider.notifier).stopPolling();
     }
   }
 
@@ -195,15 +182,6 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
             !activity.isLoadingMoreTasks &&
             activity.taskLoadMoreErrorMessage == null) {
           unawaited(_controller.loadMoreTasks());
-        }
-        break;
-      case ActivityTab.resourceTasks:
-        final resource = ref.read(resourceTaskCenterProvider).value;
-        if (resource != null &&
-            resource.hasMoreRecords &&
-            !resource.isLoadingMoreRecords &&
-            resource.recordsLoadMoreErrorMessage == null) {
-          unawaited(_resourceTaskController.loadMoreRecords());
         }
         break;
       case ActivityTab.downloadTasks:
@@ -278,10 +256,6 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
     }
     return switch (_controller.activeTab) {
       ActivityTab.tasks => _buildTaskSlivers(context),
-      ActivityTab.resourceTasks => buildResourceTaskSlivers(
-        context: context,
-        controller: _resourceTaskController,
-      ),
       ActivityTab.downloadTasks => buildDownloadTaskSlivers(
         context: context,
         ref: ref,
@@ -407,8 +381,6 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
     switch (_controller.activeTab) {
       case ActivityTab.tasks:
         await _controller.refreshTaskHistory();
-      case ActivityTab.resourceTasks:
-        await _resourceTaskController.refreshRecords();
       case ActivityTab.downloadTasks:
         await ref.read(downloadTaskCenterProvider.notifier).refresh();
     }
@@ -418,9 +390,6 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
   Widget build(BuildContext context) {
     final activityAsync = ref.watch(activityCenterProvider);
     final activeTab = activityAsync.value?.activeTab ?? ActivityTab.tasks;
-    if (_hasOpenedResourceTasks || activeTab == ActivityTab.resourceTasks) {
-      ref.watch(resourceTaskCenterProvider);
-    }
     if (_hasOpenedDownloadTasks || activeTab == ActivityTab.downloadTasks) {
       ref.watch(downloadTaskCenterProvider);
     }
@@ -442,22 +411,6 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
         }
       },
     );
-    if (_hasOpenedResourceTasks || activeTab == ActivityTab.resourceTasks) {
-      ref.listen(
-        resourceTaskCenterProvider.select(
-          (value) => value.value?.activeBucket?.filter,
-        ),
-        (previous, next) {
-          if (previous != null &&
-              next != null &&
-              previous != next &&
-              activeTab == ActivityTab.resourceTasks &&
-              _pageScrollController.hasClients) {
-            _pageScrollController.jumpTo(0);
-          }
-        },
-      );
-    }
     if (_hasOpenedDownloadTasks || activeTab == ActivityTab.downloadTasks) {
       ref.listen(
         downloadTaskCenterProvider.select((value) => value.value?.filter),
@@ -476,12 +429,6 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
       activityCenterProvider,
       (_, __) => _handleControllerChanged(),
     );
-    if (_hasOpenedResourceTasks || activeTab == ActivityTab.resourceTasks) {
-      ref.listen(
-        resourceTaskCenterProvider,
-        (_, __) => _handleControllerChanged(),
-      );
-    }
     if (_hasOpenedDownloadTasks || activeTab == ActivityTab.downloadTasks) {
       ref.listen<AsyncValue<DownloadTaskCenterState>>(
         downloadTaskCenterProvider,
@@ -505,10 +452,6 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
                       tabs: const [
                         Tab(key: Key('activity-tab-tasks'), text: '后台任务'),
                         Tab(
-                          key: Key('activity-tab-resource-tasks'),
-                          text: '元数据任务',
-                        ),
-                        Tab(
                           key: Key('activity-tab-download-tasks'),
                           text: '下载任务',
                         ),
@@ -526,21 +469,6 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
               ..._buildTabSlivers(context),
             ],
           ),
-          if (_controller.activeTab == ActivityTab.resourceTasks)
-            Positioned.fill(
-              child: IgnorePointer(
-                ignoring: !_resourceTaskController.isDetailOpen,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  child: _resourceTaskController.isDetailOpen
-                      ? buildResourceTaskDetailOverlay(
-                          context: context,
-                          controller: _resourceTaskController,
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -632,24 +560,15 @@ class _ConnectionBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final backgroundColor = switch (state) {
-      ActivityConnectionState.live => Theme.of(
-        context,
-      ).colorScheme.primary.withValues(alpha: 0.08),
       ActivityConnectionState.connecting => colors.surfaceMuted,
-      ActivityConnectionState.reconnecting => colors.warningSurface,
       ActivityConnectionState.polling => colors.infoSurface,
     };
     final foregroundColor = switch (state) {
-      ActivityConnectionState.live => Theme.of(context).colorScheme.primary,
       ActivityConnectionState.connecting => context.appTextPalette.secondary,
-      ActivityConnectionState.reconnecting => context.appTextPalette.warning,
       ActivityConnectionState.polling => context.appTextPalette.info,
     };
     final icon = switch (state) {
-      ActivityConnectionState.live => Icons.bolt_rounded,
       ActivityConnectionState.connecting => Icons.sync_rounded,
-      ActivityConnectionState.reconnecting =>
-        Icons.wifi_tethering_error_rounded,
       ActivityConnectionState.polling => Icons.schedule_rounded,
     };
 

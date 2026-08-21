@@ -3,7 +3,7 @@ import 'package:sakuramedia/features/activity/data/activity_notification_dto.dar
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 
-enum NotificationConnectionState { connecting, live, reconnecting, polling }
+enum NotificationConnectionState { connecting, polling }
 
 @immutable
 class NotificationCenterState {

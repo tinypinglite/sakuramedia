@@ -12,8 +12,7 @@ part of 'movie_subscription_manager_provider.dart';
 ///
 /// 职责边界：
 /// - **读**订阅列表走 `MovieSubscriptionsApi`（本域）；
-/// - **重置**资源查询状态走统一 action（`ActivityApi.applyResourceTaskAction`，
-///   task_key `subscribed_movie_auto_download`、action `reset_retry_budget`）；
+/// - **重置**订阅搜索状态走 `MovieSubscriptionsApi`；
 /// - **取消订阅**走 `MoviesApi`——后端刻意没在 `/movie-subscriptions` 下平行造写
 ///   端点，这里也不绕过它。
 ///
@@ -29,8 +28,7 @@ final movieSubscriptionManagerProvider = MovieSubscriptionManagerProvider._();
 ///
 /// 职责边界：
 /// - **读**订阅列表走 `MovieSubscriptionsApi`（本域）；
-/// - **重置**资源查询状态走统一 action（`ActivityApi.applyResourceTaskAction`，
-///   task_key `subscribed_movie_auto_download`、action `reset_retry_budget`）；
+/// - **重置**订阅搜索状态走 `MovieSubscriptionsApi`；
 /// - **取消订阅**走 `MoviesApi`——后端刻意没在 `/movie-subscriptions` 下平行造写
 ///   端点，这里也不绕过它。
 ///
@@ -48,8 +46,7 @@ final class MovieSubscriptionManagerProvider
   ///
   /// 职责边界：
   /// - **读**订阅列表走 `MovieSubscriptionsApi`（本域）；
-  /// - **重置**资源查询状态走统一 action（`ActivityApi.applyResourceTaskAction`，
-  ///   task_key `subscribed_movie_auto_download`、action `reset_retry_budget`）；
+  /// - **重置**订阅搜索状态走 `MovieSubscriptionsApi`；
   /// - **取消订阅**走 `MoviesApi`——后端刻意没在 `/movie-subscriptions` 下平行造写
   ///   端点，这里也不绕过它。
   ///
@@ -83,8 +80,7 @@ String _$movieSubscriptionManagerHash() =>
 ///
 /// 职责边界：
 /// - **读**订阅列表走 `MovieSubscriptionsApi`（本域）；
-/// - **重置**资源查询状态走统一 action（`ActivityApi.applyResourceTaskAction`，
-///   task_key `subscribed_movie_auto_download`、action `reset_retry_budget`）；
+/// - **重置**订阅搜索状态走 `MovieSubscriptionsApi`；
 /// - **取消订阅**走 `MoviesApi`——后端刻意没在 `/movie-subscriptions` 下平行造写
 ///   端点，这里也不绕过它。
 ///

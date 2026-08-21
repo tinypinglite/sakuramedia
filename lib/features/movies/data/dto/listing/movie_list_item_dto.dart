@@ -63,8 +63,7 @@ class MovieListItemDto {
     this.similarityScore,
   });
 
-  /// 影片整数主键（2026-07 起后端在所有影片卡片下发），统一资源任务操作
-  /// （`resource_ids`）的寻址键。老响应缺字段时为 0，调用方按 `> 0` 判可用。
+  /// 后端返回的影片整数主键，可用于与订阅等域数据关联。
   final int id;
 
   final String javdbId;

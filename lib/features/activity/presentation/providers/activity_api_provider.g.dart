@@ -11,7 +11,7 @@ part of 'activity_api_provider.dart';
 /// activity 域 API 的 Riverpod 入口。
 ///
 /// 原生装配：依赖经 `ref.watch` 拉取，组合根不再 override。
-/// 首个消费方是订阅管理页（统一资源任务操作走它）。测试需要替身时用
+/// 活动中心和通知中心通过它访问任务与通知快照。测试需要替身时用
 /// `overrideWithValue(...)`。
 
 @ProviderFor(activityApi)
@@ -20,7 +20,7 @@ final activityApiProvider = ActivityApiProvider._();
 /// activity 域 API 的 Riverpod 入口。
 ///
 /// 原生装配：依赖经 `ref.watch` 拉取，组合根不再 override。
-/// 首个消费方是订阅管理页（统一资源任务操作走它）。测试需要替身时用
+/// 活动中心和通知中心通过它访问任务与通知快照。测试需要替身时用
 /// `overrideWithValue(...)`。
 
 final class ActivityApiProvider
@@ -29,7 +29,7 @@ final class ActivityApiProvider
   /// activity 域 API 的 Riverpod 入口。
   ///
   /// 原生装配：依赖经 `ref.watch` 拉取，组合根不再 override。
-  /// 首个消费方是订阅管理页（统一资源任务操作走它）。测试需要替身时用
+  /// 活动中心和通知中心通过它访问任务与通知快照。测试需要替身时用
   /// `overrideWithValue(...)`。
   ActivityApiProvider._()
     : super(

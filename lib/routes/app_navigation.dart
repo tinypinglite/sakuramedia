@@ -274,7 +274,7 @@ const List<_NavSeed> _desktopNavSeeds = [
         slug: 'system/media-import',
         label: '资源导入',
         icon: Icons.drive_folder_upload_outlined,
-        description: '导入 JAV、PornBox 影片与 JAV 字幕，并管理导入进度和失败文件。',
+        description: '导入 JAV、PornBox 影片与 JAV 字幕，并在任务中心查看进度和结果。',
       ),
     ],
   ),

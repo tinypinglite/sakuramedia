@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/media_import/data/import_job_dto.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
 import 'package:sakuramedia/features/media_import/presentation/directory_picker_dialog.dart';
 import 'package:sakuramedia/theme.dart';
@@ -29,7 +28,7 @@ void main() {
     await _openPicker(tester);
 
     expect(find.text('本地库 · 本地存储'), findsOneWidget);
-    expect(find.text('硬链接优先（保留源文件）'), findsOneWidget);
+    expect(find.text('自动选择（保留源文件）'), findsOneWidget);
     expect(find.text('/mnt/incoming'), findsOneWidget);
 
     await tester.tap(
@@ -63,7 +62,7 @@ void main() {
       find.byKey(const Key('media-import-cloud-root-hint')),
       findsOneWidget,
     );
-    expect(find.text('复制并保留源文件'), findsOneWidget);
+    expect(find.text('导入后清理源文件'), findsOneWidget);
     expect(find.text('媒体库管理目录，不可选择'), findsOneWidget);
     expect(
       tester
@@ -104,7 +103,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('result:cloud115:cid-source:copy'), findsOneWidget);
+    expect(find.text('result:cloud115:cid-source:cleanup-source'), findsOneWidget);
   });
 
   testWidgets('cloud115 supports pagination and cleanup warning', (
@@ -145,9 +144,9 @@ void main() {
     final loadMoreRequest = bundle.adapter.requests.last;
     expect(loadMoreRequest.uri.queryParameters['offset'], '1');
 
-    await tester.tap(find.text('复制并保留源文件'));
+    await tester.tap(find.text('导入后清理源文件'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('复制后删除源文件').last);
+    await tester.tap(find.text('导入后清理源文件').last);
     await tester.pumpAndSettle();
 
     expect(
@@ -376,6 +375,7 @@ class _PickerHarnessState extends State<_PickerHarness> {
     final sourceText = switch (request.source) {
       LocalMediaImportSource(:final path) => 'local:$path',
       Cloud115MediaImportSource(:final cid) => 'cloud115:$cid',
+      Cloud115FileMediaImportSource(:final fid) => 'cloud115-file:$fid',
     };
     setState(() {
       _result = 'result:$sourceText:${request.transferMode.wireValue}';

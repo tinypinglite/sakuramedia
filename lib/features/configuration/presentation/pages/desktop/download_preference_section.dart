@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/configuration/data/dto/config_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/download_preference_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/download_preference_state.dart';
@@ -29,12 +28,12 @@ class _DesktopDownloadPreferenceSectionState
     extends ConsumerState<DesktopDownloadPreferenceSection> {
   Future<void> _save() async {
     try {
-      final pendingRestart =
+      final restartRequired =
           await ref.read(downloadPreferenceProvider.notifier).save();
       if (!mounted) {
         return;
       }
-      showToast(_saveMessage(pendingRestart));
+      showToast(_saveMessage(restartRequired));
     } catch (error) {
       if (!mounted) {
         return;
@@ -80,7 +79,7 @@ class _DesktopDownloadPreferenceSectionState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '未显式选择下载器时，系统按此顺序自动选择。手动搜索和提交立即生效；自动下载任务需重启容器。',
+            '未显式选择下载器时，系统按此顺序自动选择。保存后需重启容器使配置生效。',
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s12,
@@ -154,8 +153,8 @@ class _DesktopDownloadPreferenceSectionState
   }
 }
 
-String _saveMessage(List<PendingRestartFieldDto> pendingRestart) {
-  return pendingRestart.any((item) => item.restart == 'scheduler')
-      ? buildRestartRequiredMessage('已保存')
-      : '已保存';
+String _saveMessage(List<String> restartRequired) {
+  return restartRequired.isEmpty
+      ? '已保存'
+      : buildRestartRequiredMessage('已保存');
 }

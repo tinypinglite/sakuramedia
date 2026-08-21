@@ -35,8 +35,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 /// 构建「下载任务」Tab 的 sliver 列表。
 ///
-/// 与 [buildResourceTaskSlivers] 对齐的纯函数风格：调用方负责把返回的 slivers 放进
-/// 外层 `CustomScrollView`。数据源为 `downloadTaskCenterProvider`。
+/// 调用方负责把返回的 slivers 放进外层 `CustomScrollView`。
 List<Widget> buildDownloadTaskSlivers({
   required BuildContext context,
   required WidgetRef ref,
@@ -178,9 +177,10 @@ class _DownloadClientSpeedBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
-    final transfers = state.clientTransfers.values.toList()
-      ..sort((a, b) => a.clientId.compareTo(b.clientId));
-    final hasAnyLiveData = transfers.isNotEmpty;
+    final hasAnyLiveData = state.paged.items.any(
+      (row) =>
+          row.task.downloadSpeedBytes > 0 || row.task.uploadedSpeedBytes > 0,
+    );
     final totalDown = state.totalDownloadSpeedBytes;
     final totalUp = state.totalUploadSpeedBytes;
 
@@ -215,14 +215,18 @@ class _DownloadClientSpeedBar extends StatelessWidget {
               runSpacing: context.appSpacing.sm,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                for (final transfer in transfers)
-                  _ClientTransferPill(state: state, transfer: transfer),
+                const AppBadge(
+                  key: Key('download-client-snapshot-status'),
+                  label: '列表快照',
+                  tone: AppBadgeTone.neutral,
+                  size: AppBadgeSize.compact,
+                ),
               ],
             ),
           ),
-          if (state.streamState != DownloadTaskStreamState.idle) ...[
+          if (state.pollingState != DownloadTaskPollingState.idle) ...[
             SizedBox(width: context.appSpacing.sm),
-            _DownloadStreamBadge(state: state.streamState),
+            _DownloadPollingBadge(state: state.pollingState),
           ],
         ],
       ),
@@ -261,55 +265,17 @@ class _SpeedSummaryLabel extends StatelessWidget {
   }
 }
 
-class _ClientTransferPill extends StatelessWidget {
-  const _ClientTransferPill({required this.state, required this.transfer});
+class _DownloadPollingBadge extends StatelessWidget {
+  const _DownloadPollingBadge({required this.state});
 
-  final DownloadTaskCenterState state;
-  final DownloadClientTransferState transfer;
-
-  @override
-  Widget build(BuildContext context) {
-    final name = state.clientNameOf(transfer.clientId);
-    if (!transfer.isAvailable) {
-      return Tooltip(
-        message: transfer.unavailableMessage ?? '客户端不可用',
-        child: AppBadge(
-          key: Key('download-client-status-${transfer.clientId}'),
-          label: '$name · 不可用',
-          tone: AppBadgeTone.error,
-          size: AppBadgeSize.compact,
-        ),
-      );
-    }
-    final label =
-        '$name · ↓${formatTransferSpeed(transfer.downloadSpeedBytes)} · ↑${formatTransferSpeed(transfer.uploadSpeedBytes)}';
-    return AppBadge(
-      key: Key('download-client-status-${transfer.clientId}'),
-      label: label,
-      tone: AppBadgeTone.neutral,
-      size: AppBadgeSize.compact,
-    );
-  }
-}
-
-class _DownloadStreamBadge extends StatelessWidget {
-  const _DownloadStreamBadge({required this.state});
-
-  final DownloadTaskStreamState state;
+  final DownloadTaskPollingState state;
 
   @override
   Widget build(BuildContext context) {
-    final (label, tone) = switch (state) {
-      DownloadTaskStreamState.live => ('实时', AppBadgeTone.success),
-      DownloadTaskStreamState.connecting => ('连接中', AppBadgeTone.neutral),
-      DownloadTaskStreamState.reconnecting => ('重连中', AppBadgeTone.warning),
-      DownloadTaskStreamState.polling => ('轮询', AppBadgeTone.info),
-      DownloadTaskStreamState.idle => ('未连接', AppBadgeTone.neutral),
-    };
-    return AppBadge(
-      key: const Key('download-task-stream-badge'),
-      label: label,
-      tone: tone,
+    return const AppBadge(
+      key: Key('download-task-polling-badge'),
+      label: '轮询中',
+      tone: AppBadgeTone.info,
       size: AppBadgeSize.compact,
     );
   }
@@ -326,7 +292,6 @@ class _DownloadTaskCard extends ConsumerWidget {
     final colors = context.appColors;
     final componentTokens = context.appComponentTokens;
     final task = row.task;
-    final live = row.live;
     final progress = row.progress.clamp(0.0, 1.0);
     final downloadState = row.downloadState;
     final isPending = state.isTaskPending(task.id);
@@ -405,30 +370,30 @@ class _DownloadTaskCard extends ConsumerWidget {
                 '${(progress * 100).toStringAsFixed(1)}%',
                 style: _statTextStyle(context),
               ),
-              if (live != null && live.totalSizeBytes > 0)
+              if (task.totalSizeBytes > 0)
                 Text(
-                  '${formatFileSize(live.downloadedBytes)} / ${formatFileSize(live.totalSizeBytes)}',
+                  '${formatFileSize(task.downloadedBytes)} / ${formatFileSize(task.totalSizeBytes)}',
                   style: _statTextStyle(context),
                 ),
-              if (live != null && downloadState == 'downloading') ...[
+              if (downloadState == 'downloading' && task.downloadSpeedBytes > 0) ...[
                 Text(
-                  '↓${formatTransferSpeed(live.downloadSpeedBytes)}',
+                  '↓${formatTransferSpeed(task.downloadSpeedBytes)}',
                   style: _statTextStyle(context),
                 ),
                 Text(
-                  '↑${formatTransferSpeed(live.uploadedSpeedBytes)}',
+                  '↑${formatTransferSpeed(task.uploadedSpeedBytes)}',
                   style: _statTextStyle(context),
                 ),
               ],
               // 做种态：下载已完成，只展示上传速度（"贡献速率"）
-              if (live != null && downloadState == 'seeding')
+              if (downloadState == 'seeding' && task.uploadedSpeedBytes > 0)
                 Text(
-                  '↑${formatTransferSpeed(live.uploadedSpeedBytes)}',
+                  '↑${formatTransferSpeed(task.uploadedSpeedBytes)}',
                   style: _statTextStyle(context),
                 ),
-              if (live?.etaSeconds != null && (live?.etaSeconds ?? 0) > 0)
+              if ((task.etaSeconds ?? 0) > 0)
                 Text(
-                  '剩余 ${formatMediaDurationLabel(live!.etaSeconds!)}',
+                  '剩余 ${formatMediaDurationLabel(task.etaSeconds!)}',
                   style: _statTextStyle(context),
                 ),
               // 导入 badge 用短标签，完整文案挂 Tooltip 里

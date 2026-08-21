@@ -18,6 +18,13 @@ class DownloadTaskDto {
     required this.updatedAt,
     this.movieTitle,
     this.movieCover,
+    this.rawState = '',
+    this.downloadSpeedBytes = 0,
+    this.uploadedSpeedBytes = 0,
+    this.downloadedBytes = 0,
+    this.totalSizeBytes = 0,
+    this.etaSeconds,
+    this.progressSyncedAt,
   });
 
   final int id;
@@ -39,6 +46,13 @@ class DownloadTaskDto {
 
   /// 后端 JOIN 出的封面图。null 表示影片未入库或该影片无封面；前端用 MaskedImage 自带 placeholder。
   final MovieImageDto? movieCover;
+  final String rawState;
+  final int downloadSpeedBytes;
+  final int uploadedSpeedBytes;
+  final int downloadedBytes;
+  final int totalSizeBytes;
+  final int? etaSeconds;
+  final DateTime? progressSyncedAt;
 
   factory DownloadTaskDto.fromJson(Map<String, dynamic> json) {
     final coverRaw = json['movie_cover'];
@@ -60,6 +74,13 @@ class DownloadTaskDto {
           coverRaw is Map<String, dynamic>
               ? MovieImageDto.fromJson(coverRaw)
               : null,
+      rawState: json['raw_state'] as String? ?? '',
+      downloadSpeedBytes: asInt(json['download_speed_bytes']),
+      uploadedSpeedBytes: asInt(json['uploaded_speed_bytes']),
+      downloadedBytes: asInt(json['downloaded_bytes']),
+      totalSizeBytes: asInt(json['total_size_bytes']),
+      etaSeconds: asIntOrNull(json['eta_seconds']),
+      progressSyncedAt: asDateTime(json['progress_synced_at']),
     );
   }
 
@@ -78,6 +99,13 @@ class DownloadTaskDto {
     Object? updatedAt = _sentinel,
     Object? movieTitle = _sentinel,
     Object? movieCover = _sentinel,
+    String? rawState,
+    int? downloadSpeedBytes,
+    int? uploadedSpeedBytes,
+    int? downloadedBytes,
+    int? totalSizeBytes,
+    Object? etaSeconds = _sentinel,
+    Object? progressSyncedAt = _sentinel,
   }) {
     return DownloadTaskDto(
       id: id ?? this.id,
@@ -109,6 +137,17 @@ class DownloadTaskDto {
           identical(movieCover, _sentinel)
               ? this.movieCover
               : movieCover as MovieImageDto?,
+      rawState: rawState ?? this.rawState,
+      downloadSpeedBytes: downloadSpeedBytes ?? this.downloadSpeedBytes,
+      uploadedSpeedBytes: uploadedSpeedBytes ?? this.uploadedSpeedBytes,
+      downloadedBytes: downloadedBytes ?? this.downloadedBytes,
+      totalSizeBytes: totalSizeBytes ?? this.totalSizeBytes,
+      etaSeconds: identical(etaSeconds, _sentinel)
+          ? this.etaSeconds
+          : etaSeconds as int?,
+      progressSyncedAt: identical(progressSyncedAt, _sentinel)
+          ? this.progressSyncedAt
+          : progressSyncedAt as DateTime?,
     );
   }
 }

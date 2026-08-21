@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/activity/presentation/providers/activity_stream_client_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/collection_playback_handoff_provider.dart';
 import 'package:sakuramedia/core/network/providers/sse_event_stream_client_provider.dart';
 
@@ -41,10 +40,6 @@ void main() {
       container.read(sseEventStreamClientProvider),
       same(bundle.sseEventStreamClient),
     );
-    expect(
-      container.read(activityEventStreamClientProvider),
-      same(bundle.activityEventStreamClient),
-    );
   });
 
   test('SSE client override 缺省值不触发真实连接副作用', () {
@@ -57,6 +52,5 @@ void main() {
     // connect 会抛适配器异常而非泄漏到真实网络；这里只验证 provider 读值
     // 本身不抛、返回同一实例即可（默认场景不消费 SSE）。
     expect(container.read(sseEventStreamClientProvider), isNotNull);
-    expect(container.read(activityEventStreamClientProvider), isNotNull);
   });
 }

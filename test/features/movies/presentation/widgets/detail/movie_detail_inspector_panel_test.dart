@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
-import 'package:sakuramedia/core/network/sse_event_stream_client.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
@@ -81,10 +80,9 @@ class _FakeMoviesApi extends MoviesApi {
 class _FakeDownloadsApi extends DownloadsApi {
   _FakeDownloadsApi({
     required ApiClient apiClient,
-    required SseEventStreamClient streamClient,
     required this.searchHandler,
     required this.createHandler,
-  }) : super(apiClient: apiClient, streamClient: streamClient);
+  }) : super(apiClient: apiClient);
 
   final _SearchCandidates searchHandler;
   final _CreateDownloadRequest createHandler;
@@ -684,12 +682,6 @@ Future<ProviderContainer> _pumpInspectorPanel(
   final sessionStore = SessionStore.inMemory();
   final apiClient = ApiClient(sessionStore: sessionStore);
   addTearDown(apiClient.dispose);
-  final sseClient = createSseEventStreamClient(
-    apiClient: apiClient,
-    sessionStore: sessionStore,
-  );
-  addTearDown(sseClient.dispose);
-
   final fakeMoviesApi = _FakeMoviesApi(
     apiClient: apiClient,
     reviewsHandler: fetchMovieReviews,
@@ -698,7 +690,6 @@ Future<ProviderContainer> _pumpInspectorPanel(
   );
   final fakeDownloadsApi = _FakeDownloadsApi(
     apiClient: apiClient,
-    streamClient: sseClient,
     searchHandler:
         searchCandidates ??
         ({required String movieNumber, String? indexerKind}) async =>

@@ -1,6 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
-import 'package:sakuramedia/features/configuration/data/dto/config_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/config_api_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/download_preference_state.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/async_notifier_dispose_guard.dart';
@@ -26,10 +25,10 @@ class DownloadPreference extends _$DownloadPreference
     state = AsyncData(current.copyWith(draftKinds: List.of(kinds)));
   }
 
-  Future<List<PendingRestartFieldDto>> save() async {
+  Future<List<String>> save() async {
     final current = state.value;
     if (current == null || current.isSaving) {
-      return const <PendingRestartFieldDto>[];
+      return const <String>[];
     }
     state = AsyncData(current.copyWith(isSaving: true));
     try {
@@ -46,7 +45,7 @@ class DownloadPreference extends _$DownloadPreference
           DownloadPreferenceState(savedKinds: kinds, draftKinds: kinds),
         );
       }
-      return result.pendingRestart;
+      return result.restartRequired;
     } catch (_) {
       if (!isDisposed) state = AsyncData(current.copyWith(isSaving: false));
       rethrow;

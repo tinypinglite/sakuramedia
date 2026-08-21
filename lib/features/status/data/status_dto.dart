@@ -89,20 +89,34 @@ class MediaLibraryStatsDto {
 }
 
 class ThumbnailStatsDto {
-  const ThumbnailStatsDto({required this.pendingMedia, required this.total});
+  const ThumbnailStatsDto({
+    required this.pendingMedia,
+    required this.retryWaitMedia,
+    required this.terminalFailedMedia,
+    required this.total,
+  });
 
   final int pendingMedia;
+  final int retryWaitMedia;
+  final int terminalFailedMedia;
   final int total;
 
   factory ThumbnailStatsDto.fromJson(Map<String, dynamic> json) {
     return ThumbnailStatsDto(
       pendingMedia: json['pending_media'] as int? ?? 0,
+      retryWaitMedia: json['retry_wait_media'] as int? ?? 0,
+      terminalFailedMedia: json['terminal_failed_media'] as int? ?? 0,
       total: json['total'] as int? ?? 0,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return <String, dynamic>{'pending_media': pendingMedia, 'total': total};
+    return <String, dynamic>{
+      'pending_media': pendingMedia,
+      'retry_wait_media': retryWaitMedia,
+      'terminal_failed_media': terminalFailedMedia,
+      'total': total,
+    };
   }
 }
 

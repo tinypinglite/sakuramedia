@@ -1,7 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
-import 'package:sakuramedia/features/videos/data/api/video_imports_api.dart';
 import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 
 part 'videos_api_provider.g.dart';
@@ -18,9 +17,4 @@ VideosApi videosApi(Ref ref) {
 @Riverpod(keepAlive: true)
 VideoCollectionsApi videoCollectionsApi(Ref ref) {
   return VideoCollectionsApi(apiClient: ref.watch(apiClientProvider));
-}
-
-@Riverpod(keepAlive: true)
-VideoImportsApi videoImportsApi(Ref ref) {
-  return VideoImportsApi(apiClient: ref.watch(apiClientProvider));
 }

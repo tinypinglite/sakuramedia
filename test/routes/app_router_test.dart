@@ -3546,7 +3546,6 @@ void _enqueueActivityResponses(TestApiBundle bundle) {
     method: 'GET',
     path: '/system/activity/bootstrap',
     body: <String, dynamic>{
-      'latest_event_id': 120,
       'notifications': <String, dynamic>{
         'items': <Map<String, dynamic>>[
           <String, dynamic>{
@@ -3611,15 +3610,6 @@ void _enqueueActivityResponses(TestApiBundle bundle) {
         'total': 1,
       },
     },
-  );
-  bundle.adapter.enqueueSse(
-    method: 'GET',
-    path: '/system/events/stream',
-    chunks: const <String>[
-      'id: 1\n'
-          'event: heartbeat\n'
-          'data: {}\n\n',
-    ],
   );
 }
 

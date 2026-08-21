@@ -1,27 +1,15 @@
-import 'dart:async';
-import 'dart:collection';
-
-import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sakuramedia/core/network/api_sse_event.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/activity/data/activity_api.dart';
-import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
-import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
-import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
-import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
-import 'package:sakuramedia/features/activity/presentation/providers/activity_api_provider.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_provider.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_state.dart';
 
 import '../../../../support/test_api_bundle.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
   late SessionStore sessionStore;
   late TestApiBundle bundle;
+  late ProviderContainer container;
 
   setUp(() async {
     sessionStore = SessionStore.inMemory();
@@ -29,692 +17,126 @@ void main() {
     await sessionStore.saveTokens(
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
-      expiresAt: DateTime.parse('2026-03-10T10:00:00Z'),
+      expiresAt: DateTime.parse('2026-12-31T12:00:00Z'),
     );
     bundle = await createTestApiBundle(sessionStore);
+    container = ProviderContainer(
+      overrides: bundle.riverpodOverrides(),
+      retry: (_, _) => null,
+    );
   });
 
   tearDown(() {
+    container.dispose();
     bundle.dispose();
     sessionStore.dispose();
   });
 
-  test(
-    'initialize loads bootstrap state and connects stream from latest_event_id',
-    () async {
-      _enqueueInitialActivityState(bundle, latestEventId: 120);
-      bundle.adapter.enqueueSse(
-        method: 'GET',
-        path: '/system/events/stream',
-        chunks: const <String>[
-          'id: 121\n'
-              'event: heartbeat\n'
-              'data: {}\n\n',
-        ],
-        keepOpen: true,
-      );
+  test('build loads task snapshot and enters polling state', () async {
+    final subscription = container.listen(activityCenterProvider, (_, __) {});
+    addTearDown(subscription.close);
+    _enqueueJobs(bundle);
+    _enqueueBootstrap(bundle, activeTaskId: 8, historyTaskId: 9);
 
-      final controller = _ActivityCenterHarness(
-        activityApi: bundle.activityApi,
-      );
-      addTearDown(controller.dispose);
+    final state = await container.read(activityCenterProvider.future);
 
-      await controller.initialize();
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-
-      expect(controller.connectionState, ActivityConnectionState.live);
-      expect(bundle.adapter.hitCount('GET', '/system/activity/bootstrap'), 1);
-      expect(bundle.adapter.hitCount('GET', '/system/events/stream'), 1);
-      expect(
-        bundle.adapter.requests
-            .where((request) => request.path == '/system/events/stream')
-            .single
-            .uri
-            .queryParameters['after_event_id'],
-        '120',
-      );
-    },
-  );
-
-  test(
-    'task_run_updated removes completed task from active list and keeps history',
-    () async {
-      _enqueueInitialActivityState(
-        bundle,
-        activeTasks: <Map<String, dynamic>>[_runningTaskJson()],
-        taskRuns: <Map<String, dynamic>>[_runningTaskJson()],
-      );
-      bundle.adapter.enqueueSse(
-        method: 'GET',
-        path: '/system/events/stream',
-        chunks: const <String>[
-          'id: 122\n'
-              'event: task_run_updated\n'
-              'data: {"id":88,"task_key":"download_task_import","task_name":"下载任务导入 SSIS-123","trigger_type":"manual","state":"completed","progress_current":3,"progress_total":3,"progress_text":"导入完成","result_text":"新增影片 1 部","created_at":"2026-03-26T09:10:00Z","updated_at":"2026-03-26T09:20:00Z","started_at":"2026-03-26T09:10:00Z","finished_at":"2026-03-26T09:20:00Z"}\n\n',
-        ],
-        keepOpen: true,
-      );
-
-      final controller = _ActivityCenterHarness(
-        activityApi: bundle.activityApi,
-      );
-      addTearDown(controller.dispose);
-
-      await controller.initialize();
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-
-      expect(controller.activeTaskRuns, isEmpty);
-      expect(controller.taskRuns, hasLength(1));
-      expect(controller.taskRuns.single.state, 'completed');
-    },
-  );
-
-  test(
-    'applyTaskFilter refreshes only task history and keeps live stream open',
-    () async {
-      _enqueueInitialActivityState(
-        bundle,
-        notifications: <Map<String, dynamic>>[
-          _notificationJson(id: 101, category: 'reminder'),
-        ],
-        activeTasks: <Map<String, dynamic>>[_runningTaskJson()],
-        taskRuns: <Map<String, dynamic>>[_completedTaskJson(id: 201)],
-      );
-      bundle.adapter.enqueueSse(
-        method: 'GET',
-        path: '/system/events/stream',
-        chunks: const <String>[],
-        keepOpen: true,
-      );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/task-runs',
-        body: <String, dynamic>{
-          'items': <Map<String, dynamic>>[_failedTaskJson(id: 301)],
-          'page': 1,
-          'page_size': 20,
-          'total': 1,
-        },
-      );
-
-      final controller = _ActivityCenterHarness(
-        activityApi: bundle.activityApi,
-      );
-      addTearDown(controller.dispose);
-
-      await controller.initialize();
-      final update = controller.applyTaskFilter(
-        controller.taskFilter.copyWith(state: 'failed'),
-      );
-
-      expect(controller.taskFilter.state, 'failed');
-      expect(controller.taskFilterUpdateLoading, isTrue);
-      expect(controller.taskRuns.single.id, 201);
-      expect(bundle.adapter.hitCount('GET', '/system/task-runs'), 0);
-
-      await update;
-
-      expect(controller.isRefreshingTaskHistory, isFalse);
-      expect(controller.activeTaskRuns.single.id, 88);
-      expect(controller.taskRuns.single.id, 301);
-      expect(bundle.adapter.hitCount('GET', '/system/activity/bootstrap'), 1);
-      expect(bundle.adapter.hitCount('GET', '/system/events/stream'), 1);
-      expect(
-        bundle.adapter.requests
-            .where((request) => request.path == '/system/task-runs')
-            .last
-            .uri
-            .queryParameters['state'],
-        'failed',
-      );
-    },
-  );
-
-  test(
-    'initialize exposes executable jobs without changing bootstrap state',
-    () async {
-      _enqueueInitialActivityState(
-        bundle,
-        jobs: <Map<String, dynamic>>[
-          _jobJson(
-            taskKey: 'example_plugin_sync',
-            paramsSchema: <String, dynamic>{
-              'type': 'object',
-              'properties': <String, dynamic>{
-                'movie_number': <String, dynamic>{'type': 'string'},
-              },
-              'required': <String>['movie_number'],
-            },
-          ),
-        ],
-      );
-      bundle.adapter.enqueueSse(
-        method: 'GET',
-        path: '/system/events/stream',
-        chunks: const <String>[],
-        keepOpen: true,
-      );
-
-      final controller = _ActivityCenterHarness(
-        activityApi: bundle.activityApi,
-      );
-      addTearDown(controller.dispose);
-
-      await controller.initialize();
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-
-      expect(controller.jobs.single.taskKey, 'example_plugin_sync');
-      expect(controller.jobErrorMessage, isNull);
-    },
-  );
-
-  test('jobs load failure keeps bootstrap state available', () async {
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/jobs',
-      statusCode: 500,
-      body: <String, dynamic>{
-        'error': <String, dynamic>{
-          'code': 'server_error',
-          'message': '任务列表加载失败',
-        },
-      },
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/activity/bootstrap',
-      body: <String, dynamic>{
-        'latest_event_id': 120,
-        'notifications': <String, dynamic>{
-          'items': <Map<String, dynamic>>[_notificationJson(id: 101)],
-          'page': 1,
-          'page_size': 20,
-          'total': 1,
-        },
-        'unread_count': 0,
-        'active_task_runs': const <Map<String, dynamic>>[],
-        'task_runs': const <String, dynamic>{
-          'items': <Map<String, dynamic>>[],
-          'page': 1,
-          'page_size': 20,
-          'total': 0,
-        },
-      },
-    );
-    bundle.adapter.enqueueSse(
-      method: 'GET',
-      path: '/system/events/stream',
-      chunks: const <String>[],
-      keepOpen: true,
-    );
-
-    final controller = _ActivityCenterHarness(activityApi: bundle.activityApi);
-    addTearDown(controller.dispose);
-
-    await controller.initialize();
-    await Future<void>.delayed(const Duration(milliseconds: 20));
-
-    expect(controller.jobs, isEmpty);
-    expect(controller.jobErrorMessage, '任务列表加载失败');
-    expect(controller.initialErrorMessage, isNull);
-  });
-
-  test(
-    'triggerJob highlights submitted task and refreshes bootstrap',
-    () async {
-      _enqueueInitialActivityState(
-        bundle,
-        jobs: <Map<String, dynamic>>[
-          _jobJson(
-            taskKey: 'example_plugin_sync',
-            paramsSchema: <String, dynamic>{
-              'type': 'object',
-              'properties': <String, dynamic>{
-                'movie_number': <String, dynamic>{'type': 'string'},
-              },
-              'required': <String>['movie_number'],
-            },
-          ),
-        ],
-      );
-      bundle.adapter.enqueueSse(
-        method: 'GET',
-        path: '/system/events/stream',
-        chunks: const <String>[],
-        keepOpen: true,
-      );
-      bundle.adapter.enqueueJson(
-        method: 'POST',
-        path: '/system/jobs/example_plugin_sync/run',
-        body: <String, dynamic>{
-          'task_run_id': 13,
-          'task_key': 'example_plugin_sync',
-          'state': 'pending',
-        },
-      );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/activity/bootstrap',
-        body: <String, dynamic>{
-          'latest_event_id': 121,
-          'notifications': const <String, dynamic>{
-            'items': <Map<String, dynamic>>[],
-            'page': 1,
-            'page_size': 20,
-            'total': 0,
-          },
-          'unread_count': 0,
-          'active_task_runs': <Map<String, dynamic>>[_runningTaskJson(id: 13)],
-          'task_runs': <String, dynamic>{
-            'items': <Map<String, dynamic>>[_runningTaskJson(id: 13)],
-            'page': 1,
-            'page_size': 20,
-            'total': 1,
-          },
-        },
-      );
-
-      final controller = _ActivityCenterHarness(
-        activityApi: bundle.activityApi,
-      );
-      addTearDown(controller.dispose);
-
-      await controller.initialize();
-      final response = await controller.triggerJob(
-        'example_plugin_sync',
-        params: <String, dynamic>{'movie_number': 'SSIS-123'},
-      );
-
-      expect(response.taskRunId, 13);
-      expect(controller.activeTab, ActivityTab.tasks);
-      expect(controller.highlightedTaskRunId, 13);
-      expect(controller.activeTaskRuns.single.id, 13);
-      expect(
-        bundle.adapter.requests
-            .where(
-              (request) =>
-                  request.path == '/system/jobs/example_plugin_sync/run',
-            )
-            .single
-            .body,
-        <String, dynamic>{'movie_number': 'SSIS-123'},
-      );
-    },
-  );
-
-  test('triggerJob conflict highlights blocking task run', () async {
-    _enqueueInitialActivityState(
-      bundle,
-      activeTasks: <Map<String, dynamic>>[_runningTaskJson()],
-      jobs: <Map<String, dynamic>>[_jobJson(taskKey: 'example_plugin_sync')],
-    );
-    bundle.adapter.enqueueSse(
-      method: 'GET',
-      path: '/system/events/stream',
-      chunks: const <String>[],
-      keepOpen: true,
-    );
-    bundle.adapter.enqueueJson(
-      method: 'POST',
-      path: '/system/jobs/example_plugin_sync/run',
-      statusCode: 409,
-      body: <String, dynamic>{
-        'error': <String, dynamic>{
-          'code': 'task_conflict',
-          'message': '任务已在运行中',
-          'details': <String, dynamic>{
-            'blocking_task_run_id': 88,
-            'blocking_trigger_type': 'scheduled',
-            'blocking_state': 'running',
-          },
-        },
-      },
-    );
-
-    final controller = _ActivityCenterHarness(activityApi: bundle.activityApi);
-    addTearDown(controller.dispose);
-
-    await controller.initialize();
-    await expectLater(
-      controller.triggerJob('example_plugin_sync'),
-      throwsA(isA<Exception>()),
-    );
-
-    expect(controller.activeTab, ActivityTab.tasks);
-    expect(controller.highlightedTaskRunId, 88);
-    expect(controller.isTriggeringJob('example_plugin_sync'), isFalse);
-  });
-
-  test('heartbeat keeps live state without redundant notifications', () async {
-    _enqueueInitialActivityState(bundle);
-    bundle.adapter.enqueueSse(
-      method: 'GET',
-      path: '/system/events/stream',
-      chunkInterval: const Duration(milliseconds: 20),
-      chunks: const <String>[
-        'id: 121\n'
-            'event: heartbeat\n'
-            'data: {}\n\n',
-        'id: 122\n'
-            'event: heartbeat\n'
-            'data: {}\n\n',
-      ],
-      keepOpen: true,
-    );
-
-    final controller = _ActivityCenterHarness(activityApi: bundle.activityApi);
-    addTearDown(controller.dispose);
-
-    await controller.initialize();
-    var listenerCallCount = 0;
-    controller.addListener(() {
-      listenerCallCount += 1;
-    });
-
-    await Future<void>.delayed(const Duration(milliseconds: 70));
-
-    expect(controller.connectionState, ActivityConnectionState.live);
-    expect(controller.connectionMessage, '实时连接中');
-    expect(listenerCallCount, 0);
-  });
-
-  test('unsupported SSE switches to polling fallback', () async {
-    _enqueueInitialActivityState(bundle);
-    final streamClient =
-        _ScriptedActivityEventStreamClient(<Stream<ApiSseEvent>>[
-          Stream<ApiSseEvent>.error(
-            const ActivityEventStreamUnsupportedException('unsupported'),
-          ),
-        ]);
-    final controller = _ActivityCenterHarness(
-      activityApi: ActivityApi(
-        apiClient: bundle.apiClient,
-        streamClient: streamClient,
+    expect(state.initialized, isTrue);
+    expect(state.connectionState, ActivityConnectionState.polling);
+    expect(state.activeTaskRuns.single.id, 8);
+    expect(state.taskRuns.single.id, 9);
+    expect(state.isPollingFallback, isTrue);
+    expect(
+      bundle.adapter.requests.where(
+        (request) => request.path.contains('/system/events/'),
       ),
+      isEmpty,
     );
-    addTearDown(controller.dispose);
-
-    await controller.initialize();
-    await Future<void>.delayed(Duration.zero);
-
-    expect(controller.connectionState, ActivityConnectionState.polling);
-    expect(controller.connectionMessage, contains('30 秒轮询'));
-    expect(streamClient.connectCount, 1);
   });
 
-  test(
-    'stream error enters reconnecting and reconnects with backoff',
-    () async {
-      _enqueueInitialActivityState(bundle);
-      final liveStream = StreamController<ApiSseEvent>();
-      addTearDown(() => unawaited(liveStream.close()));
-      final streamClient = _ScriptedActivityEventStreamClient(
-        <Stream<ApiSseEvent>>[
-          Stream<ApiSseEvent>.error(StateError('disconnected')),
-          liveStream.stream,
+  test('refreshTaskHistory reads /system/task-runs', () async {
+    final subscription = container.listen(activityCenterProvider, (_, __) {});
+    addTearDown(subscription.close);
+    _enqueueJobs(bundle);
+    _enqueueBootstrap(bundle, activeTaskId: 1, historyTaskId: 2);
+    await container.read(activityCenterProvider.future);
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs',
+      body: <String, dynamic>{
+        'items': <Map<String, dynamic>>[
+          _taskRunJson(id: 10, state: 'completed'),
         ],
-      );
-      final controller = _ActivityCenterHarness(
-        activityApi: ActivityApi(
-          apiClient: bundle.apiClient,
-          streamClient: streamClient,
-        ),
-      );
-      addTearDown(controller.dispose);
-
-      await controller.initialize();
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-      expect(controller.connectionState, ActivityConnectionState.reconnecting);
-
-      await Future<void>.delayed(const Duration(milliseconds: 2200));
-      expect(streamClient.connectCount, 2);
-      expect(controller.connectionState, ActivityConnectionState.live);
-    },
-  );
-
-  test(
-    'loadMoreTasks appends next page and refresh error keeps old rows',
-    () async {
-      _enqueueInitialActivityState(
-        bundle,
-        taskRuns: <Map<String, dynamic>>[_completedTaskJson(id: 201)],
-        taskRunTotal: 2,
-      );
-      bundle.adapter.enqueueSse(
-        method: 'GET',
-        path: '/system/events/stream',
-        chunks: const <String>[],
-        keepOpen: true,
-      );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/task-runs',
-        body: <String, dynamic>{
-          'items': <Map<String, dynamic>>[_completedTaskJson(id: 202)],
-          'page': 2,
-          'page_size': 20,
-          'total': 2,
-        },
-      );
-      final controller = _ActivityCenterHarness(
-        activityApi: bundle.activityApi,
-      );
-      addTearDown(controller.dispose);
-
-      await controller.initialize();
-      expect(controller.hasMoreTasks, isTrue);
-      await controller.loadMoreTasks();
-      expect(controller.taskRuns.map((item) => item.id), <int>[201, 202]);
-
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/task-runs',
-        statusCode: 503,
-        body: const <String, dynamic>{'message': '暂不可用'},
-      );
-      await controller.applyTaskFilter(
-        controller.taskFilter.copyWith(state: 'completed'),
-      );
-      expect(controller.taskRuns.map((item) => item.id), <int>[201, 202]);
-      expect(controller.taskRefreshErrorMessage, isNotNull);
-    },
-  );
-}
-
-class _ActivityCenterHarness {
-  _ActivityCenterHarness({required ActivityApi activityApi})
-    : _container = ProviderContainer(
-        overrides: [activityApiProvider.overrideWithValue(activityApi)],
-      ) {
-    _subscription = _container.listen<AsyncValue<ActivityCenterState>>(
-      activityCenterProvider,
-      (_, __) {
-        for (final listener in List<VoidCallback>.from(_listeners)) {
-          listener();
-        }
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
       },
     );
-  }
 
-  final ProviderContainer _container;
-  late final ProviderSubscription<AsyncValue<ActivityCenterState>>
-  _subscription;
-  final List<VoidCallback> _listeners = <VoidCallback>[];
+    await container
+        .read(activityCenterProvider.notifier)
+        .refreshTaskHistory();
 
-  ActivityCenterState get _state =>
-      _container.read(activityCenterProvider).requireValue;
-  ActivityCenter get _notifier =>
-      _container.read(activityCenterProvider.notifier);
-
-  Future<void> initialize() async {
-    await _container.read(activityCenterProvider.future);
-  }
-
-  void dispose() {
-    _subscription.close();
-    _container.dispose();
-  }
-
-  void addListener(VoidCallback listener) => _listeners.add(listener);
-
-  ActivityConnectionState get connectionState => _state.connectionState;
-  String? get connectionMessage => _state.connectionMessage;
-  List<TaskRunDto> get activeTaskRuns => _state.activeTaskRuns;
-  List<TaskRunDto> get taskRuns => _state.taskRuns;
-  List<JobMetadataDto> get jobs => _state.jobs;
-  String? get jobErrorMessage => _state.jobErrorMessage;
-  String? get initialErrorMessage => _state.initialErrorMessage;
-  bool get isRefreshingTaskHistory => _state.isRefreshingTaskHistory;
-  bool get taskFilterUpdateLoading => _state.taskFilterUpdate.isLoading;
-  bool get hasMoreTasks => _state.hasMoreTasks;
-  String? get taskRefreshErrorMessage => _state.taskRefreshErrorMessage;
-  ActivityTaskFilterState get taskFilter => _state.taskFilter;
-  ActivityTab get activeTab => _state.activeTab;
-  int? get highlightedTaskRunId => _state.highlightedTaskRunId;
-  bool isTriggeringJob(String taskKey) => _state.isTriggeringJob(taskKey);
-
-  Future<void> applyTaskFilter(ActivityTaskFilterState next) =>
-      _notifier.applyTaskFilter(next);
-  Future<void> loadMoreTasks() => _notifier.loadMoreTasks();
-  Future<ManualJobTriggerResponseDto> triggerJob(
-    String taskKey, {
-    Map<String, dynamic>? params,
-  }) => _notifier.triggerJob(taskKey, params: params);
+    expect(
+      container.read(activityCenterProvider).requireValue.taskRuns.single.id,
+      10,
+    );
+    expect(
+      bundle.adapter.requests.last.path,
+      '/system/task-runs',
+    );
+  });
 }
 
-void _enqueueInitialActivityState(
+void _enqueueJobs(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/system/jobs',
+    body: const <dynamic>[],
+  );
+}
+
+void _enqueueBootstrap(
   TestApiBundle bundle, {
-  int latestEventId = 120,
-  List<Map<String, dynamic>> notifications = const <Map<String, dynamic>>[],
-  int unreadCount = 0,
-  List<Map<String, dynamic>> activeTasks = const <Map<String, dynamic>>[],
-  List<Map<String, dynamic>> taskRuns = const <Map<String, dynamic>>[],
-  int? taskRunTotal,
-  List<Map<String, dynamic>> jobs = const <Map<String, dynamic>>[],
+  required int activeTaskId,
+  required int historyTaskId,
 }) {
-  bundle.adapter.enqueueJson(method: 'GET', path: '/system/jobs', body: jobs);
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/system/activity/bootstrap',
     body: <String, dynamic>{
-      'latest_event_id': latestEventId,
       'notifications': <String, dynamic>{
-        'items': notifications,
+        'items': const <dynamic>[],
         'page': 1,
         'page_size': 20,
-        'total': notifications.length,
+        'total': 0,
       },
-      'unread_count': unreadCount,
-      'active_task_runs': activeTasks,
+      'unread_count': 0,
+      'active_task_runs': <Map<String, dynamic>>[
+        _taskRunJson(id: activeTaskId, state: 'running'),
+      ],
       'task_runs': <String, dynamic>{
-        'items': taskRuns,
+        'items': <Map<String, dynamic>>[
+          _taskRunJson(id: historyTaskId, state: 'completed'),
+        ],
         'page': 1,
         'page_size': 20,
-        'total': taskRunTotal ?? taskRuns.length,
+        'total': 1,
       },
     },
   );
 }
 
-class _ScriptedActivityEventStreamClient implements ActivityEventStreamClient {
-  _ScriptedActivityEventStreamClient(Iterable<Stream<ApiSseEvent>> streams)
-    : _streams = Queue<Stream<ApiSseEvent>>.of(streams);
-
-  final Queue<Stream<ApiSseEvent>> _streams;
-  int connectCount = 0;
-
-  @override
-  Stream<ApiSseEvent> connect({required int afterEventId}) {
-    connectCount += 1;
-    return _streams.removeFirst();
-  }
-
-  @override
-  void dispose() {}
-}
-
-Map<String, dynamic> _notificationJson({
-  required int id,
-  String category = 'reminder',
-  bool isRead = false,
-}) {
-  return <String, dynamic>{
-    'id': id,
-    'category': category,
-    'title': '通知 $id',
-    'content': '通知内容 $id',
-    'is_read': isRead,
-    'created_at': '2026-03-26T09:10:00Z',
-    'updated_at': '2026-03-26T09:10:00Z',
-  };
-}
-
-Map<String, dynamic> _runningTaskJson({int id = 88}) {
-  return <String, dynamic>{
-    'id': id,
-    'task_key': 'download_task_import',
-    'task_name': '下载任务导入 SSIS-123',
-    'trigger_type': 'manual',
-    'state': 'running',
-    'progress_current': 1,
-    'progress_total': 3,
-    'progress_text': '正在导入影片文件 SSIS-123',
-    'created_at': '2026-03-26T09:10:00Z',
-    'updated_at': '2026-03-26T09:11:00Z',
-    'started_at': '2026-03-26T09:10:00Z',
-    'finished_at': null,
-  };
-}
-
-Map<String, dynamic> _completedTaskJson({required int id}) {
-  return <String, dynamic>{
-    'id': id,
-    'task_key': 'download_task_import',
-    'task_name': '下载任务导入 $id',
-    'trigger_type': 'manual',
-    'state': 'completed',
-    'progress_current': 3,
-    'progress_total': 3,
-    'progress_text': '导入完成',
-    'created_at': '2026-03-26T09:10:00Z',
-    'updated_at': '2026-03-26T09:20:00Z',
-    'started_at': '2026-03-26T09:10:00Z',
-    'finished_at': '2026-03-26T09:20:00Z',
-  };
-}
-
-Map<String, dynamic> _failedTaskJson({required int id}) {
-  return <String, dynamic>{
-    'id': id,
-    'task_key': 'download_task_sync',
-    'task_name': '下载任务失败 $id',
-    'trigger_type': 'manual',
-    'state': 'failed',
-    'progress_current': 1,
-    'progress_total': 3,
-    'progress_text': '同步失败',
-    'created_at': '2026-03-26T09:10:00Z',
-    'updated_at': '2026-03-26T09:20:00Z',
-    'started_at': '2026-03-26T09:10:00Z',
-    'finished_at': '2026-03-26T09:20:00Z',
-  };
-}
-
-Map<String, dynamic> _jobJson({
-  required String taskKey,
-  bool manualTriggerAllowed = true,
-  Map<String, dynamic>? paramsSchema,
-  Map<String, dynamic>? lastTaskRun,
-}) {
-  return <String, dynamic>{
-    'task_key': taskKey,
-    'log_name': taskKey.replaceAll('_', '-'),
-    'cli_name': 'run-$taskKey',
-    'cli_help': '执行一次 $taskKey',
-    'cron_setting': '${taskKey}_cron',
-    'cron_expr': '0 2 * * *',
-    'manual_trigger_allowed': manualTriggerAllowed,
-    'params_schema': paramsSchema,
-    'last_task_run': lastTaskRun,
-  };
-}
+Map<String, dynamic> _taskRunJson({required int id, required String state}) =>
+    <String, dynamic>{
+      'id': id,
+      'task_key': 'media_import',
+      'task_name': '媒体导入',
+      'trigger_type': 'manual',
+      'state': state,
+      'progress_current': 1,
+      'progress_total': 2,
+      'progress_text': '处理中',
+      'created_at': '2026-03-26T09:10:00Z',
+      'updated_at': '2026-03-26T09:11:00Z',
+    };

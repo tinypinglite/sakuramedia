@@ -246,7 +246,6 @@ movie_similarity_recompute_cron = "30 3 * * *"
 moment_recommendation_generate_cron = "0 4 * * *"
 daily_recommendation_generate_cron = "0 5 * * *"
 activity_cleanup_cron = "30 5 * * *"
-activity_event_retention_days = 1
 activity_task_run_retention_per_key = 200
 activity_notification_read_retention_days = 3
 ```
@@ -273,8 +272,7 @@ activity_notification_read_retention_days = 3
 | `movie_similarity_recompute_cron` | 影片相似度离线重算频率 |
 | `moment_recommendation_generate_cron` | 推荐时刻生成频率 |
 | `daily_recommendation_generate_cron` | 每日推荐快照生成频率 |
-| `activity_cleanup_cron` | 任务中心数据清理频率 |
-| `activity_event_retention_days` | 活动事件保留天数 |
+| `activity_cleanup_cron` | 活动中心任务运行记录和已读通知清理频率 |
 | `activity_task_run_retention_per_key` | 每个任务键保留的运行记录条数 |
 | `activity_notification_read_retention_days` | 已读通知保留天数 |
 

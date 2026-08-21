@@ -178,7 +178,7 @@ void main() {
     );
   });
 
-  test('下载偏好仅 patch preferred_client_kinds 并保留 pending restart', () async {
+  test('下载偏好仅 patch preferred_client_kinds 并返回 restart_required', () async {
     final api = _FakeConfigApi(apiClient: apiClient);
     final container = ProviderContainer(
       overrides: [
@@ -201,18 +201,12 @@ void main() {
       });
       return ConfigUpdateResultDto(
         values: _config(const [DownloadClientKind.cloud115]),
-        applied: const ['downloads.preferred_client_kinds'],
-        pendingRestart: const [
-          PendingRestartFieldDto(
-            field: 'downloads.preferred_client_kinds',
-            restart: 'scheduler',
-          ),
-        ],
+        restartRequired: const ['api'],
       );
     };
 
     final restart = await notifier.save();
-    expect(restart.single.restart, 'scheduler');
+    expect(restart.single, 'api');
     final state = container.read(downloadPreferenceProvider).requireValue;
     expect(state.isDirty, isFalse);
     expect(state.savedKinds, const [DownloadClientKind.cloud115]);
@@ -407,5 +401,4 @@ ConfigResourceDto _config(List<DownloadClientKind> kinds) => ConfigResourceDto(
     preferredClientKinds: kinds,
   ),
   logging: const AdvancedLoggingConfigDto(level: 'INFO'),
-  effects: const {},
 );

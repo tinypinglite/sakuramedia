@@ -61,6 +61,8 @@ class MediaBrowse extends _$MediaBrowse
           kind: mediaBrowseKindWire(filter.kind),
           libraryId: filter.libraryId,
           rapidUploadStatus: filter.rapidUploadStatus?.apiValue,
+          thumbnailGenerationState:
+              filter.thumbnailGenerationState?.apiValue,
           sort: filter.sortWire,
         );
   }

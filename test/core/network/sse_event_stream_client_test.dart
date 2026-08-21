@@ -41,7 +41,7 @@ void main() {
   test('connect forwards arbitrary path and query parameters as GET', () async {
     adapter.enqueueSse(
       method: 'GET',
-      path: '/download-tasks/stream',
+      path: '/test/stream',
       chunks: <String>[
         'event: heartbeat\n'
             'data: {}\n\n',
@@ -51,7 +51,7 @@ void main() {
     final events =
         await streamClient
             .connect(
-              '/download-tasks/stream',
+              '/test/stream',
               queryParameters: <String, dynamic>{'client_id': 7},
             )
             .toList();
@@ -59,7 +59,7 @@ void main() {
     expect(events.single.event, 'heartbeat');
     final recorded = adapter.requests.single;
     expect(recorded.method, 'GET');
-    expect(recorded.path, '/download-tasks/stream');
+    expect(recorded.path, '/test/stream');
     expect(recorded.uri.queryParameters['client_id'], '7');
     expect(recorded.headers[Headers.acceptHeader], 'text/event-stream');
   });
@@ -69,7 +69,7 @@ void main() {
     () async {
       adapter.enqueueSse(
         method: 'GET',
-        path: '/download-tasks/stream',
+        path: '/test/stream',
         chunks: <String>[
           'event: snapshot\n'
               'data: {"client_id":1,"items":[]}\n\n',
@@ -79,7 +79,7 @@ void main() {
       );
 
       final events =
-          await streamClient.connect('/download-tasks/stream').toList();
+      await streamClient.connect('/test/stream').toList();
 
       expect(events, hasLength(2));
       expect(events[0].id, isNull);
@@ -94,7 +94,7 @@ void main() {
   test('connect surfaces ApiException for non-2xx responses', () async {
     adapter.enqueueSse(
       method: 'GET',
-      path: '/download-tasks/stream',
+        path: '/test/stream',
       statusCode: 500,
       chunks: <String>['{"error":{"code":"server_error","message":"boom"}}'],
       headers: const <String, List<String>>{
@@ -103,7 +103,7 @@ void main() {
     );
 
     expect(
-      () => streamClient.connect('/download-tasks/stream').toList(),
+      () => streamClient.connect('/test/stream').toList(),
       throwsA(isA<ApiException>()),
     );
   });

@@ -52,7 +52,12 @@ void main() {
           'total_size_bytes': 987654321,
         },
         'media_libraries': <String, dynamic>{'total': 3},
-        'thumbnails': <String, dynamic>{'pending_media': 24, 'total': 132},
+        'thumbnails': <String, dynamic>{
+          'pending_media': 24,
+          'retry_wait_media': 6,
+          'terminal_failed_media': 2,
+          'total': 132,
+        },
       },
     );
 
@@ -64,9 +69,13 @@ void main() {
     expect(status.mediaFiles.totalSizeBytes, 987654321);
     expect(status.mediaLibraries.total, 3);
     expect(status.thumbnails.pendingMedia, 24);
+    expect(status.thumbnails.retryWaitMedia, 6);
+    expect(status.thumbnails.terminalFailedMedia, 2);
     expect(status.thumbnails.total, 132);
     expect(status.toJson()['thumbnails'], <String, dynamic>{
       'pending_media': 24,
+      'retry_wait_media': 6,
+      'terminal_failed_media': 2,
       'total': 132,
     });
     expect(status.toJson()['backend_version'], 'v0.2.0');
@@ -96,6 +105,8 @@ void main() {
     final status = await statusApi.getStatus();
 
     expect(status.thumbnails.pendingMedia, 0);
+    expect(status.thumbnails.retryWaitMedia, 0);
+    expect(status.thumbnails.terminalFailedMedia, 0);
     expect(status.thumbnails.total, 0);
   });
 

@@ -1,3 +1,4 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/subscriptions/data/dto/movie_subscription_list_item_dto.dart';
@@ -8,17 +9,15 @@ import 'package:sakuramedia/features/subscriptions/data/dto/movie_subscription_s
 ///
 /// 写入侧全部不在这里：单条订阅 / 取消订阅走 `MoviesApi.subscribeMovie` /
 /// `unsubscribeMovie`，批量取消订阅走 `MoviesApi.batchUnsubscribeMovies`
-/// （`POST /movies/unsubscriptions`），**重置资源查询状态走统一 action**
-/// （`ActivityApi.applyResourceTaskAction`，task_key
-/// `subscribed_movie_auto_download`，旧 `search-resets` 端点已删）。后端刻意
-/// 没有在 `/movie-subscriptions` 下平行造写端点，前端也不要在本类里补。
+/// （`POST /movies/unsubscriptions`），重置订阅搜索状态走
+/// `/movie-subscriptions/search-resets`。
 class MovieSubscriptionsApi {
   const MovieSubscriptionsApi({required ApiClient apiClient})
     : _apiClient = apiClient;
 
   final ApiClient _apiClient;
 
-  /// `GET /movie-subscriptions`：分页查询订阅影片及其资源查询状态。
+  /// `GET /movie-subscriptions`：分页查询订阅影片及其搜索状态。
   ///
   /// - [status] 为 `null` 表示不按状态过滤（后端默认 `all`）。
   /// - [search] 按番号 / 标题 / 中文标题模糊匹配，trim 后为空则不下发。
@@ -58,5 +57,29 @@ class MovieSubscriptionsApi {
   Future<MovieSubscriptionStatusCountsDto> getStatusCounts() async {
     final response = await _apiClient.get('/movie-subscriptions/status-counts');
     return MovieSubscriptionStatusCountsDto.fromJson(response);
+  }
+
+  Future<MovieSubscriptionSearchResetResponseDto> resetSearches({
+    List<int>? movieIds,
+  }) async {
+    final response = await _apiClient.post(
+      '/movie-subscriptions/search-resets',
+      data: movieIds == null ? null : <String, dynamic>{'movie_ids': movieIds},
+    );
+    return MovieSubscriptionSearchResetResponseDto.fromJson(response);
+  }
+}
+
+class MovieSubscriptionSearchResetResponseDto {
+  const MovieSubscriptionSearchResetResponseDto({required this.resetCount});
+
+  final int resetCount;
+
+  factory MovieSubscriptionSearchResetResponseDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return MovieSubscriptionSearchResetResponseDto(
+      resetCount: asInt(json['reset_count']),
+    );
   }
 }

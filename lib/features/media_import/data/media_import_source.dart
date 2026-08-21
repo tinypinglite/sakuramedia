@@ -4,8 +4,30 @@ sealed class MediaImportSource {
   const factory MediaImportSource.local(String path) = LocalMediaImportSource;
   const factory MediaImportSource.cloud115(String cid) =
       Cloud115MediaImportSource;
+  const factory MediaImportSource.cloud115File(String fid) =
+      Cloud115FileMediaImportSource;
 
   Map<String, dynamic> toJson();
+
+  String get backend => switch (this) {
+    LocalMediaImportSource() => 'local',
+    Cloud115MediaImportSource() || Cloud115FileMediaImportSource() => 'cloud115',
+  };
+}
+
+/// 后端统一导入接口支持的传输策略。
+enum TransferMode { auto, cleanupSource }
+
+extension TransferModeX on TransferMode {
+  String get wireValue => switch (this) {
+    TransferMode.auto => 'auto',
+    TransferMode.cleanupSource => 'cleanup-source',
+  };
+
+  String get label => switch (this) {
+    TransferMode.auto => '自动选择（保留源文件）',
+    TransferMode.cleanupSource => '导入后清理源文件',
+  };
 }
 
 class LocalMediaImportSource extends MediaImportSource {
@@ -43,4 +65,21 @@ class Cloud115MediaImportSource extends MediaImportSource {
 
   @override
   int get hashCode => Object.hash('cloud115', cid);
+}
+
+class Cloud115FileMediaImportSource extends MediaImportSource {
+  const Cloud115FileMediaImportSource(this.fid);
+
+  final String fid;
+
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{'source_fid': fid};
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Cloud115FileMediaImportSource && other.fid == fid;
+
+  @override
+  int get hashCode => Object.hash('cloud115-file', fid);
 }

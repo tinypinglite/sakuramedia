@@ -24,6 +24,34 @@ extension MediaListItemKindX on MediaListItemKind {
   };
 }
 
+enum MediaThumbnailGenerationState { pending, retryWait, terminal, succeeded, unknown }
+
+extension MediaThumbnailGenerationStateX on MediaThumbnailGenerationState {
+  String get wireValue => switch (this) {
+    MediaThumbnailGenerationState.pending => 'pending',
+    MediaThumbnailGenerationState.retryWait => 'retry_wait',
+    MediaThumbnailGenerationState.terminal => 'terminal',
+    MediaThumbnailGenerationState.succeeded => 'succeeded',
+    MediaThumbnailGenerationState.unknown => 'unknown',
+  };
+
+  String get label => switch (this) {
+    MediaThumbnailGenerationState.pending => '待生成缩略图',
+    MediaThumbnailGenerationState.retryWait => '等待重试',
+    MediaThumbnailGenerationState.terminal => '缩略图生成失败',
+    MediaThumbnailGenerationState.succeeded => '已生成缩略图',
+    MediaThumbnailGenerationState.unknown => '未知缩略图状态',
+  };
+
+  static MediaThumbnailGenerationState fromWire(dynamic value) => switch (value) {
+    'pending' => MediaThumbnailGenerationState.pending,
+    'retry_wait' => MediaThumbnailGenerationState.retryWait,
+    'terminal' => MediaThumbnailGenerationState.terminal,
+    'succeeded' => MediaThumbnailGenerationState.succeeded,
+    _ => MediaThumbnailGenerationState.unknown,
+  };
+}
+
 /// `GET /media` 中每条 item 的最近一次秒传投影。
 ///
 /// 后端 `null` 表示「从未秒传」或「最近一次已成功（本地视角无需提示）」；
@@ -96,6 +124,8 @@ class MediaListItemDto {
     this.lastRapidUploadStatus,
     required this.createdAt,
     required this.updatedAt,
+    this.thumbnailGenerationState = MediaThumbnailGenerationState.unknown,
+    this.thumbnailLastErrorCode,
   });
 
   final int id;
@@ -117,6 +147,8 @@ class MediaListItemDto {
   final LastRapidUploadStatus? lastRapidUploadStatus;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final MediaThumbnailGenerationState thumbnailGenerationState;
+  final String? thumbnailLastErrorCode;
 
   bool get isJav => kind == MediaListItemKind.jav;
   bool get isVideo => kind == MediaListItemKind.video;
@@ -186,6 +218,13 @@ class MediaListItemDto {
       ),
       createdAt: asDateTime(json['created_at']),
       updatedAt: asDateTime(json['updated_at']),
+      thumbnailGenerationState: MediaThumbnailGenerationStateX.fromWire(
+        json['thumbnail_generation_state'],
+      ),
+      thumbnailLastErrorCode: asStringOrNull(
+        json['thumbnail_last_error_code'],
+        trim: true,
+      ),
     );
   }
 

@@ -3,22 +3,17 @@ import 'dart:convert';
 
 import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/sse_event_stream_client.dart';
-import 'package:sakuramedia/features/activity/data/activity_event_stream_client.dart';
 
 /// 传输层 SSE 假实现：替换 `sseEventStreamClientProvider` /
-/// `activityEventStreamClientProvider`，测试直接向指定 endpoint 注入事件。
+/// 测试直接向指定 endpoint 注入事件。
 ///
-/// 与 `FakeSseChannel`（channel 层状态机对偶）不同，本类是**传输层**打桩：
-/// 生产代码里 `apiClient.getSse` 的替代品，为迁移后的 SSE 控制器（通知中心 /
-/// 活动中心 / 媒体导入 / 视频导入等）提供集成级测试路径。
+/// 本类是传输层打桩：
+/// 生产代码里 `apiClient.getSse` 的替代品，为仍使用 SSE 的媒体搜索路径提供
+/// 集成级测试路径。
 ///
 /// 默认「静默不推事件」（不触发 SSE 消费副作用）；要打事件的测试用 [emit] /
-/// [emitError] / [emitUnsupported] 等钩子手动注入。活动域的
-/// [ActivityEventStreamClient] 用 [FakeActivityEventStreamClient] 包一层
-/// （两者 `connect` 签名不同，Dart 不允许单类双实现）。
+/// [emitError] / [emitUnsupported] 等钩子手动注入。
 class FakeSseEventStreamClient implements SseEventStreamClient {
-  static const String activityEndpoint = '/system/events/stream';
-
   final Map<String, StreamController<ApiSseEvent>> _controllers = {};
 
   StreamController<ApiSseEvent> _controllerFor(String endpoint) =>
@@ -85,25 +80,5 @@ class FakeSseEventStreamClient implements SseEventStreamClient {
   @override
   void dispose() {
     closeAll();
-  }
-}
-
-/// 活动域 SSE 客户端的 fake：把 [FakeSseEventStreamClient] 包装成固定连
-/// `activityEndpoint` 的 `connect({afterEventId})` 签名（与生产
-/// `_ActivityEventStreamClient` 同构）。事件注入仍走
-/// `fake.emit(FakeSseEventStreamClient.activityEndpoint, ...)`。
-class FakeActivityEventStreamClient implements ActivityEventStreamClient {
-  FakeActivityEventStreamClient(this._inner);
-
-  final FakeSseEventStreamClient _inner;
-
-  @override
-  Stream<ApiSseEvent> connect({required int afterEventId}) {
-    return _inner.connect(FakeSseEventStreamClient.activityEndpoint);
-  }
-
-  @override
-  void dispose() {
-    _inner.dispose();
   }
 }

@@ -427,7 +427,6 @@ class _RowConsumer extends ConsumerWidget {
         context: context,
         movieNumber: item.movieNumber,
       ),
-      onOpenImportJob: () => context.goDesktopMediaImport(),
       onUnsubscribe: () => unawaited(_unsubscribeRow(ref, item.movieNumber)),
     );
   }
