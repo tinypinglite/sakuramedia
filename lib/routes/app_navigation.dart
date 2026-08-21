@@ -22,7 +22,6 @@ import 'package:sakuramedia/features/subscriptions/presentation/pages/desktop/mo
 import 'package:sakuramedia/features/rankings/presentation/pages/mobile/rankings_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_list_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/pornbox_page.dart';
-import 'package:sakuramedia/features/workbench/workbench_placeholder_page.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 
@@ -416,10 +415,6 @@ List<AppNavGroup> navGroupsForPlatform(AppPlatform platform) {
 }
 
 List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
-  final platformLabel = switch (platform) {
-    AppPlatform.desktop => '桌面端',
-    AppPlatform.mobile => '移动端',
-  };
   final routeBuilders = switch (platform) {
     AppPlatform.desktop => _desktopRouteBuilders,
     AppPlatform.mobile => _mobileRouteBuilders,
@@ -436,23 +431,7 @@ List<AppRouteSpec> routeSpecsForPlatform(AppPlatform platform) {
             description: item.description,
             groupId: group.id,
             layout: AppShellLayout.standard,
-            builder: (context) {
-              final builder = routeBuilders[item.path];
-              if (builder != null) {
-                return builder(context);
-              }
-              return WorkbenchPlaceholderPage(
-                platform: platform,
-                title: item.label,
-                description: item.description,
-                routePath: item.path,
-                eyebrow:
-                    item.path.endsWith('/overview')
-                        ? '$platformLabel工作台骨架'
-                        : platformLabel,
-                showUiKitShowcase: item.path.endsWith('/ui-kit'),
-              );
-            },
+            builder: (context) => routeBuilders[item.path]!(context),
           ),
         ),
       )
