@@ -179,6 +179,31 @@ void main() {
     );
   });
 
+  testWidgets('每个订阅行都可打开磁力搜索弹窗', (tester) async {
+    enqueueCounts();
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movie-subscriptions',
+      body: _page(<Map<String, dynamic>>[
+        _item(number: 'MAGNET-001', status: 'missing'),
+      ]),
+    );
+
+    await pumpPage(tester);
+
+    await tester.tap(
+      find.byKey(const Key('movie-subscription-row-magnet-search-MAGNET-001')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('movie-magnet-search-dialog')), findsOneWidget);
+    expect(find.text('磁力搜索'), findsOneWidget);
+    expect(
+      find.byKey(const Key('movie-detail-magnet-search-button')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('下载中不展示查询进度文案', (tester) async {
     enqueueCounts(downloading: 1);
     adapter.enqueueJson(
@@ -273,40 +298,6 @@ void main() {
     );
   });
 
-  testWidgets('「重置全部」只在「已放弃」签出现', (tester) async {
-    enqueueCounts();
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/movie-subscriptions',
-      body: _page(<Map<String, dynamic>>[
-        _item(number: 'ABP-123', status: 'missing'),
-      ]),
-    );
-    await pumpPage(tester);
-    expect(
-      find.byKey(const Key('movie-subscriptions-reset-all-exhausted-button')),
-      findsNothing,
-    );
-
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/movie-subscriptions',
-      body: _page(<Map<String, dynamic>>[
-        _item(number: 'OLD-001', status: 'exhausted'),
-      ]),
-    );
-    await tester.tap(
-      find.byKey(const Key('movie-subscriptions-status-tab-exhausted')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const Key('movie-subscriptions-reset-all-exhausted-button')),
-      findsOneWidget,
-    );
-    expect(find.text('重置全部（3）'), findsOneWidget);
-  });
-
   testWidgets('进入多选后顶栏原地改写，行内操作按钮收起', (tester) async {
     enqueueCounts();
     adapter.enqueueJson(
@@ -320,7 +311,7 @@ void main() {
     await pumpPage(tester);
 
     expect(
-      find.byKey(const Key('movie-subscription-row-reset-ABP-123')),
+      find.byKey(const Key('movie-subscription-row-magnet-search-ABP-123')),
       findsOneWidget,
     );
 
@@ -337,7 +328,7 @@ void main() {
       reason: '多选是原地改写整条顶栏，不是另起一行',
     );
     expect(
-      find.byKey(const Key('movie-subscription-row-reset-ABP-123')),
+      find.byKey(const Key('movie-subscription-row-magnet-search-ABP-123')),
       findsNothing,
       reason: '多选态下行内操作与批量动作并存会让改动范围不可预期',
     );
@@ -346,10 +337,10 @@ void main() {
     await tester.tap(find.text('全选（2）'));
     await tester.pumpAndSettle();
     expect(find.text('已选 2 部'), findsOneWidget);
-    expect(find.text('重置查询（2）'), findsOneWidget);
+    expect(find.text('取消订阅（2）'), findsOneWidget);
   });
 
-  testWidgets('导入失败独立成签，行内重置按钮禁用', (tester) async {
+  testWidgets('导入失败独立成签并展示导入补救操作', (tester) async {
     enqueueCounts(importFailed: 3);
     adapter.enqueueJson(
       method: 'GET',
@@ -430,12 +421,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('导入失败'), findsWidgets);
-    // 文件已在盘上，重新找种子没意义——按钮必须是禁用的。
-    // AppIconButton 把 key 透传给内层 InkWell，所以断言落在 InkWell.onTap 上。
-    final resetInk = tester.widget<InkWell>(
-      find.byKey(const Key('movie-subscription-row-reset-GACHI-1151')),
-    );
-    expect(resetInk.onTap, isNull);
     // 取消订阅仍然可用。
     final unsubscribeInk = tester.widget<InkWell>(
       find.byKey(const Key('movie-subscription-row-unsubscribe-GACHI-1151')),

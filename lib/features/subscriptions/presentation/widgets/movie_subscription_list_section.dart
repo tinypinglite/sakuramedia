@@ -10,7 +10,6 @@ import 'package:sakuramedia/features/subscriptions/data/dto/movie_subscription_s
 import 'package:sakuramedia/features/subscriptions/presentation/movie_subscription_filter_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/providers/movie_subscription_manager_provider.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/providers/movie_subscription_manager_state.dart';
-import 'package:sakuramedia/features/subscriptions/presentation/providers/movie_subscription_status_counts_provider.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/widgets/movie_subscription_filter_sections.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/widgets/movie_subscription_row.dart';
@@ -26,6 +25,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_magnet_search_dialog.dart';
 
 /// 订阅管理页的列表主体：顶栏（筛选 / 计数 / 操作）+ 行卡片列表。
 ///
@@ -135,10 +135,6 @@ class _ListHeader extends ConsumerWidget {
         ),
       ],
       actionSlots: <Widget>[
-        // 条件插槽而不是让按钮自己返回 SizedBox.shrink：AppListHeader 会在每两个
-        // 槽之间补间距，塞一个零宽 widget 会留下一道对不齐的空隙。
-        if (filter.status == MovieSubscriptionStatus.exhausted)
-          const _ResetAllExhaustedButton(),
         AppSelectionEntryButton(
           onPressed: hasItems
               ? () => ref
@@ -164,73 +160,6 @@ void _refresh(WidgetRef ref) {
         .refresh();
     if (message != null) showToast(message);
   }());
-}
-
-/// 「重置全部已放弃」——只在停在「已放弃」签、且确实有货时出现。
-///
-/// 刻意不做成常驻按钮：它是全量写操作，摆在别的签上既用不着，也容易在用户没看
-/// 清当前上下文时被误点。是否停在该签由调用方判定（见 [_ListHeader] 的条件插槽）。
-class _ResetAllExhaustedButton extends ConsumerWidget {
-  const _ResetAllExhaustedButton();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final exhaustedCount =
-        ref.watch(movieSubscriptionStatusCountsProvider).value?.exhausted ?? 0;
-    final isRunning = ref.watch(
-      movieSubscriptionManagerProvider.select(
-        (asyncState) =>
-            asyncState.value?.isBatchActionRunning(
-              MovieSubscriptionBatchAction.resetAllExhausted,
-            ) ??
-            false,
-      ),
-    );
-    if (exhaustedCount <= 0) {
-      return const SizedBox.shrink();
-    }
-
-    return AppButton(
-      key: const Key('movie-subscriptions-reset-all-exhausted-button'),
-      label: '重置全部（$exhaustedCount）',
-      size: AppButtonSize.small,
-      variant: AppButtonVariant.primary,
-      icon: const Icon(Icons.restart_alt_rounded),
-      isLoading: isRunning,
-      onPressed: isRunning
-          ? null
-          : () => unawaited(
-              _confirmResetAllExhausted(context, ref, exhaustedCount),
-            ),
-    );
-  }
-}
-
-/// 确认后立刻关弹窗、由顶栏按钮转圈报告进度。
-///
-/// 不走 `showAppConfirmDialog` 的 `onConfirm` slot：那条路径把失败一律折成
-/// `failureFallback` 文案，而这里的失败原因（索引器不可达 / 后端 5xx）已经被
-/// `apiErrorMessage` 翻成了具体中文，丢掉可惜。
-Future<void> _confirmResetAllExhausted(
-  BuildContext context,
-  WidgetRef ref,
-  int exhaustedCount,
-) async {
-  final confirmed = await showAppConfirmDialog(
-    context,
-    dialogKey: const Key('movie-subscriptions-reset-all-exhausted-dialog'),
-    title: '重置全部已放弃的订阅？',
-    message:
-        '$exhaustedCount 部影片会回到资源查询队列，下一轮定时任务重新去找种子。\n'
-        '注意：已判死的种子仍在选种黑名单里——重置是让它们去找别的种子，不是重试同一个。',
-    confirmLabel: '全部重置',
-  );
-  if (!confirmed) return;
-
-  final result = await ref
-      .read(movieSubscriptionManagerProvider.notifier)
-      .resetAllExhausted();
-  showToast(result.errorMessage ?? '已重置 ${result.affectedCount} 部影片的查询状态');
 }
 
 // --- 多选态顶栏 --------------------------------------------------------------
@@ -264,31 +193,14 @@ class _SelectionHeader extends ConsumerWidget {
   }
 }
 
-/// 多选态顶栏里的批量动作按钮。
-///
-/// 「只让正在执行的那一个 `isLoading`，其余禁用」——批量动作互斥，同时转两个圈会
-/// 让人以为发了两个请求。
+/// 多选态顶栏里的批量取消订阅按钮。
 List<Widget> _buildBatchActions(
   BuildContext context,
   WidgetRef ref,
   MovieSubscriptionManagerState state,
 ) {
   final busy = state.isBatchRunning;
-  final resettableCount = state.resettableSelectionCount;
   return <Widget>[
-    AppButton(
-      key: const Key('movie-subscriptions-batch-reset-button'),
-      label: '重置查询（$resettableCount）',
-      size: AppButtonSize.small,
-      variant: AppButtonVariant.secondary,
-      icon: const Icon(Icons.restart_alt_rounded),
-      isLoading: state.isBatchActionRunning(
-        MovieSubscriptionBatchAction.resetSearch,
-      ),
-      onPressed: busy || resettableCount == 0
-          ? null
-          : () => unawaited(_runBatchReset(ref)),
-    ),
     AppButton(
       key: const Key('movie-subscriptions-batch-unsubscribe-button'),
       label: '取消订阅（${state.selectionCount}）',
@@ -303,20 +215,6 @@ List<Widget> _buildBatchActions(
           : () => unawaited(_confirmBatchUnsubscribe(context, ref, state)),
     ),
   ];
-}
-
-/// 批量重置不弹确认：它是可逆的加法（把影片放回队列），最坏结果只是多打一轮索引器。
-Future<void> _runBatchReset(WidgetRef ref) async {
-  final result = await ref
-      .read(movieSubscriptionManagerProvider.notifier)
-      .batchResetSearch();
-  final message = result.errorMessage;
-  if (message != null) {
-    showToast(message);
-    return;
-  }
-  if (result.affectedCount == 0) return;
-  showToast('已重置 ${result.affectedCount} 部影片的查询状态');
 }
 
 Future<void> _confirmBatchUnsubscribe(
@@ -525,18 +423,14 @@ class _RowConsumer extends ConsumerWidget {
           : () => onOpenMovie(context, item.movieNumber),
       onOpenDownloads: () =>
           context.goDesktopDownloadTasks(movieNumber: item.movieNumber),
+      onSearchMagnet: () => showMovieMagnetSearchDialog(
+        context: context,
+        movieNumber: item.movieNumber,
+      ),
       onOpenImportJob: () => context.goDesktopMediaImport(),
-      onResetSearch: () => unawaited(_resetRow(ref, item.movieNumber)),
       onUnsubscribe: () => unawaited(_unsubscribeRow(ref, item.movieNumber)),
     );
   }
-}
-
-Future<void> _resetRow(WidgetRef ref, String movieNumber) async {
-  final result = await ref
-      .read(movieSubscriptionManagerProvider.notifier)
-      .resetSearch(movieNumber);
-  showToast(result.errorMessage ?? '已重置 $movieNumber 的查询状态');
 }
 
 /// 单条取消订阅不弹确认：它是可逆的（重新订阅即可）、也不删任何文件，

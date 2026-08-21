@@ -25,7 +25,7 @@ import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 /// 2. **求片走到哪了**：新片 / 剩余没找到次数、上次查询多久以前、试死了几个种子——
 ///    这一行是整个页面存在的理由，别的影片列表都给不出；已拿到资源的行（下载中 /
 ///    已入库 / 未入库）不展示查询进度，只保留死种徽标；
-/// 3. **背景信息 + 操作**：发行 / 订阅时间靠左，重置 / 取消订阅靠右。
+/// 3. **背景信息 + 操作**：发行 / 订阅时间靠左，磁力搜索 / 取消订阅靠右。
 ///
 /// `status == failed` 时在 2、3 之间插一行索引器错误详情；未入库行展示导入结果。
 ///
@@ -41,8 +41,8 @@ class MovieSubscriptionRow extends StatelessWidget {
     required this.isPending,
     required this.onTap,
     required this.onOpenDownloads,
+    required this.onSearchMagnet,
     required this.onOpenImportJob,
-    required this.onResetSearch,
     required this.onUnsubscribe,
   });
 
@@ -59,10 +59,12 @@ class MovieSubscriptionRow extends StatelessWidget {
   /// 跳转到任务中心的下载任务视图，并定位到本订阅片对应番号。
   final VoidCallback onOpenDownloads;
 
+  /// 打开此影片的手动磁力搜索弹窗。
+  final VoidCallback onSearchMagnet;
+
   /// 跳转到资源导入中心（import_failed 行查看具体结果与文件）。
   final VoidCallback onOpenImportJob;
 
-  final VoidCallback onResetSearch;
   final VoidCallback onUnsubscribe;
 
   @override
@@ -109,8 +111,8 @@ class MovieSubscriptionRow extends StatelessWidget {
             selectionMode: selectionMode,
             isPending: isPending,
             onOpenDownloads: onOpenDownloads,
+            onSearchMagnet: onSearchMagnet,
             onOpenImportJob: onOpenImportJob,
-            onResetSearch: onResetSearch,
             onUnsubscribe: onUnsubscribe,
           ),
         ],
@@ -250,21 +252,6 @@ AppBadgeTone _statusBadgeTone(MovieSubscriptionListItemDto item) {
     MovieSubscriptionStatus.missing => AppBadgeTone.neutral,
     MovieSubscriptionStatus.pending => AppBadgeTone.info,
     MovieSubscriptionStatus.unknown => AppBadgeTone.neutral,
-  };
-}
-
-/// 「重置查询」按钮禁用时的原因文案。
-///
-/// 说清"为什么这里点不了"比让按钮凭空变灰强——尤其导入失败这一档，用户的第一直觉
-/// 恰恰是"那我重下一遍"，而那正是没用的动作。
-String _resetDisabledReason(MovieSubscriptionStatus status) {
-  return switch (status) {
-    // 这一档的补救出口是右侧的导入操作按钮（重试失败文件 / 整作业重跑，按后端
-    // available_actions 显示），重置查询只会白打一轮索引器。
-    MovieSubscriptionStatus.importFailed => '文件已经下好了，但没能入库——用导入操作补救。',
-    MovieSubscriptionStatus.imported => '已入库的影片无需重新查询资源',
-    MovieSubscriptionStatus.downloading => '已经找到种子了，等它下完',
-    _ => '该状态无需重新查询资源',
   };
 }
 
@@ -451,8 +438,8 @@ class _FooterLine extends StatelessWidget {
     required this.selectionMode,
     required this.isPending,
     required this.onOpenDownloads,
+    required this.onSearchMagnet,
     required this.onOpenImportJob,
-    required this.onResetSearch,
     required this.onUnsubscribe,
   });
 
@@ -460,8 +447,8 @@ class _FooterLine extends StatelessWidget {
   final bool selectionMode;
   final bool isPending;
   final VoidCallback onOpenDownloads;
+  final VoidCallback onSearchMagnet;
   final VoidCallback onOpenImportJob;
-  final VoidCallback onResetSearch;
   final VoidCallback onUnsubscribe;
 
   @override
@@ -509,8 +496,8 @@ class _FooterLine extends StatelessWidget {
             _RowActions(
               item: item,
               onOpenDownloads: onOpenDownloads,
+              onSearchMagnet: onSearchMagnet,
               onOpenImportJob: onOpenImportJob,
-              onResetSearch: onResetSearch,
               onUnsubscribe: onUnsubscribe,
             ),
         ],
@@ -523,15 +510,15 @@ class _RowActions extends ConsumerWidget {
   const _RowActions({
     required this.item,
     required this.onOpenDownloads,
+    required this.onSearchMagnet,
     required this.onOpenImportJob,
-    required this.onResetSearch,
     required this.onUnsubscribe,
   });
 
   final MovieSubscriptionListItemDto item;
   final VoidCallback onOpenDownloads;
+  final VoidCallback onSearchMagnet;
   final VoidCallback onOpenImportJob;
-  final VoidCallback onResetSearch;
   final VoidCallback onUnsubscribe;
 
   Future<void> _runImportAction(
@@ -550,7 +537,6 @@ class _RowActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final canReset = item.canResetSearch;
     final importOperation = item.status == MovieSubscriptionStatus.importFailed
         ? item.importOperation
         : null;
@@ -566,6 +552,14 @@ class _RowActions extends ConsumerWidget {
           tooltip: '查看下载任务',
           semanticLabel: '查看下载任务',
           onPressed: onOpenDownloads,
+        ),
+        AppIconButton(
+          key: Key('movie-subscription-row-magnet-search-${item.movieNumber}'),
+          icon: const Icon(Icons.search_rounded),
+          size: AppIconButtonSize.regular,
+          tooltip: '磁力搜索',
+          semanticLabel: '磁力搜索',
+          onPressed: onSearchMagnet,
         ),
         // 查看导入作业：失败原因只是摘要，详细 failed_files（含每条路径）在导入中心。
         if (importOperation?.canOpenImportJob ?? false)
@@ -624,19 +618,6 @@ class _RowActions extends ConsumerWidget {
             semanticLabel: '删除下载记录',
             onPressed: () => _confirmDeleteFailedDownload(context, ref, item),
           ),
-        // regular = iconSizeMd + md*2 = 44，达到 iOS HIG 最小点按尺寸。行内操作
-        // 双端同一份，移动端用 compact 会挤成 26 见方、点不准。
-        AppIconButton(
-          key: Key('movie-subscription-row-reset-${item.movieNumber}'),
-          icon: const Icon(Icons.restart_alt_rounded),
-          size: AppIconButtonSize.regular,
-          // 禁用时也留 tooltip：说清「为什么这里点不了」比让按钮凭空变灰强。
-          tooltip: canReset
-              ? '重置资源查询状态，让它重新去找别的种子'
-              : _resetDisabledReason(item.status),
-          semanticLabel: '重置资源查询状态',
-          onPressed: canReset ? onResetSearch : null,
-        ),
         AppIconButton(
           key: Key('movie-subscription-row-unsubscribe-${item.movieNumber}'),
           icon: const Icon(Icons.bookmark_remove_outlined),

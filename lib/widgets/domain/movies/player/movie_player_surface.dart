@@ -77,6 +77,9 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
 }
 
 class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
+  // 让精确跳转在部分 demuxer 落到目标之后时，仍有向前解码到目标的空间。
+  static const double _hrSeekDemuxerOffsetSeconds = 10;
+
   late final Player _player;
   late final VideoController _controller;
   late final MoviePlayerSurfaceReadiness _readiness;
@@ -267,6 +270,10 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       '[player-debug] surface_state_open_media requestId=$requestId url=${widget.resolvedUrl} initialPositionSeconds=${widget.initialPosition?.inSeconds} startupTargetSeconds=${_startupSeek.target?.inSeconds}',
     );
     _readiness.reset();
+    await _configurePreciseSeek();
+    if (!mounted || requestId != _openRequestId) {
+      return;
+    }
     try {
       await _openCoordinator.open(
         open:
@@ -300,6 +307,20 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       return;
     }
     unawaited(_statsSampler.refreshNative());
+  }
+
+  Future<void> _configurePreciseSeek() async {
+    final platformPlayer = _player.platform;
+    if (platformPlayer == null) {
+      return;
+    }
+    final dynamic nativePlayer = platformPlayer;
+    try {
+      await nativePlayer.setProperty(
+        'hr-seek-demuxer-offset',
+        _hrSeekDemuxerOffsetSeconds.toString(),
+      );
+    } catch (_) {}
   }
 
   bool get _guardsInitialSeek =>

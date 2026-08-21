@@ -12,7 +12,7 @@
 
 路径：`lib/widgets/domain/movies/`
 
-包含 `MovieSummaryCard`、`MovieSummaryGrid`、`MovieFilterSections`、`MobileFollowMovieCard`、`MovieBatchSelection` 和 `SubscriptionHeartBadge`。影片详情内部组件仍位于 `features/movies/presentation/widgets/detail/`。
+包含 `MovieSummaryCard`、`MovieSummaryGrid`、`MovieFilterSections`、`MobileFollowMovieCard`、`MovieBatchSelection`、`SubscriptionHeartBadge` 和 `MovieMagnetSearchContent` / `showMovieMagnetSearchDialog`。后两者复用影片磁力搜索的候选资源、下载器选择与提交交互；状态由 movies feature 的 Provider 提供。影片详情内部组件仍位于 `features/movies/presentation/widgets/detail/`。
 
 ## clips
 
