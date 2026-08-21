@@ -6,7 +6,7 @@
 
 路径：`lib/widgets/domain/actors/`
 
-包含 `ActorAvatar`、`ActorSummaryCard`、`ActorSummaryGrid` 和 `ActorFilterSections`。女优数据和筛选状态由 actors feature 提供。
+包含 `ActorAvatar`、`ActorSummaryCard` 和 `ActorFilterSections`。女优数据和筛选状态由 actors feature 提供。
 
 ## movies
 
