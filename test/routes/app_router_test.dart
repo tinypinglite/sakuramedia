@@ -485,18 +485,21 @@ void main() {
     );
   });
 
-  test('mobile search route helper encodes query parameters', () {
-    expect(buildMobileSearchRoutePath(''), mobileSearchPath);
-    expect(buildMobileSearchRoutePath('abp123'), '/mobile/search/abp123');
+  test('mobile search routes encode query parameters', () {
+    expect(const MobileSearchRouteData().location, mobileSearchPath);
     expect(
-      buildMobileSearchRoutePath('Rio %'),
+      const MobileSearchQueryRouteData(query: 'abp123').location,
+      '/mobile/search/abp123',
+    );
+    expect(
+      const MobileSearchQueryRouteData(query: 'Rio %').location,
       '/mobile/search/${Uri.encodeComponent('Rio %')}',
     );
   });
 
-  test('mobile playlist detail route helper builds expected path', () {
+  test('mobile playlist detail route builds expected path', () {
     expect(
-      buildMobilePlaylistDetailRoutePath(8),
+      const MobilePlaylistDetailRouteData(playlistId: 8).location,
       '$mobileOverviewPath/playlists/8',
     );
   });
@@ -508,27 +511,33 @@ void main() {
     );
   });
 
-  test('mobile movie player route helper encodes query parameters', () {
+  test('mobile movie player route encodes query parameters', () {
     expect(
-      buildMobileMoviePlayerRoutePath('ABP-123', mediaId: 100),
+      const MobileMoviePlayerRouteData(
+        movieNumber: 'ABP-123',
+        mediaId: 100,
+      ).location,
       '/mobile/library/movies/ABP-123/player?mediaId=100',
     );
     expect(
-      buildMobileMoviePlayerRoutePath(
-        'ABP-123',
+      const MobileMoviePlayerRouteData(
+        movieNumber: 'ABP-123',
         mediaId: 100,
         positionSeconds: 61,
-      ),
+      ).location,
       '/mobile/library/movies/ABP-123/player?mediaId=100&positionSeconds=61',
     );
     expect(
-      buildMobileMoviePlayerRoutePath('ABP-123'),
+      const MobileMoviePlayerRouteData(movieNumber: 'ABP-123').location,
       '/mobile/library/movies/ABP-123/player',
     );
   });
 
-  test('mobile actor detail route helper builds expected path', () {
-    expect(buildMobileActorDetailRoutePath(9), '$mobileActorsPath/9');
+  test('mobile actor detail route builds expected path', () {
+    expect(
+      const MobileActorDetailRouteData(actorId: 9).location,
+      '$mobileActorsPath/9',
+    );
   });
 
   testWidgets('desktop overview route uses NoTransitionPage', (
@@ -918,7 +927,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    router.go(buildDesktopSearchRoutePath('Rio %'));
+    router.go(const DesktopSearchQueryRouteData(query: 'Rio %').location);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('actor-summary-grid')), findsOneWidget);
@@ -1350,7 +1359,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    router.go(buildMobilePlaylistDetailRoutePath(8));
+    router.go(const MobilePlaylistDetailRouteData(playlistId: 8).location);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
@@ -1455,7 +1464,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    router.go(buildMobileActorDetailRoutePath(1));
+    router.go(const MobileActorDetailRouteData(actorId: 1).location);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
@@ -2115,7 +2124,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    router.go(buildMobileActorDetailRoutePath(1));
+    router.go(const MobileActorDetailRouteData(actorId: 1).location);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
@@ -2635,11 +2644,11 @@ void main() {
     await tester.pumpAndSettle();
 
     router.go(
-      buildMobileMoviePlayerRoutePath(
-        'ABC-001',
+      const MobileMoviePlayerRouteData(
+        movieNumber: 'ABC-001',
         mediaId: 100,
         positionSeconds: 61,
-      ),
+      ).location,
     );
     await tester.pumpAndSettle();
 

@@ -22,17 +22,6 @@ int? asIntOrNull(dynamic value) {
   return null;
 }
 
-/// 宽松转 `double?`：接受 `num` / 数字字符串；无法解析时返回 `null`。
-double? asDoubleOrNull(dynamic value) {
-  if (value is num) {
-    return value.toDouble();
-  }
-  if (value is String) {
-    return double.tryParse(value);
-  }
-  return null;
-}
-
 /// 解析 ISO-8601 时间字符串；非字符串或 trim 后为空时返回 `null`。
 DateTime? asDateTime(dynamic value) {
   if (value is! String || value.trim().isEmpty) {

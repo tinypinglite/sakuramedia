@@ -9,9 +9,6 @@ import 'package:sakuramedia/features/subscriptions/presentation/movie_subscripti
 /// `isLoading`、其余禁用」这条 UI 约定用它表达是天然的，也堵死了三个 bool 同时
 /// 为 true 的非法态。
 enum MovieSubscriptionBatchAction {
-  /// 批量重置资源查询状态。
-  resetSearch,
-
   /// 批量取消订阅。
   unsubscribe,
 
@@ -21,8 +18,7 @@ enum MovieSubscriptionBatchAction {
 
 /// 单条 / 批量动作的统一结果。
 ///
-/// [affectedCount] 的含义随动作而变，由调用方决定怎么念：批量重置是「用户选了
-/// 几部」，一键重置全部是后端返回的 `reset_count`。
+/// [affectedCount] 的含义由调用方按具体动作解释。
 @immutable
 class MovieSubscriptionActionResult {
   const MovieSubscriptionActionResult.success(this.affectedCount)
@@ -84,23 +80,6 @@ class MovieSubscriptionManagerState {
 
   bool isBatchActionRunning(MovieSubscriptionBatchAction action) =>
       runningBatchAction == action;
-
-  /// 当前已加载的条目里有几条允许重置查询（已入库 / 下载中的不算）。
-  ///
-  /// 「全选」按钮拿它做上限：把不可重置的行也选进来，只会让批量重置的成功数
-  /// 对不上用户的预期。
-  int get resettableLoadedCount =>
-      paged.items.where((item) => item.canResetSearch).length;
-
-  /// 已选条目里有几条允许重置查询——批量重置按钮的实际作用范围。
-  int get resettableSelectionCount =>
-      paged.items
-          .where(
-            (item) =>
-                item.canResetSearch &&
-                selectedMovieNumbers.contains(item.movieNumber),
-          )
-          .length;
 
   MovieSubscriptionManagerState copyWith({
     PagedListState<MovieSubscriptionListItemDto>? paged,

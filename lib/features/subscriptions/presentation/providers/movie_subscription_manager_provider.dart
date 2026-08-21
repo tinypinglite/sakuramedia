@@ -5,7 +5,6 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_subscription_batch_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
-import 'package:sakuramedia/features/movies/presentation/controllers/notifiers/movie_subscription_change.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/async_notifier_dispose_guard.dart';
@@ -192,36 +191,6 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
       return await _resetSearch(<String>[movieNumber]);
     } finally {
       _unmarkPending(<String>{movieNumber});
-    }
-  }
-
-  /// 批量重置已选影片；不可重置状态的选中项会被剔除。
-  Future<MovieSubscriptionActionResult> batchResetSearch() async {
-    final current = state.value;
-    if (current == null || current.isBatchRunning) {
-      return const MovieSubscriptionActionResult.success(0);
-    }
-    final targets = current.paged.items
-        .where(
-          (item) =>
-              item.canResetSearch &&
-              current.selectedMovieNumbers.contains(item.movieNumber),
-        )
-        .map((item) => item.movieNumber)
-        .toList(growable: false);
-    if (targets.isEmpty) {
-      return const MovieSubscriptionActionResult.success(0);
-    }
-
-    _setBatchAction(MovieSubscriptionBatchAction.resetSearch);
-    try {
-      final result = await _resetSearch(targets);
-      if (!result.hasError) {
-        clearSelection();
-      }
-      return result;
-    } finally {
-      _setBatchAction(null);
     }
   }
 

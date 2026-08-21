@@ -36,11 +36,6 @@ class AppNavGroup {
   /// 该组在侧边栏所属分区的标题。`null` 表示该组前不渲染分区标题（如概览置顶）。
   final String? sectionLabel;
 
-  bool get showsChildrenInSidebar => isCollapsible && items.length > 1;
-
-  bool matchesPath(String path) {
-    return items.any((item) => item.path == path);
-  }
 }
 
 class AppRouteSpec {

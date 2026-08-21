@@ -61,29 +61,6 @@ const String mobileSettingsPasswordPath = '/mobile/settings/password';
 
 const String loginPath = '/login';
 
-@Deprecated('请改用 typed route，例如 DesktopSearchRoute / MobileSearchRoute。')
-String buildDesktopSearchRoutePath(String query) {
-  final trimmed = query.trim();
-  if (trimmed.isEmpty) {
-    return desktopSearchPath;
-  }
-  return '$desktopSearchPath/${Uri.encodeComponent(trimmed)}';
-}
-
-@Deprecated('请改用 typed route，例如 DesktopSearchRoute / MobileSearchRoute。')
-String buildMobileSearchRoutePath(String query) {
-  final trimmed = query.trim();
-  if (trimmed.isEmpty) {
-    return mobileSearchPath;
-  }
-  return '$mobileSearchPath/${Uri.encodeComponent(trimmed)}';
-}
-
-@Deprecated('请改用 typed route，例如 MobilePlaylistDetailRoute。')
-String buildMobilePlaylistDetailRoutePath(int playlistId) {
-  return '$mobilePlaylistDetailPathPrefix/$playlistId';
-}
-
 @Deprecated('请改用 typed route，例如 DesktopMovieDetailRoute。')
 String buildDesktopMovieDetailRoutePath(String movieNumber) {
   return '$desktopMoviesPath/${Uri.encodeComponent(movieNumber)}';
@@ -97,31 +74,6 @@ String buildMobileMovieDetailRoutePath(String movieNumber) {
 @Deprecated('请改用 typed route，例如 DesktopPlaylistDetailRoute。')
 String buildDesktopPlaylistDetailRoutePath(int playlistId) {
   return '$desktopPlaylistsPath/$playlistId';
-}
-
-@Deprecated('请改用 typed route，例如 MobileMoviePlayerRoute。')
-String buildMobileMoviePlayerRoutePath(
-  String movieNumber, {
-  int? mediaId,
-  int? positionSeconds,
-}) {
-  final queryParameters = <String, String>{};
-  if (mediaId != null) {
-    queryParameters['mediaId'] = '$mediaId';
-  }
-  if (positionSeconds != null) {
-    queryParameters['positionSeconds'] = '$positionSeconds';
-  }
-  final path = Uri(
-    path: '$mobileMoviesPath/${Uri.encodeComponent(movieNumber)}/player',
-    queryParameters: queryParameters.isEmpty ? null : queryParameters,
-  );
-  return path.toString();
-}
-
-@Deprecated('请改用 typed route，例如 MobileActorDetailRoute。')
-String buildMobileActorDetailRoutePath(int actorId) {
-  return '$mobileActorsPath/$actorId';
 }
 
 @Deprecated('请改用 typed route，例如 DesktopMoviePlayerRoute。')

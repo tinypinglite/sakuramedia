@@ -13,10 +13,3 @@ String? formatSyncedAtLabel(DateTime? syncedAt, {bool withPrefix = true}) {
   final formatted = DateFormat('MM/dd HH:mm').format(syncedAt);
   return withPrefix ? '更新于 $formatted' : formatted;
 }
-
-/// 把总数文案与抓取时间组合成头部展示文案，如「12 部 · 更新于 05/08 09:00」。
-/// 抓取时间为空时仅保留总数文案。
-String composeTotalWithSyncedAt(String totalText, DateTime? syncedAt) {
-  final label = formatSyncedAtLabel(syncedAt);
-  return label == null ? totalText : '$totalText · $label';
-}

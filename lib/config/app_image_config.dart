@@ -8,10 +8,4 @@ class AppImageConfig {
     defaultValue: false,
   );
   static double blurSigma = 100;
-
-  @Deprecated('Use enableBlur instead.')
-  static bool get enableMask => enableBlur;
-
-  @Deprecated('Use enableBlur instead.')
-  static set enableMask(bool value) => enableBlur = value;
 }

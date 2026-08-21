@@ -155,17 +155,6 @@ class ActivityCenter extends _$ActivityCenter
     );
   }
 
-  void clearHighlightedTaskRun() {
-    if (state.value == null) {
-      _pendingHighlightedTaskRunId = null;
-      _hasPendingHighlight = true;
-      return;
-    }
-    if (current.highlightedTaskRunId != null) {
-      state = AsyncData(current.copyWith(highlightedTaskRunId: null));
-    }
-  }
-
   Future<void> applyTaskFilter(ActivityTaskFilterState next) {
     if (current.taskFilter == next) return Future<void>.value();
     _taskFilterGeneration++;

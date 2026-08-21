@@ -297,9 +297,6 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
     on MultiSelectStateMixin<W, String> {
   MovieBatchAction? _operatingAction;
 
-  /// 正在提交的批量动作；`null` 表示空闲。
-  MovieBatchAction? get operatingBatchAction => _operatingAction;
-
   /// 批量请求进行中：工具条据此禁用退出/全选。
   bool get isBatchOperating => _operatingAction != null;
 

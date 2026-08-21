@@ -5,7 +5,6 @@ import 'package:sakuramedia/features/shared/presentation/providers/async_notifie
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
-import 'package:sakuramedia/features/videos/presentation/controllers/notifiers/video_mutation_change.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_summary_scope.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_summary_state.dart';

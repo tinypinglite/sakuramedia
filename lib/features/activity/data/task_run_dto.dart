@@ -36,7 +36,6 @@ class TaskRunDto {
   final DateTime? updatedAt;
 
   bool get isActive => state == 'pending' || state == 'running';
-  bool get isFinished => state == 'completed' || state == 'failed';
   bool get hasDeterminateProgress =>
       progressCurrent != null && progressTotal != null && progressTotal! > 0;
   double? get progressValue {

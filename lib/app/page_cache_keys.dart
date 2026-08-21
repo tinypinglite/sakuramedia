@@ -4,8 +4,6 @@ String mobileMoviesPageCacheKey() => 'mobile:movies:list';
 String desktopActorsPageCacheKey() => 'desktop:actors:list';
 String mobileActorsPageCacheKey() => 'mobile:actors:list';
 
-String desktopTagsPageCacheKey() => 'desktop:tags:list';
-
 String desktopVideosPageCacheKey() => 'desktop:videos:list';
 String mobilePornboxPageCacheKey() => 'mobile:pornbox:list';
 

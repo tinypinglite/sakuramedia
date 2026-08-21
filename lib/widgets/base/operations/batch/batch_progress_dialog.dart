@@ -11,7 +11,6 @@ class BatchRunResult<T> {
   final List<T> failed;
 
   int get total => succeeded.length + failed.length;
-  bool get hasFailure => failed.isNotEmpty;
 }
 
 /// 顺序执行一组单条任务，并用进度弹窗呈现过程。

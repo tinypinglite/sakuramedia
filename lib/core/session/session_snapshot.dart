@@ -17,7 +17,6 @@ class SessionSnapshot {
   final String refreshToken;
   final DateTime? expiresAt;
 
-  bool get hasBaseUrl => baseUrl.isNotEmpty;
   bool get hasAccessToken => accessToken.isNotEmpty;
   bool get hasRefreshToken => refreshToken.isNotEmpty;
   bool get hasSession => hasAccessToken && hasRefreshToken;

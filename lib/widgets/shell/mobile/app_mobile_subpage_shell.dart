@@ -6,7 +6,7 @@ import 'package:sakuramedia/theme.dart';
 /// 让子页面把「真实标题」报给外层返回栏的信箱。
 ///
 /// 路由层只知道静态标题（「合集」「播放列表详情」…），真正的名字要等页面把数据
-/// 拉回来才有。页面拿到后 `AppMobileSubpageTitle.of(context)?.value = name`，
+/// 拉回来才有。页面拿到后 `AppMobileSubpageTitle.read(context)?.value = name`，
 /// 返回栏立刻换成它，页面内部就不必再写一遍标题——省掉「静态标题 + 页内大标题」
 /// 两层重复，也把列表往上提了一整块。
 ///
@@ -19,12 +19,6 @@ class AppMobileSubpageTitle extends InheritedWidget {
   });
 
   final ValueNotifier<String?> notifier;
-
-  static ValueNotifier<String?>? of(BuildContext context) {
-    return context
-        .dependOnInheritedWidgetOfExactType<AppMobileSubpageTitle>()
-        ?.notifier;
-  }
 
   /// 不建立依赖关系的读取——在 `initState` / 回调里写标题时用这个，避免把页面
   /// 挂到 InheritedWidget 的重建链上。
@@ -43,22 +37,14 @@ class AppMobileSubpageShell extends StatefulWidget {
   const AppMobileSubpageShell({
     super.key,
     required this.title,
-    this.defaultLocation,
-    @Deprecated('请改用 defaultLocation。') this.fallbackPath,
+    required this.defaultLocation,
     required this.child,
     this.currentPath,
     this.bodyPadding = AppPageInsets.compactStandard,
-  }) : assert(
-         defaultLocation != null || fallbackPath != null,
-         'defaultLocation 和 fallbackPath 至少需要提供一个',
-       ),
-       resolvedDefaultLocation = defaultLocation ?? fallbackPath ?? '';
+  });
 
   final String title;
-  final String? defaultLocation;
-  @Deprecated('请改用 defaultLocation。')
-  final String? fallbackPath;
-  final String resolvedDefaultLocation;
+  final String defaultLocation;
   final Widget child;
   final String? currentPath;
   final EdgeInsetsGeometry bodyPadding;
@@ -87,7 +73,7 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
         if (didPop) {
           return;
         }
-        _goToDefault(router, widget.resolvedDefaultLocation);
+        _goToDefault(router, widget.defaultLocation);
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         key: const Key('mobile-subpage-system-overlay'),
@@ -166,8 +152,8 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
     final activePath =
         widget.currentPath ??
         (router != null ? GoRouterState.of(context).uri.path : null);
-    if (activePath != widget.resolvedDefaultLocation) {
-      _goToDefault(router, widget.resolvedDefaultLocation);
+    if (activePath != widget.defaultLocation) {
+      _goToDefault(router, widget.defaultLocation);
     }
   }
 

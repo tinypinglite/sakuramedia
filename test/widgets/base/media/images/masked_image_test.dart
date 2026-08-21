@@ -29,7 +29,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   tearDown(() {
-    AppImageConfig.enableMask = true;
+    AppImageConfig.enableBlur = true;
   });
 
   testWidgets('masked image prefixes relative url with session base url', (
@@ -120,10 +120,10 @@ void main() {
     expect(image.alignment, Alignment.topCenter);
   });
 
-  testWidgets('masked image skips color filter when mask is disabled', (
+  testWidgets('masked image skips color filter when blur is disabled', (
     WidgetTester tester,
   ) async {
-    AppImageConfig.enableMask = false;
+    AppImageConfig.enableBlur = false;
     final sessionStore = SessionStore.inMemory();
     await sessionStore.saveBaseUrl('https://api.example.com');
 

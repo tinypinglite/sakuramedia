@@ -65,20 +65,4 @@ class MovieSubscriptionListItemDto {
       status == MovieSubscriptionStatus.exhausted ||
       status == MovieSubscriptionStatus.failed;
 
-  MovieSubscriptionListItemDto afterSearchReset() {
-    return MovieSubscriptionListItemDto(
-      movieId: movieId,
-      movieNumber: movieNumber,
-      title: title,
-      coverImage: coverImage,
-      releaseDate: releaseDate,
-      subscribedAt: subscribedAt,
-      status: MovieSubscriptionStatus.pending,
-      isFresh: isFresh,
-      attemptCount: 0,
-      attemptLimit: attemptLimit,
-      deadDownloadTaskCount: deadDownloadTaskCount,
-      mediaCount: mediaCount,
-    );
-  }
 }

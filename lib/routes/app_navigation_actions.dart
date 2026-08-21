@@ -80,12 +80,6 @@ extension AppNavigationActions on BuildContext {
     DesktopActivityRouteData(downloadMovieNumber: movieNumber).go(this);
   }
 
-  /// 跳到资源导入中心，创建媒体或字幕导入任务。
-  void goDesktopMediaImport() {
-    GoRouter.optionURLReflectsImperativeAPIs = true;
-    const DesktopMediaImportRouteData().go(this);
-  }
-
   void pushDesktopMovieSeries({
     required int seriesId,
     String? seriesName,
