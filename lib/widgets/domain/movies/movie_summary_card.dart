@@ -13,6 +13,7 @@ class MovieSummaryCard extends StatelessWidget {
     required this.movie,
     this.showStatusBadges = true,
     this.rank,
+    this.secondaryLabel,
     this.onTap,
     this.onRequestMenu,
     this.onSubscriptionTap,
@@ -25,6 +26,7 @@ class MovieSummaryCard extends StatelessWidget {
   final MovieListItemDto movie;
   final bool showStatusBadges;
   final int? rank;
+  final String? secondaryLabel;
   final VoidCallback? onTap;
   final ValueChanged<Offset>? onRequestMenu;
   final VoidCallback? onSubscriptionTap;
@@ -74,19 +76,37 @@ class MovieSummaryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
-                    child: Text(
-                      movie.movieNumber,
-                      key: Key(
-                        'movie-summary-card-number-${movie.movieNumber}',
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        weight: AppTextWeight.regular,
-                        tone: AppTextTone.onMedia,
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (secondaryLabel case final label?)
+                          Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: resolveAppTextStyle(
+                              context,
+                              size: AppTextSize.s10,
+                              weight: AppTextWeight.regular,
+                              tone: AppTextTone.onMedia,
+                            ),
+                          ),
+                        Text(
+                          movie.movieNumber,
+                          key: Key(
+                            'movie-summary-card-number-${movie.movieNumber}',
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s12,
+                            weight: AppTextWeight.regular,
+                            tone: AppTextTone.onMedia,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   if (rank != null) ...[
@@ -225,8 +245,9 @@ String _formatMovieHeat(int heat) {
 
   final valueInK = heat / 1000;
   final fixed = valueInK.toStringAsFixed(1);
-  final trimmed =
-      fixed.endsWith('.0') ? fixed.substring(0, fixed.length - 2) : fixed;
+  final trimmed = fixed.endsWith('.0')
+      ? fixed.substring(0, fixed.length - 2)
+      : fixed;
   return '${trimmed}k';
 }
 

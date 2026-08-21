@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/actors/presentation/pages/desktop/actor_det
 import 'package:sakuramedia/features/auth/presentation/login_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/pages/desktop/discover_moments_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/pages/desktop/discover_movies_page.dart';
+import 'package:sakuramedia/features/discovery/presentation/pages/desktop/hot_actress_releases_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/pages/desktop/image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/movie_detail_page.dart';
@@ -195,6 +196,9 @@ class DesktopVideoCollectionPlayRouteData extends _DesktopNoTransitionRouteData
     TypedGoRoute<DesktopDiscoverMomentsRouteData>(
       path: desktopDiscoverMomentsPath,
     ),
+    TypedGoRoute<DesktopHotActressReleasesRouteData>(
+      path: desktopHotActressReleasesPath,
+    ),
     TypedGoRoute<DesktopFollowRouteData>(path: desktopFollowPath),
     TypedGoRoute<DesktopMoviesRouteData>(path: desktopMoviesPath),
     TypedGoRoute<DesktopActorsRouteData>(path: desktopActorsPath),
@@ -308,6 +312,19 @@ class DesktopDiscoverMomentsRouteData extends _DesktopShellPageRouteData
   @override
   Widget buildContent(BuildContext context, GoRouterState state) {
     return const DesktopDiscoverMomentsPage();
+  }
+}
+
+class DesktopHotActressReleasesRouteData extends _DesktopShellPageRouteData
+    with $DesktopHotActressReleasesRouteData {
+  const DesktopHotActressReleasesRouteData();
+
+  @override
+  String get pageName => 'desktop-hot-actress-releases';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return const DesktopHotActressReleasesPage();
   }
 }
 

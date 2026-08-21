@@ -806,6 +806,12 @@ RouteBase get $mobileRootShellRouteData => StatefulShellRouteData.$route(
               factory: $MobileDiscoverMomentsRouteData._fromState,
             ),
             GoRouteData.$route(
+              path: 'discover/hot-actress-releases',
+              parentNavigatorKey:
+                  MobileHotActressReleasesRouteData.$parentNavigatorKey,
+              factory: $MobileHotActressReleasesRouteData._fromState,
+            ),
+            GoRouteData.$route(
               path: 'playlists/:playlistId',
               parentNavigatorKey:
                   MobilePlaylistDetailRouteData.$parentNavigatorKey,
@@ -931,6 +937,28 @@ mixin $MobileDiscoverMomentsRouteData on GoRouteData {
   @override
   String get location =>
       GoRouteData.$location('/mobile/overview/discover/moments');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $MobileHotActressReleasesRouteData on GoRouteData {
+  static MobileHotActressReleasesRouteData _fromState(GoRouterState state) =>
+      const MobileHotActressReleasesRouteData();
+
+  @override
+  String get location =>
+      GoRouteData.$location('/mobile/overview/discover/hot-actress-releases');
 
   @override
   void go(BuildContext context) => context.go(location);

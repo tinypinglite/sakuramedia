@@ -5,10 +5,12 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/features/discovery/data/daily_recommendation_movie_dto.dart';
+import 'package:sakuramedia/features/discovery/data/hot_actress_release_movie_dto.dart';
 import 'package:sakuramedia/features/discovery/data/moment_recommendation_dto.dart';
 import 'package:sakuramedia/features/discovery/presentation/moment_recommendation_mapping.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/discovery_recommendation_feeds_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/moments/presentation/moment_listing_models.dart';
 import 'package:sakuramedia/features/shared/presentation/hooks/paged_scroll_hook.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
@@ -30,7 +32,7 @@ import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 /// 顶栏下间距（`headerGap`）、背景色、骨架数、`basePath`（消掉旧的
 /// `_movieDetailPath(isMobile:)`）与下拉刷新开关；`basePath` 之下影片详情路径
 /// 与本列表自身的分页/刷新/错误态逻辑全部在本层。
-class DiscoveryMoviesContent extends HookConsumerWidget {
+class DiscoveryMoviesContent extends StatelessWidget {
   const DiscoveryMoviesContent({
     super.key,
     required this.pageSize,
@@ -51,17 +53,122 @@ class DiscoveryMoviesContent extends HookConsumerWidget {
   final bool enablePullToRefresh;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final provider = dailyRecommendationFeedProvider(pageSize);
-    final async = ref.watch(provider);
-    final paged =
-        async.value ?? const PagedListState<DailyRecommendationMovieDto>();
+    return _DiscoveryMovieListContent<DailyRecommendationMovieDto>(
+      keyPrefix: keyPrefix,
+      headerGap: headerGap,
+      backgroundColor: backgroundColor,
+      placeholderCount: placeholderCount,
+      basePath: basePath,
+      enablePullToRefresh: enablePullToRefresh,
+      initialLoadErrorText: '推荐影片加载失败，请稍后重试',
+      loadMoreErrorText: '加载更多推荐影片失败，请点击重试',
+      emptyMessage: '暂无推荐影片，去搜索看看吧',
+      watch: (ref) => ref.watch(provider),
+      loadMore: (ref) => ref.read(provider.notifier).loadMore(),
+      reload: (ref) => ref.read(provider.notifier).reload(),
+      refresh: (ref) => ref.read(provider.notifier).refresh(),
+      movieOf: (item) => item.movie,
+    );
+  }
+}
+
+/// 热门女优新片列表，复用与每日推荐一致的分页和卡片交互。
+class HotActressReleasesContent extends StatelessWidget {
+  const HotActressReleasesContent({
+    super.key,
+    required this.pageSize,
+    required this.keyPrefix,
+    required this.headerGap,
+    required this.backgroundColor,
+    required this.placeholderCount,
+    required this.basePath,
+    this.enablePullToRefresh = false,
+  });
+
+  final int pageSize;
+  final String keyPrefix;
+  final double headerGap;
+  final Color backgroundColor;
+  final int placeholderCount;
+  final String basePath;
+  final bool enablePullToRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = hotActressReleaseFeedProvider(pageSize);
+    return _DiscoveryMovieListContent<HotActressReleaseMovieDto>(
+      keyPrefix: keyPrefix,
+      headerGap: headerGap,
+      backgroundColor: backgroundColor,
+      placeholderCount: placeholderCount,
+      basePath: basePath,
+      enablePullToRefresh: enablePullToRefresh,
+      initialLoadErrorText: '热门女优新片加载失败，请稍后重试',
+      loadMoreErrorText: '加载更多热门女优新片失败，请点击重试',
+      emptyMessage: '暂无热门女优新片，待更多影片积累热度后展示',
+      watch: (ref) => ref.watch(provider),
+      loadMore: (ref) => ref.read(provider.notifier).loadMore(),
+      reload: (ref) => ref.read(provider.notifier).reload(),
+      refresh: (ref) => ref.read(provider.notifier).refresh(),
+      movieOf: (item) => item.movie,
+      useDefaultSubscriptionActions: true,
+      secondaryLabelOf: (item) {
+        final name = item.hotActressName.trim();
+        return name.isEmpty ? null : '热门：$name';
+      },
+    );
+  }
+}
+
+class _DiscoveryMovieListContent<T> extends HookConsumerWidget {
+  const _DiscoveryMovieListContent({
+    required this.keyPrefix,
+    required this.headerGap,
+    required this.backgroundColor,
+    required this.placeholderCount,
+    required this.basePath,
+    required this.initialLoadErrorText,
+    required this.loadMoreErrorText,
+    required this.emptyMessage,
+    required this.watch,
+    required this.loadMore,
+    required this.reload,
+    required this.refresh,
+    required this.movieOf,
+    this.enablePullToRefresh = false,
+    this.useDefaultSubscriptionActions = false,
+    this.secondaryLabelOf,
+  });
+
+  final String keyPrefix;
+  final double headerGap;
+  final Color backgroundColor;
+  final int placeholderCount;
+  final String basePath;
+  final String initialLoadErrorText;
+  final String loadMoreErrorText;
+  final String emptyMessage;
+  final AsyncValue<PagedListState<T>> Function(WidgetRef ref) watch;
+  final Future<void> Function(WidgetRef ref) loadMore;
+  final Future<void> Function(WidgetRef ref) reload;
+  final Future<String?> Function(WidgetRef ref) refresh;
+  final MovieListItemDto Function(T item) movieOf;
+  final bool useDefaultSubscriptionActions;
+  final String? Function(T item)? secondaryLabelOf;
+  final bool enablePullToRefresh;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = watch(ref);
+    final paged = async.value ?? PagedListState<T>();
     final scrollController = usePagedLoadMoreScroll(
       onReachBottom: () {
         // 对齐旧 PagedLoadController:loadMore 失败存续期间滚动不自动重试，
         // 恢复分页的唯一入口是 footer 的重试按钮。
         if (paged.loadMoreErrorMessage == null) {
-          unawaited(ref.read(provider.notifier).loadMore());
+          unawaited(loadMore(ref));
         }
       },
       triggerOffset: 300,
@@ -93,8 +200,8 @@ class DiscoveryMoviesContent extends HookConsumerWidget {
               padding: EdgeInsets.only(top: context.appSpacing.md),
               child: AppPagedLoadMoreFooter(
                 isLoading: paged.isLoadingMore,
-                errorMessage: paged.loadMoreErrorMessage,
-                onRetry: () => unawaited(ref.read(provider.notifier).loadMore()),
+                errorMessage: paged.loadMoreErrorMessage ?? loadMoreErrorText,
+                onRetry: () => unawaited(loadMore(ref)),
               ),
             ),
           ),
@@ -103,30 +210,28 @@ class DiscoveryMoviesContent extends HookConsumerWidget {
 
     return AppPageRefreshScope(
       onRefresh: () => _handleRefresh(context, ref),
-      child:
-          enablePullToRefresh
-              ? ColoredBox(
-                color: backgroundColor,
-                child: AppAdaptiveRefreshScrollView(
-                  controller: scrollController,
-                  onRefresh: () => _handleRefresh(context, ref),
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: <Widget>[sliver],
-                ),
-              )
-              : ColoredBox(
-                color: backgroundColor,
-                child: CustomScrollView(
-                  controller: scrollController,
-                  slivers: [sliver],
-                ),
+      child: enablePullToRefresh
+          ? ColoredBox(
+              color: backgroundColor,
+              child: AppAdaptiveRefreshScrollView(
+                controller: scrollController,
+                onRefresh: () => _handleRefresh(context, ref),
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[sliver],
               ),
+            )
+          : ColoredBox(
+              color: backgroundColor,
+              child: CustomScrollView(
+                controller: scrollController,
+                slivers: [sliver],
+              ),
+            ),
     );
   }
 
   Future<void> _handleRefresh(BuildContext context, WidgetRef ref) async {
-    final provider = dailyRecommendationFeedProvider(pageSize);
-    final errorMessage = await ref.read(provider.notifier).refresh();
+    final errorMessage = await refresh(ref);
     if (errorMessage != null && context.mounted) {
       showToast('刷新失败');
     }
@@ -135,31 +240,40 @@ class DiscoveryMoviesContent extends HookConsumerWidget {
   Widget _buildBody(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<PagedListState<DailyRecommendationMovieDto>> async,
-    PagedListState<DailyRecommendationMovieDto> paged,
+    AsyncValue<PagedListState<T>> async,
+    PagedListState<T> paged,
   ) {
     if (async.hasError) {
-      final provider = dailyRecommendationFeedProvider(pageSize);
       return SliverToBoxAdapter(
         child: DiscoveryRetryEmptyState(
-          message: '推荐影片加载失败，请稍后重试',
-          onRetry: () => ref.read(provider.notifier).reload(),
+          message: initialLoadErrorText,
+          onRetry: () => reload(ref),
         ),
       );
     }
+    final secondaryLabels = <String, String>{};
+    for (final item in paged.items) {
+      final label = secondaryLabelOf?.call(item)?.trim();
+      if (label != null && label.isNotEmpty) {
+        secondaryLabels[movieOf(item).movieNumber] = label;
+      }
+    }
     return MovieSummarySliver(
-      items: paged.items.map((item) => item.movie).toList(growable: false),
+      items: paged.items.map(movieOf).toList(growable: false),
       isLoading: async.isLoading,
-      emptyMessage: '暂无推荐影片，去搜索看看吧',
+      emptyMessage: emptyMessage,
       placeholderCount: placeholderCount,
+      secondaryLabelForMovie: secondaryLabels.isEmpty
+          ? null
+          : (movie) => secondaryLabels[movie.movieNumber],
+      useDefaultSubscriptionActions: useDefaultSubscriptionActions,
       onMovieTap: (movie) => _openMovieDetail(context, movie.movieNumber),
-      onMovieMenuRequest:
-          (movie, globalPosition) => requestMovieCollectionMenu(
-            context,
-            movie.movieNumber,
-            globalPosition,
-            isSubscribed: movie.isSubscribed,
-          ),
+      onMovieMenuRequest: (movie, globalPosition) => requestMovieCollectionMenu(
+        context,
+        movie.movieNumber,
+        globalPosition,
+        isSubscribed: movie.isSubscribed,
+      ),
     );
   }
 
@@ -247,7 +361,8 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
               child: AppPagedLoadMoreFooter(
                 isLoading: paged.isLoadingMore,
                 errorMessage: paged.loadMoreErrorMessage,
-                onRetry: () => unawaited(ref.read(provider.notifier).loadMore()),
+                onRetry: () =>
+                    unawaited(ref.read(provider.notifier).loadMore()),
               ),
             ),
           ),
@@ -256,24 +371,23 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
 
     return AppPageRefreshScope(
       onRefresh: () => _handleRefresh(context, ref),
-      child:
-          enablePullToRefresh
-              ? ColoredBox(
-                color: backgroundColor,
-                child: AppAdaptiveRefreshScrollView(
-                  controller: scrollController,
-                  onRefresh: () => _handleRefresh(context, ref),
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: <Widget>[sliver],
-                ),
-              )
-              : ColoredBox(
-                color: backgroundColor,
-                child: CustomScrollView(
-                  controller: scrollController,
-                  slivers: [sliver],
-                ),
+      child: enablePullToRefresh
+          ? ColoredBox(
+              color: backgroundColor,
+              child: AppAdaptiveRefreshScrollView(
+                controller: scrollController,
+                onRefresh: () => _handleRefresh(context, ref),
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: <Widget>[sliver],
               ),
+            )
+          : ColoredBox(
+              color: backgroundColor,
+              child: CustomScrollView(
+                controller: scrollController,
+                slivers: [sliver],
+              ),
+            ),
     );
   }
 

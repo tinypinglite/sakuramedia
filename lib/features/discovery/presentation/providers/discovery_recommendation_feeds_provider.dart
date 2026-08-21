@@ -1,8 +1,11 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/discovery/data/daily_recommendation_movie_dto.dart';
+import 'package:sakuramedia/features/discovery/data/hot_actress_release_movie_dto.dart';
 import 'package:sakuramedia/features/discovery/data/moment_recommendation_dto.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/discovery_api_provider.dart';
+import 'package:sakuramedia/features/discovery/presentation/providers/hot_actress_release_subscription_changes.dart';
+import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/async_notifier_dispose_guard.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 
@@ -53,6 +56,59 @@ class DailyRecommendationFeed extends _$DailyRecommendationFeed
     int itemsPerPage,
   ) async {
     attachDisposeGuard();
+    return loadInitialPage();
+  }
+}
+
+@Riverpod(retry: kNoAsyncNotifierRetry)
+class HotActressReleaseFeed extends _$HotActressReleaseFeed
+    with
+        PagedAsyncNotifierMixin<
+          PagedListState<HotActressReleaseMovieDto>,
+          HotActressReleaseMovieDto
+        > {
+  @override
+  int get pageSize => itemsPerPage;
+
+  @override
+  String get initialLoadErrorText => '热门女优新片加载失败，请稍后重试';
+
+  @override
+  String get loadMoreErrorText => '加载更多热门女优新片失败，请点击重试';
+
+  @override
+  PagedListState<HotActressReleaseMovieDto> pagedOf(
+    PagedListState<HotActressReleaseMovieDto> state,
+  ) => state;
+
+  @override
+  PagedListState<HotActressReleaseMovieDto> applyPaged(
+    PagedListState<HotActressReleaseMovieDto> state,
+    PagedListState<HotActressReleaseMovieDto> paged,
+  ) => paged;
+
+  @override
+  Future<PaginatedResponseDto<HotActressReleaseMovieDto>> fetchPage(
+    int page,
+    int pageSize,
+  ) => ref
+      .read(discoveryApiProvider)
+      .getHotActressReleases(page: page, pageSize: pageSize);
+
+  @override
+  Future<PagedListState<HotActressReleaseMovieDto>> build(
+    int itemsPerPage,
+  ) async {
+    attachDisposeGuard();
+    ref.listen(movieSubscriptionEventsProvider, (_, next) {
+      final current = state.value;
+      final changes = next.value;
+      if (current == null || changes == null) return;
+      final items = current.items.withSubscriptionChanges(changes);
+      if (!identical(items, current.items)) {
+        state = AsyncData(current.copyWith(items: items));
+      }
+    });
     return loadInitialPage();
   }
 }

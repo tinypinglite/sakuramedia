@@ -205,6 +205,10 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
       factory: $DesktopDiscoverMomentsRouteData._fromState,
     ),
     GoRouteData.$route(
+      path: '/desktop/library/discover/hot-actress-releases',
+      factory: $DesktopHotActressReleasesRouteData._fromState,
+    ),
+    GoRouteData.$route(
       path: '/desktop/library/follow',
       factory: $DesktopFollowRouteData._fromState,
     ),
@@ -399,6 +403,28 @@ mixin $DesktopDiscoverMomentsRouteData on GoRouteData {
   @override
   String get location =>
       GoRouteData.$location('/desktop/library/discover/moments');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $DesktopHotActressReleasesRouteData on GoRouteData {
+  static DesktopHotActressReleasesRouteData _fromState(GoRouterState state) =>
+      const DesktopHotActressReleasesRouteData();
+
+  @override
+  String get location =>
+      GoRouteData.$location('/desktop/library/discover/hot-actress-releases');
 
   @override
   void go(BuildContext context) => context.go(location);

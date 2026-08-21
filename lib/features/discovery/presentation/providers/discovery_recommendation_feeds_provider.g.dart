@@ -146,6 +146,109 @@ abstract class _$DailyRecommendationFeed
   }
 }
 
+@ProviderFor(HotActressReleaseFeed)
+final hotActressReleaseFeedProvider = HotActressReleaseFeedFamily._();
+
+final class HotActressReleaseFeedProvider
+    extends
+        $AsyncNotifierProvider<
+          HotActressReleaseFeed,
+          PagedListState<HotActressReleaseMovieDto>
+        > {
+  HotActressReleaseFeedProvider._({
+    required HotActressReleaseFeedFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: kNoAsyncNotifierRetry,
+         name: r'hotActressReleaseFeedProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$hotActressReleaseFeedHash();
+
+  @override
+  String toString() {
+    return r'hotActressReleaseFeedProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  HotActressReleaseFeed create() => HotActressReleaseFeed();
+
+  @override
+  bool operator ==(Object other) {
+    return other is HotActressReleaseFeedProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$hotActressReleaseFeedHash() =>
+    r'51cd3c7eb28df3e9edfe7a0257fb7909d61645f2';
+
+final class HotActressReleaseFeedFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          HotActressReleaseFeed,
+          AsyncValue<PagedListState<HotActressReleaseMovieDto>>,
+          PagedListState<HotActressReleaseMovieDto>,
+          FutureOr<PagedListState<HotActressReleaseMovieDto>>,
+          int
+        > {
+  HotActressReleaseFeedFamily._()
+    : super(
+        retry: kNoAsyncNotifierRetry,
+        name: r'hotActressReleaseFeedProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  HotActressReleaseFeedProvider call(int itemsPerPage) =>
+      HotActressReleaseFeedProvider._(argument: itemsPerPage, from: this);
+
+  @override
+  String toString() => r'hotActressReleaseFeedProvider';
+}
+
+abstract class _$HotActressReleaseFeed
+    extends $AsyncNotifier<PagedListState<HotActressReleaseMovieDto>> {
+  late final _$args = ref.$arg as int;
+  int get itemsPerPage => _$args;
+
+  FutureOr<PagedListState<HotActressReleaseMovieDto>> build(int itemsPerPage);
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref =
+        this.ref
+            as $Ref<
+              AsyncValue<PagedListState<HotActressReleaseMovieDto>>,
+              PagedListState<HotActressReleaseMovieDto>
+            >;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<
+                AsyncValue<PagedListState<HotActressReleaseMovieDto>>,
+                PagedListState<HotActressReleaseMovieDto>
+              >,
+              AsyncValue<PagedListState<HotActressReleaseMovieDto>>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, () => build(_$args));
+  }
+}
+
 /// 「发现 → 全部推荐时刻」分页列表,同上(family 参数为每页条数)。
 ///
 /// `MomentRecommendationPageDto` 不是 `PaginatedResponseDto` 子类(多携带

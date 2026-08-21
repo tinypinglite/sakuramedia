@@ -332,6 +332,10 @@ void main() {
       currentPath: desktopDiscoverMomentsPath,
       routeSpecs: desktopRouteSpecs,
     );
+    final hotActressConfig = resolveDesktopTopBarConfig(
+      currentPath: desktopHotActressReleasesPath,
+      routeSpecs: desktopRouteSpecs,
+    );
 
     expect(moviesConfig.title, '推荐影片');
     expect(moviesConfig.fallbackPath, desktopDiscoverPath);
@@ -339,11 +343,15 @@ void main() {
     expect(momentsConfig.title, '推荐时刻');
     expect(momentsConfig.fallbackPath, desktopDiscoverPath);
     expect(momentsConfig.isBackEnabled, isTrue);
+    expect(hotActressConfig.title, '热门女优新片');
+    expect(hotActressConfig.fallbackPath, desktopDiscoverPath);
+    expect(hotActressConfig.isBackEnabled, isTrue);
   });
 
   test('mobile discover list routes expose subpage titles', () {
     const moviesRoute = MobileDiscoverMoviesRouteData();
     const momentsRoute = MobileDiscoverMomentsRouteData();
+    const hotActressRoute = MobileHotActressReleasesRouteData();
 
     expect(moviesRoute.location, mobileDiscoverMoviesPath);
     expect(moviesRoute.title, '推荐影片');
@@ -351,6 +359,9 @@ void main() {
     expect(momentsRoute.location, mobileDiscoverMomentsPath);
     expect(momentsRoute.title, '推荐时刻');
     expect(momentsRoute.defaultLocation, mobileOverviewPath);
+    expect(hotActressRoute.location, mobileHotActressReleasesPath);
+    expect(hotActressRoute.title, '热门女优新片');
+    expect(hotActressRoute.defaultLocation, mobileOverviewPath);
   });
 
   test('desktop top bar config enables back on movie series page', () {
@@ -3797,9 +3808,7 @@ void _enqueueMobileDownloadersResponses(TestApiBundle bundle) {
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/indexer-settings',
-    body: const <String, dynamic>{
-      'indexers': <Map<String, dynamic>>[],
-    },
+    body: const <String, dynamic>{'indexers': <Map<String, dynamic>>[]},
   );
 }
 
@@ -3812,9 +3821,7 @@ void _enqueueMobileIndexersResponses(TestApiBundle bundle) {
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/indexer-settings',
-    body: const <String, dynamic>{
-      'indexers': <Map<String, dynamic>>[],
-    },
+    body: const <String, dynamic>{'indexers': <Map<String, dynamic>>[]},
   );
 }
 

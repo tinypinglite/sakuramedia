@@ -4,6 +4,8 @@ const String desktopOverviewPath = '/desktop/overview';
 const String desktopDiscoverPath = '/desktop/library/discover';
 const String desktopDiscoverMoviesPath = '$desktopDiscoverPath/movies';
 const String desktopDiscoverMomentsPath = '$desktopDiscoverPath/moments';
+const String desktopHotActressReleasesPath =
+    '$desktopDiscoverPath/hot-actress-releases';
 const String desktopFollowPath = '/desktop/library/follow';
 const String desktopSearchPath = '/desktop/search';
 const String desktopImageSearchPath = '/desktop/search/image';
@@ -31,6 +33,8 @@ const String desktopSystemDiagnosticsPath = '/desktop/system/diagnostics';
 const String mobileOverviewPath = '/mobile/overview';
 const String mobileDiscoverMoviesPath = '$mobileOverviewPath/discover/movies';
 const String mobileDiscoverMomentsPath = '$mobileOverviewPath/discover/moments';
+const String mobileHotActressReleasesPath =
+    '$mobileOverviewPath/discover/hot-actress-releases';
 const String mobilePlaylistDetailPathPrefix = '$mobileOverviewPath/playlists';
 const String mobileSystemOverviewPath = '/mobile/system/overview';
 const String mobileNotificationsPath = '/mobile/system/notifications';

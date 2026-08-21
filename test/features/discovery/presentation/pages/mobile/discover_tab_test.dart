@@ -5,44 +5,82 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/discovery/presentation/mobile_overview_discover_tab.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/domain/movies/subscription_heart_badge.dart';
 
 import '../../../../../support/test_api_bundle.dart';
 
 void main() {
-  testWidgets('mobile discover tab uses simple movie and moment grids', (
-    tester,
-  ) async {
-    final sessionStore = await _buildSessionStore();
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    _enqueueDiscoveryResponses(bundle);
+  testWidgets(
+    'mobile discover tab shows hot actress releases and recommendations',
+    (tester) async {
+      final sessionStore = await _buildSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      _enqueueDiscoveryResponses(bundle);
+      _enqueueSubscription(bundle, movieNumber: 'HOT-001');
 
-    await _pumpDiscoveryWidget(
-      tester,
-      sessionStore: sessionStore,
-      bundle: bundle,
-      child: const MobileOverviewDiscoverTab(),
-    );
-    await tester.pumpAndSettle();
+      await _pumpDiscoveryWidget(
+        tester,
+        sessionStore: sessionStore,
+        bundle: bundle,
+        child: const MobileOverviewDiscoverTab(),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('mobile-overview-discover-tab')), findsWidgets);
-    expect(find.text('今日发现'), findsNothing);
-    expect(find.byKey(const Key('mobile-discover-summary-card')), findsNothing);
-    expect(find.byKey(const Key('movie-summary-grid')), findsOneWidget);
-    expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
-    expect(find.byKey(const Key('moment-grid')), findsOneWidget);
-    expect(find.byKey(const Key('moment-card-1')), findsOneWidget);
-    expect(
-      find.byKey(const Key('mobile-discover-load-more-daily')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('mobile-discover-load-more-moments')),
-      findsOneWidget,
-    );
-    expect(find.text('近期热度较高'), findsNothing);
-    expect(find.text('与你收藏的时刻画面相似'), findsNothing);
-  });
+      expect(
+        find.byKey(const Key('mobile-overview-discover-tab')),
+        findsWidgets,
+      );
+      expect(find.text('今日发现'), findsNothing);
+      expect(
+        find.byKey(const Key('mobile-discover-summary-card')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('movie-summary-grid')), findsNWidgets(2));
+      expect(find.text('热门女优新片'), findsOneWidget);
+      expect(
+        find.byKey(const Key('movie-summary-card-HOT-001')),
+        findsOneWidget,
+      );
+      expect(find.text('热门：女优 A'), findsOneWidget);
+      expect(
+        find.byKey(const Key('movie-summary-card-ABC-001')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('moment-grid')), findsOneWidget);
+      expect(find.byKey(const Key('moment-card-1')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mobile-discover-load-more-hot-actress')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mobile-discover-load-more-daily')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mobile-discover-load-more-moments')),
+        findsOneWidget,
+      );
+      expect(find.text('近期热度较高'), findsNothing);
+      expect(find.text('与你收藏的时刻画面相似'), findsNothing);
+
+      await tester.tap(
+        find.byKey(const Key('movie-summary-card-subscription-HOT-001')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('PUT', '/movies/HOT-001/subscription'), 1);
+      expect(
+        tester
+            .widget<SubscriptionHeartBadge>(
+              find.byKey(const Key('movie-summary-card-subscription-HOT-001')),
+            )
+            .isSubscribed,
+        isTrue,
+      );
+      await tester.pump(const Duration(seconds: 3));
+    },
+  );
 }
 
 Future<SessionStore> _buildSessionStore() async {
@@ -68,11 +106,10 @@ Future<void> _pumpDiscoveryWidget(
       child: OKToast(
         child: MaterialApp(
           theme: sakuraMobileThemeData,
-          onGenerateRoute:
-              (settings) => MaterialPageRoute<void>(
-                settings: settings,
-                builder: (_) => child,
-              ),
+          onGenerateRoute: (settings) => MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => child,
+          ),
           home: child,
         ),
       ),
@@ -81,37 +118,55 @@ Future<void> _pumpDiscoveryWidget(
 }
 
 void _enqueueDiscoveryResponses(TestApiBundle bundle) {
-  _enqueueFollowPage(bundle, total: 1);
+  _enqueueHotActressPage(bundle, page: 1, start: 1, count: 1, total: 1);
   _enqueueDailyPage(bundle, page: 1, start: 1, count: 1, total: 1);
   _enqueueMomentPage(bundle, page: 1, start: 1, count: 1, total: 1);
 }
 
-void _enqueueFollowPage(TestApiBundle bundle, {int page = 1, int total = 1}) {
+void _enqueueSubscription(TestApiBundle bundle, {required String movieNumber}) {
+  bundle.adapter.enqueueJson(
+    method: 'PUT',
+    path: '/movies/$movieNumber/subscription',
+    statusCode: 204,
+  );
+}
+
+void _enqueueHotActressPage(
+  TestApiBundle bundle, {
+  required int page,
+  required int start,
+  required int count,
+  required int total,
+}) {
   bundle.adapter.enqueueJson(
     method: 'GET',
-    path: '/movies/subscribed-actors/latest',
+    path: '/hot-actress-releases',
     body: <String, dynamic>{
-      'items': <Map<String, dynamic>>[_followMovieJson()],
+      'items': List<Map<String, dynamic>>.generate(
+        count,
+        (index) => _hotActressMovieJson(start + index),
+      ),
       'page': page,
-      'page_size': 6,
+      'page_size': count,
       'total': total,
     },
   );
 }
 
-Map<String, dynamic> _followMovieJson({
-  String movieNumber = 'FOL-001',
-  bool isSubscribed = true,
-}) {
+Map<String, dynamic> _hotActressMovieJson(int index) {
+  final number = index.toString().padLeft(3, '0');
   return <String, dynamic>{
-    'javdb_id': 'Movie$movieNumber',
-    'movie_number': movieNumber,
-    'title': 'Movie $movieNumber',
+    'javdb_id': 'hot-id-$number',
+    'movie_number': 'HOT-$number',
+    'title': 'Hot movie $number',
     'cover_image': null,
+    'thin_cover_image': null,
     'release_date': '2026-05-01',
     'duration_minutes': 120,
-    'is_subscribed': isSubscribed,
-    'can_play': true,
+    'heat': 0,
+    'is_subscribed': false,
+    'can_play': false,
+    'hot_actress': <String, dynamic>{'name': '女优 A'},
   };
 }
 

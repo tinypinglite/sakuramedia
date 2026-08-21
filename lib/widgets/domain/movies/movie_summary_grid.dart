@@ -1,11 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/providers/movie_subscription_toggle_provider.dart';
+import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_cover_card_skeleton.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
 
-class MovieSummaryGrid extends StatelessWidget {
+class MovieSummaryGrid extends ConsumerWidget {
   const MovieSummaryGrid({
     super.key,
     required this.items,
@@ -15,6 +20,8 @@ class MovieSummaryGrid extends StatelessWidget {
     this.onMovieMenuRequest,
     this.onMovieSubscriptionTap,
     this.isMovieSubscriptionUpdating,
+    this.useDefaultSubscriptionActions = false,
+    this.secondaryLabelForMovie,
     this.emptyMessage = '当前没有可展示的影片数据。',
     this.placeholderCount = 8,
     this.selectionMode = false,
@@ -32,6 +39,10 @@ class MovieSummaryGrid extends StatelessWidget {
   onMovieMenuRequest;
   final ValueChanged<MovieListItemDto>? onMovieSubscriptionTap;
   final bool Function(MovieListItemDto movie)? isMovieSubscriptionUpdating;
+
+  /// 未传自定义订阅回调时，接入跨列表复用的默认订阅动作。
+  final bool useDefaultSubscriptionActions;
+  final String? Function(MovieListItemDto movie)? secondaryLabelForMovie;
   final String emptyMessage;
   final int placeholderCount;
 
@@ -48,7 +59,12 @@ class MovieSummaryGrid extends StatelessWidget {
   final int maxColumns;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final usesDefaultSubscriptionActions =
+        useDefaultSubscriptionActions && onMovieSubscriptionTap == null;
+    final updatingMovieNumbers = usesDefaultSubscriptionActions
+        ? ref.watch(movieSubscriptionToggleProvider)
+        : const <String>{};
     return AppAdaptiveCardGrid<MovieListItemDto>(
       gridKey: const Key('movie-summary-grid'),
       items: items,
@@ -69,11 +85,17 @@ class MovieSummaryGrid extends StatelessWidget {
         onRequestMenu: onMovieMenuRequest == null
             ? null
             : (globalPosition) => onMovieMenuRequest!(movie, globalPosition),
-        onSubscriptionTap: onMovieSubscriptionTap == null
-            ? null
-            : () => onMovieSubscriptionTap!(movie),
+        onSubscriptionTap: onMovieSubscriptionTap != null
+            ? () => onMovieSubscriptionTap!(movie)
+            : usesDefaultSubscriptionActions
+            ? () => unawaited(
+                _toggleDefaultMovieSubscription(ref, context, movie),
+              )
+            : null,
         isSubscriptionUpdating:
-            isMovieSubscriptionUpdating?.call(movie) ?? false,
+            isMovieSubscriptionUpdating?.call(movie) ??
+            updatingMovieNumbers.contains(movie.movieNumber),
+        secondaryLabel: secondaryLabelForMovie?.call(movie),
         selectionMode: selectionMode,
         isSelected: isMovieSelected?.call(movie) ?? false,
         onSelectedChanged: onMovieSelectedChanged == null
@@ -85,7 +107,7 @@ class MovieSummaryGrid extends StatelessWidget {
 }
 
 /// 累计分页影片列表使用的 Sliver 网格版本。
-class MovieSummarySliver extends StatelessWidget {
+class MovieSummarySliver extends ConsumerWidget {
   const MovieSummarySliver({
     super.key,
     required this.items,
@@ -95,6 +117,8 @@ class MovieSummarySliver extends StatelessWidget {
     this.onMovieMenuRequest,
     this.onMovieSubscriptionTap,
     this.isMovieSubscriptionUpdating,
+    this.useDefaultSubscriptionActions = false,
+    this.secondaryLabelForMovie,
     this.emptyMessage = '当前没有可展示的影片数据。',
     this.placeholderCount = 8,
     this.selectionMode = false,
@@ -110,6 +134,10 @@ class MovieSummarySliver extends StatelessWidget {
   onMovieMenuRequest;
   final ValueChanged<MovieListItemDto>? onMovieSubscriptionTap;
   final bool Function(MovieListItemDto movie)? isMovieSubscriptionUpdating;
+
+  /// 未传自定义订阅回调时，接入跨列表复用的默认订阅动作。
+  final bool useDefaultSubscriptionActions;
+  final String? Function(MovieListItemDto movie)? secondaryLabelForMovie;
   final String emptyMessage;
   final int placeholderCount;
 
@@ -119,7 +147,12 @@ class MovieSummarySliver extends StatelessWidget {
   onMovieSelectedChanged;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final usesDefaultSubscriptionActions =
+        useDefaultSubscriptionActions && onMovieSubscriptionTap == null;
+    final updatingMovieNumbers = usesDefaultSubscriptionActions
+        ? ref.watch(movieSubscriptionToggleProvider)
+        : const <String>{};
     return AppAdaptiveCardSliver<MovieListItemDto>(
       gridKey: const Key('movie-summary-grid'),
       items: items,
@@ -138,11 +171,17 @@ class MovieSummarySliver extends StatelessWidget {
         onRequestMenu: onMovieMenuRequest == null
             ? null
             : (globalPosition) => onMovieMenuRequest!(movie, globalPosition),
-        onSubscriptionTap: onMovieSubscriptionTap == null
-            ? null
-            : () => onMovieSubscriptionTap!(movie),
+        onSubscriptionTap: onMovieSubscriptionTap != null
+            ? () => onMovieSubscriptionTap!(movie)
+            : usesDefaultSubscriptionActions
+            ? () => unawaited(
+                _toggleDefaultMovieSubscription(ref, context, movie),
+              )
+            : null,
         isSubscriptionUpdating:
-            isMovieSubscriptionUpdating?.call(movie) ?? false,
+            isMovieSubscriptionUpdating?.call(movie) ??
+            updatingMovieNumbers.contains(movie.movieNumber),
+        secondaryLabel: secondaryLabelForMovie?.call(movie),
         selectionMode: selectionMode,
         isSelected: isMovieSelected?.call(movie) ?? false,
         onSelectedChanged: onMovieSelectedChanged == null
@@ -151,4 +190,15 @@ class MovieSummarySliver extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<void> _toggleDefaultMovieSubscription(
+  WidgetRef ref,
+  BuildContext context,
+  MovieListItemDto movie,
+) async {
+  final result = await ref
+      .read(movieSubscriptionToggleProvider.notifier)
+      .toggle(movieNumber: movie.movieNumber, isSubscribed: movie.isSubscribed);
+  if (context.mounted) showMovieSubscriptionFeedback(result);
 }

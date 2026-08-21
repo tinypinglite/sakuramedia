@@ -153,4 +153,53 @@ void main() {
       expect(page.items.single.movie.movieNumber, 'ABC-001');
     },
   );
+
+  test(
+    'getHotActressReleases sends paging query and parses actress name',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/hot-actress-releases',
+        body: <String, dynamic>{
+          'items': [
+            <String, dynamic>{
+              'javdb_id': 'hot-id',
+              'movie_number': 'HOT-001',
+              'title': 'Hot movie',
+              'cover_image': null,
+              'thin_cover_image': null,
+              'release_date': '2026-08-20',
+              'duration_minutes': 120,
+              'heat': 0,
+              'is_subscribed': false,
+              'can_play': false,
+              'recommendation_score': 3.4,
+              'hot_actress': <String, dynamic>{
+                'id': 1,
+                'name': '女优 A',
+                'historical_movie_count': 4,
+                'hotness_score': 3.4,
+              },
+            },
+          ],
+          'page': 2,
+          'page_size': 10,
+          'total': 30,
+        },
+      );
+
+      final page = await discoveryApi.getHotActressReleases(
+        page: 2,
+        pageSize: 10,
+      );
+
+      final request = adapter.requests.single;
+      expect(request.path, '/hot-actress-releases');
+      expect(request.uri.queryParameters['page'], '2');
+      expect(request.uri.queryParameters['page_size'], '10');
+      expect(page.total, 30);
+      expect(page.items.single.movie.movieNumber, 'HOT-001');
+      expect(page.items.single.hotActressName, '女优 A');
+    },
+  );
 }

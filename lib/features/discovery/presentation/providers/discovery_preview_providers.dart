@@ -1,8 +1,11 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/features/discovery/data/daily_recommendation_movie_dto.dart';
+import 'package:sakuramedia/features/discovery/data/hot_actress_release_movie_dto.dart';
 import 'package:sakuramedia/features/discovery/data/moment_recommendation_dto.dart';
+import 'package:sakuramedia/features/discovery/presentation/providers/hot_actress_release_subscription_changes.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/discovery_api_provider.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/discovery_preview_state.dart';
+import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
 
 part 'discovery_preview_providers.g.dart';
 
@@ -64,6 +67,67 @@ class DiscoveryDailyPreview extends _$DiscoveryDailyPreview {
         items: state.items,
         total: state.total,
         errorMessage: keepSilently ? null : '今日推荐加载失败，请稍后重试',
+      );
+    } finally {
+      _inFlight = false;
+    }
+  }
+}
+
+@riverpod
+class DiscoveryHotActressReleasePreview
+    extends _$DiscoveryHotActressReleasePreview {
+  bool _disposed = false;
+  bool _inFlight = false;
+
+  @override
+  DiscoveryPreviewState<HotActressReleaseMovieDto> build(int pageSize) {
+    ref.onDispose(() => _disposed = true);
+    ref.listen(movieSubscriptionEventsProvider, (_, next) {
+      final changes = next.value;
+      if (changes == null) return;
+      final items = state.items.withSubscriptionChanges(changes);
+      if (!identical(items, state.items)) {
+        state = DiscoveryPreviewState(
+          items: items,
+          total: state.total,
+          isLoading: state.isLoading,
+          errorMessage: state.errorMessage,
+        );
+      }
+    });
+    Future<void>.microtask(load);
+    return const DiscoveryPreviewState(isLoading: true);
+  }
+
+  Future<void> load() => _fetch(clearExisting: true);
+
+  Future<void> refresh() => _fetch(clearExisting: false);
+
+  Future<void> _fetch({required bool clearExisting}) async {
+    if (_inFlight) return;
+    _inFlight = true;
+    state = DiscoveryPreviewState(
+      items: clearExisting ? const <HotActressReleaseMovieDto>[] : state.items,
+      total: clearExisting ? 0 : state.total,
+      isLoading: true,
+    );
+    try {
+      final response = await ref
+          .read(discoveryApiProvider)
+          .getHotActressReleases(page: 1, pageSize: pageSize);
+      if (_disposed) return;
+      state = DiscoveryPreviewState(
+        items: List<HotActressReleaseMovieDto>.unmodifiable(response.items),
+        total: response.total,
+      );
+    } catch (_) {
+      if (_disposed) return;
+      final keepSilently = !clearExisting && state.items.isNotEmpty;
+      state = DiscoveryPreviewState(
+        items: state.items,
+        total: state.total,
+        errorMessage: keepSilently ? null : '热门女优新片加载失败，请稍后重试',
       );
     } finally {
       _inFlight = false;

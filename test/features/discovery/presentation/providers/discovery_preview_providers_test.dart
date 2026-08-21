@@ -5,6 +5,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/discovery_api_provider.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/discovery_preview_providers.dart';
+import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
 
 import '../../../../support/fake_http_client_adapter.dart';
 
@@ -59,34 +60,39 @@ void main() {
   /// 等 build 里 microtask 触发的初始 load 完成（含 dio 假适配器的多跳异步）。
   Future<void> settle() => pumpEventQueue();
 
-  test('build kicks off load and fills both legs with page 1 previews',
-      () async {
-    _enqueueDaily(adapter, movieNumbers: ['ABC-001'], total: 12);
-    _enqueueMoments(adapter, recommendationIds: [1, 2], total: 20);
+  test(
+    'build kicks off load and fills both legs with page 1 previews',
+    () async {
+      _enqueueDaily(adapter, movieNumbers: ['ABC-001'], total: 12);
+      _enqueueMoments(adapter, recommendationIds: [1, 2], total: 20);
 
-    keepAlive();
-    // 首帧即 loading 态(对齐旧 `..load()` 时序)。
-    expect(container.read(discoveryDailyPreviewProvider(6)).isLoading, isTrue);
-    await settle();
+      keepAlive();
+      // 首帧即 loading 态(对齐旧 `..load()` 时序)。
+      expect(
+        container.read(discoveryDailyPreviewProvider(6)).isLoading,
+        isTrue,
+      );
+      await settle();
 
-    final daily = container.read(discoveryDailyPreviewProvider(6));
-    final moment = container.read(discoveryMomentPreviewProvider(8));
-    expect(daily.items.map((item) => item.movie.movieNumber), ['ABC-001']);
-    expect(daily.total, 12);
-    expect(daily.isLoading, isFalse);
-    expect(daily.errorMessage, isNull);
-    expect(moment.items.map((item) => item.recommendationId), [1, 2]);
-    expect(moment.total, 20);
-    expect(moment.errorMessage, isNull);
-    // family 参数透传为 page_size。
-    expect(
-      adapter.requests
-          .firstWhere((r) => r.uri.path.contains('daily'))
-          .uri
-          .queryParameters['page_size'],
-      '6',
-    );
-  });
+      final daily = container.read(discoveryDailyPreviewProvider(6));
+      final moment = container.read(discoveryMomentPreviewProvider(8));
+      expect(daily.items.map((item) => item.movie.movieNumber), ['ABC-001']);
+      expect(daily.total, 12);
+      expect(daily.isLoading, isFalse);
+      expect(daily.errorMessage, isNull);
+      expect(moment.items.map((item) => item.recommendationId), [1, 2]);
+      expect(moment.total, 20);
+      expect(moment.errorMessage, isNull);
+      // family 参数透传为 page_size。
+      expect(
+        adapter.requests
+            .firstWhere((r) => r.uri.path.contains('daily'))
+            .uri
+            .queryParameters['page_size'],
+        '6',
+      );
+    },
+  );
 
   test('refresh failure with existing items keeps them silently', () async {
     _enqueueDaily(adapter, movieNumbers: ['ABC-001'], total: 12);
@@ -139,6 +145,39 @@ void main() {
     expect(daily.errorMessage, '今日推荐加载失败，请稍后重试');
     expect(moment.items.map((item) => item.recommendationId), [1]);
     expect(moment.errorMessage, isNull);
+  });
+
+  test('hot actress preview loads its own recommendation source', () async {
+    _enqueueHotActress(adapter, movieNumbers: ['HOT-001'], total: 12);
+    final subscription = container.listen(
+      discoveryHotActressReleasePreviewProvider(6),
+      (_, __) {},
+    );
+    addTearDown(subscription.close);
+
+    await settle();
+
+    final hotActress = container.read(
+      discoveryHotActressReleasePreviewProvider(6),
+    );
+    expect(hotActress.items.single.movie.movieNumber, 'HOT-001');
+    expect(hotActress.items.single.hotActressName, '女优 A');
+    expect(hotActress.total, 12);
+
+    container
+        .read(movieSubscriptionEventsProvider.notifier)
+        .reportChange(movieNumber: 'HOT-001', isSubscribed: true);
+    await settle();
+
+    expect(
+      container
+          .read(discoveryHotActressReleasePreviewProvider(6))
+          .items
+          .single
+          .movie
+          .isSubscribed,
+      isTrue,
+    );
   });
 }
 
@@ -204,6 +243,34 @@ void _enqueueMoments(
       'page_size': recommendationIds.length,
       'total': total,
       'generated_at': '2026-08-04T04:00:00',
+    },
+  );
+}
+
+void _enqueueHotActress(
+  FakeHttpClientAdapter adapter, {
+  required List<String> movieNumbers,
+  required int total,
+}) {
+  adapter.enqueueJson(
+    method: 'GET',
+    path: '/hot-actress-releases',
+    body: <String, dynamic>{
+      'items': movieNumbers
+          .map(
+            (movieNumber) => <String, dynamic>{
+              'javdb_id': 'id-$movieNumber',
+              'movie_number': movieNumber,
+              'title': 'Movie $movieNumber',
+              'is_subscribed': false,
+              'can_play': false,
+              'hot_actress': <String, dynamic>{'name': '女优 A'},
+            },
+          )
+          .toList(),
+      'page': 1,
+      'page_size': movieNumbers.length,
+      'total': total,
     },
   );
 }

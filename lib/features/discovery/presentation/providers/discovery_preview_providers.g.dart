@@ -170,6 +170,129 @@ abstract class _$DiscoveryDailyPreview
   }
 }
 
+@ProviderFor(DiscoveryHotActressReleasePreview)
+final discoveryHotActressReleasePreviewProvider =
+    DiscoveryHotActressReleasePreviewFamily._();
+
+final class DiscoveryHotActressReleasePreviewProvider
+    extends
+        $NotifierProvider<
+          DiscoveryHotActressReleasePreview,
+          DiscoveryPreviewState<HotActressReleaseMovieDto>
+        > {
+  DiscoveryHotActressReleasePreviewProvider._({
+    required DiscoveryHotActressReleasePreviewFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'discoveryHotActressReleasePreviewProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() =>
+      _$discoveryHotActressReleasePreviewHash();
+
+  @override
+  String toString() {
+    return r'discoveryHotActressReleasePreviewProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  DiscoveryHotActressReleasePreview create() =>
+      DiscoveryHotActressReleasePreview();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(
+    DiscoveryPreviewState<HotActressReleaseMovieDto> value,
+  ) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride:
+          $SyncValueProvider<DiscoveryPreviewState<HotActressReleaseMovieDto>>(
+            value,
+          ),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is DiscoveryHotActressReleasePreviewProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$discoveryHotActressReleasePreviewHash() =>
+    r'99b9ab96cd15a663a1d8317ee6da0168f66362d6';
+
+final class DiscoveryHotActressReleasePreviewFamily extends $Family
+    with
+        $ClassFamilyOverride<
+          DiscoveryHotActressReleasePreview,
+          DiscoveryPreviewState<HotActressReleaseMovieDto>,
+          DiscoveryPreviewState<HotActressReleaseMovieDto>,
+          DiscoveryPreviewState<HotActressReleaseMovieDto>,
+          int
+        > {
+  DiscoveryHotActressReleasePreviewFamily._()
+    : super(
+        retry: null,
+        name: r'discoveryHotActressReleasePreviewProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  DiscoveryHotActressReleasePreviewProvider call(int pageSize) =>
+      DiscoveryHotActressReleasePreviewProvider._(
+        argument: pageSize,
+        from: this,
+      );
+
+  @override
+  String toString() => r'discoveryHotActressReleasePreviewProvider';
+}
+
+abstract class _$DiscoveryHotActressReleasePreview
+    extends $Notifier<DiscoveryPreviewState<HotActressReleaseMovieDto>> {
+  late final _$args = ref.$arg as int;
+  int get pageSize => _$args;
+
+  DiscoveryPreviewState<HotActressReleaseMovieDto> build(int pageSize);
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref =
+        this.ref
+            as $Ref<
+              DiscoveryPreviewState<HotActressReleaseMovieDto>,
+              DiscoveryPreviewState<HotActressReleaseMovieDto>
+            >;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<
+                DiscoveryPreviewState<HotActressReleaseMovieDto>,
+                DiscoveryPreviewState<HotActressReleaseMovieDto>
+              >,
+              DiscoveryPreviewState<HotActressReleaseMovieDto>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, () => build(_$args));
+  }
+}
+
 /// 发现首屏「推荐时刻」预览,同上(family 参数=预览条数,桌面 8 / 移动 10)。
 
 @ProviderFor(DiscoveryMomentPreview)

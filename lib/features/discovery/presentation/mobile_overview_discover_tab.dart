@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/discovery/data/daily_recommendation_movie_dto.dart';
+import 'package:sakuramedia/features/discovery/data/hot_actress_release_movie_dto.dart';
 import 'package:sakuramedia/features/discovery/data/moment_recommendation_dto.dart';
 import 'package:sakuramedia/features/discovery/presentation/moment_recommendation_mapping.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/discovery_preview_providers.dart';
@@ -30,12 +31,17 @@ class MobileOverviewDiscoverTab extends ConsumerWidget {
   const MobileOverviewDiscoverTab({super.key});
 
   static const int _dailyPreviewCount = 6;
+  static const int _hotActressPreviewCount = 6;
   static const int _momentPreviewCount = 4;
   static const int _dailyPageSize = 10;
+  static const int _hotActressPageSize = 10;
   static const int _momentPageSize = 10;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final hotActress = ref.watch(
+      discoveryHotActressReleasePreviewProvider(_hotActressPageSize),
+    );
     final daily = ref.watch(discoveryDailyPreviewProvider(_dailyPageSize));
     final moment = ref.watch(discoveryMomentPreviewProvider(_momentPageSize));
 
@@ -49,6 +55,8 @@ class MobileOverviewDiscoverTab extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(height: context.appSpacing.sm),
+              _buildHotActressSection(context, ref, hotActress),
+              SizedBox(height: context.appSpacing.lg),
               _buildDailySection(context, ref, daily),
               SizedBox(height: context.appSpacing.lg),
               _buildMomentSection(context, ref, moment),
@@ -60,15 +68,74 @@ class MobileOverviewDiscoverTab extends ConsumerWidget {
     );
   }
 
-  /// 双腿并行刷新;各腿失败自行静默/置错(见 provider),这里不 toast——
-  /// 对齐迁移前 `DiscoveryController.refresh()` 吞异常的行为。
+  /// 三个预览独立刷新，单侧失败不影响其余区块。
   Future<void> _handleRefresh(WidgetRef ref) async {
     await Future.wait(<Future<void>>[
-      ref.read(discoveryDailyPreviewProvider(_dailyPageSize).notifier).refresh(),
+      ref
+          .read(
+            discoveryHotActressReleasePreviewProvider(
+              _hotActressPageSize,
+            ).notifier,
+          )
+          .refresh(),
+      ref
+          .read(discoveryDailyPreviewProvider(_dailyPageSize).notifier)
+          .refresh(),
       ref
           .read(discoveryMomentPreviewProvider(_momentPageSize).notifier)
           .refresh(),
     ]);
+  }
+
+  Widget _buildHotActressSection(
+    BuildContext context,
+    WidgetRef ref,
+    DiscoveryPreviewState<HotActressReleaseMovieDto> hotActress,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _MobileDiscoverSectionTitle(
+          title: '热门女优新片',
+          totalText: '${hotActress.total} 部',
+          actionKey: const Key('mobile-discover-load-more-hot-actress'),
+          actionLabel: '更多',
+          onActionTap: () => context.push(mobileHotActressReleasesPath),
+        ),
+        SizedBox(height: context.appSpacing.md),
+        _buildHotActressBody(context, ref, hotActress),
+      ],
+    );
+  }
+
+  Widget _buildHotActressBody(
+    BuildContext context,
+    WidgetRef ref,
+    DiscoveryPreviewState<HotActressReleaseMovieDto> hotActress,
+  ) {
+    if (hotActress.errorMessage != null) {
+      return _RetryEmptyState(
+        message: hotActress.errorMessage!,
+        onRetry: () => _handleRefresh(ref),
+      );
+    }
+    final actressNames = <String, String>{
+      for (final item in hotActress.items)
+        if (item.hotActressName.trim().isNotEmpty)
+          item.movie.movieNumber: '热门：${item.hotActressName.trim()}',
+    };
+    return MovieSummaryGrid(
+      items: hotActress.items
+          .take(_hotActressPreviewCount)
+          .map((item) => item.movie)
+          .toList(growable: false),
+      isLoading: hotActress.isLoading,
+      emptyMessage: '暂无热门女优新片，待更多影片积累热度后展示',
+      placeholderCount: _hotActressPreviewCount,
+      secondaryLabelForMovie: (movie) => actressNames[movie.movieNumber],
+      useDefaultSubscriptionActions: true,
+      onMovieTap: (movie) => _openMovieDetail(context, movie.movieNumber),
+    );
   }
 
   Widget _buildDailySection(

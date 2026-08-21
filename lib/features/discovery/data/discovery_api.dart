@@ -1,6 +1,7 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/discovery/data/daily_recommendation_movie_dto.dart';
+import 'package:sakuramedia/features/discovery/data/hot_actress_release_movie_dto.dart';
 import 'package:sakuramedia/features/discovery/data/moment_recommendation_dto.dart';
 
 class DiscoveryApi {
@@ -29,5 +30,17 @@ class DiscoveryApi {
       queryParameters: <String, dynamic>{'page': page, 'page_size': pageSize},
     );
     return MomentRecommendationPageDto.fromJson(response);
+  }
+
+  Future<PaginatedResponseDto<HotActressReleaseMovieDto>>
+  getHotActressReleases({int page = 1, int pageSize = 20}) async {
+    final response = await _apiClient.get(
+      '/hot-actress-releases',
+      queryParameters: <String, dynamic>{'page': page, 'page_size': pageSize},
+    );
+    return PaginatedResponseDto<HotActressReleaseMovieDto>.fromJson(
+      response,
+      HotActressReleaseMovieDto.fromJson,
+    );
   }
 }

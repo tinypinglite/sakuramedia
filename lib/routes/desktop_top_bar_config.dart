@@ -56,6 +56,14 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
     );
   }
 
+  if (currentPath == desktopHotActressReleasesPath) {
+    return const DesktopTopBarConfig(
+      title: '热门女优新片',
+      fallbackPath: desktopDiscoverPath,
+      isBackEnabled: true,
+    );
+  }
+
   if (currentPath == desktopFollowPath) {
     return const DesktopTopBarConfig(
       title: '女优上新',
