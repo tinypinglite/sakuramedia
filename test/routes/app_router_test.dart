@@ -37,6 +37,11 @@ const List<_MobileSettingsRouteCase> _mobileSettingsRouteCases =
         pageKey: Key('mobile-system-overview-page'),
       ),
       _MobileSettingsRouteCase(
+        path: mobileActivityPath,
+        title: '任务中心',
+        pageKey: Key('desktop-activity-page'),
+      ),
+      _MobileSettingsRouteCase(
         path: mobileSettingsMediaLibrariesPath,
         title: '媒体库',
         pageKey: Key('mobile-settings-media-libraries'),
@@ -210,7 +215,7 @@ void main() {
     expect(momentsConfig.title, '推荐时刻');
     expect(momentsConfig.fallbackPath, desktopDiscoverPath);
     expect(momentsConfig.isBackEnabled, isTrue);
-    expect(hotActressConfig.title, '热门女优新片');
+    expect(hotActressConfig.title, '热门新片');
     expect(hotActressConfig.fallbackPath, desktopDiscoverPath);
     expect(hotActressConfig.isBackEnabled, isTrue);
   });
@@ -219,6 +224,7 @@ void main() {
     const moviesRoute = MobileDiscoverMoviesRouteData();
     const momentsRoute = MobileDiscoverMomentsRouteData();
     const hotActressRoute = MobileHotActressReleasesRouteData();
+    const followRoute = MobileFollowRouteData();
 
     expect(moviesRoute.location, mobileDiscoverMoviesPath);
     expect(moviesRoute.title, '推荐影片');
@@ -227,8 +233,11 @@ void main() {
     expect(momentsRoute.title, '推荐时刻');
     expect(momentsRoute.defaultLocation, mobileOverviewPath);
     expect(hotActressRoute.location, mobileHotActressReleasesPath);
-    expect(hotActressRoute.title, '热门女优新片');
+    expect(hotActressRoute.title, '热门新片');
     expect(hotActressRoute.defaultLocation, mobileOverviewPath);
+    expect(followRoute.location, mobileFollowPath);
+    expect(followRoute.title, '女优上新');
+    expect(followRoute.defaultLocation, mobileOverviewPath);
   });
 
   test('desktop top bar config enables back on movie series page', () {
@@ -1067,7 +1076,7 @@ void main() {
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsOneWidget);
     expect(find.byKey(const Key('mobile-overview-tabs')), findsOneWidget);
     expect(find.text('我的'), findsOneWidget);
-    expect(find.text('关注'), findsOneWidget);
+    expect(find.text('关注'), findsNothing);
     expect(find.text('发现'), findsOneWidget);
     expect(find.text('时刻'), findsOneWidget);
     expect(find.text('热评'), findsOneWidget);
@@ -1191,6 +1200,8 @@ void main() {
         _enqueueAccountProfile(bundle);
       } else if (routeCase.path == mobileMediaManagementPath) {
         _enqueueMobileMediaManagementResponses(bundle);
+      } else if (routeCase.path == mobileActivityPath) {
+        _enqueueActivityCenterResponses(bundle);
       }
 
       router.go(routeCase.path);
@@ -1705,6 +1716,55 @@ void main() {
     expect(router.routeInformationProvider.value.uri.path, mobileOverviewPath);
   });
 
+  testWidgets('mobile drawer management section opens activity page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/latest',
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 12,
+        'total': 0,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists',
+      body: const <Map<String, dynamic>>[],
+    );
+    _enqueueActivityCenterResponses(bundle);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+    await tester.pumpAndSettle();
+
+    final activityItem = find.byKey(
+      const Key('mobile-overview-drawer-activity'),
+    );
+    await tester.ensureVisible(activityItem);
+    await tester.tap(activityItem);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('desktop-activity-page')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    expect(router.routeInformationProvider.value.uri.path, mobileActivityPath);
+  });
+
   // 侧滑打开抽屉只在「概览根路由 + 停在第一个 tab」时放开:边缘拖拽区盖住多宽,
   // 下面的 TabBarView 就有多宽收不到手势,只有第一个 tab 右滑本就无处可去。
   testWidgets('mobile overview enables drawer edge swipe only on the first '
@@ -2061,6 +2121,8 @@ void main() {
         _enqueueAccountProfile(bundle);
       } else if (routeCase.path == mobileMediaManagementPath) {
         _enqueueMobileMediaManagementResponses(bundle);
+      } else if (routeCase.path == mobileActivityPath) {
+        _enqueueActivityCenterResponses(bundle);
       }
 
       router.go(routeCase.path);
@@ -3846,6 +3908,34 @@ void _enqueueMobileMediaManagementResponses(TestApiBundle bundle) {
     method: 'GET',
     path: '/media-libraries',
     body: const <Map<String, dynamic>>[],
+  );
+}
+
+void _enqueueActivityCenterResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/system/jobs',
+    body: const <Map<String, dynamic>>[],
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/system/activity/bootstrap',
+    body: <String, dynamic>{
+      'notifications': <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+      'unread_count': 0,
+      'active_task_runs': const <Map<String, dynamic>>[],
+      'task_runs': <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+    },
   );
 }
 

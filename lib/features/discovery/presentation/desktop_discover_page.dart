@@ -170,7 +170,7 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _DiscoverSectionTitle(
-          title: '热门女优新片',
+          title: '热门新片',
           totalText: '${hotActress.total} 部',
           actionKey: const Key('desktop-discover-load-more-hot-actress'),
           actionLabel: '更多',
@@ -193,7 +193,7 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
               ),
           secondaryLabelForMovie: (movie) => actressNames[movie.movieNumber],
           useDefaultSubscriptionActions: true,
-          emptyMessage: '暂无热门女优新片，待更多影片积累热度后展示',
+          emptyMessage: '暂无热门新片，待更多影片积累热度后展示',
           placeholderCount: _previewPageSize,
           maxRows: 2,
           maxColumns: 10,

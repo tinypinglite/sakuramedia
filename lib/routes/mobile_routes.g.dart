@@ -13,6 +13,7 @@ List<RouteBase> get $appRoutes => [
   $mobileSearchQueryRouteData,
   $mobileSettingsMediaLibrariesRouteData,
   $mobileSystemOverviewRouteData,
+  $mobileActivityRouteData,
   $mobileNotificationsRouteData,
   $mobileMediaManagementRouteData,
   $mobileSettingsDownloadersRouteData,
@@ -245,6 +246,32 @@ mixin $MobileSystemOverviewRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/mobile/system/overview');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileActivityRouteData => GoRouteData.$route(
+  path: '/mobile/system/activity',
+  factory: $MobileActivityRouteData._fromState,
+);
+
+mixin $MobileActivityRouteData on GoRouteData {
+  static MobileActivityRouteData _fromState(GoRouterState state) =>
+      const MobileActivityRouteData();
+
+  @override
+  String get location => GoRouteData.$location('/mobile/system/activity');
 
   @override
   void go(BuildContext context) => context.go(location);
@@ -812,6 +839,11 @@ RouteBase get $mobileRootShellRouteData => StatefulShellRouteData.$route(
               factory: $MobileHotActressReleasesRouteData._fromState,
             ),
             GoRouteData.$route(
+              path: 'discover/follow',
+              parentNavigatorKey: MobileFollowRouteData.$parentNavigatorKey,
+              factory: $MobileFollowRouteData._fromState,
+            ),
+            GoRouteData.$route(
               path: 'playlists/:playlistId',
               parentNavigatorKey:
                   MobilePlaylistDetailRouteData.$parentNavigatorKey,
@@ -959,6 +991,28 @@ mixin $MobileHotActressReleasesRouteData on GoRouteData {
   @override
   String get location =>
       GoRouteData.$location('/mobile/overview/discover/hot-actress-releases');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $MobileFollowRouteData on GoRouteData {
+  static MobileFollowRouteData _fromState(GoRouterState state) =>
+      const MobileFollowRouteData();
+
+  @override
+  String get location =>
+      GoRouteData.$location('/mobile/overview/discover/follow');
 
   @override
   void go(BuildContext context) => context.go(location);

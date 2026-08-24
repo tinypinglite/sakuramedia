@@ -201,6 +201,7 @@ void main() {
     expect(sakuraMobileThemeData.appComponentTokens.buttonHeightSm, 36);
     expect(sakuraMobileThemeData.appComponentTokens.buttonHeight2xs, 28);
     expect(sakuraMobileThemeData.appComponentTokens.buttonHeight3xs, 24);
+    expect(sakuraMobileThemeData.appComponentTokens.downloadTaskCoverWidth, 96);
     expect(sakuraMobileThemeData.appComponentTokens.switchTrackWidth, 44);
     expect(sakuraMobileThemeData.appComponentTokens.switchTrackHeight, 24);
     expect(sakuraMobileThemeData.appComponentTokens.switchThumbDiameter, 18);

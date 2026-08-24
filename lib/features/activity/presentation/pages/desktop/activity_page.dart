@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -28,6 +29,9 @@ import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 
 class DesktopActivityPage extends ConsumerStatefulWidget {
   const DesktopActivityPage({super.key, this.initialDownloadMovieNumber});
@@ -968,6 +972,9 @@ class _TaskFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppPlatformScope.maybeOf(context) == AppPlatform.mobile) {
+      return _MobileTaskFilterEntry(controller: controller);
+    }
     final layoutTokens = context.appLayoutTokens;
     final filterTextStyle = resolveAppTextStyle(
       context,
@@ -1072,6 +1079,204 @@ class _TaskFilterBar extends StatelessWidget {
       ],
     );
   }
+}
+
+class _MobileTaskFilterEntry extends StatelessWidget {
+  const _MobileTaskFilterEntry({required this.controller});
+
+  final ActivityCenter controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final filter = controller.taskFilter;
+    final isSelected = filter != ActivityTaskFilterState.initial;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            _taskFilterSummary(filter),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
+          ),
+        ),
+        SizedBox(width: context.appSpacing.md),
+        AppButton(
+          key: const Key('mobile-activity-task-filter-button'),
+          label: isSelected ? '已筛选' : '筛选',
+          icon: const Icon(Icons.tune_rounded),
+          size: AppButtonSize.small,
+          isSelected: isSelected,
+          onPressed: () => _showMobileActivityTaskFilterDrawer(
+            context,
+            current: filter,
+            knownTaskKeys: controller.knownTaskKeys,
+            onChanged: (next) => unawaited(controller.applyTaskFilter(next)),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+Future<void> _showMobileActivityTaskFilterDrawer(
+  BuildContext context, {
+  required ActivityTaskFilterState current,
+  required List<String> knownTaskKeys,
+  required ValueChanged<ActivityTaskFilterState> onChanged,
+}) {
+  return showAppBottomDrawer<void>(
+    context: context,
+    drawerKey: const Key('mobile-activity-task-filter-drawer'),
+    maxHeightFactor: 0.68,
+    builder: (_) => _MobileTaskFilterDrawerContent(
+      current: current,
+      knownTaskKeys: knownTaskKeys,
+      onChanged: onChanged,
+    ),
+  );
+}
+
+class _MobileTaskFilterDrawerContent extends StatefulWidget {
+  const _MobileTaskFilterDrawerContent({
+    required this.current,
+    required this.knownTaskKeys,
+    required this.onChanged,
+  });
+
+  final ActivityTaskFilterState current;
+  final List<String> knownTaskKeys;
+  final ValueChanged<ActivityTaskFilterState> onChanged;
+
+  @override
+  State<_MobileTaskFilterDrawerContent> createState() =>
+      _MobileTaskFilterDrawerContentState();
+}
+
+class _MobileTaskFilterDrawerContentState
+    extends State<_MobileTaskFilterDrawerContent> {
+  late ActivityTaskFilterState _local;
+
+  @override
+  void initState() {
+    super.initState();
+    _local = widget.current;
+  }
+
+  void _apply(ActivityTaskFilterState next) {
+    setState(() => _local = next);
+    widget.onChanged(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppMobileFilterDrawerScaffold(
+      scrollViewKey: const Key('mobile-activity-task-filter-scroll-view'),
+      footer: AppFilterPanelFooter(
+        isDefault: _local == ActivityTaskFilterState.initial,
+        onReset: () => _apply(ActivityTaskFilterState.initial),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '筛选任务历史',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s18,
+              weight: AppTextWeight.semibold,
+              tone: AppTextTone.primary,
+            ),
+          ),
+          SizedBox(height: context.appSpacing.lg),
+          AppSelectField<String?>(
+            key: const Key('mobile-activity-task-state-filter'),
+            label: '任务状态',
+            value: _local.state,
+            items: <DropdownMenuItem<String?>>[
+              const DropdownMenuItem<String?>(value: null, child: Text('全部状态')),
+              ..._TaskFilterBar._states.map(
+                (value) => DropdownMenuItem<String?>(
+                  value: value,
+                  child: Text(_labelForTaskState(value)),
+                ),
+              ),
+            ],
+            onChanged: (value) => _apply(_local.copyWith(state: value)),
+          ),
+          SizedBox(height: context.appSpacing.md),
+          AppSelectField<String?>(
+            key: const Key('mobile-activity-task-key-filter'),
+            label: '任务类型',
+            value: _local.taskKey,
+            items: <DropdownMenuItem<String?>>[
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text('全部任务类型'),
+              ),
+              ...widget.knownTaskKeys.map(
+                (value) =>
+                    DropdownMenuItem<String?>(value: value, child: Text(value)),
+              ),
+            ],
+            onChanged: (value) => _apply(_local.copyWith(taskKey: value)),
+          ),
+          SizedBox(height: context.appSpacing.md),
+          AppSelectField<String?>(
+            key: const Key('mobile-activity-task-trigger-filter'),
+            label: '触发来源',
+            value: _local.triggerType,
+            items: <DropdownMenuItem<String?>>[
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text('全部触发来源'),
+              ),
+              ..._TaskFilterBar._triggerTypes.map(
+                (value) => DropdownMenuItem<String?>(
+                  value: value,
+                  child: Text(_labelForTriggerType(value)),
+                ),
+              ),
+            ],
+            onChanged: (value) => _apply(_local.copyWith(triggerType: value)),
+          ),
+          SizedBox(height: context.appSpacing.md),
+          AppSelectField<ActivityTaskSort>(
+            key: const Key('mobile-activity-task-sort-filter'),
+            label: '排序方式',
+            value: _local.sort,
+            items: ActivityTaskSort.values
+                .map(
+                  (value) => DropdownMenuItem<ActivityTaskSort>(
+                    value: value,
+                    child: Text(value.label),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) => _apply(
+              _local.copyWith(sort: value ?? ActivityTaskSort.startedAtDesc),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _taskFilterSummary(ActivityTaskFilterState filter) {
+  final values = <String>[];
+  if (filter.state != null) values.add(_labelForTaskState(filter.state!));
+  if (filter.taskKey != null) values.add(filter.taskKey!);
+  if (filter.triggerType != null) {
+    values.add(_labelForTriggerType(filter.triggerType!));
+  }
+  values.add(filter.sort.label);
+  return values.join(' · ');
 }
 
 class _TaskRunCard extends StatelessWidget {

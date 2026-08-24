@@ -13,11 +13,13 @@ import 'package:sakuramedia/app/app_version_info_state.dart';
 import 'package:sakuramedia/features/account/presentation/pages/mobile/change_password_page.dart';
 import 'package:sakuramedia/features/account/presentation/pages/mobile/change_username_page.dart';
 import 'package:sakuramedia/features/actors/presentation/pages/mobile/actor_detail_page.dart';
+import 'package:sakuramedia/features/activity/presentation/pages/mobile/activity_page.dart';
 import 'package:sakuramedia/features/activity/presentation/pages/mobile/notifications_page.dart';
 import 'package:sakuramedia/features/auth/presentation/login_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/pages/mobile/discover_moments_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/pages/mobile/discover_movies_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/pages/mobile/hot_actress_releases_page.dart';
+import 'package:sakuramedia/features/subscriptions/presentation/pages/mobile/overview_follow_tab.dart';
 import 'package:sakuramedia/features/image_search/presentation/pages/mobile/image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
 import 'package:sakuramedia/features/media/presentation/pages/mobile/media_management_page.dart';
@@ -264,6 +266,26 @@ class MobileSystemOverviewRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return const MobileSystemOverviewPage();
+  }
+}
+
+@TypedGoRoute<MobileActivityRouteData>(path: mobileActivityPath)
+class MobileActivityRouteData extends _MobileSubpageRouteData
+    with $MobileActivityRouteData {
+  const MobileActivityRouteData();
+
+  @override
+  String get pageName => 'mobile-activity';
+
+  @override
+  String get title => '任务中心';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileActivityPage();
   }
 }
 
@@ -717,6 +739,7 @@ class MobileVideoCollectionPlayRouteData extends _MobileCupertinoRouteData
             TypedGoRoute<MobileHotActressReleasesRouteData>(
               path: 'discover/hot-actress-releases',
             ),
+            TypedGoRoute<MobileFollowRouteData>(path: 'discover/follow'),
             TypedGoRoute<MobilePlaylistDetailRouteData>(
               path: 'playlists/:playlistId',
             ),
@@ -904,6 +927,13 @@ class _MobileOverviewDrawer extends ConsumerWidget {
         label: '媒体管理',
       );
 
+  static const _MobileOverviewDrawerMenuItem _activityItem =
+      _MobileOverviewDrawerMenuItem(
+        key: 'activity',
+        icon: Icons.bolt_outlined,
+        label: '任务中心',
+      );
+
   static const _MobileOverviewDrawerMenuItem _externalPlayerItem =
       _MobileOverviewDrawerMenuItem(
         key: 'external-player',
@@ -1053,6 +1083,10 @@ class _MobileOverviewDrawer extends ConsumerWidget {
                             context: context,
                             item: _mediaManagementItem,
                           ),
+                          _buildMenuEntry(
+                            context: context,
+                            item: _activityItem,
+                          ),
                         ],
                       ),
                       SizedBox(height: spacing.md),
@@ -1155,6 +1189,9 @@ class _MobileOverviewDrawer extends ConsumerWidget {
         return;
       case 'media-management':
         const MobileMediaManagementRouteData().push(hostContext);
+        return;
+      case 'activity':
+        const MobileActivityRouteData().push(hostContext);
         return;
       case 'playlists':
         const MobileSettingsPlaylistsRouteData().push(hostContext);
@@ -1548,7 +1585,7 @@ class MobileHotActressReleasesRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-hot-actress-releases';
 
   @override
-  String get title => '热门女优新片';
+  String get title => '热门新片';
 
   @override
   String get defaultLocation => mobileOverviewPath;
@@ -1556,6 +1593,28 @@ class MobileHotActressReleasesRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return const MobileHotActressReleasesPage();
+  }
+}
+
+class MobileFollowRouteData extends _MobileSubpageRouteData
+    with $MobileFollowRouteData {
+  const MobileFollowRouteData();
+
+  static final GlobalKey<NavigatorState> $parentNavigatorKey =
+      mobileRootNavigatorKey;
+
+  @override
+  String get pageName => 'mobile-follow';
+
+  @override
+  String get title => '女优上新';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileOverviewFollowTab();
   }
 }
 

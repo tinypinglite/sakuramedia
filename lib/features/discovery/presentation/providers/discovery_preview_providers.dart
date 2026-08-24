@@ -127,7 +127,7 @@ class DiscoveryHotActressReleasePreview
       state = DiscoveryPreviewState(
         items: state.items,
         total: state.total,
-        errorMessage: keepSilently ? null : '热门女优新片加载失败，请稍后重试',
+        errorMessage: keepSilently ? null : '热门新片加载失败，请稍后重试',
       );
     } finally {
       _inFlight = false;

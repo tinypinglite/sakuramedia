@@ -74,7 +74,7 @@ class DiscoveryMoviesContent extends StatelessWidget {
   }
 }
 
-/// 热门女优新片列表，复用与每日推荐一致的分页和卡片交互。
+/// 热门新片列表，复用与每日推荐一致的分页和卡片交互。
 class HotActressReleasesContent extends StatelessWidget {
   const HotActressReleasesContent({
     super.key,
@@ -105,9 +105,9 @@ class HotActressReleasesContent extends StatelessWidget {
       placeholderCount: placeholderCount,
       basePath: basePath,
       enablePullToRefresh: enablePullToRefresh,
-      initialLoadErrorText: '热门女优新片加载失败，请稍后重试',
-      loadMoreErrorText: '加载更多热门女优新片失败，请点击重试',
-      emptyMessage: '暂无热门女优新片，待更多影片积累热度后展示',
+      initialLoadErrorText: '热门新片加载失败，请稍后重试',
+      loadMoreErrorText: '加载更多热门新片失败，请点击重试',
+      emptyMessage: '暂无热门新片，待更多影片积累热度后展示',
       watch: (ref) => ref.watch(provider),
       loadMore: (ref) => ref.read(provider.notifier).loadMore(),
       reload: (ref) => ref.read(provider.notifier).reload(),

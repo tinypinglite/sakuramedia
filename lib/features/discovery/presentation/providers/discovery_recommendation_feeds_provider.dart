@@ -71,10 +71,10 @@ class HotActressReleaseFeed extends _$HotActressReleaseFeed
   int get pageSize => itemsPerPage;
 
   @override
-  String get initialLoadErrorText => '热门女优新片加载失败，请稍后重试';
+  String get initialLoadErrorText => '热门新片加载失败，请稍后重试';
 
   @override
-  String get loadMoreErrorText => '加载更多热门女优新片失败，请点击重试';
+  String get loadMoreErrorText => '加载更多热门新片失败，请点击重试';
 
   @override
   PagedListState<HotActressReleaseMovieDto> pagedOf(

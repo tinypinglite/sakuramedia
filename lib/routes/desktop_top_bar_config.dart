@@ -59,7 +59,7 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
 
   if (currentPath == desktopHotActressReleasesPath) {
     return const DesktopTopBarConfig(
-      title: '热门女优新片',
+      title: '热门新片',
       fallbackPath: desktopDiscoverPath,
       isBackEnabled: true,
     );

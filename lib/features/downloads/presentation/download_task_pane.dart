@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/core/format/transfer_speed.dart';
@@ -20,6 +21,7 @@ import 'package:sakuramedia/features/downloads/presentation/providers/downloads_
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -32,6 +34,9 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_left_cover_card.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 
 /// 构建「下载任务」Tab 的 sliver 列表。
 ///
@@ -183,6 +188,27 @@ class _DownloadClientSpeedBar extends StatelessWidget {
     );
     final totalDown = state.totalDownloadSpeedBytes;
     final totalUp = state.totalUploadSpeedBytes;
+    final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
+    final speedLabels = <Widget>[
+      _SpeedSummaryLabel(
+        icon: Icons.arrow_downward_rounded,
+        value: hasAnyLiveData ? formatTransferSpeed(totalDown) : '—',
+      ),
+      _SpeedSummaryLabel(
+        icon: Icons.arrow_upward_rounded,
+        value: hasAnyLiveData ? formatTransferSpeed(totalUp) : '—',
+      ),
+    ];
+    final statusBadges = <Widget>[
+      const AppBadge(
+        key: Key('download-client-snapshot-status'),
+        label: '列表快照',
+        tone: AppBadgeTone.neutral,
+        size: AppBadgeSize.compact,
+      ),
+      if (state.pollingState != DownloadTaskPollingState.idle)
+        _DownloadPollingBadge(state: state.pollingState),
+    ];
 
     return Container(
       key: const Key('download-client-speed-bar'),
@@ -196,40 +222,30 @@ class _DownloadClientSpeedBar extends StatelessWidget {
         borderRadius: context.appRadius.mdBorder,
         border: Border.all(color: colors.borderSubtle),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          _SpeedSummaryLabel(
-            icon: Icons.arrow_downward_rounded,
-            value: hasAnyLiveData ? formatTransferSpeed(totalDown) : '—',
-          ),
-          SizedBox(width: context.appSpacing.md),
-          _SpeedSummaryLabel(
-            icon: Icons.arrow_upward_rounded,
-            value: hasAnyLiveData ? formatTransferSpeed(totalUp) : '—',
-          ),
-          SizedBox(width: context.appSpacing.lg),
-          Expanded(
-            child: Wrap(
-              spacing: context.appSpacing.sm,
+      child: isMobile
+          ? Wrap(
+              spacing: context.appSpacing.md,
               runSpacing: context.appSpacing.sm,
               crossAxisAlignment: WrapCrossAlignment.center,
+              children: [...speedLabels, ...statusBadges],
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const AppBadge(
-                  key: Key('download-client-snapshot-status'),
-                  label: '列表快照',
-                  tone: AppBadgeTone.neutral,
-                  size: AppBadgeSize.compact,
+                speedLabels.first,
+                SizedBox(width: context.appSpacing.md),
+                speedLabels.last,
+                SizedBox(width: context.appSpacing.lg),
+                Expanded(
+                  child: Wrap(
+                    spacing: context.appSpacing.sm,
+                    runSpacing: context.appSpacing.sm,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: statusBadges,
+                  ),
                 ),
               ],
             ),
-          ),
-          if (state.pollingState != DownloadTaskPollingState.idle) ...[
-            SizedBox(width: context.appSpacing.sm),
-            _DownloadPollingBadge(state: state.pollingState),
-          ],
-        ],
-      ),
     );
   }
 }
@@ -302,6 +318,7 @@ class _DownloadTaskCard extends ConsumerWidget {
     final hasMovieNumber = (movieNumber ?? '').isNotEmpty;
     final displayTitle = _resolveDisplayTitle(task);
     final coverUrl = task.movieCover?.bestAvailableUrl ?? '';
+    final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
 
     return AppLeftCoverCard(
       key: Key('download-task-${task.id}'),
@@ -311,10 +328,16 @@ class _DownloadTaskCard extends ConsumerWidget {
         coverUrl: coverUrl,
         movieNumber: hasMovieNumber ? movieNumber : null,
         onTap: hasMovieNumber
-            ? () => context.pushDesktopMovieDetail(
-                movieNumber: movieNumber!,
-                fallbackPath: desktopActivityPath,
-              )
+            ? () {
+                if (isMobile) {
+                  context.pushMobileMovieDetail(movieNumber: movieNumber!);
+                  return;
+                }
+                context.pushDesktopMovieDetail(
+                  movieNumber: movieNumber!,
+                  fallbackPath: desktopActivityPath,
+                );
+              }
             : null,
       ),
       body: Column(
@@ -375,7 +398,8 @@ class _DownloadTaskCard extends ConsumerWidget {
                   '${formatFileSize(task.downloadedBytes)} / ${formatFileSize(task.totalSizeBytes)}',
                   style: _statTextStyle(context),
                 ),
-              if (downloadState == 'downloading' && task.downloadSpeedBytes > 0) ...[
+              if (downloadState == 'downloading' &&
+                  task.downloadSpeedBytes > 0) ...[
                 Text(
                   '↓${formatTransferSpeed(task.downloadSpeedBytes)}',
                   style: _statTextStyle(context),
@@ -770,8 +794,22 @@ AppBadgeTone _toneForImportStatus(String state) {
 ///
 /// 遵循「筛选状态驱动」范式：所有变更走 `notifier.applyFilter(...)`。
 /// 搜索输入沿用项目其它筛选栏习惯——**不做打字 debounce**，仅回车/失焦提交。
-class _DownloadFilterBar extends HookConsumerWidget {
+class _DownloadFilterBar extends StatelessWidget {
   const _DownloadFilterBar({required this.state});
+
+  final DownloadTaskCenterState state;
+
+  @override
+  Widget build(BuildContext context) {
+    if (AppPlatformScope.maybeOf(context) == AppPlatform.mobile) {
+      return _MobileDownloadFilterEntry(state: state);
+    }
+    return _DesktopDownloadFilterBar(state: state);
+  }
+}
+
+class _DesktopDownloadFilterBar extends HookConsumerWidget {
+  const _DesktopDownloadFilterBar({required this.state});
 
   final DownloadTaskCenterState state;
 
@@ -875,6 +913,199 @@ class _DownloadFilterBar extends HookConsumerWidget {
       ],
     );
   }
+}
+
+class _MobileDownloadFilterEntry extends ConsumerWidget {
+  const _MobileDownloadFilterEntry({required this.state});
+
+  final DownloadTaskCenterState state;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final filter = state.filter;
+    final isSelected = !filter.isDefault;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            _downloadFilterSummary(filter, state.clientOptions),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
+          ),
+        ),
+        SizedBox(width: context.appSpacing.md),
+        AppButton(
+          key: const Key('mobile-download-filter-button'),
+          label: isSelected ? '已筛选' : '筛选',
+          icon: const Icon(Icons.tune_rounded),
+          size: AppButtonSize.small,
+          isSelected: isSelected,
+          onPressed: () => _showMobileDownloadFilterDrawer(
+            context,
+            current: filter,
+            clientOptions: state.clientOptions,
+            onChanged: (next) => unawaited(
+              ref.read(downloadTaskCenterProvider.notifier).applyFilter(next),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+Future<void> _showMobileDownloadFilterDrawer(
+  BuildContext context, {
+  required DownloadTaskFilterState current,
+  required List<DownloadClientOption> clientOptions,
+  required ValueChanged<DownloadTaskFilterState> onChanged,
+}) {
+  return showAppBottomDrawer<void>(
+    context: context,
+    drawerKey: const Key('mobile-download-filter-drawer'),
+    maxHeightFactor: 0.6,
+    builder: (_) => _MobileDownloadFilterDrawerContent(
+      current: current,
+      clientOptions: clientOptions,
+      onChanged: onChanged,
+    ),
+  );
+}
+
+class _MobileDownloadFilterDrawerContent extends StatefulWidget {
+  const _MobileDownloadFilterDrawerContent({
+    required this.current,
+    required this.clientOptions,
+    required this.onChanged,
+  });
+
+  final DownloadTaskFilterState current;
+  final List<DownloadClientOption> clientOptions;
+  final ValueChanged<DownloadTaskFilterState> onChanged;
+
+  @override
+  State<_MobileDownloadFilterDrawerContent> createState() =>
+      _MobileDownloadFilterDrawerContentState();
+}
+
+class _MobileDownloadFilterDrawerContentState
+    extends State<_MobileDownloadFilterDrawerContent> {
+  late DownloadTaskFilterState _local;
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _local = widget.current;
+    _searchController = TextEditingController(text: _local.search);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _apply(DownloadTaskFilterState next) {
+    setState(() => _local = next);
+    widget.onChanged(next);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppMobileFilterDrawerScaffold(
+      scrollViewKey: const Key('mobile-download-filter-scroll-view'),
+      footer: AppFilterPanelFooter(
+        isDefault: _local.isDefault,
+        onReset: () {
+          _searchController.clear();
+          _apply(DownloadTaskFilterState.initial);
+        },
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '筛选下载任务',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s18,
+              weight: AppTextWeight.semibold,
+              tone: AppTextTone.primary,
+            ),
+          ),
+          SizedBox(height: context.appSpacing.lg),
+          AppTextField(
+            fieldKey: const Key('mobile-download-filter-search'),
+            controller: _searchController,
+            label: '番号',
+            hintText: '按番号搜索',
+            textInputAction: TextInputAction.search,
+            onFieldSubmitted: (value) =>
+                _apply(_local.copyWith(search: value.trim())),
+          ),
+          SizedBox(height: context.appSpacing.md),
+          AppSelectField<DownloadTaskStateFilter>(
+            key: const Key('mobile-download-filter-state'),
+            label: '下载状态',
+            value: _local.stateFilter,
+            items: DownloadTaskStateFilter.values
+                .map(
+                  (value) => DropdownMenuItem<DownloadTaskStateFilter>(
+                    value: value,
+                    child: Text(value.label),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) => _apply(
+              _local.copyWith(
+                stateFilter: value ?? DownloadTaskStateFilter.downloading,
+              ),
+            ),
+          ),
+          if (widget.clientOptions.length >= 2) ...[
+            SizedBox(height: context.appSpacing.md),
+            AppSelectField<int?>(
+              key: const Key('mobile-download-filter-client'),
+              label: '下载客户端',
+              value: _local.clientId,
+              items: <DropdownMenuItem<int?>>[
+                const DropdownMenuItem<int?>(value: null, child: Text('全部客户端')),
+                for (final option in widget.clientOptions)
+                  DropdownMenuItem<int?>(
+                    value: option.id,
+                    child: Text('${option.name} · ${option.kind.label}'),
+                  ),
+              ],
+              onChanged: (value) => _apply(_local.copyWith(clientId: value)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+String _downloadFilterSummary(
+  DownloadTaskFilterState filter,
+  List<DownloadClientOption> clientOptions,
+) {
+  final values = <String>[filter.stateFilter.label];
+  if (filter.normalizedSearch.isNotEmpty) {
+    values.add(filter.normalizedSearch);
+  }
+  final clientId = filter.clientId;
+  if (clientId != null) {
+    final client = clientOptions.where((item) => item.id == clientId);
+    values.add(client.isEmpty ? '指定客户端' : client.first.name);
+  }
+  return values.join(' · ');
 }
 
 /// 下载任务文件列表弹窗。

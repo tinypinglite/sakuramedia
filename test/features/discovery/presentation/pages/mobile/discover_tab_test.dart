@@ -11,12 +11,13 @@ import '../../../../../support/test_api_bundle.dart';
 
 void main() {
   testWidgets(
-    'mobile discover tab shows hot actress releases and recommendations',
+    'mobile discover tab shows followed actress releases and recommendations',
     (tester) async {
       final sessionStore = await _buildSessionStore();
       final bundle = await createTestApiBundle(sessionStore);
       addTearDown(bundle.dispose);
       _enqueueDiscoveryResponses(bundle);
+      _enqueueFollowPage(bundle);
       _enqueueSubscription(bundle, movieNumber: 'HOT-001');
 
       await _pumpDiscoveryWidget(
@@ -36,8 +37,13 @@ void main() {
         find.byKey(const Key('mobile-discover-summary-card')),
         findsNothing,
       );
-      expect(find.byKey(const Key('movie-summary-grid')), findsNWidgets(2));
-      expect(find.text('热门女优新片'), findsOneWidget);
+      expect(find.byKey(const Key('movie-summary-grid')), findsNWidgets(3));
+      expect(find.text('女优上新'), findsOneWidget);
+      expect(
+        find.byKey(const Key('movie-summary-card-FOLLOW-001')),
+        findsOneWidget,
+      );
+      expect(find.text('热门新片'), findsOneWidget);
       expect(
         find.byKey(const Key('movie-summary-card-HOT-001')),
         findsOneWidget,
@@ -51,6 +57,10 @@ void main() {
       expect(find.byKey(const Key('moment-card-1')), findsOneWidget);
       expect(
         find.byKey(const Key('mobile-discover-load-more-hot-actress')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mobile-discover-load-more-follow')),
         findsOneWidget,
       );
       expect(
@@ -130,6 +140,32 @@ void _enqueueSubscription(TestApiBundle bundle, {required String movieNumber}) {
     statusCode: 204,
   );
 }
+
+void _enqueueFollowPage(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/movies/subscribed-actors/latest',
+    body: <String, dynamic>{
+      'items': <Map<String, dynamic>>[_followMovieJson()],
+      'page': 1,
+      'page_size': 10,
+      'total': 1,
+    },
+  );
+}
+
+Map<String, dynamic> _followMovieJson() => <String, dynamic>{
+  'javdb_id': 'follow-id-001',
+  'movie_number': 'FOLLOW-001',
+  'title': 'Follow movie 001',
+  'cover_image': null,
+  'thin_cover_image': null,
+  'release_date': '2026-05-01',
+  'duration_minutes': 120,
+  'heat': 0,
+  'is_subscribed': true,
+  'can_play': false,
+};
 
 void _enqueueHotActressPage(
   TestApiBundle bundle, {

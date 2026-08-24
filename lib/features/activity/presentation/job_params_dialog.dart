@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/theme.dart';
@@ -8,22 +9,32 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_switch.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+
+const _mobileJobParamsHeightFactor = 0.82;
 
 Future<Map<String, dynamic>?> showJobParamsDialog(
   BuildContext context, {
   required JobMetadataDto job,
 }) {
-  return showDialog<Map<String, dynamic>>(
+  final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
+  return showAppAdaptiveModal<Map<String, dynamic>>(
     context: context,
-    builder: (_) => _JobParamsDialog(job: job),
+    modalKey: const Key('activity-job-params-dialog'),
+    desktopWidth: context.appLayoutTokens.dialogWidthMd,
+    mobileHeightFactor: _mobileJobParamsHeightFactor,
+    builder: (_) => KeyedSubtree(
+      key: const Key('activity-job-params-dialog-content'),
+      child: _JobParamsDialog(job: job, isMobile: isMobile),
+    ),
   );
 }
 
 class _JobParamsDialog extends StatefulWidget {
-  const _JobParamsDialog({required this.job});
+  const _JobParamsDialog({required this.job, required this.isMobile});
 
   final JobMetadataDto job;
+  final bool isMobile;
 
   @override
   State<_JobParamsDialog> createState() => _JobParamsDialogState();
@@ -70,97 +81,142 @@ class _JobParamsDialogState extends State<_JobParamsDialog> {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    return AppDesktopDialog(
-      dialogKey: const Key('activity-job-params-dialog'),
-      contentKey: const Key('activity-job-params-dialog-content'),
-      width: context.appLayoutTokens.dialogWidthMd,
+    if (widget.isMobile) {
+      return _buildMobileDrawer(context, spacing);
+    }
+    return _buildDesktopContent(context, spacing);
+  }
+
+  Widget _buildMobileDrawer(BuildContext context, AppSpacing spacing) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final availableHeight =
+        (screenHeight - MediaQuery.viewInsetsOf(context).bottom)
+            .clamp(0.0, screenHeight)
+            .toDouble();
+    final drawerHeight = (screenHeight * _mobileJobParamsHeightFactor)
+        .clamp(0.0, availableHeight)
+        .toDouble();
+    final contentHeight = (drawerHeight - spacing.lg * 2)
+        .clamp(0.0, drawerHeight)
+        .toDouble();
+
+    return SizedBox(
+      height: contentHeight,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: EdgeInsets.only(right: spacing.xxl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '填写任务参数',
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s18,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-                SizedBox(height: spacing.xs),
-                Text(
-                  widget.job.cliHelp.isEmpty
-                      ? widget.job.taskKey
-                      : widget.job.cliHelp,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.muted,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildHeader(context, spacing),
           SizedBox(height: spacing.lg),
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height * 0.72,
-            ),
+          Expanded(
             child: SingleChildScrollView(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_fields.isEmpty)
-                      Text(
-                        '该任务没有可填写的参数，将按默认配置执行。',
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s14,
-                          weight: AppTextWeight.regular,
-                          tone: AppTextTone.secondary,
-                        ),
-                      )
-                    else
-                      for (var index = 0; index < _fields.length; index++) ...[
-                        _buildField(context, _fields[index]),
-                        if (index != _fields.length - 1)
-                          SizedBox(height: spacing.md),
-                      ],
-                  ],
-                ),
-              ),
+              key: const Key('activity-job-params-form-scroll'),
+              child: _buildForm(context),
             ),
           ),
           SizedBox(height: spacing.xl),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              AppButton(
-                key: const Key('activity-job-params-cancel-button'),
-                label: '取消',
-                size: AppButtonSize.small,
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              SizedBox(width: spacing.sm),
-              AppButton(
-                key: const Key('activity-job-params-submit-button'),
-                label: '提交任务',
-                size: AppButtonSize.small,
-                variant: AppButtonVariant.primary,
-                onPressed: _submit,
-              ),
-            ],
+          _buildActions(context, spacing),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopContent(BuildContext context, AppSpacing spacing) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildHeader(context, spacing),
+        SizedBox(height: spacing.lg),
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.72,
+          ),
+          child: SingleChildScrollView(child: _buildForm(context)),
+        ),
+        SizedBox(height: spacing.xl),
+        _buildActions(context, spacing),
+      ],
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, AppSpacing spacing) {
+    return Padding(
+      padding: EdgeInsets.only(right: spacing.xxl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '填写任务参数',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s18,
+              weight: AppTextWeight.semibold,
+              tone: AppTextTone.primary,
+            ),
+          ),
+          SizedBox(height: spacing.xs),
+          Text(
+            widget.job.cliHelp.isEmpty
+                ? widget.job.taskKey
+                : widget.job.cliHelp,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildForm(BuildContext context) {
+    final spacing = context.appSpacing;
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_fields.isEmpty)
+            Text(
+              '该任务没有可填写的参数，将按默认配置执行。',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.regular,
+                tone: AppTextTone.secondary,
+              ),
+            )
+          else
+            for (var index = 0; index < _fields.length; index++) ...[
+              _buildField(context, _fields[index]),
+              if (index != _fields.length - 1) SizedBox(height: spacing.md),
+            ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActions(BuildContext context, AppSpacing spacing) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        AppButton(
+          key: const Key('activity-job-params-cancel-button'),
+          label: '取消',
+          size: AppButtonSize.small,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        SizedBox(width: spacing.sm),
+        AppButton(
+          key: const Key('activity-job-params-submit-button'),
+          label: '提交任务',
+          size: AppButtonSize.small,
+          variant: AppButtonVariant.primary,
+          onPressed: _submit,
+        ),
+      ],
     );
   }
 

@@ -221,7 +221,7 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       movieCardLoaderStrokeWidth = 2,
       movieCardStatusBadgeSize = 24,
       subscriptionHeartHitSize = 44,
-      downloadTaskCoverWidth = 220,
+      downloadTaskCoverWidth = 96,
       downloadTaskCardMinHeight = 120,
       downloadTaskProgressHeight = 6,
       mediaManagementRowHeight = 144,
