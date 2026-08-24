@@ -11,6 +11,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/pages/desktop/follow_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/desktop_navigation_route_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
 
@@ -208,7 +209,7 @@ void main() {
         ),
       );
 
-      String? receivedExtra;
+      DesktopNavigationRouteState? receivedNavigationState;
       final router = GoRouter(
         initialLocation: desktopFollowPath,
         routes: <RouteBase>[
@@ -220,7 +221,8 @@ void main() {
           GoRoute(
             path: '/desktop/library/movies/:movieNumber',
             builder: (context, state) {
-              receivedExtra = state.extra as String?;
+              receivedNavigationState =
+                  state.extra as DesktopNavigationRouteState?;
               return Scaffold(
                 body: Text('detail: ${state.pathParameters['movieNumber']}'),
               );
@@ -242,7 +244,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('detail: ABC-001'), findsOneWidget);
-      expect(receivedExtra, isNull);
+      expect(receivedNavigationState?.fallbackPath, desktopFollowPath);
     },
   );
 

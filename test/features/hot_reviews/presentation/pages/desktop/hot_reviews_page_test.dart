@@ -10,6 +10,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/pages/desktop/hot_reviews_page.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/desktop_navigation_route_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
@@ -319,7 +320,7 @@ void main() {
         body: _hotReviewsJson(total: 1),
       );
 
-      String? receivedExtra;
+      DesktopNavigationRouteState? receivedNavigationState;
       final router = GoRouter(
         initialLocation: desktopHotReviewsPath,
         routes: [
@@ -330,7 +331,8 @@ void main() {
           GoRoute(
             path: '/desktop/library/movies/:movieNumber',
             builder: (context, state) {
-              receivedExtra = state.extra as String?;
+              receivedNavigationState =
+                  state.extra as DesktopNavigationRouteState?;
               return const SizedBox(key: Key('movie-detail-destination'));
             },
           ),
@@ -355,7 +357,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('movie-detail-destination')), findsOneWidget);
-      expect(receivedExtra, isNull);
+      expect(receivedNavigationState?.fallbackPath, desktopHotReviewsPath);
     },
   );
 
