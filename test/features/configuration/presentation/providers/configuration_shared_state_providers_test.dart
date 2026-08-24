@@ -396,7 +396,6 @@ IndexerSettingsDto _settings({
 
 ConfigResourceDto _config(List<DownloadClientKind> kinds) => ConfigResourceDto(
   media: const AdvancedMediaConfigDto(
-    othersNumberFeatures: [],
     innerSubTags: [],
     bluerayTags: [],
     uncensoredTags: [],

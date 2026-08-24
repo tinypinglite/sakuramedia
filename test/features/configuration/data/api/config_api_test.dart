@@ -19,7 +19,6 @@ void main() {
 
     final result = await bundle.configApi.get();
 
-    expect(result.media.othersNumberFeatures, <String>['OFJE']);
     expect(result.scheduler.crons['download_task_sync'], '* * * * *');
     expect(result.downloads.preferredClientKinds, <DownloadClientKind>[
       DownloadClientKind.qbittorrent,
@@ -61,7 +60,6 @@ Map<String, dynamic> _configJson({
 }) => <String, dynamic>{
   'values': <String, dynamic>{
     'media': <String, dynamic>{
-      'others_number_features': <String>['OFJE'],
       'inner_sub_tags': const <String>[],
       'blueray_tags': const <String>[],
       'uncensored_tags': const <String>[],

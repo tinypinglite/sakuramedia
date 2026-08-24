@@ -36,29 +36,31 @@ void main() {
         find.byKey(const Key('configuration-advanced-media-card')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(
+          const Key('configuration-advanced-others-number-features-field'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const Key('configuration-advanced-cron-movie_collection_sync-field'),
+        ),
+        findsNothing,
+      );
 
       await _pumpSection(tester, bundle, active: true);
 
       expect(bundle.adapter.hitCount('GET', '/config'), 1);
     });
 
-    testWidgets('shows normalized preview and saves media as partial patch', (
+    testWidgets('saves media as partial patch', (
       WidgetTester tester,
     ) async {
       _enqueueAdvancedConfig(bundle);
       _enqueueAdvancedConfigPatch(bundle);
 
       await _pumpSection(tester, bundle, active: true);
-      await tester.enterText(
-        find.byKey(
-          const Key('configuration-advanced-others-number-features-field'),
-        ),
-        'ofje_test',
-      );
-      await tester.pump();
-
-      expect(find.textContaining('OFJE-TEST'), findsOneWidget);
-
       await tester.ensureVisible(
         find.byKey(const Key('configuration-advanced-media-save-button')),
       );
@@ -72,9 +74,10 @@ void main() {
       );
       expect(request.body.keys, contains('media'));
       expect(request.body.keys, isNot(contains('metadata')));
-      expect(request.body['media']['others_number_features'], <String>[
-        'ofje_test',
-      ]);
+      expect(
+        request.body['media'].keys,
+        isNot(contains('others_number_features')),
+      );
       expect(request.body['media']['allowed_min_video_file_size'], 268435456);
       await tester.pump(const Duration(seconds: 3));
     });
@@ -145,6 +148,10 @@ void main() {
       expect(
         schedulerRequest.body['scheduler']['movie_heat_cron'],
         '30 0 * * *',
+      );
+      expect(
+        schedulerRequest.body['scheduler'].keys,
+        isNot(contains('movie_collection_sync_cron')),
       );
       await tester.pump(const Duration(seconds: 3));
     });
@@ -293,7 +300,6 @@ Map<String, dynamic> _buildAdvancedConfigJson({
   return <String, dynamic>{
     'values': <String, dynamic>{
       'media': <String, dynamic>{
-        'others_number_features': <String>['OFJE', 'CJOB'],
         'inner_sub_tags': <String>['中字', '-C'],
         'blueray_tags': <String>['蓝光', '4K'],
         'uncensored_tags': <String>['uncensored', '-UC'],

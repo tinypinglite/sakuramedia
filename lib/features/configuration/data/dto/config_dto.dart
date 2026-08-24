@@ -60,7 +60,6 @@ class ConfigUpdateResultDto {
 
 class AdvancedMediaConfigDto {
   const AdvancedMediaConfigDto({
-    required this.othersNumberFeatures,
     required this.innerSubTags,
     required this.bluerayTags,
     required this.uncensoredTags,
@@ -68,7 +67,6 @@ class AdvancedMediaConfigDto {
     required this.allowedMinVideoFileSize,
   });
 
-  final List<String> othersNumberFeatures;
   final List<String> innerSubTags;
   final List<String> bluerayTags;
   final List<String> uncensoredTags;
@@ -77,9 +75,6 @@ class AdvancedMediaConfigDto {
 
   factory AdvancedMediaConfigDto.fromJson(Map<String, dynamic> json) {
     return AdvancedMediaConfigDto(
-      othersNumberFeatures: List<String>.unmodifiable(
-        asStringList(json['others_number_features']),
-      ),
       innerSubTags: List<String>.unmodifiable(
         asStringList(json['inner_sub_tags']),
       ),
@@ -98,7 +93,6 @@ class AdvancedMediaConfigDto {
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
-      'others_number_features': othersNumberFeatures,
       'inner_sub_tags': innerSubTags,
       'blueray_tags': bluerayTags,
       'uncensored_tags': uncensoredTags,
@@ -135,7 +129,6 @@ class AdvancedSchedulerConfigDto {
     'download_task_sync',
     'download_task_auto_import',
     'download_small_file_cleanup',
-    'movie_collection_sync',
     'movie_heat',
     'movie_interaction_sync',
     'hot_review_sync',

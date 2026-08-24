@@ -119,7 +119,6 @@ refresh_token_expire_minutes = 10080
 
 ```toml
 [media]
-others_number_features = ["OFJE", "CJOB", "DVAJ", "REBD"]
 inner_sub_tags = ["中字", "中文", "字幕组", "-UC", "-C"]
 blueray_tags = ["蓝光", "4K", "4k"]
 uncensored_tags = ["流出", "uncensored", "無码", "無修正", "UC", "无码", "破解", "UNCENSORED", "-UC", "-U"]
@@ -137,7 +136,6 @@ media_clip_ffmpeg_timeout_seconds = 120
 
 | 字段 | 作用 |
 |---|---|
-| `others_number_features` | 合集影片番号特征关键词，命中关键词的影片会在后台自动判定为合集影片。 |
 | `inner_sub_tags` | 识别“内嵌字幕”的标签关键词 |
 | `blueray_tags` | 识别“蓝光 / 高清版本”的标签关键词 |
 | `uncensored_tags` | 识别“无码资源”的标签关键词 |
@@ -149,6 +147,8 @@ media_clip_ffmpeg_timeout_seconds = 120
 | `media_clip_root_path` | 用户切片（ffmpeg 切出的独立 mp4）的存储目录。 |
 | `media_clip_max_duration_seconds` | 用户可圈选的切片最大时长（秒），仅约束圈选区间长度 |
 | `media_clip_ffmpeg_timeout_seconds` | 单次 ffmpeg 切片的墙钟超时（秒），坏文件 / 慢挂载卡死时杀进程回收 |
+
+影片合集判定由已安装插件负责，不再通过主项目的 `[media]` 配置或后台任务设置。请在「系统设置 → 插件」中安装、启用并按该插件的说明配置规则。
 
 
 
@@ -207,7 +207,6 @@ subscribed_movie_auto_download_cron = "30 2 * * *"
 download_task_sync_cron = "*/5 * * * *"
 download_task_auto_import_cron = "*/10 * * * *"
 download_small_file_cleanup_cron = "*/5 * * * *"
-movie_collection_sync_cron = "0 1 * * *"
 movie_heat_cron = "15 0 * * *"
 movie_interaction_sync_cron = "0 5 * * *"
 hot_review_sync_cron = "20 1 * * *"
@@ -234,7 +233,6 @@ activity_notification_read_retention_days = 3
 | `download_task_sync_cron` | 下载任务状态同步频率 |
 | `download_task_auto_import_cron` | 已完成下载自动导入频率 |
 | `download_small_file_cleanup_cron` | 下载小文件清理频率 |
-| `movie_collection_sync_cron` | 合集影片同步频率 |
 | `movie_heat_cron` | 影片热度重算频率 |
 | `movie_interaction_sync_cron` | 影片互动数同步频率；当前默认每天 05:00 执行一次，任务跑起来之后哪些影片真正进入候选，还要看[分层刷新规则](/guide/tasks#影片互动数同步) |
 | `hot_review_sync_cron` | JavDB 热评同步频率 |

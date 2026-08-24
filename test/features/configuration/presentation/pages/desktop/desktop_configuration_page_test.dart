@@ -2250,7 +2250,6 @@ Map<String, dynamic> _buildAdvancedConfigResponseJson() {
   return <String, dynamic>{
     'values': <String, dynamic>{
       'media': <String, dynamic>{
-        'others_number_features': <String>['OFJE', 'CJOB'],
         'inner_sub_tags': <String>['中字', '-C'],
         'blueray_tags': <String>['蓝光', '4K'],
         'uncensored_tags': <String>['uncensored', '-UC'],

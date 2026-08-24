@@ -41,7 +41,6 @@ class _DesktopAdvancedSettingsSectionState
   final GlobalKey<FormState> _schedulerFormKey = GlobalKey<FormState>();
   final GlobalKey<FormState> _otherFormKey = GlobalKey<FormState>();
 
-  late final TextEditingController _othersNumberFeaturesController;
   late final TextEditingController _innerSubTagsController;
   late final TextEditingController _bluerayTagsController;
   late final TextEditingController _uncensoredTagsController;
@@ -65,7 +64,6 @@ class _DesktopAdvancedSettingsSectionState
   @override
   void initState() {
     super.initState();
-    _othersNumberFeaturesController = TextEditingController();
     _innerSubTagsController = TextEditingController();
     _bluerayTagsController = TextEditingController();
     _uncensoredTagsController = TextEditingController();
@@ -92,7 +90,6 @@ class _DesktopAdvancedSettingsSectionState
 
   @override
   void dispose() {
-    _othersNumberFeaturesController.dispose();
     _innerSubTagsController.dispose();
     _bluerayTagsController.dispose();
     _uncensoredTagsController.dispose();
@@ -161,24 +158,6 @@ class _DesktopAdvancedSettingsSectionState
               message: '这组配置控制媒体识别、标签判断和导入文件大小。第一次部署通常保持默认，只有明确知道资源命名规则时再调整。',
             ),
             SizedBox(height: spacing.lg),
-            AppTextField(
-              fieldKey: const Key(
-                'configuration-advanced-others-number-features-field',
-              ),
-              controller: _othersNumberFeaturesController,
-              label: '合集影片番号特征',
-              hintText: '每行一条，例如 OFJE',
-              helperText: _buildListPreview(
-                _othersNumberFeaturesController.text,
-                normalizeOthersNumber: true,
-                includeOthersRule: true,
-              ),
-              minLines: _multilineMinLines,
-              maxLines: _multilineMaxLines,
-              validator: _othersNumberFeaturesError,
-              onChanged: (_) => _markDirty(_AdvancedCardKind.media),
-            ),
-            SizedBox(height: spacing.md),
             _buildFieldGrid(
               context,
               children: [
@@ -637,9 +616,6 @@ class _DesktopAdvancedSettingsSectionState
 
   Map<String, dynamic> _buildMediaPayload() {
     return <String, dynamic>{
-      'others_number_features': _splitMultilineValues(
-        _othersNumberFeaturesController.text,
-      ),
       'inner_sub_tags': _splitMultilineValues(_innerSubTagsController.text),
       'blueray_tags': _splitMultilineValues(_bluerayTagsController.text),
       'uncensored_tags': _splitMultilineValues(_uncensoredTagsController.text),
@@ -687,9 +663,6 @@ class _DesktopAdvancedSettingsSectionState
   }
 
   void _applyMedia(AdvancedMediaConfigDto media) {
-    _othersNumberFeaturesController.text = media.othersNumberFeatures.join(
-      '\n',
-    );
     _innerSubTagsController.text = media.innerSubTags.join('\n');
     _bluerayTagsController.text = media.bluerayTags.join('\n');
     _uncensoredTagsController.text = media.uncensoredTags.join('\n');
@@ -732,15 +705,6 @@ class _DesktopAdvancedSettingsSectionState
     widget.onDirtyChanged?.call(_dirtyCards.isNotEmpty);
   }
 
-  String? _othersNumberFeaturesError(String? value) {
-    // 用户可能在多行输入里留白行分段，`_splitMultilineValues` 已经会过滤空行，
-    // 提交到后端的 payload 里不会带空项——前端只需要拦"整体为空"。
-    if (_splitMultilineValues(value ?? '').isEmpty) {
-      return '请输入至少一条番号特征';
-    }
-    return null;
-  }
-
   String? _javdbHostError(String? value) {
     final trimmed = value?.trim() ?? '';
     if (trimmed.isEmpty || !isValidHostname(trimmed)) {
@@ -773,26 +737,14 @@ class _DesktopAdvancedSettingsSectionState
     return int.parse(value.trim());
   }
 
-  String _buildListPreview(
-    String text, {
-    bool normalizeOthersNumber = false,
-    bool includeOthersRule = false,
-  }) {
+  String _buildListPreview(String text) {
     final values = _splitMultilineValues(text);
     if (values.isEmpty) {
-      return includeOthersRule ? '尚未识别条目；规则：下划线转横线、大写、去 PPV- 前缀。' : '尚未识别条目';
+      return '尚未识别条目';
     }
-    final previewValues =
-        normalizeOthersNumber
-            ? values.map(_normalizeOthersNumberFeature).toList()
-            : values;
-    final visibleValues = previewValues.take(_previewItemCount).join(', ');
-    final suffix = previewValues.length > _previewItemCount ? ', ...' : '';
-    final summary = '已识别 ${previewValues.length} 条：$visibleValues$suffix';
-    if (!includeOthersRule) {
-      return summary;
-    }
-    return '$summary\n规则：下划线转横线、大写、去 PPV- 前缀；最终以保存后返回的规范化结果为准';
+    final visibleValues = values.take(_previewItemCount).join(', ');
+    final suffix = values.length > _previewItemCount ? ', ...' : '';
+    return '已识别 ${values.length} 条：$visibleValues$suffix';
   }
 
   List<String> _splitMultilineValues(String text) {
@@ -805,10 +757,6 @@ class _DesktopAdvancedSettingsSectionState
     return text.split(RegExp(r'\r?\n'));
   }
 
-  String _normalizeOthersNumberFeature(String value) {
-    final upper = value.trim().replaceAll('_', '-').toUpperCase();
-    return upper.startsWith('PPV-') ? upper.substring(_ppvPrefixLength) : upper;
-  }
 }
 
 enum _AdvancedCardKind { media, metadata, scheduler, other }
@@ -943,7 +891,6 @@ const int _multilineMinLines = 3;
 const int _multilineMaxLines = 6;
 const int _cronPartCount = 5;
 const int _previewItemCount = 6;
-const int _ppvPrefixLength = 4;
 const String _defaultLoggingLevel = 'INFO';
 const List<String> _loggingLevels = <String>[
   'DEBUG',
@@ -990,7 +937,6 @@ const List<_CronGroup> _cronGroups = <_CronGroup>[
     keys: <String>[
       'media_file_scan',
       'media_thumbnail',
-      'movie_collection_sync',
       'movie_heat',
       'movie_interaction_sync',
       'activity_cleanup',
@@ -1004,7 +950,6 @@ const Map<String, String> _cronCopy = <String, String>{
   'download_task_sync': '下载任务状态同步',
   'download_task_auto_import': '已完成下载自动导入',
   'download_small_file_cleanup': '下载小文件清理',
-  'movie_collection_sync': '合集影片同步',
   'movie_heat': '影片热度重算',
   'movie_interaction_sync': '影片互动数同步',
   'hot_review_sync': 'JavDB 热评同步',
@@ -1024,7 +969,6 @@ const Map<String, String> _cronFieldHelper = <String, String>{
   'download_task_sync': '同步下载任务状态。',
   'download_task_auto_import': '导入已完成的下载任务。',
   'download_small_file_cleanup': '清理下载任务中的无效小文件。',
-  'movie_collection_sync': '同步合集影片关系。',
   'movie_heat': '重算影片热度。',
   'movie_interaction_sync': '同步影片互动数，候选仍受分层刷新规则影响。',
   'hot_review_sync': '同步 JavDB 热评。',
