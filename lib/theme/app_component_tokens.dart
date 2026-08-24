@@ -86,7 +86,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     required this.mobileLatestMovieCardWidth,
     required this.mobileFollowMovieCardHeight,
     required this.mobileFollowMovieThinCoverWidth,
-    required this.mobileFollowMovieStillWidth,
     required this.moviePlayerThumbnailAspectRatio,
   });
 
@@ -172,7 +171,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       mobileLatestMovieCardWidth = 142,
       mobileFollowMovieCardHeight = 150,
       mobileFollowMovieThinCoverWidth = 96,
-      mobileFollowMovieStillWidth = 86,
       moviePlayerThumbnailAspectRatio = 16 / 9;
 
   const AppComponentTokens.mobile()
@@ -257,7 +255,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       mobileLatestMovieCardWidth = 148,
       mobileFollowMovieCardHeight = 158,
       mobileFollowMovieThinCoverWidth = 100,
-      mobileFollowMovieStillWidth = 90,
       moviePlayerThumbnailAspectRatio = 16 / 9;
 
   final double desktopTitleBarHeight;
@@ -353,7 +350,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
   final double mobileLatestMovieCardWidth;
   final double mobileFollowMovieCardHeight;
   final double mobileFollowMovieThinCoverWidth;
-  final double mobileFollowMovieStillWidth;
   final double moviePlayerThumbnailAspectRatio;
 
   @override
@@ -439,7 +435,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     double? mobileLatestMovieCardWidth,
     double? mobileFollowMovieCardHeight,
     double? mobileFollowMovieThinCoverWidth,
-    double? mobileFollowMovieStillWidth,
     double? moviePlayerThumbnailAspectRatio,
   }) {
     return AppComponentTokens(
@@ -584,8 +579,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       mobileFollowMovieThinCoverWidth:
           mobileFollowMovieThinCoverWidth ??
           this.mobileFollowMovieThinCoverWidth,
-      mobileFollowMovieStillWidth:
-          mobileFollowMovieStillWidth ?? this.mobileFollowMovieStillWidth,
       moviePlayerThumbnailAspectRatio:
           moviePlayerThumbnailAspectRatio ??
           this.moviePlayerThumbnailAspectRatio,
@@ -921,11 +914,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       mobileFollowMovieThinCoverWidth: lerpDouble(
         mobileFollowMovieThinCoverWidth,
         other.mobileFollowMovieThinCoverWidth,
-        t,
-      )!,
-      mobileFollowMovieStillWidth: lerpDouble(
-        mobileFollowMovieStillWidth,
-        other.mobileFollowMovieStillWidth,
         t,
       )!,
       moviePlayerThumbnailAspectRatio: lerpDouble(

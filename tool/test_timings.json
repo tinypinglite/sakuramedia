@@ -150,7 +150,6 @@
   "test/widgets/domain/media/movie_player_thumbnail_panel_test.dart": 2005,
   "test/widgets/domain/media/preview/media_preview_action_grid_test.dart": 1546,
   "test/widgets/domain/media/preview/preview_image_stage_test.dart": 2582,
-  "test/widgets/domain/movies/mobile_follow_movie_card_test.dart": 1672,
   "test/widgets/domain/movies/movie_filter_toolbar_test.dart": 2312,
   "test/widgets/domain/movies/movie_summary_card_test.dart": 1647,
   "test/widgets/domain/movies/movie_summary_grid_test.dart": 1395,

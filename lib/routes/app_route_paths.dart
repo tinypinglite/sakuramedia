@@ -35,7 +35,6 @@ const String mobileDiscoverMoviesPath = '$mobileOverviewPath/discover/movies';
 const String mobileDiscoverMomentsPath = '$mobileOverviewPath/discover/moments';
 const String mobileHotActressReleasesPath =
     '$mobileOverviewPath/discover/hot-actress-releases';
-const String mobileFollowPath = '$mobileOverviewPath/discover/follow';
 const String mobileSystemOverviewPath = '/mobile/system/overview';
 const String mobileActivityPath = '/mobile/system/activity';
 const String mobileNotificationsPath = '/mobile/system/notifications';

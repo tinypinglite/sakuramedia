@@ -138,7 +138,6 @@ void main() {
     expect(componentTokens.mobileLatestMovieCardWidth, 142);
     expect(componentTokens.mobileFollowMovieCardHeight, 150);
     expect(componentTokens.mobileFollowMovieThinCoverWidth, 96);
-    expect(componentTokens.mobileFollowMovieStillWidth, 86);
     expect(formTokens.labelGap, 8);
     expect(formTokens.miniFieldHorizontalPadding, 10);
     expect(formTokens.miniFieldHeight, 28);

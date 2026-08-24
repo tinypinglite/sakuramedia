@@ -114,9 +114,6 @@ class MobileOverviewDiscoverTab extends ConsumerWidget {
         _MobileDiscoverSectionTitle(
           title: '女优上新',
           totalText: '${paged?.total ?? 0} 部',
-          actionKey: const Key('mobile-discover-load-more-follow'),
-          actionLabel: '更多',
-          onActionTap: () => const MobileFollowRouteData().push(context),
         ),
         SizedBox(height: context.appSpacing.md),
         MovieSummaryGrid(
@@ -361,16 +358,16 @@ class _MobileDiscoverSectionTitle extends StatelessWidget {
   const _MobileDiscoverSectionTitle({
     required this.title,
     required this.totalText,
-    required this.actionKey,
-    required this.actionLabel,
-    required this.onActionTap,
+    this.actionKey,
+    this.actionLabel,
+    this.onActionTap,
   });
 
   final String title;
   final String totalText;
-  final Key actionKey;
-  final String actionLabel;
-  final VoidCallback onActionTap;
+  final Key? actionKey;
+  final String? actionLabel;
+  final VoidCallback? onActionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -397,13 +394,14 @@ class _MobileDiscoverSectionTitle extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        AppTextButton(
-          key: actionKey,
-          label: actionLabel,
-          size: AppTextButtonSize.xSmall,
-          trailingIcon: const Icon(Icons.chevron_right_rounded),
-          onPressed: onActionTap,
-        ),
+        if (actionKey != null && actionLabel != null && onActionTap != null)
+          AppTextButton(
+            key: actionKey,
+            label: actionLabel!,
+            size: AppTextButtonSize.xSmall,
+            trailingIcon: const Icon(Icons.chevron_right_rounded),
+            onPressed: onActionTap,
+          ),
       ],
     );
   }

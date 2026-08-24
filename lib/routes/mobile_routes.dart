@@ -19,7 +19,6 @@ import 'package:sakuramedia/features/auth/presentation/login_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/pages/mobile/discover_moments_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/pages/mobile/discover_movies_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/pages/mobile/hot_actress_releases_page.dart';
-import 'package:sakuramedia/features/subscriptions/presentation/pages/mobile/overview_follow_tab.dart';
 import 'package:sakuramedia/features/image_search/presentation/pages/mobile/image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
 import 'package:sakuramedia/features/media/presentation/pages/mobile/media_management_page.dart';
@@ -739,7 +738,6 @@ class MobileVideoCollectionPlayRouteData extends _MobileCupertinoRouteData
             TypedGoRoute<MobileHotActressReleasesRouteData>(
               path: 'discover/hot-actress-releases',
             ),
-            TypedGoRoute<MobileFollowRouteData>(path: 'discover/follow'),
             TypedGoRoute<MobilePlaylistDetailRouteData>(
               path: 'playlists/:playlistId',
             ),
@@ -1593,28 +1591,6 @@ class MobileHotActressReleasesRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return const MobileHotActressReleasesPage();
-  }
-}
-
-class MobileFollowRouteData extends _MobileSubpageRouteData
-    with $MobileFollowRouteData {
-  const MobileFollowRouteData();
-
-  static final GlobalKey<NavigatorState> $parentNavigatorKey =
-      mobileRootNavigatorKey;
-
-  @override
-  String get pageName => 'mobile-follow';
-
-  @override
-  String get title => '女优上新';
-
-  @override
-  String get defaultLocation => mobileOverviewPath;
-
-  @override
-  Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return const MobileOverviewFollowTab();
   }
 }
 

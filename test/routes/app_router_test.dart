@@ -224,7 +224,6 @@ void main() {
     const moviesRoute = MobileDiscoverMoviesRouteData();
     const momentsRoute = MobileDiscoverMomentsRouteData();
     const hotActressRoute = MobileHotActressReleasesRouteData();
-    const followRoute = MobileFollowRouteData();
 
     expect(moviesRoute.location, mobileDiscoverMoviesPath);
     expect(moviesRoute.title, '推荐影片');
@@ -235,9 +234,6 @@ void main() {
     expect(hotActressRoute.location, mobileHotActressReleasesPath);
     expect(hotActressRoute.title, '热门新片');
     expect(hotActressRoute.defaultLocation, mobileOverviewPath);
-    expect(followRoute.location, mobileFollowPath);
-    expect(followRoute.title, '女优上新');
-    expect(followRoute.defaultLocation, mobileOverviewPath);
   });
 
   test('desktop top bar config enables back on movie series page', () {
