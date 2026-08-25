@@ -316,8 +316,9 @@ MovieDetailDto _movieDetail({
           (mediaId) => MovieMediaItemDto(
             mediaId: mediaId,
             libraryId: 1,
+            providerKey: 'filesystem',
             playUrl: '/play/$mediaId',
-            storageMode: 'local',
+            fileName: 'movie.mp4',
             resolution: '1080p',
             fileSizeBytes: 10,
             durationSeconds: 120,

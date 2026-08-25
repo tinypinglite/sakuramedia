@@ -25,7 +25,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_media_source.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface_controller.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_player_thumbnail_panel.dart';
@@ -146,10 +145,9 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
             controller: _splitController,
             dividerHandleBuffer: widget.dividerHandleBuffer,
             leftChild: const MoviePlayerEmptyState(),
-            rightChild:
-                playerState.selectedMedia == null
-                    ? const SizedBox.expand()
-                    : _buildThumbnailPanel(),
+            rightChild: playerState.selectedMedia == null
+                ? const SizedBox.expand()
+                : _buildThumbnailPanel(),
           ),
         );
       } else {
@@ -157,10 +155,9 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
           controller: _splitController,
           dividerHandleBuffer: widget.dividerHandleBuffer,
           leftChild: _buildPlayerSurface(context, resolvedUrl),
-          rightChild:
-              playerState.selectedMedia == null
-                  ? const SizedBox.expand()
-                  : _buildThumbnailPanel(),
+          rightChild: playerState.selectedMedia == null
+              ? const SizedBox.expand()
+              : _buildThumbnailPanel(),
         );
       }
     }
@@ -210,12 +207,6 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
       onSubtitleReloadRequested: _controller.loadSubtitles,
       onBackPressed: _handleBack,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
-      mediaSourceKind:
-          _playerState.selectedMediaStorage.isCloud115
-              ? MoviePlayerMediaSourceKind.cloud115
-              : _playerState.selectedMediaStorage.isLocal
-              ? MoviePlayerMediaSourceKind.local
-              : MoviePlayerMediaSourceKind.unknown,
       mediaInfo: _buildMediaInfo(),
     );
   }
@@ -225,20 +216,20 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
     if (media == null) {
       return null;
     }
-    final storage = _playerState.selectedMediaStorage;
     return MoviePlayerMediaInfo(
-      sourceLabel: storage.sourceLabel,
-      libraryLabel:
-          storage.normalizedLibraryName ??
-          (storage.libraryId == null ? '--' : '媒体库 ${storage.libraryId}'),
-      fileSizeLabel:
-          media.fileSizeBytes > 0 ? formatFileSize(media.fileSizeBytes) : '--',
-      durationLabel:
-          media.durationSeconds > 0
-              ? formatMediaTimecode(media.durationSeconds)
-              : '--',
-      resolutionLabel:
-          media.resolution.trim().isEmpty ? '--' : media.resolution.trim(),
+      sourceLabel: media.providerKey?.trim().isNotEmpty == true
+          ? media.providerKey!.trim()
+          : '--',
+      libraryLabel: media.libraryId == null ? '--' : '媒体库 ${media.libraryId}',
+      fileSizeLabel: media.fileSizeBytes > 0
+          ? formatFileSize(media.fileSizeBytes)
+          : '--',
+      durationLabel: media.durationSeconds > 0
+          ? formatMediaTimecode(media.durationSeconds)
+          : '--',
+      resolutionLabel: media.resolution?.trim().isNotEmpty == true
+          ? media.resolution!.trim()
+          : '--',
     );
   }
 
@@ -359,10 +350,9 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
       AppImageActionDescriptor(
         type: AppImageActionType.toggleMark,
         label: point == null ? '添加标记' : '删除标记',
-        icon:
-            point == null
-                ? Icons.bookmark_add_outlined
-                : Icons.bookmark_remove_outlined,
+        icon: point == null
+            ? Icons.bookmark_add_outlined
+            : Icons.bookmark_remove_outlined,
         enabled: hasMedia,
       ),
       AppImageActionDescriptor(
@@ -417,13 +407,14 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
         );
         break;
       case AppImageActionType.saveToLocal:
-        final result = await ImageSaveService(
-          fetchBytes: ref.read(apiClientProvider).getBytes,
-        ).saveImageFromUrl(
-          imageUrl: imageUrl,
-          fileName: fileName,
-          dialogTitle: '保存到本地',
-        );
+        final result =
+            await ImageSaveService(
+              fetchBytes: ref.read(apiClientProvider).getBytes,
+            ).saveImageFromUrl(
+              imageUrl: imageUrl,
+              fileName: fileName,
+              dialogTitle: '保存到本地',
+            );
         if (!mounted) {
           return;
         }

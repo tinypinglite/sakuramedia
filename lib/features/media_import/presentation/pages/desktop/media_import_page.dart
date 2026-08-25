@@ -24,7 +24,7 @@ class DesktopMediaImportPage extends ConsumerStatefulWidget {
       _DesktopMediaImportPageState();
 }
 
-enum _ImportTab { javMovie, pornBoxMovie, javSubtitle }
+enum _ImportTab { javMovie, video, javSubtitle }
 
 class _DesktopMediaImportPageState extends ConsumerState<DesktopMediaImportPage>
     with SingleTickerProviderStateMixin {
@@ -34,8 +34,10 @@ class _DesktopMediaImportPageState extends ConsumerState<DesktopMediaImportPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _ImportTab.values.length, vsync: this)
-      ..addListener(() => setState(() {}));
+    _tabController = TabController(
+      length: _ImportTab.values.length,
+      vsync: this,
+    )..addListener(() => setState(() {}));
   }
 
   @override
@@ -54,25 +56,29 @@ class _DesktopMediaImportPageState extends ConsumerState<DesktopMediaImportPage>
         case _ImportTab.javMovie:
           final request = await showDirectoryPickerDialog(context);
           if (request == null || !mounted) return;
-          final accepted = await ref.read(mediaImportApiProvider).createImport(
-            mediaKind: 'jav',
-            libraryId: request.libraryId,
-            source: request.source,
-            transferMode: request.transferMode,
-          );
+          final accepted = await ref
+              .read(mediaImportApiProvider)
+              .createImport(
+                mediaKind: 'jav',
+                libraryId: request.libraryId,
+                source: request.source,
+                sourceDisposition: request.sourceDisposition,
+              );
           if (mounted) {
             showToast('导入任务 #${accepted.taskRunId} 已提交，请在活动中心查看进度');
           }
-        case _ImportTab.pornBoxMovie:
+        case _ImportTab.video:
           final request = await showVideoImportDialog(context);
           if (request == null || !mounted) return;
-          final accepted = await ref.read(mediaImportApiProvider).createImport(
-            mediaKind: 'video',
-            libraryId: request.libraryId,
-            source: request.source,
-            transferMode: request.transferMode,
-            collectionId: request.collectionId,
-          );
+          final accepted = await ref
+              .read(mediaImportApiProvider)
+              .createImport(
+                mediaKind: 'video',
+                libraryId: request.libraryId,
+                source: request.source,
+                sourceDisposition: request.sourceDisposition,
+                collectionId: request.collectionId,
+              );
           if (mounted) {
             showToast('视频导入任务 #${accepted.taskRunId} 已提交，请在活动中心查看进度');
           }
@@ -97,14 +103,14 @@ class _DesktopMediaImportPageState extends ConsumerState<DesktopMediaImportPage>
 
   String get _title => switch (_activeTab) {
     _ImportTab.javMovie => 'JAV 影片导入',
-    _ImportTab.pornBoxMovie => 'PornBox 影片导入',
+    _ImportTab.video => '视频导入',
     _ImportTab.javSubtitle => 'JAV 字幕导入',
   };
 
   String get _description => switch (_activeTab) {
-    _ImportTab.javMovie => '从后端本地目录或 115 网盘目录选择 JAV 媒体导入到媒体库。',
-    _ImportTab.pornBoxMovie => '从后端目录选择 PornBox 视频并归入一个合集。',
-    _ImportTab.javSubtitle => '递归扫描 .srt 文件并按番号匹配已入库的 JAV 影片，源文件会保留。',
+    _ImportTab.javMovie => '从媒体库提供方浏览来源并导入 JAV 媒体。',
+    _ImportTab.video => '从媒体库提供方浏览来源并导入普通视频，可选加入合集。',
+    _ImportTab.javSubtitle => '输入后端可访问的字幕目录或文件路径，源文件会保留。',
   };
 
   @override
@@ -117,7 +123,7 @@ class _DesktopMediaImportPageState extends ConsumerState<DesktopMediaImportPage>
             controller: _tabController,
             tabs: const [
               Tab(key: Key('media-import-tab-jav'), text: 'JAV 影片'),
-              Tab(key: Key('media-import-tab-pornbox'), text: 'PornBox 影片'),
+              Tab(key: Key('media-import-tab-video'), text: '视频'),
               Tab(key: Key('media-import-tab-jav-subtitle'), text: 'JAV 字幕'),
             ],
           ),
@@ -148,10 +154,14 @@ class _DesktopMediaImportPageState extends ConsumerState<DesktopMediaImportPage>
                 SizedBox(width: context.appSpacing.lg),
                 AppButton(
                   key: const Key('media-import-create-button'),
-                  label: _activeTab == _ImportTab.javSubtitle ? '新建字幕导入' : '新建导入',
+                  label: _activeTab == _ImportTab.javSubtitle
+                      ? '新建字幕导入'
+                      : '新建导入',
                   variant: AppButtonVariant.primary,
                   icon: const Icon(Icons.drive_folder_upload_outlined),
-                  onPressed: _isSubmitting ? null : () => unawaited(_createImport()),
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => unawaited(_createImport()),
                 ),
               ],
             ),

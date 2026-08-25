@@ -59,9 +59,7 @@ void main() {
           home: Scaffold(
             body: MediaListSection(
               scrollController: scrollController,
-              isTriggering: false,
               isDeleting: false,
-              onRapidUpload: _noOp,
               onBatchDelete: _noOp,
             ),
           ),
@@ -147,14 +145,13 @@ Map<String, dynamic> _mediaItemJson(int id) {
     'thin_cover_image': null,
     'library_id': 1,
     'library_name': 'Main',
-    'path': '/library/main/abc-$id.mp4',
+    'file_name': 'abc-$id.mp4',
     'file_size_bytes': 100,
     'duration_seconds': 60,
     'resolution': '1920x1080',
     'special_tags': '普通',
     'valid': true,
     'heat': 100,
-    'last_rapid_upload_status': null,
     'created_at': '2026-03-12T10:00:00Z',
     'updated_at': '2026-03-12T10:00:00Z',
   };

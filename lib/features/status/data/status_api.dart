@@ -16,11 +16,6 @@ class StatusApi {
     return StatusImageSearchDto.fromJson(response);
   }
 
-  Future<StatusCloud115CookiesDto> getCloud115CookiesStatus() async {
-    final response = await _apiClient.get('/status/media-libraries/cloud115');
-    return StatusCloud115CookiesDto.fromJson(response);
-  }
-
   Future<StatusMetadataProviderTestDto> testMetadataProvider(
     String provider,
   ) async {

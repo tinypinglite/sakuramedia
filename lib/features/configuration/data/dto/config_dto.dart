@@ -1,5 +1,4 @@
 import 'package:sakuramedia/core/json/json_parse.dart';
-import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 
 /// `GET /config` 返回的整包配置快照。
 class ConfigResourceDto {
@@ -103,16 +102,12 @@ class AdvancedMediaConfigDto {
 }
 
 class AdvancedMetadataConfigDto {
-  const AdvancedMetadataConfigDto({
-    required this.javdbHost,
-  });
+  const AdvancedMetadataConfigDto({required this.javdbHost});
 
   final String javdbHost;
 
   factory AdvancedMetadataConfigDto.fromJson(Map<String, dynamic> json) {
-    return AdvancedMetadataConfigDto(
-      javdbHost: _stringAt(json, 'javdb_host'),
-    );
+    return AdvancedMetadataConfigDto(javdbHost: _stringAt(json, 'javdb_host'));
   }
 
   Map<String, dynamic> toJson() {
@@ -169,60 +164,33 @@ class AdvancedSchedulerConfigDto {
 
 class AdvancedDownloadsConfigDto {
   const AdvancedDownloadsConfigDto({
-    required this.smallFileCleanupThresholdMb,
-    required this.preferredClientKinds,
+    required this.subscriptionSearchFreshDays,
+    required this.subscriptionSearchStaleAttemptLimit,
   });
 
-  final int smallFileCleanupThresholdMb;
-  final List<DownloadClientKind> preferredClientKinds;
+  final int subscriptionSearchFreshDays;
+  final int subscriptionSearchStaleAttemptLimit;
 
   factory AdvancedDownloadsConfigDto.fromJson(Map<String, dynamic> json) {
     return AdvancedDownloadsConfigDto(
-      smallFileCleanupThresholdMb: _intAt(
+      subscriptionSearchFreshDays: _intAt(
         json,
-        'small_file_cleanup_threshold_mb',
+        'subscription_search_fresh_days',
       ),
-      preferredClientKinds: _preferredClientKinds(json),
+      subscriptionSearchStaleAttemptLimit: _intAt(
+        json,
+        'subscription_search_stale_attempt_limit',
+      ),
     );
   }
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
-      'small_file_cleanup_threshold_mb': smallFileCleanupThresholdMb,
-      'preferred_client_kinds': preferredClientKinds
-          .map((kind) => kind.wireValue)
-          .toList(growable: false),
+      'subscription_search_fresh_days': subscriptionSearchFreshDays,
+      'subscription_search_stale_attempt_limit':
+          subscriptionSearchStaleAttemptLimit,
     };
   }
-}
-
-List<DownloadClientKind> _preferredClientKinds(Map<String, dynamic> json) {
-  const fallback = <DownloadClientKind>[
-    DownloadClientKind.qbittorrent,
-    DownloadClientKind.cloud115,
-  ];
-  final value = json['preferred_client_kinds'];
-  if (value is! List) {
-    return fallback;
-  }
-
-  final parsed = <DownloadClientKind>[];
-  for (final item in value) {
-    final kind = switch (item) {
-      'qbittorrent' => DownloadClientKind.qbittorrent,
-      'cloud115' => DownloadClientKind.cloud115,
-      _ => null,
-    };
-    if (kind != null && !parsed.contains(kind)) {
-      parsed.add(kind);
-    }
-  }
-  for (final kind in fallback) {
-    if (!parsed.contains(kind)) {
-      parsed.add(kind);
-    }
-  }
-  return List<DownloadClientKind>.unmodifiable(parsed);
 }
 
 class AdvancedLoggingConfigDto {

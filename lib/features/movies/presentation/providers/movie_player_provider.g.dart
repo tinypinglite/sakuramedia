@@ -59,7 +59,7 @@ final class MoviePlayerDependenciesProvider
 }
 
 String _$moviePlayerDependenciesHash() =>
-    r'9f65ead08f7fa3cadd34517d9bf8a50d363cb938';
+    r'72ac8d4950e0aba8bd1d7951aec5c352f9cbb987';
 
 /// 单个播放器路由的业务状态；页面离开后自动销毁并停止定时上报。
 
@@ -114,7 +114,7 @@ final class MoviePlayerProvider
   }
 }
 
-String _$moviePlayerHash() => r'c956e20b0a78eeced0ed01efa639238b01a4dfc6';
+String _$moviePlayerHash() => r'6900527f09f31978ed3ac5420eb6e5d4a771b84c';
 
 /// 单个播放器路由的业务状态；页面离开后自动销毁并停止定时上报。
 

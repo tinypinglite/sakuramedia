@@ -50,11 +50,10 @@ class AppLayoutTokens extends ThemeExtension<AppLayoutTokens> {
   final double emptySectionVerticalPadding;
   final double inlineIconPadding;
 
-  /// 媒体导入弹窗内目录浏览器的固定视窗高度（本地/115 通用），保证在最小分辨率下也
-  /// 能显示 ≥5 行条目而不至于挤压 transferMode 与警告条。
+  /// 媒体导入弹窗内目录浏览器的固定视窗高度，保证在最小分辨率下也能显示 ≥5 行条目。
   final double directoryBrowserHeight;
 
-  /// 二维码图像的正方形边长（用于 115 扫码登录等场景）。
+  /// 二维码图像的正方形边长（用于需要扫码授权的配置场景）。
   final double qrImageSize;
 
   @override
@@ -103,34 +102,63 @@ class AppLayoutTokens extends ThemeExtension<AppLayoutTokens> {
       return this;
     }
     return AppLayoutTokens(
-      inlineActionButtonSize:
-          lerpDouble(inlineActionButtonSize, other.inlineActionButtonSize, t)!,
-      panelIconContainerSize:
-          lerpDouble(panelIconContainerSize, other.panelIconContainerSize, t)!,
-      segmentedControlHeight:
-          lerpDouble(segmentedControlHeight, other.segmentedControlHeight, t)!,
-      filterFieldWidthSm:
-          lerpDouble(filterFieldWidthSm, other.filterFieldWidthSm, t)!,
-      filterFieldWidthMd:
-          lerpDouble(filterFieldWidthMd, other.filterFieldWidthMd, t)!,
-      filterFieldWidthLg:
-          lerpDouble(filterFieldWidthLg, other.filterFieldWidthLg, t)!,
-      filterFieldWidthXl:
-          lerpDouble(filterFieldWidthXl, other.filterFieldWidthXl, t)!,
+      inlineActionButtonSize: lerpDouble(
+        inlineActionButtonSize,
+        other.inlineActionButtonSize,
+        t,
+      )!,
+      panelIconContainerSize: lerpDouble(
+        panelIconContainerSize,
+        other.panelIconContainerSize,
+        t,
+      )!,
+      segmentedControlHeight: lerpDouble(
+        segmentedControlHeight,
+        other.segmentedControlHeight,
+        t,
+      )!,
+      filterFieldWidthSm: lerpDouble(
+        filterFieldWidthSm,
+        other.filterFieldWidthSm,
+        t,
+      )!,
+      filterFieldWidthMd: lerpDouble(
+        filterFieldWidthMd,
+        other.filterFieldWidthMd,
+        t,
+      )!,
+      filterFieldWidthLg: lerpDouble(
+        filterFieldWidthLg,
+        other.filterFieldWidthLg,
+        t,
+      )!,
+      filterFieldWidthXl: lerpDouble(
+        filterFieldWidthXl,
+        other.filterFieldWidthXl,
+        t,
+      )!,
       dialogWidthSm: lerpDouble(dialogWidthSm, other.dialogWidthSm, t)!,
       dialogWidthMd: lerpDouble(dialogWidthMd, other.dialogWidthMd, t)!,
-      dialogInsetPadding:
-          lerpDouble(dialogInsetPadding, other.dialogInsetPadding, t)!,
-      emptySectionVerticalPadding:
-          lerpDouble(
-            emptySectionVerticalPadding,
-            other.emptySectionVerticalPadding,
-            t,
-          )!,
-      inlineIconPadding:
-          lerpDouble(inlineIconPadding, other.inlineIconPadding, t)!,
-      directoryBrowserHeight:
-          lerpDouble(directoryBrowserHeight, other.directoryBrowserHeight, t)!,
+      dialogInsetPadding: lerpDouble(
+        dialogInsetPadding,
+        other.dialogInsetPadding,
+        t,
+      )!,
+      emptySectionVerticalPadding: lerpDouble(
+        emptySectionVerticalPadding,
+        other.emptySectionVerticalPadding,
+        t,
+      )!,
+      inlineIconPadding: lerpDouble(
+        inlineIconPadding,
+        other.inlineIconPadding,
+        t,
+      )!,
+      directoryBrowserHeight: lerpDouble(
+        directoryBrowserHeight,
+        other.directoryBrowserHeight,
+        t,
+      )!,
       qrImageSize: lerpDouble(qrImageSize, other.qrImageSize, t)!,
     );
   }

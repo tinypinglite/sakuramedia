@@ -13,8 +13,7 @@ part of 'system_diagnostics_controller.dart';
 /// 调度算法（[runAll]）：
 ///   Stage A（基础资源）：媒体库。空 → 后置全部 blocked。
 ///   Stage B（独立探针，与 A 并行）：JavDB / JoyTag。
-///   Stage C（依赖 A）：下载器（每个 client → 连通性 + 存储 两项，全部并发）。
-///   Stage D（依赖 C）：索引器 —— 静态校验、下载器绑定核对和真实搜索测试。
+///   Stage C（依赖 A）：索引器 —— 静态校验、绑定核对和真实搜索测试。
 ///
 /// 单项 try/catch 隔离，任何一项抛异常不影响整体流水推进。
 
@@ -26,8 +25,7 @@ final systemDiagnosticsProvider = SystemDiagnosticsFamily._();
 /// 调度算法（[runAll]）：
 ///   Stage A（基础资源）：媒体库。空 → 后置全部 blocked。
 ///   Stage B（独立探针，与 A 并行）：JavDB / JoyTag。
-///   Stage C（依赖 A）：下载器（每个 client → 连通性 + 存储 两项，全部并发）。
-///   Stage D（依赖 C）：索引器 —— 静态校验、下载器绑定核对和真实搜索测试。
+///   Stage C（依赖 A）：索引器 —— 静态校验、绑定核对和真实搜索测试。
 ///
 /// 单项 try/catch 隔离，任何一项抛异常不影响整体流水推进。
 final class SystemDiagnosticsProvider
@@ -37,8 +35,7 @@ final class SystemDiagnosticsProvider
   /// 调度算法（[runAll]）：
   ///   Stage A（基础资源）：媒体库。空 → 后置全部 blocked。
   ///   Stage B（独立探针，与 A 并行）：JavDB / JoyTag。
-  ///   Stage C（依赖 A）：下载器（每个 client → 连通性 + 存储 两项，全部并发）。
-  ///   Stage D（依赖 C）：索引器 —— 静态校验、下载器绑定核对和真实搜索测试。
+  ///   Stage C（依赖 A）：索引器 —— 静态校验、绑定核对和真实搜索测试。
   ///
   /// 单项 try/catch 隔离，任何一项抛异常不影响整体流水推进。
   SystemDiagnosticsProvider._({
@@ -85,15 +82,14 @@ final class SystemDiagnosticsProvider
   }
 }
 
-String _$systemDiagnosticsHash() => r'df1d4ffaa16ceef6ea47807407c190a34c2efefa';
+String _$systemDiagnosticsHash() => r'6622a63d80c39f4ff147ae6c6546ffa3a404de4a';
 
 /// 一次「组件诊断」检测的调度器。
 ///
 /// 调度算法（[runAll]）：
 ///   Stage A（基础资源）：媒体库。空 → 后置全部 blocked。
 ///   Stage B（独立探针，与 A 并行）：JavDB / JoyTag。
-///   Stage C（依赖 A）：下载器（每个 client → 连通性 + 存储 两项，全部并发）。
-///   Stage D（依赖 C）：索引器 —— 静态校验、下载器绑定核对和真实搜索测试。
+///   Stage C（依赖 A）：索引器 —— 静态校验、绑定核对和真实搜索测试。
 ///
 /// 单项 try/catch 隔离，任何一项抛异常不影响整体流水推进。
 
@@ -120,8 +116,7 @@ final class SystemDiagnosticsFamily extends $Family
   /// 调度算法（[runAll]）：
   ///   Stage A（基础资源）：媒体库。空 → 后置全部 blocked。
   ///   Stage B（独立探针，与 A 并行）：JavDB / JoyTag。
-  ///   Stage C（依赖 A）：下载器（每个 client → 连通性 + 存储 两项，全部并发）。
-  ///   Stage D（依赖 C）：索引器 —— 静态校验、下载器绑定核对和真实搜索测试。
+  ///   Stage C（依赖 A）：索引器 —— 静态校验、绑定核对和真实搜索测试。
   ///
   /// 单项 try/catch 隔离，任何一项抛异常不影响整体流水推进。
 
@@ -137,8 +132,7 @@ final class SystemDiagnosticsFamily extends $Family
 /// 调度算法（[runAll]）：
 ///   Stage A（基础资源）：媒体库。空 → 后置全部 blocked。
 ///   Stage B（独立探针，与 A 并行）：JavDB / JoyTag。
-///   Stage C（依赖 A）：下载器（每个 client → 连通性 + 存储 两项，全部并发）。
-///   Stage D（依赖 C）：索引器 —— 静态校验、下载器绑定核对和真实搜索测试。
+///   Stage C（依赖 A）：索引器 —— 静态校验、绑定核对和真实搜索测试。
 ///
 /// 单项 try/catch 隔离，任何一项抛异常不影响整体流水推进。
 

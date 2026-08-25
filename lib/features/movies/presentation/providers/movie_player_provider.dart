@@ -5,9 +5,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/media/playback_resume_policy.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
-import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
-import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
-import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
@@ -29,7 +26,6 @@ typedef UpdateMediaProgress =
       required int mediaId,
       required int positionSeconds,
     });
-typedef FetchMediaLibraries = Future<List<MediaLibraryDto>> Function();
 
 @immutable
 class MoviePlayerDependencies {
@@ -38,27 +34,23 @@ class MoviePlayerDependencies {
     required this.fetchMediaThumbnails,
     required this.fetchMovieSubtitles,
     required this.updateMediaProgress,
-    this.fetchMediaLibraries,
   });
 
   final FetchMovieDetail fetchMovieDetail;
   final FetchMediaThumbnails fetchMediaThumbnails;
   final FetchMovieSubtitles? fetchMovieSubtitles;
   final UpdateMediaProgress updateMediaProgress;
-  final FetchMediaLibraries? fetchMediaLibraries;
 }
 
 /// 生产依赖装配与播放器状态机解耦，测试可直接 override 这一层。
 @Riverpod(keepAlive: true)
 MoviePlayerDependencies moviePlayerDependencies(Ref ref) {
   final moviesApi = ref.watch(moviesApiProvider);
-  final mediaLibrariesApi = ref.watch(mediaLibrariesApiProvider);
   return MoviePlayerDependencies(
     fetchMovieDetail: moviesApi.getMovieDetail,
     fetchMediaThumbnails: moviesApi.getMediaThumbnails,
     fetchMovieSubtitles: moviesApi.getMovieSubtitles,
     updateMediaProgress: moviesApi.updateMediaProgress,
-    fetchMediaLibraries: mediaLibrariesApi.getLibraries,
   );
 }
 
@@ -106,14 +98,12 @@ class MoviePlayer extends _$MoviePlayer {
       '[player-debug] provider_load_start movie=${scope.movieNumber} initialMediaId=${scope.initialMediaId} initialPositionSeconds=${scope.initialPositionSeconds}',
     );
     try {
-      final results = await Future.wait<Object>(<Future<Object>>[
-        _dependencies.fetchMovieDetail(movieNumber: scope.movieNumber),
-        _fetchStorageDescriptors(),
-      ]);
+      final movie = await _dependencies.fetchMovieDetail(
+        movieNumber: scope.movieNumber,
+      );
       if (!_isCurrentLoad(requestVersion)) {
         return;
       }
-      final movie = results[0] as MovieDetailDto;
       final selectedMedia = _resolveInitialMedia(movie.mediaItems);
       final startupPosition = _resolveExplicitStartupPlaybackPosition();
       final resumePosition = startupPosition == null
@@ -123,7 +113,6 @@ class MoviePlayer extends _$MoviePlayer {
         state.copyWith(
           movie: movie,
           selectedMedia: selectedMedia,
-          storageDescriptors: results[1] as Map<int, MediaStorageDescriptor>,
           thumbnails: const <MovieMediaThumbnailDto>[],
           thumbnailErrorMessage: null,
           isThumbnailLoading: false,
@@ -152,7 +141,6 @@ class MoviePlayer extends _$MoviePlayer {
         state.copyWith(
           movie: null,
           selectedMedia: null,
-          storageDescriptors: const <int, MediaStorageDescriptor>{},
           thumbnails: const <MovieMediaThumbnailDto>[],
           thumbnailErrorMessage: null,
           isThumbnailLoading: false,
@@ -167,18 +155,6 @@ class MoviePlayer extends _$MoviePlayer {
       if (_isCurrentLoad(requestVersion)) {
         state = state.copyWith(isLoading: false);
       }
-    }
-  }
-
-  Future<Map<int, MediaStorageDescriptor>> _fetchStorageDescriptors() async {
-    final fetch = _dependencies.fetchMediaLibraries;
-    if (fetch == null) {
-      return const <int, MediaStorageDescriptor>{};
-    }
-    try {
-      return buildMediaStorageDescriptors(await fetch());
-    } catch (_) {
-      return const <int, MediaStorageDescriptor>{};
     }
   }
 

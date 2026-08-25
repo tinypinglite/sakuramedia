@@ -13,19 +13,9 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 /// 汇总徽章（只有纯文字 `header`），套进 `AppContentCard` 又会叠出两层卡片背景/
 /// 边框/阴影——这里的手写 `Divider` 循环是刻意保留的最简单写法。
 class DiagnosticCategoryCard extends StatelessWidget {
-  const DiagnosticCategoryCard({
-    super.key,
-    required this.category,
-    this.itemDetailBuilder,
-  });
+  const DiagnosticCategoryCard({super.key, required this.category});
 
   final DiagnosticCategoryState category;
-
-  /// 用于给下载器 tile 挂上「查看诊断详情」按钮 —— 复用现有的
-  /// `DownloadClientTestResultDialog` / `DownloadClientStorageTestResultDialog`。
-  /// 其它 kind 返回 null 即可。
-  final DiagnosticItemDetailAction? Function(DiagnosticItemState item)?
-  itemDetailBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -52,12 +42,9 @@ class DiagnosticCategoryCard extends StatelessWidget {
   }
 
   Widget _buildTile(DiagnosticItemState item) {
-    final action = itemDetailBuilder?.call(item);
     return DiagnosticItemTile(
       key: Key('diagnostic-item-${item.itemKey}'),
       item: item,
-      detailButtonLabel: action?.label,
-      onOpenDetail: action?.onOpen,
     );
   }
 
@@ -80,10 +67,9 @@ class DiagnosticCategoryCard extends StatelessWidget {
       case DiagnosticItemStatus.warning:
         return '存在告警';
       case DiagnosticItemStatus.unhealthy:
-        final count =
-            category.items
-                .where((i) => i.status == DiagnosticItemStatus.unhealthy)
-                .length;
+        final count = category.items
+            .where((i) => i.status == DiagnosticItemStatus.unhealthy)
+            .length;
         return '$count 项异常';
       case DiagnosticItemStatus.probing:
         return '检测中';
@@ -93,12 +79,4 @@ class DiagnosticCategoryCard extends StatelessWidget {
         return '未检测';
     }
   }
-}
-
-/// 让 tile 上多一个「查看诊断详情」入口的描述值对象。
-class DiagnosticItemDetailAction {
-  const DiagnosticItemDetailAction({required this.label, required this.onOpen});
-
-  final String label;
-  final VoidCallback onOpen;
 }

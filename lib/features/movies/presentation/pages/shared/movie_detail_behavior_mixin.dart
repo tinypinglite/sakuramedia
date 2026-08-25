@@ -8,7 +8,6 @@ import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
-import 'package:sakuramedia/features/media/data/media_play_url_dto.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
@@ -20,7 +19,6 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_clips_p
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_playback_options.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
@@ -40,10 +38,8 @@ import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.da
 /// - `_openMediaPointPreview`——预览浮层弹出方式两端不同
 /// - `_showMovieActionMenu` / `_showMovieActionDrawer`
 /// - `_confirmRefreshMetadata`（桌面）/ `_handleRefresh`（移动）
-/// - `_handlePlaySourceChanged`（移动有 `_playMode` 附加逻辑）
 /// - `_searchSimilarFromPoint`（桌面/移动 launcher 不同）
 /// - `openPlayerForPoint`（桌面 push 播放路由 / 移动经 external player launcher）
-/// - 移动独有的合并播放（`_playMode` / `_effectivePlayMode` / `_isMergedPlaybackAvailable`）是真业务差异
 ///
 /// **约束**：宿主必须提供 `movieNumber` getter（同名 [MovieClipSectionMixin]
 /// 也要）、`subscriptionChangeNotifier`（页面 `initState` 抓 `movieSubscriptionEventsProvider.notifier`）
@@ -99,7 +95,6 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
   bool isCollectionUpdating = false;
   int? deletingMediaId;
   MovieDetailActionType? activeMovieAction;
-  MoviePlayUrlSource? playSource;
 
   /// 详情动作是否处于串行锁（订阅 / 合集切换 / remote action 三条互斥）。
   bool get isMovieActionLocked =>
@@ -255,13 +250,6 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     });
   }
 
-  String mediaStorageLabel(dynamic storage) {
-    final libraryName = storage.normalizedLibraryName as String?;
-    return libraryName == null
-        ? storage.sourceLabel as String
-        : '${storage.sourceLabel} · $libraryName';
-  }
-
   String buildMediaDeleteLabel(MovieMediaItemDto mediaItem) {
     final label = mediaItem.specialTags.trim();
     if (label.isNotEmpty) {
@@ -270,18 +258,8 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     return '媒体源 ${mediaItem.mediaId}';
   }
 
-  String mediaDeleteMessage(
-    MovieMediaItemDto mediaItem, {
-    required bool isCloud115,
-    required bool isLocal,
-  }) {
+  String mediaDeleteMessage(MovieMediaItemDto mediaItem) {
     final prefix = '确认删除媒体“${buildMediaDeleteLabel(mediaItem)}”？';
-    if (isCloud115) {
-      return '$prefix 该操作会删除 115 网盘中的媒体文件（进入 115 回收站），并删除 SakuraMedia 记录。';
-    }
-    if (isLocal) {
-      return '$prefix 该操作会删除本地媒体文件且不可恢复。';
-    }
     return '$prefix 该操作会删除媒体文件及 SakuraMedia 记录，且可能无法恢复。';
   }
 
@@ -408,9 +386,9 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     return MovieMediaItemDto(
       mediaId: mediaId,
       libraryId: null,
-      libraryBackend: null,
+      providerKey: null,
       playUrl: '',
-      storageMode: '',
+      fileName: '',
       resolution: '',
       fileSizeBytes: 0,
       durationSeconds: 0,
@@ -450,8 +428,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
   // ==========================================================================
 
   /// build 前半段的公共派生计算：媒体列表（含 point override）、订阅 / 合集
-  /// override、播放源解析、按源过滤与当前选中媒体。`mergedPlaybackAvailable`
-  /// 因两端语义不同（移动还吃 cloud115 合并）留在页面侧单独算。
+  /// override 与当前选中媒体。
   MovieDetailDerived resolveDerived(
     MovieDetailDto movie,
     MovieDetailState detailState,
@@ -460,32 +437,18 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     final isSubscribed = isSubscribedOverride ?? movie.isSubscribed;
     final isBlacklisted = isBlacklistedOverride ?? movie.isBlacklisted;
     final isCollection = isCollectionOverride ?? movie.isCollection;
-    final sourceOptions = resolveMoviePlaybackSourceOptions(
-      mediaItems: mediaItems,
-      storageDescriptors: detailState.storageDescriptors,
-    );
-    final effectivePlaySource = playSource ?? sourceOptions.defaultSource;
-    // 详情页下方媒体列表按当前播放源过滤,避免用户切了"本地"却仍能点到
-    // 115 媒体、播放失败时收到"115 网盘媒体"文案的歧义。
-    final visibleMediaItems = filterMediaItemsByPlaybackSource(
-      mediaItems: mediaItems,
-      storageDescriptors: detailState.storageDescriptors,
-      source: effectivePlaySource,
-    );
     final selectedMedia =
-        visibleMediaItems
+        mediaItems
             .where((item) => item.mediaId == selectedMediaId)
             .firstOrNull ??
-        (visibleMediaItems.isNotEmpty ? visibleMediaItems.first : null);
+        (mediaItems.isNotEmpty ? mediaItems.first : null);
     return MovieDetailDerived(
       mediaItems: mediaItems,
       isSubscribed: isSubscribed,
       isBlacklisted: isBlacklisted,
       isCollection: isCollection,
       isActionControlsLocked: isMovieActionLocked,
-      sourceOptions: sourceOptions,
-      effectivePlaySource: effectivePlaySource,
-      visibleMediaItems: visibleMediaItems,
+      visibleMediaItems: mediaItems,
       selectedMedia: selectedMedia,
     );
   }
@@ -811,8 +774,6 @@ class MovieDetailDerived {
     required this.isBlacklisted,
     required this.isCollection,
     required this.isActionControlsLocked,
-    required this.sourceOptions,
-    required this.effectivePlaySource,
     required this.visibleMediaItems,
     required this.selectedMedia,
   });
@@ -822,8 +783,6 @@ class MovieDetailDerived {
   final bool isBlacklisted;
   final bool isCollection;
   final bool isActionControlsLocked;
-  final MoviePlaybackSourceOptions sourceOptions;
-  final MoviePlayUrlSource? effectivePlaySource;
   final List<MovieMediaItemDto> visibleMediaItems;
   final MovieMediaItemDto? selectedMedia;
 }

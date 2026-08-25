@@ -3881,8 +3881,8 @@ void _enqueueAccountProfile(TestApiBundle bundle) {
   );
 }
 
-/// 「媒体管理」页挂载即发三个请求：媒体列表、秒传批次（轮询监听）、媒体库。
-/// 列表/批次用 fallback 常驻空响应（避免后续切 tab 再打穿），媒体库 enqueue 一次。
+/// 「媒体管理」页挂载即发媒体列表和媒体库请求。
+/// 媒体列表用 fallback 常驻空响应（避免后续切 tab 再打穿），媒体库 enqueue 一次。
 void _enqueueMobileMediaManagementResponses(TestApiBundle bundle) {
   const emptyPage = <String, dynamic>{
     'items': <Map<String, dynamic>>[],
@@ -3893,11 +3893,6 @@ void _enqueueMobileMediaManagementResponses(TestApiBundle bundle) {
   bundle.adapter.setFallbackJson(
     method: 'GET',
     path: '/media',
-    body: emptyPage,
-  );
-  bundle.adapter.setFallbackJson(
-    method: 'GET',
-    path: '/media/rapid-uploads',
     body: emptyPage,
   );
   bundle.adapter.enqueueJson(

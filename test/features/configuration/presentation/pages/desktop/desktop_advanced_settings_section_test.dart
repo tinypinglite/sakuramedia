@@ -230,13 +230,11 @@ void main() {
     test(
       'collapses both restart kinds into a single container-restart notice',
       () {
-        // 对用户而言 api / scheduler 都是同一个容器，同一次「其他」卡改动里出现
-        // logging(api) + downloads(scheduler) 两种 restart 时不需要区分，只提示
-        // 一次「重启容器」即可。
+        // 对用户而言多种重启范围都是同一个容器提示。
         expect(
           buildAdvancedConfigSaveSuccessMessage(const <String>[
             'logging.level',
-            'downloads.small_file_cleanup_threshold_mb',
+            'downloads.subscription_search_fresh_days',
           ]),
           '已保存，需重启容器才生效',
         );
@@ -314,8 +312,8 @@ Map<String, dynamic> _buildAdvancedConfigJson({
           '${key}_cron': key == 'movie_heat' ? '15 0 * * *' : '0 2 * * *',
       },
       'downloads': <String, dynamic>{
-        'small_file_cleanup_threshold_mb': 256,
-        'preferred_client_kinds': <String>['qbittorrent', 'cloud115'],
+        'subscription_search_fresh_days': 7,
+        'subscription_search_stale_attempt_limit': 3,
       },
       'logging': <String, dynamic>{'level': 'INFO'},
     },

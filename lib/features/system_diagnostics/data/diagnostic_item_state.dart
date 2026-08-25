@@ -23,11 +23,11 @@ class DiagnosticItemState {
 
   final DiagnosticItemKind kind;
 
-  /// 稳定 key，用于 widget key + 测试锚点。同一个 kind 下多个实例（例如多个下载器）
-  /// 必须区分开，通常拼接 id 或者 index，例如 `downloader-connectivity-3`。
+  /// 稳定 key，用于 widget key + 测试锚点。同一个 kind 下多个实例必须区分开，
+  /// 通常拼接 id 或者 index，例如 `provider-3`。
   final String itemKey;
 
-  /// 面向用户展示的行名，例如「qBittorrent · 家庭 NAS」。
+  /// 面向用户展示的行名，例如「下载器 · 家庭 NAS」。
   final String displayName;
 
   final DiagnosticItemStatus status;
@@ -36,7 +36,7 @@ class DiagnosticItemState {
   final int? elapsedMs;
 
   /// 状态短句；不同 status 语义不同：
-  /// - healthy: 例如「qBittorrent 5.0.4 · 30ms」
+  /// - healthy: 例如「下载器 5.0.4 · 30ms」
   /// - unhealthy: 例如「连接超时」
   /// - blocked: 例如「等待媒体库配置就绪」
   final String? summary;

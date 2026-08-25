@@ -259,7 +259,7 @@ const List<_NavSeed> _desktopNavSeeds = [
         slug: 'system/media',
         label: '媒体管理',
         icon: Icons.video_settings_outlined,
-        description: '媒体文件浏览、失效巡检与秒传批次的统一入口。',
+        description: '媒体文件浏览、失效巡检与删除的统一入口。',
       ),
     ],
   ),
@@ -273,7 +273,7 @@ const List<_NavSeed> _desktopNavSeeds = [
         slug: 'system/media-import',
         label: '资源导入',
         icon: Icons.drive_folder_upload_outlined,
-        description: '导入 JAV、PornBox 影片与 JAV 字幕，并在任务中心查看进度和结果。',
+        description: '导入 JAV、普通视频与 JAV 字幕，并在任务中心查看进度和结果。',
       ),
     ],
   ),
@@ -353,8 +353,8 @@ final Map<String, WidgetBuilder> _desktopRouteBuilders =
       desktopNotificationsPath: (_) => const DesktopNotificationsPage(),
       desktopConfigurationPath: (_) => const DesktopConfigurationPage(),
       desktopMediaImportPath: (_) => const DesktopMediaImportPage(),
-      desktopMovieSubscriptionsPath:
-          (_) => const DesktopMovieSubscriptionsPage(),
+      desktopMovieSubscriptionsPath: (_) =>
+          const DesktopMovieSubscriptionsPage(),
     };
 
 final Map<String, WidgetBuilder> _mobileRouteBuilders = <String, WidgetBuilder>{

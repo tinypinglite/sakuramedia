@@ -6,11 +6,8 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
-import 'package:sakuramedia/features/external_player/presentation/external_player_availability.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
-import 'package:sakuramedia/features/media/data/media_play_url_dto.dart';
-import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_menu.dart';
@@ -23,7 +20,6 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_
 import 'package:sakuramedia/features/movies/presentation/providers/movie_subtitles_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_playback_options.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_plot_image_actions.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/movie_playlist_picker_dialog.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -53,11 +49,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
     with MovieClipSectionMixin, MovieDetailBehaviorMixin {
   late final MovieSubscriptionEvents _subscriptionChangeNotifier;
 
-  /// 播放模式显式选择；null 表示未选择，由 [_effectivePlayMode] 推导默认值
-  /// （合并播放可用时默认合并，否则单个）。
-  MoviePlayUrlMode? _playMode;
-
-  /// 合并播放探测/拉起外部播放器进行中，播放按钮显示 loading 并禁用。
+  /// 播放入口进行中，播放按钮显示 loading 并禁用。
   bool _isLaunchingPlayback = false;
 
   @override
@@ -124,15 +116,11 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
           final isBlacklisted = derived.isBlacklisted;
           final isCollection = derived.isCollection;
           final isActionControlsLocked = derived.isActionControlsLocked;
-          final sourceOptions = derived.sourceOptions;
-          final effectivePlaySource = derived.effectivePlaySource;
           final selectedMedia = derived.selectedMedia;
-          final mergedPlaybackAvailable = _isMergedPlaybackAvailable;
 
           return MovieDetailPageContent(
             movie: movie,
             mediaItemsOverride: derived.visibleMediaItems,
-            storageDescriptors: detailState.storageDescriptors,
             selectedPreviewKey: detailState.selectedPreviewKey,
             selectedPreviewUrl: detailState.selectedPreviewUrl,
             isCollection: isCollection,
@@ -174,16 +162,6 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
             onPlayTap: selectedMedia != null && selectedMedia.hasPlayableUrl
                 ? () => _openMoviePlayer(mediaId: selectedMedia.mediaId)
                 : null,
-            sourceOptions: sourceOptions,
-            selectedPlaySource: effectivePlaySource,
-            onPlaySourceChanged: _handlePlaySourceChanged,
-            mergedPlaybackAvailable: mergedPlaybackAvailable,
-            selectedPlayMode: _effectivePlayMode,
-            onPlayModeChanged: (mode) {
-              setState(() {
-                _playMode = mode;
-              });
-            },
             isPlayLoading: _isLaunchingPlayback,
             onPlaylistTap: () => showMoviePlaylistPickerDialog(
               context,
@@ -281,10 +259,6 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
 
   @override
   Future<bool?> confirmDeleteMedia(MovieMediaItemDto mediaItem) {
-    final storage = resolveMediaStorageDescriptor(
-      mediaItem.libraryId,
-      ref.read(movieDetailProvider(widget.movieNumber)).storageDescriptors,
-    );
     return showAppBottomDrawer<bool>(
       context: context,
       drawerKey: const Key('movie-media-delete-confirm-drawer'),
@@ -298,16 +272,12 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
             style: resolveAppTextStyle(drawerContext, size: AppTextSize.s18),
           ),
           SizedBox(height: drawerContext.appSpacing.lg),
-          Text(
-            mediaDeleteMessage(
-              mediaItem,
-              isCloud115: storage.isCloud115,
-              isLocal: storage.isLocal,
-            ),
-          ),
+          Text(mediaDeleteMessage(mediaItem)),
           SizedBox(height: drawerContext.appSpacing.sm),
           Text(
-            mediaStorageLabel(storage),
+            mediaItem.fileName.trim().isEmpty
+                ? '媒体 ${mediaItem.mediaId}'
+                : mediaItem.fileName.trim(),
             key: const Key('movie-media-delete-path'),
             style: resolveAppTextStyle(
               drawerContext,
@@ -455,53 +425,6 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
     }
   }
 
-  /// 当前生效播放源：未显式选择时取该影片可播媒体的默认源。
-  ///
-  /// 合并可用性与播放启动都基于它，避免「可用性按默认源、启动却回退本地源」
-  /// 的不一致（纯 115 多分段影片必须拿到 cloud115 源才能解析合并链接）。
-  MoviePlayUrlSource? get _effectivePlaySource {
-    final movie = ref.read(movieDetailProvider(widget.movieNumber)).movie;
-    if (movie == null) {
-      return playSource;
-    }
-    final sourceOptions = resolveMoviePlaybackSourceOptions(
-      mediaItems: resolveMediaItems(movie),
-      storageDescriptors: ref
-          .read(movieDetailProvider(widget.movieNumber))
-          .storageDescriptors,
-    );
-    return playSource ?? sourceOptions.defaultSource;
-  }
-
-  /// 合并播放对当前选中源是否可用（外部播放器就绪 + 该源多分段）。
-  bool get _isMergedPlaybackAvailable {
-    final movie = ref.read(movieDetailProvider(widget.movieNumber)).movie;
-    if (movie == null) {
-      return false;
-    }
-    final sourceOptions = resolveMoviePlaybackSourceOptions(
-      mediaItems: resolveMediaItems(movie),
-      storageDescriptors: ref
-          .read(movieDetailProvider(widget.movieNumber))
-          .storageDescriptors,
-    );
-    if (!isExternalPlayerReady(context)) {
-      return false;
-    }
-    return switch (_effectivePlaySource) {
-      MoviePlayUrlSource.local => sourceOptions.localCount >= 2,
-      MoviePlayUrlSource.cloud115 => sourceOptions.cloud115Count >= 2,
-      null => false,
-    };
-  }
-
-  /// 当前生效播放模式：未显式选择时，合并播放可用则默认合并，否则单个。
-  MoviePlayUrlMode get _effectivePlayMode =>
-      _playMode ??
-      (_isMergedPlaybackAvailable
-          ? MoviePlayUrlMode.merged
-          : MoviePlayUrlMode.single);
-
   @override
   void openPlayerForPoint(
     MovieMediaItemDto mediaItem,
@@ -527,8 +450,6 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
         mediaId: mediaId,
         positionSeconds: positionSeconds,
         movie: ref.read(movieDetailProvider(widget.movieNumber)).movie,
-        playSource: _effectivePlaySource ?? MoviePlayUrlSource.local,
-        playMode: _effectivePlayMode,
       ).whenComplete(() {
         if (mounted) {
           setState(() {
@@ -537,42 +458,6 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
         }
       }),
     );
-  }
-
-  /// 切换播放源：选中该源下第一个可播放媒体；若合并模式在新源下不可用则回落到单个。
-  void _handlePlaySourceChanged(MoviePlayUrlSource source) {
-    final movie = ref.read(movieDetailProvider(widget.movieNumber)).movie;
-    if (movie == null) {
-      return;
-    }
-    setState(() {
-      playSource = source;
-      final target = resolveFirstPlayableMediaId(
-        mediaItems: resolveMediaItems(movie),
-        storageDescriptors: ref
-            .read(movieDetailProvider(widget.movieNumber))
-            .storageDescriptors,
-        source: source,
-      );
-      if (target != null) {
-        selectedMediaId = target;
-      }
-      final newSourceOptions = resolveMoviePlaybackSourceOptions(
-        mediaItems: resolveMediaItems(movie),
-        storageDescriptors: ref
-            .read(movieDetailProvider(widget.movieNumber))
-            .storageDescriptors,
-      );
-      final mergedStillAvailable =
-          isExternalPlayerReady(context) &&
-          switch (source) {
-            MoviePlayUrlSource.local => newSourceOptions.localCount >= 2,
-            MoviePlayUrlSource.cloud115 => newSourceOptions.cloud115Count >= 2,
-          };
-      if (_playMode == MoviePlayUrlMode.merged && !mergedStillAvailable) {
-        _playMode = MoviePlayUrlMode.single;
-      }
-    });
   }
 
   Future<void> _openImageSearchFromUrl({

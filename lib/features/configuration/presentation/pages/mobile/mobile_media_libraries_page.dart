@@ -1,26 +1,25 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/data/dto/provider_catalog_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/forms/media_library_form.dart';
+import 'package:sakuramedia/features/configuration/presentation/forms/provider_config_form.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/media_libraries_provider.dart';
-import 'package:sakuramedia/features/configuration/presentation/widgets/cloud115_backend_picker.dart';
-import 'package:sakuramedia/features/configuration/presentation/widgets/cloud115_library_login_flow.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/media_provider_catalog_provider.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_empty_card.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_entity_list_card.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
-import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_empty_card.dart';
-import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
 
 class MobileMediaLibrariesPage extends ConsumerStatefulWidget {
@@ -33,42 +32,40 @@ class MobileMediaLibrariesPage extends ConsumerStatefulWidget {
 
 class _MobileMediaLibrariesPageState
     extends ConsumerState<MobileMediaLibrariesPage> {
+  Future<List<MediaProviderDto>?> _loadCatalog() async {
+    try {
+      return await ref.read(mediaProviderCatalogProvider.future);
+    } catch (error) {
+      if (mounted) {
+        showToast(apiErrorMessage(error, fallback: 'Provider 目录加载失败，请稍后重试。'));
+      }
+      return null;
+    }
+  }
+
   Future<void> _refreshLibraries() async {
     final message = await ref.read(mediaLibrariesProvider.notifier).refresh();
-    if (mounted && message != null) {
-      showToast(message);
-    }
+    if (mounted && message != null) showToast(message);
   }
 
   Future<void> _handleCreateLibrary() async {
-    final backend = await showMediaLibraryBackendPicker(context);
-    if (!mounted || backend == null) {
+    final providers = await _loadCatalog();
+    if (!mounted || providers == null) return;
+    if (providers.isEmpty) {
+      showToast('暂无可用 Provider，请先在“插件”设置中安装并启用媒体 Provider。');
       return;
     }
-    final MediaLibraryDto? createdLibrary;
-    if (backend == MediaLibraryBackend.cloud115) {
-      createdLibrary = await showCloud115LibraryLoginFlow(context);
-    } else {
-      createdLibrary = await showMobileMediaLibraryEditorDrawer(context);
-    }
-    if (!mounted || createdLibrary == null) {
-      return;
-    }
-    if (backend == MediaLibraryBackend.cloud115) {
-      showToast('115 媒体库已创建');
-    }
-    _upsertLibrary(createdLibrary);
+    await showMobileMediaLibraryEditorDrawer(context, providers: providers);
   }
 
   Future<void> _handleEditLibrary(MediaLibraryDto library) async {
-    final updatedLibrary = await showMobileMediaLibraryEditorDrawer(
+    final providers = await _loadCatalog() ?? const <MediaProviderDto>[];
+    if (!mounted) return;
+    await showMobileMediaLibraryEditorDrawer(
       context,
+      providers: providers,
       initialLibrary: library,
     );
-    if (!mounted || updatedLibrary == null) {
-      return;
-    }
-    _upsertLibrary(updatedLibrary);
   }
 
   Future<void> _handleLibraryActions(MediaLibraryDto library) async {
@@ -76,50 +73,27 @@ class _MobileMediaLibrariesPageState
       context,
       library: library,
     );
-    if (!mounted || action == null) {
-      return;
-    }
+    if (!mounted || action == null) return;
     switch (action) {
       case MobileMediaLibraryAction.edit:
         await _handleEditLibrary(library);
-      case MobileMediaLibraryAction.reauth:
-        await _handleReauthLibrary(library);
       case MobileMediaLibraryAction.delete:
         await _handleDeleteLibrary(library);
     }
   }
 
-  Future<void> _handleReauthLibrary(MediaLibraryDto library) async {
-    final updated = await showCloud115LibraryLoginFlow(
-      context,
-      reauthLibrary: library,
-    );
-    if (!mounted || updated == null) {
-      return;
-    }
-    showToast('115 媒体库认证已更新');
-    _upsertLibrary(updated);
-  }
-
   Future<void> _handleDeleteLibrary(MediaLibraryDto library) async {
-    final ok = await showAppConfigDeleteConfirm(
+    await showAppConfigDeleteConfirm(
       context: context,
       title: '删除媒体库',
-      message: '确认删除媒体库"${library.name}"？删除后下载器等依赖该路径的配置可能失效，该操作不可恢复。',
+      message: '确认删除媒体库“${library.name}”？该操作不可恢复。',
       dialogKey: const Key('mobile-media-library-delete-drawer'),
       confirmKey: const Key('mobile-media-library-delete-confirm-button'),
-      onDelete:
-          () => ref.read(mediaLibrariesProvider.notifier).delete(library.id),
+      onDelete: () =>
+          ref.read(mediaLibrariesProvider.notifier).delete(library.id),
       successToast: '媒体库已删除',
       failureFallback: '删除媒体库失败',
     );
-    if (!ok || !mounted) {
-      return;
-    }
-  }
-
-  void _upsertLibrary(MediaLibraryDto library) {
-    ref.read(mediaLibrariesProvider.notifier).upsert(library);
   }
 
   @override
@@ -127,7 +101,6 @@ class _MobileMediaLibrariesPageState
     final spacing = context.appSpacing;
     final colors = context.appColors;
     final async = ref.watch(mediaLibrariesProvider);
-
     return ColoredBox(
       key: const Key('mobile-settings-media-libraries'),
       color: colors.surfaceCard,
@@ -153,9 +126,10 @@ class _MobileMediaLibrariesPageState
                           key: Key('mobile-media-libraries-notice-card'),
                           leadingIcon: Icons.folder_open_outlined,
                           title: '媒体库存储',
-                          description: '媒体库可使用本地目录或 115 网盘；下载器等本地模块仅使用本地媒体库。',
+                          description: '媒体库通过已安装的 Provider 连接存储；配置字段由插件目录动态提供。',
                         ),
                         SizedBox(height: spacing.md),
+                        _buildCatalogNotice(context),
                         _buildContentSection(context, async),
                       ],
                     ),
@@ -167,12 +141,7 @@ class _MobileMediaLibrariesPageState
           AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
-            padding: EdgeInsets.fromLTRB(
-              spacing.md,
-              spacing.md,
-              spacing.md,
-              spacing.md,
-            ),
+            padding: EdgeInsets.all(spacing.md),
             decoration: BoxDecoration(
               color: colors.surfaceCard,
               border: Border(top: BorderSide(color: colors.divider)),
@@ -193,13 +162,34 @@ class _MobileMediaLibrariesPageState
     );
   }
 
+  Widget _buildCatalogNotice(BuildContext context) {
+    final catalog = ref.watch(mediaProviderCatalogProvider);
+    if (catalog.hasError) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: context.appSpacing.md),
+        child: const AppNoticeCard(
+          leadingIcon: Icons.warning_amber_rounded,
+          description: 'Provider 目录暂不可用，已存在的媒体库仍可管理；新增或编辑配置前请重试。',
+        ),
+      );
+    }
+    if (catalog.hasValue && catalog.value!.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: context.appSpacing.md),
+        child: const AppNoticeCard(
+          leadingIcon: Icons.extension_off_outlined,
+          description: '暂无可用 Provider，请先在“插件”设置中安装并启用媒体 Provider。',
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
   Widget _buildContentSection(
     BuildContext context,
     AsyncValue<List<MediaLibraryDto>> async,
   ) {
-    if (async.isLoading) {
-      return const _MobileMediaLibraryLoadingSection();
-    }
+    if (async.isLoading) return const _MobileMediaLibraryLoadingSection();
     if (async.hasError) {
       return AppMobileSectionError(
         key: const Key('mobile-media-libraries-error-state'),
@@ -216,13 +206,19 @@ class _MobileMediaLibrariesPageState
         message: '还没有媒体库',
       );
     }
-
+    final catalog = ref.watch(mediaProviderCatalogProvider);
+    final providers = catalog.value ?? const <MediaProviderDto>[];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: libraries
           .expand(
             (library) => <Widget>[
-              _buildLibraryCard(context, library),
+              _buildLibraryCard(
+                context,
+                library,
+                providers,
+                catalogReady: catalog.hasValue,
+              ),
               if (library != libraries.last)
                 SizedBox(height: context.appSpacing.sm),
             ],
@@ -231,12 +227,18 @@ class _MobileMediaLibrariesPageState
     );
   }
 
-  Widget _buildLibraryCard(BuildContext context, MediaLibraryDto library) {
+  Widget _buildLibraryCard(
+    BuildContext context,
+    MediaLibraryDto library,
+    List<MediaProviderDto> providers, {
+    required bool catalogReady,
+  }) {
     final spacing = context.appSpacing;
     final colors = context.appColors;
     final componentTokens = context.appComponentTokens;
+    final provider = _findProvider(providers, library.providerKey);
+    final unavailable = catalogReady && provider == null;
     final avatarSide = componentTokens.iconSizeXl + spacing.md;
-
     return MobileEntityListCard(
       outerKey: Key('mobile-media-library-card-${library.id}'),
       bodyKey: Key('mobile-media-library-card-body-${library.id}'),
@@ -248,9 +250,7 @@ class _MobileMediaLibrariesPageState
           borderRadius: context.appRadius.mdBorder,
         ),
         child: Icon(
-          library.isCloud115
-              ? Icons.cloud_outlined
-              : Icons.folder_open_outlined,
+          Icons.folder_open_outlined,
           size: componentTokens.iconSizeMd,
           color: Theme.of(context).colorScheme.primary,
         ),
@@ -267,14 +267,15 @@ class _MobileMediaLibrariesPageState
       body: [
         SizedBox(height: spacing.xs),
         Text(
-          library.isCloud115
-              ? '115 网盘 · ${library.cloud115App.label}'
-              : library.rootPath,
+          provider?.displayName ??
+              (catalogReady
+                  ? 'Provider 不可用 · ${library.providerKey}'
+                  : library.providerKey),
           style: resolveAppTextStyle(
             context,
             size: AppTextSize.s12,
             weight: AppTextWeight.regular,
-            tone: AppTextTone.secondary,
+            tone: unavailable ? AppTextTone.error : AppTextTone.secondary,
           ),
         ),
         SizedBox(height: spacing.sm),
@@ -311,17 +312,29 @@ class _MobileMediaLibrariesPageState
   }
 }
 
+MediaProviderDto? _findProvider(
+  List<MediaProviderDto> providers,
+  String providerKey,
+) {
+  for (final provider in providers) {
+    if (provider.providerKey == providerKey) return provider;
+  }
+  return null;
+}
+
 Future<MediaLibraryDto?> showMobileMediaLibraryEditorDrawer(
   BuildContext context, {
+  required List<MediaProviderDto> providers,
   MediaLibraryDto? initialLibrary,
 }) {
   return showAppBottomDrawer<MediaLibraryDto>(
     context: context,
     drawerKey: const Key('mobile-media-library-editor-drawer'),
-    heightFactor: 0.68,
-    builder:
-        (drawerContext) =>
-            _MobileMediaLibraryEditorDrawer(initialLibrary: initialLibrary),
+    heightFactor: 0.78,
+    builder: (_) => _MobileMediaLibraryEditorDrawer(
+      providers: providers,
+      initialLibrary: initialLibrary,
+    ),
   );
 }
 
@@ -332,13 +345,12 @@ Future<MobileMediaLibraryAction?> showMobileMediaLibraryActionsDrawer(
   return showAppBottomDrawer<MobileMediaLibraryAction>(
     context: context,
     drawerKey: const Key('mobile-media-library-actions-drawer'),
-    maxHeightFactor: library.isCloud115 ? 0.48 : 0.34,
-    builder:
-        (drawerContext) => _MobileMediaLibraryActionsDrawer(library: library),
+    maxHeightFactor: 0.34,
+    builder: (_) => _MobileMediaLibraryActionsDrawer(library: library),
   );
 }
 
-enum MobileMediaLibraryAction { edit, reauth, delete }
+enum MobileMediaLibraryAction { edit, delete }
 
 class _MobileMediaLibraryLoadingSection extends StatelessWidget {
   const _MobileMediaLibraryLoadingSection();
@@ -346,7 +358,6 @@ class _MobileMediaLibraryLoadingSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-
     return Column(
       children: List<Widget>.generate(
         3,
@@ -368,7 +379,6 @@ class _MobileMediaLibrarySkeletonCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final colors = context.appColors;
-
     return Container(
       decoration: BoxDecoration(
         color: colors.surfaceCard,
@@ -406,8 +416,12 @@ class _MobileMediaLibrarySkeletonCard extends StatelessWidget {
 }
 
 class _MobileMediaLibraryEditorDrawer extends ConsumerStatefulWidget {
-  const _MobileMediaLibraryEditorDrawer({this.initialLibrary});
+  const _MobileMediaLibraryEditorDrawer({
+    required this.providers,
+    this.initialLibrary,
+  });
 
+  final List<MediaProviderDto> providers;
   final MediaLibraryDto? initialLibrary;
 
   @override
@@ -419,19 +433,18 @@ class _MobileMediaLibraryEditorDrawerState
     extends ConsumerState<_MobileMediaLibraryEditorDrawer> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _rootPathController;
   late final FocusNode _nameFocusNode;
-  late final FocusNode _rootPathFocusNode;
-
+  late String? _selectedProviderKey;
+  late ProviderConfigFormController _providerConfigController;
   bool _hasAttemptedSubmit = false;
   bool _isSubmitting = false;
 
   bool get _isEditing => widget.initialLibrary != null;
-
-  AutovalidateMode get _autovalidateMode =>
-      _hasAttemptedSubmit
-          ? AutovalidateMode.onUserInteraction
-          : AutovalidateMode.disabled;
+  MediaProviderDto? get _selectedProvider =>
+      _findProvider(widget.providers, _selectedProviderKey ?? '');
+  AutovalidateMode get _autovalidateMode => _hasAttemptedSubmit
+      ? AutovalidateMode.onUserInteraction
+      : AutovalidateMode.disabled;
 
   @override
   void initState() {
@@ -439,99 +452,132 @@ class _MobileMediaLibraryEditorDrawerState
     _nameController = TextEditingController(
       text: widget.initialLibrary?.name ?? '',
     );
-    _rootPathController = TextEditingController(
-      text: widget.initialLibrary?.rootPath ?? '',
-    );
     _nameFocusNode = FocusNode();
-    _rootPathFocusNode = FocusNode();
+    _selectedProviderKey =
+        widget.initialLibrary?.providerKey ??
+        (widget.providers.isEmpty ? null : widget.providers.first.providerKey);
+    _providerConfigController = ProviderConfigFormController(
+      fields:
+          _selectedProvider?.libraryConfigFields ??
+          const <ProviderConfigFieldDto>[],
+      initialConfig:
+          widget.initialLibrary?.providerConfig ?? const <String, dynamic>{},
+    );
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _rootPathController.dispose();
     _nameFocusNode.dispose();
-    _rootPathFocusNode.dispose();
+    _providerConfigController.dispose();
     super.dispose();
+  }
+
+  void _selectProvider(String? providerKey) {
+    if (providerKey == null ||
+        providerKey == _selectedProviderKey ||
+        _isEditing) {
+      return;
+    }
+    _providerConfigController.dispose();
+    final provider = _findProvider(widget.providers, providerKey);
+    setState(() {
+      _selectedProviderKey = providerKey;
+      _providerConfigController = ProviderConfigFormController(
+        fields:
+            provider?.libraryConfigFields ?? const <ProviderConfigFieldDto>[],
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = _selectedProvider;
+    final unavailable = _isEditing && provider == null;
     return AppBottomFormSheet(
       formKey: _formKey,
       title: _isEditing ? '编辑媒体库' : '新增媒体库',
-      subtitle:
-          widget.initialLibrary?.isCloud115 == true
-              ? '媒体库名称可修改，115 登录平台请通过重新认证更新。'
-              : '维护可供下载器等模块使用的本地媒体根路径。',
+      subtitle: unavailable
+          ? '当前 Provider 不可用，仅可修改媒体库名称。'
+          : '选择 Provider 后填写其存储配置。',
       submitKey: const Key('mobile-media-library-submit-button'),
       isSubmitting: _isSubmitting,
       onSubmit: _submit,
-      body: MediaLibraryFormFields(
-        nameController: _nameController,
-        rootPathController: _rootPathController,
-        nameFocusNode: _nameFocusNode,
-        rootPathFocusNode: _rootPathFocusNode,
-        enabled: !_isSubmitting,
-        rootPathEnabled: !_isEditing,
-        showRootPath: widget.initialLibrary?.isCloud115 != true,
-        autovalidateMode: _autovalidateMode,
-        onRootPathSubmitted: (_) => _submit(),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          MediaLibraryFormFields(
+            nameController: _nameController,
+            nameFocusNode: _nameFocusNode,
+            enabled: !_isSubmitting,
+            autovalidateMode: _autovalidateMode,
+            onNameSubmitted: (_) => _submit(),
+          ),
+          SizedBox(height: context.appSpacing.lg),
+          if (unavailable)
+            MediaLibraryProviderUnavailableNotice(
+              providerKey: widget.initialLibrary!.providerKey,
+            )
+          else
+            MediaLibraryProviderSelectField(
+              providers: widget.providers,
+              value: _selectedProviderKey,
+              enabled: !_isEditing && !_isSubmitting,
+              onChanged: _selectProvider,
+            ),
+          if (provider != null && provider.libraryConfigFields.isNotEmpty) ...[
+            SizedBox(height: context.appSpacing.lg),
+            ProviderConfigFormFields(
+              controller: _providerConfigController,
+              enabled: !_isSubmitting,
+              isEditing: _isEditing,
+              autovalidateMode: _autovalidateMode,
+            ),
+          ],
+        ],
       ),
     );
   }
 
   Future<void> _submit() async {
-    if (_isSubmitting) {
-      return;
-    }
-
+    if (_isSubmitting) return;
     FocusScope.of(context).unfocus();
     if (!_hasAttemptedSubmit) {
-      setState(() {
-        _hasAttemptedSubmit = true;
-      });
+      setState(() => _hasAttemptedSubmit = true);
     }
-    if (!(_formKey.currentState?.validate() ?? false)) {
+    if (!(_formKey.currentState?.validate() ?? false) ||
+        _selectedProviderKey == null) {
       return;
     }
-
-    setState(() {
-      _isSubmitting = true;
-    });
-
+    setState(() => _isSubmitting = true);
     final value = MediaLibraryFormValue.fromControllers(
       nameController: _nameController,
-      rootPathController: _rootPathController,
+      providerKey: _selectedProviderKey!,
+      providerConfigController: _providerConfigController,
+      isEditing: _isEditing,
     );
-
     try {
-      final library =
-          _isEditing
-              ? await ref
-                  .read(mediaLibrariesProvider.notifier)
-                  .updateLibrary(
-                    libraryId: widget.initialLibrary!.id,
-                    payload: value.toUpdatePayload(),
-                  )
-              : await ref
-                  .read(mediaLibrariesProvider.notifier)
-                  .create(value.toCreatePayload());
-      if (!mounted) {
-        return;
-      }
+      final library = _isEditing
+          ? await ref
+                .read(mediaLibrariesProvider.notifier)
+                .updateLibrary(
+                  libraryId: widget.initialLibrary!.id,
+                  payload: _selectedProvider == null
+                      ? UpdateMediaLibraryPayload(name: value.name)
+                      : value.toUpdatePayload(),
+                )
+          : await ref
+                .read(mediaLibrariesProvider.notifier)
+                .create(value.toCreatePayload());
+      if (!mounted) return;
       showToast(_isEditing ? '媒体库已更新' : '媒体库已创建');
       Navigator.of(context).pop(library);
     } catch (error) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       showToast(
         apiErrorMessage(error, fallback: _isEditing ? '更新媒体库失败' : '创建媒体库失败'),
       );
-      setState(() {
-        _isSubmitting = false;
-      });
+      setState(() => _isSubmitting = false);
     }
   }
 }
@@ -544,7 +590,6 @@ class _MobileMediaLibraryActionsDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -560,13 +605,10 @@ class _MobileMediaLibraryActionsDrawer extends StatelessWidget {
         ),
         SizedBox(height: spacing.xs),
         Text(
-          library.isCloud115
-              ? '115 网盘 · ${library.cloud115App.label}'
-              : library.rootPath,
+          library.providerKey,
           style: resolveAppTextStyle(
             context,
             size: AppTextSize.s12,
-            weight: AppTextWeight.regular,
             tone: AppTextTone.secondary,
           ),
         ),
@@ -577,25 +619,14 @@ class _MobileMediaLibraryActionsDrawer extends StatelessWidget {
           label: '编辑媒体库',
           onTap: () => Navigator.of(context).pop(MobileMediaLibraryAction.edit),
         ),
-        if (library.isCloud115) ...[
-          SizedBox(height: spacing.sm),
-          _MobileDrawerActionRow(
-            key: const Key('mobile-media-library-action-reauth'),
-            icon: Icons.refresh_rounded,
-            label: '重新认证',
-            onTap:
-                () =>
-                    Navigator.of(context).pop(MobileMediaLibraryAction.reauth),
-          ),
-        ],
         SizedBox(height: spacing.sm),
         _MobileDrawerActionRow(
           key: const Key('mobile-media-library-action-delete'),
           icon: Icons.delete_outline_rounded,
           label: '删除媒体库',
           tone: AppTextTone.error,
-          onTap:
-              () => Navigator.of(context).pop(MobileMediaLibraryAction.delete),
+          onTap: () =>
+              Navigator.of(context).pop(MobileMediaLibraryAction.delete),
         ),
       ],
     );
@@ -621,7 +652,6 @@ class _MobileDrawerActionRow extends StatelessWidget {
     final spacing = context.appSpacing;
     final colors = context.appColors;
     final textColor = resolveAppTextToneColor(context, tone);
-
     return Material(
       color: Colors.transparent,
       child: InkWell(

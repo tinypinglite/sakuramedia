@@ -20,9 +20,10 @@ class DiagnosticFixButton extends StatelessWidget {
     1: '媒体库',
     2: '下载器',
     3: '索引器',
-    4: '下载偏好',
-    5: '播放列表',
+    4: '播放列表',
+    5: '屏蔽影片',
     6: '高级设置',
+    7: '插件',
   };
 
   @override

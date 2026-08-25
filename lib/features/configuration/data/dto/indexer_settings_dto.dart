@@ -1,21 +1,16 @@
-import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
-
 class IndexerBoundClientDto {
   const IndexerBoundClientDto({
     required this.id,
     required this.name,
-    required this.kind,
   });
 
   final int id;
   final String name;
-  final DownloadClientKind kind;
 
   factory IndexerBoundClientDto.fromJson(Map<String, dynamic> json) {
     return IndexerBoundClientDto(
       id: json['id'] as int? ?? 0,
       name: json['name'] as String? ?? '',
-      kind: DownloadClientKindX.fromWire(json['kind']),
     );
   }
 }
@@ -34,6 +29,7 @@ class IndexerEntryDto {
   final String name;
   final String url;
   final String kind;
+
   /// 每个索引器独立的 Torznab 鉴权 key；为空表示请求不携带 apikey。
   final String? apiKey;
   final List<IndexerBoundClientDto> downloadClients;
@@ -90,23 +86,20 @@ class IndexerSettingsDto {
 
   factory IndexerSettingsDto.fromJson(Map<String, dynamic> json) {
     final rawIndexers = json['indexers'];
-    final indexers =
-        rawIndexers is List
-            ? rawIndexers
-                .whereType<Map>()
-                .map(
-                  (entry) => IndexerEntryDto.fromJson(
-                    entry.map(
-                      (dynamic key, dynamic value) =>
-                          MapEntry(key.toString(), value),
-                    ),
+    final indexers = rawIndexers is List
+        ? rawIndexers
+              .whereType<Map>()
+              .map(
+                (entry) => IndexerEntryDto.fromJson(
+                  entry.map(
+                    (dynamic key, dynamic value) =>
+                        MapEntry(key.toString(), value),
                   ),
-                )
-                .toList(growable: false)
-            : const <IndexerEntryDto>[];
-    return IndexerSettingsDto(
-      indexers: indexers,
-    );
+                ),
+              )
+              .toList(growable: false)
+        : const <IndexerEntryDto>[];
+    return IndexerSettingsDto(indexers: indexers);
   }
 
   Map<String, dynamic> toJson() {
@@ -174,15 +167,13 @@ class IndexerConnectionTestResultDto {
       indexersChecked: json['indexers_checked'] as int? ?? 0,
       resultCount: json['result_count'] as int? ?? 0,
       elapsedMs: json['elapsed_ms'] as int? ?? 0,
-      error:
-          rawError is Map
-              ? IndexerConnectionTestErrorDto.fromJson(
-                rawError.map(
-                  (dynamic key, dynamic value) =>
-                      MapEntry(key.toString(), value),
-                ),
-              )
-              : null,
+      error: rawError is Map
+          ? IndexerConnectionTestErrorDto.fromJson(
+              rawError.map(
+                (dynamic key, dynamic value) => MapEntry(key.toString(), value),
+              ),
+            )
+          : null,
     );
   }
 }

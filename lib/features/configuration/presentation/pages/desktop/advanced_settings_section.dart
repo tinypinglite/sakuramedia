@@ -47,7 +47,6 @@ class _DesktopAdvancedSettingsSectionState
   late final TextEditingController _uncensoredPrefixController;
   late final TextEditingController _allowedMinVideoFileSizeController;
   late final TextEditingController _javdbHostController;
-  late final TextEditingController _smallFileCleanupThresholdController;
   late final Map<String, TextEditingController> _cronControllers;
 
   final Set<_AdvancedCardKind> _dirtyCards = <_AdvancedCardKind>{};
@@ -70,7 +69,6 @@ class _DesktopAdvancedSettingsSectionState
     _uncensoredPrefixController = TextEditingController();
     _allowedMinVideoFileSizeController = TextEditingController();
     _javdbHostController = TextEditingController();
-    _smallFileCleanupThresholdController = TextEditingController();
     _cronControllers = <String, TextEditingController>{
       for (final key in AdvancedSchedulerConfigDto.cronKeys)
         key: TextEditingController(),
@@ -96,7 +94,6 @@ class _DesktopAdvancedSettingsSectionState
     _uncensoredPrefixController.dispose();
     _allowedMinVideoFileSizeController.dispose();
     _javdbHostController.dispose();
-    _smallFileCleanupThresholdController.dispose();
     for (final controller in _cronControllers.values) {
       controller.dispose();
     }
@@ -256,9 +253,7 @@ class _DesktopAdvancedSettingsSectionState
             ),
             SizedBox(height: spacing.lg),
             AppTextField(
-              fieldKey: const Key(
-                'configuration-advanced-javdb-host-field',
-              ),
+              fieldKey: const Key('configuration-advanced-javdb-host-field'),
               controller: _javdbHostController,
               label: 'JavDB API 域名',
               hintText: 'jdforrepam.com',
@@ -345,7 +340,7 @@ class _DesktopAdvancedSettingsSectionState
     final spacing = context.appSpacing;
     return AppContentCard(
       key: const Key('configuration-advanced-other-card'),
-      title: '下载清理与日志',
+      title: '日志',
       padding: EdgeInsets.all(spacing.lg),
       headerBottomSpacing: spacing.md,
       headerTrailing: _CardBadges(
@@ -362,26 +357,12 @@ class _DesktopAdvancedSettingsSectionState
           children: [
             const _CardTip(
               icon: Icons.tune_outlined,
-              message: '小文件清理阈值配合下载清理任务执行；日志等级平时保持 INFO，排查问题时再临时改成 DEBUG。',
+              message: '日志等级平时保持 INFO，排查问题时再临时改成 DEBUG。',
             ),
             SizedBox(height: spacing.lg),
             _buildFieldGrid(
               context,
               children: [
-                AppTextField(
-                  fieldKey: const Key(
-                    'configuration-advanced-small-file-threshold-field',
-                  ),
-                  controller: _smallFileCleanupThresholdController,
-                  label: '下载小文件清理阈值',
-                  hintText: '256',
-                  helperText: '下载任务里小于该体积的文件会被当作无效文件清理。',
-                  keyboardType: TextInputType.number,
-                  suffix: const _UnitSuffix(label: 'MB'),
-                  tightSuffix: true,
-                  validator: (value) => _positiveIntError(value, label: '清理阈值'),
-                  onChanged: (_) => _markDirty(_AdvancedCardKind.other),
-                ),
                 AppSelectField<String>(
                   key: const Key('configuration-advanced-logging-level-field'),
                   label: '日志等级',
@@ -393,18 +374,17 @@ class _DesktopAdvancedSettingsSectionState
                         child: Text(level),
                       ),
                   ],
-                  onChanged:
-                      _savingCards.contains(_AdvancedCardKind.other)
-                          ? null
-                          : (value) {
-                            if (value == null || value == _loggingLevel) {
-                              return;
-                            }
-                            setState(() {
-                              _loggingLevel = value;
-                            });
-                            _markDirty(_AdvancedCardKind.other);
-                          },
+                  onChanged: _savingCards.contains(_AdvancedCardKind.other)
+                      ? null
+                      : (value) {
+                          if (value == null || value == _loggingLevel) {
+                            return;
+                          }
+                          setState(() {
+                            _loggingLevel = value;
+                          });
+                          _markDirty(_AdvancedCardKind.other);
+                        },
                 ),
               ],
             ),
@@ -450,10 +430,9 @@ class _DesktopAdvancedSettingsSectionState
         final layout = context.appLayoutTokens;
         final minTwoColumnWidth = layout.filterFieldWidthXl * 2 + spacing.md;
         final useTwoColumns = constraints.maxWidth >= minTwoColumnWidth;
-        final fieldWidth =
-            useTwoColumns
-                ? (constraints.maxWidth - spacing.md) / 2
-                : constraints.maxWidth;
+        final fieldWidth = useTwoColumns
+            ? (constraints.maxWidth - spacing.md) / 2
+            : constraints.maxWidth;
         return Wrap(
           spacing: spacing.md,
           runSpacing: spacing.md,
@@ -549,9 +528,7 @@ class _DesktopAdvancedSettingsSectionState
   }
 
   Future<void> _handleSaveOther() async {
-    if (!(_otherFormKey.currentState?.validate() ?? false)) {
-      return;
-    }
+    if (!(_otherFormKey.currentState?.validate() ?? false)) return;
     if (_loggingLevel != _savedLoggingLevel) {
       final confirmed = await showAppConfirmDialog(
         context,
@@ -568,12 +545,8 @@ class _DesktopAdvancedSettingsSectionState
     }
     await _savePartial(
       _AdvancedCardKind.other,
-      <String, dynamic>{
-        'downloads': _buildDownloadsPayload(),
-        'logging': _buildLoggingPayload(),
-      },
+      <String, dynamic>{'logging': _buildLoggingPayload()},
       (values) {
-        _applyDownloads(values.downloads);
         _applyLogging(values.logging);
       },
     );
@@ -629,23 +602,13 @@ class _DesktopAdvancedSettingsSectionState
   }
 
   Map<String, dynamic> _buildMetadataPayload() {
-    return <String, dynamic>{
-      'javdb_host': _javdbHostController.text.trim(),
-    };
+    return <String, dynamic>{'javdb_host': _javdbHostController.text.trim()};
   }
 
   Map<String, dynamic> _buildSchedulerPayload() {
     return <String, dynamic>{
       for (final key in AdvancedSchedulerConfigDto.cronKeys)
         '${key}_cron': _cronControllers[key]!.text.trim(),
-    };
-  }
-
-  Map<String, dynamic> _buildDownloadsPayload() {
-    return <String, dynamic>{
-      'small_file_cleanup_threshold_mb': _parseInt(
-        _smallFileCleanupThresholdController.text,
-      ),
     };
   }
 
@@ -657,7 +620,6 @@ class _DesktopAdvancedSettingsSectionState
     _applyMedia(resource.media);
     _applyMetadata(resource.metadata);
     _applyScheduler(resource.scheduler);
-    _applyDownloads(resource.downloads);
     _applyLogging(resource.logging);
     _dirtyCards.clear();
   }
@@ -681,16 +643,10 @@ class _DesktopAdvancedSettingsSectionState
     }
   }
 
-  void _applyDownloads(AdvancedDownloadsConfigDto downloads) {
-    _smallFileCleanupThresholdController.text =
-        downloads.smallFileCleanupThresholdMb.toString();
-  }
-
   void _applyLogging(AdvancedLoggingConfigDto logging) {
-    _loggingLevel =
-        _loggingLevels.contains(logging.level)
-            ? logging.level
-            : _defaultLoggingLevel;
+    _loggingLevel = _loggingLevels.contains(logging.level)
+        ? logging.level
+        : _defaultLoggingLevel;
     _savedLoggingLevel = _loggingLevel;
   }
 
@@ -714,11 +670,10 @@ class _DesktopAdvancedSettingsSectionState
   }
 
   String? _cronError(String? value) {
-    final parts =
-        (value?.trim() ?? '')
-            .split(RegExp(r'\s+'))
-            .where((part) => part.isNotEmpty)
-            .toList();
+    final parts = (value?.trim() ?? '')
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
     if (parts.length != _cronPartCount) {
       return '请输入 5 位标准 cron';
     }
@@ -756,7 +711,6 @@ class _DesktopAdvancedSettingsSectionState
   List<String> _rawLines(String text) {
     return text.split(RegExp(r'\r?\n'));
   }
-
 }
 
 enum _AdvancedCardKind { media, metadata, scheduler, other }
@@ -764,9 +718,7 @@ enum _AdvancedCardKind { media, metadata, scheduler, other }
 /// 根据 `PATCH /config` 响应里的 `restart_required` 列表拼保存成功后的 toast 文案。
 ///
 /// 抽为顶层函数便于单元测试（widget 测里 oktoast 在 test env 下不可靠）。
-String buildAdvancedConfigSaveSuccessMessage(
-  List<String> restartRequired,
-) {
+String buildAdvancedConfigSaveSuccessMessage(List<String> restartRequired) {
   if (restartRequired.isEmpty) {
     return '已保存';
   }
@@ -912,10 +864,7 @@ const List<_CronGroup> _cronGroups = <_CronGroup>[
   ),
   _CronGroup(
     title: '抓取 / 回填',
-    keys: <String>[
-      'hot_review_sync',
-      'actor_subscription_sync',
-    ],
+    keys: <String>['hot_review_sync', 'actor_subscription_sync'],
   ),
   _CronGroup(
     title: '图搜 / 相似度',

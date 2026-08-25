@@ -88,8 +88,8 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
         .read(downloadTaskCenterProvider.notifier)
         .applyFilter(
           DownloadTaskFilterState(
-            // 用 all 而不是默认 downloading：订阅的 import_failed 档任务往往已下载完成
-            // （download_state=completed/seeding），按 downloading 过滤会把它们滤掉。
+            // 用 all 而不是默认 downloading：订阅的导入失败任务可能已经下载完成，
+            // 按 downloading 过滤会把它们滤掉。
             stateFilter: DownloadTaskStateFilter.all,
             search: movieNumber,
           ),
@@ -189,11 +189,11 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
         }
         break;
       case ActivityTab.downloadTasks:
-        final downloadState = ref.read(downloadTaskCenterProvider).value;
-        if (downloadState != null &&
-            downloadState.paged.hasMore &&
-            !downloadState.paged.isLoadingMore &&
-            downloadState.paged.loadMoreErrorMessage == null) {
+        final downloadCenter = ref.read(downloadTaskCenterProvider).value;
+        if (downloadCenter != null &&
+            downloadCenter.paged.hasMore &&
+            !downloadCenter.paged.isLoadingMore &&
+            downloadCenter.paged.loadMoreErrorMessage == null) {
           unawaited(ref.read(downloadTaskCenterProvider.notifier).loadMore());
         }
         break;

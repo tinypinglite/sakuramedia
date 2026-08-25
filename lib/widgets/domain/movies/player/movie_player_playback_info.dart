@@ -9,19 +9,11 @@ enum MoviePlayerDecodingMode { hardware, software, unknown }
 
 enum MoviePlayerDynamicRangeMode { hdr, sdr, unknown }
 
-/// 传给 [buildMoviePlayerPlaybackInfoSnapshot] 的媒体归属提示——由调用方从
-/// 现有 `MoviePlayerMediaSourceKind`（surface 层）转换而来，避免 `playback_info`
-/// 反向依赖 surface。
-enum MoviePlayerPlaybackMediaOrigin { local, cloud115, unknown }
+/// 传给 [buildMoviePlayerPlaybackInfoSnapshot] 的媒体归属提示。
+enum MoviePlayerPlaybackMediaOrigin { provider }
 
-/// 播放源的实际形态。由 [MoviePlayerPlaybackMediaOrigin]（媒体归属）+ libmpv
-/// `file-format`（真实解析器）联合推导：
-/// - [hls]：cloud115 媒体 + libmpv 走 HLS demuxer 打开
-/// - [directDegraded]：cloud115 媒体，但 libmpv 走的是渐进 mp4/mkv 等——即
-///   后端 `/stream` 因 HLS 不可用（未转码 / 非 VIP / 上游异常）静默降级到直链
-/// - [local]：本地媒体
-/// - [unknown]：还没拿到 `file-format`，或平台暂时没有提供
-enum MoviePlayerPlaybackSourceKind { hls, directDegraded, local, unknown }
+/// 播放源由后端 provider 返回的签名直链提供；解析器未报告格式时仍展示未知。
+enum MoviePlayerPlaybackSourceKind { direct, unknown }
 
 /// 面板左侧 label 列固定宽度（供 label 列 + 缩进 footnote 复用）。
 const double _kLabelColumnWidth = 88;
@@ -117,18 +109,18 @@ class MoviePlayerPlaybackInfoSnapshot {
   final String dynamicRangeLabel;
   final String dynamicRangeDetailLabel;
 
-  /// 类型标签，例如 `HLS · demuxer=hls` / `直链（HLS 不可用）` / `本地文件` / `--`。
+  /// 类型标签，例如 `直链 · demuxer=mp4` / `--`。
   /// 恒非 null——未知时展示 `--`，永远显示这一行。
   final String playbackSourceKindLabel;
 
-  /// 主机名（如 `cpats01.115.com`）；`null` 表示不展示该行（无法从 URL 解析出 host）。
+  /// 播放源主机名；`null` 表示不展示该行（无法从 URL 解析出 host）。
   final String? playbackSourceHostLabel;
 
-  /// 请求路径（如 `/hls-streams/3000000.m3u8`），不含 query 保护签名；
+  /// 请求路径，不含 query 保护签名；
   /// `null` 表示不展示该行。
   final String? playbackSourceRequestPathLabel;
 
-  /// HLS 档位，例如 `1080p · 3.0 Mbps`；仅 HLS 才有值。`null` = 隐藏该行。
+  /// 播放质量信息；当前由 provider 直链统一提供，默认隐藏。
   final String? playbackSourceQualityLabel;
 
   /// 缓冲：`12.3s / 8.2 MB`；本地文件 / 未拿到时为 `null`。
@@ -137,7 +129,7 @@ class MoviePlayerPlaybackInfoSnapshot {
   /// 下载速率：`2.4 MB/s`；libmpv 不给或还没算出时为 `null`（不展示该行）。
   final String? playbackSourceDownloadRateLabel;
 
-  /// 直链降级时的灰色小字提示；HLS / 本地 时为 `null`。
+  /// 播放链路提示；默认隐藏。
   final String? playbackSourceDegradedHint;
 
   @override
@@ -224,10 +216,9 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
   required double? delayedFramePerSecond,
   required double? mistimedFramePerSecond,
   MoviePlayerPlaybackMediaOrigin mediaOrigin =
-      MoviePlayerPlaybackMediaOrigin.unknown,
+      MoviePlayerPlaybackMediaOrigin.provider,
   String? originalUrl,
   String? fileFormat,
-  double? hlsBitrate,
   double? bufferCacheDurationSeconds,
   int? bufferForwardBytes,
   double? downloadRateBytesPerSecond,
@@ -237,10 +228,7 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     hwPixelformat: videoParams.hwPixelformat,
   );
   final dynamicRangeMode = _resolveDynamicRangeMode(videoParams);
-  final sourceKind = _resolvePlaybackSourceKind(
-    mediaOrigin: mediaOrigin,
-    fileFormat: fileFormat,
-  );
+  final sourceKind = _resolvePlaybackSourceKind(fileFormat: fileFormat);
   final mediaFrameRate = track.video.fps;
   final filterChainFrameRate = estimatedVfFps;
   final targetFrameRate = filterChainFrameRate ?? mediaFrameRate;
@@ -302,14 +290,7 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     ),
     playbackSourceHostLabel: _extractHost(originalUrl),
     playbackSourceRequestPathLabel: _extractPathAndTail(originalUrl),
-    playbackSourceQualityLabel:
-        sourceKind == MoviePlayerPlaybackSourceKind.hls
-            ? _buildHlsQualityLabel(
-              videoParams: videoParams,
-              trackVideo: track.video,
-              hlsBitrate: hlsBitrate,
-            )
-            : null,
+    playbackSourceQualityLabel: null,
     playbackSourceBufferLabel: _buildBufferLabel(
       cacheDurationSeconds: bufferCacheDurationSeconds,
       forwardBytes: bufferForwardBytes,
@@ -317,46 +298,29 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     playbackSourceDownloadRateLabel: _formatDownloadRateLabel(
       downloadRateBytesPerSecond,
     ),
-    playbackSourceDegradedHint:
-        sourceKind == MoviePlayerPlaybackSourceKind.directDegraded
-            ? 'HLS 不可用，可能因未转码 / 账号非 VIP，已回落到原画直链'
-            : null,
+    playbackSourceDegradedHint: null,
   );
 }
 
 MoviePlayerPlaybackSourceKind _resolvePlaybackSourceKind({
-  required MoviePlayerPlaybackMediaOrigin mediaOrigin,
   required String? fileFormat,
 }) {
-  if (mediaOrigin == MoviePlayerPlaybackMediaOrigin.local) {
-    return MoviePlayerPlaybackSourceKind.local;
-  }
   final normalized = fileFormat?.trim().toLowerCase();
   if (normalized == null || normalized.isEmpty) {
     return MoviePlayerPlaybackSourceKind.unknown;
   }
-  final isHls = normalized == 'hls' || normalized.contains('hls');
-  if (mediaOrigin == MoviePlayerPlaybackMediaOrigin.cloud115) {
-    return isHls
-        ? MoviePlayerPlaybackSourceKind.hls
-        : MoviePlayerPlaybackSourceKind.directDegraded;
-  }
-  // unknown 归属：只按 fileFormat 判定；非 HLS 一律视作未知（避免误报"降级"）。
-  return isHls
-      ? MoviePlayerPlaybackSourceKind.hls
-      : MoviePlayerPlaybackSourceKind.unknown;
+  return MoviePlayerPlaybackSourceKind.direct;
 }
 
 String _buildPlaybackSourceKindLabel({
   required MoviePlayerPlaybackSourceKind sourceKind,
   required String? fileFormat,
 }) {
-  final formatSuffix =
-      _hasText(fileFormat) ? ' · demuxer=${fileFormat!.trim()}' : '';
+  final formatSuffix = _hasText(fileFormat)
+      ? ' · demuxer=${fileFormat!.trim()}'
+      : '';
   return switch (sourceKind) {
-    MoviePlayerPlaybackSourceKind.hls => 'HLS$formatSuffix',
-    MoviePlayerPlaybackSourceKind.directDegraded => '直链（HLS 不可用）$formatSuffix',
-    MoviePlayerPlaybackSourceKind.local => '本地文件$formatSuffix',
+    MoviePlayerPlaybackSourceKind.direct => '直链$formatSuffix',
     MoviePlayerPlaybackSourceKind.unknown => '--',
   };
 }
@@ -394,77 +358,19 @@ String? _extractPathAndTail(String? url) {
   return path;
 }
 
-String? _buildHlsQualityLabel({
-  required VideoParams videoParams,
-  required VideoTrack trackVideo,
-  required double? hlsBitrate,
-}) {
-  final height = videoParams.dh ?? trackVideo.h;
-  final resolutionTier = _resolveResolutionTier(height);
-  final bitrateLabel = _formatHlsBitrateLabel(hlsBitrate);
-  if (resolutionTier == null && bitrateLabel == null) {
-    return null;
-  }
-  return [
-    if (resolutionTier != null) resolutionTier,
-    if (bitrateLabel != null) bitrateLabel,
-  ].join(' · ');
-}
-
-String? _resolveResolutionTier(int? height) {
-  if (height == null || height <= 0) {
-    return null;
-  }
-  if (height >= 2000) {
-    return '4K';
-  }
-  if (height >= 1400) {
-    return '1440p';
-  }
-  if (height >= 1000) {
-    return '1080p';
-  }
-  if (height >= 700) {
-    return '720p';
-  }
-  if (height >= 460) {
-    return '480p';
-  }
-  if (height >= 340) {
-    return '360p';
-  }
-  return '${height}p';
-}
-
-String? _formatHlsBitrateLabel(double? bitrate) {
-  if (bitrate == null || !bitrate.isFinite || bitrate <= 0) {
-    return null;
-  }
-  final mbps = bitrate / 1000000;
-  if (mbps >= 10) {
-    return '${mbps.toStringAsFixed(1)} Mbps';
-  }
-  if (mbps >= 1) {
-    return '${mbps.toStringAsFixed(2)} Mbps';
-  }
-  final kbps = bitrate / 1000;
-  return '${kbps.toStringAsFixed(0)} Kbps';
-}
-
 String? _buildBufferLabel({
   required double? cacheDurationSeconds,
   required int? forwardBytes,
 }) {
   final durationText =
       (cacheDurationSeconds != null &&
-              cacheDurationSeconds.isFinite &&
-              cacheDurationSeconds > 0)
-          ? '${cacheDurationSeconds.toStringAsFixed(1)}s'
-          : null;
-  final bytesText =
-      (forwardBytes != null && forwardBytes > 0)
-          ? _formatByteSize(forwardBytes.toDouble())
-          : null;
+          cacheDurationSeconds.isFinite &&
+          cacheDurationSeconds > 0)
+      ? '${cacheDurationSeconds.toStringAsFixed(1)}s'
+      : null;
+  final bytesText = (forwardBytes != null && forwardBytes > 0)
+      ? _formatByteSize(forwardBytes.toDouble())
+      : null;
   if (durationText == null && bytesText == null) {
     return null;
   }
@@ -967,7 +873,7 @@ class _MoviePlayerPlaybackInfoSection extends StatelessWidget {
   final String title;
   final List<_MoviePlayerPlaybackInfoRowData> rows;
 
-  /// 段末的灰色小字提示（如"HLS 不可用，已回落到直链"）。null 时不渲染。
+  /// 段末的灰色小字提示。null 时不渲染。
   final String? footnote;
   final Key? footnoteKey;
 

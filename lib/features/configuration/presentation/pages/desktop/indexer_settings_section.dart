@@ -167,6 +167,13 @@ class _IndexerSettingsSectionState
         showToast('请为每个索引器至少选择一个下载器');
         return;
       }
+      final availableClientIds = _downloadClients
+          .map((client) => client.id)
+          .toSet();
+      if (!item.downloadClientIds.every(availableClientIds.contains)) {
+        showToast('索引器绑定的下载器已失效，请重新选择');
+        return;
+      }
     }
 
     setState(() {
@@ -213,11 +220,8 @@ class _IndexerSettingsSectionState
   Future<void> _createIndexer() async {
     final result = await showDialog<IndexerEntryDto>(
       context: context,
-      builder:
-          (dialogContext) => IndexerEntryDialog(
-            title: '新增索引器',
-            downloadClients: _downloadClients,
-          ),
+      builder: (dialogContext) =>
+          IndexerEntryDialog(title: '新增索引器', downloadClients: _downloadClients),
     );
     if (result == null) {
       return;
@@ -233,12 +237,11 @@ class _IndexerSettingsSectionState
   Future<void> _editIndexer(int index) async {
     final result = await showDialog<IndexerEntryDto>(
       context: context,
-      builder:
-          (dialogContext) => IndexerEntryDialog(
-            title: '编辑索引器',
-            downloadClients: _downloadClients,
-            initialEntry: _indexers[index],
-          ),
+      builder: (dialogContext) => IndexerEntryDialog(
+        title: '编辑索引器',
+        downloadClients: _downloadClients,
+        initialEntry: _indexers[index],
+      ),
     );
     if (result == null) {
       return;
@@ -279,18 +282,17 @@ class _IndexerSettingsSectionState
       indexerConnectionTestProvider(_connectionTestScope),
     );
     final query = _searchController.text.trim().toLowerCase();
-    final filteredIndexers =
-        query.isEmpty
-            ? _indexers
-            : _indexers
-                .where((item) {
-                  final source =
-                      '${item.name} ${item.url} ${item.kind} '
-                      '${item.apiKey ?? ''} ${item.downloadClientNames}'
-                          .toLowerCase();
-                  return source.contains(query);
-                })
-                .toList(growable: false);
+    final filteredIndexers = query.isEmpty
+        ? _indexers
+        : _indexers
+              .where((item) {
+                final source =
+                    '${item.name} ${item.url} ${item.kind} '
+                            '${item.apiKey ?? ''} ${item.downloadClientNames}'
+                        .toLowerCase();
+                return source.contains(query);
+              })
+              .toList(growable: false);
 
     final spacing = context.appSpacing;
     return Column(
@@ -562,6 +564,11 @@ class _IndexerEntryDialogState extends ConsumerState<IndexerEntryDialog> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    final selectedDownloadClients = _selectedDownloadClients();
+    if (selectedDownloadClients.isEmpty) {
+      showToast('请至少选择一个仍可用的下载器');
+      return;
+    }
     Navigator.of(context).pop(
       IndexerEntryDto(
         id: widget.initialEntry?.id ?? 0,
@@ -571,7 +578,7 @@ class _IndexerEntryDialogState extends ConsumerState<IndexerEntryDialog> {
         apiKey: _apiKeyController.text.trim().isEmpty
             ? null
             : _apiKeyController.text.trim(),
-        downloadClients: _selectedDownloadClients(),
+        downloadClients: selectedDownloadClients,
       ),
     );
   }
@@ -587,7 +594,6 @@ class _IndexerEntryDialogState extends ConsumerState<IndexerEntryDialog> {
           (client) => IndexerBoundClientDto(
             id: client.id,
             name: client.name,
-            kind: client.kind,
           ),
         )
         .toList(growable: false);
@@ -628,24 +634,12 @@ class _IndexerEntryDialogState extends ConsumerState<IndexerEntryDialog> {
               kind: _kind,
               downloadClients: widget.downloadClients,
               selectedDownloadClientIds: _selectedDownloadClientIds,
-              onKindChanged:
-                  (value) => setState(() {
-                    _kind = value;
-                    if (value == 'pt') {
-                      final qbIds =
-                          widget.downloadClients
-                              .where((client) => client.isQbittorrent)
-                              .map((client) => client.id)
-                              .toSet();
-                      _selectedDownloadClientIds = _selectedDownloadClientIds
-                          .where(qbIds.contains)
-                          .toList(growable: false);
-                    }
-                  }),
-              onDownloadClientsChanged:
-                  (value) => setState(() {
-                    _selectedDownloadClientIds = value;
-                  }),
+              onKindChanged: (value) => setState(() {
+                _kind = value;
+              }),
+              onDownloadClientsChanged: (value) => setState(() {
+                _selectedDownloadClientIds = value;
+              }),
               onSubmitted: _submit,
             ),
             SizedBox(height: spacing.xl),

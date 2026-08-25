@@ -60,13 +60,7 @@ int? parseDemuxerForwardBytes(String? raw) {
 MoviePlayerPlaybackMediaOrigin moviePlayerPlaybackMediaOriginFor(
   MoviePlayerMediaSourceKind sourceKind,
 ) {
-  return switch (sourceKind) {
-    MoviePlayerMediaSourceKind.local => MoviePlayerPlaybackMediaOrigin.local,
-    MoviePlayerMediaSourceKind.cloud115 =>
-      MoviePlayerPlaybackMediaOrigin.cloud115,
-    MoviePlayerMediaSourceKind.unknown =>
-      MoviePlayerPlaybackMediaOrigin.unknown,
-  };
+  return MoviePlayerPlaybackMediaOrigin.provider;
 }
 
 /// 播放信息采样机:聚合两路输入产出 [MoviePlayerPlaybackInfoSnapshot]。
@@ -124,7 +118,6 @@ class MoviePlayerNativeStatsSampler {
   double? _previousVoDelayedFrameCount;
   double? _previousMistimedFrameCount;
   String? _fileFormat;
-  double? _hlsBitrate;
   double? _demuxerCacheDurationSeconds;
   int? _demuxerForwardBytes;
   double? _downloadRateBytesPerSecond;
@@ -189,7 +182,6 @@ class MoviePlayerNativeStatsSampler {
     _previousVoDelayedFrameCount = null;
     _previousMistimedFrameCount = null;
     _fileFormat = null;
-    _hlsBitrate = null;
     _demuxerCacheDurationSeconds = null;
     _demuxerForwardBytes = null;
     _downloadRateBytesPerSecond = null;
@@ -213,7 +205,6 @@ class MoviePlayerNativeStatsSampler {
         _readNativeProperty('vo-delayed-frame-count'),
         _readNativeProperty('mistimed-frame-count'),
         _readNativeProperty('file-format'),
-        _readNativeProperty('hls-bitrate'),
         _readNativeProperty('demuxer-cache-duration'),
         _readNativeProperty('demuxer-cache-state'),
       ]);
@@ -226,14 +217,12 @@ class MoviePlayerNativeStatsSampler {
       final voDelayedFrameCount = _parseNativeCounter(results[5]);
       final mistimedFrameCount = _parseNativeCounter(results[6]);
       final fileFormat = results[7];
-      final hlsBitrate = _parseNativeDouble(results[8]);
-      final cacheDurationSeconds = _parseNativeDouble(results[9]);
-      final forwardBytes = parseDemuxerForwardBytes(results[10]);
+      final cacheDurationSeconds = _parseNativeDouble(results[8]);
+      final forwardBytes = parseDemuxerForwardBytes(results[9]);
       final previousSampleAt = _previousCounterSampleAt;
-      final elapsedSeconds =
-          previousSampleAt == null
-              ? null
-              : now.difference(previousSampleAt).inMilliseconds / 1000;
+      final elapsedSeconds = previousSampleAt == null
+          ? null
+          : now.difference(previousSampleAt).inMilliseconds / 1000;
 
       _hwdecCurrent = results[0];
       _videoBitrate = _parseNativeDouble(results[1]);
@@ -243,7 +232,6 @@ class MoviePlayerNativeStatsSampler {
       _voDelayedFrameCount = voDelayedFrameCount;
       _mistimedFrameCount = mistimedFrameCount;
       _fileFormat = fileFormat;
-      _hlsBitrate = hlsBitrate;
       _demuxerCacheDurationSeconds = cacheDurationSeconds;
       _demuxerForwardBytes = forwardBytes;
       _downloadRateBytesPerSecond = _computeDownloadRatePerSecond(
@@ -310,7 +298,6 @@ class MoviePlayerNativeStatsSampler {
       mediaOrigin: _mediaOrigin,
       originalUrl: _originalUrl,
       fileFormat: _fileFormat,
-      hlsBitrate: _hlsBitrate,
       bufferCacheDurationSeconds: _demuxerCacheDurationSeconds,
       bufferForwardBytes: _demuxerForwardBytes,
       downloadRateBytesPerSecond: _downloadRateBytesPerSecond,

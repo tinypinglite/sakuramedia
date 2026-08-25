@@ -206,8 +206,9 @@ MovieDetailDto _movieDetail({int? seriesId}) {
       MovieMediaItemDto(
         mediaId: 100,
         libraryId: 1,
+        providerKey: 'filesystem',
         playUrl: '',
-        storageMode: 'hardlink',
+        fileName: 'ABC-001.mp4',
         resolution: '1920x1080',
         fileSizeBytes: 1073741824,
         durationSeconds: 7200,

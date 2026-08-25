@@ -36,7 +36,7 @@ final class MediaLibrariesProvider
   MediaLibraries create() => MediaLibraries();
 }
 
-String _$mediaLibrariesHash() => r'c274deb39f3bab18919fa8b6d8f8da604b2300bf';
+String _$mediaLibrariesHash() => r'a3fa9c3e5272181e38ded0b735da8bb5aac76a36';
 
 /// 跨桌面 configuration tab 与移动设置页共享的媒体库列表。
 

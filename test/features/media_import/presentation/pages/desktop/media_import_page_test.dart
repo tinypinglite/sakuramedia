@@ -35,7 +35,7 @@ void main() {
 
     expect(find.byKey(const Key('media-import-page')), findsOneWidget);
     expect(find.byKey(const Key('media-import-tab-jav')), findsOneWidget);
-    expect(find.byKey(const Key('media-import-tab-pornbox')), findsOneWidget);
+    expect(find.byKey(const Key('media-import-tab-video')), findsOneWidget);
     expect(
       find.byKey(const Key('media-import-tab-jav-subtitle')),
       findsOneWidget,

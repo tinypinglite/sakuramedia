@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/dto/config_dto.dart';
-import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 
 import '../../../../support/test_api_bundle.dart';
 
@@ -20,10 +19,8 @@ void main() {
     final result = await bundle.configApi.get();
 
     expect(result.scheduler.crons['download_task_sync'], '* * * * *');
-    expect(result.downloads.preferredClientKinds, <DownloadClientKind>[
-      DownloadClientKind.qbittorrent,
-      DownloadClientKind.cloud115,
-    ]);
+    expect(result.downloads.subscriptionSearchFreshDays, 7);
+    expect(result.downloads.subscriptionSearchStaleAttemptLimit, 3);
     expect(result.logging.level, 'INFO');
   });
 
@@ -72,8 +69,8 @@ Map<String, dynamic> _configJson({
         '${key}_cron': key == 'download_task_sync' ? '* * * * *' : '0 2 * * *',
     },
     'downloads': <String, dynamic>{
-      'small_file_cleanup_threshold_mb': 256,
-      'preferred_client_kinds': <String>['qbittorrent', 'cloud115'],
+      'subscription_search_fresh_days': 7,
+      'subscription_search_stale_attempt_limit': 3,
     },
     'logging': <String, dynamic>{'level': 'INFO'},
   },

@@ -33,36 +33,46 @@ void main() {
     sessionStore.dispose();
   });
 
-  test('listEntries forwards only a non-empty path', () async {
+  test('browseSources posts the library and opaque parent reference', () async {
     adapter.enqueueJson(
-      method: 'GET',
-      path: '/filesystem/entries',
+      method: 'POST',
+      path: '/import-sources/browse',
       body: <String, dynamic>{
-        'path': '/mnt/incoming',
-        'parent': '/mnt',
+        'library_id': 7,
         'entries': <Map<String, dynamic>>[
           <String, dynamic>{
-            'name': 'movie.mkv',
-            'path': '/mnt/incoming/movie.mkv',
-            'type': 'video',
-            'size': 123,
-            'is_video': true,
+            'source_ref': <String, dynamic>{'id': 'folder-1'},
+            'name': 'Movies',
+            'entry_type': 'directory',
+            'size_bytes': null,
+            'modified_at': null,
+            'is_video': false,
           },
         ],
+        'next_cursor': 'next-page',
       },
     );
 
-    final listing = await api.listEntries(path: '/mnt/incoming');
-
-    expect(listing.path, '/mnt/incoming');
-    expect(listing.entries.single.isVideo, isTrue);
-    expect(
-      adapter.requests.single.uri.queryParameters['path'],
-      '/mnt/incoming',
+    final page = await api.browseSources(
+      libraryId: 7,
+      parentRef: <String, dynamic>{'id': 'root'},
+      cursor: 'cursor-1',
+      limit: 25,
     );
+
+    expect(page.libraryId, 7);
+    expect(page.entries.single.sourceRef, <String, dynamic>{'id': 'folder-1'});
+    expect(page.entries.single.isDirectory, isTrue);
+    expect(page.nextCursor, 'next-page');
+    expect(adapter.requests.single.body, <String, dynamic>{
+      'library_id': 7,
+      'parent_ref': <String, dynamic>{'id': 'root'},
+      'cursor': 'cursor-1',
+      'limit': 25,
+    });
   });
 
-  test('createImport posts the unified local video contract', () async {
+  test('createImport posts provider-neutral video contract', () async {
     adapter.enqueueJson(
       method: 'POST',
       path: '/imports',
@@ -77,79 +87,52 @@ void main() {
     final response = await api.createImport(
       mediaKind: 'video',
       libraryId: 1,
-      source: const MediaImportSource.local(' /mnt/incoming '),
-      transferMode: TransferMode.auto,
+      source: const MediaImportSource(
+        sourceRef: <String, dynamic>{'provider_id': 'file-1'},
+      ),
+      sourceDisposition: SourceDisposition.keep,
       collectionId: 9,
     );
 
     expect(response.taskRunId, 42);
-    expect(response.taskKey, 'media_import');
-    expect(response.state, 'accepted');
     expect(adapter.requests.single.body, <String, dynamic>{
       'media_kind': 'video',
-      'backend': 'local',
       'library_id': 1,
-      'source_path': '/mnt/incoming',
-      'transfer_mode': 'auto',
+      'source_ref': <String, dynamic>{'provider_id': 'file-1'},
+      'source_disposition': 'keep',
       'collection_id': 9,
     });
   });
 
-  test('createImport posts cloud115 JAV with cleanup-source', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/imports',
-      statusCode: 202,
-      body: <String, dynamic>{
-        'task_run_id': 43,
-        'task_key': 'jav_import',
-        'state': 'pending',
-      },
-    );
+  test(
+    'createImport supports delete_after_commit without provider fields',
+    () async {
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/imports',
+        statusCode: 202,
+        body: <String, dynamic>{
+          'task_run_id': 43,
+          'task_key': 'jav_import',
+          'state': 'pending',
+        },
+      );
 
-    await api.createImport(
-      mediaKind: 'jav',
-      libraryId: 2,
-      source: const MediaImportSource.cloud115('cid-source'),
-      transferMode: TransferMode.cleanupSource,
-    );
+      await api.createImport(
+        mediaKind: 'jav',
+        libraryId: 2,
+        source: const MediaImportSource(
+          sourceRef: <String, dynamic>{'opaque': true},
+        ),
+        sourceDisposition: SourceDisposition.deleteAfterCommit,
+      );
 
-    expect(adapter.requests.single.body, <String, dynamic>{
-      'media_kind': 'jav',
-      'backend': 'cloud115',
-      'library_id': 2,
-      'source_cid': 'cid-source',
-      'transfer_mode': 'cleanup-source',
-    });
-  });
-
-  test('createImport posts a cloud115 video FID', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/imports',
-      statusCode: 202,
-      body: <String, dynamic>{
-        'task_run_id': 44,
-        'task_key': 'library_import',
-        'state': 'pending',
-      },
-    );
-
-    await api.createImport(
-      mediaKind: 'video',
-      libraryId: 2,
-      source: const MediaImportSource.cloud115File('fid-video'),
-      transferMode: TransferMode.cleanupSource,
-      collectionId: 9,
-    );
-
-    expect(adapter.requests.single.body, <String, dynamic>{
-      'media_kind': 'video',
-      'backend': 'cloud115',
-      'library_id': 2,
-      'source_fid': 'fid-video',
-      'transfer_mode': 'cleanup-source',
-      'collection_id': 9,
-    });
-  });
+      expect(adapter.requests.single.body, <String, dynamic>{
+        'media_kind': 'jav',
+        'library_id': 2,
+        'source_ref': <String, dynamic>{'opaque': true},
+        'source_disposition': 'delete_after_commit',
+      });
+    },
+  );
 }

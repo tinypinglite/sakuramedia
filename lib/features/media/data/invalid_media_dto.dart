@@ -4,11 +4,12 @@ import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto
 class InvalidMediaDto {
   const InvalidMediaDto({
     required this.id,
-    required this.movieNumber,
+    this.movieNumber,
+    this.videoItemId,
     required this.movieTitle,
     required this.coverImage,
     required this.thinCoverImage,
-    required this.path,
+    required this.fileName,
     required this.libraryId,
     required this.libraryName,
     required this.fileSizeBytes,
@@ -16,11 +17,12 @@ class InvalidMediaDto {
   });
 
   final int id;
-  final String movieNumber;
+  final String? movieNumber;
+  final int? videoItemId;
   final String? movieTitle;
   final MovieImageDto? coverImage;
   final MovieImageDto? thinCoverImage;
-  final String path;
+  final String fileName;
   final int? libraryId;
   final String? libraryName;
   final int fileSizeBytes;
@@ -31,7 +33,7 @@ class InvalidMediaDto {
     if (title != null && title.isNotEmpty) {
       return title;
     }
-    return '未命名影片';
+    return '未命名媒体';
   }
 
   String? get preferredCoverUrl {
@@ -54,13 +56,14 @@ class InvalidMediaDto {
   factory InvalidMediaDto.fromJson(Map<String, dynamic> json) {
     return InvalidMediaDto(
       id: asInt(json['id']),
-      movieNumber: json['movie_number'] as String? ?? '',
-      movieTitle: json['movie_title'] as String?,
+      movieNumber: asStringOrNull(json['movie_number'], trim: true),
+      videoItemId: asIntOrNull(json['video_item_id']),
+      movieTitle: asStringOrNull(json['movie_title'], trim: true),
       coverImage: _movieImageFromJson(json['cover_image']),
       thinCoverImage: _movieImageFromJson(json['thin_cover_image']),
-      path: json['path'] as String? ?? '',
+      fileName: json['file_name'] as String? ?? '',
       libraryId: asIntOrNull(json['library_id']),
-      libraryName: json['library_name'] as String?,
+      libraryName: asStringOrNull(json['library_name'], trim: true),
       fileSizeBytes: asInt(json['file_size_bytes']),
       updatedAt: asDateTime(json['updated_at']),
     );

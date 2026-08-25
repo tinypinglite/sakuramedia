@@ -43,16 +43,16 @@ void main() {
 
     test('unhealthy factory 强制要求 cause/fixHint 两段', () {
       final state = DiagnosticItemState.unhealthy(
-        kind: DiagnosticItemKind.downloaderConnectivity,
-        itemKey: 'downloader-connectivity-1',
-        displayName: 'qB',
-        cause: 'auth 失败',
-        fixHint: '重填密码',
-        fixTarget: const DiagnosticFixTarget.configurationTab(2),
+        kind: DiagnosticItemKind.indexer,
+        itemKey: 'indexer-1',
+        displayName: '索引器',
+        cause: '连接失败',
+        fixHint: '检查索引器配置',
+        fixTarget: const DiagnosticFixTarget.configurationTab(3),
       );
       expect(state.cause, isNotNull);
       expect(state.fixHint, isNotNull);
-      expect(state.fixTarget?.configurationTabIndex, 2);
+      expect(state.fixTarget?.configurationTabIndex, 3);
     });
 
     test('blocked factory 必须给 blockedByLabel，summary 自动兜底', () {

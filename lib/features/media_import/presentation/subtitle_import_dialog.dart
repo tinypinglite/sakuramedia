@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
-import 'package:sakuramedia/widgets/domain/media_import/media_import_source_picker.dart';
 
-/// 选择服务器本地目录并创建 JAV 字幕导入任务。
+/// The subtitle endpoint currently accepts a server-side source path directly.
+/// It is intentionally kept separate from provider source browsing because that
+/// endpoint has not adopted opaque provider references yet.
 Future<String?> showSubtitleImportDialog(BuildContext context) {
   return showAppAdaptiveModal<String>(
     context: context,
@@ -22,20 +23,25 @@ class _SubtitleImportDialog extends StatefulWidget {
 }
 
 class _SubtitleImportDialogState extends State<_SubtitleImportDialog> {
-  String? _sourcePath;
+  late final TextEditingController _sourcePathController;
 
-  bool get _canSubmit => _sourcePath?.trim().isNotEmpty ?? false;
+  bool get _canSubmit => _sourcePathController.text.trim().isNotEmpty;
 
-  void _handleSourceChanged(MediaImportSource? source) {
-    final nextPath = switch (source) {
-      LocalMediaImportSource(:final path) => path,
-      _ => null,
-    };
-    if (nextPath == _sourcePath) {
-      return;
-    }
-    setState(() => _sourcePath = nextPath);
+  @override
+  void initState() {
+    super.initState();
+    _sourcePathController = TextEditingController()..addListener(_onChanged);
   }
+
+  @override
+  void dispose() {
+    _sourcePathController
+      ..removeListener(_onChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onChanged() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +62,7 @@ class _SubtitleImportDialogState extends State<_SubtitleImportDialog> {
           ),
           SizedBox(height: spacing.sm),
           Text(
-            '仅支持 .srt 文件。系统会递归扫描所选目录，并按文件名中的番号匹配已入库影片；源文件将保留。',
+            '输入后端可访问的字幕目录或 .srt 文件路径。源文件会保留。',
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s12,
@@ -64,12 +70,12 @@ class _SubtitleImportDialogState extends State<_SubtitleImportDialog> {
             ),
           ),
           SizedBox(height: spacing.md),
-          MediaImportSourcePicker(
-            selectedLibrary: null,
-            transferMode: TransferMode.auto,
-            localOnly: true,
-            onSourceChanged: _handleSourceChanged,
-            onTransferModeChanged: (_) {},
+          AppTextField(
+            fieldKey: const Key('subtitle-import-source-path-field'),
+            controller: _sourcePathController,
+            label: '字幕目录或文件路径',
+            hintText: '/media/subtitles',
+            textInputAction: TextInputAction.done,
           ),
           SizedBox(height: spacing.xl),
           Row(
@@ -88,7 +94,9 @@ class _SubtitleImportDialogState extends State<_SubtitleImportDialog> {
                   label: '开始导入',
                   variant: AppButtonVariant.primary,
                   onPressed: _canSubmit
-                      ? () => Navigator.of(context).pop(_sourcePath!.trim())
+                      ? () => Navigator.of(
+                          context,
+                        ).pop(_sourcePathController.text.trim())
                       : null,
                 ),
               ),

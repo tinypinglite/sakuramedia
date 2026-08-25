@@ -8,7 +8,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/dto/config_dto.dart';
+import 'package:sakuramedia/features/configuration/data/dto/provider_catalog_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/configuration_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/media_provider_catalog_provider.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
@@ -44,7 +46,6 @@ void main() {
           'configuration-tab-media-libraries',
           'configuration-tab-downloads',
           'configuration-tab-indexers',
-          'configuration-tab-download-preference',
           'configuration-tab-playlists',
           'configuration-tab-blacklisted-movies',
           'configuration-tab-advanced',
@@ -90,7 +91,6 @@ void main() {
 
       expect(bundle.adapter.hitCount('GET', '/download-clients'), 1);
       expect(bundle.adapter.hitCount('GET', '/media-libraries'), 1);
-      expect(find.text('还没有下载器配置'), findsOneWidget);
     });
 
     testWidgets('loads blacklisted movies lazily when switching tabs', (
@@ -480,164 +480,20 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
     });
 
-    testWidgets('creates a media library and refreshes the list', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle, libraries: const []);
-      bundle.adapter.enqueueJson(
-        method: 'POST',
-        path: '/media-libraries',
-        statusCode: 201,
-        body: {
-          'id': 2,
-          'name': 'Archive Library',
-          'root_path': '/media/library/archive',
-          'created_at': '2026-03-09T09:30:00Z',
-          'updated_at': '2026-03-09T09:30:00Z',
-        },
-      );
-      _enqueueMediaLibraries(
-        bundle,
-        libraries: const [
-          {
-            'id': 2,
-            'name': 'Archive Library',
-            'root_path': '/media/library/archive',
-            'created_at': '2026-03-09T09:30:00Z',
-            'updated_at': '2026-03-09T09:30:00Z',
-          },
-        ],
-      );
+    testWidgets(
+      'shows media library name and provider on configuration cells',
+      (WidgetTester tester) async {
+        _enqueueMediaLibraries(bundle);
 
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openMediaLibrariesTab(tester);
-      await tester.tap(
-        find.byKey(const Key('configuration-media-library-create-button')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('media-library-backend-local')));
-      await tester.pumpAndSettle();
+        await _pumpPage(tester, bundle, sessionStore: sessionStore);
+        await _openMediaLibrariesTab(tester);
 
-      await tester.enterText(
-        find.byKey(const Key('media-library-name-field')),
-        'Archive Library',
-      );
-      await tester.enterText(
-        find.byKey(const Key('media-library-root-path-field')),
-        '/media/library/archive',
-      );
-      await tester.ensureVisible(find.text('保存').last);
-      await tester.tap(find.text('保存').last);
-      await tester.pumpAndSettle();
-
-      final postRequest = bundle.adapter.requests.firstWhere(
-        (request) =>
-            request.method == 'POST' && request.path == '/media-libraries',
-      );
-      expect(postRequest.body['name'], 'Archive Library');
-      expect(postRequest.body['backend'], 'local');
-      expect(postRequest.body['backend_config'], {
-        'root_path': '/media/library/archive',
-      });
-      expect(find.text('Archive Library'), findsWidgets);
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('shows media library name and path on configuration cells', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openMediaLibrariesTab(tester);
-
-      expect(find.byKey(const Key('media-library-card-1')), findsOneWidget);
-      expect(find.text('Main Library'), findsOneWidget);
-      expect(find.text('/media/library/main'), findsOneWidget);
-      expect(find.text('ID 1'), findsOneWidget);
-    });
-
-    testWidgets('edits a media library and refreshes download tab libraries', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'PATCH',
-        path: '/media-libraries/1',
-        body: {
-          'id': 1,
-          'name': 'Main Library Updated',
-          'root_path': '/media/library/updated',
-          'created_at': '2026-03-08T09:30:00Z',
-          'updated_at': '2026-03-10T09:30:00Z',
-        },
-      );
-      _enqueueMediaLibraries(
-        bundle,
-        libraries: const [
-          {
-            'id': 1,
-            'name': 'Main Library Updated',
-            'root_path': '/media/library/updated',
-            'created_at': '2026-03-08T09:30:00Z',
-            'updated_at': '2026-03-10T09:30:00Z',
-          },
-        ],
-      );
-      _enqueueDownloadClientsList(bundle, clients: const []);
-      _enqueueMediaLibraries(
-        bundle,
-        libraries: const [
-          {
-            'id': 1,
-            'name': 'Main Library Updated',
-            'root_path': '/media/library/updated',
-            'created_at': '2026-03-08T09:30:00Z',
-            'updated_at': '2026-03-10T09:30:00Z',
-          },
-        ],
-      );
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openMediaLibrariesTab(tester);
-      await tester.tap(find.byKey(const Key('media-library-edit-1')));
-      await tester.pumpAndSettle();
-
-      final rootPathField = tester.widget<TextFormField>(
-        find.byKey(const Key('media-library-root-path-field')),
-      );
-      expect(rootPathField.enabled, isFalse);
-      expect(find.text('根路径创建后不可修改'), findsOneWidget);
-
-      await tester.enterText(
-        find.byKey(const Key('media-library-name-field')),
-        'Main Library Updated',
-      );
-      await tester.tap(find.text('保存').last);
-      await tester.pumpAndSettle();
-
-      final patchRequest = bundle.adapter.requests.firstWhere(
-        (request) =>
-            request.method == 'PATCH' && request.path == '/media-libraries/1',
-      );
-      expect(patchRequest.body['name'], 'Main Library Updated');
-      expect(patchRequest.body.containsKey('root_path'), isFalse);
-      expect(find.text('Main Library Updated'), findsWidgets);
-
-      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('configuration-download-client-create-button')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('download-client-media-library-field')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Main Library Updated'), findsWidgets);
-      await tester.pump(const Duration(seconds: 3));
-    });
+        expect(find.byKey(const Key('media-library-card-1')), findsOneWidget);
+        expect(find.text('Main Library'), findsOneWidget);
+        expect(find.text('Provider A'), findsOneWidget);
+        expect(find.text('ID 1'), findsOneWidget);
+      },
+    );
 
     testWidgets('deletes a media library and refreshes the list', (
       WidgetTester tester,
@@ -718,82 +574,6 @@ void main() {
       expect(bundle.adapter.hitCount('DELETE', '/media-libraries/1'), 1);
       expect(find.byKey(const Key('media-library-card-1')), findsOneWidget);
       expect(find.text('媒体库仍被业务数据引用，无法删除'), findsOneWidget);
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('prevents creating a media library with a relative root path', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle, libraries: const []);
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openMediaLibrariesTab(tester);
-      await tester.tap(
-        find.byKey(const Key('configuration-media-library-create-button')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('media-library-backend-local')));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(
-        find.byKey(const Key('media-library-name-field')),
-        'Archive Library',
-      );
-      await tester.enterText(
-        find.byKey(const Key('media-library-root-path-field')),
-        'relative/path',
-      );
-      await tester.tap(find.text('保存').last);
-      await tester.pumpAndSettle();
-
-      expect(bundle.adapter.hitCount('POST', '/media-libraries'), 0);
-      expect(find.text('请输入路径'), findsOneWidget);
-    });
-
-    testWidgets('shows backend error when creating a media library fails', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle, libraries: const []);
-      bundle.adapter.enqueueResponder(
-        method: 'POST',
-        path: '/media-libraries',
-        responder: (options, requestBody) async {
-          return ResponseBody.fromString(
-            jsonEncode({
-              'error': {
-                'code': 'media_library_conflict',
-                'message': '媒体库名称已存在',
-              },
-            }),
-            409,
-            headers: const {
-              Headers.contentTypeHeader: [Headers.jsonContentType],
-            },
-          );
-        },
-      );
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await _openMediaLibrariesTab(tester);
-      await tester.tap(
-        find.byKey(const Key('configuration-media-library-create-button')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('media-library-backend-local')));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(
-        find.byKey(const Key('media-library-name-field')),
-        'Main Library',
-      );
-      await tester.enterText(
-        find.byKey(const Key('media-library-root-path-field')),
-        '/media/library/main',
-      );
-      await tester.tap(find.text('保存').last);
-      await tester.pumpAndSettle();
-
-      expect(find.text('媒体库名称已存在'), findsOneWidget);
       await tester.pump(const Duration(seconds: 3));
     });
 
@@ -1257,312 +1037,6 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
     });
 
-    testWidgets('creates a download client and refreshes the list', (
-      WidgetTester tester,
-    ) async {
-      _enqueueDownloadClientsList(bundle, clients: const []);
-      _enqueueMediaLibraries(bundle);
-      _enqueueMediaLibraries(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'POST',
-        path: '/download-clients',
-        statusCode: 201,
-        body: {
-          'id': 1,
-          'name': 'client-a',
-          'base_url': 'http://localhost:8080',
-          'username': 'alice',
-          'client_save_path': '/downloads/a',
-          'local_root_path': '/mnt/qb/downloads/a',
-          'media_library_id': 1,
-          'has_password': true,
-          'created_at': '2026-03-10T08:00:00Z',
-          'updated_at': '2026-03-10T08:00:00Z',
-        },
-      );
-      _enqueueDownloadClientsList(
-        bundle,
-        clients: [
-          const {
-            'id': 1,
-            'name': 'client-a',
-            'base_url': 'http://localhost:8080',
-            'username': 'alice',
-            'client_save_path': '/downloads/a',
-            'local_root_path': '/mnt/qb/downloads/a',
-            'media_library_id': 1,
-            'has_password': true,
-            'created_at': '2026-03-10T08:00:00Z',
-            'updated_at': '2026-03-10T08:00:00Z',
-          },
-        ],
-      );
-      _enqueueMediaLibraries(bundle);
-      _enqueueMediaLibraries(bundle);
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('configuration-download-client-create-button')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('添加下载器'), findsOneWidget);
-      expect(find.text('给下载器起个名字，例如：pt 专属'), findsOneWidget);
-      expect(find.text('填写完整内网地址，例如：http://192.168.1.2:8080'), findsOneWidget);
-      expect(find.text('输入用于登录下载器的用户名'), findsOneWidget);
-      expect(find.text('输入用于登录下载器的密码'), findsOneWidget);
-      expect(
-        find.text('填写 qBittorrent 容器内使用的路径，例如：/downloads'),
-        findsOneWidget,
-      );
-      expect(
-        find.text('填写 SakuraMediaBE 中的实际下载绝对路径，例如:/mnt/downloads'),
-        findsOneWidget,
-      );
-
-      final usernameRows =
-          tester
-              .elementList(
-                find.ancestor(
-                  of: find.byKey(const Key('download-client-username-field')),
-                  matching: find.byType(Row),
-                ),
-              )
-              .toSet();
-      final passwordRows =
-          tester
-              .elementList(
-                find.ancestor(
-                  of: find.byKey(const Key('download-client-password-field')),
-                  matching: find.byType(Row),
-                ),
-              )
-              .toSet();
-      expect(usernameRows.intersection(passwordRows), isNotEmpty);
-
-      await tester.enterText(
-        find.byKey(const Key('download-client-name-field')),
-        'client-a',
-      );
-      await tester.enterText(
-        find.byKey(const Key('download-client-base-url-field')),
-        'http://localhost:8080',
-      );
-      await tester.enterText(
-        find.byKey(const Key('download-client-username-field')),
-        'alice',
-      );
-      await tester.enterText(
-        find.byKey(const Key('download-client-password-field')),
-        'secret',
-      );
-      await tester.enterText(
-        find.byKey(const Key('download-client-client-save-path-field')),
-        '/downloads/a',
-      );
-      await tester.ensureVisible(
-        find.byKey(const Key('download-client-local-root-path-field')),
-      );
-      await tester.enterText(
-        find.byKey(const Key('download-client-local-root-path-field')),
-        '/mnt/qb/downloads/a',
-      );
-      await tester.ensureVisible(
-        find.byKey(const Key('download-client-media-library-field')),
-      );
-      await tester.tap(
-        find.byKey(const Key('download-client-media-library-field')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Main Library'), findsOneWidget);
-      await tester.tap(find.text('Main Library').last);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('保存').last);
-      await tester.pumpAndSettle();
-
-      final postRequest = bundle.adapter.requests.firstWhere(
-        (request) =>
-            request.method == 'POST' && request.path == '/download-clients',
-      );
-      expect(postRequest.body['password'], 'secret');
-      expect(postRequest.body['media_library_id'], 1);
-      expect(postRequest.body['client_save_path'], '/downloads/a');
-      expect(postRequest.body['local_root_path'], '/mnt/qb/downloads/a');
-      expect(find.text('client-a'), findsWidgets);
-      expect(
-        find.textContaining('qBittorrent保存路径: /downloads/a'),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('本地访问路径: /mnt/qb/downloads/a'),
-        findsOneWidget,
-      );
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('download client dialog uses custom dialog layout', (
-      WidgetTester tester,
-    ) async {
-      _enqueueDownloadClientsList(bundle, clients: const []);
-      _enqueueMediaLibraries(bundle);
-      _enqueueMediaLibraries(bundle);
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('configuration-download-client-create-button')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('添加下载器'), findsOneWidget);
-      expect(find.byType(Dialog), findsOneWidget);
-      expect(find.byType(AlertDialog), findsNothing);
-    });
-
-    testWidgets('editing a download client omits password when left blank', (
-      WidgetTester tester,
-    ) async {
-      _enqueueDownloadClientsList(
-        bundle,
-        clients: [
-          const {
-            'id': 1,
-            'name': 'client-a',
-            'base_url': 'http://localhost:8080',
-            'username': 'alice',
-            'client_save_path': '/downloads/a',
-            'local_root_path': '/mnt/qb/downloads/a',
-            'media_library_id': 1,
-            'has_password': true,
-            'created_at': '2026-03-10T08:00:00Z',
-            'updated_at': '2026-03-10T08:00:00Z',
-          },
-        ],
-      );
-      _enqueueMediaLibraries(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'PATCH',
-        path: '/download-clients/1',
-        body: {
-          'id': 1,
-          'name': 'client-a',
-          'base_url': 'http://localhost:8080',
-          'username': 'bob',
-          'client_save_path': '/downloads/a',
-          'local_root_path': '/mnt/qb/downloads/a',
-          'media_library_id': 1,
-          'has_password': true,
-          'created_at': '2026-03-10T08:00:00Z',
-          'updated_at': '2026-03-10T08:10:00Z',
-        },
-      );
-      _enqueueDownloadClientsList(
-        bundle,
-        clients: [
-          const {
-            'id': 1,
-            'name': 'client-a',
-            'base_url': 'http://localhost:8080',
-            'username': 'bob',
-            'client_save_path': '/downloads/a',
-            'local_root_path': '/mnt/qb/downloads/a',
-            'media_library_id': 1,
-            'has_password': true,
-            'created_at': '2026-03-10T08:00:00Z',
-            'updated_at': '2026-03-10T08:10:00Z',
-          },
-        ],
-      );
-      _enqueueMediaLibraries(bundle);
-      _enqueueMediaLibraries(bundle);
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('download-client-edit-1')));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(
-        find.byKey(const Key('download-client-username-field')),
-        'bob',
-      );
-      await tester.ensureVisible(find.text('保存').last);
-      await tester.tap(find.text('保存').last);
-      await tester.pumpAndSettle();
-
-      final patchRequest = bundle.adapter.requests.firstWhere(
-        (request) =>
-            request.method == 'PATCH' && request.path == '/download-clients/1',
-      );
-      expect(patchRequest.body['username'], 'bob');
-      expect(patchRequest.body.containsKey('password'), isFalse);
-      expect(
-        find.textContaining('qBittorrent保存路径: /downloads/a'),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('本地访问路径: /mnt/qb/downloads/a'),
-        findsOneWidget,
-      );
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('prevents creating a download client with a relative path', (
-      WidgetTester tester,
-    ) async {
-      _enqueueDownloadClientsList(bundle, clients: const []);
-      _enqueueMediaLibraries(bundle);
-      _enqueueMediaLibraries(bundle);
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('configuration-download-client-create-button')),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.enterText(
-        find.byKey(const Key('download-client-name-field')),
-        'client-a',
-      );
-      await tester.enterText(
-        find.byKey(const Key('download-client-base-url-field')),
-        'http://localhost:8080',
-      );
-      await tester.enterText(
-        find.byKey(const Key('download-client-username-field')),
-        'alice',
-      );
-      await tester.enterText(
-        find.byKey(const Key('download-client-password-field')),
-        'secret',
-      );
-      await tester.enterText(
-        find.byKey(const Key('download-client-client-save-path-field')),
-        'downloads/a',
-      );
-      await tester.enterText(
-        find.byKey(const Key('download-client-local-root-path-field')),
-        '/mnt/qb/downloads/a',
-      );
-      await tester.tap(
-        find.byKey(const Key('download-client-media-library-field')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Main Library').last);
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('保存').last);
-      await tester.tap(find.text('保存').last);
-      await tester.pumpAndSettle();
-
-      expect(bundle.adapter.hitCount('POST', '/download-clients'), 0);
-      expect(find.text('请输入路径'), findsOneWidget);
-    });
-
     testWidgets('shows backend error when deleting a client fails', (
       WidgetTester tester,
     ) async {
@@ -1572,12 +1046,8 @@ void main() {
           const {
             'id': 1,
             'name': 'client-a',
-            'base_url': 'http://localhost:8080',
-            'username': 'alice',
-            'client_save_path': '/downloads/a',
-            'local_root_path': '/mnt/qb/downloads/a',
-            'media_library_id': 1,
-            'has_password': true,
+            'provider_config': {'endpoint': 'http://localhost:8080'},
+            'library_id': 1,
             'created_at': '2026-03-10T08:00:00Z',
             'updated_at': '2026-03-10T08:00:00Z',
           },
@@ -1640,40 +1110,36 @@ void main() {
       },
     );
 
-    testWidgets('saves global download preference in its own tab', (
+    testWidgets('blocks saving an indexer with a stale download binding', (
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
-      _enqueueAdvancedConfig(bundle);
-      _enqueueDownloadPreferencePatch(bundle);
+      _enqueueIndexerSettings(
+        bundle,
+        indexers: const [
+          {
+            'id': 1,
+            'name': 'mteam',
+            'url': 'https://mirror.example.com/torznab',
+            'kind': 'pt',
+            'download_clients': [
+              {'id': 999, 'name': 'removed-client'},
+            ],
+          },
+        ],
+      );
+      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
 
       await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await tester.tap(
-        find.byKey(const Key('configuration-tab-download-preference')),
-      );
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(
-        find.byKey(const Key('configuration-download-preference-client-field')),
-      );
-      await tester.tap(
-        find.byKey(const Key('configuration-download-preference-client-field')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('115 离线').last);
+      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(const Key('configuration-download-preference-save-button')),
+        find.byKey(const Key('configuration-indexer-save-button')),
       );
       await tester.pumpAndSettle();
 
-      final request = bundle.adapter.requests.firstWhere(
-        (item) => item.method == 'PATCH' && item.path == '/config',
-      );
-      expect(request.body, <String, dynamic>{
-        'downloads': <String, dynamic>{
-          'preferred_client_kinds': <String>['cloud115', 'qbittorrent'],
-        },
-      });
+      expect(find.text('索引器绑定的下载器已失效，请重新选择'), findsOneWidget);
+      expect(bundle.adapter.hitCount('PATCH', '/indexer-settings'), 0);
       await tester.pump(const Duration(seconds: 3));
     });
 
@@ -1770,19 +1236,19 @@ void main() {
         _enqueueIndexerSettings(bundle, indexers: const []);
         _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
         bundle.adapter.enqueueJson(
-        method: 'PATCH',
-        path: '/indexer-settings',
-        body: {
-          'indexers': [
-            {
-              'id': 1,
-              'name': 'mteam',
-              'url': 'https://mirror.example.com/torznab',
-              'kind': 'pt',
-              'api_key': 'secret-key',
-              'download_clients': [
-                {'id': 1, 'name': 'client-a', 'kind': 'qbittorrent'},
-              ],
+          method: 'PATCH',
+          path: '/indexer-settings',
+          body: {
+            'indexers': [
+              {
+                'id': 1,
+                'name': 'mteam',
+                'url': 'https://mirror.example.com/torznab',
+                'kind': 'pt',
+                'api_key': 'secret-key',
+                'download_clients': [
+                  {'id': 1, 'name': 'client-a'},
+                ],
               },
             ],
           },
@@ -1897,7 +1363,7 @@ void main() {
               'kind': 'pt',
               'api_key': 'secret-key',
               'download_clients': [
-                {'id': 2, 'name': 'client-b', 'kind': 'qbittorrent'},
+                {'id': 2, 'name': 'client-b'},
               ],
             },
           ],
@@ -2019,7 +1485,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: bundle.riverpodOverrides(),
+        overrides: [
+          ...bundle.riverpodOverrides(),
+          mediaProviderCatalogProvider.overrideWith(
+            _TestMediaProviderCatalog.new,
+          ),
+        ],
         child: OKToast(
           child: MaterialApp.router(
             theme: sakuraThemeData,
@@ -2065,6 +1536,20 @@ void main() {
   });
 }
 
+const _testProvider = MediaProviderDto(
+  providerKey: 'demo',
+  displayName: 'Provider A',
+  libraryConfigFields: <ProviderConfigFieldDto>[],
+  downloadConfigFields: <ProviderConfigFieldDto>[],
+);
+
+class _TestMediaProviderCatalog extends MediaProviderCatalog {
+  @override
+  Future<List<MediaProviderDto>> build() async => const <MediaProviderDto>[
+    _testProvider,
+  ];
+}
+
 Future<void> _pumpPage(
   WidgetTester tester,
   TestApiBundle bundle, {
@@ -2075,7 +1560,12 @@ Future<void> _pumpPage(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: bundle.riverpodOverrides(),
+      overrides: [
+        ...bundle.riverpodOverrides(),
+        mediaProviderCatalogProvider.overrideWith(
+          _TestMediaProviderCatalog.new,
+        ),
+      ],
       child: OKToast(
         child: MaterialApp(
           theme: sakuraThemeData,
@@ -2131,26 +1621,16 @@ const List<Map<String, Object?>> _defaultDownloadClients = [
   {
     'id': 1,
     'name': 'client-a',
-    'kind': 'qbittorrent',
-    'base_url': 'http://localhost:8080',
-    'username': 'alice',
-    'client_save_path': '/downloads/a',
-    'local_root_path': '/mnt/qb/downloads/a',
-    'media_library_id': 1,
-    'has_password': true,
+    'provider_config': {'endpoint': 'http://localhost:8080'},
+    'library_id': 1,
     'created_at': '2026-03-10T08:00:00Z',
     'updated_at': '2026-03-10T08:00:00Z',
   },
   {
     'id': 2,
     'name': 'client-b',
-    'kind': 'qbittorrent',
-    'base_url': 'http://localhost:8081',
-    'username': 'bob',
-    'client_save_path': '/downloads/b',
-    'local_root_path': '/mnt/qb/downloads/b',
-    'media_library_id': 1,
-    'has_password': true,
+    'provider_config': {'endpoint': 'http://localhost:8081'},
+    'library_id': 1,
     'created_at': '2026-03-10T09:00:00Z',
     'updated_at': '2026-03-10T09:00:00Z',
   },
@@ -2180,7 +1660,6 @@ void _enqueueIndexerSettings(
                 <String, Object?>{
                   'id': entry['download_client_id'],
                   'name': entry['download_client_name'],
-                  'kind': 'qbittorrent',
                 },
               ],
             };
@@ -2233,7 +1712,8 @@ void _enqueueMediaLibraries(
     {
       'id': 1,
       'name': 'Main Library',
-      'root_path': '/media/library/main',
+      'provider_key': 'demo',
+      'provider_config': {'root': '/media/library/main'},
       'created_at': '2026-03-08T09:30:00Z',
       'updated_at': '2026-03-08T09:30:00Z',
     },
@@ -2243,6 +1723,30 @@ void _enqueueMediaLibraries(
     method: 'GET',
     path: '/media-libraries',
     body: libraries,
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/media-libraries/providers',
+    body: const <Map<String, dynamic>>[
+      <String, dynamic>{
+        'provider_key': 'demo',
+        'display_name': 'Provider A',
+        'library_config_fields': <Map<String, dynamic>>[],
+        'download_config_fields': <Map<String, dynamic>>[],
+      },
+    ],
+  );
+  bundle.adapter.setFallbackJson(
+    method: 'GET',
+    path: '/media-libraries/providers',
+    body: const <Map<String, dynamic>>[
+      <String, dynamic>{
+        'provider_key': 'demo',
+        'display_name': 'Provider A',
+        'library_config_fields': <Map<String, dynamic>>[],
+        'download_config_fields': <Map<String, dynamic>>[],
+      },
+    ],
   );
 }
 
@@ -2256,32 +1760,19 @@ Map<String, dynamic> _buildAdvancedConfigResponseJson() {
         'uncensored_prefix': <String>['PT-', 'S2M'],
         'allowed_min_video_file_size': 268435456,
       },
-      'metadata': <String, dynamic>{
-        'javdb_host': 'jdforrepam.com',
-      },
+      'metadata': <String, dynamic>{'javdb_host': 'jdforrepam.com'},
       'scheduler': <String, dynamic>{
         for (final key in AdvancedSchedulerConfigDto.cronKeys)
           '${key}_cron': '0 2 * * *',
       },
       'downloads': <String, dynamic>{
-        'small_file_cleanup_threshold_mb': 256,
-        'preferred_client_kinds': <String>['qbittorrent', 'cloud115'],
+        'subscription_search_fresh_days': 7,
+        'subscription_search_stale_attempt_limit': 3,
       },
       'logging': <String, dynamic>{'level': 'INFO'},
     },
     'restart_required': const <String>[],
   };
-}
-
-void _enqueueDownloadPreferencePatch(TestApiBundle bundle) {
-  bundle.adapter.enqueueJson(
-    method: 'PATCH',
-    path: '/config',
-    body: <String, dynamic>{
-      ..._buildAdvancedConfigResponseJson(),
-      'restart_required': <String>['api'],
-    },
-  );
 }
 
 void _enqueueOverviewResponses(TestApiBundle bundle) {
