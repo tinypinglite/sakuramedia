@@ -6,8 +6,6 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/media_import/presentation/directory_picker_dialog.dart';
 import 'package:sakuramedia/features/media_import/presentation/providers/media_import_api_provider.dart';
-import 'package:sakuramedia/features/media_import/presentation/providers/subtitle_import_api_provider.dart';
-import 'package:sakuramedia/features/media_import/presentation/subtitle_import_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/imports/video_import_dialog.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
@@ -24,7 +22,7 @@ class DesktopMediaImportPage extends ConsumerStatefulWidget {
       _DesktopMediaImportPageState();
 }
 
-enum _ImportTab { javMovie, video, javSubtitle }
+enum _ImportTab { javMovie, video }
 
 class _DesktopMediaImportPageState extends ConsumerState<DesktopMediaImportPage>
     with SingleTickerProviderStateMixin {
@@ -82,15 +80,6 @@ class _DesktopMediaImportPageState extends ConsumerState<DesktopMediaImportPage>
           if (mounted) {
             showToast('视频导入任务 #${accepted.taskRunId} 已提交，请在活动中心查看进度');
           }
-        case _ImportTab.javSubtitle:
-          final sourcePath = await showSubtitleImportDialog(context);
-          if (sourcePath == null || !mounted) return;
-          final accepted = await ref
-              .read(subtitleImportApiProvider)
-              .createSubtitleImport(sourcePath: sourcePath);
-          if (mounted) {
-            showToast('字幕导入任务 #${accepted.taskRunId} 已提交，请在活动中心查看进度');
-          }
       }
     } catch (error) {
       if (mounted) {
@@ -104,13 +93,11 @@ class _DesktopMediaImportPageState extends ConsumerState<DesktopMediaImportPage>
   String get _title => switch (_activeTab) {
     _ImportTab.javMovie => 'JAV 影片导入',
     _ImportTab.video => '视频导入',
-    _ImportTab.javSubtitle => 'JAV 字幕导入',
   };
 
   String get _description => switch (_activeTab) {
     _ImportTab.javMovie => '从媒体库提供方浏览来源并导入 JAV 媒体。',
     _ImportTab.video => '从媒体库提供方浏览来源并导入普通视频，可选加入合集。',
-    _ImportTab.javSubtitle => '输入后端可访问的字幕目录或文件路径，源文件会保留。',
   };
 
   @override
@@ -124,7 +111,6 @@ class _DesktopMediaImportPageState extends ConsumerState<DesktopMediaImportPage>
             tabs: const [
               Tab(key: Key('media-import-tab-jav'), text: 'JAV 影片'),
               Tab(key: Key('media-import-tab-video'), text: '视频'),
-              Tab(key: Key('media-import-tab-jav-subtitle'), text: 'JAV 字幕'),
             ],
           ),
         ),
@@ -154,9 +140,7 @@ class _DesktopMediaImportPageState extends ConsumerState<DesktopMediaImportPage>
                 SizedBox(width: context.appSpacing.lg),
                 AppButton(
                   key: const Key('media-import-create-button'),
-                  label: _activeTab == _ImportTab.javSubtitle
-                      ? '新建字幕导入'
-                      : '新建导入',
+                  label: '新建导入',
                   variant: AppButtonVariant.primary,
                   icon: const Icon(Icons.drive_folder_upload_outlined),
                   onPressed: _isSubmitting

@@ -93,4 +93,4 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands plugins 
 docker exec --user app -w /app sakuramedia python -m src.start.commands backfill-movie-thin-cover-images
 ```
 
-普通影片和视频的导入从客户端「管理 → 媒体导入」发起。来源浏览由媒体库 provider 提供，提交的数据包含 provider 能理解的 `source_ref`；字幕目录导入则填写位于 `[media_import].browse_roots` 内的 `source_path`。
+普通影片和视频的导入从客户端「管理 → 媒体导入」发起。来源浏览由媒体库 provider 提供，提交的数据包含 provider 能理解的 `source_ref`。

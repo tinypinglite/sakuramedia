@@ -1,6 +1,6 @@
 import 'package:sakuramedia/core/json/json_parse.dart';
 
-/// `POST /imports` 与 `POST /subtitle-imports` 的异步受理结果。
+/// `POST /imports` 的异步受理结果。
 class ImportAcceptedResponseDto {
   const ImportAcceptedResponseDto({
     required this.taskRunId,

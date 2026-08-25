@@ -273,7 +273,7 @@ const List<_NavSeed> _desktopNavSeeds = [
         slug: 'system/media-import',
         label: '资源导入',
         icon: Icons.drive_folder_upload_outlined,
-        description: '导入 JAV、普通视频与 JAV 字幕，并在任务中心查看进度和结果。',
+        description: '导入 JAV 与普通视频，并在任务中心查看进度和结果。',
       ),
     ],
   ),

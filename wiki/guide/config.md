@@ -12,7 +12,6 @@
 - `[plugins]`
 - `[scheduler]`
 - `[downloads]`
-- `[media_import]`
 - `[logging]`
 - `[image_search]`
 - `[qdrant]`
@@ -194,15 +193,6 @@ subscription_search_stale_attempt_limit = 3
 | `subscription_search_stale_attempt_limit` | 连续未找到结果后进入等待状态前的尝试次数。 |
 
 索引器与下载器的选择通过索引器绑定关系决定；provider 自己的连接参数在媒体库或下载器配置中填写。
-
-## `[media_import]`
-
-```toml
-[media_import]
-browse_roots = ["/mnt"]
-```
-
-`browse_roots` 只用于字幕目录导入时校验 `source_path`。普通媒体导入使用 provider 浏览器返回的 `source_ref`，不读取该列表，也不要求配置统一的媒体目录。
 
 ## `[logging]`
 
