@@ -44,7 +44,6 @@ void main() {
               resolution: '3840x2160',
               fileSizeBytes: 2147483648,
               durationSeconds: 3661,
-              specialTags: '4K',
               valid: true,
               progress: null,
               points: <MovieMediaPointDto>[],
@@ -57,7 +56,7 @@ void main() {
       ),
     );
 
-    expect(find.text('4K 2.0 GB'), findsOneWidget);
+    expect(find.text('2.0 GB'), findsOneWidget);
     expect(
       find.text('cloud-drive · movie.mp4 · 3840x2160 · 01:01:01'),
       findsOneWidget,
@@ -80,7 +79,6 @@ void main() {
                 resolution: '1920x1080',
                 fileSizeBytes: 1073741824,
                 durationSeconds: 7200,
-                specialTags: '普通',
                 valid: false,
                 progress: MovieMediaProgressDto(
                   lastPositionSeconds: 600,
@@ -130,7 +128,6 @@ void main() {
                 resolution: '1280x720',
                 fileSizeBytes: 524288000,
                 durationSeconds: 5400,
-                specialTags: '导演剪辑版',
                 valid: true,
                 progress: null,
                 points: <MovieMediaPointDto>[
@@ -173,8 +170,8 @@ void main() {
         ),
       );
 
-      expect(find.text('普通 1.0 GB'), findsOneWidget);
-      expect(find.text('导演剪辑版 500.0 MB'), findsOneWidget);
+      expect(find.text('1.0 GB'), findsOneWidget);
+      expect(find.text('500.0 MB'), findsOneWidget);
       expect(find.byType(MovieDetailPillWrap), findsOneWidget);
       expect(find.byKey(const Key('movie-media-tech-summary')), findsOneWidget);
       expect(find.byKey(const Key('movie-media-points-title')), findsOneWidget);
@@ -195,8 +192,8 @@ void main() {
         '02:00',
       );
 
-      final selectedText = tester.widget<Text>(find.text('普通 1.0 GB'));
-      final unselectedText = tester.widget<Text>(find.text('导演剪辑版 500.0 MB'));
+      final selectedText = tester.widget<Text>(find.text('1.0 GB'));
+      final unselectedText = tester.widget<Text>(find.text('500.0 MB'));
 
       expect(
         selectedText.style?.fontWeight,
@@ -229,7 +226,7 @@ void main() {
         AppComponentTokens.defaults().movieDetailSectionTitleGap,
       );
 
-      await tester.tap(find.text('导演剪辑版 500.0 MB'));
+      await tester.tap(find.text('500.0 MB'));
       await tester.pumpAndSettle();
 
       expect(
@@ -263,7 +260,6 @@ void main() {
                 resolution: '',
                 fileSizeBytes: 1073741824,
                 durationSeconds: 0,
-                specialTags: '普通',
                 valid: true,
                 progress: null,
                 points: <MovieMediaPointDto>[],
@@ -319,7 +315,6 @@ void main() {
                 resolution: '1920x1080',
                 fileSizeBytes: 1073741824,
                 durationSeconds: 7200,
-                specialTags: '普通',
                 valid: true,
                 progress: null,
                 points: <MovieMediaPointDto>[],
@@ -365,7 +360,6 @@ void main() {
                 resolution: '1920x1080',
                 fileSizeBytes: 1073741824,
                 durationSeconds: 7200,
-                specialTags: '普通',
                 valid: true,
                 progress: null,
                 points: <MovieMediaPointDto>[],
@@ -404,7 +398,6 @@ void main() {
                 resolution: '1920x1080',
                 fileSizeBytes: 1073741824,
                 durationSeconds: 7200,
-                specialTags: '普通',
                 valid: true,
                 progress: null,
                 points: <MovieMediaPointDto>[],

@@ -1754,10 +1754,6 @@ Map<String, dynamic> _buildAdvancedConfigResponseJson() {
   return <String, dynamic>{
     'values': <String, dynamic>{
       'media': <String, dynamic>{
-        'inner_sub_tags': <String>['中字', '-C'],
-        'blueray_tags': <String>['蓝光', '4K'],
-        'uncensored_tags': <String>['uncensored', '-UC'],
-        'uncensored_prefix': <String>['PT-', 'S2M'],
         'allowed_min_video_file_size': 268435456,
       },
       'metadata': <String, dynamic>{'javdb_host': 'jdforrepam.com'},

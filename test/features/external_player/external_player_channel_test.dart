@@ -76,7 +76,7 @@ void main() {
     const external = ExternalPlayerChannel();
     final launched = await external.launch(
       packageName: 'org.videolan.vlc',
-      url: 'http://nas:8000/media/1/stream?signature=abc',
+      url: 'http://nas:8000/media/1/play/?expires=1777777777&signature=abc',
       title: '影片标题',
       positionMs: 90000,
     );
@@ -85,7 +85,10 @@ void main() {
     expect(captured?.method, 'launch');
     final args = captured!.arguments as Map;
     expect(args['packageName'], 'org.videolan.vlc');
-    expect(args['url'], 'http://nas:8000/media/1/stream?signature=abc');
+    expect(
+      args['url'],
+      'http://nas:8000/media/1/play/?expires=1777777777&signature=abc',
+    );
     expect(args['title'], '影片标题');
     expect(args['positionMs'], 90000);
   });

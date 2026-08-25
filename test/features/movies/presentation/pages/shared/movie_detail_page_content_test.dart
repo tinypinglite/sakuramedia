@@ -212,7 +212,6 @@ MovieDetailDto _movieDetail({int? seriesId}) {
         resolution: '1920x1080',
         fileSizeBytes: 1073741824,
         durationSeconds: 7200,
-        specialTags: '普通',
         valid: true,
         progress: null,
         points: <MovieMediaPointDto>[],

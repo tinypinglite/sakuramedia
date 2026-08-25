@@ -198,7 +198,6 @@ class MovieMediaItemDto {
     required this.fileName,
     required this.fileSizeBytes,
     required this.durationSeconds,
-    required this.specialTags,
     required this.valid,
     required this.progress,
     required this.points,
@@ -213,7 +212,6 @@ class MovieMediaItemDto {
   final String? resolution;
   final int fileSizeBytes;
   final int durationSeconds;
-  final String specialTags;
   final bool valid;
   final MovieMediaProgressDto? progress;
   final List<MovieMediaPointDto> points;
@@ -231,7 +229,6 @@ class MovieMediaItemDto {
       resolution: json['resolution'] as String?,
       fileSizeBytes: json['file_size_bytes'] as int? ?? 0,
       durationSeconds: json['duration_seconds'] as int? ?? 0,
-      specialTags: json['special_tags'] as String? ?? '普通',
       valid: json['valid'] as bool? ?? true,
       progress: _progressFromJson(json['progress']),
       points: _listFromJson(
@@ -252,7 +249,6 @@ class MovieMediaItemDto {
     Object? resolution = _sentinel,
     int? fileSizeBytes,
     int? durationSeconds,
-    String? specialTags,
     bool? valid,
     Object? progress = _sentinel,
     List<MovieMediaPointDto>? points,
@@ -273,7 +269,6 @@ class MovieMediaItemDto {
           : resolution as String?,
       fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
       durationSeconds: durationSeconds ?? this.durationSeconds,
-      specialTags: specialTags ?? this.specialTags,
       valid: valid ?? this.valid,
       progress: identical(progress, _sentinel)
           ? this.progress

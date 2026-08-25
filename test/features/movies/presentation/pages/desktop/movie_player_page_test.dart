@@ -136,7 +136,6 @@ Map<String, dynamic> _movieDetailJson() {
         'resolution': '1920x1080',
         'file_size_bytes': 1024,
         'duration_seconds': 7200,
-        'special_tags': '普通',
         'valid': true,
         'progress': null,
         'points': const <Map<String, dynamic>>[],

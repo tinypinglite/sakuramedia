@@ -232,7 +232,6 @@ Map<String, dynamic> _javItemJson({required int id}) {
     'file_size_bytes': 100,
     'duration_seconds': 60,
     'resolution': '1920x1080',
-    'special_tags': '普通',
     'valid': true,
     'heat': 100,
     'created_at': '2026-03-12T10:00:00Z',

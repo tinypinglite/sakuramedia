@@ -179,7 +179,6 @@ Map<String, dynamic> _mediaItemJson(int id) {
     'file_size_bytes': 100,
     'duration_seconds': 60,
     'resolution': '1920x1080',
-    'special_tags': '普通',
     'valid': true,
     'thumbnail_generation_state': 'succeeded',
     'thumbnail_last_error_code': null,

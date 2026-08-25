@@ -52,7 +52,6 @@ class MediaListItemDto {
     required this.fileSizeBytes,
     required this.durationSeconds,
     this.resolution,
-    required this.specialTags,
     required this.valid,
     this.heat,
     required this.createdAt,
@@ -74,7 +73,6 @@ class MediaListItemDto {
   final int fileSizeBytes;
   final int durationSeconds;
   final String? resolution;
-  final String specialTags;
   final bool valid;
   final int? heat;
   final DateTime? createdAt;
@@ -142,7 +140,6 @@ class MediaListItemDto {
       fileSizeBytes: asInt(json['file_size_bytes']),
       durationSeconds: asInt(json['duration_seconds']),
       resolution: asStringOrNull(json['resolution'], trim: true),
-      specialTags: json['special_tags'] as String? ?? '',
       valid: json['valid'] as bool? ?? false,
       heat: asIntOrNull(json['heat']),
       createdAt: asDateTime(json['created_at']),

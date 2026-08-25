@@ -935,7 +935,6 @@ void main() {
             'resolution': '1920x1080',
             'file_size_bytes': 1073741824,
             'duration_seconds': 7200,
-            'special_tags': '普通',
             'valid': true,
             'progress': <String, dynamic>{
               'last_position_seconds': 600,
@@ -1229,7 +1228,6 @@ void main() {
             'resolution': '1920x1080',
             'file_size_bytes': 1073741824,
             'duration_seconds': 7200,
-            'special_tags': '普通',
             'valid': true,
             'video_info': <String, dynamic>{
               'container': <String, dynamic>{'format_name': 'mp4'},

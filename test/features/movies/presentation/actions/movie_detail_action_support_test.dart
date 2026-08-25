@@ -322,7 +322,6 @@ MovieDetailDto _movieDetail({
             resolution: '1080p',
             fileSizeBytes: 10,
             durationSeconds: 120,
-            specialTags: '',
             valid: true,
             progress: null,
             points: const <MovieMediaPointDto>[],

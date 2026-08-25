@@ -251,9 +251,9 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
   }
 
   String buildMediaDeleteLabel(MovieMediaItemDto mediaItem) {
-    final label = mediaItem.specialTags.trim();
-    if (label.isNotEmpty) {
-      return label;
+    final fileName = mediaItem.fileName.trim();
+    if (fileName.isNotEmpty) {
+      return fileName;
     }
     return '媒体源 ${mediaItem.mediaId}';
   }
@@ -392,7 +392,6 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
       resolution: '',
       fileSizeBytes: 0,
       durationSeconds: 0,
-      specialTags: '',
       valid: false,
       progress: null,
       points: const <MovieMediaPointDto>[],

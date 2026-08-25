@@ -57,10 +57,6 @@ Map<String, dynamic> _configJson({
 }) => <String, dynamic>{
   'values': <String, dynamic>{
     'media': <String, dynamic>{
-      'inner_sub_tags': const <String>[],
-      'blueray_tags': const <String>[],
-      'uncensored_tags': const <String>[],
-      'uncensored_prefix': const <String>[],
       'allowed_min_video_file_size': 268435456,
     },
     'metadata': <String, dynamic>{'javdb_host': 'jdforrepam.com'},

@@ -50,7 +50,6 @@ void main() {
               resolution: '1920x1080',
               fileSizeBytes: 1024,
               durationSeconds: 7200,
-              specialTags: '普通',
               valid: true,
               progress: const MovieMediaProgressDto(
                 lastPositionSeconds: 12,
@@ -215,7 +214,6 @@ void main() {
               resolution: '1920x1080',
               fileSizeBytes: 100,
               durationSeconds: 7200,
-              specialTags: '',
               valid: true,
               progress: null,
               points: const <MovieMediaPointDto>[],
@@ -229,7 +227,6 @@ void main() {
               resolution: '1920x1080',
               fileSizeBytes: 100,
               durationSeconds: 7200,
-              specialTags: '',
               valid: true,
               progress: null,
               points: const <MovieMediaPointDto>[],

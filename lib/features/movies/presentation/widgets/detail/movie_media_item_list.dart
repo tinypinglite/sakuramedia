@@ -151,17 +151,7 @@ class MovieMediaItemList extends StatelessWidget {
   }
 
   String _buildLabel(MovieMediaItemDto item) {
-    final parts = <String>[
-      if (item.specialTags.trim().isNotEmpty) item.specialTags.trim(),
-      formatFileSize(item.fileSizeBytes),
-    ];
-    if (parts.isNotEmpty) {
-      return parts.join(' ');
-    }
-    if (item.resolution?.isNotEmpty == true) {
-      return item.resolution!;
-    }
-    return '媒体源 ${item.mediaId}';
+    return formatFileSize(item.fileSizeBytes);
   }
 
   String? _buildTechnicalSummary(MovieMediaItemDto item) {

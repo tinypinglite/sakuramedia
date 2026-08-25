@@ -74,10 +74,6 @@ void main() {
       );
       expect(request.body.keys, contains('media'));
       expect(request.body.keys, isNot(contains('metadata')));
-      expect(
-        request.body['media'].keys,
-        isNot(contains('others_number_features')),
-      );
       expect(request.body['media']['allowed_min_video_file_size'], 268435456);
       await tester.pump(const Duration(seconds: 3));
     });
@@ -148,10 +144,6 @@ void main() {
       expect(
         schedulerRequest.body['scheduler']['movie_heat_cron'],
         '30 0 * * *',
-      );
-      expect(
-        schedulerRequest.body['scheduler'].keys,
-        isNot(contains('movie_collection_sync_cron')),
       );
       await tester.pump(const Duration(seconds: 3));
     });
@@ -298,10 +290,6 @@ Map<String, dynamic> _buildAdvancedConfigJson({
   return <String, dynamic>{
     'values': <String, dynamic>{
       'media': <String, dynamic>{
-        'inner_sub_tags': <String>['中字', '-C'],
-        'blueray_tags': <String>['蓝光', '4K'],
-        'uncensored_tags': <String>['uncensored', '-UC'],
-        'uncensored_prefix': <String>['PT-', 'S2M'],
         'allowed_min_video_file_size': 268435456,
       },
       'metadata': <String, dynamic>{

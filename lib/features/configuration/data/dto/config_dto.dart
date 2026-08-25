@@ -58,44 +58,18 @@ class ConfigUpdateResultDto {
 }
 
 class AdvancedMediaConfigDto {
-  const AdvancedMediaConfigDto({
-    required this.innerSubTags,
-    required this.bluerayTags,
-    required this.uncensoredTags,
-    required this.uncensoredPrefix,
-    required this.allowedMinVideoFileSize,
-  });
+  const AdvancedMediaConfigDto({required this.allowedMinVideoFileSize});
 
-  final List<String> innerSubTags;
-  final List<String> bluerayTags;
-  final List<String> uncensoredTags;
-  final List<String> uncensoredPrefix;
   final int allowedMinVideoFileSize;
 
   factory AdvancedMediaConfigDto.fromJson(Map<String, dynamic> json) {
     return AdvancedMediaConfigDto(
-      innerSubTags: List<String>.unmodifiable(
-        asStringList(json['inner_sub_tags']),
-      ),
-      bluerayTags: List<String>.unmodifiable(
-        asStringList(json['blueray_tags']),
-      ),
-      uncensoredTags: List<String>.unmodifiable(
-        asStringList(json['uncensored_tags']),
-      ),
-      uncensoredPrefix: List<String>.unmodifiable(
-        asStringList(json['uncensored_prefix']),
-      ),
       allowedMinVideoFileSize: _intAt(json, 'allowed_min_video_file_size'),
     );
   }
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
-      'inner_sub_tags': innerSubTags,
-      'blueray_tags': bluerayTags,
-      'uncensored_tags': uncensoredTags,
-      'uncensored_prefix': uncensoredPrefix,
       'allowed_min_video_file_size': allowedMinVideoFileSize,
     };
   }
@@ -123,11 +97,9 @@ class AdvancedSchedulerConfigDto {
     'subscribed_movie_auto_download',
     'download_task_sync',
     'download_task_auto_import',
-    'download_small_file_cleanup',
     'movie_heat',
     'movie_interaction_sync',
     'hot_review_sync',
-    'media_file_scan',
     'media_thumbnail',
     'image_search_index',
     'image_search_optimize',
@@ -141,17 +113,9 @@ class AdvancedSchedulerConfigDto {
 
   factory AdvancedSchedulerConfigDto.fromJson(Map<String, dynamic> json) {
     return AdvancedSchedulerConfigDto(
-      crons: Map<String, String>.unmodifiable(
-        cronKeys.fold<Map<String, String>>(<String, String>{}, (result, key) {
-          final cron = asStringOrNull(json['${key}_cron']);
-          // 后端删/改某个 cron 时跳过该项，UI 侧 `crons[key] ?? ''` 已能兜住。
-          if (cron == null) {
-            return result;
-          }
-          result[key] = cron;
-          return result;
-        }),
-      ),
+      crons: Map<String, String>.unmodifiable(<String, String>{
+        for (final key in cronKeys) key: json['${key}_cron'] as String,
+      }),
     );
   }
 

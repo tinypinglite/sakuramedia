@@ -66,10 +66,6 @@ file_signature_secret = ""
 
 ```toml
 [media]
-inner_sub_tags = ["中字", "中文", "字幕组", "-UC", "-C"]
-blueray_tags = ["蓝光", "4K", "4k"]
-uncensored_tags = ["流出", "uncensored", "無码", "無修正", "UC", "无码", "破解", "UNCENSORED", "-UC", "-U"]
-uncensored_prefix = ["PT-", "S2M", "BT", "LAF", "SMD", "SMBD", "SM3D2DBD", "SKY-", "SKYHD", "CWP", "CWDV", "CWBD", "CW3D2DBD", "MKD", "MKBD", "MXBD", "MK3D2DBD", "MCB3DBD", "MCBD", "RHJ", "MMDV"]
 allowed_min_video_file_size = 268435456
 import_image_root_path = "/data/cache/assets"
 max_thumbnail_process_count = 4
@@ -80,9 +76,6 @@ media_clip_ffmpeg_timeout_seconds = 120
 
 | 字段 | 作用 |
 |---|---|
-| `inner_sub_tags` | 内嵌字幕标签关键词。 |
-| `blueray_tags` | 蓝光 / 高清版本标签关键词。 |
-| `uncensored_tags` / `uncensored_prefix` | 无码资源标签和番号前缀。 |
 | `allowed_min_video_file_size` | 媒体导入的最小视频体积（字节），默认 256 MB。 |
 | `import_image_root_path` | 导入时缓存图片的目录。 |
 | `max_thumbnail_process_count` | 缩略图生成的最大并发数。 |
