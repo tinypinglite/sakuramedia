@@ -44,6 +44,10 @@ class MovieSummaryCard extends StatelessWidget {
     final componentTokens = context.appComponentTokens;
     final spacing = context.appSpacing;
     final selected = selectionMode && isSelected;
+    final handlesSubscriptionTapAtCardLevel =
+        !selectionMode &&
+        onSubscriptionTap != null &&
+        (onTap != null || onRequestMenu != null);
 
     final card = Container(
       key: Key('movie-summary-card-${movie.movieNumber}'),
@@ -138,7 +142,27 @@ class MovieSummaryCard extends StatelessWidget {
       interactiveCard = card;
     } else {
       interactiveCard = AppImageActionTrigger(
-        onTap: onTap,
+        onTap: handlesSubscriptionTapAtCardLevel ? null : onTap,
+        onTapAt: handlesSubscriptionTapAtCardLevel
+            ? (localPosition) {
+                final hitPadding =
+                    (componentTokens.subscriptionHeartHitSize -
+                        componentTokens.movieCardStatusBadgeSize) /
+                    2;
+                final hitExtent =
+                    spacing.xs +
+                    componentTokens.movieCardStatusBadgeSize +
+                    hitPadding;
+                if (localPosition.dx <= hitExtent &&
+                    localPosition.dy <= hitExtent) {
+                  if (!isSubscriptionUpdating) {
+                    onSubscriptionTap!();
+                  }
+                } else {
+                  onTap?.call();
+                }
+              }
+            : null,
         onRequestMenu: onRequestMenu,
         child: card,
       );
@@ -202,16 +226,21 @@ class MovieSummaryCard extends StatelessWidget {
               spacing: spacing.xs,
               runSpacing: spacing.xs,
               children: [
-                SubscriptionHeartBadge(
-                  key: Key(
-                    'movie-summary-card-subscription-${movie.movieNumber}',
+                IgnorePointer(
+                  ignoring: handlesSubscriptionTapAtCardLevel,
+                  child: SubscriptionHeartBadge(
+                    key: Key(
+                      'movie-summary-card-subscription-${movie.movieNumber}',
+                    ),
+                    loadingKey: Key(
+                      'movie-summary-card-subscription-loading-${movie.movieNumber}',
+                    ),
+                    isSubscribed: movie.isSubscribed,
+                    isUpdating: isSubscriptionUpdating,
+                    onTap: handlesSubscriptionTapAtCardLevel
+                        ? null
+                        : onSubscriptionTap,
                   ),
-                  loadingKey: Key(
-                    'movie-summary-card-subscription-loading-${movie.movieNumber}',
-                  ),
-                  isSubscribed: movie.isSubscribed,
-                  isUpdating: isSubscriptionUpdating,
-                  onTap: onSubscriptionTap,
                 ),
                 if (movie.canPlay)
                   _StatusBadge(

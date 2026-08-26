@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_state.dart';
+import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 
 export 'package:sakuramedia/features/movies/presentation/providers/movie_detail_state.dart';
@@ -37,6 +38,12 @@ class MovieDetail extends _$MovieDetail {
       _cacheLink = null;
     });
     _cacheLink ??= ref.keepAlive();
+    ref.listen(movieSubscriptionEventsProvider, (_, next) {
+      final changes = next.value;
+      if (changes != null) {
+        _applySimilarMovieSubscriptionChanges(changes);
+      }
+    });
     // 组件 mount 后由页面显式调 load()；provider 自身不预取，避免 hover /
     // watch 即请求（原 controller 也是页面 initState 里显式 `..load()`）。
     return MovieDetailState.initial;
@@ -119,6 +126,28 @@ class MovieDetail extends _$MovieDetail {
 
   Future<void> retryLoadSimilarMovies() =>
       _loadSimilarMovies(clearExisting: false);
+
+  void _applySimilarMovieSubscriptionChanges(
+    List<MovieSubscriptionChange> changes,
+  ) {
+    final statuses = <String, bool>{
+      for (final change in changes) change.movieNumber: change.isSubscribed,
+    };
+    var changed = false;
+    final similarMovies = state.similarMovies
+        .map((movie) {
+          final isSubscribed = statuses[movie.movieNumber];
+          if (isSubscribed == null || isSubscribed == movie.isSubscribed) {
+            return movie;
+          }
+          changed = true;
+          return movie.copyWithSubscriptionStatus(isSubscribed);
+        })
+        .toList(growable: false);
+    if (changed) {
+      state = state.copyWith(similarMovies: similarMovies);
+    }
+  }
 
   Future<Map<int, MediaStorageDescriptor>> _fetchStorageDescriptors() async {
     try {
