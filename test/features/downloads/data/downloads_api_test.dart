@@ -122,6 +122,7 @@ void main() {
           'movie_number': 'ABC-001',
           'candidate': {
             'source_uri': 'provider://torznab/abcdef',
+            'indexer_name': 'mteam',
             'title': 'ABC-001 4K 中文字幕',
             'size_bytes': 12884901888,
             'seeders': 18,

@@ -84,6 +84,7 @@ class DownloadCandidateDto {
   Map<String, dynamic> toCreatePayloadJson() {
     return <String, dynamic>{
       'source_uri': sourceUri,
+      'indexer_name': indexerName,
       'title': title,
       'size_bytes': sizeBytes,
       'seeders': seeders,
