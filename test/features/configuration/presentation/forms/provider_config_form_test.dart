@@ -13,6 +13,7 @@ void main() {
       required: true,
       multiline: false,
       readOnly: false,
+      description: '服务地址的详细说明',
       hint: '例如 http://127.0.0.1:8080',
     ),
     const ProviderConfigFieldDto(
@@ -86,6 +87,7 @@ void main() {
       find.byKey(const Key('provider-config-field-password')),
       findsOneWidget,
     );
+    expect(find.text('服务地址的详细说明'), findsOneWidget);
     expect(
       tester
           .widget<TextFormField>(

@@ -79,3 +79,87 @@ class UpdateDownloadClientPayload {
     };
   }
 }
+
+class DownloadClientTestPayload {
+  const DownloadClientTestPayload({
+    required this.libraryId,
+    required this.providerConfig,
+    this.clientId,
+  });
+
+  final int libraryId;
+  final Map<String, dynamic> providerConfig;
+  final int? clientId;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'library_id': libraryId,
+      'provider_config': providerConfig,
+      if (clientId != null) 'client_id': clientId,
+    };
+  }
+}
+
+class DownloadClientDiagnosticCheckDto {
+  const DownloadClientDiagnosticCheckDto({
+    required this.key,
+    required this.status,
+    required this.code,
+    required this.message,
+    this.details,
+  });
+
+  final String key;
+  final String status;
+  final String code;
+  final String message;
+  final Map<String, dynamic>? details;
+
+  factory DownloadClientDiagnosticCheckDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return DownloadClientDiagnosticCheckDto(
+      key: json['key'] as String? ?? '',
+      status: json['status'] as String? ?? 'failed',
+      code: json['code'] as String? ?? '',
+      message: json['message'] as String? ?? '',
+      details: asMapOrNull(json['details']),
+    );
+  }
+}
+
+class DownloadClientDiagnosticReportDto {
+  const DownloadClientDiagnosticReportDto({
+    required this.status,
+    required this.checks,
+    required this.checkedAt,
+    required this.elapsedMs,
+  });
+
+  final String status;
+  final List<DownloadClientDiagnosticCheckDto> checks;
+  final DateTime? checkedAt;
+  final int elapsedMs;
+
+  factory DownloadClientDiagnosticReportDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    final rawChecks = json['checks'];
+    final checks = rawChecks is List
+        ? rawChecks
+              .whereType<Map>()
+              .map(
+                (item) => DownloadClientDiagnosticCheckDto.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList(growable: false)
+        : const <DownloadClientDiagnosticCheckDto>[];
+    return DownloadClientDiagnosticReportDto(
+      status: json['status'] as String? ?? 'failed',
+      checks: checks,
+      checkedAt: asDateTime(json['checked_at']),
+      elapsedMs: asInt(json['elapsed_ms']),
+    );
+  }
+}

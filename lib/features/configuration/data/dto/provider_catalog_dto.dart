@@ -27,6 +27,7 @@ class ProviderConfigFieldDto {
     required this.required,
     required this.multiline,
     required this.readOnly,
+    this.description,
     required this.hint,
   });
 
@@ -36,6 +37,7 @@ class ProviderConfigFieldDto {
   final bool required;
   final bool multiline;
   final bool readOnly;
+  final String? description;
   final String? hint;
 
   bool get isSecret => input == ProviderConfigFieldInput.secret;
@@ -54,6 +56,7 @@ class ProviderConfigFieldDto {
       required: _requiredBool(json, 'required', path: path),
       multiline: _requiredBool(json, 'multiline', path: path),
       readOnly: _requiredBool(json, 'read_only', path: path),
+      description: _optionalString(json, 'description', path: path),
       hint: _optionalString(json, 'hint', path: path),
     );
   }

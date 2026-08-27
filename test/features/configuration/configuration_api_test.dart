@@ -54,6 +54,23 @@ void main() {
       path: '/download-clients/2',
       statusCode: 204,
     );
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-clients/test',
+      body: {
+        'status': 'warning',
+        'checks': [
+          {
+            'key': 'hardlink',
+            'status': 'warning',
+            'code': 'hardlink_unavailable',
+            'message': '导入时会回退为复制。',
+          },
+        ],
+        'checked_at': '2026-03-10T10:01:00Z',
+        'elapsed_ms': 12,
+      },
+    );
 
     final list = await bundle.downloadClientsApi.getClients();
     final created = await bundle.downloadClientsApi.createClient(
@@ -71,11 +88,20 @@ void main() {
         providerConfig: {'endpoint': 'http://demo-c'},
       ),
     );
+    final diagnostic = await bundle.downloadClientsApi.testClient(
+      const DownloadClientTestPayload(
+        clientId: 2,
+        libraryId: 9,
+        providerConfig: <String, dynamic>{'endpoint': 'http://demo-c'},
+      ),
+    );
     await bundle.downloadClientsApi.deleteClient(2);
 
     expect(list.single.providerConfig['endpoint'], 'http://demo');
     expect(created.libraryId, 8);
     expect(updated.name, 'client-c');
+    expect(diagnostic.status, 'warning');
+    expect(diagnostic.checks.single.code, 'hardlink_unavailable');
     expect(bundle.adapter.requests[1].body, {
       'name': 'client-b',
       'library_id': 8,
@@ -83,6 +109,11 @@ void main() {
     });
     expect(bundle.adapter.requests[2].body, {
       'name': 'client-c',
+      'library_id': 9,
+      'provider_config': {'endpoint': 'http://demo-c'},
+    });
+    expect(bundle.adapter.requests[3].body, {
+      'client_id': 2,
       'library_id': 9,
       'provider_config': {'endpoint': 'http://demo-c'},
     });

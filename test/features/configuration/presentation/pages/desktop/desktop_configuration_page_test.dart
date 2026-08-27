@@ -8,8 +8,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/dto/config_dto.dart';
+import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/provider_catalog_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/configuration_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/download_clients_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/media_provider_catalog_provider.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
@@ -1107,6 +1109,45 @@ void main() {
 
         expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 1);
         expect(bundle.adapter.hitCount('GET', '/download-clients'), 1);
+      },
+    );
+
+    testWidgets(
+      'updates indexer download clients when the shared list changes',
+      (WidgetTester tester) async {
+        _enqueueMediaLibraries(bundle);
+        _enqueueIndexerSettings(bundle, indexers: const []);
+        _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+
+        await _pumpPage(tester, bundle, sessionStore: sessionStore);
+        await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+        await tester.pumpAndSettle();
+        final container = ProviderScope.containerOf(
+          tester.element(find.byKey(const Key('configuration-page'))),
+          listen: false,
+        );
+        container
+            .read(downloadClientsProvider.notifier)
+            .upsert(
+              const DownloadClientDto(
+                id: 3,
+                name: 'client-c',
+                libraryId: 1,
+                providerConfig: {'endpoint': 'http://localhost:8082'},
+                createdAt: null,
+                updatedAt: null,
+              ),
+            );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const Key('configuration-indexer-create-button')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('indexer-download-client-3')),
+          findsOneWidget,
+        );
       },
     );
 

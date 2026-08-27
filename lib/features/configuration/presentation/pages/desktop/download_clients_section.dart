@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/configuration/presentation/providers/downlo
 import 'package:sakuramedia/features/configuration/presentation/providers/media_libraries_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/media_provider_catalog_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
+import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_inline_action_button.dart';
@@ -346,6 +347,8 @@ class _DownloadClientDialogState extends ConsumerState<DownloadClientDialog> {
   late final TextEditingController _nameController;
   late ProviderConfigFormController _providerConfigController;
   int? _selectedLibraryId;
+  bool _isTesting = false;
+  DownloadClientDiagnosticReportDto? _diagnosticReport;
 
   bool get _isEditing => widget.initialClient != null;
 
@@ -408,6 +411,7 @@ class _DownloadClientDialogState extends ConsumerState<DownloadClientDialog> {
   }
 
   void _submit() {
+    if (_isTesting) return;
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final value = DownloadClientFormValue.fromControllers(
       nameController: _nameController,
@@ -420,6 +424,43 @@ class _DownloadClientDialogState extends ConsumerState<DownloadClientDialog> {
     Navigator.of(
       context,
     ).pop(_isEditing ? value.toUpdatePayload() : value.toCreatePayload());
+  }
+
+  Future<void> _testClient() async {
+    if (_isTesting) return;
+    FocusScope.of(context).unfocus();
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final value = DownloadClientFormValue.fromControllers(
+      nameController: _nameController,
+      providerConfigController: _providerConfigController,
+      isEditing: _isEditing,
+      libraryId: _selectedLibraryId,
+      providerConfigAvailable:
+          _providerForLibrary(_selectedLibraryId)?.supportsDownloads ?? false,
+    );
+    final libraryId = value.libraryId;
+    if (libraryId == null) return;
+    setState(() {
+      _isTesting = true;
+      _diagnosticReport = null;
+    });
+    try {
+      final report = await ref.read(downloadClientsApiProvider).testClient(
+        DownloadClientTestPayload(
+          libraryId: libraryId,
+          providerConfig: value.providerConfig,
+          clientId: widget.initialClient?.id,
+        ),
+      );
+      if (!mounted) return;
+      setState(() => _diagnosticReport = report);
+    } catch (error) {
+      if (mounted) {
+        showToast(apiErrorMessage(error, fallback: '下载器测试失败'));
+      }
+    } finally {
+      if (mounted) setState(() => _isTesting = false);
+    }
   }
 
   @override
@@ -456,22 +497,40 @@ class _DownloadClientDialogState extends ConsumerState<DownloadClientDialog> {
                 onLibraryChanged: _selectLibrary,
                 providerConfigController: _providerConfigController,
                 isEditing: _isEditing,
+                enabled: !_isTesting,
               ),
+              if (_diagnosticReport != null) ...[
+                SizedBox(height: spacing.lg),
+                DownloadClientDiagnosticResultView(report: _diagnosticReport!),
+              ],
               SizedBox(height: spacing.xl),
               Row(
                 children: [
                   Expanded(
                     child: AppButton(
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: _isTesting
+                          ? null
+                          : () => Navigator.of(context).pop(),
                       label: '取消',
                     ),
                   ),
                   SizedBox(width: spacing.md),
                   Expanded(
                     child: AppButton(
-                      onPressed: _submit,
+                      onPressed: _isTesting ? null : _submit,
                       label: '保存',
                       variant: AppButtonVariant.primary,
+                    ),
+                  ),
+                  SizedBox(width: spacing.md),
+                  Expanded(
+                    child: AppButton(
+                      key: const Key('download-client-test-button'),
+                      onPressed: _isTesting ? null : _testClient,
+                      label: '测试配置',
+                      icon: const Icon(Icons.rule_rounded),
+                      size: AppButtonSize.small,
+                      isLoading: _isTesting,
                     ),
                   ),
                 ],

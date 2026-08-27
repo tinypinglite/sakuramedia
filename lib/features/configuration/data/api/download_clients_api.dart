@@ -33,6 +33,16 @@ class DownloadClientsApi {
     return DownloadClientDto.fromJson(response);
   }
 
+  Future<DownloadClientDiagnosticReportDto> testClient(
+    DownloadClientTestPayload payload,
+  ) async {
+    final response = await _apiClient.post(
+      '/download-clients/test',
+      data: payload.toJson(),
+    );
+    return DownloadClientDiagnosticReportDto.fromJson(response);
+  }
+
   Future<void> deleteClient(int clientId) {
     return _apiClient.deleteNoContent('/download-clients/$clientId');
   }

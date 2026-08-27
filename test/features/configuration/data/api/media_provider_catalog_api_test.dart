@@ -28,6 +28,7 @@ void main() {
                 'required': true,
                 'multiline': false,
                 'read_only': false,
+                'description': '媒体文件最终存放目录。',
                 'hint': '媒体文件最终存放目录',
               },
             ],
@@ -51,6 +52,10 @@ void main() {
       expect(
         providers.first.libraryConfigFields.single.input,
         ProviderConfigFieldInput.path,
+      );
+      expect(
+        providers.first.libraryConfigFields.single.description,
+        '媒体文件最终存放目录。',
       );
       expect(providers.first.downloadConfigFields, isNull);
       expect(providers.last.downloadConfigFields, isEmpty);

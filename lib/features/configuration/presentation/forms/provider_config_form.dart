@@ -115,7 +115,6 @@ class ProviderConfigFormFields extends StatelessWidget {
               _validateRequired(field, value, isEditing: isEditing)
         : null;
     final fieldKey = Key('provider-config-field-${field.key}');
-    final helperText = field.hint;
     final multiline = field.multiline;
 
     if (field.isSecret) {
@@ -124,7 +123,8 @@ class ProviderConfigFormFields extends StatelessWidget {
         controller: fieldController,
         focusNode: fieldFocusNode,
         label: field.label,
-        hintText: helperText,
+        hintText: field.hint,
+        helperText: field.description,
         enabled: fieldEnabled,
         validator: validator,
         autovalidateMode: autovalidateMode,
@@ -136,7 +136,8 @@ class ProviderConfigFormFields extends StatelessWidget {
       controller: fieldController,
       focusNode: fieldFocusNode,
       label: field.label,
-      hintText: helperText,
+      hintText: field.hint,
+      helperText: field.description,
       enabled: fieldEnabled,
       validator: validator,
       autovalidateMode: autovalidateMode,

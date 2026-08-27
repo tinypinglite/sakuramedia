@@ -15,6 +15,7 @@ import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/m
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_onboarding_card.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_entity_list_card.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
+import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
@@ -499,7 +500,9 @@ class _MobileDownloaderEditorDrawerState
   late ProviderConfigFormController _providerConfigController;
   int? _selectedLibraryId;
   bool _isSubmitting = false;
+  bool _isTesting = false;
   bool _hasAttemptedSubmit = false;
+  DownloadClientDiagnosticReportDto? _diagnosticReport;
 
   bool get _isEditing => widget.initialClient != null;
 
@@ -569,7 +572,7 @@ class _MobileDownloaderEditorDrawerState
       : AutovalidateMode.disabled;
 
   Future<void> _submit() async {
-    if (_isSubmitting) return;
+    if (_isSubmitting || _isTesting) return;
     FocusScope.of(context).unfocus();
     setState(() => _hasAttemptedSubmit = true);
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -605,6 +608,42 @@ class _MobileDownloaderEditorDrawerState
     }
   }
 
+  Future<void> _testClient() async {
+    if (_isSubmitting || _isTesting) return;
+    FocusScope.of(context).unfocus();
+    setState(() => _hasAttemptedSubmit = true);
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final value = DownloadClientFormValue.fromControllers(
+      nameController: _nameController,
+      providerConfigController: _providerConfigController,
+      isEditing: _isEditing,
+      libraryId: _selectedLibraryId,
+      providerConfigAvailable:
+          _providerForLibrary(_selectedLibraryId)?.supportsDownloads ?? false,
+    );
+    final libraryId = value.libraryId;
+    if (libraryId == null) return;
+    setState(() {
+      _isTesting = true;
+      _diagnosticReport = null;
+    });
+    try {
+      final report = await ref.read(downloadClientsApiProvider).testClient(
+        DownloadClientTestPayload(
+          libraryId: libraryId,
+          providerConfig: value.providerConfig,
+          clientId: widget.initialClient?.id,
+        ),
+      );
+      if (!mounted) return;
+      setState(() => _diagnosticReport = report);
+    } catch (error) {
+      if (mounted) showToast(apiErrorMessage(error, fallback: '下载器测试失败'));
+    } finally {
+      if (mounted) setState(() => _isTesting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppBottomFormSheet(
@@ -613,16 +652,34 @@ class _MobileDownloaderEditorDrawerState
       subtitle: '配置由目标媒体库的 Provider 决定。',
       submitKey: const Key('mobile-downloader-submit-button'),
       isSubmitting: _isSubmitting,
+      submitDisabled: _isTesting,
       onSubmit: _submit,
-      body: DownloadClientFormFields(
-        nameController: _nameController,
-        libraries: widget.libraries,
-        selectedLibraryId: _selectedLibraryId,
-        onLibraryChanged: _selectLibrary,
-        providerConfigController: _providerConfigController,
-        isEditing: _isEditing,
-        enabled: !_isSubmitting,
-        autovalidateMode: _autovalidateMode,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          DownloadClientFormFields(
+            nameController: _nameController,
+            libraries: widget.libraries,
+            selectedLibraryId: _selectedLibraryId,
+            onLibraryChanged: _selectLibrary,
+            providerConfigController: _providerConfigController,
+            isEditing: _isEditing,
+            enabled: !_isSubmitting && !_isTesting,
+            autovalidateMode: _autovalidateMode,
+          ),
+          if (_diagnosticReport != null) ...[
+            SizedBox(height: context.appSpacing.lg),
+            DownloadClientDiagnosticResultView(report: _diagnosticReport!),
+          ],
+          SizedBox(height: context.appSpacing.lg),
+          AppButton(
+            key: const Key('mobile-downloader-test-button'),
+            label: '测试配置',
+            icon: const Icon(Icons.rule_rounded),
+            isLoading: _isTesting,
+            onPressed: _isSubmitting || _isTesting ? null : _testClient,
+          ),
+        ],
       ),
     );
   }

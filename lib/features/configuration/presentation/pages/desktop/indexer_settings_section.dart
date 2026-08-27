@@ -47,6 +47,9 @@ class _IndexerSettingsSectionState
   IndexerSettingsDto? _savedSettings;
   final Object _connectionTestScope = Object();
 
+  List<DownloadClientDto> get _currentDownloadClients =>
+      ref.read(downloadClientsProvider).value ?? _downloadClients;
+
   @override
   void initState() {
     super.initState();
@@ -167,7 +170,7 @@ class _IndexerSettingsSectionState
         showToast('请为每个索引器至少选择一个下载器');
         return;
       }
-      final availableClientIds = _downloadClients
+      final availableClientIds = _currentDownloadClients
           .map((client) => client.id)
           .toSet();
       if (!item.downloadClientIds.every(availableClientIds.contains)) {
@@ -220,8 +223,10 @@ class _IndexerSettingsSectionState
   Future<void> _createIndexer() async {
     final result = await showDialog<IndexerEntryDto>(
       context: context,
-      builder: (dialogContext) =>
-          IndexerEntryDialog(title: '新增索引器', downloadClients: _downloadClients),
+      builder: (dialogContext) => IndexerEntryDialog(
+        title: '新增索引器',
+        downloadClients: _currentDownloadClients,
+      ),
     );
     if (result == null) {
       return;
@@ -239,7 +244,7 @@ class _IndexerSettingsSectionState
       context: context,
       builder: (dialogContext) => IndexerEntryDialog(
         title: '编辑索引器',
-        downloadClients: _downloadClients,
+        downloadClients: _currentDownloadClients,
         initialEntry: _indexers[index],
       ),
     );
@@ -266,6 +271,9 @@ class _IndexerSettingsSectionState
   @override
   Widget build(BuildContext context) {
     if (!_initialized && !widget.active) return const SizedBox.shrink();
+    final downloadClients = widget.active
+        ? ref.watch(downloadClientsProvider).value ?? _downloadClients
+        : _downloadClients;
     if (_isLoading) return const AppSectionSkeleton(lineCount: 5);
     if (_errorMessage != null) {
       return AppSectionError(
@@ -274,10 +282,13 @@ class _IndexerSettingsSectionState
         onRetry: _loadData,
       );
     }
-    return _buildLoaded(context);
+    return _buildLoaded(context, downloadClients);
   }
 
-  Widget _buildLoaded(BuildContext context) {
+  Widget _buildLoaded(
+    BuildContext context,
+    List<DownloadClientDto> downloadClients,
+  ) {
     final connectionTest = ref.watch(
       indexerConnectionTestProvider(_connectionTestScope),
     );
@@ -344,7 +355,7 @@ class _IndexerSettingsSectionState
             ),
             AppButton(
               key: const Key('configuration-indexer-create-button'),
-              onPressed: _downloadClients.isEmpty ? null : _createIndexer,
+              onPressed: downloadClients.isEmpty ? null : _createIndexer,
               icon: const Icon(Icons.add_rounded),
               label: '添加',
               size: AppButtonSize.small,
@@ -352,7 +363,7 @@ class _IndexerSettingsSectionState
             ),
           ],
         ),
-        if (_downloadClients.isEmpty) ...[
+        if (downloadClients.isEmpty) ...[
           SizedBox(height: spacing.sm),
           Text(
             '请先在下载器 Tab 创建下载器',
