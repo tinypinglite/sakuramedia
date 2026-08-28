@@ -221,10 +221,14 @@ void main() {
   });
 
   test('mobile discover list routes expose subpage titles', () {
+    const followRoute = MobileFollowRouteData();
     const moviesRoute = MobileDiscoverMoviesRouteData();
     const momentsRoute = MobileDiscoverMomentsRouteData();
     const hotActressRoute = MobileHotActressReleasesRouteData();
 
+    expect(followRoute.location, mobileFollowPath);
+    expect(followRoute.title, '女优上新');
+    expect(followRoute.defaultLocation, mobileOverviewPath);
     expect(moviesRoute.location, mobileDiscoverMoviesPath);
     expect(moviesRoute.title, '推荐影片');
     expect(moviesRoute.defaultLocation, mobileOverviewPath);

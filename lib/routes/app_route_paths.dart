@@ -31,6 +31,7 @@ const String desktopMovieSubscriptionsPath =
 const String desktopSystemDiagnosticsPath = '/desktop/system/diagnostics';
 
 const String mobileOverviewPath = '/mobile/overview';
+const String mobileFollowPath = '$mobileOverviewPath/discover/follow';
 const String mobileDiscoverMoviesPath = '$mobileOverviewPath/discover/movies';
 const String mobileDiscoverMomentsPath = '$mobileOverviewPath/discover/moments';
 const String mobileHotActressReleasesPath =
