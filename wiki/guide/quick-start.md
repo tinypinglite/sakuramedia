@@ -17,7 +17,7 @@ outline: [2, 4]
 
 ### 硬件要求
 
-- CPU 建议 4 核，可用内存不少于 4 GB；JoyTag 和 Qdrant 会消耗额外内存。
+- CPU 建议 4 核，可用内存不少于 4 GB；SigLIP2 嵌入服务和 Qdrant 会消耗额外内存。
 - SSD 用于运行数据（数据库、配置、日志、缓存和图片索引）。
 - 媒体存储空间由所选 provider 管理，容量按实际库规模准备。
 
@@ -25,7 +25,7 @@ outline: [2, 4]
 
 - `sakuramedia`：后端服务，负责媒体管理和任务调度等核心能力。
 - `postgres`：PostgreSQL 数据库，存储业务数据。
-- `joytag-infer`：以图搜图推理服务，负责图片向量化。
+- `siglip2-embed`：以图搜图嵌入服务，负责图片与文本向量化。
 - `qdrant`：图片搜索向量数据库，存储缩略图向量并提供检索。
 
 ## 部署后端服务
@@ -35,15 +35,11 @@ outline: [2, 4]
 准备一个目录存放运行时数据和 `compose.yaml`，例如：
 
 ```bash
-mkdir -p /mnt/ssd/sakuramedia/sakuramedia-data/{cache,logs,config,joytag,media-clips,image-search-index,postgres,plugins}
+mkdir -p /mnt/ssd/sakuramedia/sakuramedia-data/{cache,logs,config,media-clips,image-search-index,postgres,plugins}
 mkdir -p /mnt/ssd/sakuramedia/sakuramedia-data/cache/{assets,gfriends}
 ```
 
-### 2. 准备 JoyTag 推理模型
-
-将 `model_vit_768.onnx` 放到 `sakuramedia-data/joytag/model_vit_768.onnx`。可以使用其他下载方式，文件名和目录保持一致即可。
-
-### 3. 准备 `compose.yaml`
+### 2. 准备 `compose.yaml`
 
 下面的示例只挂载应用运行数据。需要额外挂载目录时，按已安装 provider 的部署说明添加，并在 provider 配置中填写其要求的字段。
 
@@ -66,7 +62,7 @@ services:
       retries: 10
 
   sakuramedia:
-    image: tinyping/sakuramediabe:latest
+    image: tinyping/sakuramediabe:v0.6.0
     container_name: sakuramedia
     restart: unless-stopped
     depends_on:
@@ -85,16 +81,14 @@ services:
     volumes:
       - ./sakuramedia-data:/data
 
-  joytag-infer:
-    image: tinyping/joytag-infer:cpu
-    container_name: joytag-infer
+  siglip2-embed:
+    image: tinyping/siglip2-embed-service:cpu
+    container_name: siglip2-embed
     restart: unless-stopped
     environment:
-      JOYTAG_INFER_BACKEND: "cpu"
-      JOYTAG_INFER_MODEL_PATH: "/data/lib/joytag/model_vit_768.onnx"
-      JOYTAG_INFER_API_KEY: ""
-    volumes:
-      - ./sakuramedia-data/joytag:/data/lib/joytag
+      EMBEDDING_BACKEND: "cpu"
+      CPU_CONCURRENCY: "1"
+    # 模型和运行时已包含在镜像内；不需要下载模型、挂载模型目录或暴露端口。
 
   qdrant:
     image: qdrant/qdrant:v1.12.4
@@ -115,14 +109,14 @@ services:
 后端默认按 `postgres` 服务名连接内置 PostgreSQL，照抄示例即可运行。若使用外部 PostgreSQL，再按[配置说明](/guide/config#database)修改 `[database].url`。
 :::
 
-### 4. 启动
+### 3. 启动
 
 ```bash
 cd /mnt/ssd/sakuramedia
 docker compose up -d
 ```
 
-### 5. 访问
+### 4. 访问
 
 默认用户名和密码是 `account` 和 `account`，登录后建议立即修改密码。桌面端和移动端首次登录时填写后端地址，例如：
 
@@ -130,7 +124,7 @@ docker compose up -d
 http://你的IP:38000
 ```
 
-### 6. 首次登录后的初始化
+### 5. 首次登录后的初始化
 
 #### 1. 安装并启用插件
 
@@ -152,7 +146,7 @@ http://你的IP:38000
 
 #### 5. 用组件诊断验证
 
-在「概览」页运行「组件诊断」，检查媒体库、索引器、JavDB 和 JoyTag 的连通性。
+在「概览」页运行「组件诊断」，检查媒体库、索引器、JavDB 和 SigLIP2 嵌入服务的连通性。
 
 #### 6. 在线搜索影片或女优
 

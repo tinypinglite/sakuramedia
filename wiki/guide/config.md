@@ -207,7 +207,7 @@ level = "INFO"
 
 ```toml
 [image_search]
-inference_base_url = "http://joytag-infer:8001"
+inference_base_url = "http://siglip2-embed:8080"
 inference_timeout_seconds = 120.0
 inference_connect_timeout_seconds = 3.0
 inference_api_key = ""
@@ -216,13 +216,16 @@ session_ttl_seconds = 600
 default_page_size = 20
 max_page_size = 100
 search_scan_batch_size = 100
+index_max_records_per_run = 100000
 index_upsert_batch_size = 100
 optimize_every_records = 5000
 optimize_every_seconds = 1800
 optimize_on_job_end = true
 ```
 
-这些字段控制 JoyTag 连接、搜索会话和 Qdrant 索引批处理。首次部署主要确认 `inference_base_url`，其余默认值通常即可。
+这些字段控制 SigLIP2 嵌入服务连接、搜索会话和 Qdrant 索引批处理。默认地址对应快速开始中的 `siglip2-embed` 服务名；只有把嵌入服务部署到其他主机、修改服务名或开启鉴权时，才需要改连接字段。
+
+`index_max_records_per_run` 限制一次图片索引任务最多处理 100,000 条记录，避免超大媒体库一次任务占用过多资源；剩余记录会由后续任务继续处理。其余批处理和 optimize 参数通常保持默认即可。
 
 ## `[qdrant]`
 
