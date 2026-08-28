@@ -94,6 +94,7 @@ void main() {
           <String, dynamic>{
             'media_id': 31,
             'library_id': 1,
+            'playback_deliveries': <String>['proxy'],
             'play_url': '/files/videos/7/clip.mp4?sig=abc',
             'path': '/data/videos/7/clip.mp4',
             'storage_mode': 'local',
