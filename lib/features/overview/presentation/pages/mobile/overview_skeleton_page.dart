@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/discovery/presentation/mobile_overview_disc
 import 'package:sakuramedia/features/clips/presentation/pages/mobile/overview_clips_tab.dart';
 import 'package:sakuramedia/features/hot_reviews/presentation/pages/mobile/overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
+import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/features/moments/presentation/pages/mobile/overview_moments_tab.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_provider.dart';
@@ -282,12 +283,17 @@ class _MobileOverviewMyTabState extends ConsumerState<_MobileOverviewMyTab> {
                 imageSearchButtonKey: const Key(
                   'mobile-overview-my-search-image',
                 ),
+                textImageSearchButtonKey: const Key(
+                  'mobile-overview-my-search-text-image',
+                ),
                 controller: _searchController,
                 hintText: '如 SSNI-888、三上悠亚',
                 showImageSearchButton: true,
+                showTextImageSearchButton: true,
                 onSearchTap: _submitSearch,
                 onSubmitted: (_) => _submitSearch(),
                 onImageSearchTap: _openImageSearch,
+                onTextImageSearchTap: _openTextImageSearch,
               ),
               SizedBox(height: spacing.sm),
               Text(
@@ -521,6 +527,10 @@ class _MobileOverviewMyTabState extends ConsumerState<_MobileOverviewMyTab> {
       return;
     }
     MobileSearchQueryRouteData(query: query).push(context);
+  }
+
+  void _openTextImageSearch() {
+    context.pushMobileImageSearch(initialInputKind: ImageSearchInputKind.text);
   }
 
   Future<void> _openImageSearch() async {

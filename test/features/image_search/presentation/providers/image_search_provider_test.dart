@@ -86,6 +86,23 @@ void main() {
     expect(Map<String, String>.fromEntries(formData.fields)['text'], '白色连衣裙');
   });
 
+  test('input mode can start as text and switch without a stale source', () {
+    notifier.initialize(
+      ImageSearchCurrentMovieScope.all,
+      initialInputKind: ImageSearchInputKind.text,
+    );
+
+    expect(readState().inputKind, ImageSearchInputKind.text);
+    expect(readState().hasSource, isFalse);
+
+    notifier.setTextSource('海边');
+    notifier.selectInputKind(ImageSearchInputKind.image);
+
+    expect(readState().inputKind, ImageSearchInputKind.image);
+    expect(readState().textQuery, isNull);
+    expect(readState().hasSource, isFalse);
+  });
+
   test('plot target uses dedicated paths for search and pagination', () async {
     bundle.adapter.enqueueJson(
       method: 'POST',

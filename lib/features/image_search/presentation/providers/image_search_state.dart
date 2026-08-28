@@ -31,7 +31,6 @@ class ImageSearchState {
     this.isLoadingSubscribedActors = false,
     this.isResolvingActorMovieIds = false,
     this.isPreviewExpanded = false,
-    this.isFilterExpanded = false,
     this.errorMessage,
     this.subscribedActorsErrorMessage,
     this.bootstrappedSourceSignature,
@@ -57,7 +56,6 @@ class ImageSearchState {
   final bool isLoadingSubscribedActors;
   final bool isResolvingActorMovieIds;
   final bool isPreviewExpanded;
-  final bool isFilterExpanded;
   final String? errorMessage;
   final String? subscribedActorsErrorMessage;
   final Object? bootstrappedSourceSignature;
@@ -93,7 +91,6 @@ class ImageSearchState {
     bool? isLoadingSubscribedActors,
     bool? isResolvingActorMovieIds,
     bool? isPreviewExpanded,
-    bool? isFilterExpanded,
     Object? errorMessage = _unsetImageSearchValue,
     Object? subscribedActorsErrorMessage = _unsetImageSearchValue,
     Object? bootstrappedSourceSignature = _unsetImageSearchValue,
@@ -137,7 +134,6 @@ class ImageSearchState {
       isResolvingActorMovieIds:
           isResolvingActorMovieIds ?? this.isResolvingActorMovieIds,
       isPreviewExpanded: isPreviewExpanded ?? this.isPreviewExpanded,
-      isFilterExpanded: isFilterExpanded ?? this.isFilterExpanded,
       errorMessage: identical(errorMessage, _unsetImageSearchValue)
           ? this.errorMessage
           : errorMessage as String?,

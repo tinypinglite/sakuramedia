@@ -129,17 +129,19 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
     this.draftId,
     this.currentMovieNumber,
     this.currentMovieScope = 'all',
+    this.mode = 'image',
   });
 
   final String? draftId;
   final String? currentMovieNumber;
   final String currentMovieScope;
+  final String mode;
 
   @override
   String get pageName => 'mobile-image-search';
 
   @override
-  String get title => '以图搜图';
+  String get title => '画面搜索';
 
   @override
   String get defaultLocation => mobileOverviewPath;
@@ -151,6 +153,7 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
       if (draftId != null) 'draftId': draftId,
       if (currentMovieNumber != null) 'currentMovieNumber': currentMovieNumber,
       if (currentMovieScope != 'all') 'currentMovieScope': currentMovieScope,
+      if (mode != 'image') 'mode': mode,
     },
   );
 
@@ -181,6 +184,14 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
               fallback: currentMovieScope,
             ) ??
             currentMovieScope,
+      ),
+      initialInputKind: parseImageSearchInputKind(
+        resolveStringQueryParameter(
+              state,
+              names: const <String>['mode'],
+              fallback: mode,
+            ) ??
+            mode,
       ),
     );
   }

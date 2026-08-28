@@ -36,7 +36,10 @@ class ImageSearch extends _$ImageSearch {
     return ImageSearchState();
   }
 
-  void initialize(ImageSearchCurrentMovieScope initialCurrentMovieScope) {
+  void initialize(
+    ImageSearchCurrentMovieScope initialCurrentMovieScope, {
+    ImageSearchInputKind initialInputKind = ImageSearchInputKind.image,
+  }) {
     if (state.hasInitialized) {
       return;
     }
@@ -44,7 +47,31 @@ class ImageSearch extends _$ImageSearch {
       filterState: state.filterState.copyWith(
         currentMovieScope: initialCurrentMovieScope,
       ),
+      inputKind: initialInputKind,
       hasInitialized: true,
+    );
+  }
+
+  void selectInputKind(ImageSearchInputKind inputKind) {
+    if (state.inputKind == inputKind) {
+      return;
+    }
+    _searchVersion += 1;
+    state = state.copyWith(
+      fileBytes: null,
+      fileName: null,
+      mimeType: null,
+      inputKind: inputKind,
+      textQuery: null,
+      sessionId: null,
+      nextCursor: null,
+      expiresAt: null,
+      items: const <ImageSearchResultItemDto>[],
+      isSearching: false,
+      isLoadingMore: false,
+      isResolvingActorMovieIds: false,
+      errorMessage: null,
+      bootstrappedSourceSignature: null,
     );
   }
 
@@ -99,10 +126,6 @@ class ImageSearch extends _$ImageSearch {
 
   void togglePreviewExpanded() {
     state = state.copyWith(isPreviewExpanded: !state.isPreviewExpanded);
-  }
-
-  void toggleFilterExpanded() {
-    state = state.copyWith(isFilterExpanded: !state.isFilterExpanded);
   }
 
   Future<void> ensureSubscribedActorsLoaded() async {

@@ -404,7 +404,7 @@ void main() {
       ),
     );
 
-    expect(config.title, '以图搜图');
+    expect(config.title, '画面搜索');
     expect(config.fallbackPath, desktopMoviesPath);
     expect(config.isBackEnabled, isTrue);
   });
@@ -752,7 +752,7 @@ void main() {
     final imageSearchPage = _findPageByName(tester, 'desktop-image-search');
 
     expect(imageSearchPage, isA<NoTransitionPage<void>>());
-    expect(find.text('以图搜图'), findsWidgets);
+    expect(find.text('画面搜索'), findsWidgets);
   });
 
   testWidgets('desktop image search route extra fallback returns to player', (
@@ -1847,7 +1847,7 @@ void main() {
 
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
-    expect(find.text('以图搜图'), findsOneWidget);
+    expect(find.text('画面搜索'), findsOneWidget);
     expect(
       find.byKey(const Key('desktop-image-search-empty-select-button')),
       findsOneWidget,
@@ -1900,6 +1900,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);
+
+    await tester.tap(
+      find.byKey(const Key('desktop-image-search-toggle-filter')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('mobile-image-search-filter-drawer')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('desktop-image-search-filter-panel')),
+      findsNothing,
+    );
   });
 
   testWidgets(

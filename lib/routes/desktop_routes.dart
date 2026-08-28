@@ -529,11 +529,13 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
     this.draftId,
     this.currentMovieNumber,
     this.currentMovieScope = 'all',
+    this.mode = 'image',
   });
 
   final String? draftId;
   final String? currentMovieNumber;
   final String currentMovieScope;
+  final String mode;
 
   @override
   String get pageName => 'desktop-image-search';
@@ -545,6 +547,7 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
       if (draftId != null) 'draftId': draftId,
       if (currentMovieNumber != null) 'currentMovieNumber': currentMovieNumber,
       if (currentMovieScope != 'all') 'currentMovieScope': currentMovieScope,
+      if (mode != 'image') 'mode': mode,
     },
   );
 
@@ -577,6 +580,14 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
               fallback: currentMovieScope,
             ) ??
             currentMovieScope,
+      ),
+      initialInputKind: parseImageSearchInputKind(
+        resolveStringQueryParameter(
+              state,
+              names: const <String>['mode'],
+              fallback: mode,
+            ) ??
+            mode,
       ),
     );
   }
