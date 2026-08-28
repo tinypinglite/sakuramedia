@@ -21,7 +21,6 @@ Future<void> launchMoviePlayback(
   int? mediaId,
   int? positionSeconds,
   MovieDetailDto? movie,
-  MoviePlaybackDelivery? playbackDelivery,
 }) async {
   final selection = _readExternalPlayerSelection(context);
   const channel = ExternalPlayerChannel();
@@ -34,7 +33,6 @@ Future<void> launchMoviePlayback(
       movieNumber: movieNumber,
       mediaId: mediaId,
       positionSeconds: positionSeconds,
-      playbackDelivery: playbackDelivery,
     );
     return;
   }
@@ -62,13 +60,7 @@ Future<void> launchMoviePlayback(
   ).read(sessionStoreProvider).baseUrl;
   final resolvedUrl = media == null
       ? null
-      : resolveMediaUrl(
-          rawUrl: withMoviePlaybackDelivery(
-            media.playUrl,
-            playbackDelivery ?? media.defaultPlaybackDelivery,
-          ),
-          baseUrl: baseUrl,
-        );
+      : resolveMediaUrl(rawUrl: media.playUrl, baseUrl: baseUrl);
 
   // 拿不到后端签名播放地址时回落到应用内播放页。
   if (detail == null ||
@@ -80,7 +72,6 @@ Future<void> launchMoviePlayback(
       movieNumber: movieNumber,
       mediaId: mediaId,
       positionSeconds: positionSeconds,
-      playbackDelivery: playbackDelivery,
     );
     return;
   }
@@ -108,7 +99,6 @@ Future<void> launchMoviePlayback(
       movieNumber: movieNumber,
       mediaId: mediaId,
       positionSeconds: positionSeconds,
-      playbackDelivery: playbackDelivery,
     );
   }
 }
@@ -131,13 +121,11 @@ void _pushInAppPlayer(
   required String movieNumber,
   int? mediaId,
   int? positionSeconds,
-  MoviePlaybackDelivery? playbackDelivery,
 }) {
   MobileMoviePlayerRouteData(
     movieNumber: movieNumber,
     mediaId: mediaId,
     positionSeconds: positionSeconds,
-    delivery: playbackDelivery?.wireValue,
   ).push(context);
 }
 

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart'
     show AsyncData, ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/dto/config_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
@@ -16,8 +17,10 @@ import 'package:sakuramedia/features/configuration/presentation/providers/downlo
 import 'package:sakuramedia/features/configuration/presentation/providers/media_provider_catalog_provider.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_router.dart';
+import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/shell/desktop/app_desktop_shell.dart';
 
 import '../../../../../support/logged_in_session_store.dart';
 import '../../../../../support/test_api_bundle.dart';
@@ -53,6 +56,7 @@ void main() {
           'configuration-tab-blacklisted-movies',
           'configuration-tab-advanced',
           'configuration-tab-plugins',
+          'configuration-tab-system-maintenance',
         ];
         var previousTop = double.negativeInfinity;
         for (final key in categoryKeys) {
@@ -72,6 +76,102 @@ void main() {
         );
       },
     );
+
+    testWidgets('top-bar refresh follows the selected configuration section', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle, libraries: const []);
+      _enqueueMediaLibraries(bundle, libraries: const []);
+      _enqueueDownloadClientsList(bundle, clients: const []);
+      _enqueueDownloadClientsList(bundle, clients: const []);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        useDesktopShell: true,
+        useReloadingMediaProviderCatalog: true,
+      );
+
+      final refreshButton = find.byKey(const Key('topbar-refresh-button'));
+      expect(refreshButton, findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
+      await tester.pumpAndSettle();
+      expect(refreshButton, findsOneWidget);
+
+      await tester.tap(refreshButton);
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('GET', '/download-clients'), 2);
+      expect(bundle.adapter.hitCount('GET', '/media-libraries'), 2);
+      expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 0);
+      expect(bundle.adapter.hitCount('GET', '/playlists'), 0);
+    });
+
+    testWidgets('rebuilds the image-search index from system maintenance', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/status/image-search',
+        body: <String, dynamic>{
+          'index_space': <String, dynamic>{
+            'state': 'rebuild_required',
+            'indexed_space_id': 'siglip2-old',
+            'current_space_id': 'siglip2-new',
+          },
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(
+        find.byKey(const Key('configuration-tab-system-maintenance')),
+      );
+      await tester.pumpAndSettle();
+
+      final resetButton = find.byKey(
+        const Key('configuration-system-maintenance-image-search-reset'),
+      );
+      expect(
+        find.byKey(
+          const Key('configuration-system-maintenance-image-search-card'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('立即重建'), findsOneWidget);
+
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/image-search/reset',
+        statusCode: 202,
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/status/image-search',
+        body: <String, dynamic>{
+          'index_space': <String, dynamic>{
+            'state': 'rebuild_required',
+            'indexed_space_id': 'siglip2-old',
+            'current_space_id': 'siglip2-new',
+            'is_rebuilding': true,
+          },
+        },
+      );
+
+      await tester.tap(resetButton);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-image-search-reset-confirm')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(bundle.adapter.hitCount('POST', '/image-search/reset'), 1);
+      expect(find.text('重建中'), findsOneWidget);
+      expect(tester.widget<AppButton>(resetButton).onPressed, isNull);
+      await tester.pump(const Duration(seconds: 3));
+    });
 
     testWidgets('loads download clients lazily when switching tabs', (
       WidgetTester tester,
@@ -1136,6 +1236,64 @@ void main() {
       },
     );
 
+    testWidgets('confirms before refreshing dirty indexer settings', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueIndexerSettings(bundle, indexers: const []);
+      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+      _enqueueIndexerSettings(bundle, indexers: const []);
+      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        useDesktopShell: true,
+      );
+      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-indexer-create-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('indexer-entry-name-field')),
+        'mteam',
+      );
+      await tester.enterText(
+        find.byKey(const Key('indexer-entry-url-field')),
+        'https://mirror.example.com/torznab',
+      );
+      await tester.tap(find.byKey(const Key('indexer-download-client-1')));
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+
+      final refreshButton = find.byKey(const Key('topbar-refresh-button'));
+      await tester.tap(refreshButton);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        find.byKey(const Key('configuration-indexers-refresh-confirm-dialog')),
+        findsOneWidget,
+      );
+      expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 1);
+
+      await tester.tap(
+        find.byKey(const Key('configuration-indexers-refresh-cancel-button')),
+      );
+      await tester.pumpAndSettle();
+      expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 1);
+
+      await tester.tap(refreshButton);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(
+        find.byKey(const Key('configuration-indexers-refresh-confirm-button')),
+      );
+      await tester.pumpAndSettle();
+      expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 2);
+      expect(bundle.adapter.hitCount('GET', '/download-clients'), 2);
+    });
+
     testWidgets(
       'updates indexer download clients when the shared list changes',
       (WidgetTester tester) async {
@@ -1632,9 +1790,26 @@ Future<void> _pumpPage(
   TestApiBundle bundle, {
   required SessionStore sessionStore,
   bool useReloadingMediaProviderCatalog = false,
+  bool useDesktopShell = false,
 }) async {
   tester.view.physicalSize = const Size(1440, 900);
   tester.view.devicePixelRatio = 1;
+
+  final page = const DesktopConfigurationPage();
+  final Widget home = useDesktopShell
+      ? AppDesktopShell(
+          currentPath: desktopConfigurationPath,
+          layout: AppShellLayout.standard,
+          topBarConfig: const DesktopTopBarConfig(
+            title: '系统设置',
+            fallbackPath: null,
+            isBackEnabled: false,
+          ),
+          shellNavigatorKey: GlobalKey<NavigatorState>(),
+          navGroups: const [],
+          child: page,
+        )
+      : Scaffold(body: page);
 
   await tester.pumpWidget(
     ProviderScope(
@@ -1650,10 +1825,7 @@ Future<void> _pumpPage(
           ),
       ],
       child: OKToast(
-        child: MaterialApp(
-          theme: sakuraThemeData,
-          home: const Scaffold(body: DesktopConfigurationPage()),
-        ),
+        child: MaterialApp(theme: sakuraThemeData, home: home),
       ),
     ),
   );
@@ -1836,9 +2008,7 @@ void _enqueueMediaLibraries(
 Map<String, dynamic> _buildAdvancedConfigResponseJson() {
   return <String, dynamic>{
     'values': <String, dynamic>{
-      'media': <String, dynamic>{
-        'allowed_min_video_file_size': 268435456,
-      },
+      'media': <String, dynamic>{'allowed_min_video_file_size': 268435456},
       'metadata': <String, dynamic>{'javdb_host': 'jdforrepam.com'},
       'scheduler': <String, dynamic>{
         for (final key in AdvancedSchedulerConfigDto.cronKeys)

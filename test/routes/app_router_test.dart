@@ -468,11 +468,8 @@ void main() {
       '/desktop/library/movies/ABC-001/player',
     );
     expect(
-      const DesktopMoviePlayerRouteData(
-        movieNumber: 'ABC-001',
-        delivery: 'redirect',
-      ).location,
-      '/desktop/library/movies/ABC-001/player?delivery=redirect',
+      const DesktopMoviePlayerRouteData(movieNumber: 'ABC-001').location,
+      '/desktop/library/movies/ABC-001/player',
     );
   });
 

@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
 
 /// 读取 mpv 原生属性(如 `video-bitrate`)的注入点;
@@ -68,15 +67,12 @@ int? parseDemuxerForwardBytes(String? raw) {
 class MoviePlayerNativeStatsSampler {
   MoviePlayerNativeStatsSampler({
     required MoviePlayerNativePropertyReader readNativeProperty,
-    required MoviePlaybackDelivery playbackDelivery,
     required String originalUrl,
   }) : _readNativeProperty = readNativeProperty,
-       _playbackDelivery = playbackDelivery,
        _originalUrl = originalUrl;
 
   final MoviePlayerNativePropertyReader _readNativeProperty;
 
-  MoviePlaybackDelivery _playbackDelivery;
   String _originalUrl;
 
   final ValueNotifier<MoviePlayerPlaybackInfoSnapshot> _snapshotNotifier =
@@ -148,11 +144,7 @@ class MoviePlayerNativeStatsSampler {
   }
 
   /// 换片/来源变化时同步快照上下文;不清采样字段,需要清时另调 [reset]。
-  void updateContext({
-    required MoviePlaybackDelivery playbackDelivery,
-    required String originalUrl,
-  }) {
-    _playbackDelivery = playbackDelivery;
+  void updateContext({required String originalUrl}) {
     _originalUrl = originalUrl;
     _refreshSnapshot();
   }
@@ -289,7 +281,6 @@ class MoviePlayerNativeStatsSampler {
       decoderDropFramePerSecond: _decoderFrameDropPerSecond,
       delayedFramePerSecond: _voDelayedFramePerSecond,
       mistimedFramePerSecond: _mistimedFramePerSecond,
-      playbackDelivery: _playbackDelivery,
       originalUrl: _originalUrl,
       fileFormat: _fileFormat,
       bufferCacheDurationSeconds: _demuxerCacheDurationSeconds,

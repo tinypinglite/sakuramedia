@@ -164,6 +164,40 @@ class ImageSearchEmbeddingServiceStatsDto {
   }
 }
 
+class ImageSearchIndexSpaceStatsDto {
+  const ImageSearchIndexSpaceStatsDto({
+    required this.state,
+    this.indexedSpaceId,
+    this.currentSpaceId,
+    this.isRebuilding = false,
+  });
+
+  final String state;
+  final String? indexedSpaceId;
+  final String? currentSpaceId;
+  final bool isRebuilding;
+
+  bool get requiresRebuild => state == 'rebuild_required';
+
+  factory ImageSearchIndexSpaceStatsDto.fromJson(Map<String, dynamic> json) {
+    return ImageSearchIndexSpaceStatsDto(
+      state: json['state'] as String? ?? 'unknown',
+      indexedSpaceId: json['indexed_space_id'] as String?,
+      currentSpaceId: json['current_space_id'] as String?,
+      isRebuilding: _asBool(json['is_rebuilding']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'state': state,
+      'indexed_space_id': indexedSpaceId,
+      'current_space_id': currentSpaceId,
+      'is_rebuilding': isRebuilding,
+    };
+  }
+}
+
 class ImageSearchIndexingStatsDto {
   const ImageSearchIndexingStatsDto({
     required this.pendingThumbnails,
@@ -193,6 +227,7 @@ class StatusImageSearchDto {
     required this.healthy,
     required this.embeddingService,
     required this.indexing,
+    required this.indexSpace,
   });
 
   /// 后端口径是嵌入服务与向量库（Qdrant）的 AND。向量库不单独做诊断项，
@@ -200,6 +235,7 @@ class StatusImageSearchDto {
   final bool healthy;
   final ImageSearchEmbeddingServiceStatsDto embeddingService;
   final ImageSearchIndexingStatsDto indexing;
+  final ImageSearchIndexSpaceStatsDto indexSpace;
 
   factory StatusImageSearchDto.fromJson(Map<String, dynamic> json) {
     return StatusImageSearchDto(
@@ -208,6 +244,9 @@ class StatusImageSearchDto {
         asMap(json['embedding_service']),
       ),
       indexing: ImageSearchIndexingStatsDto.fromJson(asMap(json['indexing'])),
+      indexSpace: ImageSearchIndexSpaceStatsDto.fromJson(
+        asMap(json['index_space']),
+      ),
     );
   }
 
@@ -216,6 +255,7 @@ class StatusImageSearchDto {
       'healthy': healthy,
       'embedding_service': embeddingService.toJson(),
       'indexing': indexing.toJson(),
+      'index_space': indexSpace.toJson(),
     };
   }
 }

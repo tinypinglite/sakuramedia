@@ -202,7 +202,6 @@ class MovieMediaItemDto {
     required this.progress,
     required this.points,
     this.videoInfo,
-    this.playbackDeliveries = const <MoviePlaybackDelivery>[],
   });
 
   final int mediaId;
@@ -217,16 +216,8 @@ class MovieMediaItemDto {
   final MovieMediaProgressDto? progress;
   final List<MovieMediaPointDto> points;
   final MovieMediaVideoInfoDto? videoInfo;
-  final List<MoviePlaybackDelivery> playbackDeliveries;
 
   bool get hasPlayableUrl => playUrl.trim().isNotEmpty;
-
-  bool get supportsRedirectPlayback =>
-      playbackDeliveries.contains(MoviePlaybackDelivery.redirect);
-
-  MoviePlaybackDelivery get defaultPlaybackDelivery => supportsRedirectPlayback
-      ? MoviePlaybackDelivery.redirect
-      : MoviePlaybackDelivery.proxy;
 
   factory MovieMediaItemDto.fromJson(Map<String, dynamic> json) {
     return MovieMediaItemDto(
@@ -245,9 +236,6 @@ class MovieMediaItemDto {
         (item) => MovieMediaPointDto.fromJson(item),
       ),
       videoInfo: _videoInfoFromJson(json['video_info']),
-      playbackDeliveries: (json['playback_deliveries'] as List<dynamic>)
-          .map((value) => MoviePlaybackDelivery.fromWire(value as String))
-          .toList(growable: false),
     );
   }
 
@@ -265,7 +253,6 @@ class MovieMediaItemDto {
     Object? progress = _sentinel,
     List<MovieMediaPointDto>? points,
     Object? videoInfo = _sentinel,
-    List<MoviePlaybackDelivery>? playbackDeliveries,
   }) {
     return MovieMediaItemDto(
       mediaId: mediaId ?? this.mediaId,
@@ -290,42 +277,8 @@ class MovieMediaItemDto {
       videoInfo: identical(videoInfo, _sentinel)
           ? this.videoInfo
           : videoInfo as MovieMediaVideoInfoDto?,
-      playbackDeliveries: playbackDeliveries ?? this.playbackDeliveries,
     );
   }
-}
-
-enum MoviePlaybackDelivery {
-  proxy('proxy'),
-  redirect('redirect');
-
-  const MoviePlaybackDelivery(this.wireValue);
-
-  final String wireValue;
-
-  static MoviePlaybackDelivery fromWire(String value) => switch (value) {
-    'proxy' => MoviePlaybackDelivery.proxy,
-    'redirect' => MoviePlaybackDelivery.redirect,
-    _ => throw FormatException('Unknown playback delivery: $value'),
-  };
-}
-
-String withMoviePlaybackDelivery(
-  String playUrl,
-  MoviePlaybackDelivery delivery,
-) {
-  if (delivery == MoviePlaybackDelivery.proxy) {
-    return playUrl;
-  }
-  final uri = Uri.parse(playUrl);
-  return uri
-      .replace(
-        queryParameters: <String, String>{
-          ...uri.queryParameters,
-          'delivery': delivery.wireValue,
-        },
-      )
-      .toString();
 }
 
 const Object _sentinel = Object();

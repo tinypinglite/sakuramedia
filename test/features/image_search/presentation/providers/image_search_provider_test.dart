@@ -198,6 +198,29 @@ void main() {
   );
 
   test(
+    'space mismatch tells the user to rebuild the image-search index',
+    () async {
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/image-search/sessions',
+        statusCode: 409,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{
+            'code': 'image_search_index_rebuild_required',
+            'message': 'Image search index must be rebuilt',
+          },
+        },
+      );
+
+      _setSource(notifier);
+      await notifier.search();
+
+      expect(readState().errorMessage, '嵌入空间已变更，请先重建图搜索索引');
+      expect(readState().sessionId, isNull);
+    },
+  );
+
+  test(
     'loadMore stops pagination when backend returns repeated next cursor',
     () async {
       bundle.adapter.enqueueJson(

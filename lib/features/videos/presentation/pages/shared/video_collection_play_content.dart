@@ -68,6 +68,8 @@ class _VideoCollectionPlayContentState
     extends ConsumerState<VideoCollectionPlayContent>
     with CollectionPlaybackPageMixin<VideoCollectionPlayContent> {
   List<VideoItemListItemDto> _videos = const <VideoItemListItemDto>[];
+  List<String> _playUrls = <String>[];
+  final Set<int> _proxyFallbackIndexes = <int>{};
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -103,7 +105,7 @@ class _VideoCollectionPlayContentState
             sort: widget.sort,
             includePlayUrl: true,
           );
-      final medias = <Media>[];
+      final playUrls = <String>[];
       final playableVideos = <VideoItemListItemDto>[];
       // 与 playableVideos 平行：每集「首个媒体」id（可空），供右侧关键帧面板逐集拉缩略图。
       final playableFirstMediaIds = <int?>[];
@@ -114,7 +116,7 @@ class _VideoCollectionPlayContentState
       var resolvedStartIndex = 0;
       for (var i = 0; i < items.length; i++) {
         if (i == widget.startIndex) {
-          resolvedStartIndex = medias.length;
+          resolvedStartIndex = playUrls.length;
         }
         final rawUrl = items[i].playUrl;
         if (rawUrl == null || rawUrl.isEmpty) {
@@ -125,7 +127,7 @@ class _VideoCollectionPlayContentState
         if (playUrl == null || playUrl.isEmpty) {
           continue;
         }
-        medias.add(Media(playUrl));
+        playUrls.add(playUrl);
         playableVideos.add(items[i].video);
         playableFirstMediaIds.add(items[i].firstMediaId);
         playableDurations.add(items[i].video.durationSeconds);
@@ -133,14 +135,14 @@ class _VideoCollectionPlayContentState
       if (!mounted) {
         return;
       }
-      if (medias.isEmpty) {
+      if (playUrls.isEmpty) {
         setState(() {
           _isLoading = false;
           _errorMessage = '合集内没有可播放的视频';
         });
         return;
       }
-      final startIndex = resolvedStartIndex.clamp(0, medias.length - 1);
+      final startIndex = resolvedStartIndex.clamp(0, playUrls.length - 1);
       final player = ThrottlingPlayer();
       final videoController = VideoController(
         player,
@@ -193,6 +195,8 @@ class _VideoCollectionPlayContentState
           CollectionPlaybackMode.playlist;
       setState(() {
         _videos = playableVideos;
+        _playUrls = playUrls;
+        _proxyFallbackIndexes.clear();
         attachPlayback(
           player: player,
           videoController: videoController,
@@ -205,7 +209,7 @@ class _VideoCollectionPlayContentState
       });
       // 优先拉起播集的关键帧，当前集高亮立即可用。
       unawaited(filmstrip.start(priorityEpisode: startIndex));
-      await player.open(Playlist(medias, index: startIndex));
+      await _openPlaylist(player, startIndex);
     } catch (error) {
       if (!mounted) {
         return;
@@ -215,6 +219,61 @@ class _VideoCollectionPlayContentState
         _errorMessage = apiErrorMessage(error, fallback: '合集加载失败，请稍后重试');
       });
     }
+  }
+
+  Future<void> _openPlaylist(Player activePlayer, int index) async {
+    if (index < 0 || index >= _playUrls.length) {
+      return;
+    }
+    final sourceUrl = _playUrls[index];
+    try {
+      await activePlayer.open(
+        Playlist(
+          _playUrls.map((url) => Media(url)).toList(growable: false),
+          index: index,
+        ),
+      );
+    } catch (error) {
+      if (_playUrls[index] != sourceUrl ||
+          _retryWithProxy(activePlayer, index)) {
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = apiErrorMessage(error, fallback: '合集加载失败，请稍后重试');
+      });
+    }
+  }
+
+  bool _retryCurrentWithProxy() {
+    final activePlayer = player;
+    if (activePlayer == null) {
+      return false;
+    }
+    final playlistIndex = activePlayer.state.playlist.index;
+    final index = playlistIndex >= 0 && playlistIndex < _playUrls.length
+        ? playlistIndex
+        : currentIndex;
+    return _retryWithProxy(activePlayer, index);
+  }
+
+  bool _retryWithProxy(Player activePlayer, int index) {
+    if (!mounted ||
+        index < 0 ||
+        index >= _playUrls.length ||
+        _proxyFallbackIndexes.contains(index)) {
+      return false;
+    }
+    final proxyUrl = withProxyMediaDelivery(_playUrls[index]);
+    if (proxyUrl == _playUrls[index]) {
+      return false;
+    }
+    _proxyFallbackIndexes.add(index);
+    _playUrls[index] = proxyUrl;
+    unawaited(_openPlaylist(activePlayer, index));
+    return true;
   }
 
   void _handleBack() {
@@ -396,6 +455,8 @@ class _VideoCollectionPlayContentState
       videoController: videoController,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
       guardInitialSeek: true,
+      playbackSessionKey: currentIndex,
+      onInitialPlaybackError: _retryCurrentWithProxy,
       videoKey: const Key('video-collection-play-video'),
       displaySeekBar: !useMerged,
       topControls: buildMoviePlayerTopControls(

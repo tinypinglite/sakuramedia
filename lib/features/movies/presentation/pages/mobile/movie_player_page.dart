@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_player_content.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/landscape_player_system_ui.dart';
@@ -15,14 +14,12 @@ class MobileMoviePlayerPage extends StatefulWidget {
   const MobileMoviePlayerPage({
     super.key,
     required this.movieNumber,
-    this.playbackDelivery,
     this.initialMediaId,
     this.initialPositionSeconds,
     this.surfaceBuilder,
   });
 
   final String movieNumber;
-  final MoviePlaybackDelivery? playbackDelivery;
   final int? initialMediaId;
   final int? initialPositionSeconds;
   final MoviePlayerSurfaceBuilder? surfaceBuilder;
@@ -51,7 +48,6 @@ class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage> {
   Widget build(BuildContext context) {
     return MoviePlayerContent(
       movieNumber: widget.movieNumber,
-      playbackDelivery: widget.playbackDelivery,
       initialMediaId: widget.initialMediaId,
       initialPositionSeconds: widget.initialPositionSeconds,
       fallbackPath: buildMobileMovieDetailRoutePath(widget.movieNumber),

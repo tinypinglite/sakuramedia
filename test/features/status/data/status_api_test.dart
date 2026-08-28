@@ -161,38 +161,51 @@ void main() {
     );
   });
 
-  test('getImageSearchStatus parses embedding service and indexing stats', () async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/status/image-search',
-      statusCode: 200,
-      body: <String, dynamic>{
-        'healthy': true,
-        'embedding_service': <String, dynamic>{
+  test(
+    'getImageSearchStatus parses embedding service and indexing stats',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/status/image-search',
+        statusCode: 200,
+        body: <String, dynamic>{
           'healthy': true,
-          'endpoint': 'http://embedding:8000',
-          'space_id': 'clip-vit-l-14',
-          'dimension': 768,
-          'modalities': <String>['image', 'text'],
+          'embedding_service': <String, dynamic>{
+            'healthy': true,
+            'endpoint': 'http://embedding:8000',
+            'space_id': 'clip-vit-l-14',
+            'dimension': 768,
+            'modalities': <String>['image', 'text'],
+          },
+          'indexing': <String, dynamic>{
+            'pending_thumbnails': 23,
+            'failed_thumbnails': 2,
+            'success_thumbnails': 15295,
+          },
+          'index_space': <String, dynamic>{
+            'state': 'ready',
+            'indexed_space_id': 'clip-vit-l-14',
+            'current_space_id': 'clip-vit-l-14',
+            'is_rebuilding': true,
+          },
         },
-        'indexing': <String, dynamic>{
-          'pending_thumbnails': 23,
-          'failed_thumbnails': 2,
-          'success_thumbnails': 15295,
-        },
-      },
-    );
+      );
 
-    final status = await statusApi.getImageSearchStatus();
+      final status = await statusApi.getImageSearchStatus();
 
-    expect(status.healthy, isTrue);
-    expect(status.embeddingService.healthy, isTrue);
-    expect(status.embeddingService.spaceId, 'clip-vit-l-14');
-    expect(status.embeddingService.dimension, 768);
-    expect(status.embeddingService.endpoint, 'http://embedding:8000');
-    expect(status.indexing.pendingThumbnails, 23);
-    expect(status.indexing.failedThumbnails, 2);
-  });
+      expect(status.healthy, isTrue);
+      expect(status.embeddingService.healthy, isTrue);
+      expect(status.embeddingService.spaceId, 'clip-vit-l-14');
+      expect(status.embeddingService.dimension, 768);
+      expect(status.embeddingService.endpoint, 'http://embedding:8000');
+      expect(status.indexing.pendingThumbnails, 23);
+      expect(status.indexing.failedThumbnails, 2);
+      expect(status.indexSpace.state, 'ready');
+      expect(status.indexSpace.indexedSpaceId, 'clip-vit-l-14');
+      expect(status.indexSpace.currentSpaceId, 'clip-vit-l-14');
+      expect(status.indexSpace.isRebuilding, isTrue);
+    },
+  );
 
   test('getImageSearchStatus 保留嵌入服务的失败原因', () async {
     adapter.enqueueJson(

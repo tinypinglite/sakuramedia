@@ -18,6 +18,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
 class DesktopAdvancedSettingsSection extends ConsumerStatefulWidget {
   const DesktopAdvancedSettingsSection({
@@ -93,6 +94,14 @@ class _DesktopAdvancedSettingsSectionState
     if (!_initialized && !widget.active) {
       return const SizedBox.shrink();
     }
+
+    final content = _buildContent(context);
+    return widget.active
+        ? AppPageRefreshScope(onRefresh: _refresh, child: content)
+        : content;
+  }
+
+  Widget _buildContent(BuildContext context) {
     if (_isLoading) {
       return const AppSectionSkeleton(lineCount: _advancedSkeletonLineCount);
     }
@@ -429,6 +438,27 @@ class _DesktopAdvancedSettingsSectionState
     }
   }
 
+  Future<void> _refresh() async {
+    if (_isLoading || _savingCards.isNotEmpty) {
+      return;
+    }
+    if (_dirtyCards.isNotEmpty) {
+      final confirmed = await showAppConfirmDialog(
+        context,
+        title: '有未保存的改动',
+        message: '刷新将丢弃当前未保存的高级设置，确认刷新？',
+        confirmLabel: '刷新',
+        dialogKey: const Key('configuration-advanced-refresh-confirm-dialog'),
+        confirmKey: const Key('configuration-advanced-refresh-confirm-button'),
+        cancelKey: const Key('configuration-advanced-refresh-cancel-button'),
+      );
+      if (!confirmed || !mounted) {
+        return;
+      }
+    }
+    await _load();
+  }
+
   Future<void> _handleSaveMedia() async {
     if (!(_mediaFormKey.currentState?.validate() ?? false)) {
       return;
@@ -763,11 +793,7 @@ const List<_CronGroup> _cronGroups = <_CronGroup>[
   ),
   _CronGroup(
     title: '图搜 / 相似度',
-    keys: <String>[
-      'image_search_index',
-      'image_search_optimize',
-      'movie_similarity_recompute',
-    ],
+    keys: <String>['image_search_index', 'movie_similarity_recompute'],
   ),
   _CronGroup(
     title: '推荐',
@@ -797,7 +823,6 @@ const Map<String, String> _cronCopy = <String, String>{
   'hot_review_sync': 'JavDB 热评同步',
   'media_thumbnail': '缩略图生成',
   'image_search_index': '图片搜索索引生成',
-  'image_search_optimize': '图片搜索索引优化',
   'movie_similarity_recompute': '影片相似度离线重算',
   'moment_recommendation_generate': '推荐时刻生成',
   'daily_recommendation_generate': '每日推荐快照生成',
@@ -814,7 +839,6 @@ const Map<String, String> _cronFieldHelper = <String, String>{
   'hot_review_sync': '同步 JavDB 热评。',
   'media_thumbnail': '生成媒体缩略图。',
   'image_search_index': '生成图片搜索索引。',
-  'image_search_optimize': '优化图片搜索索引。',
   'movie_similarity_recompute': '离线重算影片相似度。',
   'moment_recommendation_generate': '生成推荐时刻。',
   'daily_recommendation_generate': '生成每日推荐快照。',

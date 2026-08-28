@@ -102,7 +102,6 @@ class AdvancedSchedulerConfigDto {
     'hot_review_sync',
     'media_thumbnail',
     'image_search_index',
-    'image_search_optimize',
     'movie_similarity_recompute',
     'moment_recommendation_generate',
     'daily_recommendation_generate',

@@ -160,15 +160,8 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
                       widget.movieNumber,
                     ),
                     mediaId: selectedMedia.mediaId,
-                    playbackDelivery: playbackDeliveryFor(selectedMedia),
                   )
                 : null,
-            playbackDelivery: selectedMedia == null
-                ? null
-                : playbackDeliveryFor(selectedMedia),
-            onPlaybackDeliveryChanged: selectedMedia == null
-                ? null
-                : (delivery) => selectPlaybackDelivery(selectedMedia, delivery),
             onPlaylistTap: () => showMoviePlaylistPickerDialog(
               context,
               movieNumber: widget.movieNumber,
@@ -480,7 +473,6 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
       fallbackPath: buildDesktopMovieDetailRoutePath(widget.movieNumber),
       mediaId: mediaItem.mediaId,
       positionSeconds: point.offsetSeconds,
-      playbackDelivery: playbackDeliveryFor(mediaItem),
     );
   }
 }

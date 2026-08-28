@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -31,6 +33,7 @@ class QuickPlayDialog extends StatefulWidget {
     required this.noPlayableMessage,
     this.errorFallback = '加载失败，请重试',
     this.guardInitialSeek = false,
+    this.supportsProxyFallback = false,
     this.subtitle,
   });
 
@@ -54,6 +57,9 @@ class QuickPlayDialog extends StatefulWidget {
   /// 完整媒体启用初始化 seek 保护；切片是本地产物，保持关闭。
   final bool guardInitialSeek;
 
+  /// 后端媒体网关支持 `delivery=proxy` 时，首帧失败可改代理重试一次。
+  final bool supportsProxyFallback;
+
   /// 标题下方的可选副内容槽（例如「所属合集」chip 行）。为空则不留空隙。
   final Widget? subtitle;
 
@@ -66,6 +72,8 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
   VideoController? _controller;
   bool _loading = true;
   String? _errorMessage;
+  String? _activeUrl;
+  bool _hasProxyFallback = false;
 
   @override
   void initState() {
@@ -91,12 +99,14 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
         player,
         configuration: const VideoControllerConfiguration(hwdec: 'auto'),
       );
+      _activeUrl = resolvedUrl;
+      _hasProxyFallback = false;
       setState(() {
         _loading = false;
         _player = player;
         _controller = controller;
       });
-      player.open(Media(resolvedUrl));
+      await _openMedia(player, resolvedUrl);
     } catch (error) {
       if (!mounted) {
         return;
@@ -106,6 +116,46 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
         _errorMessage = apiErrorMessage(error, fallback: widget.errorFallback);
       });
     }
+  }
+
+  Future<void> _openMedia(Player player, String url) async {
+    try {
+      await player.open(Media(url));
+    } catch (error) {
+      if (_activeUrl != url || _retryWithProxy()) {
+        return;
+      }
+      _showPlaybackError(error);
+    }
+  }
+
+  bool _retryWithProxy() {
+    final player = _player;
+    final sourceUrl = _activeUrl;
+    if (!mounted ||
+        !widget.supportsProxyFallback ||
+        player == null ||
+        sourceUrl == null ||
+        _hasProxyFallback) {
+      return false;
+    }
+    final proxyUrl = withProxyMediaDelivery(sourceUrl);
+    if (proxyUrl == sourceUrl) {
+      return false;
+    }
+    _hasProxyFallback = true;
+    _activeUrl = proxyUrl;
+    unawaited(_openMedia(player, proxyUrl));
+    return true;
+  }
+
+  void _showPlaybackError(Object error) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _errorMessage = apiErrorMessage(error, fallback: widget.errorFallback);
+    });
   }
 
   @override
@@ -167,6 +217,8 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
       videoController: controller,
       useTouchOptimizedControls: false,
       guardInitialSeek: widget.guardInitialSeek,
+      onInitialPlaybackError:
+          widget.supportsProxyFallback ? _retryWithProxy : null,
       videoKey: widget.videoKey,
       bottomControls: const <Widget>[
         MaterialPlayOrPauseButton(),
@@ -200,6 +252,7 @@ Future<void> showVideoQuickPlayDialog(
           videoKey: const Key('video-quick-play-video'),
           noPlayableMessage: '暂无可播放的媒体',
           guardInitialSeek: true,
+          supportsProxyFallback: true,
           subtitle: subtitle,
           resolvePlayUrl: (innerContext) async {
             final container = ProviderScope.containerOf(

@@ -5,7 +5,6 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/movie_detail_page.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_switch.dart';
 
 import '../../../../../support/test_api_bundle.dart';
 
@@ -66,7 +65,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('switches the selected playback delivery', (
+  testWidgets('does not expose a playback delivery switch', (
     WidgetTester tester,
   ) async {
     _enqueueMovieDetailResponses(bundle);
@@ -75,31 +74,11 @@ void main() {
 
     expect(
       find.byKey(const Key('movie-media-playback-delivery-selector')),
-      findsOneWidget,
-    );
-    final summaryBottom = tester
-        .getBottomLeft(find.byKey(const Key('movie-media-summary-row')))
-        .dy;
-    final selectorRect = tester.getRect(
-      find.byKey(const Key('movie-media-playback-delivery-selector')),
+      findsNothing,
     );
     expect(
-      selectorRect.top - summaryBottom,
-      AppComponentTokens.defaults().movieDetailSectionTitleGap,
-    );
-
-    await tester.tap(
       find.byKey(const Key('movie-media-playback-delivery-switch')),
-    );
-    await tester.pump();
-
-    expect(
-      tester
-          .widget<AppSwitch>(
-            find.byKey(const Key('movie-media-playback-delivery-switch')),
-          )
-          .value,
-      isTrue,
+      findsNothing,
     );
   });
 }
@@ -137,7 +116,6 @@ void _enqueueMovieDetailResponses(TestApiBundle bundle) {
           'file_name': 'ABC-001.mp4',
           'valid': true,
           'points': <Map<String, dynamic>>[],
-          'playback_deliveries': <String>['proxy', 'redirect'],
         },
       ],
     },

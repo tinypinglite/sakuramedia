@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_format.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/overview_system_info_provider.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/overview_system_info_state.dart';
@@ -9,6 +10,7 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_s
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
 class MobileSystemOverviewPage extends ConsumerWidget {
   const MobileSystemOverviewPage({super.key});
@@ -68,6 +70,10 @@ class MobileSystemOverviewPage extends ConsumerWidget {
     if (status == null) {
       return const AppEmptyState(message: '暂无系统信息');
     }
+    final needsImageSearchRebuild =
+        systemInfo.imageSearchStatus?.indexSpace.requiresRebuild ?? false;
+    final isImageSearchRebuilding =
+        systemInfo.imageSearchStatus?.indexSpace.isRebuilding ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -136,6 +142,27 @@ class MobileSystemOverviewPage extends ConsumerWidget {
               isLoading: systemInfo.isLoadingImageSearchStatus,
             ),
             _MobileSystemOverviewMetricItem(
+              id: 'image-search-index-space',
+              label: '图搜索索引',
+              value: systemInfo.buildImageSearchIndexSpaceValue(),
+              isLoading: systemInfo.isLoadingImageSearchStatus,
+              actionLabel: isImageSearchRebuilding
+                  ? '重建中'
+                  : needsImageSearchRebuild
+                  ? '重建'
+                  : null,
+              isActionLoading: systemInfo.isResettingImageSearch,
+              onActionPressed:
+                  needsImageSearchRebuild && !isImageSearchRebuilding
+                  ? () => _confirmImageSearchReset(
+                      context,
+                      notifier,
+                      systemInfo.imageSearchStatus?.indexSpace.indexedSpaceId,
+                      systemInfo.imageSearchStatus?.indexSpace.currentSpaceId,
+                    )
+                  : null,
+            ),
+            _MobileSystemOverviewMetricItem(
               id: 'embedding-service-indexing-backlog',
               label: '待索引',
               value: systemInfo.buildEmbeddingServiceIndexingValue(),
@@ -157,6 +184,32 @@ class MobileSystemOverviewPage extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _confirmImageSearchReset(
+    BuildContext context,
+    OverviewSystemInfo notifier,
+    String? indexedSpaceId,
+    String? currentSpaceId,
+  ) async {
+    final spaceMessage = indexedSpaceId == null
+        ? '无法确认历史索引使用的嵌入空间。'
+        : '嵌入空间已从「$indexedSpaceId」变更为「${currentSpaceId ?? '未知'}」。';
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '重建图搜索索引',
+      message: '$spaceMessage 这会清空现有图片索引并重新开始构建，确认继续吗？',
+      confirmLabel: '重建索引',
+      danger: true,
+      dialogKey: const Key('mobile-image-search-reset-confirm-dialog'),
+      confirmKey: const Key('mobile-image-search-reset-confirm'),
+      cancelKey: const Key('mobile-image-search-reset-cancel'),
+      onConfirm: notifier.resetImageSearch,
+      failureFallback: '重建图搜索索引失败',
+    );
+    if (confirmed && context.mounted) {
+      showToast('图搜索索引已开始重建');
+    }
   }
 }
 
@@ -302,7 +355,7 @@ class _MobileSystemOverviewMetricTile extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-          if (item.actionLabel != null && item.onActionPressed != null) ...[
+          if (item.actionLabel != null) ...[
             SizedBox(height: context.appSpacing.sm),
             AppButton(
               key: Key('mobile-system-overview-${item.id}-test-button'),

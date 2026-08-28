@@ -7,7 +7,6 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
-import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/video/initial_seek_guard.dart';
@@ -33,7 +32,6 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     super.key,
     required this.movieNumber,
     required this.resolvedUrl,
-    required this.playbackDelivery,
     required this.surfaceController,
     this.initialPosition,
     this.resumePosition,
@@ -48,11 +46,11 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     this.useTouchOptimizedControls = false,
     this.mediaSourceKind = MoviePlayerMediaSourceKind.unknown,
     this.mediaInfo,
+    this.onInitialPlaybackError,
   });
 
   final String movieNumber;
   final String resolvedUrl;
-  final MoviePlaybackDelivery playbackDelivery;
   final MoviePlayerSurfaceController surfaceController;
 
   /// 调用方明确指定的起播位置（如从时刻/缩略图进入），不显示续播提示。
@@ -74,6 +72,9 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
   final bool useTouchOptimizedControls;
   final MoviePlayerMediaSourceKind mediaSourceKind;
   final MoviePlayerMediaInfo? mediaInfo;
+
+  /// 首帧前的播放器错误可由调用方改用代理重试一次；返回 `true` 表示已接管。
+  final bool Function()? onInitialPlaybackError;
 
   @override
   ConsumerState<MoviePlayerSurface> createState() => _MoviePlayerSurfaceState();
@@ -123,7 +124,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _readiness = MoviePlayerSurfaceReadiness();
     _statsSampler = MoviePlayerNativeStatsSampler(
       readNativeProperty: createMediaKitNativePropertyReader(_player),
-      playbackDelivery: widget.playbackDelivery,
       originalUrl: widget.resolvedUrl,
     );
     _resumePrompt = MoviePlayerResumePromptCoordinator(
@@ -207,12 +207,8 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
         unawaited(_player.play());
       });
     }
-    if (oldWidget.resolvedUrl != widget.resolvedUrl ||
-        oldWidget.playbackDelivery != widget.playbackDelivery) {
-      _statsSampler.updateContext(
-        playbackDelivery: widget.playbackDelivery,
-        originalUrl: widget.resolvedUrl,
-      );
+    if (oldWidget.resolvedUrl != widget.resolvedUrl) {
+      _statsSampler.updateContext(originalUrl: widget.resolvedUrl);
     }
     if (oldWidget.resolvedUrl != widget.resolvedUrl) {
       _playbackRate.resetMobileDisplayForNewMedia(_player.state.rate);
@@ -355,6 +351,9 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
 
   void _markPlaybackFailed(String error) {
     if (!mounted || _hasPlaybackError) {
+      return;
+    }
+    if (!_readiness.isReady && widget.onInitialPlaybackError?.call() == true) {
       return;
     }
     debugPrint('[player-debug] playback_failed error=$error');

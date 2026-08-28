@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/theme.dart';
 
 enum MoviePlayerDecodingMode { hardware, software, unknown }
@@ -52,7 +51,6 @@ class MoviePlayerPlaybackInfoSnapshot {
     required this.audioBitrateLabel,
     required this.dynamicRangeLabel,
     required this.dynamicRangeDetailLabel,
-    this.playbackDeliveryLabel = '--',
     this.playbackGatewayHostLabel,
     this.playbackGatewayRequestPathLabel,
     this.playbackDemuxerFormatLabel = '--',
@@ -103,9 +101,6 @@ class MoviePlayerPlaybackInfoSnapshot {
   final String dynamicRangeLabel;
   final String dynamicRangeDetailLabel;
 
-  /// 后端声明并由用户选定的交付方式，例如 `302直连` / `后端代理`。
-  final String playbackDeliveryLabel;
-
   /// 播放器最初访问的后端网关主机；不是 302 跳转后的上游主机。
   final String? playbackGatewayHostLabel;
 
@@ -147,7 +142,6 @@ class MoviePlayerPlaybackInfoSnapshot {
         other.audioBitrateLabel == audioBitrateLabel &&
         other.dynamicRangeLabel == dynamicRangeLabel &&
         other.dynamicRangeDetailLabel == dynamicRangeDetailLabel &&
-        other.playbackDeliveryLabel == playbackDeliveryLabel &&
         other.playbackGatewayHostLabel == playbackGatewayHostLabel &&
         other.playbackGatewayRequestPathLabel ==
             playbackGatewayRequestPathLabel &&
@@ -178,7 +172,6 @@ class MoviePlayerPlaybackInfoSnapshot {
     audioBitrateLabel,
     dynamicRangeLabel,
     dynamicRangeDetailLabel,
-    playbackDeliveryLabel,
     playbackGatewayHostLabel,
     playbackGatewayRequestPathLabel,
     playbackDemuxerFormatLabel,
@@ -203,7 +196,6 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
   required double? decoderDropFramePerSecond,
   required double? delayedFramePerSecond,
   required double? mistimedFramePerSecond,
-  required MoviePlaybackDelivery playbackDelivery,
   String? originalUrl,
   String? fileFormat,
   double? bufferCacheDurationSeconds,
@@ -270,10 +262,6 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     ),
     dynamicRangeLabel: _buildDynamicRangeLabel(dynamicRangeMode),
     dynamicRangeDetailLabel: _buildDynamicRangeDetailLabel(videoParams),
-    playbackDeliveryLabel: switch (playbackDelivery) {
-      MoviePlaybackDelivery.redirect => '302直连',
-      MoviePlaybackDelivery.proxy => '后端代理',
-    },
     playbackGatewayHostLabel: _extractHost(originalUrl),
     playbackGatewayRequestPathLabel: _extractPathAndTail(originalUrl),
     playbackDemuxerFormatLabel: _normalizeTechnicalText(fileFormat),
@@ -944,11 +932,6 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
 /// 构建播放器信息面板顶部的「播放链路」段。
 List<Widget> _buildPlaybackRouteSection(MoviePlayerPlaybackInfoSnapshot info) {
   final rows = <_MoviePlayerPlaybackInfoRowData>[
-    _MoviePlayerPlaybackInfoRowData(
-      label: '交付方式',
-      value: info.playbackDeliveryLabel,
-      valueKey: const Key('movie-player-info-value-playback-delivery'),
-    ),
     if (info.playbackGatewayHostLabel case final host?)
       _MoviePlayerPlaybackInfoRowData(
         label: '网关主机',

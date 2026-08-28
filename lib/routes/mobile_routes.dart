@@ -34,7 +34,6 @@ import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_coll
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_collections_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_player_page.dart';
-import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/series_movies_page.dart';
 import 'package:sakuramedia/features/overview/presentation/pages/mobile/system_overview_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/pages/mobile/playlists_page.dart';
@@ -482,13 +481,11 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
     required this.movieNumber,
     this.mediaId,
     this.positionSeconds,
-    this.delivery,
   });
 
   final String movieNumber;
   final int? mediaId;
   final int? positionSeconds;
-  final String? delivery;
 
   @override
   String get pageName => 'mobile-movie-player';
@@ -499,7 +496,6 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
     queryParameters: <String, String?>{
       if (mediaId != null) 'mediaId': '$mediaId',
       if (positionSeconds != null) 'positionSeconds': '$positionSeconds',
-      if (delivery != null) 'delivery': delivery,
     },
   );
 
@@ -518,9 +514,6 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
         names: const <String>['positionSeconds', 'position-seconds'],
         fallback: positionSeconds,
       ),
-      playbackDelivery: delivery == null
-          ? null
-          : MoviePlaybackDelivery.fromWire(delivery!),
     );
   }
 }

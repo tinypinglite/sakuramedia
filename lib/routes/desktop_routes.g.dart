@@ -59,7 +59,6 @@ mixin $DesktopMoviePlayerRouteData on GoRouteData {
           state.uri.queryParameters,
           int.tryParse,
         ),
-        delivery: state.uri.queryParameters['delivery'],
       );
 
   DesktopMoviePlayerRouteData get _self => this as DesktopMoviePlayerRouteData;
@@ -71,7 +70,6 @@ mixin $DesktopMoviePlayerRouteData on GoRouteData {
       if (_self.mediaId != null) 'media-id': _self.mediaId!.toString(),
       if (_self.positionSeconds != null)
         'position-seconds': _self.positionSeconds!.toString(),
-      if (_self.delivery != null) 'delivery': _self.delivery,
     },
   );
 

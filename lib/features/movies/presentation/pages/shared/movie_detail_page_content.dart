@@ -85,8 +85,6 @@ class MovieDetailPageContent extends StatelessWidget {
     this.scrollViewBuilder,
     this.isMoreActionsUpdating = false,
     this.isPlayLoading = false,
-    this.playbackDelivery,
-    this.onPlaybackDeliveryChanged,
   });
 
   final MovieDetailDto movie;
@@ -153,8 +151,6 @@ class MovieDetailPageContent extends StatelessWidget {
 
   /// 播放动作进行中（合并播放探测/拉起外部播放器），透传给 hero 播放按钮显示 loading。
   final bool isPlayLoading;
-  final MoviePlaybackDelivery? playbackDelivery;
-  final ValueChanged<MoviePlaybackDelivery>? onPlaybackDeliveryChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -339,8 +335,6 @@ class MovieDetailPageContent extends StatelessWidget {
                   onDeleteSelectedMedia: onDeleteSelectedMedia,
                   onOpenPointPreview: onOpenMediaPointPreview,
                   onRequestPointMenu: onRequestMediaPointMenu,
-                  playbackDelivery: playbackDelivery,
-                  onPlaybackDeliveryChanged: onPlaybackDeliveryChanged,
                 ),
               ],
             ),

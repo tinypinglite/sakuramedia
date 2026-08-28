@@ -11,7 +11,6 @@ import 'package:sakuramedia/features/image_search/presentation/pages/desktop/ima
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/movie_player_page.dart';
-import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/series_movies_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_collections_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_collection_detail_page.dart';
@@ -63,13 +62,11 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     required this.movieNumber,
     this.mediaId,
     this.positionSeconds,
-    this.delivery,
   });
 
   final String movieNumber;
   final int? mediaId;
   final int? positionSeconds;
-  final String? delivery;
 
   @override
   String get pageName => 'desktop-movie-player';
@@ -80,7 +77,6 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
     queryParameters: <String, String?>{
       if (mediaId != null) 'mediaId': '$mediaId',
       if (positionSeconds != null) 'positionSeconds': '$positionSeconds',
-      if (delivery != null) 'delivery': delivery,
     },
   );
 
@@ -100,9 +96,6 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
         names: const <String>['positionSeconds', 'position-seconds'],
         fallback: positionSeconds,
       ),
-      playbackDelivery: delivery == null
-          ? null
-          : MoviePlaybackDelivery.fromWire(delivery!),
     );
   }
 }

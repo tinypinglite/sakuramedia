@@ -160,18 +160,9 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
                     selectedMedia,
                   ),
             onPlayTap: selectedMedia != null && selectedMedia.hasPlayableUrl
-                ? () => _openMoviePlayer(
-                    mediaId: selectedMedia.mediaId,
-                    playbackDelivery: playbackDeliveryFor(selectedMedia),
-                  )
+                ? () => _openMoviePlayer(mediaId: selectedMedia.mediaId)
                 : null,
             isPlayLoading: _isLaunchingPlayback,
-            playbackDelivery: selectedMedia == null
-                ? null
-                : playbackDeliveryFor(selectedMedia),
-            onPlaybackDeliveryChanged: selectedMedia == null
-                ? null
-                : (delivery) => selectPlaybackDelivery(selectedMedia, delivery),
             onPlaylistTap: () => showMoviePlaylistPickerDialog(
               context,
               movieNumber: widget.movieNumber,
@@ -406,7 +397,6 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
         _openMoviePlayer(
           mediaId: mediaItem.mediaId,
           positionSeconds: point.offsetSeconds,
-          playbackDelivery: playbackDeliveryFor(mediaItem),
         );
       case MediaPreviewAction.openMovieDetail:
         return;
@@ -441,15 +431,10 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
     _openMoviePlayer(
       mediaId: mediaItem.mediaId,
       positionSeconds: point.offsetSeconds,
-      playbackDelivery: playbackDeliveryFor(mediaItem),
     );
   }
 
-  void _openMoviePlayer({
-    int? mediaId,
-    int? positionSeconds,
-    MoviePlaybackDelivery? playbackDelivery,
-  }) {
+  void _openMoviePlayer({int? mediaId, int? positionSeconds}) {
     if (_isLaunchingPlayback) {
       return;
     }
@@ -462,7 +447,6 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
         movieNumber: widget.movieNumber,
         mediaId: mediaId,
         positionSeconds: positionSeconds,
-        playbackDelivery: playbackDelivery,
         movie: ref.read(movieDetailProvider(widget.movieNumber)).movie,
       ).whenComplete(() {
         if (mounted) {

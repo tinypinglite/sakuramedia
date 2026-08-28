@@ -31,4 +31,21 @@ extension OverviewSystemInfoFormat on OverviewSystemInfoState {
     }
     return imageSearchStatus!.indexing.pendingThumbnails.toString();
   }
+
+  String buildImageSearchIndexSpaceValue() {
+    final status = imageSearchStatus;
+    if (status == null) {
+      return '不可用';
+    }
+    if (status.indexSpace.isRebuilding) {
+      return '重建中';
+    }
+    return switch (status.indexSpace.state) {
+      'ready' => '就绪',
+      'rebuild_required' => '需重建',
+      'uninitialized' => '未建立',
+      'unavailable' => '不可用',
+      _ => '未知',
+    };
+  }
 }

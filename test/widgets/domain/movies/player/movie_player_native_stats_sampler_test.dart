@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_native_stats_sampler.dart';
 
 void main() {
@@ -10,7 +9,7 @@ void main() {
     expect(parseDemuxerForwardBytes(''), isNull);
   });
 
-  test('samples redirect delivery and gateway diagnostics', () async {
+  test('samples gateway diagnostics', () async {
     final values = <String, String>{
       'file-format': 'matroska,webm',
       'demuxer-cache-duration': '4.5',
@@ -18,7 +17,6 @@ void main() {
     };
     final sampler = MoviePlayerNativeStatsSampler(
       readNativeProperty: (property) async => values[property],
-      playbackDelivery: MoviePlaybackDelivery.redirect,
       originalUrl: 'https://backend.example/media/1/play/movie.mkv?signature=x',
     );
     addTearDown(sampler.dispose);
@@ -31,7 +29,6 @@ void main() {
     sampler.start();
     await Future<void>.delayed(Duration.zero);
 
-    expect(sampler.snapshot.value.playbackDeliveryLabel, '302直连');
     expect(sampler.snapshot.value.playbackDemuxerFormatLabel, 'matroska,webm');
     expect(sampler.snapshot.value.playbackGatewayHostLabel, 'backend.example');
     expect(
@@ -40,21 +37,21 @@ void main() {
     );
   });
 
-  test('updates delivery independently of the gateway URL', () {
+  test('updates the gateway URL', () {
     final sampler = MoviePlayerNativeStatsSampler(
       readNativeProperty: (_) async => null,
-      playbackDelivery: MoviePlaybackDelivery.proxy,
       originalUrl: 'https://backend.example/media/1/play/',
     );
     addTearDown(sampler.dispose);
 
     sampler.start();
-    expect(sampler.snapshot.value.playbackDeliveryLabel, '后端代理');
+    expect(sampler.snapshot.value.playbackGatewayHostLabel, 'backend.example');
 
-    sampler.updateContext(
-      playbackDelivery: MoviePlaybackDelivery.redirect,
-      originalUrl: 'https://backend.example/media/1/play/',
+    sampler.updateContext(originalUrl: 'https://proxy.example/media/2/play/');
+    expect(sampler.snapshot.value.playbackGatewayHostLabel, 'proxy.example');
+    expect(
+      sampler.snapshot.value.playbackGatewayRequestPathLabel,
+      '/media/2/play/',
     );
-    expect(sampler.snapshot.value.playbackDeliveryLabel, '302直连');
   });
 }

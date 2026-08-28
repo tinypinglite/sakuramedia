@@ -88,7 +88,6 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
   final Map<int, List<MovieMediaPointDto>> pointOverrides =
       <int, List<MovieMediaPointDto>>{};
   int? selectedMediaId;
-  MoviePlaybackDelivery? selectedPlaybackDelivery;
   bool? isSubscribedOverride;
   bool? isBlacklistedOverride;
   bool? isCollectionOverride;
@@ -246,12 +245,6 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     setState(() {
       pointOverrides.clear();
       selectedMediaId = nextSelectedMediaId;
-      if (nextSelectedMediaId != currentId) {
-        selectedPlaybackDelivery = refreshedMediaItems
-            .where((item) => item.mediaId == nextSelectedMediaId)
-            .firstOrNull
-            ?.defaultPlaybackDelivery;
-      }
       isSubscribedOverride = null;
       isBlacklistedOverride = null;
       isCollectionOverride = null;
@@ -460,32 +453,9 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     );
   }
 
-  MoviePlaybackDelivery playbackDeliveryFor(MovieMediaItemDto mediaItem) {
-    if (mediaItem.mediaId == selectedMediaId &&
-        selectedPlaybackDelivery != null &&
-        mediaItem.playbackDeliveries.contains(selectedPlaybackDelivery)) {
-      return selectedPlaybackDelivery!;
-    }
-    return mediaItem.defaultPlaybackDelivery;
-  }
-
   void selectMedia(MovieMediaItemDto mediaItem) {
     setState(() {
       selectedMediaId = mediaItem.mediaId;
-      selectedPlaybackDelivery = mediaItem.defaultPlaybackDelivery;
-    });
-  }
-
-  void selectPlaybackDelivery(
-    MovieMediaItemDto mediaItem,
-    MoviePlaybackDelivery delivery,
-  ) {
-    if (!mediaItem.playbackDeliveries.contains(delivery)) {
-      return;
-    }
-    setState(() {
-      selectedMediaId = mediaItem.mediaId;
-      selectedPlaybackDelivery = delivery;
     });
   }
 

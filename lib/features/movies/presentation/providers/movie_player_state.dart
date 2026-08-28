@@ -88,16 +88,8 @@ class MoviePlayerState {
     errorMessage: subtitleErrorMessage,
   );
 
-  String? resolvedPlayUrl(
-    String baseUrl,
-    MoviePlaybackDelivery? playbackDelivery,
-  ) => resolveMediaUrl(
-    rawUrl: selectedMedia == null
-        ? null
-        : withMoviePlaybackDelivery(
-            selectedMedia!.playUrl,
-            playbackDelivery ?? selectedMedia!.defaultPlaybackDelivery,
-          ),
+  String? resolvedPlayUrl(String baseUrl) => resolveMediaUrl(
+    rawUrl: selectedMedia?.playUrl,
     baseUrl: baseUrl,
   );
 

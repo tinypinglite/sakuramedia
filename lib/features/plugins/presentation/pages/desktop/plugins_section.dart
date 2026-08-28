@@ -19,6 +19,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
@@ -118,13 +119,22 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection> {
     unawaited(showPluginSettingsDialog(context, plugin: plugin));
   }
 
+  Future<void> _refresh() async {
+    final state = ref.read(pluginsProvider).value;
+    if (state?.isInstalling == true ||
+        state?.busyPluginIds.isNotEmpty == true) {
+      return;
+    }
+    await ref.read(pluginsProvider.notifier).reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.active) {
       return const SizedBox.shrink();
     }
     final asyncPlugins = ref.watch(pluginsProvider);
-    return asyncPlugins.when(
+    final content = asyncPlugins.when(
       loading: () => const AppSectionSkeleton(lineCount: 4),
       error: (error, _) => AppSectionError(
         title: '插件加载失败',
@@ -133,6 +143,7 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection> {
       ),
       data: (state) => _buildLoaded(context, state),
     );
+    return AppPageRefreshScope(onRefresh: _refresh, child: content);
   }
 
   Widget _buildLoaded(BuildContext context, PluginsState state) {

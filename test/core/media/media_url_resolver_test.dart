@@ -55,4 +55,19 @@ void main() {
     expect(resolveMediaUrl(rawUrl: '/covers/a.jpg', baseUrl: ''), isNull);
     expect(resolveMediaUrl(rawUrl: 'covers/a.jpg', baseUrl: '  '), isNull);
   });
+
+  test('changes a media gateway url to proxy delivery', () {
+    expect(
+      withProxyMediaDelivery(
+        'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=auto',
+      ),
+      'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=proxy',
+    );
+    expect(
+      withProxyMediaDelivery(
+        'https://api.example.com/media/1/play/?expires=1&signature=sig',
+      ),
+      'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=proxy',
+    );
+  });
 }

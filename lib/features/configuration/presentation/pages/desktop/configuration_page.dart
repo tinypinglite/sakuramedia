@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/configuration/presentation/pages/desktop/do
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/indexer_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/media_libraries_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/playlists_section.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/desktop/system_maintenance_section.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/blacklisted_movies_section.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/desktop/plugins_section.dart';
 import 'package:sakuramedia/theme.dart';
@@ -40,7 +41,7 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
           label: '账号安全',
           icon: Icons.shield_outlined,
         ),
-        builder: (_) => const AccountSecuritySection(),
+        builder: (active) => AccountSecuritySection(active: active),
       ),
       _ConfigurationTab(
         category: const _ConfigurationCategory(
@@ -100,6 +101,14 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
           icon: Icons.extension_outlined,
         ),
         builder: (active) => DesktopPluginsSection(active: active),
+      ),
+      _ConfigurationTab(
+        category: const _ConfigurationCategory(
+          itemKey: Key('configuration-tab-system-maintenance'),
+          label: '系统维护',
+          icon: Icons.build_outlined,
+        ),
+        builder: (active) => SystemMaintenanceSection(active: active),
       ),
       // 媒体维护 / 媒体管理已迁出：并入侧边栏「管理 > 媒体管理」独立页（三 tab）。
     ];

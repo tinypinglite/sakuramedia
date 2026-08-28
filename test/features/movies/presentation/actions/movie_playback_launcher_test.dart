@@ -21,7 +21,7 @@ MovieMediaItemDto _media({
 }
 
 void main() {
-  test('parses the provider playback contract without storage fields', () {
+  test('parses the provider play URL without a delivery choice', () {
     final dto = MovieMediaItemDto.fromJson(<String, dynamic>{
       'media_id': 12,
       'library_id': 3,
@@ -34,7 +34,6 @@ void main() {
       'valid': true,
       'progress': null,
       'points': <Map<String, dynamic>>[],
-      'playback_deliveries': <String>['proxy', 'redirect'],
     });
 
     expect(dto.mediaId, 12);
@@ -43,11 +42,6 @@ void main() {
     expect(dto.playUrl, contains('/media/12/play/'));
     expect(dto.resolution, isNull);
     expect(dto.hasPlayableUrl, isTrue);
-    expect(dto.defaultPlaybackDelivery, MoviePlaybackDelivery.redirect);
-    expect(
-      withMoviePlaybackDelivery(dto.playUrl, MoviePlaybackDelivery.redirect),
-      contains('delivery=redirect'),
-    );
   });
 
   test('copyWith preserves signed play URL and provider metadata', () {

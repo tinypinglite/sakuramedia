@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
 
 MoviePlayerPlaybackInfoSnapshot _snapshot({
   Track track = const Track(),
   VideoParams videoParams = const VideoParams(),
-  MoviePlaybackDelivery playbackDelivery = MoviePlaybackDelivery.proxy,
   String? fileFormat,
   String? originalUrl,
 }) {
@@ -28,7 +26,6 @@ MoviePlayerPlaybackInfoSnapshot _snapshot({
     decoderDropFramePerSecond: null,
     delayedFramePerSecond: null,
     mistimedFramePerSecond: null,
-    playbackDelivery: playbackDelivery,
     originalUrl: originalUrl,
     fileFormat: fileFormat,
   );
@@ -42,32 +39,26 @@ void main() {
     expect(snapshot.decodingModeLabel, '硬件解码');
   });
 
-  test('reports backend proxy delivery, gateway context, and demuxer', () {
+  test('reports gateway context and demuxer', () {
     final snapshot = _snapshot(
       fileFormat: 'matroska,webm',
       originalUrl:
           'https://backend.example.com/media/1/play/movie.mkv?signature=x',
     );
 
-    expect(snapshot.playbackDeliveryLabel, '后端代理');
     expect(snapshot.playbackGatewayHostLabel, 'backend.example.com');
     expect(snapshot.playbackGatewayRequestPathLabel, '/media/1/play/movie.mkv');
     expect(snapshot.playbackDemuxerFormatLabel, 'matroska,webm');
   });
 
-  test('reports redirect delivery independently of demuxer format', () {
-    final snapshot = _snapshot(
-      playbackDelivery: MoviePlaybackDelivery.redirect,
-      fileFormat: 'hls',
-    );
+  test('reports demuxer format independently of gateway context', () {
+    final snapshot = _snapshot(fileFormat: 'hls');
 
-    expect(snapshot.playbackDeliveryLabel, '302直连');
     expect(snapshot.playbackDemuxerFormatLabel, 'hls');
   });
 
   test('keeps unknown demuxer format neutral', () {
     final snapshot = _snapshot();
-    expect(snapshot.playbackDeliveryLabel, '后端代理');
     expect(snapshot.playbackDemuxerFormatLabel, '--');
     expect(snapshot.playbackGatewayHostLabel, isNull);
   });
@@ -82,7 +73,7 @@ void main() {
     expect(snapshot.videoCodecLabel, 'h264');
   });
 
-  testWidgets('panel shows delivery and demuxer as separate facts', (
+  testWidgets('panel shows gateway and demuxer as separate facts', (
     tester,
   ) async {
     final info = ValueNotifier<MoviePlayerPlaybackInfoSnapshot>(
@@ -108,8 +99,6 @@ void main() {
     );
 
     expect(find.text('播放链路'), findsOneWidget);
-    expect(find.text('交付方式'), findsOneWidget);
-    expect(find.text('后端代理'), findsOneWidget);
     expect(find.text('网关主机'), findsOneWidget);
     expect(find.text('backend.example.com'), findsOneWidget);
     expect(find.text('解复用格式'), findsOneWidget);

@@ -20,6 +20,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
 class MediaLibrariesSection extends ConsumerStatefulWidget {
   const MediaLibrariesSection({super.key, required this.active});
@@ -53,6 +54,13 @@ class _MediaLibrariesSectionState extends ConsumerState<MediaLibrariesSection> {
       }
       return null;
     }
+  }
+
+  Future<void> _refresh() {
+    return Future.wait<void>([
+      ref.read(mediaLibrariesProvider.notifier).reload(),
+      ref.read(mediaProviderCatalogProvider.notifier).reload(),
+    ]);
   }
 
   Future<void> _createLibrary() async {
@@ -122,7 +130,7 @@ class _MediaLibrariesSectionState extends ConsumerState<MediaLibrariesSection> {
   Widget build(BuildContext context) {
     if (!widget.active) return const SizedBox.shrink();
     final libraries = ref.watch(mediaLibrariesProvider);
-    return libraries.when(
+    final content = libraries.when(
       loading: () => const AppSectionSkeleton(lineCount: 4),
       error: (error, _) => AppSectionError(
         title: '媒体库加载失败',
@@ -131,6 +139,7 @@ class _MediaLibrariesSectionState extends ConsumerState<MediaLibrariesSection> {
       ),
       data: (value) => _buildLoaded(context, value),
     );
+    return AppPageRefreshScope(onRefresh: _refresh, child: content);
   }
 
   Widget _buildLoaded(BuildContext context, List<MediaLibraryDto> libraries) {

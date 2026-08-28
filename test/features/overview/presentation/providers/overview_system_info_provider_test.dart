@@ -2,7 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/overview/presentation/overview_system_info_format.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/overview_system_info_provider.dart';
+import 'package:sakuramedia/features/overview/presentation/providers/overview_system_info_state.dart';
+import 'package:sakuramedia/features/status/data/status_dto.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/features/status/presentation/providers/status_api_provider.dart';
 
@@ -121,6 +124,51 @@ void main() {
     final state = container.read(overviewSystemInfoProvider);
     expect(state.statusError, isNull);
     expect(state.status, isNotNull);
+  });
+
+  test('resetImageSearch refreshes the image-search status', () async {
+    _enqueueOverviewStatus(adapter);
+    keepAlive();
+    await settle();
+
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/image-search/reset',
+      statusCode: 202,
+      body: <String, dynamic>{},
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/status/image-search',
+      body: <String, dynamic>{
+        'index_space': <String, dynamic>{
+          'state': 'rebuild_required',
+          'indexed_space_id': 'siglip2-old',
+          'current_space_id': 'siglip2-new',
+          'is_rebuilding': true,
+        },
+      },
+    );
+
+    await notifier().resetImageSearch();
+
+    final state = container.read(overviewSystemInfoProvider);
+    expect(state.isResettingImageSearch, isFalse);
+    expect(state.imageSearchStatus?.indexSpace.isRebuilding, isTrue);
+    expect(adapter.hitCount('POST', '/image-search/reset'), 1);
+  });
+
+  test('formats an active image-search rebuild as rebuilding', () {
+    final state = OverviewSystemInfoState(
+      imageSearchStatus: StatusImageSearchDto.fromJson(<String, dynamic>{
+        'index_space': <String, dynamic>{
+          'state': 'rebuild_required',
+          'is_rebuilding': true,
+        },
+      }),
+    );
+
+    expect(state.buildImageSearchIndexSpaceValue(), '重建中');
   });
 }
 

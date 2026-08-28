@@ -17,12 +17,14 @@ import 'package:sakuramedia/features/configuration/presentation/widgets/shared/i
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_inline_action_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
 class IndexerSettingsSection extends ConsumerStatefulWidget {
   const IndexerSettingsSection({super.key, required this.active});
@@ -90,6 +92,29 @@ class _IndexerSettingsSectionState
         _errorMessage = apiErrorMessage(error, fallback: '索引器配置加载失败，请稍后重试。');
       });
     }
+  }
+
+  Future<void> _refresh() async {
+    if (_isLoading || _isSaving) {
+      return;
+    }
+    if (_hasUnsavedChanges) {
+      final confirmed = await showAppConfirmDialog(
+        context,
+        title: '有未保存的改动',
+        message: '刷新将丢弃当前未保存的索引器配置，确认刷新？',
+        confirmLabel: '刷新',
+        dialogKey: const Key('configuration-indexers-refresh-confirm-dialog'),
+        confirmKey: const Key('configuration-indexers-refresh-confirm-button'),
+        cancelKey: const Key('configuration-indexers-refresh-cancel-button'),
+      );
+      if (!confirmed || !mounted) {
+        return;
+      }
+    }
+    ref.invalidate(indexerSettingsProvider);
+    ref.invalidate(downloadClientsProvider);
+    await _loadData();
   }
 
   @override
@@ -271,6 +296,14 @@ class _IndexerSettingsSectionState
   @override
   Widget build(BuildContext context) {
     if (!_initialized && !widget.active) return const SizedBox.shrink();
+
+    final content = _buildContent(context);
+    return widget.active
+        ? AppPageRefreshScope(onRefresh: _refresh, child: content)
+        : content;
+  }
+
+  Widget _buildContent(BuildContext context) {
     final downloadClients = widget.active
         ? ref.watch(downloadClientsProvider).value ?? _downloadClients
         : _downloadClients;

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actors_api_provider.dart';
@@ -230,12 +231,14 @@ class ImageSearch extends _$ImageSearch {
         return;
       }
       _applySession(session, replaceItems: true);
-    } catch (_) {
+    } catch (error) {
       if (_isCurrentSearch(requestVersion)) {
         state = state.copyWith(
-          errorMessage: state.inputKind == ImageSearchInputKind.image
-              ? '以图搜图失败，请稍后重试'
-              : '文字搜索失败，请稍后重试',
+          errorMessage:
+              _imageSearchRebuildRequiredMessage(error) ??
+              (state.inputKind == ImageSearchInputKind.image
+                  ? '以图搜图失败，请稍后重试'
+                  : '文字搜索失败，请稍后重试'),
           items: const <ImageSearchResultItemDto>[],
           sessionId: null,
           nextCursor: null,
@@ -283,10 +286,16 @@ class ImageSearch extends _$ImageSearch {
         replaceItems: false,
         requestedCursor: requestedCursor,
       );
-    } catch (_) {
+    } catch (error) {
       if (_isCurrentSearch(requestVersion) &&
           state.sessionId == requestedSessionId) {
-        state = state.copyWith(errorMessage: '加载更多失败，请稍后重试');
+        final rebuildRequiredMessage = _imageSearchRebuildRequiredMessage(
+          error,
+        );
+        state = state.copyWith(
+          errorMessage: rebuildRequiredMessage ?? '加载更多失败，请稍后重试',
+          nextCursor: rebuildRequiredMessage == null ? state.nextCursor : null,
+        );
       }
     } finally {
       if (_isCurrentSearch(requestVersion) &&
@@ -316,6 +325,14 @@ class ImageSearch extends _$ImageSearch {
           ? filteredItems
           : <ImageSearchResultItemDto>[...state.items, ...filteredItems],
     );
+  }
+
+  String? _imageSearchRebuildRequiredMessage(Object error) {
+    if (error is ApiException &&
+        error.error?.code == 'image_search_index_rebuild_required') {
+      return '嵌入空间已变更，请先重建图搜索索引';
+    }
+    return null;
   }
 
   bool _matchesCurrentMovieFilter(ImageSearchResultItemDto item) {

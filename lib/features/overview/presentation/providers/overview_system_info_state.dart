@@ -12,6 +12,7 @@ class OverviewSystemInfoState {
   const OverviewSystemInfoState({
     this.isLoadingStatus = true,
     this.isLoadingImageSearchStatus = true,
+    this.isResettingImageSearch = false,
     this.isTestingMetadataProviders = false,
     this.status,
     this.imageSearchStatus,
@@ -21,6 +22,7 @@ class OverviewSystemInfoState {
 
   final bool isLoadingStatus;
   final bool isLoadingImageSearchStatus;
+  final bool isResettingImageSearch;
   final bool isTestingMetadataProviders;
   final StatusDto? status;
   final StatusImageSearchDto? imageSearchStatus;
@@ -30,6 +32,7 @@ class OverviewSystemInfoState {
   OverviewSystemInfoState copyWith({
     bool? isLoadingStatus,
     bool? isLoadingImageSearchStatus,
+    bool? isResettingImageSearch,
     bool? isTestingMetadataProviders,
     Object? status = _kSentinel,
     Object? imageSearchStatus = _kSentinel,
@@ -40,6 +43,8 @@ class OverviewSystemInfoState {
       isLoadingStatus: isLoadingStatus ?? this.isLoadingStatus,
       isLoadingImageSearchStatus:
           isLoadingImageSearchStatus ?? this.isLoadingImageSearchStatus,
+      isResettingImageSearch:
+          isResettingImageSearch ?? this.isResettingImageSearch,
       isTestingMetadataProviders:
           isTestingMetadataProviders ?? this.isTestingMetadataProviders,
       status: identical(status, _kSentinel)

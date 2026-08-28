@@ -19,6 +19,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
 import 'package:sakuramedia/widgets/base/forms/app_info_pill.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
@@ -107,10 +108,25 @@ class _DownloadClientsSectionState
     return <MediaLibraryDto>[currentLibrary, ...downloadableLibraries];
   }
 
+  Future<void> _refresh() {
+    return Future.wait<void>([
+      ref.read(downloadClientsProvider.notifier).reload(),
+      ref.read(mediaLibrariesProvider.notifier).reload(),
+      ref.read(mediaProviderCatalogProvider.notifier).reload(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.active) return const SizedBox.shrink();
 
+    return AppPageRefreshScope(
+      onRefresh: _refresh,
+      child: _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final clientsAsync = ref.watch(downloadClientsProvider);
     final librariesAsync = ref.watch(mediaLibrariesProvider);
     final providersAsync = ref.watch(mediaProviderCatalogProvider);

@@ -69,6 +69,21 @@ class OverviewSystemInfo extends _$OverviewSystemInfo {
     }
   }
 
+  Future<void> resetImageSearch() async {
+    if (_disposed || state.isResettingImageSearch) {
+      return;
+    }
+    state = state.copyWith(isResettingImageSearch: true);
+    try {
+      await ref.read(statusApiProvider).resetImageSearch();
+      await loadImageSearchStatus();
+    } finally {
+      if (!_disposed) {
+        state = state.copyWith(isResettingImageSearch: false);
+      }
+    }
+  }
+
   Future<void> testExternalDataSources() async {
     if (state.isTestingMetadataProviders) {
       return;

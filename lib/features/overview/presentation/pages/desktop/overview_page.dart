@@ -142,6 +142,12 @@ class _DesktopOverviewPageState extends ConsumerState<DesktopOverviewPage> {
               isLoading: systemInfo.isLoadingImageSearchStatus,
             ),
             OverviewStatItem(
+              id: 'image-search-index-space',
+              label: '图搜索索引',
+              value: systemInfo.buildImageSearchIndexSpaceValue(),
+              isLoading: systemInfo.isLoadingImageSearchStatus,
+            ),
+            OverviewStatItem(
               id: 'embedding-service-indexing-backlog',
               label: '待索引',
               value: systemInfo.buildEmbeddingServiceIndexingValue(),

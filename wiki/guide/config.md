@@ -216,16 +216,12 @@ session_ttl_seconds = 600
 default_page_size = 20
 max_page_size = 100
 search_scan_batch_size = 100
-index_max_records_per_run = 100000
 index_upsert_batch_size = 100
-optimize_every_records = 5000
-optimize_every_seconds = 1800
-optimize_on_job_end = true
 ```
 
 这些字段控制 SigLIP2 嵌入服务连接、搜索会话和 Qdrant 索引批处理。默认地址对应快速开始中的 `siglip2-embed` 服务名；只有把嵌入服务部署到其他主机、修改服务名或开启鉴权时，才需要改连接字段。
 
-`index_max_records_per_run` 限制一次图片索引任务最多处理 100,000 条记录，避免超大媒体库一次任务占用过多资源；剩余记录会由后续任务继续处理。其余批处理和 optimize 参数通常保持默认即可。
+`index_upsert_batch_size` 控制索引任务每轮分别读取的待索引缩略图和剧情图数量。任务会持续处理，直到两类待索引队列为空；该参数只控制单轮读取量，不限制单次任务的总处理量。
 
 ## `[qdrant]`
 
