@@ -789,7 +789,7 @@ const List<_CronGroup> _cronGroups = <_CronGroup>[
   ),
   _CronGroup(
     title: '抓取 / 回填',
-    keys: <String>['hot_review_sync', 'actor_subscription_sync'],
+    keys: <String>['actor_subscription_sync'],
   ),
   _CronGroup(
     title: '图搜 / 相似度',
@@ -820,7 +820,6 @@ const Map<String, String> _cronCopy = <String, String>{
   'download_task_auto_import': '已完成下载自动导入',
   'movie_heat': '影片热度重算',
   'movie_interaction_sync': '影片互动数同步',
-  'hot_review_sync': 'JavDB 热评同步',
   'media_thumbnail': '缩略图生成',
   'image_search_index': '图片搜索索引生成',
   'movie_similarity_recompute': '影片相似度离线重算',
@@ -836,7 +835,6 @@ const Map<String, String> _cronFieldHelper = <String, String>{
   'download_task_auto_import': '导入已完成的下载任务。',
   'movie_heat': '重算影片热度。',
   'movie_interaction_sync': '同步影片互动数，候选仍受分层刷新规则影响。',
-  'hot_review_sync': '同步 JavDB 热评。',
   'media_thumbnail': '生成媒体缩略图。',
   'image_search_index': '生成图片搜索索引。',
   'movie_similarity_recompute': '离线重算影片相似度。',

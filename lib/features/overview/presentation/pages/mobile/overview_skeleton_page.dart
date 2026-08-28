@@ -9,7 +9,6 @@ import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/discovery/presentation/mobile_overview_discover_tab.dart';
 import 'package:sakuramedia/features/clips/presentation/pages/mobile/overview_clips_tab.dart';
-import 'package:sakuramedia/features/hot_reviews/presentation/pages/mobile/overview_hot_reviews_tab.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/features/moments/presentation/pages/mobile/overview_moments_tab.dart';
@@ -37,7 +36,7 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
     final colors = context.appColors;
 
     return DefaultTabController(
-      length: 5,
+      length: 4,
       child: _MobileOverviewTabIndexReporter(
         child: ColoredBox(
           key: const Key('mobile-overview-skeleton-page'),
@@ -54,7 +53,6 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
                     MobileOverviewClipsTab(),
                     MobileOverviewDiscoverTab(),
                     MobileOverviewMomentsTab(),
-                    MobileOverviewHotReviewsTab(),
                   ],
                 ),
               ),
@@ -177,7 +175,6 @@ class _MobileOverviewHeader extends StatelessWidget {
                   Tab(text: '切片'),
                   Tab(text: '发现'),
                   Tab(text: '时刻'),
-                  Tab(text: '热评'),
                 ],
               ),
             ),

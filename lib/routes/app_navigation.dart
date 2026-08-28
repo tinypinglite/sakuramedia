@@ -5,7 +5,6 @@ import 'package:sakuramedia/features/activity/presentation/pages/desktop/activit
 import 'package:sakuramedia/features/actors/presentation/pages/mobile/actors_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/configuration_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/desktop_discover_page.dart';
-import 'package:sakuramedia/features/hot_reviews/presentation/pages/desktop/hot_reviews_page.dart';
 import 'package:sakuramedia/features/media/presentation/pages/desktop/media_management_page.dart';
 import 'package:sakuramedia/features/media_import/presentation/pages/desktop/media_import_page.dart';
 import 'package:sakuramedia/features/activity/presentation/pages/desktop/notifications_page.dart';
@@ -236,20 +235,6 @@ const List<_NavSeed> _desktopNavSeeds = [
     ],
   ),
   _NavSeed(
-    id: 'hot-reviews',
-    label: '热评',
-    icon: Icons.rate_review_outlined,
-    section: '浏览',
-    items: [
-      _NavItemSeed(
-        slug: 'library/hot-reviews',
-        label: '热评',
-        icon: Icons.rate_review_outlined,
-        description: '本地热评快照浏览、周期切换与评论洞察入口。',
-      ),
-    ],
-  ),
-  _NavSeed(
     id: 'media',
     label: '媒体管理',
     icon: Icons.video_settings_outlined,
@@ -347,7 +332,6 @@ final Map<String, WidgetBuilder> _desktopRouteBuilders =
       desktopClipsPath: (_) => const DesktopClipsPage(),
       desktopVideosPath: (_) => const DesktopVideoListPage(),
       desktopRankingsPath: (_) => const DesktopRankingsPage(),
-      desktopHotReviewsPath: (_) => const DesktopHotReviewsPage(),
       desktopActivityPath: (_) => const DesktopActivityPage(),
       desktopMediaPath: (_) => const DesktopMediaManagementPage(),
       desktopNotificationsPath: (_) => const DesktopNotificationsPage(),

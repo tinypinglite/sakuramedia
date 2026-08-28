@@ -29,8 +29,6 @@ import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/discovery_api_provider.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
-import 'package:sakuramedia/features/hot_reviews/data/hot_reviews_api.dart';
-import 'package:sakuramedia/features/hot_reviews/presentation/providers/hot_reviews_api_provider.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_api.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_draft_store.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_api_provider.dart';
@@ -83,7 +81,6 @@ class TestApiBundle {
     required this.movieSubscriptionsApi,
     required this.playlistsApi,
     required this.rankingsApi,
-    required this.hotReviewsApi,
     required this.tagsApi,
     required this.videosApi,
     required this.videoCollectionsApi,
@@ -113,7 +110,6 @@ class TestApiBundle {
   final MovieSubscriptionsApi movieSubscriptionsApi;
   final PlaylistsApi playlistsApi;
   final RankingsApi rankingsApi;
-  final HotReviewsApi hotReviewsApi;
   final TagsApi tagsApi;
   final VideosApi videosApi;
   final VideoCollectionsApi videoCollectionsApi;
@@ -178,7 +174,6 @@ class TestApiBundle {
       downloadClientsApiProvider.overrideWithValue(
         downloadClientsApi ?? this.downloadClientsApi,
       ),
-      hotReviewsApiProvider.overrideWithValue(hotReviewsApi),
       imageSearchApiProvider.overrideWithValue(imageSearchApi),
       indexerSettingsApiProvider.overrideWithValue(
         indexerSettingsApi ?? this.indexerSettingsApi,
@@ -253,7 +248,6 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     movieSubscriptionsApi: MovieSubscriptionsApi(apiClient: apiClient),
     playlistsApi: PlaylistsApi(apiClient: apiClient),
     rankingsApi: RankingsApi(apiClient: apiClient),
-    hotReviewsApi: HotReviewsApi(apiClient: apiClient),
     tagsApi: TagsApi(apiClient: apiClient),
     videosApi: VideosApi(apiClient: apiClient),
     videoCollectionsApi: VideoCollectionsApi(apiClient: apiClient),

@@ -84,7 +84,7 @@ void main() {
   });
 
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 17);
+    expect(desktopNavGroups.length, 16);
     // 管理区顺序：媒体管理 / 资源导入 / 任务中心 / 订阅管理 / 通知 / 系统设置。
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
@@ -97,7 +97,6 @@ void main() {
       '播放列表',
       'PornBox',
       '排行榜',
-      '热评',
       '媒体管理',
       '资源导入',
       '任务中心',
@@ -118,7 +117,6 @@ void main() {
       desktopPlaylistsPath,
       desktopVideosPath,
       desktopRankingsPath,
-      desktopHotReviewsPath,
       desktopMediaPath,
       desktopMediaImportPath,
       desktopActivityPath,
@@ -1083,7 +1081,6 @@ void main() {
     expect(find.text('关注'), findsNothing);
     expect(find.text('发现'), findsOneWidget);
     expect(find.text('时刻'), findsOneWidget);
-    expect(find.text('热评'), findsOneWidget);
   });
 
   testWidgets('mobile system overview route uses subpage shell', (

@@ -35,8 +35,6 @@ extension AppNavigationActions on BuildContext {
         return const DesktopPlaylistsRouteData().go(this);
       case desktopRankingsPath:
         return const DesktopRankingsRouteData().go(this);
-      case desktopHotReviewsPath:
-        return const DesktopHotReviewsRouteData().go(this);
       case desktopConfigurationPath:
         return const DesktopConfigurationRouteData().go(this);
       case desktopActivityPath:

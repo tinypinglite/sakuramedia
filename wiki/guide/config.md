@@ -140,7 +140,6 @@ download_task_sync_cron = "*/5 * * * *"
 download_task_auto_import_cron = "*/10 * * * *"
 movie_heat_cron = "15 0 * * *"
 movie_interaction_sync_cron = "0 5 * * *"
-hot_review_sync_cron = "20 1 * * *"
 media_thumbnail_cron = "*/30 * * * *"
 image_search_index_cron = "0 0 * * *"
 plot_image_search_index_cron = "30 0 * * *"
@@ -164,7 +163,6 @@ activity_notification_read_retention_days = 3
 | `download_task_auto_import_cron` | 将 provider 已完成任务交给导入流程。 |
 | `movie_heat_cron` | 影片热度重算。 |
 | `movie_interaction_sync_cron` | 影片互动数同步。 |
-| `hot_review_sync_cron` | JavDB 热评同步。 |
 | `media_thumbnail_cron` | 媒体缩略图生成。 |
 | `image_search_index_cron` | 媒体缩略图向量索引。 |
 | `plot_image_search_index_cron` | 剧情图向量索引。 |

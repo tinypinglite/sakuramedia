@@ -99,7 +99,6 @@ class AdvancedSchedulerConfigDto {
     'download_task_auto_import',
     'movie_heat',
     'movie_interaction_sync',
-    'hot_review_sync',
     'media_thumbnail',
     'image_search_index',
     'movie_similarity_recompute',

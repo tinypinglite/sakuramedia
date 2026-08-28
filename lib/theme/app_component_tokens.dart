@@ -17,7 +17,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     required this.movieCardTargetWidth,
     required this.movieThumbnailTargetWidth,
     required this.movieCardAspectRatio,
-    required this.movieCardCoverVisibleWidthFactor,
     required this.iconSizeXs,
     required this.iconSize2xs,
     required this.iconSize3xs,
@@ -102,7 +101,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       movieCardTargetWidth = 160,
       movieThumbnailTargetWidth = 128,
       movieCardAspectRatio = 0.7,
-      movieCardCoverVisibleWidthFactor = 0.47,
       iconSizeXs = 16,
       iconSize2xs = 14,
       iconSize3xs = 12,
@@ -186,7 +184,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       movieCardTargetWidth = 160,
       movieThumbnailTargetWidth = 128,
       movieCardAspectRatio = 0.7,
-      movieCardCoverVisibleWidthFactor = 0.47,
       iconSizeXs = 16,
       iconSize2xs = 14,
       iconSize3xs = 12,
@@ -269,7 +266,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
   final double movieCardTargetWidth;
   final double movieThumbnailTargetWidth;
   final double movieCardAspectRatio;
-  final double movieCardCoverVisibleWidthFactor;
   final double iconSizeXs;
   final double iconSize2xs;
   final double iconSize3xs;
@@ -366,7 +362,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
     double? movieCardTargetWidth,
     double? movieThumbnailTargetWidth,
     double? movieCardAspectRatio,
-    double? movieCardCoverVisibleWidthFactor,
     double? iconSizeXs,
     double? iconSize2xs,
     double? iconSize3xs,
@@ -463,9 +458,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       movieThumbnailTargetWidth:
           movieThumbnailTargetWidth ?? this.movieThumbnailTargetWidth,
       movieCardAspectRatio: movieCardAspectRatio ?? this.movieCardAspectRatio,
-      movieCardCoverVisibleWidthFactor:
-          movieCardCoverVisibleWidthFactor ??
-          this.movieCardCoverVisibleWidthFactor,
       iconSizeXs: iconSizeXs ?? this.iconSizeXs,
       iconSize2xs: iconSize2xs ?? this.iconSize2xs,
       iconSize3xs: iconSize3xs ?? this.iconSize3xs,
@@ -649,11 +641,6 @@ class AppComponentTokens extends ThemeExtension<AppComponentTokens> {
       movieCardAspectRatio: lerpDouble(
         movieCardAspectRatio,
         other.movieCardAspectRatio,
-        t,
-      )!,
-      movieCardCoverVisibleWidthFactor: lerpDouble(
-        movieCardCoverVisibleWidthFactor,
-        other.movieCardCoverVisibleWidthFactor,
         t,
       )!,
       iconSizeXs: lerpDouble(iconSizeXs, other.iconSizeXs, t)!,

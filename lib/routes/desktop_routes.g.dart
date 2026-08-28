@@ -249,10 +249,6 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
       factory: $DesktopRankingsRouteData._fromState,
     ),
     GoRouteData.$route(
-      path: '/desktop/library/hot-reviews',
-      factory: $DesktopHotReviewsRouteData._fromState,
-    ),
-    GoRouteData.$route(
       path: '/desktop/system/activity',
       factory: $DesktopActivityRouteData._fromState,
     ),
@@ -636,27 +632,6 @@ mixin $DesktopRankingsRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/desktop/library/rankings');
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
-mixin $DesktopHotReviewsRouteData on GoRouteData {
-  static DesktopHotReviewsRouteData _fromState(GoRouterState state) =>
-      const DesktopHotReviewsRouteData();
-
-  @override
-  String get location => GoRouteData.$location('/desktop/library/hot-reviews');
 
   @override
   void go(BuildContext context) => context.go(location);
