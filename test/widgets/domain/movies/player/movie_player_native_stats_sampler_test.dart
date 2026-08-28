@@ -1,8 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_media_source.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_native_stats_sampler.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
 
 void main() {
   test('parses demuxer forward bytes from native state', () {
@@ -11,7 +10,7 @@ void main() {
     expect(parseDemuxerForwardBytes(''), isNull);
   });
 
-  test('samples provider direct playback diagnostics', () async {
+  test('samples redirect delivery and gateway diagnostics', () async {
     final values = <String, String>{
       'file-format': 'matroska,webm',
       'demuxer-cache-duration': '4.5',
@@ -19,7 +18,7 @@ void main() {
     };
     final sampler = MoviePlayerNativeStatsSampler(
       readNativeProperty: (property) async => values[property],
-      mediaOrigin: MoviePlayerPlaybackMediaOrigin.provider,
+      playbackDelivery: MoviePlaybackDelivery.redirect,
       originalUrl: 'https://backend.example/media/1/play/movie.mkv?signature=x',
     );
     addTearDown(sampler.dispose);
@@ -32,18 +31,30 @@ void main() {
     sampler.start();
     await Future<void>.delayed(Duration.zero);
 
-    expect(sampler.snapshot.value.playbackSourceKindLabel, contains('直链'));
-    expect(sampler.snapshot.value.playbackSourceHostLabel, 'backend.example');
+    expect(sampler.snapshot.value.playbackDeliveryLabel, '302直连');
+    expect(sampler.snapshot.value.playbackDemuxerFormatLabel, 'matroska,webm');
+    expect(sampler.snapshot.value.playbackGatewayHostLabel, 'backend.example');
     expect(
-      sampler.snapshot.value.playbackSourceRequestPathLabel,
+      sampler.snapshot.value.playbackGatewayRequestPathLabel,
       contains('/media/1/play/movie.mkv'),
     );
   });
 
-  test('source kind conversion always uses provider origin', () {
-    expect(
-      moviePlayerPlaybackMediaOriginFor(MoviePlayerMediaSourceKind.unknown),
-      MoviePlayerPlaybackMediaOrigin.provider,
+  test('updates delivery independently of the gateway URL', () {
+    final sampler = MoviePlayerNativeStatsSampler(
+      readNativeProperty: (_) async => null,
+      playbackDelivery: MoviePlaybackDelivery.proxy,
+      originalUrl: 'https://backend.example/media/1/play/',
     );
+    addTearDown(sampler.dispose);
+
+    sampler.start();
+    expect(sampler.snapshot.value.playbackDeliveryLabel, '后端代理');
+
+    sampler.updateContext(
+      playbackDelivery: MoviePlaybackDelivery.redirect,
+      originalUrl: 'https://backend.example/media/1/play/',
+    );
+    expect(sampler.snapshot.value.playbackDeliveryLabel, '302直连');
   });
 }

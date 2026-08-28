@@ -3,19 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/theme.dart';
 
 enum MoviePlayerDecodingMode { hardware, software, unknown }
 
 enum MoviePlayerDynamicRangeMode { hdr, sdr, unknown }
 
-/// 传给 [buildMoviePlayerPlaybackInfoSnapshot] 的媒体归属提示。
-enum MoviePlayerPlaybackMediaOrigin { provider }
-
-/// 播放源由后端 provider 返回的签名直链提供；解析器未报告格式时仍展示未知。
-enum MoviePlayerPlaybackSourceKind { direct, unknown }
-
-/// 面板左侧 label 列固定宽度（供 label 列 + 缩进 footnote 复用）。
+/// 面板左侧 label 列固定宽度。
 const double _kLabelColumnWidth = 88;
 
 @immutable
@@ -57,13 +52,12 @@ class MoviePlayerPlaybackInfoSnapshot {
     required this.audioBitrateLabel,
     required this.dynamicRangeLabel,
     required this.dynamicRangeDetailLabel,
-    this.playbackSourceKindLabel = '--',
-    this.playbackSourceHostLabel,
-    this.playbackSourceRequestPathLabel,
-    this.playbackSourceQualityLabel,
+    this.playbackDeliveryLabel = '--',
+    this.playbackGatewayHostLabel,
+    this.playbackGatewayRequestPathLabel,
+    this.playbackDemuxerFormatLabel = '--',
     this.playbackSourceBufferLabel,
     this.playbackSourceDownloadRateLabel,
-    this.playbackSourceDegradedHint,
   });
 
   static const MoviePlayerPlaybackInfoSnapshot empty =
@@ -109,28 +103,24 @@ class MoviePlayerPlaybackInfoSnapshot {
   final String dynamicRangeLabel;
   final String dynamicRangeDetailLabel;
 
-  /// 类型标签，例如 `直链 · demuxer=mp4` / `--`。
-  /// 恒非 null——未知时展示 `--`，永远显示这一行。
-  final String playbackSourceKindLabel;
+  /// 后端声明并由用户选定的交付方式，例如 `302直连` / `后端代理`。
+  final String playbackDeliveryLabel;
 
-  /// 播放源主机名；`null` 表示不展示该行（无法从 URL 解析出 host）。
-  final String? playbackSourceHostLabel;
+  /// 播放器最初访问的后端网关主机；不是 302 跳转后的上游主机。
+  final String? playbackGatewayHostLabel;
 
-  /// 请求路径，不含 query 保护签名；
+  /// 后端网关请求路径，不含 query 保护签名；
   /// `null` 表示不展示该行。
-  final String? playbackSourceRequestPathLabel;
+  final String? playbackGatewayRequestPathLabel;
 
-  /// 播放质量信息；当前由 provider 直链统一提供，默认隐藏。
-  final String? playbackSourceQualityLabel;
+  /// libmpv 报告的解复用格式；未知时展示 `--`。
+  final String playbackDemuxerFormatLabel;
 
-  /// 缓冲：`12.3s / 8.2 MB`；本地文件 / 未拿到时为 `null`。
+  /// 缓冲：`12.3s / 8.2 MB`；未拿到时为 `null`。
   final String? playbackSourceBufferLabel;
 
   /// 下载速率：`2.4 MB/s`；libmpv 不给或还没算出时为 `null`（不展示该行）。
   final String? playbackSourceDownloadRateLabel;
-
-  /// 播放链路提示；默认隐藏。
-  final String? playbackSourceDegradedHint;
 
   @override
   bool operator ==(Object other) {
@@ -157,15 +147,14 @@ class MoviePlayerPlaybackInfoSnapshot {
         other.audioBitrateLabel == audioBitrateLabel &&
         other.dynamicRangeLabel == dynamicRangeLabel &&
         other.dynamicRangeDetailLabel == dynamicRangeDetailLabel &&
-        other.playbackSourceKindLabel == playbackSourceKindLabel &&
-        other.playbackSourceHostLabel == playbackSourceHostLabel &&
-        other.playbackSourceRequestPathLabel ==
-            playbackSourceRequestPathLabel &&
-        other.playbackSourceQualityLabel == playbackSourceQualityLabel &&
+        other.playbackDeliveryLabel == playbackDeliveryLabel &&
+        other.playbackGatewayHostLabel == playbackGatewayHostLabel &&
+        other.playbackGatewayRequestPathLabel ==
+            playbackGatewayRequestPathLabel &&
+        other.playbackDemuxerFormatLabel == playbackDemuxerFormatLabel &&
         other.playbackSourceBufferLabel == playbackSourceBufferLabel &&
         other.playbackSourceDownloadRateLabel ==
-            playbackSourceDownloadRateLabel &&
-        other.playbackSourceDegradedHint == playbackSourceDegradedHint;
+            playbackSourceDownloadRateLabel;
   }
 
   @override
@@ -189,13 +178,12 @@ class MoviePlayerPlaybackInfoSnapshot {
     audioBitrateLabel,
     dynamicRangeLabel,
     dynamicRangeDetailLabel,
-    playbackSourceKindLabel,
-    playbackSourceHostLabel,
-    playbackSourceRequestPathLabel,
-    playbackSourceQualityLabel,
+    playbackDeliveryLabel,
+    playbackGatewayHostLabel,
+    playbackGatewayRequestPathLabel,
+    playbackDemuxerFormatLabel,
     playbackSourceBufferLabel,
     playbackSourceDownloadRateLabel,
-    playbackSourceDegradedHint,
   ]);
 }
 
@@ -215,8 +203,7 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
   required double? decoderDropFramePerSecond,
   required double? delayedFramePerSecond,
   required double? mistimedFramePerSecond,
-  MoviePlayerPlaybackMediaOrigin mediaOrigin =
-      MoviePlayerPlaybackMediaOrigin.provider,
+  required MoviePlaybackDelivery playbackDelivery,
   String? originalUrl,
   String? fileFormat,
   double? bufferCacheDurationSeconds,
@@ -228,7 +215,6 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     hwPixelformat: videoParams.hwPixelformat,
   );
   final dynamicRangeMode = _resolveDynamicRangeMode(videoParams);
-  final sourceKind = _resolvePlaybackSourceKind(fileFormat: fileFormat);
   final mediaFrameRate = track.video.fps;
   final filterChainFrameRate = estimatedVfFps;
   final targetFrameRate = filterChainFrameRate ?? mediaFrameRate;
@@ -284,13 +270,13 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     ),
     dynamicRangeLabel: _buildDynamicRangeLabel(dynamicRangeMode),
     dynamicRangeDetailLabel: _buildDynamicRangeDetailLabel(videoParams),
-    playbackSourceKindLabel: _buildPlaybackSourceKindLabel(
-      sourceKind: sourceKind,
-      fileFormat: fileFormat,
-    ),
-    playbackSourceHostLabel: _extractHost(originalUrl),
-    playbackSourceRequestPathLabel: _extractPathAndTail(originalUrl),
-    playbackSourceQualityLabel: null,
+    playbackDeliveryLabel: switch (playbackDelivery) {
+      MoviePlaybackDelivery.redirect => '302直连',
+      MoviePlaybackDelivery.proxy => '后端代理',
+    },
+    playbackGatewayHostLabel: _extractHost(originalUrl),
+    playbackGatewayRequestPathLabel: _extractPathAndTail(originalUrl),
+    playbackDemuxerFormatLabel: _normalizeTechnicalText(fileFormat),
     playbackSourceBufferLabel: _buildBufferLabel(
       cacheDurationSeconds: bufferCacheDurationSeconds,
       forwardBytes: bufferForwardBytes,
@@ -298,31 +284,7 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     playbackSourceDownloadRateLabel: _formatDownloadRateLabel(
       downloadRateBytesPerSecond,
     ),
-    playbackSourceDegradedHint: null,
   );
-}
-
-MoviePlayerPlaybackSourceKind _resolvePlaybackSourceKind({
-  required String? fileFormat,
-}) {
-  final normalized = fileFormat?.trim().toLowerCase();
-  if (normalized == null || normalized.isEmpty) {
-    return MoviePlayerPlaybackSourceKind.unknown;
-  }
-  return MoviePlayerPlaybackSourceKind.direct;
-}
-
-String _buildPlaybackSourceKindLabel({
-  required MoviePlayerPlaybackSourceKind sourceKind,
-  required String? fileFormat,
-}) {
-  final formatSuffix = _hasText(fileFormat)
-      ? ' · demuxer=${fileFormat!.trim()}'
-      : '';
-  return switch (sourceKind) {
-    MoviePlayerPlaybackSourceKind.direct => '直链$formatSuffix',
-    MoviePlayerPlaybackSourceKind.unknown => '--',
-  };
 }
 
 String? _extractHost(String? url) {
@@ -657,7 +619,7 @@ class MoviePlayerPlaybackInfoPanel extends StatelessWidget {
             Expanded(
               child: ListView(
                 children: [
-                  ..._buildPlaybackSourceSection(info),
+                  ..._buildPlaybackRouteSection(info),
                   if (mediaInfo case final mediaInfo?) ...[
                     _MoviePlayerPlaybackInfoSection(
                       title: '媒体',
@@ -866,16 +828,10 @@ class _MoviePlayerPlaybackInfoSection extends StatelessWidget {
   const _MoviePlayerPlaybackInfoSection({
     required this.title,
     required this.rows,
-    this.footnote,
-    this.footnoteKey,
   });
 
   final String title;
   final List<_MoviePlayerPlaybackInfoRowData> rows;
-
-  /// 段末的灰色小字提示。null 时不渲染。
-  final String? footnote;
-  final Key? footnoteKey;
 
   @override
   Widget build(BuildContext context) {
@@ -897,27 +853,6 @@ class _MoviePlayerPlaybackInfoSection extends StatelessWidget {
           for (int i = 0; i < rows.length; i++) ...[
             _MoviePlayerPlaybackInfoRow(data: rows[i]),
             if (i != rows.length - 1) SizedBox(height: spacing.xs),
-          ],
-          if (footnote case final footnote?) ...[
-            SizedBox(height: spacing.xs),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(width: _kLabelColumnWidth),
-                SizedBox(width: spacing.sm),
-                Expanded(
-                  child: Text(
-                    footnote,
-                    key: footnoteKey,
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s12,
-                      tone: AppTextTone.muted,
-                    ),
-                  ),
-                ),
-              ],
-            ),
           ],
           SizedBox(height: spacing.sm),
           Divider(height: 1, color: Colors.white.withValues(alpha: 0.18)),
@@ -1006,37 +941,39 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
   }
 }
 
-/// 构建播放器信息面板顶部的「播放源」段——从 [info] 里挑非空字段生成行；
-/// 类型行恒展示（`--` 时也在），其余"拿不到就不展示"。
-List<Widget> _buildPlaybackSourceSection(MoviePlayerPlaybackInfoSnapshot info) {
+/// 构建播放器信息面板顶部的「播放链路」段。
+List<Widget> _buildPlaybackRouteSection(MoviePlayerPlaybackInfoSnapshot info) {
   final rows = <_MoviePlayerPlaybackInfoRowData>[
     _MoviePlayerPlaybackInfoRowData(
-      label: '类型',
-      value: info.playbackSourceKindLabel,
-      valueKey: const Key('movie-player-info-value-playback-source-kind'),
+      label: '交付方式',
+      value: info.playbackDeliveryLabel,
+      valueKey: const Key('movie-player-info-value-playback-delivery'),
     ),
-    if (info.playbackSourceHostLabel case final host?)
+    if (info.playbackGatewayHostLabel case final host?)
       _MoviePlayerPlaybackInfoRowData(
-        label: '主机',
+        label: '网关主机',
         value: host,
-        valueKey: const Key('movie-player-info-value-playback-source-host'),
+        valueKey: const Key('movie-player-info-value-playback-gateway-host'),
         copyable: true,
-        copyButtonKey: const Key('movie-player-info-copy-playback-source-host'),
+        copyButtonKey: const Key(
+          'movie-player-info-copy-playback-gateway-host',
+        ),
       ),
-    if (info.playbackSourceRequestPathLabel case final path?)
+    if (info.playbackGatewayRequestPathLabel case final path?)
       _MoviePlayerPlaybackInfoRowData(
-        label: '请求路径',
+        label: '网关路径',
         value: path,
-        valueKey: const Key('movie-player-info-value-playback-source-path'),
+        valueKey: const Key('movie-player-info-value-playback-gateway-path'),
         copyable: true,
-        copyButtonKey: const Key('movie-player-info-copy-playback-source-path'),
+        copyButtonKey: const Key(
+          'movie-player-info-copy-playback-gateway-path',
+        ),
       ),
-    if (info.playbackSourceQualityLabel case final quality?)
-      _MoviePlayerPlaybackInfoRowData(
-        label: '档位',
-        value: quality,
-        valueKey: const Key('movie-player-info-value-playback-source-quality'),
-      ),
+    _MoviePlayerPlaybackInfoRowData(
+      label: '解复用格式',
+      value: info.playbackDemuxerFormatLabel,
+      valueKey: const Key('movie-player-info-value-playback-demuxer-format'),
+    ),
     if (info.playbackSourceBufferLabel case final buffer?)
       _MoviePlayerPlaybackInfoRowData(
         label: '缓冲',
@@ -1052,12 +989,5 @@ List<Widget> _buildPlaybackSourceSection(MoviePlayerPlaybackInfoSnapshot info) {
         ),
       ),
   ];
-  return [
-    _MoviePlayerPlaybackInfoSection(
-      title: '播放源',
-      rows: rows,
-      footnote: info.playbackSourceDegradedHint,
-      footnoteKey: const Key('movie-player-info-playback-source-degraded-hint'),
-    ),
-  ];
+  return [_MoviePlayerPlaybackInfoSection(title: '播放链路', rows: rows)];
 }

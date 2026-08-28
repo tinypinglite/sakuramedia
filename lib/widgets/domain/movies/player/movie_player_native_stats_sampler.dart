@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_media_source.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
 
 /// 读取 mpv 原生属性(如 `video-bitrate`)的注入点;
@@ -57,12 +57,6 @@ int? parseDemuxerForwardBytes(String? raw) {
   return parsed;
 }
 
-MoviePlayerPlaybackMediaOrigin moviePlayerPlaybackMediaOriginFor(
-  MoviePlayerMediaSourceKind sourceKind,
-) {
-  return MoviePlayerPlaybackMediaOrigin.provider;
-}
-
 /// 播放信息采样机:聚合两路输入产出 [MoviePlayerPlaybackInfoSnapshot]。
 ///
 /// - **流式输入**(Surface 把 player stream 接进来):track / videoParams /
@@ -74,15 +68,15 @@ MoviePlayerPlaybackMediaOrigin moviePlayerPlaybackMediaOriginFor(
 class MoviePlayerNativeStatsSampler {
   MoviePlayerNativeStatsSampler({
     required MoviePlayerNativePropertyReader readNativeProperty,
-    required MoviePlayerPlaybackMediaOrigin mediaOrigin,
+    required MoviePlaybackDelivery playbackDelivery,
     required String originalUrl,
   }) : _readNativeProperty = readNativeProperty,
-       _mediaOrigin = mediaOrigin,
+       _playbackDelivery = playbackDelivery,
        _originalUrl = originalUrl;
 
   final MoviePlayerNativePropertyReader _readNativeProperty;
 
-  MoviePlayerPlaybackMediaOrigin _mediaOrigin;
+  MoviePlaybackDelivery _playbackDelivery;
   String _originalUrl;
 
   final ValueNotifier<MoviePlayerPlaybackInfoSnapshot> _snapshotNotifier =
@@ -155,10 +149,10 @@ class MoviePlayerNativeStatsSampler {
 
   /// 换片/来源变化时同步快照上下文;不清采样字段,需要清时另调 [reset]。
   void updateContext({
-    required MoviePlayerPlaybackMediaOrigin mediaOrigin,
+    required MoviePlaybackDelivery playbackDelivery,
     required String originalUrl,
   }) {
-    _mediaOrigin = mediaOrigin;
+    _playbackDelivery = playbackDelivery;
     _originalUrl = originalUrl;
     _refreshSnapshot();
   }
@@ -295,7 +289,7 @@ class MoviePlayerNativeStatsSampler {
       decoderDropFramePerSecond: _decoderFrameDropPerSecond,
       delayedFramePerSecond: _voDelayedFramePerSecond,
       mistimedFramePerSecond: _mistimedFramePerSecond,
-      mediaOrigin: _mediaOrigin,
+      playbackDelivery: _playbackDelivery,
       originalUrl: _originalUrl,
       fileFormat: _fileFormat,
       bufferCacheDurationSeconds: _demuxerCacheDurationSeconds,

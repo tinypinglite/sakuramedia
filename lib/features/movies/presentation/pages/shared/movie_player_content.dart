@@ -158,10 +158,17 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
           ),
         );
       } else {
+        final playbackDelivery =
+            _scope.playbackDelivery ??
+            playerState.selectedMedia!.defaultPlaybackDelivery;
         content = MoviePlayerSplitLayout(
           controller: _splitController,
           dividerHandleBuffer: widget.dividerHandleBuffer,
-          leftChild: _buildPlayerSurface(context, resolvedUrl),
+          leftChild: _buildPlayerSurface(
+            context,
+            resolvedUrl,
+            playbackDelivery,
+          ),
           rightChild: playerState.selectedMedia == null
               ? const SizedBox.expand()
               : _buildThumbnailPanel(),
@@ -182,7 +189,11 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
     );
   }
 
-  Widget _buildPlayerSurface(BuildContext context, String resolvedUrl) {
+  Widget _buildPlayerSurface(
+    BuildContext context,
+    String resolvedUrl,
+    MoviePlaybackDelivery playbackDelivery,
+  ) {
     if (widget.surfaceBuilder != null) {
       return widget.surfaceBuilder!(
         context,
@@ -203,6 +214,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
     return MoviePlayerSurface(
       movieNumber: widget.movieNumber,
       resolvedUrl: resolvedUrl,
+      playbackDelivery: playbackDelivery,
       surfaceController: _surfaceController,
       initialPosition: _playerState.startupPlaybackPosition,
       resumePosition: _playerState.resumePlaybackPosition,

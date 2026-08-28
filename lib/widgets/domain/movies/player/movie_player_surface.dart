@@ -7,6 +7,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/video/initial_seek_guard.dart';
@@ -32,6 +33,7 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     super.key,
     required this.movieNumber,
     required this.resolvedUrl,
+    required this.playbackDelivery,
     required this.surfaceController,
     this.initialPosition,
     this.resumePosition,
@@ -50,6 +52,7 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
 
   final String movieNumber;
   final String resolvedUrl;
+  final MoviePlaybackDelivery playbackDelivery;
   final MoviePlayerSurfaceController surfaceController;
 
   /// 调用方明确指定的起播位置（如从时刻/缩略图进入），不显示续播提示。
@@ -120,7 +123,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _readiness = MoviePlayerSurfaceReadiness();
     _statsSampler = MoviePlayerNativeStatsSampler(
       readNativeProperty: createMediaKitNativePropertyReader(_player),
-      mediaOrigin: moviePlayerPlaybackMediaOriginFor(widget.mediaSourceKind),
+      playbackDelivery: widget.playbackDelivery,
       originalUrl: widget.resolvedUrl,
     );
     _resumePrompt = MoviePlayerResumePromptCoordinator(
@@ -204,9 +207,10 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
         unawaited(_player.play());
       });
     }
-    if (oldWidget.resolvedUrl != widget.resolvedUrl) {
+    if (oldWidget.resolvedUrl != widget.resolvedUrl ||
+        oldWidget.playbackDelivery != widget.playbackDelivery) {
       _statsSampler.updateContext(
-        mediaOrigin: MoviePlayerPlaybackMediaOrigin.provider,
+        playbackDelivery: widget.playbackDelivery,
         originalUrl: widget.resolvedUrl,
       );
     }
