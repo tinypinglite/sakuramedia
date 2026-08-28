@@ -1,5 +1,5 @@
 import 'package:sakuramedia/core/json/json_parse.dart'
-    show asDateTime, asInt, asMap, asMapOrNull;
+    show asDateTime, asInt, asMap, asMapOrNull, asStringList;
 
 class ActorStatsDto {
   const ActorStatsDto({
@@ -120,28 +120,34 @@ class ThumbnailStatsDto {
   }
 }
 
-class ImageSearchJoyTagStatsDto {
-  const ImageSearchJoyTagStatsDto({
+class ImageSearchEmbeddingServiceStatsDto {
+  const ImageSearchEmbeddingServiceStatsDto({
     required this.healthy,
-    this.usedDevice,
     this.endpoint,
+    this.spaceId,
+    this.dimension,
+    this.modalities = const <String>[],
     this.error,
   });
 
   final bool healthy;
-  final String? usedDevice;
-
-  /// 推理服务地址（后端 `settings.image_search.inference_base_url`）。
   final String? endpoint;
+  final String? spaceId;
+  final int? dimension;
+  final List<String> modalities;
 
   /// 探测失败原因；healthy 为 true 时后端不返回。诊断页要用它给出可定位的文案。
   final String? error;
 
-  factory ImageSearchJoyTagStatsDto.fromJson(Map<String, dynamic> json) {
-    return ImageSearchJoyTagStatsDto(
+  factory ImageSearchEmbeddingServiceStatsDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return ImageSearchEmbeddingServiceStatsDto(
       healthy: _asBool(json['healthy']),
-      usedDevice: json['used_device'] as String?,
       endpoint: json['endpoint'] as String?,
+      spaceId: json['space_id'] as String?,
+      dimension: (json['dimension'] as num?)?.toInt(),
+      modalities: asStringList(json['modalities'], trim: true),
       error: json['error'] as String?,
     );
   }
@@ -149,8 +155,10 @@ class ImageSearchJoyTagStatsDto {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'healthy': healthy,
-      'used_device': usedDevice,
       'endpoint': endpoint,
+      'space_id': spaceId,
+      'dimension': dimension,
+      'modalities': modalities,
       'error': error,
     };
   }
@@ -183,20 +191,22 @@ class ImageSearchIndexingStatsDto {
 class StatusImageSearchDto {
   const StatusImageSearchDto({
     required this.healthy,
-    required this.joyTag,
+    required this.embeddingService,
     required this.indexing,
   });
 
-  /// 后端口径是 joytag 与向量库（Qdrant）的 AND。向量库不单独做诊断项，
+  /// 后端口径是嵌入服务与向量库（Qdrant）的 AND。向量库不单独做诊断项，
   /// 所以这里只透出聚合值，不解析 `image_search_vector_store` 节。
   final bool healthy;
-  final ImageSearchJoyTagStatsDto joyTag;
+  final ImageSearchEmbeddingServiceStatsDto embeddingService;
   final ImageSearchIndexingStatsDto indexing;
 
   factory StatusImageSearchDto.fromJson(Map<String, dynamic> json) {
     return StatusImageSearchDto(
       healthy: _asBool(json['healthy']),
-      joyTag: ImageSearchJoyTagStatsDto.fromJson(asMap(json['joytag'])),
+      embeddingService: ImageSearchEmbeddingServiceStatsDto.fromJson(
+        asMap(json['embedding_service']),
+      ),
       indexing: ImageSearchIndexingStatsDto.fromJson(asMap(json['indexing'])),
     );
   }
@@ -204,7 +214,7 @@ class StatusImageSearchDto {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'healthy': healthy,
-      'joytag': joyTag.toJson(),
+      'embedding_service': embeddingService.toJson(),
       'indexing': indexing.toJson(),
     };
   }

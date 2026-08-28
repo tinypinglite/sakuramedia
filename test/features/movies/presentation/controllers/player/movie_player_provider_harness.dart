@@ -75,7 +75,10 @@ class MoviePlayerHarness {
       _notifier.activeThumbnailIndexListenable;
   List<MoviePlayerSubtitleOption> get subtitleOptions => _state.subtitleOptions;
   int? get selectedSubtitleId => _state.selectedSubtitleId;
-  String? get resolvedPlayUrl => _state.resolvedPlayUrl(_scope.baseUrl);
+  String? get resolvedPlayUrl => _state.resolvedPlayUrl(
+    _scope.baseUrl,
+    _scope.playbackDelivery,
+  );
   Duration? get initialPlaybackPosition => _state.startupPlaybackPosition;
   Duration? get resumePlaybackPosition => _state.resumePlaybackPosition;
   bool get isResumeDecisionPending => _state.isResumeDecisionPending;

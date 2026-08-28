@@ -463,6 +463,13 @@ void main() {
       buildDesktopMoviePlayerRoutePath('ABC-001'),
       '/desktop/library/movies/ABC-001/player',
     );
+    expect(
+      const DesktopMoviePlayerRouteData(
+        movieNumber: 'ABC-001',
+        delivery: 'redirect',
+      ).location,
+      '/desktop/library/movies/ABC-001/player?delivery=redirect',
+    );
   });
 
   test('desktop video collection play route 透传详情页排序到 URL', () {
@@ -3594,7 +3601,12 @@ void _enqueueMobileSystemOverviewResponses(TestApiBundle bundle) {
     path: '/status/image-search',
     body: <String, dynamic>{
       'healthy': true,
-      'joytag': <String, dynamic>{'healthy': true, 'used_device': 'GPU'},
+      'embedding_service': <String, dynamic>{
+        'healthy': true,
+        'space_id': 'clip-vit-l-14',
+        'dimension': 768,
+        'modalities': <String>['image', 'text'],
+      },
       'indexing': <String, dynamic>{
         'pending_thumbnails': 23,
         'failed_thumbnails': 2,

@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/core/session/providers/credential_store_provider.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
@@ -118,12 +119,14 @@ extension AppNavigationActions on BuildContext {
     String? fallbackPath,
     int? mediaId,
     int? positionSeconds,
+    MoviePlaybackDelivery? playbackDelivery,
   }) {
     GoRouter.optionURLReflectsImperativeAPIs = true;
     final route = DesktopMoviePlayerRouteData(
       movieNumber: movieNumber,
       mediaId: mediaId,
       positionSeconds: positionSeconds,
+      delivery: playbackDelivery?.wireValue,
     );
     _pushDesktopRoute(this, route.location, fallbackPath: fallbackPath);
   }

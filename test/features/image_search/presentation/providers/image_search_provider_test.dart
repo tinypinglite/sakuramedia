@@ -70,6 +70,22 @@ void main() {
     expect(readState().nextCursor, 'cursor-1');
   });
 
+  test('text source creates a text search session', () async {
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/image-search/text-sessions',
+      body: _sessionBody(nextCursor: null, thumbnailId: 123),
+    );
+
+    notifier.setTextSource('白色连衣裙');
+    await notifier.search();
+
+    expect(readState().inputKind, ImageSearchInputKind.text);
+    expect(readState().items.single.thumbnailId, 123);
+    final formData = bundle.adapter.requests.single.body as FormData;
+    expect(Map<String, String>.fromEntries(formData.fields)['text'], '白色连衣裙');
+  });
+
   test('plot target uses dedicated paths for search and pagination', () async {
     bundle.adapter.enqueueJson(
       method: 'POST',

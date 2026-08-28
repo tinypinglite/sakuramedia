@@ -16,6 +16,8 @@ class StatusApi {
     return StatusImageSearchDto.fromJson(response);
   }
 
+  Future<void> resetImageSearch() => _apiClient.post('/image-search/reset');
+
   Future<StatusMetadataProviderTestDto> testMetadataProvider(
     String provider,
   ) async {

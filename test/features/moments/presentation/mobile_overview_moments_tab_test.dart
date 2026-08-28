@@ -331,6 +331,7 @@ void _enqueuePreviewResponses(TestApiBundle bundle) {
           'duration_seconds': 7200,
           'valid': true,
           'progress': null,
+          'playback_deliveries': const <String>['proxy', 'redirect'],
           'points': [
             <String, dynamic>{'point_id': 10, 'offset_seconds': 120},
           ],

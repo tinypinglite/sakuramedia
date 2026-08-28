@@ -64,7 +64,7 @@ class SystemDiagnosticsState {
 ///
 /// 调度算法（[runAll]）：
 ///   Stage A（基础资源）：媒体库。空 → 后置全部 blocked。
-///   Stage B（独立探针，与 A 并行）：JavDB / JoyTag。
+///   Stage B（独立探针，与 A 并行）：JavDB / 嵌入服务。
 ///   Stage C（依赖 A）：索引器 —— 静态校验、绑定核对和真实搜索测试。
 ///
 /// 单项 try/catch 隔离，任何一项抛异常不影响整体流水推进。
@@ -292,32 +292,37 @@ class SystemDiagnostics extends _$SystemDiagnostics {
       return _fromHint(
         kind: DiagnosticItemKind.joyTag,
         itemKey: _joyTagItemKey,
-        displayName: 'JoyTag 推理',
+        displayName: '嵌入服务',
         status: DiagnosticItemStatus.unhealthy,
         hint: joyTagHints['status-unavailable']!,
         summary: _shortenError(apiErrorMessage(error, fallback: '检测请求失败')),
       );
     }
     final elapsed = DateTime.now().difference(started).inMilliseconds;
-    if (status.joyTag.healthy) {
-      final device = status.joyTag.usedDevice;
+    if (status.embeddingService.healthy) {
+      final spaceId = status.embeddingService.spaceId;
+      final dimension = status.embeddingService.dimension;
       return DiagnosticItemState.healthy(
         kind: DiagnosticItemKind.joyTag,
         itemKey: _joyTagItemKey,
-        displayName: 'JoyTag 推理',
+        displayName: '嵌入服务',
         elapsedMs: elapsed,
-        summary: device == null || device.isEmpty ? '模型加载正常' : '推理设备：$device',
+        summary: spaceId == null || spaceId.isEmpty
+            ? '嵌入模型加载正常'
+            : dimension == null
+            ? '空间：$spaceId'
+            : '空间：$spaceId · $dimension 维',
       );
     }
     return _fromHint(
       kind: DiagnosticItemKind.joyTag,
       itemKey: _joyTagItemKey,
-      displayName: 'JoyTag 推理',
+      displayName: '嵌入服务',
       status: DiagnosticItemStatus.unhealthy,
       hint: joyTagHints['unhealthy']!,
       elapsedMs: elapsed,
       // 后端带了失败原因，直接透出去比"模型未就绪"有用。
-      summary: _shortenError(status.joyTag.error ?? '模型未就绪'),
+      summary: _shortenError(status.embeddingService.error ?? '模型未就绪'),
     );
   }
 
@@ -422,7 +427,7 @@ class SystemDiagnostics extends _$SystemDiagnostics {
         label: '智能能力',
         icon: Icons.psychology_outlined,
         items: <DiagnosticItemState>[
-          make(DiagnosticItemKind.joyTag, _joyTagItemKey, 'JoyTag 推理'),
+          make(DiagnosticItemKind.joyTag, _joyTagItemKey, '嵌入服务'),
         ],
       ),
     ];

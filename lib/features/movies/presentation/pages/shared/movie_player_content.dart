@@ -19,6 +19,7 @@ import 'package:sakuramedia/features/movies/presentation/controllers/player/movi
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_player_layout.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_player_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_player_scope.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_player_state.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
@@ -55,6 +56,7 @@ class MoviePlayerContent extends ConsumerStatefulWidget {
   const MoviePlayerContent({
     super.key,
     required this.movieNumber,
+    this.playbackDelivery,
     this.initialMediaId,
     this.initialPositionSeconds,
     this.fallbackPath,
@@ -65,6 +67,7 @@ class MoviePlayerContent extends ConsumerStatefulWidget {
   });
 
   final String movieNumber;
+  final MoviePlaybackDelivery? playbackDelivery;
   final int? initialMediaId;
   final int? initialPositionSeconds;
   final String? fallbackPath;
@@ -93,6 +96,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
     );
     _scope = MoviePlayerScope(
       movieNumber: widget.movieNumber,
+      playbackDelivery: widget.playbackDelivery,
       initialMediaId: widget.initialMediaId,
       initialPositionSeconds: widget.initialPositionSeconds,
       baseUrl: ref.read(sessionStoreProvider).baseUrl,
@@ -137,7 +141,10 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
         ),
       );
     } else {
-      final resolvedUrl = playerState.resolvedPlayUrl(_scope.baseUrl);
+      final resolvedUrl = playerState.resolvedPlayUrl(
+        _scope.baseUrl,
+        _scope.playbackDelivery,
+      );
       if (resolvedUrl == null) {
         content = wrapWithMoviePlayerBackButton(
           onBackPressed: _handleBack,

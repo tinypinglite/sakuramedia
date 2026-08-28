@@ -148,10 +148,12 @@ Map<String, dynamic> _imageSearchStatus({required bool joyTagHealthy}) {
   return <String, dynamic>{
     'healthy': joyTagHealthy,
     'checked_at': '2026-07-11T08:00:00Z',
-    'joytag': <String, dynamic>{
+    'embedding_service': <String, dynamic>{
       'healthy': joyTagHealthy,
-      'used_device': joyTagHealthy ? 'cuda:0' : null,
-      'endpoint': 'http://joytag:8000',
+      'space_id': 'clip-vit-l-14',
+      'dimension': 768,
+      'modalities': <String>['image', 'text'],
+      'endpoint': 'http://embedding:8000',
       'error': joyTagHealthy ? null : 'model file not found',
     },
     'indexing': <String, dynamic>{

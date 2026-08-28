@@ -161,17 +161,19 @@ void main() {
     );
   });
 
-  test('getImageSearchStatus parses joytag and indexing stats', () async {
+  test('getImageSearchStatus parses embedding service and indexing stats', () async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/status/image-search',
       statusCode: 200,
       body: <String, dynamic>{
         'healthy': true,
-        'joytag': <String, dynamic>{
+        'embedding_service': <String, dynamic>{
           'healthy': true,
-          'used_device': 'GPU',
-          'endpoint': 'http://joytag:8000',
+          'endpoint': 'http://embedding:8000',
+          'space_id': 'clip-vit-l-14',
+          'dimension': 768,
+          'modalities': <String>['image', 'text'],
         },
         'indexing': <String, dynamic>{
           'pending_thumbnails': 23,
@@ -184,23 +186,24 @@ void main() {
     final status = await statusApi.getImageSearchStatus();
 
     expect(status.healthy, isTrue);
-    expect(status.joyTag.healthy, isTrue);
-    expect(status.joyTag.usedDevice, 'GPU');
-    expect(status.joyTag.endpoint, 'http://joytag:8000');
+    expect(status.embeddingService.healthy, isTrue);
+    expect(status.embeddingService.spaceId, 'clip-vit-l-14');
+    expect(status.embeddingService.dimension, 768);
+    expect(status.embeddingService.endpoint, 'http://embedding:8000');
     expect(status.indexing.pendingThumbnails, 23);
     expect(status.indexing.failedThumbnails, 2);
   });
 
-  test('getImageSearchStatus 保留 joytag 的失败原因', () async {
+  test('getImageSearchStatus 保留嵌入服务的失败原因', () async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/status/image-search',
       statusCode: 200,
       body: <String, dynamic>{
         'healthy': false,
-        'joytag': <String, dynamic>{
+        'embedding_service': <String, dynamic>{
           'healthy': false,
-          'endpoint': 'http://joytag:8000',
+          'endpoint': 'http://embedding:8000',
           'error': 'model file not found',
         },
         'indexing': <String, dynamic>{
@@ -213,7 +216,20 @@ void main() {
     final status = await statusApi.getImageSearchStatus();
 
     // 诊断页要拿它当状态短句，比前端硬编码的"模型未就绪"有用。
-    expect(status.joyTag.error, 'model file not found');
+    expect(status.embeddingService.error, 'model file not found');
+  });
+
+  test('resetImageSearch posts reset request', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/image-search/reset',
+      body: <String, dynamic>{'status': 'accepted'},
+    );
+
+    await statusApi.resetImageSearch();
+
+    expect(adapter.requests.single.method, 'POST');
+    expect(adapter.requests.single.path, '/image-search/reset');
   });
 
   test(

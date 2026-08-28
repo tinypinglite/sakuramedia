@@ -88,6 +88,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
   final Map<int, List<MovieMediaPointDto>> pointOverrides =
       <int, List<MovieMediaPointDto>>{};
   int? selectedMediaId;
+  MoviePlaybackDelivery? selectedPlaybackDelivery;
   bool? isSubscribedOverride;
   bool? isBlacklistedOverride;
   bool? isCollectionOverride;
@@ -237,13 +238,20 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
             refreshedMediaItems.any((item) => item.mediaId == currentId)
         ? currentId
         : null;
+    final nextSelectedMediaId =
+        retainedSelectedMediaId ??
+        (refreshedMediaItems.isNotEmpty
+            ? refreshedMediaItems.first.mediaId
+            : null);
     setState(() {
       pointOverrides.clear();
-      selectedMediaId =
-          retainedSelectedMediaId ??
-          (refreshedMediaItems.isNotEmpty
-              ? refreshedMediaItems.first.mediaId
-              : null);
+      selectedMediaId = nextSelectedMediaId;
+      if (nextSelectedMediaId != currentId) {
+        selectedPlaybackDelivery = refreshedMediaItems
+            .where((item) => item.mediaId == nextSelectedMediaId)
+            .firstOrNull
+            ?.defaultPlaybackDelivery;
+      }
       isSubscribedOverride = null;
       isBlacklistedOverride = null;
       isCollectionOverride = null;
@@ -450,6 +458,34 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
       visibleMediaItems: mediaItems,
       selectedMedia: selectedMedia,
     );
+  }
+
+  MoviePlaybackDelivery playbackDeliveryFor(MovieMediaItemDto mediaItem) {
+    if (mediaItem.mediaId == selectedMediaId &&
+        selectedPlaybackDelivery != null &&
+        mediaItem.playbackDeliveries.contains(selectedPlaybackDelivery)) {
+      return selectedPlaybackDelivery!;
+    }
+    return mediaItem.defaultPlaybackDelivery;
+  }
+
+  void selectMedia(MovieMediaItemDto mediaItem) {
+    setState(() {
+      selectedMediaId = mediaItem.mediaId;
+      selectedPlaybackDelivery = mediaItem.defaultPlaybackDelivery;
+    });
+  }
+
+  void selectPlaybackDelivery(
+    MovieMediaItemDto mediaItem,
+    MoviePlaybackDelivery delivery,
+  ) {
+    if (!mediaItem.playbackDeliveries.contains(delivery)) {
+      return;
+    }
+    setState(() {
+      selectedPlaybackDelivery = delivery;
+    });
   }
 
   /// 媒体点预览条目（桌面 / 移动共用，供 `_openMediaPointPreview` 装配预览弹层）。

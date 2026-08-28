@@ -23,6 +23,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/actor_selector_dialog.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_filter_panel.dart';
@@ -73,8 +74,7 @@ class ImageSearchContent extends ConsumerStatefulWidget {
   final ImageSearchResultPreviewPresentation resultPreviewPresentation;
 
   @override
-  ConsumerState<ImageSearchContent> createState() =>
-      _ImageSearchContentState();
+  ConsumerState<ImageSearchContent> createState() => _ImageSearchContentState();
 }
 
 class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
@@ -85,6 +85,7 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
   late final ImageSearchScope _scope;
   late final RiverpodPageHandle _pageCacheHandle;
   late final ScrollController _scrollController;
+  late final TextEditingController _textController;
   bool _isViewportFillCheckScheduled = false;
   int _autoLoadAttempts = 0;
   int _autoLoadNoGrowthStreak = 0;
@@ -99,6 +100,7 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
     super.initState();
     _scope = ImageSearchScope(_resolveStateKey());
     _scrollController = ScrollController()..addListener(_handleScroll);
+    _textController = TextEditingController();
     _pageCacheHandle = ref
         .read(riverpodPageCacheProvider)
         .obtain(
@@ -128,6 +130,7 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
     _scrollController
       ..removeListener(_handleScroll)
       ..dispose();
+    _textController.dispose();
     super.dispose();
   }
 
@@ -186,69 +189,69 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final searchState = ref.watch(imageSearchProvider(_scope));
-    final loadMoreFooter =
-        searchState.hasSource ? _buildLoadMoreFooter(context) : null;
+    final loadMoreFooter = searchState.hasSource
+        ? _buildLoadMoreFooter(context)
+        : null;
     ref.listen(imageSearchProvider(_scope), (_, __) {
       _scheduleViewportFillCheck();
     });
 
     return AppPageRefreshScope(
       onRefresh: _handleTopBarRefresh,
-      child:
-          !searchState.hasSource
-              ? _buildInitialEmptyState(context)
-              : Material(
-                color: context.appColors.surfaceElevated,
-                child: CustomScrollView(
-                  key: PageStorageKey<String>(
-                    'image-search-scroll:${_scope.cacheKey}',
-                  ),
-                  controller: _scrollController,
-                  slivers: [
-                    SliverToBoxAdapter(child: _buildSourceCard(context)),
-                    if (searchState.isPreviewExpanded) ...[
-                      SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
-                      SliverToBoxAdapter(child: _buildPreviewPanel(context)),
-                    ],
-                    if (searchState.isFilterExpanded) ...[
-                      SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
-                      SliverToBoxAdapter(
-                        child: ImageSearchFilterPanel(
-                          filterState: searchState.filterState,
-                          summaryText: _filterSummaryText,
-                          currentMovieNumber: widget.currentMovieNumber,
-                          onSearchTargetChanged:
-                              (target) => _notifier.updateFilter(
-                                _filterState.copyWith(searchTarget: target),
-                              ),
-                          onCurrentMovieScopeChanged:
-                              (scope) => _notifier.updateFilter(
-                                _filterState.copyWith(currentMovieScope: scope),
-                              ),
-                          isSearching:
-                              searchState.isSearching ||
-                              searchState.isResolvingActorMovieIds,
-                          onModeChanged:
-                              (mode) => _notifier.updateFilter(
-                                _filterState.copyWith(actorFilterMode: mode),
-                              ),
-                          onSelectActors: _openActorSelectorDialog,
-                          onSearch: _runSearch,
-                        ),
-                      ),
-                    ],
-                    SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
-                    _buildResultSectionSliver(context),
-                    if (loadMoreFooter != null)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: EdgeInsets.only(top: spacing.md),
-                          child: loadMoreFooter,
-                        ),
-                      ),
-                  ],
+      child: !searchState.hasSource
+          ? _buildInitialEmptyState(context)
+          : Material(
+              color: context.appColors.surfaceElevated,
+              child: CustomScrollView(
+                key: PageStorageKey<String>(
+                  'image-search-scroll:${_scope.cacheKey}',
                 ),
+                controller: _scrollController,
+                slivers: [
+                  SliverToBoxAdapter(child: _buildSourceCard(context)),
+                  if (searchState.inputKind == ImageSearchInputKind.image &&
+                      searchState.isPreviewExpanded) ...[
+                    SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
+                    SliverToBoxAdapter(child: _buildPreviewPanel(context)),
+                  ],
+                  if (searchState.isFilterExpanded) ...[
+                    SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
+                    SliverToBoxAdapter(
+                      child: ImageSearchFilterPanel(
+                        filterState: searchState.filterState,
+                        summaryText: _filterSummaryText,
+                        currentMovieNumber: widget.currentMovieNumber,
+                        onSearchTargetChanged: (target) =>
+                            _notifier.updateFilter(
+                              _filterState.copyWith(searchTarget: target),
+                            ),
+                        onCurrentMovieScopeChanged: (scope) =>
+                            _notifier.updateFilter(
+                              _filterState.copyWith(currentMovieScope: scope),
+                            ),
+                        isSearching:
+                            searchState.isSearching ||
+                            searchState.isResolvingActorMovieIds,
+                        onModeChanged: (mode) => _notifier.updateFilter(
+                          _filterState.copyWith(actorFilterMode: mode),
+                        ),
+                        onSelectActors: _openActorSelectorDialog,
+                        onSearch: _runSearch,
+                      ),
+                    ),
+                  ],
+                  SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
+                  _buildResultSectionSliver(context),
+                  if (loadMoreFooter != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: spacing.md),
+                        child: loadMoreFooter,
+                      ),
+                    ),
+                ],
               ),
+            ),
     );
   }
 
@@ -261,8 +264,26 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const AppEmptyState(message: '选择一张图片开始搜索'),
+            const AppEmptyState(message: '选择图片或输入文字开始搜索'),
             SizedBox(height: spacing.lg),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: AppTextField(
+                fieldKey: const Key('image-search-text-query-field'),
+                controller: _textController,
+                hintText: '例如：长发、白色连衣裙、海边',
+                prefix: const Icon(Icons.text_fields_rounded),
+                onFieldSubmitted: (_) => _searchText(),
+              ),
+            ),
+            SizedBox(height: spacing.sm),
+            AppButton(
+              key: const Key('image-search-empty-text-search-button'),
+              label: '文字搜索',
+              icon: const Icon(Icons.search_rounded),
+              onPressed: _searchText,
+            ),
+            SizedBox(height: spacing.sm),
             AppButton(
               key: const Key('desktop-image-search-empty-select-button'),
               label: '选择图片',
@@ -276,6 +297,9 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
   }
 
   Widget _buildSourceCard(BuildContext context) {
+    if (_searchState.inputKind == ImageSearchInputKind.text) {
+      return _buildTextSourceCard(context);
+    }
     final spacing = context.appSpacing;
 
     return Container(
@@ -324,6 +348,13 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
                       onPressed: _pickAndSearchImage,
                     ),
                     AppIconButton(
+                      key: const Key('desktop-image-search-change-text'),
+                      tooltip: '改用文字搜索',
+                      size: AppIconButtonSize.regular,
+                      icon: const Icon(Icons.text_fields_rounded),
+                      onPressed: _switchToTextSearch,
+                    ),
+                    AppIconButton(
                       key: const Key('desktop-image-search-toggle-preview'),
                       tooltip: _searchState.isPreviewExpanded ? '收起大图' : '展示大图',
                       size: AppIconButtonSize.regular,
@@ -370,6 +401,80 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
           fit: BoxFit.contain,
           borderRadius: context.appRadius.mdBorder,
         ),
+      ),
+    );
+  }
+
+  Widget _buildTextSourceCard(BuildContext context) {
+    final spacing = context.appSpacing;
+    if (_textController.text != _searchState.textQuery) {
+      _textController.text = _searchState.textQuery ?? '';
+    }
+    return Container(
+      key: const Key('image-search-text-source-card'),
+      width: double.infinity,
+      padding: EdgeInsets.all(spacing.lg),
+      decoration: BoxDecoration(
+        color: context.appColors.surfaceCard,
+        borderRadius: context.appRadius.lgBorder,
+        border: Border.all(color: context.appColors.borderSubtle),
+        boxShadow: context.appShadows.card,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final textField = AppTextField(
+            fieldKey: const Key('image-search-text-source-field'),
+            controller: _textController,
+            hintText: '输入文字描述',
+            prefix: const Icon(Icons.text_fields_rounded),
+            onFieldSubmitted: (_) => _searchText(),
+          );
+          final actions = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppButton(
+                key: const Key('image-search-text-source-search-button'),
+                label: '搜索',
+                isLoading: _searchState.isSearching,
+                onPressed: _searchState.isSearching ? null : _searchText,
+              ),
+              SizedBox(width: spacing.sm),
+              AppIconButton(
+                key: const Key('image-search-text-source-change-image'),
+                tooltip: '改用图片搜索',
+                size: AppIconButtonSize.regular,
+                icon: const Icon(Icons.image_search_outlined),
+                onPressed: _pickAndSearchImage,
+              ),
+              SizedBox(width: spacing.sm),
+              AppIconButton(
+                key: const Key('desktop-image-search-toggle-filter'),
+                tooltip: '高级筛选',
+                size: AppIconButtonSize.regular,
+                icon: const Icon(Icons.tune_rounded),
+                isSelected: _searchState.isFilterExpanded,
+                onPressed: _notifier.toggleFilterExpanded,
+              ),
+            ],
+          );
+          if (constraints.maxWidth < 560) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                textField,
+                SizedBox(height: spacing.sm),
+                actions,
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: textField),
+              SizedBox(width: spacing.sm),
+              actions,
+            ],
+          );
+        },
       ),
     );
   }
@@ -491,12 +596,12 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
     final normalizedMovieNumber = widget.currentMovieNumber?.trim();
     final currentMovieText =
         normalizedMovieNumber == null || normalizedMovieNumber.isEmpty
-            ? null
-            : '当前影片：${_filterState.currentMovieScope.label}';
+        ? null
+        : '当前影片：${_filterState.currentMovieScope.label}';
     final actorText =
         _filterState.actorFilterMode == ImageSearchActorFilterMode.none
-            ? '女优：不过滤'
-            : '女优：${_filterState.actorFilterMode.label}（已选 ${_filterState.selectedActorCount} 位）';
+        ? '女优：不过滤'
+        : '女优：${_filterState.actorFilterMode.label}（已选 ${_filterState.selectedActorCount} 位）';
     return currentMovieText == null
         ? actorText
         : '$currentMovieText · $actorText';
@@ -662,24 +767,40 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
     }
   }
 
+  void _switchToTextSearch() {
+    final text = _textController.text.trim();
+    _notifier.setTextSource(text);
+    if (text.isNotEmpty) {
+      unawaited(_runSearch());
+    }
+  }
+
+  Future<void> _searchText() async {
+    final text = _textController.text.trim();
+    if (text.isEmpty) {
+      showToast('请输入文字描述');
+      return;
+    }
+    _notifier.setTextSource(text);
+    await _runSearch();
+  }
+
   Future<void> _openResultPreviewDialog(ImageSearchResultItemDto item) async {
     final presentation =
         widget.resultPreviewPresentation ==
-                ImageSearchResultPreviewPresentation.bottomDrawer
-            ? MediaPreviewPresentation.bottomDrawer
-            : MediaPreviewPresentation.dialog;
+            ImageSearchResultPreviewPresentation.bottomDrawer
+        ? MediaPreviewPresentation.bottomDrawer
+        : MediaPreviewPresentation.dialog;
     final action = await showMediaPreviewOverlay(
       context: context,
       presentation: presentation,
-      drawerKey:
-          presentation == MediaPreviewPresentation.bottomDrawer
-              ? const Key('image-search-result-preview-bottom-sheet')
-              : null,
-      builder:
-          (_) => ImageSearchResultPreviewDialog(
-            item: item,
-            presentation: presentation,
-          ),
+      drawerKey: presentation == MediaPreviewPresentation.bottomDrawer
+          ? const Key('image-search-result-preview-bottom-sheet')
+          : null,
+      builder: (_) => ImageSearchResultPreviewDialog(
+        item: item,
+        presentation: presentation,
+      ),
     );
     if (!mounted || action == null) {
       return;
@@ -793,10 +914,9 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
       AppImageActionDescriptor(
         type: AppImageActionType.toggleMark,
         label: point == null ? '添加标记' : '删除标记',
-        icon:
-            point == null
-                ? Icons.bookmark_add_outlined
-                : Icons.bookmark_remove_outlined,
+        icon: point == null
+            ? Icons.bookmark_add_outlined
+            : Icons.bookmark_remove_outlined,
         enabled: hasMedia,
       ),
       AppImageActionDescriptor(
@@ -855,13 +975,14 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
   }
 
   Future<void> _saveResultImageToLocal(ImageSearchResultItemDto item) async {
-    final result = await ImageSaveService(
-      fetchBytes: ref.read(apiClientProvider).getBytes,
-    ).saveImageFromUrl(
-      imageUrl: _resultImageUrl(item),
-      fileName: _resultImageFileName(item),
-      dialogTitle: '保存到本地',
-    );
+    final result =
+        await ImageSaveService(
+          fetchBytes: ref.read(apiClientProvider).getBytes,
+        ).saveImageFromUrl(
+          imageUrl: _resultImageUrl(item),
+          fileName: _resultImageFileName(item),
+          dialogTitle: '保存到本地',
+        );
     if (!mounted) {
       return;
     }

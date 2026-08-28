@@ -5,6 +5,8 @@ import 'package:sakuramedia/features/image_search/presentation/image_search_filt
 
 const Object _unsetImageSearchValue = Object();
 
+enum ImageSearchInputKind { image, text }
+
 /// 图搜页面可跨导航保留的不可变业务状态。
 ///
 /// 滚动控制器、viewport 自动续页门闩和弹窗仍由 View 持有。
@@ -14,6 +16,8 @@ class ImageSearchState {
     this.fileBytes,
     this.fileName,
     this.mimeType,
+    this.inputKind = ImageSearchInputKind.image,
+    this.textQuery,
     this.sessionId,
     this.nextCursor,
     this.expiresAt,
@@ -38,6 +42,8 @@ class ImageSearchState {
   final Uint8List? fileBytes;
   final String? fileName;
   final String? mimeType;
+  final ImageSearchInputKind inputKind;
+  final String? textQuery;
   final String? sessionId;
   final String? nextCursor;
   final DateTime? expiresAt;
@@ -59,15 +65,21 @@ class ImageSearchState {
 
   bool get hasMore => nextCursor != null;
 
-  bool get hasSource =>
+  bool get hasSource => switch (inputKind) {
+    ImageSearchInputKind.image =>
       fileBytes != null &&
-      fileBytes!.isNotEmpty &&
-      (fileName?.isNotEmpty ?? false);
+          fileBytes!.isNotEmpty &&
+          (fileName?.isNotEmpty ?? false),
+    ImageSearchInputKind.text =>
+      textQuery != null && textQuery!.trim().isNotEmpty,
+  };
 
   ImageSearchState copyWith({
     Object? fileBytes = _unsetImageSearchValue,
     Object? fileName = _unsetImageSearchValue,
     Object? mimeType = _unsetImageSearchValue,
+    ImageSearchInputKind? inputKind,
+    Object? textQuery = _unsetImageSearchValue,
     Object? sessionId = _unsetImageSearchValue,
     Object? nextCursor = _unsetImageSearchValue,
     Object? expiresAt = _unsetImageSearchValue,
@@ -88,37 +100,35 @@ class ImageSearchState {
     bool? hasInitialized,
   }) {
     return ImageSearchState(
-      fileBytes:
-          identical(fileBytes, _unsetImageSearchValue)
-              ? this.fileBytes
-              : fileBytes as Uint8List?,
-      fileName:
-          identical(fileName, _unsetImageSearchValue)
-              ? this.fileName
-              : fileName as String?,
-      mimeType:
-          identical(mimeType, _unsetImageSearchValue)
-              ? this.mimeType
-              : mimeType as String?,
-      sessionId:
-          identical(sessionId, _unsetImageSearchValue)
-              ? this.sessionId
-              : sessionId as String?,
-      nextCursor:
-          identical(nextCursor, _unsetImageSearchValue)
-              ? this.nextCursor
-              : nextCursor as String?,
-      expiresAt:
-          identical(expiresAt, _unsetImageSearchValue)
-              ? this.expiresAt
-              : expiresAt as DateTime?,
+      fileBytes: identical(fileBytes, _unsetImageSearchValue)
+          ? this.fileBytes
+          : fileBytes as Uint8List?,
+      fileName: identical(fileName, _unsetImageSearchValue)
+          ? this.fileName
+          : fileName as String?,
+      mimeType: identical(mimeType, _unsetImageSearchValue)
+          ? this.mimeType
+          : mimeType as String?,
+      inputKind: inputKind ?? this.inputKind,
+      textQuery: identical(textQuery, _unsetImageSearchValue)
+          ? this.textQuery
+          : textQuery as String?,
+      sessionId: identical(sessionId, _unsetImageSearchValue)
+          ? this.sessionId
+          : sessionId as String?,
+      nextCursor: identical(nextCursor, _unsetImageSearchValue)
+          ? this.nextCursor
+          : nextCursor as String?,
+      expiresAt: identical(expiresAt, _unsetImageSearchValue)
+          ? this.expiresAt
+          : expiresAt as DateTime?,
       items: items ?? this.items,
       filterState: filterState ?? this.filterState,
       activeFilter: activeFilter ?? this.activeFilter,
       activeCurrentMovieNumber:
           identical(activeCurrentMovieNumber, _unsetImageSearchValue)
-              ? this.activeCurrentMovieNumber
-              : activeCurrentMovieNumber as String?,
+          ? this.activeCurrentMovieNumber
+          : activeCurrentMovieNumber as String?,
       subscribedActors: subscribedActors ?? this.subscribedActors,
       isSearching: isSearching ?? this.isSearching,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
@@ -128,18 +138,17 @@ class ImageSearchState {
           isResolvingActorMovieIds ?? this.isResolvingActorMovieIds,
       isPreviewExpanded: isPreviewExpanded ?? this.isPreviewExpanded,
       isFilterExpanded: isFilterExpanded ?? this.isFilterExpanded,
-      errorMessage:
-          identical(errorMessage, _unsetImageSearchValue)
-              ? this.errorMessage
-              : errorMessage as String?,
+      errorMessage: identical(errorMessage, _unsetImageSearchValue)
+          ? this.errorMessage
+          : errorMessage as String?,
       subscribedActorsErrorMessage:
           identical(subscribedActorsErrorMessage, _unsetImageSearchValue)
-              ? this.subscribedActorsErrorMessage
-              : subscribedActorsErrorMessage as String?,
+          ? this.subscribedActorsErrorMessage
+          : subscribedActorsErrorMessage as String?,
       bootstrappedSourceSignature:
           identical(bootstrappedSourceSignature, _unsetImageSearchValue)
-              ? this.bootstrappedSourceSignature
-              : bootstrappedSourceSignature,
+          ? this.bootstrappedSourceSignature
+          : bootstrappedSourceSignature,
       hasInitialized: hasInitialized ?? this.hasInitialized,
     );
   }

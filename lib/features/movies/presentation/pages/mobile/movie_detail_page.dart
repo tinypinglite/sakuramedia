@@ -160,9 +160,18 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
                     selectedMedia,
                   ),
             onPlayTap: selectedMedia != null && selectedMedia.hasPlayableUrl
-                ? () => _openMoviePlayer(mediaId: selectedMedia.mediaId)
+                ? () => _openMoviePlayer(
+                    mediaId: selectedMedia.mediaId,
+                    playbackDelivery: playbackDeliveryFor(selectedMedia),
+                  )
                 : null,
             isPlayLoading: _isLaunchingPlayback,
+            playbackDelivery: selectedMedia == null
+                ? null
+                : playbackDeliveryFor(selectedMedia),
+            onPlaybackDeliveryChanged: selectedMedia == null
+                ? null
+                : (delivery) => selectPlaybackDelivery(selectedMedia, delivery),
             onPlaylistTap: () => showMoviePlaylistPickerDialog(
               context,
               movieNumber: widget.movieNumber,
@@ -172,9 +181,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
             onCollectionToggle: isActionControlsLocked
                 ? null
                 : () => toggleMovieCollectionType(isCollection: isCollection),
-            onMediaSelect: (item) => setState(() {
-              selectedMediaId = item.mediaId;
-            }),
+            onMediaSelect: selectMedia,
             isDeletingSelectedMedia:
                 selectedMedia != null &&
                 deletingMediaId == selectedMedia.mediaId,
@@ -399,6 +406,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
         _openMoviePlayer(
           mediaId: mediaItem.mediaId,
           positionSeconds: point.offsetSeconds,
+          playbackDelivery: playbackDeliveryFor(mediaItem),
         );
       case MediaPreviewAction.openMovieDetail:
         return;
@@ -433,10 +441,15 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
     _openMoviePlayer(
       mediaId: mediaItem.mediaId,
       positionSeconds: point.offsetSeconds,
+      playbackDelivery: playbackDeliveryFor(mediaItem),
     );
   }
 
-  void _openMoviePlayer({int? mediaId, int? positionSeconds}) {
+  void _openMoviePlayer({
+    int? mediaId,
+    int? positionSeconds,
+    MoviePlaybackDelivery? playbackDelivery,
+  }) {
     if (_isLaunchingPlayback) {
       return;
     }
@@ -449,6 +462,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
         movieNumber: widget.movieNumber,
         mediaId: mediaId,
         positionSeconds: positionSeconds,
+        playbackDelivery: playbackDelivery,
         movie: ref.read(movieDetailProvider(widget.movieNumber)).movie,
       ).whenComplete(() {
         if (mounted) {

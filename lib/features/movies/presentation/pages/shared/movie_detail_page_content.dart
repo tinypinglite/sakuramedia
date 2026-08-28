@@ -85,6 +85,8 @@ class MovieDetailPageContent extends StatelessWidget {
     this.scrollViewBuilder,
     this.isMoreActionsUpdating = false,
     this.isPlayLoading = false,
+    this.playbackDelivery,
+    this.onPlaybackDeliveryChanged,
   });
 
   final MovieDetailDto movie;
@@ -151,6 +153,8 @@ class MovieDetailPageContent extends StatelessWidget {
 
   /// 播放动作进行中（合并播放探测/拉起外部播放器），透传给 hero 播放按钮显示 loading。
   final bool isPlayLoading;
+  final MoviePlaybackDelivery? playbackDelivery;
+  final ValueChanged<MoviePlaybackDelivery>? onPlaybackDeliveryChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -217,6 +221,9 @@ class MovieDetailPageContent extends StatelessWidget {
     required double heroHeight,
   }) {
     final mediaItems = mediaItemsOverride ?? movie.mediaItems;
+    final selectedMedia = mediaItems
+        .where((item) => item.mediaId == selectedMediaId)
+        .firstOrNull;
     final orderedActors = <MovieActorDto>[
       ...movie.actors.where((actor) => actor.isFemale),
       ...movie.actors.where((actor) => !actor.isFemale),
@@ -286,6 +293,10 @@ class MovieDetailPageContent extends StatelessWidget {
           isMoreActionsUpdating: isMoreActionsUpdating,
           isPlayLoading: isPlayLoading,
           onPlayTap: onPlayTap,
+          playbackDelivery: playbackDelivery,
+          canSelectPlaybackDelivery:
+              selectedMedia?.supportsRedirectPlayback ?? false,
+          onPlaybackDeliveryChanged: onPlaybackDeliveryChanged,
         ),
         SizedBox(height: context.appSpacing.lg),
         MoviePlotGallery(

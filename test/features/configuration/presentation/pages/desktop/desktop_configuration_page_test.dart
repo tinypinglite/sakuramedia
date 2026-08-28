@@ -1835,7 +1835,12 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
     path: '/status/image-search',
     body: <String, dynamic>{
       'healthy': true,
-      'joytag': <String, dynamic>{'healthy': true, 'used_device': 'GPU'},
+      'embedding_service': <String, dynamic>{
+        'healthy': true,
+        'space_id': 'clip-vit-l-14',
+        'dimension': 768,
+        'modalities': <String>['image', 'text'],
+      },
       'indexing': <String, dynamic>{
         'pending_thumbnails': 23,
         'failed_thumbnails': 2,

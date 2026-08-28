@@ -139,6 +139,7 @@ Map<String, dynamic> _movieDetailJson() {
         'valid': true,
         'progress': null,
         'points': const <Map<String, dynamic>>[],
+        'playback_deliveries': const <String>['proxy'],
       },
     ],
   };

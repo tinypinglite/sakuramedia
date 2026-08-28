@@ -975,6 +975,7 @@ void main() {
                 },
               ],
             },
+            'playback_deliveries': const <String>['proxy', 'redirect'],
             'points': [
               <String, dynamic>{
                 'point_id': 1,
@@ -1234,6 +1235,7 @@ void main() {
               'video': <String, dynamic>{'codec_name': 'h264'},
             },
             'points': const <Map<String, dynamic>>[],
+            'playback_deliveries': const <String>['proxy'],
           },
         ],
       },

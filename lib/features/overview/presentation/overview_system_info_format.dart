@@ -10,22 +10,22 @@ String formatGigabytes(int bytes) {
 }
 
 extension OverviewSystemInfoFormat on OverviewSystemInfoState {
-  String buildJoyTagHealthValue() {
+  String buildEmbeddingServiceHealthValue() {
     if (imageSearchStatus == null) {
       return '不可用';
     }
-    return imageSearchStatus!.joyTag.healthy ? '正常' : '异常';
+    return imageSearchStatus!.embeddingService.healthy ? '正常' : '异常';
   }
 
-  String buildJoyTagDeviceValue() {
-    final device = imageSearchStatus?.joyTag.usedDevice;
-    if (device == null || device.trim().isEmpty) {
+  String buildEmbeddingServiceSpaceValue() {
+    final spaceId = imageSearchStatus?.embeddingService.spaceId;
+    if (spaceId == null || spaceId.trim().isEmpty) {
       return '未知';
     }
-    return device;
+    return spaceId;
   }
 
-  String buildJoyTagIndexingValue() {
+  String buildEmbeddingServiceIndexingValue() {
     if (imageSearchStatus == null) {
       return '不可用';
     }

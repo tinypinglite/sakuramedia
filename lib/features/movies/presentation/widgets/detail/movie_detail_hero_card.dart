@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/domain/movies/subscription_heart_badge.dart';
 
@@ -19,6 +20,9 @@ class MovieDetailHeroCard extends StatelessWidget {
     this.isSubscriptionUpdating = false,
     this.isMoreActionsUpdating = false,
     this.isPlayLoading = false,
+    this.playbackDelivery,
+    this.canSelectPlaybackDelivery = false,
+    this.onPlaybackDeliveryChanged,
   });
 
   final double height;
@@ -36,6 +40,9 @@ class MovieDetailHeroCard extends StatelessWidget {
 
   /// 播放动作进行中（如合并播放探测/拉起外部播放器），按钮显示 loading 并禁用。
   final bool isPlayLoading;
+  final MoviePlaybackDelivery? playbackDelivery;
+  final bool canSelectPlaybackDelivery;
+  final ValueChanged<MoviePlaybackDelivery>? onPlaybackDeliveryChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +187,75 @@ class MovieDetailHeroCard extends StatelessWidget {
                 ),
               ),
             ),
+          if (canSelectPlaybackDelivery && playbackDelivery != null)
+            Positioned(
+              bottom: spacing.md,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: _PlaybackDeliveryButton(
+                  delivery: playbackDelivery!,
+                  onChanged: onPlaybackDeliveryChanged,
+                ),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _PlaybackDeliveryButton extends StatelessWidget {
+  const _PlaybackDeliveryButton({required this.delivery, this.onChanged});
+
+  final MoviePlaybackDelivery delivery;
+  final ValueChanged<MoviePlaybackDelivery>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final colors = context.appColors;
+    final next = delivery == MoviePlaybackDelivery.redirect
+        ? MoviePlaybackDelivery.proxy
+        : MoviePlaybackDelivery.redirect;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: const Key('movie-detail-hero-playback-delivery-toggle'),
+        borderRadius: context.appRadius.pillBorder,
+        onTap: onChanged == null ? null : () => onChanged!(next),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.md,
+            vertical: spacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: colors.mediaOverlayStrong,
+            borderRadius: context.appRadius.pillBorder,
+            border: Border.all(
+              color: colors.borderSubtle.withValues(alpha: 0.42),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.swap_horiz_rounded,
+                size: context.appComponentTokens.iconSizeSm,
+                color: context.appTextPalette.onMedia,
+              ),
+              SizedBox(width: spacing.xs),
+              Text(
+                delivery == MoviePlaybackDelivery.redirect ? '直连播放' : '中转播放',
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  tone: AppTextTone.onMedia,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

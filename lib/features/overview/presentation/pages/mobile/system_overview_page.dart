@@ -124,21 +124,21 @@ class MobileSystemOverviewPage extends ConsumerWidget {
           title: '服务健康',
           items: <_MobileSystemOverviewMetricItem>[
             _MobileSystemOverviewMetricItem(
-              id: 'joytag-health',
-              label: 'JoyTag 健康',
-              value: systemInfo.buildJoyTagHealthValue(),
+              id: 'embedding-service-health',
+              label: '嵌入服务健康',
+              value: systemInfo.buildEmbeddingServiceHealthValue(),
               isLoading: systemInfo.isLoadingImageSearchStatus,
             ),
             _MobileSystemOverviewMetricItem(
-              id: 'joytag-device',
-              label: '推理设备',
-              value: systemInfo.buildJoyTagDeviceValue(),
+              id: 'embedding-service-space',
+              label: '嵌入空间',
+              value: systemInfo.buildEmbeddingServiceSpaceValue(),
               isLoading: systemInfo.isLoadingImageSearchStatus,
             ),
             _MobileSystemOverviewMetricItem(
-              id: 'joytag-indexing-backlog',
+              id: 'embedding-service-indexing-backlog',
               label: '待索引',
-              value: systemInfo.buildJoyTagIndexingValue(),
+              value: systemInfo.buildEmbeddingServiceIndexingValue(),
               isLoading: systemInfo.isLoadingImageSearchStatus,
             ),
             _MobileSystemOverviewMetricItem(
