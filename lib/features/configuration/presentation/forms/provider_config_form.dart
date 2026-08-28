@@ -95,12 +95,15 @@ class ProviderConfigFormFields extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = fieldSpacing ?? context.appSpacing.lg;
+    final editableFields = controller.fields
+        .where((field) => !field.readOnly)
+        .toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (var index = 0; index < controller.fields.length; index++) ...[
+        for (var index = 0; index < editableFields.length; index++) ...[
           if (index > 0) SizedBox(height: spacing),
-          _buildField(context, controller.fields[index]),
+          _buildField(context, editableFields[index]),
         ],
       ],
     );
@@ -109,8 +112,8 @@ class ProviderConfigFormFields extends StatelessWidget {
   Widget _buildField(BuildContext context, ProviderConfigFieldDto field) {
     final fieldController = controller.controllerFor(field.key);
     final fieldFocusNode = focusNodes[field.key];
-    final fieldEnabled = enabled && !field.readOnly;
-    final validator = field.required && !field.readOnly
+    final fieldEnabled = enabled;
+    final validator = field.required
         ? (String? value) =>
               _validateRequired(field, value, isEditing: isEditing)
         : null;

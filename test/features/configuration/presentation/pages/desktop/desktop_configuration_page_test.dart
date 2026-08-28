@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
+import 'package:flutter_riverpod/flutter_riverpod.dart'
+    show AsyncData, ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
@@ -93,6 +94,29 @@ void main() {
 
       expect(bundle.adapter.hitCount('GET', '/download-clients'), 1);
       expect(bundle.adapter.hitCount('GET', '/media-libraries'), 1);
+    });
+
+    testWidgets('refreshes the Provider catalog when returning to media tab', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle, libraries: const []);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        useReloadingMediaProviderCatalog: true,
+      );
+
+      expect(find.textContaining('暂无可用 Provider'), findsOneWidget);
+
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-account-security'),
+      );
+      await _openMediaLibrariesTab(tester);
+
+      expect(find.textContaining('暂无可用 Provider'), findsNothing);
     });
 
     testWidgets('loads blacklisted movies lazily when switching tabs', (
@@ -1591,10 +1615,23 @@ class _TestMediaProviderCatalog extends MediaProviderCatalog {
   ];
 }
 
+class _ReloadingMediaProviderCatalog extends MediaProviderCatalog {
+  @override
+  Future<List<MediaProviderDto>> build() async => const <MediaProviderDto>[];
+
+  @override
+  Future<void> reload() async {
+    state = const AsyncData<List<MediaProviderDto>>(<MediaProviderDto>[
+      _testProvider,
+    ]);
+  }
+}
+
 Future<void> _pumpPage(
   WidgetTester tester,
   TestApiBundle bundle, {
   required SessionStore sessionStore,
+  bool useReloadingMediaProviderCatalog = false,
 }) async {
   tester.view.physicalSize = const Size(1440, 900);
   tester.view.devicePixelRatio = 1;
@@ -1603,9 +1640,14 @@ Future<void> _pumpPage(
     ProviderScope(
       overrides: [
         ...bundle.riverpodOverrides(),
-        mediaProviderCatalogProvider.overrideWith(
-          _TestMediaProviderCatalog.new,
-        ),
+        if (useReloadingMediaProviderCatalog)
+          mediaProviderCatalogProvider.overrideWith(
+            _ReloadingMediaProviderCatalog.new,
+          )
+        else
+          mediaProviderCatalogProvider.overrideWith(
+            _TestMediaProviderCatalog.new,
+          ),
       ],
       child: OKToast(
         child: MaterialApp(

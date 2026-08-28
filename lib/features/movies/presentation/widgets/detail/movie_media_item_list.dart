@@ -4,6 +4,7 @@ import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_switch.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_pill_wrap.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_media_point_gallery.dart';
 
@@ -17,6 +18,8 @@ class MovieMediaItemList extends StatelessWidget {
     this.onDeleteSelectedMedia,
     this.onOpenPointPreview,
     this.onRequestPointMenu,
+    this.playbackDelivery,
+    this.onPlaybackDeliveryChanged,
   });
 
   final List<MovieMediaItemDto> mediaItems;
@@ -33,6 +36,9 @@ class MovieMediaItemList extends StatelessWidget {
     Offset globalPosition,
   )?
   onRequestPointMenu;
+  final MoviePlaybackDelivery? playbackDelivery;
+  final ValueChanged<MoviePlaybackDelivery>? onPlaybackDeliveryChanged;
+
   @override
   Widget build(BuildContext context) {
     final contentGap = context.appComponentTokens.movieDetailSectionTitleGap;
@@ -47,6 +53,14 @@ class MovieMediaItemList extends StatelessWidget {
         : _buildTechnicalSummary(selectedItem);
     final showDeleteAction =
         selectedItem != null && onDeleteSelectedMedia != null;
+    final canSelectPlaybackDelivery =
+        selectedItem != null &&
+        playbackDelivery != null &&
+        onPlaybackDeliveryChanged != null &&
+        selectedItem.playbackDeliveries.contains(MoviePlaybackDelivery.proxy) &&
+        selectedItem.playbackDeliveries.contains(
+          MoviePlaybackDelivery.redirect,
+        );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,7 +84,8 @@ class MovieMediaItemList extends StatelessWidget {
             key: const Key('movie-media-summary-row'),
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(
+              Flexible(
+                fit: FlexFit.loose,
                 child: technicalSummary == null
                     ? const SizedBox(
                         key: Key('movie-media-tech-summary-placeholder'),
@@ -114,6 +129,13 @@ class MovieMediaItemList extends StatelessWidget {
                 ),
               ],
             ],
+          ),
+        ],
+        if (canSelectPlaybackDelivery) ...[
+          SizedBox(height: contentGap),
+          _MoviePlaybackDeliverySwitch(
+            delivery: playbackDelivery!,
+            onChanged: onPlaybackDeliveryChanged!,
           ),
         ],
         if (selectedItem != null && selectedItem.points.isNotEmpty) ...[
@@ -217,5 +239,57 @@ class MovieMediaItemList extends StatelessWidget {
         .replaceFirst(RegExp(r'0+$'), '')
         .replaceFirst(RegExp(r'\.$'), '');
     return '$formatted fps';
+  }
+}
+
+class _MoviePlaybackDeliverySwitch extends StatelessWidget {
+  const _MoviePlaybackDeliverySwitch({
+    required this.delivery,
+    required this.onChanged,
+  });
+
+  final MoviePlaybackDelivery delivery;
+  final ValueChanged<MoviePlaybackDelivery> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final usesBackendProxy = delivery == MoviePlaybackDelivery.proxy;
+    return Row(
+      key: const Key('movie-media-playback-delivery-selector'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '302直连',
+          key: const Key('movie-media-playback-delivery-direct'),
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.medium,
+            tone: usesBackendProxy ? AppTextTone.muted : AppTextTone.accent,
+          ),
+        ),
+        SizedBox(width: context.appSpacing.sm),
+        AppSwitch(
+          key: const Key('movie-media-playback-delivery-switch'),
+          value: usesBackendProxy,
+          onChanged: (useProxy) => onChanged(
+            useProxy
+                ? MoviePlaybackDelivery.proxy
+                : MoviePlaybackDelivery.redirect,
+          ),
+        ),
+        SizedBox(width: context.appSpacing.sm),
+        Text(
+          '后端代理',
+          key: const Key('movie-media-playback-delivery-proxy'),
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.medium,
+            tone: usesBackendProxy ? AppTextTone.accent : AppTextTone.muted,
+          ),
+        ),
+      ],
+    );
   }
 }

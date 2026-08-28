@@ -484,6 +484,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
       return;
     }
     setState(() {
+      selectedMediaId = mediaItem.mediaId;
       selectedPlaybackDelivery = delivery;
     });
   }

@@ -89,12 +89,8 @@ void main() {
     );
     expect(find.text('服务地址的详细说明'), findsOneWidget);
     expect(
-      tester
-          .widget<TextFormField>(
-            find.byKey(const Key('provider-config-field-account')),
-          )
-          .enabled,
-      isFalse,
+      find.byKey(const Key('provider-config-field-account')),
+      findsNothing,
     );
 
     final editController = ProviderConfigFormController(fields: fields);

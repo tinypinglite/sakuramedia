@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
@@ -30,6 +32,18 @@ class MediaLibrariesSection extends ConsumerStatefulWidget {
 }
 
 class _MediaLibrariesSectionState extends ConsumerState<MediaLibrariesSection> {
+  @override
+  void didUpdateWidget(covariant MediaLibrariesSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.active && widget.active) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.active) {
+          unawaited(ref.read(mediaProviderCatalogProvider.notifier).reload());
+        }
+      });
+    }
+  }
+
   Future<List<MediaProviderDto>?> _loadCatalog({bool showError = true}) async {
     try {
       return await ref.read(mediaProviderCatalogProvider.future);

@@ -221,9 +221,6 @@ class MovieDetailPageContent extends StatelessWidget {
     required double heroHeight,
   }) {
     final mediaItems = mediaItemsOverride ?? movie.mediaItems;
-    final selectedMedia = mediaItems
-        .where((item) => item.mediaId == selectedMediaId)
-        .firstOrNull;
     final orderedActors = <MovieActorDto>[
       ...movie.actors.where((actor) => actor.isFemale),
       ...movie.actors.where((actor) => !actor.isFemale),
@@ -293,10 +290,6 @@ class MovieDetailPageContent extends StatelessWidget {
           isMoreActionsUpdating: isMoreActionsUpdating,
           isPlayLoading: isPlayLoading,
           onPlayTap: onPlayTap,
-          playbackDelivery: playbackDelivery,
-          canSelectPlaybackDelivery:
-              selectedMedia?.supportsRedirectPlayback ?? false,
-          onPlaybackDeliveryChanged: onPlaybackDeliveryChanged,
         ),
         SizedBox(height: context.appSpacing.lg),
         MoviePlotGallery(
@@ -346,6 +339,8 @@ class MovieDetailPageContent extends StatelessWidget {
                   onDeleteSelectedMedia: onDeleteSelectedMedia,
                   onOpenPointPreview: onOpenMediaPointPreview,
                   onRequestPointMenu: onRequestMediaPointMenu,
+                  playbackDelivery: playbackDelivery,
+                  onPlaybackDeliveryChanged: onPlaybackDeliveryChanged,
                 ),
               ],
             ),
@@ -674,13 +669,4 @@ List<MovieDetailStatItem> buildMovieDetailStatItems(
       iconColor: context.appColors.movieDetailWantWatchCountIcon,
     ),
   ];
-}
-
-extension MovieMediaItemIterableX on Iterable<MovieMediaItemDto> {
-  MovieMediaItemDto? get firstOrNull {
-    for (final item in this) {
-      return item;
-    }
-    return null;
-  }
 }
