@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
@@ -17,7 +16,6 @@ class MoviePlayerHarness {
     required FetchMediaThumbnails fetchMediaThumbnails,
     FetchMovieSubtitles? fetchMovieSubtitles,
     required UpdateMediaProgress updateMediaProgress,
-    FetchMediaLibraries? fetchMediaLibraries,
     int? initialMediaId,
     int? initialPositionSeconds,
     Duration progressReportInterval = const Duration(seconds: 5),
@@ -36,7 +34,6 @@ class MoviePlayerHarness {
             fetchMediaThumbnails: fetchMediaThumbnails,
             fetchMovieSubtitles: fetchMovieSubtitles,
             updateMediaProgress: updateMediaProgress,
-            fetchMediaLibraries: fetchMediaLibraries,
           ),
         ),
       ],
@@ -59,8 +56,6 @@ class MoviePlayerHarness {
 
   MovieDetailDto? get movie => _state.movie;
   MovieMediaItemDto? get selectedMedia => _state.selectedMedia;
-  MediaStorageDescriptor get selectedMediaStorage =>
-      _state.selectedMediaStorage;
   List<MovieMediaThumbnailDto> get thumbnails => _state.thumbnails;
   String? get thumbnailErrorMessage => _state.thumbnailErrorMessage;
   String? get subtitleErrorMessage => _state.subtitleErrorMessage;
@@ -80,7 +75,10 @@ class MoviePlayerHarness {
       _notifier.activeThumbnailIndexListenable;
   List<MoviePlayerSubtitleOption> get subtitleOptions => _state.subtitleOptions;
   int? get selectedSubtitleId => _state.selectedSubtitleId;
-  String? get resolvedPlayUrl => _state.resolvedPlayUrl(_scope.baseUrl);
+  String? get resolvedPlayUrl => _state.resolvedPlayUrl(
+    _scope.baseUrl,
+    _scope.playbackDelivery,
+  );
   Duration? get initialPlaybackPosition => _state.startupPlaybackPosition;
   Duration? get resumePlaybackPosition => _state.resumePlaybackPosition;
   bool get isResumeDecisionPending => _state.isResumeDecisionPending;

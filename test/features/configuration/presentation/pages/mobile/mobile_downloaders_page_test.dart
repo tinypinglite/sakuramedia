@@ -1,58 +1,35 @@
-import 'dart:convert';
-
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
-import 'package:sakuramedia/features/configuration/data/api/download_clients_api.dart';
-import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
-import 'package:sakuramedia/features/configuration/data/dto/indexer_settings_dto.dart';
-import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
-import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_downloaders_page.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
 
 import '../../../../../support/test_api_bundle.dart';
-
-late SessionStore _sessionStore;
-late TestApiBundle _bundle;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  late SessionStore sessionStore;
+  late TestApiBundle bundle;
+
   setUp(() async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    _sessionStore = await _buildLoggedInSessionStore();
-    _bundle = await createTestApiBundle(_sessionStore);
+    sessionStore = await _buildLoggedInSessionStore();
+    bundle = await createTestApiBundle(sessionStore);
   });
 
   tearDown(() {
-    _bundle.dispose();
+    bundle.dispose();
+    sessionStore.dispose();
   });
 
-  testWidgets('renders overview card, tabs and empty state', (
-    WidgetTester tester,
-  ) async {
-    _enqueueDownloadersData(
-      _bundle,
-      clients: const <Map<String, dynamic>>[],
-      libraries: const <Map<String, dynamic>>[],
-      indexers: const <Map<String, dynamic>>[],
-    );
-
-    await _pumpPage(tester);
+  testWidgets('renders provider-neutral tabs and empty state', (tester) async {
+    _enqueueData(bundle, clients: const [], libraries: const []);
+    await _pumpPage(tester, bundle);
 
     expect(
       find.byKey(const Key('mobile-settings-downloaders')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('mobile-downloaders-overview-card')),
       findsOneWidget,
     );
     expect(
@@ -68,455 +45,76 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('还没有下载器配置'), findsOneWidget);
-    expect(
-      find.byKey(const Key('mobile-downloaders-create-button')),
-      findsOneWidget,
-    );
   });
 
-  testWidgets('shows load error and retries to empty state', (
-    WidgetTester tester,
-  ) async {
-    _bundle.adapter.enqueueResponder(
-      method: 'GET',
-      path: '/download-clients',
-      responder: (_, __) async {
-        return ResponseBody.fromString(
-          jsonEncode({
-            'error': <String, dynamic>{
-              'code': 'server_error',
-              'message': '下载器加载失败，请稍后重试。',
-            },
-          }),
-          500,
-          headers: const <String, List<String>>{
-            Headers.contentTypeHeader: <String>[Headers.jsonContentType],
-          },
-        );
-      },
-    );
-    _bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/media-libraries',
-      body: const <Map<String, dynamic>>[],
-    );
-    _bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/indexer-settings',
-      body: const <String, dynamic>{
-        'indexers': <Map<String, dynamic>>[],
-      },
-    );
-    _enqueueDownloadersData(
-      _bundle,
-      clients: const <Map<String, dynamic>>[],
-      libraries: const <Map<String, dynamic>>[],
-      indexers: const <Map<String, dynamic>>[],
-    );
+  testWidgets('shows provider and media library summaries', (tester) async {
+    _enqueueData(bundle, clients: [_clientJson()], libraries: [_libraryJson()]);
+    await _pumpPage(tester, bundle);
 
-    await _pumpPage(tester);
-
-    expect(
-      find.byKey(const Key('mobile-downloaders-error-state')),
-      findsOneWidget,
-    );
-    expect(find.text('下载器加载失败，请稍后重试。'), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('mobile-downloaders-retry-button')));
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const Key('mobile-downloaders-empty-state')),
-      findsOneWidget,
-    );
+    expect(find.text('Downloader A'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-downloader-card-1')), findsOneWidget);
   });
 
-  testWidgets('pull to refresh failure keeps current list and shows toast', (
-    WidgetTester tester,
-  ) async {
-    final downloadClientsApi = _RefreshFailureDownloadClientsApi(
-      apiClient: _bundle.apiClient,
-    );
-    final mediaLibrariesApi = _StaticMediaLibrariesApi(
-      apiClient: _bundle.apiClient,
-      libraries: _defaultLibraries,
-    );
-    final indexerSettingsApi = _StaticIndexerSettingsApi(
-      apiClient: _bundle.apiClient,
-      settings: const IndexerSettingsDto(
-        indexers: <IndexerEntryDto>[],
-      ),
-    );
-
-    await _pumpPage(
-      tester,
-      downloadClientsApi: downloadClientsApi,
-      mediaLibrariesApi: mediaLibrariesApi,
-      indexerSettingsApi: indexerSettingsApi,
-    );
-
-    expect(find.text('client-a'), findsOneWidget);
-
-    final refresh = tester.widget<AppPullToRefresh>(
-      find.byType(AppPullToRefresh).first,
-    );
-    await refresh.onRefresh();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(find.text('client-a'), findsOneWidget);
-    expect(find.text('下载器加载失败，请稍后重试。'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-  });
-
-  testWidgets('creates downloader and syncs list', (WidgetTester tester) async {
-    _enqueueDownloadersData(
-      _bundle,
-      clients: const <Map<String, dynamic>>[],
-      libraries: _defaultLibraries,
-      indexers: const <Map<String, dynamic>>[],
-    );
-    _bundle.adapter.enqueueJson(
-      method: 'POST',
-      path: '/download-clients',
-      body: _buildClientJson(id: 2, name: 'client-b', hasPassword: true),
-    );
-    _enqueueDownloadersData(
-      _bundle,
-      clients: <Map<String, dynamic>>[
-        _buildClientJson(id: 2, name: 'client-b', hasPassword: true),
-      ],
-      libraries: _defaultLibraries,
-      indexers: const <Map<String, dynamic>>[],
-    );
-
-    await _pumpPage(tester);
-
-    await tester.tap(find.byKey(const Key('mobile-downloaders-create-button')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('download-client-name-field')),
-      'client-b',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-base-url-field')),
-      'http://127.0.0.1:8080',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-username-field')),
-      'alice',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-password-field')),
-      'secret',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-client-save-path-field')),
-      '/downloads/b',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-local-root-path-field')),
-      '/mnt/downloads/b',
-    );
-    await tester.ensureVisible(
-      find.byKey(const Key('download-client-media-library-field')),
-    );
-    await tester.tap(
-      find.byKey(const Key('download-client-media-library-field')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Main Library').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('mobile-downloader-submit-button')));
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    final postRequest = _bundle.adapter.requests.firstWhere(
-      (request) =>
-          request.method == 'POST' && request.path == '/download-clients',
-    );
-    expect(postRequest.body['name'], 'client-b');
-    expect(postRequest.body['password'], 'secret');
-    expect(postRequest.body['media_library_id'], 1);
-    expect(find.text('client-b'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-  });
-
-  testWidgets('creates cloud115 downloader without qBittorrent fields', (
-    WidgetTester tester,
-  ) async {
-    _enqueueDownloadersData(
-      _bundle,
-      clients: const <Map<String, dynamic>>[],
-      libraries: _cloudLibraries,
-      indexers: const <Map<String, dynamic>>[],
-    );
-    _bundle.adapter.enqueueJson(
-      method: 'POST',
-      path: '/download-clients',
-      body: _cloudClientJson,
-    );
-    _enqueueDownloadersData(
-      _bundle,
-      clients: const <Map<String, dynamic>>[_cloudClientJson],
-      libraries: _cloudLibraries,
-      indexers: const <Map<String, dynamic>>[],
-    );
-
-    await _pumpPage(tester);
-    await tester.tap(find.byKey(const Key('mobile-downloaders-create-button')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('download-client-kind-field')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('115 离线').last);
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const Key('download-client-base-url-field')),
-      findsNothing,
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-name-field')),
-      '115 主账号',
-    );
-    await tester.tap(
-      find.byKey(const Key('download-client-media-library-field')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('115 云盘').last);
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const Key('mobile-downloader-submit-button')),
-    );
-    await tester.tap(find.byKey(const Key('mobile-downloader-submit-button')));
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    final request = _bundle.adapter.requests.firstWhere(
-      (request) =>
-          request.method == 'POST' && request.path == '/download-clients',
-    );
-    expect(request.body, <String, dynamic>{
-      'name': '115 主账号',
-      'kind': 'cloud115',
-      'media_library_id': 8,
-    });
-    expect(find.text('115 主账号'), findsOneWidget);
-    expect(find.textContaining('115 离线下载'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-  });
-
-  testWidgets('validates fields before create submit', (
-    WidgetTester tester,
-  ) async {
-    _enqueueDownloadersData(
-      _bundle,
-      clients: const <Map<String, dynamic>>[],
-      libraries: _defaultLibraries,
-      indexers: const <Map<String, dynamic>>[],
-    );
-
-    await _pumpPage(tester);
-
-    await tester.tap(find.byKey(const Key('mobile-downloaders-create-button')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('download-client-name-field')),
-      'client-b',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-base-url-field')),
-      'not-url',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-username-field')),
-      'alice',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-password-field')),
-      'secret',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-client-save-path-field')),
-      'downloads',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-local-root-path-field')),
-      'relative/path',
-    );
-    await tester.ensureVisible(
-      find.byKey(const Key('mobile-downloader-submit-button')),
-    );
-    await tester.tap(find.byKey(const Key('mobile-downloader-submit-button')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('请输入合法的 http/https 地址'), findsOneWidget);
-    expect(find.text('请输入路径'), findsNWidgets(2));
-    expect(find.text('请选择目标媒体库'), findsWidgets);
-    expect(_bundle.adapter.hitCount('POST', '/download-clients'), 0);
-  });
-
-  testWidgets('opens detail drawer and edits from detail action', (
-    WidgetTester tester,
-  ) async {
-    _enqueueDownloadersData(_bundle);
-    _bundle.adapter.enqueueJson(
-      method: 'PATCH',
-      path: '/download-clients/1',
-      body: _buildClientJson(
-        id: 1,
-        name: 'client-a-updated',
-        baseUrl: 'http://qb-updated:8080',
-        clientSavePath: '/downloads/updated',
-        localRootPath: '/mnt/downloads/updated',
-      ),
-    );
-    _enqueueDownloadersData(
-      _bundle,
-      clients: <Map<String, dynamic>>[
-        _buildClientJson(
-          id: 1,
-          name: 'client-a-updated',
-          baseUrl: 'http://qb-updated:8080',
-          clientSavePath: '/downloads/updated',
-          localRootPath: '/mnt/downloads/updated',
+  testWidgets(
+    'editing a downloader keeps its library when the provider catalog is unavailable',
+    (tester) async {
+      final client = _clientJson(
+        providerConfig: const <String, dynamic>{'endpoint': 'http://old'},
+      );
+      final library = _libraryJson(providerKey: 'missing-provider');
+      _enqueueData(
+        bundle,
+        clients: [client],
+        libraries: [library],
+        providerCatalogError: true,
+      );
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/download-clients/1',
+        body: _clientJson(
+          providerConfig: const <String, dynamic>{'endpoint': 'http://old'},
         ),
-      ],
-    );
+      );
 
-    await _pumpPage(tester);
+      await _pumpPage(tester, bundle);
+      expect(
+        find.byKey(const Key('mobile-downloaders-provider-catalog-error')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const Key('mobile-downloader-card-body-1')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('download-client-media-library-field')),
+        findsOneWidget,
+      );
+      expect(find.text('Main Library'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('mobile-downloader-card-body-1')));
-    await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('download-client-name-field')),
+        'Renamed downloader',
+      );
+      await tester.tap(
+        find.byKey(const Key('mobile-downloader-submit-button')),
+      );
+      await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(const Key('mobile-downloader-detail-drawer')),
-      findsOneWidget,
-    );
-    expect(find.text('client-a'), findsWidgets);
-    await tester.ensureVisible(
-      find.byKey(const Key('mobile-downloader-detail-edit-button')),
-    );
-    await tester.tap(
-      find.byKey(const Key('mobile-downloader-detail-edit-button')),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const Key('download-client-name-field')),
-      'client-a-updated',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-base-url-field')),
-      'http://qb-updated:8080',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-client-save-path-field')),
-      '/downloads/updated',
-    );
-    await tester.enterText(
-      find.byKey(const Key('download-client-local-root-path-field')),
-      '/mnt/downloads/updated',
-    );
-    await tester.ensureVisible(
-      find.byKey(const Key('mobile-downloader-submit-button')),
-    );
-    await tester.tap(find.byKey(const Key('mobile-downloader-submit-button')));
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    final patchRequest = _bundle.adapter.requests.firstWhere(
-      (request) =>
-          request.method == 'PATCH' && request.path == '/download-clients/1',
-    );
-    expect(patchRequest.body['name'], 'client-a-updated');
-    expect(patchRequest.body.containsKey('password'), isFalse);
-    expect(find.text('client-a-updated'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-  });
-
-  testWidgets('deletes downloader from detail action after confirm', (
-    WidgetTester tester,
-  ) async {
-    _enqueueDownloadersData(_bundle);
-    _bundle.adapter.enqueueJson(
-      method: 'DELETE',
-      path: '/download-clients/1',
-      statusCode: 204,
-    );
-    _enqueueDownloadersData(
-      _bundle,
-      clients: const <Map<String, dynamic>>[],
-      libraries: _defaultLibraries,
-      indexers: const <Map<String, dynamic>>[],
-    );
-
-    await _pumpPage(tester);
-
-    await tester.tap(find.byKey(const Key('mobile-downloader-card-body-1')));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const Key('mobile-downloader-detail-delete-button')),
-    );
-    await tester.tap(
-      find.byKey(const Key('mobile-downloader-detail-delete-button')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const Key('mobile-downloader-delete-confirm-button')),
-    );
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(_bundle.adapter.hitCount('DELETE', '/download-clients/1'), 1);
-    expect(find.text('还没有下载器配置'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-  });
-
-  testWidgets('guide tab reflects setup status', (WidgetTester tester) async {
-    _enqueueDownloadersData(
-      _bundle,
-      clients: const <Map<String, dynamic>>[],
-      libraries: _defaultLibraries,
-      indexers: const <Map<String, dynamic>>[],
-    );
-
-    await _pumpPage(tester);
-
-    await tester.tap(find.byKey(const Key('mobile-downloaders-tab-guide')));
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const Key('mobile-downloaders-guide-step-libraries')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('mobile-downloaders-guide-step-downloaders')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('mobile-downloaders-guide-step-indexers')),
-      findsOneWidget,
-    );
-    expect(find.text('已配置'), findsOneWidget);
-    expect(find.text('待配置'), findsNWidgets(2));
-  });
+      final patchRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'PATCH' && request.path == '/download-clients/1',
+      );
+      expect(patchRequest.body, <String, dynamic>{
+        'name': 'Renamed downloader',
+        'library_id': 1,
+      });
+      await tester.pump(const Duration(seconds: 3));
+    },
+  );
 }
 
-Future<void> _pumpPage(
-  WidgetTester tester, {
-  DownloadClientsApi? downloadClientsApi,
-  MediaLibrariesApi? mediaLibrariesApi,
-  IndexerSettingsApi? indexerSettingsApi,
-}) async {
+Future<void> _pumpPage(WidgetTester tester, TestApiBundle bundle) async {
   await tester.pumpWidget(
     ProviderScope(
-      overrides: _bundle.riverpodOverrides(
-        downloadClientsApi: downloadClientsApi,
-        mediaLibrariesApi: mediaLibrariesApi,
-        indexerSettingsApi: indexerSettingsApi,
-      ),
+      overrides: bundle.riverpodOverrides(),
       child: OKToast(
         child: MaterialApp(
           theme: sakuraThemeData,
@@ -528,115 +126,66 @@ Future<void> _pumpPage(
   await tester.pumpAndSettle();
 }
 
-void _enqueueDownloadersData(
+void _enqueueData(
   TestApiBundle bundle, {
-  List<Map<String, dynamic>>? clients,
-  List<Map<String, dynamic>>? libraries,
-  List<Map<String, dynamic>>? indexers,
+  required List<Map<String, dynamic>> clients,
+  required List<Map<String, dynamic>> libraries,
+  List<Map<String, dynamic>>? providers,
+  bool providerCatalogError = false,
 }) {
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/download-clients',
-    body: clients ?? <Map<String, dynamic>>[_buildClientJson()],
+    body: clients,
   );
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/media-libraries',
-    body: libraries ?? _defaultLibraries,
+    body: libraries,
   );
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/indexer-settings',
-    body: <String, dynamic>{
-      'type': 'builtin',
-      'api_key': '',
-      'indexers': (indexers ??
-              const <Map<String, dynamic>>[
-                <String, dynamic>{
-                  'id': 1,
-                  'name': '馒头',
-                  'url': 'https://mt.example/api',
-                  'kind': 'pt',
-                  'download_client_id': 1,
-                  'download_client_name': 'client-a',
-                },
-              ])
-          .map((entry) {
-            if (entry.containsKey('download_clients')) return entry;
-            return <String, dynamic>{
-              ...entry,
-              'download_clients': <Map<String, dynamic>>[
-                <String, dynamic>{
-                  'id': entry['download_client_id'],
-                  'name': entry['download_client_name'],
-                  'kind': 'qbittorrent',
-                },
-              ],
-            };
-          })
-          .toList(growable: false),
-    },
-  );
+  if (providerCatalogError) {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-libraries/providers',
+      statusCode: 500,
+      body: const <String, dynamic>{'message': 'Provider catalog unavailable'},
+    );
+  } else {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-libraries/providers',
+      body:
+          providers ??
+          [
+            {
+              'provider_key': 'demo',
+              'display_name': 'Provider A',
+              'library_config_fields': const [],
+              'download_config_fields': const [],
+            },
+          ],
+    );
+  }
 }
 
-Map<String, dynamic> _buildClientJson({
-  int id = 1,
-  String name = 'client-a',
-  String baseUrl = 'http://qb.local:8080',
-  String username = 'alice',
-  String clientSavePath = '/downloads/a',
-  String localRootPath = '/mnt/downloads/a',
-  int mediaLibraryId = 1,
-  bool hasPassword = true,
-}) {
-  return <String, dynamic>{
-    'id': id,
-    'name': name,
-    'kind': 'qbittorrent',
-    'base_url': baseUrl,
-    'username': username,
-    'client_save_path': clientSavePath,
-    'local_root_path': localRootPath,
-    'media_library_id': mediaLibraryId,
-    'has_password': hasPassword,
-    'created_at': '2026-03-08T09:30:00Z',
-    'updated_at': '2026-03-08T10:30:00Z',
-  };
-}
+Map<String, dynamic> _clientJson({
+  Map<String, dynamic> providerConfig = const {'endpoint': 'http://demo'},
+}) => {
+  'id': 1,
+  'name': 'Downloader A',
+  'library_id': 1,
+  'provider_config': providerConfig,
+  'created_at': '2026-03-08T09:30:00Z',
+  'updated_at': '2026-03-08T10:30:00Z',
+};
 
-const List<Map<String, dynamic>> _defaultLibraries = <Map<String, dynamic>>[
-  <String, dynamic>{
-    'id': 1,
-    'name': 'Main Library',
-    'root_path': '/media/library/main',
-    'created_at': '2026-03-08T09:30:00Z',
-    'updated_at': '2026-03-08T10:30:00Z',
-  },
-];
-
-const List<Map<String, dynamic>> _cloudLibraries = <Map<String, dynamic>>[
-  <String, dynamic>{
-    'id': 8,
-    'name': '115 云盘',
-    'backend': 'cloud115',
-    'backend_config': <String, dynamic>{'root_cid': '100', 'app': 'alipaymini'},
-    'created_at': '2026-07-15T08:00:00Z',
-    'updated_at': '2026-07-15T08:00:00Z',
-  },
-];
-
-const Map<String, dynamic> _cloudClientJson = <String, dynamic>{
-  'id': 8,
-  'name': '115 主账号',
-  'kind': 'cloud115',
-  'base_url': null,
-  'username': null,
-  'client_save_path': null,
-  'local_root_path': null,
-  'media_library_id': 8,
-  'has_password': false,
-  'created_at': '2026-07-15T08:00:00Z',
-  'updated_at': '2026-07-15T08:00:00Z',
+Map<String, dynamic> _libraryJson({String providerKey = 'demo'}) => {
+  'id': 1,
+  'name': 'Main Library',
+  'provider_key': providerKey,
+  'provider_config': {'root': '/media'},
+  'created_at': '2026-03-08T09:30:00Z',
+  'updated_at': '2026-03-08T10:30:00Z',
 };
 
 Future<SessionStore> _buildLoggedInSessionStore() async {
@@ -648,43 +197,4 @@ Future<SessionStore> _buildLoggedInSessionStore() async {
     expiresAt: DateTime.parse('2026-03-10T12:00:00Z'),
   );
   return store;
-}
-
-class _RefreshFailureDownloadClientsApi extends DownloadClientsApi {
-  _RefreshFailureDownloadClientsApi({required super.apiClient});
-
-  int _requestCount = 0;
-
-  @override
-  Future<List<DownloadClientDto>> getClients() async {
-    _requestCount += 1;
-    if (_requestCount == 1) {
-      return <DownloadClientDto>[
-        DownloadClientDto.fromJson(_buildClientJson()),
-      ];
-    }
-    throw Exception('refresh failed');
-  }
-}
-
-class _StaticMediaLibrariesApi extends MediaLibrariesApi {
-  _StaticMediaLibrariesApi({required super.apiClient, required this.libraries});
-
-  final List<Map<String, dynamic>> libraries;
-
-  @override
-  Future<List<MediaLibraryDto>> getLibraries() async {
-    return libraries.map(MediaLibraryDto.fromJson).toList(growable: false);
-  }
-}
-
-class _StaticIndexerSettingsApi extends IndexerSettingsApi {
-  _StaticIndexerSettingsApi({required super.apiClient, required this.settings});
-
-  final IndexerSettingsDto settings;
-
-  @override
-  Future<IndexerSettingsDto> getSettings() async {
-    return settings;
-  }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 
@@ -27,7 +26,6 @@ class MovieDetailState {
     this.isLoading = true,
     this.errorMessage,
     this.similarMovies = const <MovieListItemDto>[],
-    this.storageDescriptors = const <int, MediaStorageDescriptor>{},
     this.isSimilarMoviesLoading = false,
     this.similarMoviesErrorMessage,
     this.selectedPreview = const MovieDetailPreview.placeholder(),
@@ -39,7 +37,6 @@ class MovieDetailState {
   final bool isLoading;
   final String? errorMessage;
   final List<MovieListItemDto> similarMovies;
-  final Map<int, MediaStorageDescriptor> storageDescriptors;
   final bool isSimilarMoviesLoading;
   final String? similarMoviesErrorMessage;
   final MovieDetailPreview selectedPreview;
@@ -52,19 +49,19 @@ class MovieDetailState {
     bool? isLoading,
     Object? errorMessage = _sentinel,
     List<MovieListItemDto>? similarMovies,
-    Map<int, MediaStorageDescriptor>? storageDescriptors,
     bool? isSimilarMoviesLoading,
     Object? similarMoviesErrorMessage = _sentinel,
     MovieDetailPreview? selectedPreview,
   }) {
     return MovieDetailState(
-      movie: identical(movie, _sentinel) ? this.movie : movie as MovieDetailDto?,
+      movie: identical(movie, _sentinel)
+          ? this.movie
+          : movie as MovieDetailDto?,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: identical(errorMessage, _sentinel)
           ? this.errorMessage
           : errorMessage as String?,
       similarMovies: similarMovies ?? this.similarMovies,
-      storageDescriptors: storageDescriptors ?? this.storageDescriptors,
       isSimilarMoviesLoading:
           isSimilarMoviesLoading ?? this.isSimilarMoviesLoading,
       similarMoviesErrorMessage: identical(similarMoviesErrorMessage, _sentinel)

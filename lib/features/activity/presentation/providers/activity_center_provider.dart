@@ -18,9 +18,10 @@ part 'activity_center_provider.g.dart';
 class ActivityCenter extends _$ActivityCenter
     with AsyncNotifierDisposeGuardMixin<ActivityCenterState> {
   static const int _pageSize = 20;
-  static const Duration _pollingInterval = Duration(seconds: 30);
+  static const Duration _pollingInterval = Duration(seconds: 3);
 
   Timer? _pollTimer;
+  bool _isPolling = false;
   late final DebouncedLatestRequest _taskFilterRequests =
       DebouncedLatestRequest();
   int _taskFilterGeneration = 0;
@@ -43,7 +44,7 @@ class ActivityCenter extends _$ActivityCenter
     }
     return initial.copyWith(
       connectionState: ActivityConnectionState.polling,
-      connectionMessage: '每 30 秒同步任务进度',
+      connectionMessage: '每 3 秒同步任务进度',
     );
   }
 
@@ -117,7 +118,7 @@ class ActivityCenter extends _$ActivityCenter
           jobs: jobsResult.jobs,
           jobErrorMessage: jobsResult.errorMessage,
           connectionState: ActivityConnectionState.polling,
-          connectionMessage: '每 30 秒同步任务进度',
+          connectionMessage: '每 3 秒同步任务进度',
         ),
       );
       _startPolling();
@@ -353,7 +354,8 @@ class ActivityCenter extends _$ActivityCenter
   }
 
   Future<void> _refreshFromPolling() async {
-    if (isDisposed || state.value == null) return;
+    if (isDisposed || state.value == null || _isPolling) return;
+    _isPolling = true;
     final generation = _taskFilterGeneration;
     try {
       final filter = current.taskFilter;
@@ -394,7 +396,7 @@ class ActivityCenter extends _$ActivityCenter
           taskLoadMoreErrorMessage: null,
           taskRefreshErrorMessage: null,
           connectionState: ActivityConnectionState.polling,
-          connectionMessage: '每 30 秒同步任务进度',
+          connectionMessage: '每 3 秒同步任务进度',
         ),
       );
     } catch (_) {
@@ -406,6 +408,8 @@ class ActivityCenter extends _$ActivityCenter
           ),
         );
       }
+    } finally {
+      _isPolling = false;
     }
   }
 

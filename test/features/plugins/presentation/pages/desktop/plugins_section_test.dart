@@ -110,6 +110,7 @@ void main() {
         find.byKey(const Key('plugins-delete-confirm-dialog')),
         findsOneWidget,
       );
+      expect(find.textContaining('运行数据（data/）会保留'), findsOneWidget);
       await tester.tap(find.byKey(const Key('plugins-delete-confirm-button')));
       await tester.pumpAndSettle();
 

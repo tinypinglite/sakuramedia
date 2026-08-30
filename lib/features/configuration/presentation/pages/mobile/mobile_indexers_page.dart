@@ -110,10 +110,9 @@ class _MobileIndexersPageState extends ConsumerState<MobileIndexersPage> {
                 label: '新增索引器',
                 variant: AppButtonVariant.primary,
                 icon: const Icon(Icons.add_rounded),
-                onPressed:
-                    !_isLoading && _hasDownloadClients
-                        ? _handleCreateIndexer
-                        : null,
+                onPressed: !_isLoading && _hasDownloadClients
+                    ? _handleCreateIndexer
+                    : null,
               ),
             ),
           ),
@@ -166,8 +165,8 @@ class _MobileIndexersPageState extends ConsumerState<MobileIndexersPage> {
             title: '请先在下载器页创建下载器',
             description: '索引器需要先绑定下载器，影片详情里的资源投递才能生效。',
             actionLabel: '前往下载器',
-            onActionTap:
-                () => GoRouter.of(context).push(mobileSettingsDownloadersPath),
+            onActionTap: () =>
+                GoRouter.of(context).push(mobileSettingsDownloadersPath),
           ),
           SizedBox(height: spacing.md),
         ],
@@ -630,10 +629,9 @@ class _MobileIndexerEditorDrawerState
 
   bool get _isEditing => widget.initialEntry != null;
 
-  AutovalidateMode get _autovalidateMode =>
-      _hasAttemptedSubmit
-          ? AutovalidateMode.onUserInteraction
-          : AutovalidateMode.disabled;
+  AutovalidateMode get _autovalidateMode => _hasAttemptedSubmit
+      ? AutovalidateMode.onUserInteraction
+      : AutovalidateMode.disabled;
 
   @override
   void initState() {
@@ -641,9 +639,7 @@ class _MobileIndexerEditorDrawerState
     final initialEntry = widget.initialEntry;
     _nameController = TextEditingController(text: initialEntry?.name ?? '');
     _urlController = TextEditingController(text: initialEntry?.url ?? '');
-    _apiKeyController = TextEditingController(
-      text: initialEntry?.apiKey ?? '',
-    );
+    _apiKeyController = TextEditingController(text: initialEntry?.apiKey ?? '');
     _nameFocusNode = FocusNode();
     _urlFocusNode = FocusNode();
     _kind = initialEntry?.kind ?? 'pt';
@@ -684,24 +680,12 @@ class _MobileIndexerEditorDrawerState
         autovalidateMode: _autovalidateMode,
         nameFocusNode: _nameFocusNode,
         urlFocusNode: _urlFocusNode,
-        onKindChanged:
-            (value) => setState(() {
-              _kind = value;
-              if (value == 'pt') {
-                final qbIds =
-                    widget.downloadClients
-                        .where((client) => client.isQbittorrent)
-                        .map((client) => client.id)
-                        .toSet();
-                _selectedDownloadClientIds = _selectedDownloadClientIds
-                    .where(qbIds.contains)
-                    .toList(growable: false);
-              }
-            }),
-        onDownloadClientsChanged:
-            (value) => setState(() {
-              _selectedDownloadClientIds = value;
-            }),
+        onKindChanged: (value) => setState(() {
+          _kind = value;
+        }),
+        onDownloadClientsChanged: (value) => setState(() {
+          _selectedDownloadClientIds = value;
+        }),
         onSubmitted: _submit,
       ),
     );
@@ -726,6 +710,12 @@ class _MobileIndexerEditorDrawerState
       return;
     }
 
+    final selectedDownloadClients = _selectedDownloadClients();
+    if (selectedDownloadClients.isEmpty) {
+      showToast('请至少选择一个仍可用的下载器');
+      return;
+    }
+
     final nextEntry = IndexerEntryDto(
       id: widget.initialEntry?.id ?? 0,
       name: _nameController.text.trim(),
@@ -734,7 +724,7 @@ class _MobileIndexerEditorDrawerState
       apiKey: _apiKeyController.text.trim().isEmpty
           ? null
           : _apiKeyController.text.trim(),
-      downloadClients: _selectedDownloadClients(),
+      downloadClients: selectedDownloadClients,
     );
     final nextEntries = List<IndexerEntryDto>.of(widget.existingEntries);
     final existingIndex = nextEntries.indexWhere(
@@ -783,7 +773,6 @@ class _MobileIndexerEditorDrawerState
           (client) => IndexerBoundClientDto(
             id: client.id,
             name: client.name,
-            kind: client.kind,
           ),
         )
         .toList(growable: false);
@@ -848,10 +837,9 @@ class _MobileIndexerDetailDrawer extends StatelessWidget {
           SizedBox(height: spacing.sm),
           AppInfoBlock(
             label: '绑定下载器',
-            value:
-                entry.downloadClientNames.isEmpty
-                    ? '未匹配'
-                    : entry.downloadClientNames,
+            value: entry.downloadClientNames.isEmpty
+                ? '未匹配'
+                : entry.downloadClientNames,
           ),
           if (hasInvalidBinding) ...[
             SizedBox(height: spacing.sm),
@@ -881,10 +869,8 @@ class _MobileIndexerDetailDrawer extends StatelessWidget {
                   key: const Key('mobile-indexer-detail-edit-button'),
                   label: '编辑',
                   variant: AppButtonVariant.primary,
-                  onPressed:
-                      () => Navigator.of(
-                        context,
-                      ).pop(MobileIndexerDetailAction.edit),
+                  onPressed: () =>
+                      Navigator.of(context).pop(MobileIndexerDetailAction.edit),
                 ),
               ),
               SizedBox(width: spacing.md),
@@ -893,10 +879,9 @@ class _MobileIndexerDetailDrawer extends StatelessWidget {
                   key: const Key('mobile-indexer-detail-delete-button'),
                   label: '删除',
                   variant: AppButtonVariant.danger,
-                  onPressed:
-                      () => Navigator.of(
-                        context,
-                      ).pop(MobileIndexerDetailAction.delete),
+                  onPressed: () => Navigator.of(
+                    context,
+                  ).pop(MobileIndexerDetailAction.delete),
                 ),
               ),
             ],

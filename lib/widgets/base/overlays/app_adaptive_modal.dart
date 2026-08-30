@@ -26,7 +26,7 @@ enum AppAdaptiveModalVariant {
 /// 分支的 `dialogKey`，供测试锚点。
 ///
 /// 收敛此前三处手写「`AppPlatform == mobile ? drawer : dialog`」dispatch
-/// （cloud115_backend_picker / cloud115_library_login_flow / directory_picker_dialog）。
+/// （配置页的 Provider 表单 / directory_picker_dialog）。
 /// [showAppConfirmDialog] 走的是同类模式的专用版；一般表单/流程弹窗用这个。
 Future<T?> showAppAdaptiveModal<T>({
   required BuildContext context,
@@ -56,14 +56,13 @@ Future<T?> showAppAdaptiveModal<T>({
   return showDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
-    builder:
-        (dialogContext) => AppDesktopDialog(
-          dialogKey: modalKey,
-          width: desktopWidth ?? dialogContext.appLayoutTokens.dialogWidthMd,
-          height: desktopHeight,
-          showCloseButton: showDesktopCloseButton,
-          child: builder(dialogContext),
-        ),
+    builder: (dialogContext) => AppDesktopDialog(
+      dialogKey: modalKey,
+      width: desktopWidth ?? dialogContext.appLayoutTokens.dialogWidthMd,
+      height: desktopHeight,
+      showCloseButton: showDesktopCloseButton,
+      child: builder(dialogContext),
+    ),
   );
 }
 

@@ -34,6 +34,7 @@ import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_coll
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_collections_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_player_page.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/series_movies_page.dart';
 import 'package:sakuramedia/features/overview/presentation/pages/mobile/system_overview_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/pages/mobile/playlists_page.dart';
@@ -128,17 +129,19 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
     this.draftId,
     this.currentMovieNumber,
     this.currentMovieScope = 'all',
+    this.mode = 'image',
   });
 
   final String? draftId;
   final String? currentMovieNumber;
   final String currentMovieScope;
+  final String mode;
 
   @override
   String get pageName => 'mobile-image-search';
 
   @override
-  String get title => '以图搜图';
+  String get title => '画面搜索';
 
   @override
   String get defaultLocation => mobileOverviewPath;
@@ -150,6 +153,7 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
       if (draftId != null) 'draftId': draftId,
       if (currentMovieNumber != null) 'currentMovieNumber': currentMovieNumber,
       if (currentMovieScope != 'all') 'currentMovieScope': currentMovieScope,
+      if (mode != 'image') 'mode': mode,
     },
   );
 
@@ -180,6 +184,14 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
               fallback: currentMovieScope,
             ) ??
             currentMovieScope,
+      ),
+      initialInputKind: parseImageSearchInputKind(
+        resolveStringQueryParameter(
+              state,
+              names: const <String>['mode'],
+              fallback: mode,
+            ) ??
+            mode,
       ),
     );
   }
@@ -469,11 +481,13 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
     required this.movieNumber,
     this.mediaId,
     this.positionSeconds,
+    this.delivery,
   });
 
   final String movieNumber;
   final int? mediaId;
   final int? positionSeconds;
+  final String? delivery;
 
   @override
   String get pageName => 'mobile-movie-player';
@@ -484,6 +498,7 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
     queryParameters: <String, String?>{
       if (mediaId != null) 'mediaId': '$mediaId',
       if (positionSeconds != null) 'positionSeconds': '$positionSeconds',
+      if (delivery != null) 'delivery': delivery,
     },
   );
 
@@ -502,6 +517,9 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
         names: const <String>['positionSeconds', 'position-seconds'],
         fallback: positionSeconds,
       ),
+      playbackDelivery: delivery == null
+          ? null
+          : MoviePlaybackDelivery.fromWire(delivery!),
     );
   }
 }

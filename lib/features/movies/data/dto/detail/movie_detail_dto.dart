@@ -192,59 +192,62 @@ class MovieMediaItemDto {
   const MovieMediaItemDto({
     required this.mediaId,
     required this.libraryId,
-    this.libraryBackend,
+    required this.providerKey,
     required this.playUrl,
-    required this.storageMode,
     required this.resolution,
+    required this.fileName,
     required this.fileSizeBytes,
     required this.durationSeconds,
-    required this.specialTags,
     required this.valid,
     required this.progress,
     required this.points,
     this.videoInfo,
+    this.playbackDeliveries = const <MoviePlaybackDelivery>[],
   });
 
   final int mediaId;
   final int? libraryId;
-
-  /// 媒体所属库的 backend（`local` / `cloud115`）；孤儿媒体可能为 `null`。
-  final String? libraryBackend;
-
+  final String? providerKey;
   final String playUrl;
-  final String storageMode;
-  final String resolution;
+  final String fileName;
+  final String? resolution;
   final int fileSizeBytes;
   final int durationSeconds;
-  final String specialTags;
   final bool valid;
   final MovieMediaProgressDto? progress;
   final List<MovieMediaPointDto> points;
   final MovieMediaVideoInfoDto? videoInfo;
+  final List<MoviePlaybackDelivery> playbackDeliveries;
 
   bool get hasPlayableUrl => playUrl.trim().isNotEmpty;
 
-  /// 是否 115 网盘媒体：外部播放器对 115 源要走后端 HLS 代理（.m3u8）。
-  bool get isCloud115 => libraryBackend == 'cloud115';
+  bool get supportsRedirectPlayback =>
+      playbackDeliveries.contains(MoviePlaybackDelivery.redirect);
+
+  MoviePlaybackDelivery get defaultPlaybackDelivery => supportsRedirectPlayback
+      ? MoviePlaybackDelivery.redirect
+      : MoviePlaybackDelivery.proxy;
 
   factory MovieMediaItemDto.fromJson(Map<String, dynamic> json) {
     return MovieMediaItemDto(
-      mediaId: json['media_id'] as int? ?? 0,
+      mediaId: _intFromJson(json['media_id'] ?? json['id']) ?? 0,
       libraryId: json['library_id'] as int?,
-      libraryBackend: json['library_backend'] as String?,
+      providerKey: json['provider_key'] as String?,
       playUrl: json['play_url'] as String? ?? '',
-      storageMode: json['storage_mode'] as String? ?? '',
-      resolution: json['resolution'] as String? ?? '',
+      fileName: json['file_name'] as String? ?? '',
+      resolution: json['resolution'] as String?,
       fileSizeBytes: json['file_size_bytes'] as int? ?? 0,
       durationSeconds: json['duration_seconds'] as int? ?? 0,
-      specialTags: json['special_tags'] as String? ?? '',
-      valid: json['valid'] as bool? ?? false,
+      valid: json['valid'] as bool? ?? true,
       progress: _progressFromJson(json['progress']),
       points: _listFromJson(
         json['points'],
         (item) => MovieMediaPointDto.fromJson(item),
       ),
       videoInfo: _videoInfoFromJson(json['video_info']),
+      playbackDeliveries: (json['playback_deliveries'] as List<dynamic>)
+          .map((value) => MoviePlaybackDelivery.fromWire(value as String))
+          .toList(growable: false),
     );
   }
 
@@ -252,32 +255,33 @@ class MovieMediaItemDto {
   MovieMediaItemDto copyWith({
     int? mediaId,
     Object? libraryId = _sentinel,
-    Object? libraryBackend = _sentinel,
+    Object? providerKey = _sentinel,
     String? playUrl,
-    String? storageMode,
-    String? resolution,
+    String? fileName,
+    Object? resolution = _sentinel,
     int? fileSizeBytes,
     int? durationSeconds,
-    String? specialTags,
     bool? valid,
     Object? progress = _sentinel,
     List<MovieMediaPointDto>? points,
     Object? videoInfo = _sentinel,
+    List<MoviePlaybackDelivery>? playbackDeliveries,
   }) {
     return MovieMediaItemDto(
       mediaId: mediaId ?? this.mediaId,
       libraryId: identical(libraryId, _sentinel)
           ? this.libraryId
           : libraryId as int?,
-      libraryBackend: identical(libraryBackend, _sentinel)
-          ? this.libraryBackend
-          : libraryBackend as String?,
+      providerKey: identical(providerKey, _sentinel)
+          ? this.providerKey
+          : providerKey as String?,
       playUrl: playUrl ?? this.playUrl,
-      storageMode: storageMode ?? this.storageMode,
-      resolution: resolution ?? this.resolution,
+      fileName: fileName ?? this.fileName,
+      resolution: identical(resolution, _sentinel)
+          ? this.resolution
+          : resolution as String?,
       fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
       durationSeconds: durationSeconds ?? this.durationSeconds,
-      specialTags: specialTags ?? this.specialTags,
       valid: valid ?? this.valid,
       progress: identical(progress, _sentinel)
           ? this.progress
@@ -286,8 +290,42 @@ class MovieMediaItemDto {
       videoInfo: identical(videoInfo, _sentinel)
           ? this.videoInfo
           : videoInfo as MovieMediaVideoInfoDto?,
+      playbackDeliveries: playbackDeliveries ?? this.playbackDeliveries,
     );
   }
+}
+
+enum MoviePlaybackDelivery {
+  proxy('proxy'),
+  redirect('redirect');
+
+  const MoviePlaybackDelivery(this.wireValue);
+
+  final String wireValue;
+
+  static MoviePlaybackDelivery fromWire(String value) => switch (value) {
+    'proxy' => MoviePlaybackDelivery.proxy,
+    'redirect' => MoviePlaybackDelivery.redirect,
+    _ => throw FormatException('Unknown playback delivery: $value'),
+  };
+}
+
+String withMoviePlaybackDelivery(
+  String playUrl,
+  MoviePlaybackDelivery delivery,
+) {
+  if (delivery == MoviePlaybackDelivery.proxy) {
+    return playUrl;
+  }
+  final uri = Uri.parse(playUrl);
+  return uri
+      .replace(
+        queryParameters: <String, String>{
+          ...uri.queryParameters,
+          'delivery': delivery.wireValue,
+        },
+      )
+      .toString();
 }
 
 const Object _sentinel = Object();

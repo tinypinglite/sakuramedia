@@ -8,26 +8,17 @@ part of 'downloads_api_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// downloads feature Riverpod Notifier 读 API 的入口。
-///
-/// 原生装配：依赖经 `ref.watch` 拉取，组合根不再 override。
-/// 测试需要替身时用 `overrideWithValue(...)`。
+/// downloads feature 读取 API 的入口。
 
 @ProviderFor(downloadsApi)
 final downloadsApiProvider = DownloadsApiProvider._();
 
-/// downloads feature Riverpod Notifier 读 API 的入口。
-///
-/// 原生装配：依赖经 `ref.watch` 拉取，组合根不再 override。
-/// 测试需要替身时用 `overrideWithValue(...)`。
+/// downloads feature 读取 API 的入口。
 
 final class DownloadsApiProvider
     extends $FunctionalProvider<DownloadsApi, DownloadsApi, DownloadsApi>
     with $Provider<DownloadsApi> {
-  /// downloads feature Riverpod Notifier 读 API 的入口。
-  ///
-  /// 原生装配：依赖经 `ref.watch` 拉取，组合根不再 override。
-  /// 测试需要替身时用 `overrideWithValue(...)`。
+  /// downloads feature 读取 API 的入口。
   DownloadsApiProvider._()
     : super(
         from: null,
@@ -61,20 +52,14 @@ final class DownloadsApiProvider
   }
 }
 
-String _$downloadsApiHash() => r'a164c06ff9f605afd85f0e5d18a4c63afd3091fa';
+String _$downloadsApiHash() => r'c8fe9abf2d2ca289d6e289cff249614fc2ad5eb3';
 
-/// 下载客户端配置 API 的桥接：下载中心需要读客户端列表用于筛选下拉与名称/kind 映射。
-///
-/// `DownloadClientsApi` 归属 configuration 域；先在 downloads 侧建 bridge，等
-/// configuration 迁 Riverpod 时再上移。
+/// 下载客户端配置 API 的桥接：下载中心需要客户端列表用于筛选下拉与名称映射。
 
 @ProviderFor(downloadClientsApi)
 final downloadClientsApiProvider = DownloadClientsApiProvider._();
 
-/// 下载客户端配置 API 的桥接：下载中心需要读客户端列表用于筛选下拉与名称/kind 映射。
-///
-/// `DownloadClientsApi` 归属 configuration 域；先在 downloads 侧建 bridge，等
-/// configuration 迁 Riverpod 时再上移。
+/// 下载客户端配置 API 的桥接：下载中心需要客户端列表用于筛选下拉与名称映射。
 
 final class DownloadClientsApiProvider
     extends
@@ -84,10 +69,7 @@ final class DownloadClientsApiProvider
           DownloadClientsApi
         >
     with $Provider<DownloadClientsApi> {
-  /// 下载客户端配置 API 的桥接：下载中心需要读客户端列表用于筛选下拉与名称/kind 映射。
-  ///
-  /// `DownloadClientsApi` 归属 configuration 域；先在 downloads 侧建 bridge，等
-  /// configuration 迁 Riverpod 时再上移。
+  /// 下载客户端配置 API 的桥接：下载中心需要客户端列表用于筛选下拉与名称映射。
   DownloadClientsApiProvider._()
     : super(
         from: null,

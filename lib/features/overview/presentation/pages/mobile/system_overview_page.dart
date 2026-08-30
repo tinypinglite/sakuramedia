@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_format.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/overview_system_info_provider.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/overview_system_info_state.dart';
-import 'package:sakuramedia/features/overview/presentation/widgets/cloud115_authentication_status_chips.dart';
 import 'package:sakuramedia/features/overview/presentation/widgets/external_data_source_status_chips.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -125,21 +124,21 @@ class MobileSystemOverviewPage extends ConsumerWidget {
           title: '服务健康',
           items: <_MobileSystemOverviewMetricItem>[
             _MobileSystemOverviewMetricItem(
-              id: 'joytag-health',
-              label: 'JoyTag 健康',
-              value: systemInfo.buildJoyTagHealthValue(),
+              id: 'embedding-service-health',
+              label: '嵌入服务健康',
+              value: systemInfo.buildEmbeddingServiceHealthValue(),
               isLoading: systemInfo.isLoadingImageSearchStatus,
             ),
             _MobileSystemOverviewMetricItem(
-              id: 'joytag-device',
-              label: '推理设备',
-              value: systemInfo.buildJoyTagDeviceValue(),
+              id: 'embedding-service-space',
+              label: '嵌入空间',
+              value: systemInfo.buildEmbeddingServiceSpaceValue(),
               isLoading: systemInfo.isLoadingImageSearchStatus,
             ),
             _MobileSystemOverviewMetricItem(
-              id: 'joytag-indexing-backlog',
+              id: 'embedding-service-indexing-backlog',
               label: '待索引',
-              value: systemInfo.buildJoyTagIndexingValue(),
+              value: systemInfo.buildEmbeddingServiceIndexingValue(),
               isLoading: systemInfo.isLoadingImageSearchStatus,
             ),
             _MobileSystemOverviewMetricItem(
@@ -153,19 +152,6 @@ class MobileSystemOverviewPage extends ConsumerWidget {
               actionLabel: '检测',
               isActionLoading: systemInfo.isTestingMetadataProviders,
               onActionPressed: notifier.testExternalDataSources,
-            ),
-            _MobileSystemOverviewMetricItem(
-              id: 'cloud115-authentication',
-              label: '115 认证状态',
-              valueWidget: Cloud115AuthenticationStatusChips(
-                summary: systemInfo.cloud115CookiesStatus?.summary,
-                isTesting: systemInfo.isTestingCloud115Authentication,
-                requestFailed: systemInfo.cloud115AuthenticationRequestFailed,
-                keyPrefix: 'mobile-system-overview',
-              ),
-              actionLabel: '检测',
-              isActionLoading: systemInfo.isTestingCloud115Authentication,
-              onActionPressed: notifier.testCloud115Authentication,
             ),
           ],
         ),

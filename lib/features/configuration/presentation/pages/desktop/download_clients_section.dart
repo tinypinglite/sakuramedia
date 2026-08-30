@@ -1,26 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/data/dto/provider_catalog_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/forms/download_client_form.dart';
+import 'package:sakuramedia/features/configuration/presentation/forms/provider_config_form.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/download_clients_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/media_libraries_provider.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/media_provider_catalog_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
-import 'package:sakuramedia/features/configuration/presentation/widgets/shared/download_client_diagnostics_dialog.dart';
-import 'package:sakuramedia/features/configuration/presentation/forms/download_client_form.dart';
-import 'package:sakuramedia/features/configuration/presentation/controllers/download_client_probe_interactions.dart';
-import 'package:sakuramedia/features/configuration/presentation/providers/download_client_probe_provider.dart';
+import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_inline_action_button.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
 import 'package:sakuramedia/widgets/base/forms/app_info_pill.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 class DownloadClientsSection extends ConsumerStatefulWidget {
   const DownloadClientsSection({super.key, required this.active});
@@ -34,19 +34,19 @@ class DownloadClientsSection extends ConsumerStatefulWidget {
 
 class _DownloadClientsSectionState
     extends ConsumerState<DownloadClientsSection> {
-  Future<void> _createClient() async {
-    final libraries =
-        ref.read(mediaLibrariesProvider).value ?? const <MediaLibraryDto>[];
+  Future<void> _createClient(
+    List<MediaLibraryDto> libraries,
+    List<MediaProviderDto> providers,
+  ) async {
     final payload = await showDialog<CreateDownloadClientPayload>(
       context: context,
-      builder:
-          (dialogContext) =>
-              DownloadClientDialog(libraries: libraries, title: '添加下载器'),
+      builder: (_) => DownloadClientDialog(
+        libraries: libraries,
+        providers: providers,
+        title: '添加下载器',
+      ),
     );
-    if (!mounted || payload == null) {
-      return;
-    }
-
+    if (!mounted || payload == null) return;
     try {
       await ref.read(downloadClientsProvider.notifier).create(payload);
       showToast('下载器已创建');
@@ -55,22 +55,21 @@ class _DownloadClientsSectionState
     }
   }
 
-  Future<void> _editClient(DownloadClientDto client) async {
-    final libraries =
-        ref.read(mediaLibrariesProvider).value ?? const <MediaLibraryDto>[];
+  Future<void> _editClient(
+    DownloadClientDto client,
+    List<MediaLibraryDto> libraries,
+    List<MediaProviderDto> providers,
+  ) async {
     final payload = await showDialog<UpdateDownloadClientPayload>(
       context: context,
-      builder:
-          (dialogContext) => DownloadClientDialog(
-            libraries: libraries,
-            title: '编辑下载器',
-            initialClient: client,
-          ),
+      builder: (_) => DownloadClientDialog(
+        libraries: libraries,
+        providers: providers,
+        title: '编辑下载器',
+        initialClient: client,
+      ),
     );
-    if (!mounted || payload == null) {
-      return;
-    }
-
+    if (!mounted || payload == null) return;
     try {
       await ref
           .read(downloadClientsProvider.notifier)
@@ -82,27 +81,47 @@ class _DownloadClientsSectionState
   }
 
   Future<void> _deleteClient(DownloadClientDto client) async {
-    final ok = await showAppConfigDeleteConfirm(
+    await showAppConfigDeleteConfirm(
       context: context,
       title: '删除下载器',
       message: '确认删除下载器“${client.name}”？该操作不会删除下载任务。',
-      onDelete:
-          () => ref.read(downloadClientsProvider.notifier).delete(client.id),
+      onDelete: () =>
+          ref.read(downloadClientsProvider.notifier).delete(client.id),
       successToast: '下载器已删除',
       failureFallback: '删除下载器失败',
     );
-    if (!ok || !mounted) return;
+  }
+
+  List<MediaLibraryDto> _librariesForEdit(
+    DownloadClientDto client,
+    List<MediaLibraryDto> downloadableLibraries,
+    Map<int, MediaLibraryDto> librariesById,
+  ) {
+    if (downloadableLibraries.any(
+      (library) => library.id == client.libraryId,
+    )) {
+      return downloadableLibraries;
+    }
+    final currentLibrary = librariesById[client.libraryId];
+    if (currentLibrary == null) return downloadableLibraries;
+    return <MediaLibraryDto>[currentLibrary, ...downloadableLibraries];
   }
 
   @override
   Widget build(BuildContext context) {
     if (!widget.active) return const SizedBox.shrink();
+
     final clientsAsync = ref.watch(downloadClientsProvider);
     final librariesAsync = ref.watch(mediaLibrariesProvider);
-    if (clientsAsync.isLoading || librariesAsync.isLoading) {
+    final providersAsync = ref.watch(mediaProviderCatalogProvider);
+    if (clientsAsync.isLoading ||
+        librariesAsync.isLoading ||
+        providersAsync.isLoading) {
       return const AppSectionSkeleton(lineCount: 4);
     }
+
     final error = clientsAsync.error ?? librariesAsync.error;
+    final providerCatalogError = providersAsync.error;
     if (error != null) {
       return AppSectionError(
         title: '下载器配置加载失败',
@@ -111,31 +130,52 @@ class _DownloadClientsSectionState
           await Future.wait<void>([
             ref.read(downloadClientsProvider.notifier).reload(),
             ref.read(mediaLibrariesProvider.notifier).reload(),
+            ref.read(mediaProviderCatalogProvider.notifier).reload(),
           ]);
         },
       );
     }
 
     final clients = clientsAsync.value ?? const <DownloadClientDto>[];
-    final libraries = librariesAsync.value ?? const <MediaLibraryDto>[];
-
-    final librariesById = <int, MediaLibraryDto>{
-      for (final library in libraries) library.id: library,
+    final allLibraries = librariesAsync.value ?? const <MediaLibraryDto>[];
+    final providers = providersAsync.value ?? const <MediaProviderDto>[];
+    final providersByKey = <String, MediaProviderDto>{
+      for (final provider in providers) provider.providerKey: provider,
     };
-
+    final downloadableLibraries = allLibraries
+        .where(
+          (library) =>
+              providersByKey[library.providerKey]?.supportsDownloads ?? false,
+        )
+        .toList(growable: false);
+    final librariesById = <int, MediaLibraryDto>{
+      for (final library in allLibraries) library.id: library,
+    };
     final spacing = context.appSpacing;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (libraries.isEmpty)
+        if (providerCatalogError != null)
           Padding(
             padding: EdgeInsets.only(bottom: spacing.lg),
             child: Text(
-              '当前没有可用媒体库，创建下载器前请先在后端配置媒体库。',
+              'Provider 目录暂不可用，已有下载器仍可管理；恢复插件目录后才能新建或编辑 Provider 配置。',
               style: resolveAppTextStyle(
                 context,
                 size: AppTextSize.s12,
-                weight: AppTextWeight.regular,
+                tone: AppTextTone.muted,
+              ),
+            ),
+          )
+        else if (downloadableLibraries.isEmpty)
+          Padding(
+            padding: EdgeInsets.only(bottom: spacing.lg),
+            child: Text(
+              '当前没有支持下载的媒体库，请先配置可下载的媒体库 Provider。',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
                 tone: AppTextTone.muted,
               ).copyWith(color: Theme.of(context).colorScheme.error),
             ),
@@ -148,19 +188,20 @@ class _DownloadClientsSectionState
               for (final client in clients)
                 DownloadClientCard(
                   client: client,
-                  mediaLibrary: librariesById[client.mediaLibraryId],
-                  onEdit: () => _editClient(client),
+                  mediaLibrary: librariesById[client.libraryId],
+                  provider:
+                      providersByKey[librariesById[client.libraryId]
+                          ?.providerKey],
+                  onEdit: () => _editClient(
+                    client,
+                    _librariesForEdit(
+                      client,
+                      downloadableLibraries,
+                      librariesById,
+                    ),
+                    providers,
+                  ),
                   onDelete: () => _deleteClient(client),
-                  runTest:
-                      () => ref
-                          .read(downloadClientsApiProvider)
-                          .testClient(client.id),
-                  runStorageTest:
-                      client.isQbittorrent
-                          ? () => ref
-                              .read(downloadClientsApiProvider)
-                              .storageTestClient(client.id)
-                          : null,
                 ),
             ],
           ),
@@ -175,7 +216,9 @@ class _DownloadClientsSectionState
               titleTone: AppTextTone.accent,
               titleWeight: AppTextWeight.medium,
               trailing: const AppSettingCellChevron(),
-              onTap: libraries.isEmpty ? null : _createClient,
+              onTap: downloadableLibraries.isEmpty
+                  ? null
+                  : () => _createClient(downloadableLibraries, providers),
             ),
           ],
         ),
@@ -184,111 +227,28 @@ class _DownloadClientsSectionState
   }
 }
 
-class DownloadClientCard extends ConsumerStatefulWidget {
+class DownloadClientCard extends StatelessWidget {
   const DownloadClientCard({
     super.key,
     required this.client,
     required this.mediaLibrary,
+    required this.provider,
     required this.onEdit,
     required this.onDelete,
-    required this.runTest,
-    required this.runStorageTest,
   });
 
   final DownloadClientDto client;
   final MediaLibraryDto? mediaLibrary;
+  final MediaProviderDto? provider;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  final Future<DownloadClientTestResultDto> Function() runTest;
-  final Future<DownloadClientStorageTestResultDto> Function()? runStorageTest;
-
-  @override
-  ConsumerState<DownloadClientCard> createState() => _DownloadClientCardState();
-}
-
-class _DownloadClientCardState extends ConsumerState<DownloadClientCard> {
-  final Object _probeScope = Object();
-
-  @override
-  void didUpdateWidget(covariant DownloadClientCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // 配置任何字段变了(后端会 bump updatedAt) → 老探针结果作废,回到未检测态。
-    // 用 updatedAt 判定,才不会漏掉「只改了密码」的场景 —— DTO 里没有原文,
-    // 但 updatedAt 会更新。
-    if (oldWidget.client.id != widget.client.id ||
-        oldWidget.client.updatedAt != widget.client.updatedAt) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        ref.read(downloadClientProbeProvider(_probeScope).notifier).reset();
-      });
-    }
-  }
-
-  Future<void> _handleConnectivityChipTap() {
-    return handleProbeConnectivityTap(
-      context: context,
-      probe: ref.read(downloadClientProbeProvider(_probeScope).notifier),
-      runTest: widget.runTest,
-      openDialog: _openConnectivityDialog,
-    );
-  }
-
-  Future<void> _handleStorageChipTap() {
-    final runStorageTest = widget.runStorageTest;
-    if (runStorageTest == null) return Future<void>.value();
-    return handleProbeStorageTap(
-      context: context,
-      probe: ref.read(downloadClientProbeProvider(_probeScope).notifier),
-      runTest: runStorageTest,
-      openDialog: _openStorageDialog,
-    );
-  }
-
-  Future<void> _openConnectivityDialog(
-    DownloadClientTestResultDto result,
-  ) async {
-    await showDialog<void>(
-      context: context,
-      builder:
-          (_) => DownloadClientTestResultDialog(
-            initialResult: result,
-            onRerun: widget.runTest,
-            onResultChanged:
-                ref
-                    .read(downloadClientProbeProvider(_probeScope).notifier)
-                    .applyConnectivityResult,
-          ),
-    );
-  }
-
-  Future<void> _openStorageDialog(
-    DownloadClientStorageTestResultDto result,
-  ) async {
-    final runStorageTest = widget.runStorageTest;
-    if (runStorageTest == null) return;
-    await showDialog<void>(
-      context: context,
-      builder:
-          (_) => DownloadClientStorageTestResultDialog(
-            initialResult: result,
-            clientBaseUrl: widget.client.baseUrl,
-            onRerun: runStorageTest,
-            onResultChanged:
-                ref
-                    .read(downloadClientProbeProvider(_probeScope).notifier)
-                    .applyStorageResult,
-          ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final client = widget.client;
-    final mediaLibrary = widget.mediaLibrary;
-    final probe = ref.watch(downloadClientProbeProvider(_probeScope));
-    final busy = probe.busy;
-
+    final providerName =
+        provider?.displayName ?? mediaLibrary?.providerKey ?? '未知 Provider';
+    final libraryName = mediaLibrary?.name ?? '未匹配 (${client.libraryId})';
     return Padding(
       key: Key('download-client-card-${client.id}'),
       padding: EdgeInsets.symmetric(
@@ -300,16 +260,10 @@ class _DownloadClientCardState extends ConsumerState<DownloadClientCard> {
         children: [
           Row(
             children: [
-              AppSettingIconBox(
-                icon:
-                    client.isCloud115
-                        ? Icons.cloud_outlined
-                        : Icons.cloud_download_outlined,
-              ),
+              const AppSettingIconBox(icon: Icons.cloud_download_outlined),
               SizedBox(width: spacing.md),
               Expanded(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -325,50 +279,29 @@ class _DownloadClientCardState extends ConsumerState<DownloadClientCard> {
                     ),
                     SizedBox(height: spacing.xs),
                     Text(
-                      client.isCloud115 ? '115 离线下载' : client.baseUrl,
+                      '$providerName · $libraryName',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: resolveAppTextStyle(
                         context,
                         size: AppTextSize.s12,
-                        weight: AppTextWeight.regular,
                         tone: AppTextTone.muted,
                       ),
                     ),
                   ],
                 ),
               ),
-              SizedBox(width: spacing.md),
-              DownloadClientProbeStatusChip(
-                key: Key('download-client-test-${client.id}'),
-                label: '连通性',
-                state: probe.connectivityChipState,
-                detail: probe.connectivityChipDetail,
-                tooltip: probe.connectivityTooltip,
-                onTap: busy ? null : _handleConnectivityChipTap,
-              ),
-              if (client.isQbittorrent) ...[
-                SizedBox(width: spacing.xs),
-                DownloadClientProbeStatusChip(
-                  key: Key('download-client-storage-test-${client.id}'),
-                  label: '目录映射',
-                  state: probe.storageChipState,
-                  detail: probe.storageChipDetail,
-                  tooltip: probe.storageTooltip,
-                  onTap: busy ? null : _handleStorageChipTap,
-                ),
-              ],
               SizedBox(width: spacing.sm),
               AppInlineActionButton(
                 key: Key('download-client-edit-${client.id}'),
                 icon: Icons.edit_outlined,
-                onTap: widget.onEdit,
+                onTap: onEdit,
               ),
               SizedBox(width: spacing.xs),
               AppInlineActionButton(
                 key: Key('download-client-delete-${client.id}'),
                 icon: Icons.delete_outline,
-                onTap: widget.onDelete,
+                onTap: onDelete,
               ),
             ],
           ),
@@ -379,26 +312,8 @@ class _DownloadClientCardState extends ConsumerState<DownloadClientCard> {
               spacing: spacing.md,
               runSpacing: spacing.sm,
               children: [
-                AppInfoPill(label: '类型', value: client.kind.label),
-                AppInfoPill(
-                  label: '媒体库',
-                  value:
-                      mediaLibrary == null
-                          ? '未匹配 (${client.mediaLibraryId})'
-                          : mediaLibrary.name,
-                ),
-                if (client.isQbittorrent) ...[
-                  AppInfoPill(label: '用户名', value: client.username),
-                  AppInfoPill(
-                    label: 'qBittorrent保存路径',
-                    value: client.clientSavePath,
-                  ),
-                  AppInfoPill(label: '本地访问路径', value: client.localRootPath),
-                  AppInfoPill(
-                    label: '密码',
-                    value: client.hasPassword ? '已设置' : '未设置',
-                  ),
-                ],
+                AppInfoPill(label: 'Provider', value: providerName),
+                AppInfoPill(label: '媒体库', value: libraryName),
               ],
             ),
           ),
@@ -412,11 +327,13 @@ class DownloadClientDialog extends ConsumerStatefulWidget {
   const DownloadClientDialog({
     super.key,
     required this.libraries,
+    required this.providers,
     required this.title,
     this.initialClient,
   });
 
   final List<MediaLibraryDto> libraries;
+  final List<MediaProviderDto> providers;
   final String title;
   final DownloadClientDto? initialClient;
 
@@ -426,161 +343,129 @@ class DownloadClientDialog extends ConsumerStatefulWidget {
 }
 
 class _DownloadClientDialogState extends ConsumerState<DownloadClientDialog> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
+  final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _baseUrlController;
-  late final TextEditingController _usernameController;
-  late final TextEditingController _passwordController;
-  late final TextEditingController _clientSavePathController;
-  late final TextEditingController _localRootPathController;
+  late ProviderConfigFormController _providerConfigController;
   int? _selectedLibraryId;
-  late DownloadClientKind _kind;
-  final Object _probeScope = Object();
+  bool _isTesting = false;
+  DownloadClientDiagnosticReportDto? _diagnosticReport;
 
   bool get _isEditing => widget.initialClient != null;
+
+  MediaProviderDto? _providerForLibrary(int? libraryId) {
+    if (libraryId == null) return null;
+    final library = widget.libraries.cast<MediaLibraryDto?>().firstWhere(
+      (item) => item?.id == libraryId,
+      orElse: () => null,
+    );
+    if (library == null) return null;
+    for (final provider in widget.providers) {
+      if (provider.providerKey == library.providerKey) return provider;
+    }
+    return null;
+  }
+
+  ProviderConfigFormController _newConfigController(
+    int? libraryId,
+    Map<String, dynamic> initialConfig,
+  ) {
+    final fields =
+        _providerForLibrary(libraryId)?.downloadConfigFields ??
+        const <ProviderConfigFieldDto>[];
+    return ProviderConfigFormController(
+      fields: fields,
+      initialConfig: initialConfig,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     final initial = widget.initialClient;
-    _kind = initial?.kind ?? DownloadClientKind.qbittorrent;
+    _selectedLibraryId =
+        initial?.libraryId ??
+        (widget.libraries.isEmpty ? null : widget.libraries.first.id);
     _nameController = TextEditingController(text: initial?.name ?? '');
-    _baseUrlController = TextEditingController(text: initial?.baseUrl ?? '');
-    _usernameController = TextEditingController(text: initial?.username ?? '');
-    _passwordController = TextEditingController();
-    _clientSavePathController = TextEditingController(
-      text: initial?.clientSavePath ?? '',
+    _providerConfigController = _newConfigController(
+      _selectedLibraryId,
+      initial?.providerConfig ?? const <String, dynamic>{},
     );
-    _localRootPathController = TextEditingController(
-      text: initial?.localRootPath ?? '',
-    );
-    _selectedLibraryId = initial?.mediaLibraryId;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _baseUrlController.dispose();
-    _usernameController.dispose();
-    _passwordController.dispose();
-    _clientSavePathController.dispose();
-    _localRootPathController.dispose();
+    _providerConfigController.dispose();
     super.dispose();
   }
 
+  void _selectLibrary(int? value) {
+    if (value == _selectedLibraryId) return;
+    final old = _providerConfigController;
+    final next = _newConfigController(value, const <String, dynamic>{});
+    setState(() {
+      _selectedLibraryId = value;
+      _providerConfigController = next;
+    });
+    old.dispose();
+  }
+
   void _submit() {
-    if (ref.read(downloadClientProbeProvider(_probeScope)).busy) return;
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
-    final value = _snapshotFormValue();
-    if (_isEditing) {
-      Navigator.of(context).pop(value.toUpdatePayload());
-      return;
-    }
-
-    Navigator.of(context).pop(value.toCreatePayload());
-  }
-
-  DownloadClientFormValue _snapshotFormValue() {
-    return DownloadClientFormValue.fromControllers(
-      kind: _kind,
+    if (_isTesting) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final value = DownloadClientFormValue.fromControllers(
       nameController: _nameController,
-      baseUrlController: _baseUrlController,
-      usernameController: _usernameController,
-      passwordController: _passwordController,
-      clientSavePathController: _clientSavePathController,
-      localRootPathController: _localRootPathController,
-      mediaLibraryId: _selectedLibraryId,
+      providerConfigController: _providerConfigController,
+      isEditing: _isEditing,
+      libraryId: _selectedLibraryId,
+      providerConfigAvailable:
+          _providerForLibrary(_selectedLibraryId)?.supportsDownloads ?? false,
     );
+    Navigator.of(
+      context,
+    ).pop(_isEditing ? value.toUpdatePayload() : value.toCreatePayload());
   }
 
-  DownloadClientFormValue? _validatedFormValue() {
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      return null;
+  Future<void> _testClient() async {
+    if (_isTesting) return;
+    FocusScope.of(context).unfocus();
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final value = DownloadClientFormValue.fromControllers(
+      nameController: _nameController,
+      providerConfigController: _providerConfigController,
+      isEditing: _isEditing,
+      libraryId: _selectedLibraryId,
+      providerConfigAvailable:
+          _providerForLibrary(_selectedLibraryId)?.supportsDownloads ?? false,
+    );
+    final libraryId = value.libraryId;
+    if (libraryId == null) return;
+    setState(() {
+      _isTesting = true;
+      _diagnosticReport = null;
+    });
+    try {
+      final report = await ref.read(downloadClientsApiProvider).testClient(
+        DownloadClientTestPayload(
+          libraryId: libraryId,
+          providerConfig: value.providerConfig,
+          clientId: widget.initialClient?.id,
+        ),
+      );
+      if (!mounted) return;
+      setState(() => _diagnosticReport = report);
+    } catch (error) {
+      if (mounted) {
+        showToast(apiErrorMessage(error, fallback: '下载器测试失败'));
+      }
+    } finally {
+      if (mounted) setState(() => _isTesting = false);
     }
-    return _snapshotFormValue();
-  }
-
-  Future<void> _handleConnectivityChipTap() async {
-    final value = _validatedFormValue();
-    if (value == null) return;
-    final payload = value.toProbeTestPayload(
-      clientId: widget.initialClient?.id,
-    );
-    final api = ref.read(downloadClientsApiProvider);
-    await handleProbeConnectivityTap(
-      context: context,
-      probe: ref.read(downloadClientProbeProvider(_probeScope).notifier),
-      runTest: () => api.probeTestClient(payload),
-      openDialog: (result) => _openConnectivityDialog(result, payload),
-    );
-  }
-
-  Future<void> _handleStorageChipTap() async {
-    final value = _validatedFormValue();
-    if (value == null) return;
-    final payload = value.toProbeStorageTestPayload(
-      clientId: widget.initialClient?.id,
-    );
-    final api = ref.read(downloadClientsApiProvider);
-    await handleProbeStorageTap(
-      context: context,
-      probe: ref.read(downloadClientProbeProvider(_probeScope).notifier),
-      runTest: () => api.probeStorageTestClient(payload),
-      openDialog:
-          (result) => _openStorageDialog(result, payload, value.baseUrl),
-    );
-  }
-
-  Future<void> _openConnectivityDialog(
-    DownloadClientTestResultDto result,
-    DownloadClientProbeTestPayload payload,
-  ) async {
-    final api = ref.read(downloadClientsApiProvider);
-    await showDialog<void>(
-      context: context,
-      builder:
-          (_) => DownloadClientTestResultDialog(
-            initialResult: result,
-            onRerun: () => api.probeTestClient(payload),
-            onResultChanged:
-                ref
-                    .read(downloadClientProbeProvider(_probeScope).notifier)
-                    .applyConnectivityResult,
-          ),
-    );
-  }
-
-  Future<void> _openStorageDialog(
-    DownloadClientStorageTestResultDto result,
-    DownloadClientProbeStorageTestPayload payload,
-    String baseUrl,
-  ) async {
-    final api = ref.read(downloadClientsApiProvider);
-    await showDialog<void>(
-      context: context,
-      builder:
-          (_) => DownloadClientStorageTestResultDialog(
-            initialResult: result,
-            clientBaseUrl: baseUrl,
-            onRerun: () => api.probeStorageTestClient(payload),
-            onResultChanged:
-                ref
-                    .read(downloadClientProbeProvider(_probeScope).notifier)
-                    .applyStorageResult,
-          ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final probe = ref.watch(downloadClientProbeProvider(_probeScope));
-    final busy = probe.busy;
-
     return AppDesktopDialog(
       backgroundColor: Colors.white,
       insetPadding: EdgeInsets.symmetric(
@@ -607,57 +492,45 @@ class _DownloadClientDialogState extends ConsumerState<DownloadClientDialog> {
               SizedBox(height: spacing.xl),
               DownloadClientFormFields(
                 nameController: _nameController,
-                baseUrlController: _baseUrlController,
-                usernameController: _usernameController,
-                passwordController: _passwordController,
-                clientSavePathController: _clientSavePathController,
-                localRootPathController: _localRootPathController,
                 libraries: widget.libraries,
-                kind: _kind,
-                onKindChanged:
-                    (value) => setState(() {
-                      _kind = value;
-                      _selectedLibraryId = null;
-                    }),
                 selectedLibraryId: _selectedLibraryId,
-                onLibraryChanged:
-                    (value) => setState(() {
-                      _selectedLibraryId = value;
-                    }),
+                onLibraryChanged: _selectLibrary,
+                providerConfigController: _providerConfigController,
                 isEditing: _isEditing,
-                enabled: !busy,
-                credentialsLayout: DownloadClientCredentialsLayout.horizontal,
-                onSubmitted: _submit,
+                enabled: !_isTesting,
               ),
-              if (_kind == DownloadClientKind.qbittorrent) ...[
+              if (_diagnosticReport != null) ...[
                 SizedBox(height: spacing.lg),
-                DownloadClientEditorProbeChips(
-                  keyPrefix: 'download-client-dialog',
-                  busy: busy,
-                  connectivityState: probe.connectivityChipState,
-                  storageState: probe.storageChipState,
-                  connectivityDetail: probe.connectivityChipDetail,
-                  storageDetail: probe.storageChipDetail,
-                  onConnectivityTap: _handleConnectivityChipTap,
-                  onStorageTap: _handleStorageChipTap,
-                ),
+                DownloadClientDiagnosticResultView(report: _diagnosticReport!),
               ],
               SizedBox(height: spacing.xl),
               Row(
                 children: [
                   Expanded(
                     child: AppButton(
-                      onPressed:
-                          busy ? null : () => Navigator.of(context).pop(),
+                      onPressed: _isTesting
+                          ? null
+                          : () => Navigator.of(context).pop(),
                       label: '取消',
                     ),
                   ),
-                  SizedBox(width: context.appSpacing.md),
+                  SizedBox(width: spacing.md),
                   Expanded(
                     child: AppButton(
-                      onPressed: busy ? null : _submit,
+                      onPressed: _isTesting ? null : _submit,
                       label: '保存',
                       variant: AppButtonVariant.primary,
+                    ),
+                  ),
+                  SizedBox(width: spacing.md),
+                  Expanded(
+                    child: AppButton(
+                      key: const Key('download-client-test-button'),
+                      onPressed: _isTesting ? null : _testClient,
+                      label: '测试配置',
+                      icon: const Icon(Icons.rule_rounded),
+                      size: AppButtonSize.small,
+                      isLoading: _isTesting,
                     ),
                   ),
                 ],

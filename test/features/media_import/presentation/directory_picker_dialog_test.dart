@@ -16,190 +16,112 @@ import '../../../support/test_api_bundle.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('local library keeps filesystem browsing and auto mode', (
+  testWidgets('browses provider sources and selects an opaque directory', (
     tester,
   ) async {
     final bundle = await _buildBundle();
     addTearDown(bundle.dispose);
-    _enqueueLibraries(bundle, <Map<String, dynamic>>[_localLibrary()]);
-    _enqueueLocalDirectory(bundle);
-
-    await _pumpHarness(tester, bundle);
-    await _openPicker(tester);
-
-    expect(find.text('本地库 · 本地存储'), findsOneWidget);
-    expect(find.text('自动选择（保留源文件）'), findsOneWidget);
-    expect(find.text('/mnt/incoming'), findsOneWidget);
-
-    await tester.tap(
-      find.byKey(const Key('media-import-picker-submit-button')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('result:local:/mnt/incoming:auto'), findsOneWidget);
-  });
-
-  testWidgets('cloud115 root and management directory cannot be selected', (
-    tester,
-  ) async {
-    final bundle = await _buildBundle();
-    addTearDown(bundle.dispose);
-    _enqueueLibraries(bundle, <Map<String, dynamic>>[_cloudLibrary()]);
-    _enqueueCloudDirectory(
+    _enqueueLibraries(bundle, <Map<String, dynamic>>[_library()]);
+    _enqueueBrowse(
       bundle,
-      cid: '0',
+      libraryId: 1,
       entries: <Map<String, dynamic>>[
-        _cloudEntry(id: 'cid-root', name: 'sakuramedia', isDirectory: true),
-        _cloudEntry(id: 'cid-source', name: '来源目录', isDirectory: true),
-        _cloudEntry(id: 'file-1', name: 'ABP-123.mp4', size: 1024),
+        _entry(ref: 'folder-1', name: 'Movies', type: 'directory'),
+        _entry(ref: 'file-1', name: 'movie.mkv', type: 'file', isVideo: true),
       ],
     );
 
     await _pumpHarness(tester, bundle);
     await _openPicker(tester);
 
-    expect(
-      find.byKey(const Key('media-import-cloud-root-hint')),
-      findsOneWidget,
-    );
-    expect(find.text('导入后清理源文件'), findsOneWidget);
-    expect(find.text('媒体库管理目录，不可选择'), findsOneWidget);
-    expect(
-      tester
-          .widget<AppButton>(
-            find.byKey(const Key('media-import-picker-submit-button')),
-          )
-          .onPressed,
-      isNull,
-    );
+    expect(find.text('主媒体库 · provider-a'), findsOneWidget);
+    expect(find.text('Movies'), findsOneWidget);
+    expect(find.text('保留源文件'), findsOneWidget);
 
-    await tester.tap(
-      find.byKey(const Key('media-import-cloud-entry-cid-root')),
-    );
+    await tester.tap(find.byKey(const Key('media-import-entry-0')));
     await tester.pump();
-    expect(
-      bundle.adapter.hitCount('GET', '/media-libraries/cloud115/2/entries'),
-      1,
-    );
-
-    _enqueueCloudDirectory(bundle, cid: 'cid-source');
-    await tester.tap(
-      find.byKey(const Key('media-import-cloud-entry-cid-source')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('115 网盘 / 来源目录'), findsOneWidget);
-    expect(
-      tester
-          .widget<AppButton>(
-            find.byKey(const Key('media-import-picker-submit-button')),
-          )
-          .onPressed,
-      isNotNull,
-    );
-
     await tester.tap(
       find.byKey(const Key('media-import-picker-submit-button')),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('result:cloud115:cid-source:cleanup-source'), findsOneWidget);
+    expect(find.text('result:{"id":"folder-1"}:keep'), findsOneWidget);
   });
 
-  testWidgets('cloud115 supports pagination and cleanup warning', (
-    tester,
-  ) async {
+  testWidgets('opens directories and uses cursor pagination', (tester) async {
     final bundle = await _buildBundle();
     addTearDown(bundle.dispose);
-    _enqueueLibraries(bundle, <Map<String, dynamic>>[_cloudLibrary()]);
-    _enqueueCloudDirectory(
+    _enqueueLibraries(bundle, <Map<String, dynamic>>[_library()]);
+    _enqueueBrowse(
       bundle,
-      cid: '0',
-      total: 2,
+      libraryId: 1,
       entries: <Map<String, dynamic>>[
-        _cloudEntry(id: 'cid-source', name: '来源目录', isDirectory: true),
+        _entry(ref: 'folder-1', name: 'Movies', type: 'directory'),
       ],
     );
-    _enqueueCloudDirectory(
+    _enqueueBrowse(
       bundle,
-      cid: '0',
-      offset: 1,
-      total: 2,
+      libraryId: 1,
+      parentRef: <String, dynamic>{'id': 'folder-1'},
+      nextCursor: 'next',
       entries: <Map<String, dynamic>>[
-        _cloudEntry(id: 'cid-more', name: '更多目录', isDirectory: true),
+        _entry(ref: 'file-1', name: 'a.mkv', type: 'file', isVideo: true),
+      ],
+    );
+    _enqueueBrowse(
+      bundle,
+      libraryId: 1,
+      parentRef: <String, dynamic>{'id': 'folder-1'},
+      cursor: 'next',
+      entries: <Map<String, dynamic>>[
+        _entry(ref: 'file-2', name: 'b.mkv', type: 'file', isVideo: true),
       ],
     );
 
     await _pumpHarness(tester, bundle);
     await _openPicker(tester);
+    await tester.tap(find.byKey(const Key('media-import-entry-open-Movies')));
+    await tester.pumpAndSettle();
 
+    expect(find.text('Movies'), findsWidgets);
+    expect(
+      find.byKey(const Key('media-import-picker-load-more-button')),
+      findsOneWidget,
+    );
     await tester.tap(
-      find.byKey(const Key('media-import-cloud-load-more-button')),
+      find.byKey(const Key('media-import-picker-load-more-button')),
     );
     await tester.pumpAndSettle();
-    expect(
-      find.byKey(const Key('media-import-cloud-entry-cid-more')),
-      findsOneWidget,
-    );
-    final loadMoreRequest = bundle.adapter.requests.last;
-    expect(loadMoreRequest.uri.queryParameters['offset'], '1');
-
-    await tester.tap(find.text('导入后清理源文件'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('导入后清理源文件').last);
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const Key('media-import-cloud-cleanup-warning')),
-      findsOneWidget,
-    );
-    expect(find.text('导入并删除源文件'), findsOneWidget);
+    expect(find.text('b.mkv'), findsOneWidget);
+    final browseRequest = bundle.adapter.requests.last;
+    expect(browseRequest.body, <String, dynamic>{
+      'library_id': 1,
+      'parent_ref': <String, dynamic>{'id': 'folder-1'},
+      'cursor': 'next',
+      'limit': 50,
+    });
   });
 
-  testWidgets('cloud115 auth failure points user to media library settings', (
-    tester,
-  ) async {
-    final bundle = await _buildBundle();
-    addTearDown(bundle.dispose);
-    _enqueueLibraries(bundle, <Map<String, dynamic>>[_cloudLibrary()]);
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/media-libraries/cloud115/2/entries',
-      statusCode: 422,
-      body: <String, dynamic>{
-        'error': <String, dynamic>{
-          'code': 'cloud115_cookies_invalid',
-          'message': 'cookies expired',
-        },
-      },
-    );
-
-    await _pumpHarness(tester, bundle);
-    await _openPicker(tester);
-
-    expect(find.text('115 登录已失效，请前往“系统设置 → 媒体库”重新认证后重试。'), findsOneWidget);
-  });
-
-  testWidgets('switching library ignores an in-flight old browse response', (
+  testWidgets('stale browse response cannot replace a newly selected library', (
     tester,
   ) async {
     final bundle = await _buildBundle();
     addTearDown(bundle.dispose);
     _enqueueLibraries(bundle, <Map<String, dynamic>>[
-      _localLibrary(),
-      _cloudLibrary(),
+      _library(),
+      _otherLibrary(),
     ]);
-    final delayedLocal = Completer<ResponseBody>();
+    final delayedBrowse = Completer<ResponseBody>();
     bundle.adapter.enqueueResponder(
-      method: 'GET',
-      path: '/filesystem/entries',
-      responder: (_, __) => delayedLocal.future,
+      method: 'POST',
+      path: '/import-sources/browse',
+      responder: (_, __) => delayedBrowse.future,
     );
-    _enqueueCloudDirectory(
+    _enqueueBrowse(
       bundle,
-      cid: '0',
+      libraryId: 2,
       entries: <Map<String, dynamic>>[
-        _cloudEntry(id: 'cid-source', name: '来源目录', isDirectory: true),
+        _entry(ref: 'other-root', name: 'Other', type: 'directory'),
       ],
     );
 
@@ -207,19 +129,19 @@ void main() {
     await tester.tap(find.byKey(const Key('launch-directory-picker')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
-
-    await tester.tap(find.text('本地库 · 本地存储'));
+    await tester.tap(find.byKey(const Key('media-import-library-select')));
     await tester.pump();
-    await tester.tap(find.text('115 库 · 115 网盘').last);
-    await tester.pump();
+    await tester.tap(find.text('其他媒体库 · provider-b').last);
     await tester.pumpAndSettle();
 
-    delayedLocal.complete(
+    delayedBrowse.complete(
       ResponseBody.fromString(
         jsonEncode(<String, dynamic>{
-          'path': '/stale/local',
-          'parent': null,
-          'entries': <Map<String, dynamic>>[],
+          'library_id': 1,
+          'entries': <Map<String, dynamic>>[
+            _entry(ref: 'stale', name: 'Stale', type: 'directory'),
+          ],
+          'next_cursor': null,
         }),
         200,
         headers: const <String, List<String>>{
@@ -229,12 +151,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('115 网盘'), findsOneWidget);
-    expect(
-      find.byKey(const Key('media-import-cloud-entry-cid-source')),
-      findsOneWidget,
-    );
-    expect(find.text('/stale/local'), findsNothing);
+    expect(find.text('Other'), findsOneWidget);
+    expect(find.text('Stale'), findsNothing);
   });
 }
 
@@ -281,80 +199,55 @@ void _enqueueLibraries(
   );
 }
 
-void _enqueueLocalDirectory(TestApiBundle bundle) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/filesystem/entries',
-    body: <String, dynamic>{
-      'path': '/mnt/incoming',
-      'parent': '/mnt',
-      'entries': <Map<String, dynamic>>[
-        <String, dynamic>{
-          'name': 'movies',
-          'path': '/mnt/incoming/movies',
-          'type': 'dir',
-          'size': 0,
-          'is_video': false,
-        },
-      ],
-    },
-  );
-}
-
-void _enqueueCloudDirectory(
+void _enqueueBrowse(
   TestApiBundle bundle, {
-  required String cid,
-  int offset = 0,
-  int? total,
+  required int libraryId,
+  Map<String, dynamic>? parentRef,
+  String? cursor,
+  String? nextCursor,
   List<Map<String, dynamic>> entries = const <Map<String, dynamic>>[],
 }) {
   bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/media-libraries/cloud115/2/entries',
+    method: 'POST',
+    path: '/import-sources/browse',
     body: <String, dynamic>{
-      'cid': cid,
-      'total': total ?? entries.length,
-      'offset': offset,
-      'limit': 200,
-      'root_cid': 'cid-root',
+      'library_id': libraryId,
       'entries': entries,
+      'next_cursor': nextCursor,
     },
   );
 }
 
-Map<String, dynamic> _localLibrary() => <String, dynamic>{
-  'id': 1,
-  'name': '本地库',
-  'backend': 'local',
-  'backend_config': <String, dynamic>{'root_path': '/media'},
-  'created_at': '2026-07-14T09:00:00Z',
-  'updated_at': '2026-07-14T09:00:00Z',
-};
-
-Map<String, dynamic> _cloudLibrary() => <String, dynamic>{
-  'id': 2,
-  'name': '115 库',
-  'backend': 'cloud115',
-  'backend_config': <String, dynamic>{
-    'root_cid': 'cid-root',
-    'app': 'alipaymini',
-  },
-  'created_at': '2026-07-14T09:00:00Z',
-  'updated_at': '2026-07-14T09:00:00Z',
-};
-
-Map<String, dynamic> _cloudEntry({
-  required String id,
+Map<String, dynamic> _entry({
+  required String ref,
   required String name,
-  bool isDirectory = false,
-  int size = 0,
+  required String type,
+  bool isVideo = false,
 }) => <String, dynamic>{
-  'entry_id': id,
+  'source_ref': <String, dynamic>{'id': ref},
   'name': name,
-  'is_dir': isDirectory,
-  'size': size,
-  'is_video': !isDirectory,
-  'mtime': 1700000000,
+  'entry_type': type,
+  'size_bytes': type == 'file' ? 1024 : null,
+  'modified_at': null,
+  'is_video': isVideo,
+};
+
+Map<String, dynamic> _library() => <String, dynamic>{
+  'id': 1,
+  'name': '主媒体库',
+  'provider_key': 'provider-a',
+  'provider_config': <String, dynamic>{},
+  'created_at': '2026-07-14T09:00:00Z',
+  'updated_at': '2026-07-14T09:00:00Z',
+};
+
+Map<String, dynamic> _otherLibrary() => <String, dynamic>{
+  'id': 2,
+  'name': '其他媒体库',
+  'provider_key': 'provider-b',
+  'provider_config': <String, dynamic>{},
+  'created_at': '2026-07-14T09:00:00Z',
+  'updated_at': '2026-07-14T09:00:00Z',
 };
 
 class _PickerHarness extends StatefulWidget {
@@ -372,13 +265,9 @@ class _PickerHarnessState extends State<_PickerHarness> {
     if (!mounted || request == null) {
       return;
     }
-    final sourceText = switch (request.source) {
-      LocalMediaImportSource(:final path) => 'local:$path',
-      Cloud115MediaImportSource(:final cid) => 'cloud115:$cid',
-      Cloud115FileMediaImportSource(:final fid) => 'cloud115-file:$fid',
-    };
     setState(() {
-      _result = 'result:$sourceText:${request.transferMode.wireValue}';
+      _result =
+          'result:${jsonEncode(request.source.sourceRef)}:${request.sourceDisposition.wireValue}';
     });
   }
 

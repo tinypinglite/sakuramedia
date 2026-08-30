@@ -1,6 +1,6 @@
 import 'package:sakuramedia/core/network/api_client.dart';
-import 'package:sakuramedia/features/media_import/data/filesystem_entry_dto.dart';
 import 'package:sakuramedia/features/media_import/data/import_accepted_response_dto.dart';
+import 'package:sakuramedia/features/media_import/data/import_source_dto.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
 
 /// 统一媒体导入接口封装。
@@ -9,14 +9,22 @@ class MediaImportApi {
 
   final ApiClient _apiClient;
 
-  Future<FilesystemListResponseDto> listEntries({String? path}) async {
-    final response = await _apiClient.get(
-      '/filesystem/entries',
-      queryParameters: <String, dynamic>{
-        if (path != null && path.isNotEmpty) 'path': path,
+  Future<ImportBrowseResponseDto> browseSources({
+    required int libraryId,
+    Map<String, dynamic>? parentRef,
+    String? cursor,
+    int limit = 50,
+  }) async {
+    final response = await _apiClient.post(
+      '/import-sources/browse',
+      data: <String, dynamic>{
+        'library_id': libraryId,
+        if (parentRef != null) 'parent_ref': parentRef,
+        if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
+        'limit': limit,
       },
     );
-    return FilesystemListResponseDto.fromJson(response);
+    return ImportBrowseResponseDto.fromJson(response);
   }
 
   /// JAV 与普通视频统一进入 `/imports`，进度和结果由 task run 提供。
@@ -24,17 +32,16 @@ class MediaImportApi {
     required String mediaKind,
     required int libraryId,
     required MediaImportSource source,
-    TransferMode? transferMode,
+    SourceDisposition sourceDisposition = SourceDisposition.keep,
     int? collectionId,
   }) async {
     final response = await _apiClient.post(
       '/imports',
       data: <String, dynamic>{
         'media_kind': mediaKind,
-        'backend': source.backend,
         'library_id': libraryId,
         ...source.toJson(),
-        if (transferMode != null) 'transfer_mode': transferMode.wireValue,
+        'source_disposition': sourceDisposition.wireValue,
         if (collectionId != null) 'collection_id': collectionId,
       },
     );

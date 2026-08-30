@@ -930,11 +930,11 @@ void main() {
             'library_id': 1,
             'play_url':
                 '/files/media/movies/ABC-001/video.mp4?expires=1700000900&signature=abc',
-            'storage_mode': 'hardlink',
+            'provider_key': 'filesystem',
+            'file_name': 'ABC-001.mp4',
             'resolution': '1920x1080',
             'file_size_bytes': 1073741824,
             'duration_seconds': 7200,
-            'special_tags': '普通',
             'valid': true,
             'progress': <String, dynamic>{
               'last_position_seconds': 600,
@@ -975,6 +975,7 @@ void main() {
                 },
               ],
             },
+            'playback_deliveries': const <String>['proxy', 'redirect'],
             'points': [
               <String, dynamic>{
                 'point_id': 1,
@@ -1223,17 +1224,18 @@ void main() {
             'media_id': 100,
             'library_id': 1,
             'play_url': '/files/media/movies/ABC-010/video.mp4',
-            'storage_mode': 'hardlink',
+            'provider_key': 'filesystem',
+            'file_name': 'ABC-010.mp4',
             'resolution': '1920x1080',
             'file_size_bytes': 1073741824,
             'duration_seconds': 7200,
-            'special_tags': '普通',
             'valid': true,
             'video_info': <String, dynamic>{
               'container': <String, dynamic>{'format_name': 'mp4'},
               'video': <String, dynamic>{'codec_name': 'h264'},
             },
             'points': const <Map<String, dynamic>>[],
+            'playback_deliveries': const <String>['proxy'],
           },
         ],
       },

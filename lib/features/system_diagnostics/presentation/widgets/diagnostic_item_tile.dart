@@ -5,28 +5,18 @@ import 'package:sakuramedia/features/system_diagnostics/presentation/widgets/dia
 import 'package:sakuramedia/features/system_diagnostics/presentation/widgets/diagnostic_status_badge.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 
 /// 分组卡片里的一行诊断项。
 ///
 /// - 顶行：状态徽章 + 名称/summary + 展开箭头
-/// - 展开区（AnimatedSize）：可能原因 / 怎么改 / 影响 三段 + 「去修复」按钮 + 可选的
-///   「查看诊断详情」入口（用于下载器复用现有的详情 dialog）
+/// - 展开区（AnimatedSize）：可能原因 / 怎么改 / 影响 三段 + 「去修复」按钮
 class DiagnosticItemTile extends StatefulWidget {
   const DiagnosticItemTile({
     super.key,
     required this.item,
-    this.detailButtonLabel,
-    this.onOpenDetail,
-    this.initiallyExpanded = false,
   });
 
   final DiagnosticItemState item;
-  final String? detailButtonLabel;
-  final VoidCallback? onOpenDetail;
-
-  /// 首次渲染是否已经展开。异常项默认展开，让用户不用二次点击。
-  final bool initiallyExpanded;
 
   @override
   State<DiagnosticItemTile> createState() => _DiagnosticItemTileState();
@@ -40,7 +30,6 @@ class _DiagnosticItemTileState extends State<DiagnosticItemTile> {
     if (item.cause != null && item.cause!.isNotEmpty) return true;
     if (item.fixHint != null && item.fixHint!.isNotEmpty) return true;
     if (item.fixTarget != null) return true;
-    if (widget.onOpenDetail != null) return true;
     return false;
   }
 
@@ -52,7 +41,7 @@ class _DiagnosticItemTileState extends State<DiagnosticItemTile> {
   @override
   void initState() {
     super.initState();
-    _expanded = widget.initiallyExpanded || _shouldAutoExpand(widget.item);
+    _expanded = _shouldAutoExpand(widget.item);
   }
 
   @override
@@ -127,10 +116,9 @@ class _DiagnosticItemTileState extends State<DiagnosticItemTile> {
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeInOut,
             alignment: Alignment.topCenter,
-            child:
-                _expanded && _canExpand
-                    ? _buildDetail(context)
-                    : const SizedBox.shrink(),
+            child: _expanded && _canExpand
+                ? _buildDetail(context)
+                : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -176,8 +164,7 @@ class _DiagnosticItemTileState extends State<DiagnosticItemTile> {
     addBlock('可能原因', item.cause);
     addBlock('怎么改', item.fixHint);
 
-    final hasAction = item.fixTarget != null || widget.onOpenDetail != null;
-    if (hasAction) {
+    if (item.fixTarget != null) {
       blocks.add(
         Padding(
           padding: EdgeInsets.only(top: spacing.md),
@@ -187,12 +174,6 @@ class _DiagnosticItemTileState extends State<DiagnosticItemTile> {
             children: <Widget>[
               if (item.fixTarget != null)
                 DiagnosticFixButton(target: item.fixTarget!),
-              if (widget.onOpenDetail != null)
-                AppTextButton(
-                  label: widget.detailButtonLabel ?? '查看诊断详情',
-                  size: AppTextButtonSize.small,
-                  onPressed: widget.onOpenDetail,
-                ),
             ],
           ),
         ),

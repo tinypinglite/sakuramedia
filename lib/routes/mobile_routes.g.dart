@@ -134,6 +134,7 @@ mixin $MobileImageSearchRouteData on GoRouteData {
         currentMovieNumber: state.uri.queryParameters['current-movie-number'],
         currentMovieScope:
             state.uri.queryParameters['current-movie-scope'] ?? 'all',
+        mode: state.uri.queryParameters['mode'] ?? 'image',
       );
 
   MobileImageSearchRouteData get _self => this as MobileImageSearchRouteData;
@@ -147,6 +148,7 @@ mixin $MobileImageSearchRouteData on GoRouteData {
         'current-movie-number': _self.currentMovieNumber,
       if (_self.currentMovieScope != 'all')
         'current-movie-scope': _self.currentMovieScope,
+      if (_self.mode != 'image') 'mode': _self.mode,
     },
   );
 
@@ -516,6 +518,7 @@ mixin $MobileMoviePlayerRouteData on GoRouteData {
           state.uri.queryParameters,
           int.tryParse,
         ),
+        delivery: state.uri.queryParameters['delivery'],
       );
 
   MobileMoviePlayerRouteData get _self => this as MobileMoviePlayerRouteData;
@@ -527,6 +530,7 @@ mixin $MobileMoviePlayerRouteData on GoRouteData {
       if (_self.mediaId != null) 'media-id': _self.mediaId!.toString(),
       if (_self.positionSeconds != null)
         'position-seconds': _self.positionSeconds!.toString(),
+      if (_self.delivery != null) 'delivery': _self.delivery,
     },
   );
 

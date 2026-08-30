@@ -14,7 +14,7 @@ MediaApi mediaApi(Ref ref) {
   return MediaApi(apiClient: ref.watch(apiClientProvider));
 }
 
-/// media 页需要读媒体库列表（用于筛选、秒传目标选择、存储描述解析）。
+/// media 页需要读媒体库列表（用于筛选和展示归属信息）。
 ///
 /// `MediaLibrariesApi` 归属 configuration 域；configuration 迁移完成后该
 /// bridge 仍保持现状（configuration 页面、media、system_diagnostics、

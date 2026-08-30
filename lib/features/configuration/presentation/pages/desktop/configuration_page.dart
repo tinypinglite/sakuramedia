@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/account_security_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/advanced_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/download_clients_section.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/desktop/download_preference_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/indexer_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/media_libraries_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/playlists_section.dart';
@@ -66,14 +65,6 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
           icon: Icons.travel_explore_outlined,
         ),
         builder: (active) => IndexerSettingsSection(active: active),
-      ),
-      _ConfigurationTab(
-        category: const _ConfigurationCategory(
-          itemKey: Key('configuration-tab-download-preference'),
-          label: '下载偏好',
-          icon: Icons.low_priority_outlined,
-        ),
-        builder: (active) => DesktopDownloadPreferenceSection(active: active),
       ),
       _ConfigurationTab(
         category: const _ConfigurationCategory(
@@ -206,10 +197,7 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
 
 /// 系统设置单个分类页：分类描述 + 内容构建器。
 class _ConfigurationTab {
-  const _ConfigurationTab({
-    required this.category,
-    required this.builder,
-  });
+  const _ConfigurationTab({required this.category, required this.builder});
 
   final _ConfigurationCategory category;
   final Widget Function(bool active) builder;

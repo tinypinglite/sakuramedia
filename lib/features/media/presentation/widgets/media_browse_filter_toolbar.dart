@@ -10,7 +10,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart'
 /// 「媒体管理」筛选工具栏：仿 `MovieFilterToolbar` 的 popover 触发按钮 +
 /// 内部分节面板 + 底部重置。
 ///
-/// 归属 / 所属媒体库 / 秒传状态 / 缩略图状态 / 排序方式全部通过 chip 选择，
+/// 归属 / 所属媒体库 / 缩略图状态 / 排序方式全部通过 chip 选择，
 /// 避免多项状态挤在下拉里。
 class MediaBrowseFilterToolbar extends StatelessWidget {
   const MediaBrowseFilterToolbar({
@@ -65,7 +65,7 @@ class MediaBrowseFilterToolbar extends StatelessWidget {
   }
 }
 
-/// 面板内的分节 Column：归属 / 媒体库 / 秒传 / 缩略图 / 排序，各自 chip 选择。
+/// 面板内的分节 Column：归属 / 媒体库 / 缩略图 / 排序，各自 chip 选择。
 class MediaBrowseFilterSectionGroup extends StatelessWidget {
   const MediaBrowseFilterSectionGroup({
     super.key,
@@ -90,17 +90,6 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
       kind: MediaListItemKind.video,
       itemKey: Key('media-kind-video'),
     ),
-  ];
-
-  /// 秒传状态 chip 顺序：先"全部"，再"未秒传"（最常用于找可秒传的候选），
-  /// 然后按活跃度排"进行中→失败→待清理→未命中"。
-  static const List<MediaBrowseRapidUploadFilter?> _rapidUploadOrder = [
-    null,
-    MediaBrowseRapidUploadFilter.none,
-    MediaBrowseRapidUploadFilter.inProgress,
-    MediaBrowseRapidUploadFilter.failed,
-    MediaBrowseRapidUploadFilter.cleanupFailed,
-    MediaBrowseRapidUploadFilter.notHit,
   ];
 
   static const List<MediaBrowseThumbnailGenerationFilter?>
@@ -157,29 +146,11 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
             for (final library in libraries)
               AppTextButton(
                 key: Key('media-library-filter-${library.id}'),
-                label: library.displayLabel,
+                label: library.name,
                 size: AppTextButtonSize.xSmall,
                 isSelected: filterState.libraryId == library.id,
                 onPressed: () =>
                     onChanged(filterState.copyWith(libraryId: library.id)),
-              ),
-          ],
-        ),
-        SizedBox(height: spacing.lg),
-        _SectionTitle(text: '秒传状态'),
-        SizedBox(height: spacing.sm),
-        Wrap(
-          spacing: spacing.sm,
-          runSpacing: spacing.sm,
-          children: [
-            for (final filter in _rapidUploadOrder)
-              AppTextButton(
-                key: Key('media-rapid-upload-filter-${filter?.name ?? 'all'}'),
-                label: filter?.label ?? '全部',
-                size: AppTextButtonSize.xSmall,
-                isSelected: filterState.rapidUploadStatus == filter,
-                onPressed: () =>
-                    onChanged(filterState.copyWith(rapidUploadStatus: filter)),
               ),
           ],
         ),

@@ -1,51 +1,23 @@
-/// 下载任务的状态筛选枚举，对应后端 `DownloadTask.download_state` 归一化后的取值。
-/// `all` 表示不带 `download_state` 查询参数。
-///
-/// 注意：`下载中` 同时包含 `downloading` 与 `stalled`（等待资源）——用户心智里
-/// 「等待资源」仍是下载进行中，只是暂时没有源，故并进同一档（见 [DownloadTaskStateFilterValue.apiValues]）。
-enum DownloadTaskStateFilter {
-  all,
-  downloading,
-  seeding,
-  completed,
-  paused,
-  failed,
-  queued,
-  checking,
-  stalled,
-  stalledDead,
-  abandoned,
-}
+/// 下载任务的状态筛选枚举，对应后端 `DownloadTask.state` 的取值。
+/// `all` 表示不带 `state` 查询参数。
+enum DownloadTaskStateFilter { all, downloading, queued, completed, failed }
 
 extension DownloadTaskStateFilterValue on DownloadTaskStateFilter {
   String get label => switch (this) {
     DownloadTaskStateFilter.all => '全部',
     DownloadTaskStateFilter.downloading => '下载中',
-    DownloadTaskStateFilter.seeding => '做种中',
-    DownloadTaskStateFilter.completed => '已完成',
-    DownloadTaskStateFilter.paused => '已暂停',
-    DownloadTaskStateFilter.failed => '失败',
     DownloadTaskStateFilter.queued => '排队中',
-    DownloadTaskStateFilter.checking => '校验中',
-    DownloadTaskStateFilter.stalled => '停滞',
-    DownloadTaskStateFilter.stalledDead => '死种',
-    DownloadTaskStateFilter.abandoned => '已放弃跟踪',
+    DownloadTaskStateFilter.completed => '已完成',
+    DownloadTaskStateFilter.failed => '失败',
   };
 
-  /// 对应后端 `download_state` 的查询值集合；空/null 表示不过滤（`all`）。
-  /// 「下载中」= downloading + stalled。
+  /// 对应后端 `state` 的查询值集合；空/null 表示不过滤（`all`）。
   List<String>? get apiValues => switch (this) {
     DownloadTaskStateFilter.all => null,
-    DownloadTaskStateFilter.downloading => ['downloading', 'stalled'],
-    DownloadTaskStateFilter.seeding => ['seeding'],
-    DownloadTaskStateFilter.completed => ['completed'],
-    DownloadTaskStateFilter.paused => ['paused'],
-    DownloadTaskStateFilter.failed => ['failed'],
+    DownloadTaskStateFilter.downloading => ['downloading'],
     DownloadTaskStateFilter.queued => ['queued'],
-    DownloadTaskStateFilter.checking => ['checking'],
-    DownloadTaskStateFilter.stalled => ['stalled'],
-    DownloadTaskStateFilter.stalledDead => ['stalled_dead'],
-    DownloadTaskStateFilter.abandoned => ['abandoned'],
+    DownloadTaskStateFilter.completed => ['completed'],
+    DownloadTaskStateFilter.failed => ['failed'],
   };
 }
 
@@ -83,8 +55,9 @@ class DownloadTaskFilterState {
     return DownloadTaskFilterState(
       stateFilter: stateFilter ?? this.stateFilter,
       search: search ?? this.search,
-      clientId:
-          identical(clientId, _sentinel) ? this.clientId : clientId as int?,
+      clientId: identical(clientId, _sentinel)
+          ? this.clientId
+          : clientId as int?,
     );
   }
 

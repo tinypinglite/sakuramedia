@@ -329,9 +329,9 @@ void _enqueuePreviewResponses(TestApiBundle bundle) {
           'resolution': '1920x1080',
           'file_size_bytes': 1073741824,
           'duration_seconds': 7200,
-          'special_tags': '普通',
           'valid': true,
           'progress': null,
+          'playback_deliveries': const <String>['proxy', 'redirect'],
           'points': [
             <String, dynamic>{'point_id': 10, 'offset_seconds': 120},
           ],

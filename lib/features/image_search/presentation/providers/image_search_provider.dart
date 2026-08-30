@@ -36,7 +36,10 @@ class ImageSearch extends _$ImageSearch {
     return ImageSearchState();
   }
 
-  void initialize(ImageSearchCurrentMovieScope initialCurrentMovieScope) {
+  void initialize(
+    ImageSearchCurrentMovieScope initialCurrentMovieScope, {
+    ImageSearchInputKind initialInputKind = ImageSearchInputKind.image,
+  }) {
     if (state.hasInitialized) {
       return;
     }
@@ -44,7 +47,31 @@ class ImageSearch extends _$ImageSearch {
       filterState: state.filterState.copyWith(
         currentMovieScope: initialCurrentMovieScope,
       ),
+      inputKind: initialInputKind,
       hasInitialized: true,
+    );
+  }
+
+  void selectInputKind(ImageSearchInputKind inputKind) {
+    if (state.inputKind == inputKind) {
+      return;
+    }
+    _searchVersion += 1;
+    state = state.copyWith(
+      fileBytes: null,
+      fileName: null,
+      mimeType: null,
+      inputKind: inputKind,
+      textQuery: null,
+      sessionId: null,
+      nextCursor: null,
+      expiresAt: null,
+      items: const <ImageSearchResultItemDto>[],
+      isSearching: false,
+      isLoadingMore: false,
+      isResolvingActorMovieIds: false,
+      errorMessage: null,
+      bootstrappedSourceSignature: null,
     );
   }
 
@@ -63,6 +90,8 @@ class ImageSearch extends _$ImageSearch {
       fileBytes: fileBytes,
       fileName: fileName,
       mimeType: mimeType,
+      inputKind: ImageSearchInputKind.image,
+      textQuery: null,
       sessionId: null,
       nextCursor: null,
       expiresAt: null,
@@ -75,12 +104,28 @@ class ImageSearch extends _$ImageSearch {
     );
   }
 
-  void togglePreviewExpanded() {
-    state = state.copyWith(isPreviewExpanded: !state.isPreviewExpanded);
+  void setTextSource(String text) {
+    _searchVersion += 1;
+    state = state.copyWith(
+      fileBytes: null,
+      fileName: null,
+      mimeType: null,
+      inputKind: ImageSearchInputKind.text,
+      textQuery: text.trim(),
+      sessionId: null,
+      nextCursor: null,
+      expiresAt: null,
+      items: const <ImageSearchResultItemDto>[],
+      isSearching: false,
+      isLoadingMore: false,
+      isResolvingActorMovieIds: false,
+      errorMessage: null,
+      bootstrappedSourceSignature: null,
+    );
   }
 
-  void toggleFilterExpanded() {
-    state = state.copyWith(isFilterExpanded: !state.isFilterExpanded);
+  void togglePreviewExpanded() {
+    state = state.copyWith(isPreviewExpanded: !state.isPreviewExpanded);
   }
 
   Future<void> ensureSubscribedActorsLoaded() async {
@@ -163,17 +208,24 @@ class ImageSearch extends _$ImageSearch {
       }
 
       final source = state;
-      final session = await ref
-          .read(imageSearchApiProvider)
-          .createSession(
-            fileBytes: source.fileBytes!,
-            fileName: source.fileName!,
-            mimeType: source.mimeType,
-            movieIds: resolved.includeMovieIds,
-            excludeMovieIds: resolved.excludeMovieIds,
-            scoreThreshold: filter.scoreThreshold,
-            target: filter.searchTarget,
-          );
+      final api = ref.read(imageSearchApiProvider);
+      final session = source.inputKind == ImageSearchInputKind.image
+          ? await api.createSession(
+              fileBytes: source.fileBytes!,
+              fileName: source.fileName!,
+              mimeType: source.mimeType,
+              movieIds: resolved.includeMovieIds,
+              excludeMovieIds: resolved.excludeMovieIds,
+              scoreThreshold: filter.scoreThreshold,
+              target: filter.searchTarget,
+            )
+          : await api.createTextSession(
+              text: source.textQuery!,
+              movieIds: resolved.includeMovieIds,
+              excludeMovieIds: resolved.excludeMovieIds,
+              scoreThreshold: filter.scoreThreshold,
+              target: filter.searchTarget,
+            );
       if (!_isCurrentSearch(requestVersion)) {
         return;
       }
@@ -181,7 +233,9 @@ class ImageSearch extends _$ImageSearch {
     } catch (_) {
       if (_isCurrentSearch(requestVersion)) {
         state = state.copyWith(
-          errorMessage: '以图搜图失败，请稍后重试',
+          errorMessage: state.inputKind == ImageSearchInputKind.image
+              ? '以图搜图失败，请稍后重试'
+              : '文字搜索失败，请稍后重试',
           items: const <ImageSearchResultItemDto>[],
           sessionId: null,
           nextCursor: null,
@@ -248,8 +302,9 @@ class ImageSearch extends _$ImageSearch {
     String? requestedCursor,
   }) {
     final nextCursor = session.nextCursor;
-    final normalizedNextCursor =
-        nextCursor == requestedCursor ? null : nextCursor;
+    final normalizedNextCursor = nextCursor == requestedCursor
+        ? null
+        : nextCursor;
     final filteredItems = session.items
         .where(_matchesCurrentMovieFilter)
         .toList(growable: false);
@@ -257,10 +312,9 @@ class ImageSearch extends _$ImageSearch {
       sessionId: session.sessionId,
       nextCursor: normalizedNextCursor,
       expiresAt: session.expiresAt,
-      items:
-          replaceItems
-              ? filteredItems
-              : <ImageSearchResultItemDto>[...state.items, ...filteredItems],
+      items: replaceItems
+          ? filteredItems
+          : <ImageSearchResultItemDto>[...state.items, ...filteredItems],
     );
   }
 

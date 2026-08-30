@@ -97,7 +97,8 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection> {
     final confirmed = await showAppConfirmDialog(
       context,
       title: '删除插件',
-      message: '确认删除「${plugin.displayName}」？插件目录及其运行数据（data/）都会被删除，且不可恢复。',
+      message:
+          '确认删除「${plugin.displayName}」的插件代码？运行数据（data/）会保留，可在重新安装同一插件后继续使用；仍被媒体库使用的存储插件无法删除。',
       confirmLabel: '删除',
       danger: true,
       dialogKey: const Key('plugins-delete-confirm-dialog'),

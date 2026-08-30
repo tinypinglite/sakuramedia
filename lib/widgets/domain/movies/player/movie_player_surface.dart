@@ -7,6 +7,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/video/initial_seek_guard.dart';
@@ -32,6 +33,7 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     super.key,
     required this.movieNumber,
     required this.resolvedUrl,
+    required this.playbackDelivery,
     required this.surfaceController,
     this.initialPosition,
     this.resumePosition,
@@ -50,6 +52,7 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
 
   final String movieNumber;
   final String resolvedUrl;
+  final MoviePlaybackDelivery playbackDelivery;
   final MoviePlayerSurfaceController surfaceController;
 
   /// 调用方明确指定的起播位置（如从时刻/缩略图进入），不显示续播提示。
@@ -120,7 +123,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _readiness = MoviePlayerSurfaceReadiness();
     _statsSampler = MoviePlayerNativeStatsSampler(
       readNativeProperty: createMediaKitNativePropertyReader(_player),
-      mediaOrigin: moviePlayerPlaybackMediaOriginFor(widget.mediaSourceKind),
+      playbackDelivery: widget.playbackDelivery,
       originalUrl: widget.resolvedUrl,
     );
     _resumePrompt = MoviePlayerResumePromptCoordinator(
@@ -147,9 +150,8 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       setRate: _player.setRate,
       initialRate: _player.state.rate,
     )..addListener(_handlePlaybackRateChanged);
-    _mobileDrawer =
-        MoviePlayerMobileDrawerCoordinator()
-          ..addListener(_handleMobileDrawerChanged);
+    _mobileDrawer = MoviePlayerMobileDrawerCoordinator()
+      ..addListener(_handleMobileDrawerChanged);
     _seekSubscription = widget.surfaceController.seekStream.listen(
       _handleSurfaceSeekRequested,
     );
@@ -206,9 +208,9 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       });
     }
     if (oldWidget.resolvedUrl != widget.resolvedUrl ||
-        oldWidget.mediaSourceKind != widget.mediaSourceKind) {
+        oldWidget.playbackDelivery != widget.playbackDelivery) {
       _statsSampler.updateContext(
-        mediaOrigin: moviePlayerPlaybackMediaOriginFor(widget.mediaSourceKind),
+        playbackDelivery: widget.playbackDelivery,
         originalUrl: widget.resolvedUrl,
       );
     }
@@ -276,28 +278,26 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     }
     try {
       await _openCoordinator.open(
-        open:
-            (url, {required startPosition, required play}) => _player.open(
-              buildMoviePlayerMedia(url, startPosition: startPosition),
-              play: play,
-            ),
+        open: (url, {required startPosition, required play}) => _player.open(
+          buildMoviePlayerMedia(url, startPosition: startPosition),
+          play: play,
+        ),
         play: _player.play,
         seek: _player.seek,
-        waitUntilFirstFrameRendered:
-            () => _controller.waitUntilFirstFrameRendered,
+        waitUntilFirstFrameRendered: () =>
+            _controller.waitUntilFirstFrameRendered,
         resolvedUrl: widget.resolvedUrl,
         initialPosition: widget.initialPosition,
         shouldContinue: () => mounted && requestId == _openRequestId,
-        waitUntilSeekReady:
-            _guardsInitialSeek
-                ? () => waitUntilInitialSeekReady(
-                  firstFrame: _controller.waitUntilFirstFrameRendered,
-                  positionStream: _player.stream.position,
-                  currentPosition: () => _player.state.position,
-                  isPlaying: () => _player.state.playing,
-                  isBuffering: () => _player.state.buffering,
-                )
-                : null,
+        waitUntilSeekReady: _guardsInitialSeek
+            ? () => waitUntilInitialSeekReady(
+                firstFrame: _controller.waitUntilFirstFrameRendered,
+                positionStream: _player.stream.position,
+                currentPosition: () => _player.state.position,
+                isPlaying: () => _player.state.playing,
+                isBuffering: () => _player.state.buffering,
+              )
+            : null,
         markReady: _markSurfaceReady,
       );
     } catch (error) {
@@ -323,8 +323,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     } catch (_) {}
   }
 
-  bool get _guardsInitialSeek =>
-      widget.mediaSourceKind != MoviePlayerMediaSourceKind.local;
+  bool get _guardsInitialSeek => true;
 
   void _handleSurfaceSeekRequested(Duration position) {
     _resumePrompt.resolve();
@@ -487,10 +486,10 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     final mobileBottomControls = buildMoviePlayerMobileBottomControls(
       activeDrawer: _mobileDrawer.activeDrawer,
       speedDisplayListenable: _playbackRate.mobileSpeedDisplay,
-      onSpeedButtonPressed:
-          () => _mobileDrawer.toggle(MoviePlayerMobileDrawerType.speed),
-      onSubtitleButtonPressed:
-          () => _mobileDrawer.toggle(MoviePlayerMobileDrawerType.subtitle),
+      onSpeedButtonPressed: () =>
+          _mobileDrawer.toggle(MoviePlayerMobileDrawerType.speed),
+      onSubtitleButtonPressed: () =>
+          _mobileDrawer.toggle(MoviePlayerMobileDrawerType.subtitle),
     );
     final desktopBottomControls = buildMoviePlayerDesktopBottomControls(
       currentRate: _playbackRate.currentRate,

@@ -4,7 +4,6 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/platform/clipboard_copy.dart';
-import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_candidate_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_magnet_provider.dart';
 import 'package:sakuramedia/theme.dart';
@@ -315,7 +314,7 @@ class _MovieMagnetCandidateCardState extends State<_MovieMagnetCandidateCard> {
 
   @override
   Widget build(BuildContext context) {
-    final magnetUrl = candidate.magnetUrl.trim();
+    final sourceUri = candidate.sourceUri.trim();
 
     return Container(
       width: double.infinity,
@@ -354,7 +353,7 @@ class _MovieMagnetCandidateCardState extends State<_MovieMagnetCandidateCard> {
               ),
             ],
           ),
-          if (magnetUrl.isNotEmpty) ...[
+          if (sourceUri.isNotEmpty) ...[
             SizedBox(height: context.appSpacing.md),
             Container(
               key: const Key('movie-detail-magnet-link'),
@@ -372,7 +371,7 @@ class _MovieMagnetCandidateCardState extends State<_MovieMagnetCandidateCard> {
                     children: [
                       Expanded(
                         child: Text(
-                          '磁力链接',
+                          '资源地址',
                           style: resolveAppTextStyle(
                             context,
                             size: AppTextSize.s12,
@@ -388,9 +387,9 @@ class _MovieMagnetCandidateCardState extends State<_MovieMagnetCandidateCard> {
                         icon: const Icon(Icons.copy_rounded),
                         variant: AppButtonVariant.secondary,
                         onPressed: () async {
-                          final copied = await copyTextToClipboard(magnetUrl);
+                          final copied = await copyTextToClipboard(sourceUri);
                           if (context.mounted) {
-                            showToast(copied ? '磁力链接已复制' : '复制失败，请手动选择链接');
+                            showToast(copied ? '资源地址已复制' : '复制失败，请手动选择地址');
                           }
                         },
                       ),
@@ -398,7 +397,7 @@ class _MovieMagnetCandidateCardState extends State<_MovieMagnetCandidateCard> {
                   ),
                   SizedBox(height: context.appSpacing.xs),
                   SelectableText(
-                    magnetUrl,
+                    sourceUri,
                     key: const Key('movie-detail-magnet-link-text'),
                     maxLines: 3,
                     style: resolveAppTextStyle(
@@ -424,7 +423,7 @@ class _MovieMagnetCandidateCardState extends State<_MovieMagnetCandidateCard> {
                       .map(
                         (client) => DropdownMenuItem<int>(
                           value: client.id,
-                          child: Text('${client.name} · ${client.kind.label}'),
+                          child: Text(client.name),
                         ),
                       )
                       .toList(growable: false),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_player_content.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 
@@ -11,6 +12,7 @@ class DesktopMoviePlayerPage extends StatelessWidget {
   const DesktopMoviePlayerPage({
     super.key,
     required this.movieNumber,
+    this.playbackDelivery,
     this.initialMediaId,
     this.initialPositionSeconds,
     this.fallbackPath,
@@ -21,6 +23,7 @@ class DesktopMoviePlayerPage extends StatelessWidget {
   });
 
   final String movieNumber;
+  final MoviePlaybackDelivery? playbackDelivery;
   final int? initialMediaId;
   final int? initialPositionSeconds;
   final String? fallbackPath;
@@ -33,6 +36,7 @@ class DesktopMoviePlayerPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MoviePlayerContent(
       movieNumber: movieNumber,
+      playbackDelivery: playbackDelivery,
       initialMediaId: initialMediaId,
       initialPositionSeconds: initialPositionSeconds,
       fallbackPath: fallbackPath,

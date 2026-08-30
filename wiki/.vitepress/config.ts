@@ -19,11 +19,11 @@ export default defineConfig({
           text: '指南',
           items: [
             { text: '快速开始', link: '/guide/quick-start' },
+            { text: '升级现有部署', link: '/guide/upgrade' },
             { text: '配置说明', link: '/guide/config' },
             { text: '进阶部署', link: '/guide/docker' },
             { text: '后台任务', link: '/guide/tasks' },
-            { text: '115 网盘接入', link: '/guide/cloud115' },
-            { text: 'PornBox 视频管理', link: '/guide/videos' },
+            { text: '普通视频与视频合集', link: '/guide/videos' },
             { text: '常用命令', link: '/guide/commands' },
             { text: '常见问题', link: '/faq' },
           ],

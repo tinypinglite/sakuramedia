@@ -15,17 +15,15 @@ part 'clip_collection_detail_provider.g.dart';
 /// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
 /// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
 ///
-/// **本仓库首个 [OptimisticPatchMixin] 业务采用者**：reorder / removeClip /
-/// deleteClip 三处都用 [withOptimisticPatch]（本地立即变 → await API → 失败
-/// 整体回滚）。三处共用 [_mutationKey]：保持原 controller 「同时只允许一个
-/// mutation」的语义（先前 `_isMutating` bool 的等价）。
+/// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
+/// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
+/// 执行一个 mutation。
 ///
 /// 三个 mutation 方法**保留返回 `Future<String?>`（成功 null / 失败错误文案）
 /// 的 UI 兼容语义**——mixin 内核是 rethrow，本 provider 在外包 try/catch
 /// 转文案，让两个 detail page 的 UI 调用点不动。
 ///
-/// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放；对齐
-/// `mediaRapidUploadBatchDetail` 唯一 autoDispose family 先例。
+/// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
 @Riverpod(retry: kNoAsyncNotifierRetry)
 class ClipCollectionDetail extends _$ClipCollectionDetail
     with
@@ -81,10 +79,13 @@ class ClipCollectionDetail extends _$ClipCollectionDetail
         },
         action: () async {
           final applied = state.value?.clips ?? const <MediaClipDto>[];
-          await ref.read(clipCollectionsApiProvider).setCollectionClips(
+          await ref
+              .read(clipCollectionsApiProvider)
+              .setCollectionClips(
                 collectionId: collectionId,
-                clipIds:
-                    applied.map((clip) => clip.clipId).toList(growable: false),
+                clipIds: applied
+                    .map((clip) => clip.clipId)
+                    .toList(growable: false),
               );
           return null;
         },
@@ -134,8 +135,8 @@ class ClipCollectionDetail extends _$ClipCollectionDetail
 
   /// 编辑合集名称 / 描述后就地更新头部元信息（不重拉切片列表）。
   ///
-  /// 保留 `clipCount = state.clips.length`：编辑响应可能是旧计数（服务端仅在成员
-  /// 变化时更新），本地列表更可靠。
+  /// 保留 `clipCount = state.clips.length`：编辑响应中的计数可能尚未更新（服务端仅
+  /// 在成员变化时更新），本地列表更可靠。
   void applyCollectionMeta(ClipCollectionDto next) {
     final current = state.value;
     if (current == null) return;

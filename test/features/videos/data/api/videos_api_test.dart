@@ -100,7 +100,6 @@ void main() {
             'resolution': '1080p',
             'file_size_bytes': 1048576,
             'duration_seconds': 600,
-            'special_tags': '',
             'valid': true,
             'progress': <String, dynamic>{
               'last_position_seconds': 120,

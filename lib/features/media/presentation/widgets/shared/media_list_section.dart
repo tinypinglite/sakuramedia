@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
-import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/media/presentation/media_browse_filter_state.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_browse_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_libraries_provider.dart';
@@ -33,8 +32,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart'
 /// 「媒体管理」列表 tab 的主体：筛选头 + 白底 media card 列表（桌面 / 移动共用）。
 ///
 /// 数据源：`mediaBrowseProvider` + `mediaLibrariesProvider`。多选、筛选、reload 全部
-/// 由内部 `ref.read(...notifier)` 触发；父页只提供跨 provider 的动作（秒传弹窗、批量
-/// 删除、复合刷新）。
+/// 由内部 `ref.read(...notifier)` 触发；父页只提供跨 provider 的批量删除与复合刷新。
 ///
 /// 平台差异（`mobile: true` 时启用）：
 /// - 行卡片：桌面固定行高 `_MediaRow` / 移动流式 [MediaMobileListCard]（长按进入多选态）；
@@ -48,9 +46,7 @@ class MediaListSection extends StatelessWidget {
   const MediaListSection({
     super.key,
     required this.scrollController,
-    required this.isTriggering,
     required this.isDeleting,
-    required this.onRapidUpload,
     required this.onBatchDelete,
     this.onRefresh,
     this.onOpenMovieDetail,
@@ -63,19 +59,13 @@ class MediaListSection extends StatelessWidget {
 
   final ScrollController scrollController;
 
-  /// 秒传触发中——按钮 spinner；由父页承担因为秒传流程含跨库弹窗 + api + toast。
-  final bool isTriggering;
-
   /// 批量删除进行中——按钮 spinner + 禁用其它多选动作；父页编排 confirm + 串行循环。
   final bool isDeleting;
-
-  /// 父页秒传入口：弹目标库对话框 → 调 `mediaApi.createMediaRapidUpload` → 从列表移除。
-  final Future<void> Function() onRapidUpload;
 
   /// 父页批量删除入口：弹二次确认 → 串行循环 `mediaApi.deleteMedia` → 汇总 toast。
   final Future<void> Function() onBatchDelete;
 
-  /// 可选：父页复合刷新（例如同时刷新秒传批次）；不传则默认刷新媒体列表 + 媒体库。
+  /// 可选：父页复合刷新；不传则默认刷新媒体列表 + 媒体库。
   final Future<void> Function()? onRefresh;
 
   /// 可选：媒体封面点击跳影片详情（JAV 项）；不传则封面不可点。
@@ -109,9 +99,7 @@ class MediaListSection extends StatelessWidget {
             keyPrefix: keyPrefix,
             mobile: mobile,
             selectionMode: selectionMode,
-            isTriggering: isTriggering,
             isDeleting: isDeleting,
-            onRapidUpload: onRapidUpload,
             onBatchDelete: onBatchDelete,
             onRefresh: onRefresh,
             onExitSelection: onExitSelection,
@@ -128,16 +116,14 @@ class MediaListSection extends StatelessWidget {
       ],
     );
 
-    // 移动端多选态：列表下方常驻批量操作条（删除 / 秒传）。
+    // 移动端多选态：列表下方常驻批量删除操作条。
     if (mobile && selectionMode) {
       return Column(
         children: [
           Expanded(child: scrollView),
           _MediaMobileSelectionBar(
             keyPrefix: keyPrefix,
-            isTriggering: isTriggering,
             isDeleting: isDeleting,
-            onRapidUpload: onRapidUpload,
             onBatchDelete: onBatchDelete,
           ),
         ],
@@ -152,9 +138,7 @@ class _MediaListHeader extends ConsumerWidget {
     required this.keyPrefix,
     required this.mobile,
     required this.selectionMode,
-    required this.isTriggering,
     required this.isDeleting,
-    required this.onRapidUpload,
     required this.onBatchDelete,
     required this.onRefresh,
     required this.onExitSelection,
@@ -163,9 +147,7 @@ class _MediaListHeader extends ConsumerWidget {
   final String keyPrefix;
   final bool mobile;
   final bool selectionMode;
-  final bool isTriggering;
   final bool isDeleting;
-  final Future<void> Function() onRapidUpload;
   final Future<void> Function() onBatchDelete;
   final Future<void> Function()? onRefresh;
   final VoidCallback? onExitSelection;
@@ -229,7 +211,7 @@ class _MediaListHeader extends ConsumerWidget {
         currentState != null && currentState.paged.items.isNotEmpty;
     final filter = currentState?.filter ?? MediaBrowseFilterState.initial;
     final isInitialLoading = asyncState.isLoading && !asyncState.hasValue;
-    final busy = isTriggering || isDeleting;
+    final busy = isDeleting;
     final allLoadedSelected = currentState?.allLoadedSelected ?? false;
 
     // 移动端多选态：顶栏换 `AppListHeader.selection`（退出 / 计数 / 全选），
@@ -319,11 +301,9 @@ class _MediaListHeader extends ConsumerWidget {
         hasSelection: hasSelection,
         selectionCount: selectionCount,
         allLoadedSelected: allLoadedSelected,
-        isTriggering: isTriggering,
         isDeleting: isDeleting,
         isInitialLoading: isInitialLoading,
         busy: busy,
-        onRapidUpload: onRapidUpload,
         onBatchDelete: onBatchDelete,
         onRefresh: () => unawaited((onRefresh ?? () => _defaultRefresh(ref))()),
       ),
@@ -440,7 +420,7 @@ class _MediaListBodySliver extends ConsumerWidget {
   }
 }
 
-/// 移动端行 consumer：订阅选中态 / 存储描述 / 禁选原因，组装 [MediaMobileListCard]。
+/// 移动端行 consumer：订阅选中态 / 媒体库，组装 [MediaMobileListCard]。
 class _MediaMobileRowConsumer extends ConsumerWidget {
   const _MediaMobileRowConsumer({
     required this.keyPrefix,
@@ -464,54 +444,43 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
         (asyncState) => asyncState.value?.isSelected(item.id) ?? false,
       ),
     );
-    final storageDescriptors = ref.watch(
+    final librariesById = ref.watch(
       mediaLibrariesProvider.select(
         (asyncState) =>
-            asyncState.value?.storageDescriptors ??
-            const <int, MediaStorageDescriptor>{},
+            asyncState.value?.librariesById ?? const <int, MediaLibraryDto>{},
       ),
     );
-    final disabledReason = _disabledReasonFor(item);
+    final library = item.libraryId == null
+        ? null
+        : librariesById[item.libraryId];
 
     return MediaMobileListCard(
       keyPrefix: keyPrefix,
       item: item,
-      storage: resolveMediaStorageDescriptor(
-        item.libraryId,
-        storageDescriptors,
-      ),
+      library: library,
       isSelected: isSelected,
       selectionMode: selectionMode,
-      disabledReason: disabledReason,
-      onLongPress: disabledReason != null
-          ? null
-          : () {
-              ref.read(mediaBrowseProvider.notifier).toggleSelection(item.id);
-              onEnterSelection?.call();
-            },
-      onToggleSelect: disabledReason != null
-          ? null
-          : () =>
-                ref.read(mediaBrowseProvider.notifier).toggleSelection(item.id),
+      onLongPress: () {
+        ref.read(mediaBrowseProvider.notifier).toggleSelection(item.id);
+        onEnterSelection?.call();
+      },
+      onToggleSelect: () =>
+          ref.read(mediaBrowseProvider.notifier).toggleSelection(item.id),
       onOpenMovieDetail: onOpenMovieDetail,
     );
   }
 }
 
-/// 移动端多选态底部批量操作条：删除（危险）+ 秒传到 115（主操作）等宽平分。
+/// 移动端多选态底部批量删除操作条。
 class _MediaMobileSelectionBar extends ConsumerWidget {
   const _MediaMobileSelectionBar({
     required this.keyPrefix,
-    required this.isTriggering,
     required this.isDeleting,
-    required this.onRapidUpload,
     required this.onBatchDelete,
   });
 
   final String keyPrefix;
-  final bool isTriggering;
   final bool isDeleting;
-  final Future<void> Function() onRapidUpload;
   final Future<void> Function() onBatchDelete;
 
   @override
@@ -521,7 +490,7 @@ class _MediaMobileSelectionBar extends ConsumerWidget {
         (asyncState) => asyncState.value?.selectionCount ?? 0,
       ),
     );
-    final busy = isTriggering || isDeleting;
+    final busy = isDeleting;
     return AppSelectionBottomBar(
       leading: Text(
         '已选 $selectionCount 项',
@@ -542,14 +511,6 @@ class _MediaMobileSelectionBar extends ConsumerWidget {
           isLoading: isDeleting,
           onPressed: busy || selectionCount == 0 ? null : onBatchDelete,
         ),
-        AppButton(
-          key: Key('$keyPrefix-rapid-upload-button'),
-          label: '秒传到 115',
-          variant: AppButtonVariant.primary,
-          icon: const Icon(Icons.cloud_upload_outlined),
-          isLoading: isTriggering,
-          onPressed: busy || selectionCount == 0 ? null : onRapidUpload,
-        ),
       ],
     );
   }
@@ -569,49 +530,40 @@ class _MediaRowConsumer extends ConsumerWidget {
         (asyncState) => asyncState.value?.isSelected(item.id) ?? false,
       ),
     );
-    final storageDescriptors = ref.watch(
+    final librariesById = ref.watch(
       mediaLibrariesProvider.select(
         (asyncState) =>
-            asyncState.value?.storageDescriptors ??
-            const <int, MediaStorageDescriptor>{},
+            asyncState.value?.librariesById ?? const <int, MediaLibraryDto>{},
       ),
     );
-    final disabledReason = _disabledReasonFor(item);
+    final library = item.libraryId == null
+        ? null
+        : librariesById[item.libraryId];
 
     return _MediaRow(
       item: item,
-      storage: resolveMediaStorageDescriptor(
-        item.libraryId,
-        storageDescriptors,
-      ),
+      library: library,
       isSelected: isSelected,
-      // 有禁选原因的行不响应 tap（且 _MediaRow 会挂 Tooltip 告诉用户原因）；
-      // 后端 active_media_id 唯一约束会拒绝新批次，前端提前拦截更友好。
-      disabledReason: disabledReason,
-      onToggle: disabledReason != null
-          ? null
-          : () =>
-                ref.read(mediaBrowseProvider.notifier).toggleSelection(item.id),
+      onToggle: () =>
+          ref.read(mediaBrowseProvider.notifier).toggleSelection(item.id),
       onOpenMovieDetail: onOpenMovieDetail,
     );
   }
 }
 
-/// 顶栏右侧多选操作条：全选 / 清空 / 批量删除 / 秒传 / 刷新。
+/// 顶栏右侧多选操作条：全选 / 清空 / 批量删除 / 刷新。
 ///
 /// 无选择态：仅保留「全选本页」+「刷新」（不占空间过多，视觉上不喧宾夺主）；
-/// 有选择态：追加「清空 / 批量删除 / 秒传到 115」，主/危险色收拢注意力。
+/// 有选择态：追加「清空 / 批量删除」，危险色收拢注意力。
 class _MediaListActionBar extends ConsumerWidget {
   const _MediaListActionBar({
     required this.hasItems,
     required this.hasSelection,
     required this.selectionCount,
     required this.allLoadedSelected,
-    required this.isTriggering,
     required this.isDeleting,
     required this.isInitialLoading,
     required this.busy,
-    required this.onRapidUpload,
     required this.onBatchDelete,
     required this.onRefresh,
   });
@@ -620,11 +572,9 @@ class _MediaListActionBar extends ConsumerWidget {
   final bool hasSelection;
   final int selectionCount;
   final bool allLoadedSelected;
-  final bool isTriggering;
   final bool isDeleting;
   final bool isInitialLoading;
   final bool busy;
-  final Future<void> Function() onRapidUpload;
   final Future<void> Function() onBatchDelete;
   final VoidCallback onRefresh;
 
@@ -667,16 +617,6 @@ class _MediaListActionBar extends ConsumerWidget {
             isLoading: isDeleting,
             onPressed: busy ? null : onBatchDelete,
           ),
-        if (hasSelection)
-          AppButton(
-            key: const Key('media-management-rapid-upload-button'),
-            label: '秒传到 115（$selectionCount）',
-            size: AppButtonSize.small,
-            variant: AppButtonVariant.primary,
-            icon: const Icon(Icons.cloud_upload_outlined),
-            isLoading: isTriggering,
-            onPressed: busy ? null : onRapidUpload,
-          ),
         AppIconButton(
           key: const Key('media-management-refresh-button'),
           tooltip: isInitialLoading ? '刷新中' : '刷新',
@@ -693,27 +633,23 @@ class _MediaListActionBar extends ConsumerWidget {
 ///
 /// 内容层次（自上而下）：
 /// 1) 标题栏：标题（一行）+ 可选副标题；右上贴角「失效」badge（仅无效时显示）。
-/// 2) 元数据 Wrap：kind / 存储位置 / 库名 compact badge + 大小 / 时长 / 分辨率 muted 文本。
-/// 3) 路径行：folder icon + 相对路径 muted；右侧「更新 …」（若有）。
+/// 2) 元数据 Wrap：kind / provider / 库名 compact badge + 大小 / 时长 / 分辨率 muted 文本。
+/// 3) 文件名行：folder icon + provider 返回的文件名；右侧「更新 …」（若有）。
 ///
 /// 封面区独立 InkWell：JAV 项跳影片详情，视频项无跳转（videos 域没有单视频详情页）。
 class _MediaRow extends StatelessWidget {
   const _MediaRow({
     required this.item,
-    required this.storage,
+    this.library,
     required this.isSelected,
     required this.onToggle,
-    this.disabledReason,
     this.onOpenMovieDetail,
   });
 
   final MediaListItemDto item;
-  final MediaStorageDescriptor storage;
+  final MediaLibraryDto? library;
   final bool isSelected;
-
-  /// 非空时行禁选：`onToggle` 应传 null，`disabledReason` 会作为 Tooltip 文案挂在整卡上。
-  final String? disabledReason;
-  final VoidCallback? onToggle;
+  final VoidCallback onToggle;
 
   /// 封面跳影片详情回调（JAV 项）；null 时封面纯图不可点。
   final void Function(BuildContext context, String movieNumber)?
@@ -742,7 +678,7 @@ class _MediaRow extends StatelessWidget {
           SizedBox(height: spacing.md),
           MediaListItemMetaLine(
             item: item,
-            storage: storage,
+            library: library,
             spacing: spacing.sm,
             runSpacing: spacing.xs,
           ),
@@ -750,29 +686,14 @@ class _MediaRow extends StatelessWidget {
           MediaListItemPathLine(
             keyPrefix: 'media-management',
             item: item,
-            storage: storage,
             showUpdatedAt: true,
           ),
         ],
       ),
     );
 
-    // 项目约定没有 AppTooltip 包装件，直接用 Flutter 原生。
-    final reason = disabledReason;
-    if (reason != null) {
-      return Tooltip(message: reason, child: card);
-    }
     return card;
   }
-}
-
-/// 集中的行禁选决策：目前仅有秒传进行中一种原因，未来加新原因（例如批量删除
-/// 排队中）直接在这里返回相应文案；`_MediaRow` 只关心"有无原因"。
-String? _disabledReasonFor(MediaListItemDto item) {
-  if (item.lastRapidUploadStatus == LastRapidUploadStatus.inProgress) {
-    return '已在秒传批次中，无法加入新操作';
-  }
-  return null;
 }
 
 /// 封面 slot：宽图横向铺满，`BoxFit.cover` 横向裁切；JAV 且有番号 → InkWell
@@ -893,6 +814,6 @@ class _MediaHeadingLine extends StatelessWidget {
   }
 }
 
-/// 元数据行 / 路径行已抽为共享件 [MediaListItemMetaLine] /
+/// 元数据行 / 文件名行已抽为共享件 [MediaListItemMetaLine] /
 /// [MediaListItemPathLine]（`widgets/shared/media_list_item_*_line.dart`），
-/// 桌面行与移动卡共用；badge 映射走 [rapidUploadStatusBadge]。
+/// 桌面行与移动卡共用。

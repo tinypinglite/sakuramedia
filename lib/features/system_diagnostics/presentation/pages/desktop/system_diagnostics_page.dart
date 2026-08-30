@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/format/relative_time_label.dart';
-import 'package:sakuramedia/features/configuration/presentation/widgets/shared/download_client_diagnostics_dialog.dart';
-import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_item_kind.dart';
-import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_item_state.dart';
-import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_item_status.dart';
+import 'package:sakuramedia/features/status/presentation/providers/status_api_provider.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/controllers/system_diagnostics_controller.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/widgets/diagnostic_category_card.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_page_frame.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
 class DesktopSystemDiagnosticsPage extends ConsumerStatefulWidget {
   const DesktopSystemDiagnosticsPage({super.key});
@@ -22,6 +21,7 @@ class DesktopSystemDiagnosticsPage extends ConsumerStatefulWidget {
 
 class _DesktopSystemDiagnosticsPageState
     extends ConsumerState<DesktopSystemDiagnosticsPage> {
+  bool _isResettingImageSearch = false;
   @override
   void initState() {
     super.initState();
@@ -56,13 +56,69 @@ class _DesktopSystemDiagnosticsPageState
             DiagnosticCategoryCard(
               key: Key('diagnostic-category-${cat.label}'),
               category: cat,
-              itemDetailBuilder: _detailActionFor,
             ),
             SizedBox(height: spacing.lg),
           ],
+          _buildImageSearchMaintenanceCard(context),
         ],
       ),
     );
+  }
+
+  Widget _buildImageSearchMaintenanceCard(BuildContext context) {
+    final spacing = context.appSpacing;
+    return AppContentCard(
+      title: '图搜索维护',
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '更换嵌入模型后，重建索引以重新生成全部图片向量。重建期间图搜索结果可能暂时不完整。',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                tone: AppTextTone.secondary,
+              ),
+            ),
+          ),
+          SizedBox(width: spacing.lg),
+          AppButton(
+            key: const Key('desktop-image-search-reset-index'),
+            label: '重建索引',
+            variant: AppButtonVariant.primary,
+            isLoading: _isResettingImageSearch,
+            onPressed: _isResettingImageSearch
+                ? null
+                : _confirmImageSearchReset,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmImageSearchReset() async {
+    setState(() => _isResettingImageSearch = true);
+    try {
+      final confirmed = await showAppConfirmDialog(
+        context,
+        title: '重建图搜索索引',
+        message: '这会清空现有图片索引并重新开始构建，确认继续吗？',
+        confirmLabel: '重建索引',
+        danger: true,
+        dialogKey: const Key('desktop-image-search-reset-confirm-dialog'),
+        confirmKey: const Key('desktop-image-search-reset-confirm'),
+        cancelKey: const Key('desktop-image-search-reset-cancel'),
+        onConfirm: () => ref.read(statusApiProvider).resetImageSearch(),
+        failureFallback: '重建图搜索索引失败',
+      );
+      if (confirmed && mounted) {
+        showToast('图搜索索引已开始重建');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isResettingImageSearch = false);
+      }
+    }
   }
 
   Widget _buildHeader(
@@ -107,16 +163,15 @@ class _DesktopSystemDiagnosticsPageState
           variant: AppButtonVariant.primary,
           icon: const Icon(Icons.refresh),
           isLoading: diagnostics.isRunning,
-          onPressed:
-              diagnostics.isRunning
-                  ? null
-                  : ref
-                      .read(
-                        systemDiagnosticsProvider(
-                          SystemDiagnosticsHost.desktopPage,
-                        ).notifier,
-                      )
-                      .runAll,
+          onPressed: diagnostics.isRunning
+              ? null
+              : ref
+                    .read(
+                      systemDiagnosticsProvider(
+                        SystemDiagnosticsHost.desktopPage,
+                      ).notifier,
+                    )
+                    .runAll,
         ),
       ],
     );
@@ -134,84 +189,5 @@ class _DesktopSystemDiagnosticsPageState
           '${c.unhealthyCount} 项异常';
     }
     return '上次检测：${formatRelativeTimeLabel(c.lastRunAt!)} · 全部通过';
-  }
-
-  DiagnosticItemDetailAction? _detailActionFor(DiagnosticItemState item) {
-    if (item.status == DiagnosticItemStatus.probing ||
-        item.status == DiagnosticItemStatus.notTested ||
-        item.status == DiagnosticItemStatus.blocked) {
-      return null;
-    }
-    // 只对下载器 tile 给「查看诊断详情」入口；其它组件的详情已经在三段文案里体现。
-    switch (item.kind) {
-      case DiagnosticItemKind.downloaderConnectivity:
-        return _connectivityDetailAction(item);
-      case DiagnosticItemKind.downloaderStorage:
-        return _storageDetailAction(item);
-      default:
-        return null;
-    }
-  }
-
-  DiagnosticItemDetailAction? _connectivityDetailAction(
-    DiagnosticItemState item,
-  ) {
-    final clientId = _extractClientId(item.itemKey);
-    if (clientId == null) return null;
-    final result = ref
-        .read(systemDiagnosticsProvider(SystemDiagnosticsHost.desktopPage))
-        .connectivityResultFor(clientId);
-    if (result == null) return null;
-    return DiagnosticItemDetailAction(
-      label: '查看诊断详情',
-      onOpen: () {
-        showDialog<void>(
-          context: context,
-          builder:
-              (_) => DownloadClientTestResultDialog(
-                initialResult: result,
-                onRerun: () async {
-                  final api = ref.read(downloadClientsApiProvider);
-                  return api.testClient(clientId);
-                },
-              ),
-        );
-      },
-    );
-  }
-
-  DiagnosticItemDetailAction? _storageDetailAction(DiagnosticItemState item) {
-    final clientId = _extractClientId(item.itemKey);
-    if (clientId == null) return null;
-    final diagnostics = ref.read(
-      systemDiagnosticsProvider(SystemDiagnosticsHost.desktopPage),
-    );
-    final result = diagnostics.storageResultFor(clientId);
-    final client = diagnostics.clientFor(clientId);
-    if (result == null || client == null) return null;
-    return DiagnosticItemDetailAction(
-      label: '查看目录映射详情',
-      onOpen: () {
-        showDialog<void>(
-          context: context,
-          builder:
-              (_) => DownloadClientStorageTestResultDialog(
-                initialResult: result,
-                clientBaseUrl: client.baseUrl,
-                onRerun: () async {
-                  final api = ref.read(downloadClientsApiProvider);
-                  return api.storageTestClient(clientId);
-                },
-              ),
-        );
-      },
-    );
-  }
-
-  int? _extractClientId(String itemKey) {
-    // itemKey 格式：downloader-connectivity-<id> 或 downloader-storage-<id>
-    final parts = itemKey.split('-');
-    if (parts.length < 3) return null;
-    return int.tryParse(parts.last);
   }
 }

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/downloads/presentation/download_task_filter_state.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_state.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
@@ -13,7 +12,7 @@ import 'package:sakuramedia/features/shared/presentation/providers/session_scope
 
 part 'download_task_center_provider.g.dart';
 
-/// 下载任务中心：列表快照轮询 + 暂停/恢复/删除。
+/// 下载任务中心：列表快照轮询 + 删除。
 @Riverpod(keepAlive: true, retry: kNoAsyncNotifierRetry)
 class DownloadTaskCenter extends _$DownloadTaskCenter
     with
@@ -28,7 +27,6 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
   int _filterGeneration = 0;
   List<DownloadClientOption>? _pendingClientOptions;
   Map<int, String>? _pendingClientNames;
-  Map<int, DownloadClientKind>? _pendingClientKinds;
 
   @override
   int get pageSize => _pageSize;
@@ -55,14 +53,18 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
     int pageSize,
   ) async {
     final filter = _activeFilter;
-    final response = await ref.read(downloadsApiProvider).getDownloadTasks(
-      page: page,
-      pageSize: pageSize,
-      clientId: filter.clientId,
-      movieNumber: filter.normalizedSearch.isEmpty ? null : filter.normalizedSearch,
-      downloadStates: filter.stateFilter.apiValues,
-      sort: 'created_at:desc',
-    );
+    final response = await ref
+        .read(downloadsApiProvider)
+        .getDownloadTasks(
+          page: page,
+          pageSize: pageSize,
+          clientId: filter.clientId,
+          movieNumber: filter.normalizedSearch.isEmpty
+              ? null
+              : filter.normalizedSearch,
+          states: filter.stateFilter.apiValues,
+          sort: 'created_at:desc',
+        );
     return PaginatedResponseDto<DownloadTaskRowState>(
       items: response.items
           .map((task) => DownloadTaskRowState(task: task))
@@ -146,7 +148,8 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
       final firstPage = await loadInitialPage();
       if (isDisposed || !_filterRequests.isCurrent(requestId)) return;
       final current = state.value;
-      if (current != null) state = AsyncData(current.copyWith(paged: firstPage));
+      if (current != null)
+        state = AsyncData(current.copyWith(paged: firstPage));
     } catch (error) {
       if (isDisposed || !_filterRequests.isCurrent(requestId)) return;
       final current = state.value;
@@ -215,30 +218,6 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
     }
   }
 
-  Future<void> pauseTask(int taskId) async {
-    final current = state.value;
-    if (current == null || current.isTaskPending(taskId)) return;
-    _addPending(taskId);
-    try {
-      await ref.read(downloadsApiProvider).pauseDownloadTask(taskId);
-      if (!isDisposed) _patchRowState(taskId, downloadState: 'paused');
-    } finally {
-      _removePending(taskId);
-    }
-  }
-
-  Future<void> resumeTask(int taskId) async {
-    final current = state.value;
-    if (current == null || current.isTaskPending(taskId)) return;
-    _addPending(taskId);
-    try {
-      await ref.read(downloadsApiProvider).resumeDownloadTask(taskId);
-      if (!isDisposed) _patchRowState(taskId, downloadState: 'downloading');
-    } finally {
-      _removePending(taskId);
-    }
-  }
-
   Future<void> deleteTask(int taskId, {required bool deleteFiles}) async {
     final current = state.value;
     if (current == null || current.isTaskPending(taskId)) return;
@@ -258,30 +237,21 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
       final clients = await ref.read(downloadClientsApiProvider).getClients();
       if (isDisposed) return;
       final options = clients
-          .map((client) => DownloadClientOption(
-                id: client.id,
-                name: client.name,
-                kind: client.kind,
-              ))
+          .map(
+            (client) => DownloadClientOption(id: client.id, name: client.name),
+          )
           .toList(growable: false);
       final names = <int, String>{};
-      final kinds = <int, DownloadClientKind>{};
       for (final client in clients) {
         names[client.id] = client.name;
-        kinds[client.id] = client.kind;
       }
       final current = state.value;
       if (current == null) {
         _pendingClientOptions = options;
         _pendingClientNames = names;
-        _pendingClientKinds = kinds;
       } else {
         state = AsyncData(
-          current.copyWith(
-            clientOptions: options,
-            clientNames: names,
-            clientKinds: kinds,
-          ),
+          current.copyWith(clientOptions: options, clientNames: names),
         );
       }
     } catch (_) {}
@@ -292,33 +262,10 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
   ) {
     final options = _pendingClientOptions;
     final names = _pendingClientNames;
-    final kinds = _pendingClientKinds;
-    if (options == null || names == null || kinds == null) return value;
+    if (options == null || names == null) return value;
     _pendingClientOptions = null;
     _pendingClientNames = null;
-    _pendingClientKinds = null;
-    return value.copyWith(
-      clientOptions: options,
-      clientNames: names,
-      clientKinds: kinds,
-    );
-  }
-
-  void _patchRowState(int taskId, {required String downloadState}) {
-    final current = state.value;
-    if (current == null) return;
-    final next = current.paged.items.map((row) {
-      return row.task.id == taskId
-          ? DownloadTaskRowState(
-              task: row.task.copyWith(downloadState: downloadState),
-            )
-          : row;
-    }).toList(growable: false);
-    state = AsyncData(
-      current.copyWith(
-        paged: current.paged.copyWith(items: List.unmodifiable(next)),
-      ),
-    );
+    return value.copyWith(clientOptions: options, clientNames: names);
   }
 
   void _removeItemById(int taskId) {

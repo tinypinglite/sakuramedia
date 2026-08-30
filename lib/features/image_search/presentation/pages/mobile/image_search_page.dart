@@ -10,9 +10,10 @@ import 'package:sakuramedia/features/image_search/presentation/image_search_file
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
 import 'package:sakuramedia/features/image_search/presentation/pages/shared/image_search_content.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
+import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 
-/// 移动以图搜图壳：结果动作全部落到移动路由（相似图搜经 draft store 中转、
+/// 移动画面搜索壳：结果动作全部落到移动路由（相似图搜经 draft store 中转、
 /// 播放 / 详情 push 移动子页），预览用底部抽屉；共享实现在 [ImageSearchContent]。
 class MobileImageSearchPage extends StatelessWidget {
   const MobileImageSearchPage({
@@ -22,6 +23,7 @@ class MobileImageSearchPage extends StatelessWidget {
     this.initialMimeType,
     this.currentMovieNumber,
     this.initialCurrentMovieScope = ImageSearchCurrentMovieScope.all,
+    this.initialInputKind = ImageSearchInputKind.image,
   });
 
   final String? initialFileName;
@@ -29,6 +31,7 @@ class MobileImageSearchPage extends StatelessWidget {
   final String? initialMimeType;
   final String? currentMovieNumber;
   final ImageSearchCurrentMovieScope initialCurrentMovieScope;
+  final ImageSearchInputKind initialInputKind;
 
   Future<bool> _searchSimilar(
     BuildContext context,
@@ -85,6 +88,7 @@ class MobileImageSearchPage extends StatelessWidget {
       initialMimeType: initialMimeType,
       currentMovieNumber: currentMovieNumber,
       initialCurrentMovieScope: initialCurrentMovieScope,
+      initialInputKind: initialInputKind,
       imagePicker: pickMobileImageSearchFile,
       onSearchSimilar: _searchSimilar,
       onOpenPlayer: _openPlayer,
