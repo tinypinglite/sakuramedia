@@ -20,6 +20,7 @@ export default defineConfig({
           items: [
             { text: '快速开始', link: '/guide/quick-start' },
             { text: '开源插件', link: '/guide/plugins' },
+            { text: '插件开发', link: '/guide/plugin-development' },
             { text: '升级现有部署', link: '/guide/upgrade' },
             { text: '配置说明', link: '/guide/config' },
             { text: '进阶部署', link: '/guide/docker' },

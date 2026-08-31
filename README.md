@@ -19,6 +19,8 @@
   ·
   <a href="https://tinypinglite.github.io/sakuramedia/guide/quick-start"><strong>快速开始</strong></a>
   ·
+  <a href="https://tinypinglite.github.io/sakuramedia/guide/plugin-development"><strong>插件开发</strong></a>
+  ·
   <a href="https://github.com/tinypinglite/sakuramediabe"><strong>后端项目</strong></a>
 </p>
 
