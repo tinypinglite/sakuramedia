@@ -67,6 +67,10 @@ void main() {
       findsOneWidget,
     );
     expect(
+      find.byKey(const Key('mobile-media-management-tab-duplicates')),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const Key('mobile-media-management-tab-batches')),
       findsNothing,
     );

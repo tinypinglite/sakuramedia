@@ -1,5 +1,6 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
+import 'package:sakuramedia/features/media/data/duplicate_media_group_dto.dart';
 import 'package:sakuramedia/features/media/data/invalid_media_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
@@ -95,6 +96,25 @@ class MediaApi {
     return PaginatedResponseDto<InvalidMediaDto>.fromJson(
       response,
       InvalidMediaDto.fromJson,
+    );
+  }
+
+  Future<PaginatedResponseDto<DuplicateMediaGroupDto>> getDuplicateMediaGroups({
+    required String kind,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final response = await _apiClient.get(
+      '/media/duplicates',
+      queryParameters: <String, dynamic>{
+        'kind': kind,
+        'page': page,
+        'page_size': pageSize,
+      },
+    );
+    return PaginatedResponseDto<DuplicateMediaGroupDto>.fromJson(
+      response,
+      DuplicateMediaGroupDto.fromJson,
     );
   }
 

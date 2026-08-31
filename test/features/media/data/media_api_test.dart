@@ -264,6 +264,42 @@ void main() {
     expect(page.items.single.displayTitle, '未命名媒体');
   });
 
+  test('getDuplicateMediaGroups maps grouped media and kind query', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/duplicates',
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'kind': 'jav',
+            'media_count': 2,
+            'media_items': [
+              _duplicateMediaItemJson(id: 100),
+              _duplicateMediaItemJson(id: 101),
+            ],
+          },
+        ],
+        'page': 2,
+        'page_size': 20,
+        'total': 3,
+      },
+    );
+
+    final page = await mediaApi.getDuplicateMediaGroups(kind: 'jav', page: 2);
+
+    expect(page.page, 2);
+    expect(page.total, 3);
+    expect(page.items, hasLength(1));
+    expect(page.items.single.kind.name, 'jav');
+    expect(page.items.single.mediaCount, 2);
+    expect(page.items.single.mediaItems.map((item) => item.id), [100, 101]);
+    expect(adapter.requests.single.uri.queryParameters, <String, String>{
+      'kind': 'jav',
+      'page': '2',
+      'page_size': '20',
+    });
+  });
+
   test('createMediaPoint maps POST /media/{media_id}/points', () async {
     adapter.enqueueJson(
       method: 'POST',
@@ -454,4 +490,28 @@ void main() {
       MediaThumbnailGenerationState.succeeded,
     );
   });
+}
+
+Map<String, dynamic> _duplicateMediaItemJson({required int id}) {
+  return <String, dynamic>{
+    'id': id,
+    'kind': 'jav',
+    'movie_number': 'DUP-$id',
+    'video_item_id': null,
+    'title': 'Duplicate $id',
+    'cover_image': null,
+    'thin_cover_image': null,
+    'library_id': 1,
+    'library_name': 'Main',
+    'file_name': 'duplicate-$id.mp4',
+    'file_size_bytes': 100,
+    'duration_seconds': 60,
+    'resolution': '1920x1080',
+    'valid': true,
+    'thumbnail_generation_state': 'succeeded',
+    'thumbnail_last_error_code': null,
+    'heat': 100,
+    'created_at': '2026-03-12T10:00:00Z',
+    'updated_at': '2026-03-12T10:00:00Z',
+  };
 }

@@ -5,10 +5,13 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
+import 'package:sakuramedia/features/media/presentation/providers/duplicate_media_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/invalid_media_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_browse_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_libraries_provider.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/duplicate_media_section.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/invalid_media_section.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_section.dart';
 import 'package:sakuramedia/features/shared/presentation/hooks/paged_scroll_hook.dart';
@@ -19,8 +22,8 @@ import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 
 /// 「媒体管理」双端共享内容（桌面 / 移动壳收敛的 content 层）。
 ///
-/// 当前后端支持媒体列表、失效媒体列表和媒体删除，因此页面只保留这两个
-/// tab；Provider 专属上传和有效性复查入口不在页面中暴露。
+/// 当前后端支持媒体列表、重复媒体分组、失效媒体列表和媒体删除，因此页面只保留
+/// 这三个管理 tab；Provider 专属上传和有效性复查入口不在页面中暴露。
 class MediaManagementContent extends HookConsumerWidget {
   const MediaManagementContent({
     super.key,
@@ -36,23 +39,31 @@ class MediaManagementContent extends HookConsumerWidget {
   onOpenMovieDetail;
   final bool mobile;
 
-  static const int _maintenanceTabIndex = 1;
+  static const int _duplicateTabIndex = 1;
+  static const int _maintenanceTabIndex = 2;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tabController = useTabController(initialLength: 2);
+    final tabController = useTabController(initialLength: 3);
     useListenable(tabController);
     final currentTab = tabController.index;
+    final duplicateKind = useState(MediaListItemKind.jav);
     final scrollController = usePagedLoadMoreScroll(
       onReachBottom: () {
         if (currentTab == _maintenanceTabIndex) {
           unawaited(ref.read(invalidMediaProvider.notifier).loadMore());
+        } else if (currentTab == _duplicateTabIndex) {
+          unawaited(
+            ref
+                .read(duplicateMediaProvider(duplicateKind.value).notifier)
+                .loadMore(),
+          );
         } else {
           unawaited(ref.read(mediaBrowseProvider.notifier).loadMore());
         }
       },
       enabled: true,
-      keys: [currentTab],
+      keys: [currentTab, duplicateKind.value],
     );
     ref.listen(mediaBrowseProvider.select((value) => value.value?.filter), (
       previous,
@@ -87,7 +98,11 @@ class MediaManagementContent extends HookConsumerWidget {
     }
 
     return AppPageRefreshScope(
-      onRefresh: () => _refreshAll(ref),
+      onRefresh: () => _refreshAll(
+        ref,
+        currentTab: currentTab,
+        duplicateKind: duplicateKind.value,
+      ),
       child: Column(
         key: rootKey,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,6 +111,7 @@ class MediaManagementContent extends HookConsumerWidget {
             controller: tabController,
             tabs: [
               Tab(key: Key('$keyPrefix-tab-list'), text: '媒体列表'),
+              Tab(key: Key('$keyPrefix-tab-duplicates'), text: '重复媒体'),
               Tab(key: Key('$keyPrefix-tab-maintenance'), text: '失效媒体'),
             ],
           ),
@@ -106,6 +122,26 @@ class MediaManagementContent extends HookConsumerWidget {
                 key: Key('$keyPrefix-invalid-media-section'),
                 scrollController: scrollController,
               ),
+              _duplicateTabIndex => DuplicateMediaSection(
+                key: Key('$keyPrefix-duplicate-media-section'),
+                scrollController: scrollController,
+                kind: duplicateKind.value,
+                onKindChanged: (next) {
+                  if (duplicateKind.value == next) return;
+                  duplicateKind.value = next;
+                  if (scrollController.hasClients) {
+                    scrollController.jumpTo(0);
+                  }
+                },
+                keyPrefix: keyPrefix,
+                mobile: mobile,
+                onRefresh: () => _refreshAll(
+                  ref,
+                  currentTab: currentTab,
+                  duplicateKind: duplicateKind.value,
+                ),
+                onOpenMovieDetail: onOpenMovieDetail,
+              ),
               _ => MediaListSection(
                 scrollController: scrollController,
                 isDeleting: isDeleting.value,
@@ -115,7 +151,11 @@ class MediaManagementContent extends HookConsumerWidget {
                   isDeleting,
                   selectionMode,
                 ),
-                onRefresh: () => _refreshAll(ref),
+                onRefresh: () => _refreshAll(
+                  ref,
+                  currentTab: currentTab,
+                  duplicateKind: duplicateKind.value,
+                ),
                 onOpenMovieDetail: onOpenMovieDetail,
                 keyPrefix: keyPrefix,
                 mobile: mobile,
@@ -130,12 +170,22 @@ class MediaManagementContent extends HookConsumerWidget {
     );
   }
 
-  Future<void> _refreshAll(WidgetRef ref) async {
-    final results = await Future.wait<String?>([
+  Future<void> _refreshAll(
+    WidgetRef ref, {
+    required int currentTab,
+    required MediaListItemKind duplicateKind,
+  }) async {
+    final refreshes = <Future<String?>>[
       ref.read(mediaBrowseProvider.notifier).refresh(),
       ref.read(invalidMediaProvider.notifier).refresh(),
       ref.read(mediaLibrariesProvider.notifier).refresh(),
-    ]);
+    ];
+    if (currentTab == _duplicateTabIndex) {
+      refreshes.add(
+        ref.read(duplicateMediaProvider(duplicateKind).notifier).refresh(),
+      );
+    }
+    final results = await Future.wait<String?>(refreshes);
     for (final message in results) {
       if (message != null) showToast(message);
     }
