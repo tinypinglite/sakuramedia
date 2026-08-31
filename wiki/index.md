@@ -34,6 +34,8 @@ features:
     details: 提供 Win/Mac/iOS/Android 平台 APP。
   - title: 排行榜
     details: 由已启用的排行榜插件提供来源和定时同步能力，可以快速找到最近热门的影片。
+  - title: 插件化扩展
+    details: 通过插件接入媒体存储与下载平台、排行榜来源、字幕抓取和影片自动化处理，按需扩展 SakuraMedia 能力。
 ---
 
 <p align="center">
