@@ -19,9 +19,8 @@ part 'clip_collection_detail_provider.g.dart';
 /// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
 /// 执行一个 mutation。
 ///
-/// 三个 mutation 方法**保留返回 `Future<String?>`（成功 null / 失败错误文案）
-/// 的 UI 兼容语义**——mixin 内核是 rethrow，本 provider 在外包 try/catch
-/// 转文案，让两个 detail page 的 UI 调用点不动。
+/// reorder / removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
+/// deleteClip 则将异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
 ///
 /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
 @Riverpod(retry: kNoAsyncNotifierRetry)
@@ -117,20 +116,13 @@ class ClipCollectionDetail extends _$ClipCollectionDetail
   }
 
   /// 删除切片本体（硬删，连同文件，并由后端从所有合集级联移除）；乐观更新，
-  /// 失败时回滚并返回错误消息。与 [removeClip]（仅解除本合集关联）语义不同。
-  Future<String?> deleteClip(int clipId) async {
-    try {
-      return await withOptimisticPatch<String?>(
-        key: _mutationKey,
-        apply: (current) => _dropClip(current, clipId),
-        action: () async {
-          await ref.read(clipsApiProvider).deleteClip(clipId: clipId);
-          return null;
-        },
-      );
-    } catch (error) {
-      return apiErrorMessage(error, fallback: '删除失败，请重试');
-    }
+  /// 失败时回滚并 rethrow。与 [removeClip]（仅解除本合集关联）语义不同。
+  Future<void> deleteClip(int clipId) async {
+    await withOptimisticPatch<void>(
+      key: _mutationKey,
+      apply: (current) => _dropClip(current, clipId),
+      action: () => ref.read(clipsApiProvider).deleteClip(clipId: clipId),
+    );
   }
 
   /// 编辑合集名称 / 描述后就地更新头部元信息（不重拉切片列表）。

@@ -56,6 +56,9 @@ class MovieDetailPageContent extends StatelessWidget {
     this.onOpenMediaPointPreview,
     this.onRequestMediaPointMenu,
     this.onPlayTap,
+    this.mergePlaybackLabel,
+    this.onMergePlaybackTap,
+    this.isMergePlaybackLoading = false,
     this.onSubscriptionTap,
     this.onMoreActionsTap,
     this.onActorTap,
@@ -116,6 +119,9 @@ class MovieDetailPageContent extends StatelessWidget {
   )?
   onRequestMediaPointMenu;
   final VoidCallback? onPlayTap;
+  final String? mergePlaybackLabel;
+  final VoidCallback? onMergePlaybackTap;
+  final bool isMergePlaybackLoading;
   final VoidCallback? onSubscriptionTap;
   final Future<void> Function(Offset globalPosition)? onMoreActionsTap;
   final ValueChanged<MovieActorDto>? onActorTap;
@@ -335,6 +341,9 @@ class MovieDetailPageContent extends StatelessWidget {
                   onDeleteSelectedMedia: onDeleteSelectedMedia,
                   onOpenPointPreview: onOpenMediaPointPreview,
                   onRequestPointMenu: onRequestMediaPointMenu,
+                  mergePlaybackLabel: mergePlaybackLabel,
+                  onMergePlaybackTap: onMergePlaybackTap,
+                  isMergePlaybackLoading: isMergePlaybackLoading,
                 ),
               ],
             ),

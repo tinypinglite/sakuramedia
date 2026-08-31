@@ -70,7 +70,7 @@ public class MainActivity extends FlutterActivity {
                 continue;
             }
             final Map<String, String> player = new HashMap<>();
-            player.put("packageName", packageName);
+            player.put("id", packageName);
             player.put("label", String.valueOf(info.loadLabel(packageManager)));
             players.add(player);
         }
@@ -83,7 +83,7 @@ public class MainActivity extends FlutterActivity {
             result.error("invalid_arguments", "缺少播放地址", null);
             return;
         }
-        final String packageName = call.argument("packageName");
+        final String packageName = call.argument("playerId");
         final String title = call.argument("title");
         final Number positionMs = call.argument("positionMs");
 

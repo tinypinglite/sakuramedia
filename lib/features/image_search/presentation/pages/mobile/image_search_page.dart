@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:sakuramedia/features/image_search/presentation/image_search_filt
 import 'package:sakuramedia/features/image_search/presentation/pages/shared/image_search_content.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
+import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 
 /// 移动画面搜索壳：结果动作全部落到移动路由（相似图搜经 draft store 中转、
@@ -69,11 +71,14 @@ class MobileImageSearchPage extends StatelessWidget {
   }
 
   void _openPlayer(BuildContext context, ImageSearchResultItemDto item) {
-    MobileMoviePlayerRouteData(
-      movieNumber: item.movieNumber,
-      mediaId: item.mediaId > 0 ? item.mediaId : null,
-      positionSeconds: item.offsetSeconds,
-    ).push(context);
+    unawaited(
+      launchMoviePlayback(
+        context,
+        movieNumber: item.movieNumber,
+        mediaId: item.mediaId > 0 ? item.mediaId : null,
+        positionSeconds: item.offsetSeconds,
+      ),
+    );
   }
 
   void _openMovieDetail(BuildContext context, ImageSearchResultItemDto item) {
@@ -93,7 +98,8 @@ class MobileImageSearchPage extends StatelessWidget {
       onSearchSimilar: _searchSimilar,
       onOpenPlayer: _openPlayer,
       onOpenMovieDetail: _openMovieDetail,
-      resultPreviewPresentation: ImageSearchResultPreviewPresentation.bottomDrawer,
+      resultPreviewPresentation:
+          ImageSearchResultPreviewPresentation.bottomDrawer,
     );
   }
 }

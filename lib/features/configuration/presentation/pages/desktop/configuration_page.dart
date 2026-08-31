@@ -6,6 +6,8 @@ import 'package:sakuramedia/features/configuration/presentation/pages/desktop/in
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/media_libraries_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/playlists_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/system_maintenance_section.dart';
+import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
+import 'package:sakuramedia/features/external_player/presentation/widgets/external_player_settings_content.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/blacklisted_movies_section.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/desktop/plugins_section.dart';
 import 'package:sakuramedia/theme.dart';
@@ -75,6 +77,15 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
         ),
         builder: (active) => PlaylistsSection(active: active),
       ),
+      if (const ExternalPlayerChannel().isSupported)
+        _ConfigurationTab(
+          category: const _ConfigurationCategory(
+            itemKey: Key('configuration-tab-external-player'),
+            label: '外部播放器',
+            icon: Icons.open_in_new_rounded,
+          ),
+          builder: (active) => ExternalPlayerSettingsContent(active: active),
+        ),
       _ConfigurationTab(
         category: const _ConfigurationCategory(
           itemKey: Key('configuration-tab-blacklisted-movies'),

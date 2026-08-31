@@ -1,14 +1,18 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_selection.dart';
 import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/desktop_routes.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:oktoast/oktoast.dart';
 
 /// 统一的影片播放入口：根据用户是否设置了默认外部播放器，决定跳应用内播放页
 /// 还是直接拉起外部播放器。
@@ -21,6 +25,7 @@ Future<void> launchMoviePlayback(
   int? mediaId,
   int? positionSeconds,
   MovieDetailDto? movie,
+  String? inAppFallbackPath,
 }) async {
   final selection = _readExternalPlayerSelection(context);
   const channel = ExternalPlayerChannel();
@@ -33,6 +38,7 @@ Future<void> launchMoviePlayback(
       movieNumber: movieNumber,
       mediaId: mediaId,
       positionSeconds: positionSeconds,
+      fallbackPath: inAppFallbackPath,
     );
     return;
   }
@@ -72,6 +78,7 @@ Future<void> launchMoviePlayback(
       movieNumber: movieNumber,
       mediaId: mediaId,
       positionSeconds: positionSeconds,
+      fallbackPath: inAppFallbackPath,
     );
     return;
   }
@@ -83,7 +90,7 @@ Future<void> launchMoviePlayback(
       : movieNumber;
 
   final launched = await channel.launch(
-    packageName: selection.packageName!,
+    playerId: selection.playerId!,
     url: resolvedUrl,
     title: title,
     positionMs: resumeSeconds > 0 ? resumeSeconds * 1000 : null,
@@ -99,7 +106,58 @@ Future<void> launchMoviePlayback(
       movieNumber: movieNumber,
       mediaId: mediaId,
       positionSeconds: positionSeconds,
+      fallbackPath: inAppFallbackPath,
     );
+  }
+}
+
+/// 合并播放只能交给外部播放器；应用内播放器只理解单个媒体源。
+Future<void> launchMovieMergedPlayback(
+  BuildContext context, {
+  required String movieNumber,
+  required int libraryId,
+  MovieDetailDto? movie,
+}) async {
+  final selection = _readExternalPlayerSelection(context);
+  const channel = ExternalPlayerChannel();
+  if (selection == null ||
+      !selection.hasExternalPlayer ||
+      !channel.isSupported) {
+    if (context.mounted) {
+      showToast('合并播放需要配置外部播放器');
+    }
+    return;
+  }
+
+  try {
+    final container = ProviderScope.containerOf(context, listen: false);
+    final mergedPlayback = await container
+        .read(moviesApiProvider)
+        .getMergedPlayback(movieNumber: movieNumber, libraryId: libraryId);
+    if (!context.mounted) {
+      return;
+    }
+    final resolvedUrl = resolveMediaUrl(
+      rawUrl: mergedPlayback.playUrl,
+      baseUrl: container.read(sessionStoreProvider).baseUrl,
+    );
+    if (resolvedUrl == null || resolvedUrl.isEmpty) {
+      showToast('无法获取合并播放地址');
+      return;
+    }
+    final title = movie?.preferredTitle.trim() ?? '';
+    final launched = await channel.launch(
+      playerId: selection.playerId!,
+      url: resolvedUrl,
+      title: title.isEmpty ? movieNumber : title,
+    );
+    if (context.mounted && !launched) {
+      showToast('外部播放器不可用');
+    }
+  } catch (error) {
+    if (context.mounted) {
+      showToast(apiErrorMessage(error, fallback: '合并播放启动失败，请稍后重试'));
+    }
   }
 }
 
@@ -121,12 +179,29 @@ void _pushInAppPlayer(
   required String movieNumber,
   int? mediaId,
   int? positionSeconds,
+  String? fallbackPath,
 }) {
-  MobileMoviePlayerRouteData(
-    movieNumber: movieNumber,
-    mediaId: mediaId,
-    positionSeconds: positionSeconds,
-  ).push(context);
+  switch (defaultTargetPlatform) {
+    case TargetPlatform.macOS:
+    case TargetPlatform.windows:
+    case TargetPlatform.linux:
+      context.pushDesktopMoviePlayer(
+        movieNumber: movieNumber,
+        fallbackPath:
+            fallbackPath ??
+            DesktopMovieDetailRouteData(movieNumber: movieNumber).location,
+        mediaId: mediaId,
+        positionSeconds: positionSeconds,
+      );
+    case TargetPlatform.android:
+    case TargetPlatform.iOS:
+    case TargetPlatform.fuchsia:
+      MobileMoviePlayerRouteData(
+        movieNumber: movieNumber,
+        mediaId: mediaId,
+        positionSeconds: positionSeconds,
+      ).push(context);
+  }
 }
 
 MovieMediaItemDto? _resolvePlayableMedia(MovieDetailDto? movie, int? mediaId) {

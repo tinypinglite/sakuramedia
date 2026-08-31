@@ -17,6 +17,9 @@ class MovieMediaItemList extends StatelessWidget {
     this.onDeleteSelectedMedia,
     this.onOpenPointPreview,
     this.onRequestPointMenu,
+    this.mergePlaybackLabel,
+    this.onMergePlaybackTap,
+    this.isMergePlaybackLoading = false,
   });
 
   final List<MovieMediaItemDto> mediaItems;
@@ -33,6 +36,9 @@ class MovieMediaItemList extends StatelessWidget {
     Offset globalPosition,
   )?
   onRequestPointMenu;
+  final String? mergePlaybackLabel;
+  final VoidCallback? onMergePlaybackTap;
+  final bool isMergePlaybackLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +54,7 @@ class MovieMediaItemList extends StatelessWidget {
         : _buildTechnicalSummary(selectedItem);
     final showDeleteAction =
         selectedItem != null && onDeleteSelectedMedia != null;
+    final normalizedMergePlaybackLabel = mergePlaybackLabel?.trim() ?? '';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,6 +123,21 @@ class MovieMediaItemList extends StatelessWidget {
                 ),
               ],
             ],
+          ),
+        ],
+        if (normalizedMergePlaybackLabel.isNotEmpty) ...[
+          SizedBox(height: contentGap),
+          OutlinedButton.icon(
+            key: const Key('movie-media-merge-playback-button'),
+            onPressed: isMergePlaybackLoading ? null : onMergePlaybackTap,
+            icon: isMergePlaybackLoading
+                ? SizedBox(
+                    width: context.appComponentTokens.iconSizeSm,
+                    height: context.appComponentTokens.iconSizeSm,
+                    child: const CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.merge_rounded),
+            label: Text(normalizedMergePlaybackLabel),
           ),
         ],
         if (selectedItem != null && selectedItem.points.isNotEmpty) ...[

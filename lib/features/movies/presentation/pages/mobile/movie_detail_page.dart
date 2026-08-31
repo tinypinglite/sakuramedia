@@ -6,6 +6,8 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
+import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
+import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
@@ -33,6 +35,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_mobile_confirm_actions.dar
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_inspector_dialog.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_bottom_info_bar.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_preview_overlay.dart';
+import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_merge_playback_candidate_list.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_subtitle_viewer.dart';
 
 class MobileMovieDetailPage extends ConsumerStatefulWidget {
@@ -117,6 +120,19 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
           final isCollection = derived.isCollection;
           final isActionControlsLocked = derived.isActionControlsLocked;
           final selectedMedia = derived.selectedMedia;
+          final externalPlayerSelection = ref
+              .watch(externalPlayerPreferenceProvider)
+              .value;
+          final mergePlaybackCandidates = movie.mergePlaybackCandidates;
+          final canLaunchMergedPlayback =
+              const ExternalPlayerChannel().isSupported &&
+              externalPlayerSelection?.hasExternalPlayer == true;
+          final mergePlaybackLabel =
+              !canLaunchMergedPlayback || mergePlaybackCandidates.isEmpty
+              ? null
+              : mergePlaybackCandidates.length == 1
+              ? '合并播放（${mergePlaybackCandidates.single.segmentCount} 段）'
+              : '合并播放（${mergePlaybackCandidates.length} 个媒体库）';
 
           return MovieDetailPageContent(
             movie: movie,
@@ -173,6 +189,12 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
                 ? null
                 : () => toggleMovieCollectionType(isCollection: isCollection),
             onMediaSelect: selectMedia,
+            mergePlaybackLabel: mergePlaybackLabel,
+            onMergePlaybackTap:
+                mergePlaybackLabel == null || _isLaunchingPlayback
+                ? null
+                : () => _openMergedPlayback(movie),
+            isMergePlaybackLoading: _isLaunchingPlayback,
             isDeletingSelectedMedia:
                 selectedMedia != null &&
                 deletingMediaId == selectedMedia.mediaId,
@@ -455,6 +477,52 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
           });
         }
       }),
+    );
+  }
+
+  Future<void> _openMergedPlayback(MovieDetailDto movie) async {
+    if (_isLaunchingPlayback) {
+      return;
+    }
+    final candidate = await _pickMergePlaybackCandidate(
+      movie.mergePlaybackCandidates,
+    );
+    if (candidate == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _isLaunchingPlayback = true;
+    });
+    try {
+      await launchMovieMergedPlayback(
+        context,
+        movieNumber: movie.movieNumber,
+        libraryId: candidate.libraryId,
+        movie: movie,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLaunchingPlayback = false;
+        });
+      }
+    }
+  }
+
+  Future<MovieMergePlaybackCandidateDto?> _pickMergePlaybackCandidate(
+    List<MovieMergePlaybackCandidateDto> candidates,
+  ) {
+    if (candidates.length == 1) {
+      return Future<MovieMergePlaybackCandidateDto?>.value(candidates.single);
+    }
+    return showAppBottomDrawer<MovieMergePlaybackCandidateDto>(
+      context: context,
+      drawerKey: const Key('movie-merge-playback-library-drawer'),
+      maxHeightFactor: 0.5,
+      builder: (drawerContext) => MovieMergePlaybackCandidateList(
+        candidates: candidates,
+        onSelected: (candidate) => Navigator.of(drawerContext).pop(candidate),
+      ),
     );
   }
 

@@ -69,4 +69,22 @@ void main() {
     expect(withProgress.copyWith(providerKey: null).providerKey, isNull);
     expect(withProgress.copyWith(resolution: null).resolution, isNull);
   });
+
+  test('parses merge playback candidates from movie detail', () {
+    final detail = MovieDetailDto.fromJson(<String, dynamic>{
+      'merge_playback_candidates': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'library_id': 3,
+          'library_name': 'VR',
+          'provider_key': 'local',
+          'segment_count': 2,
+        },
+      ],
+    });
+
+    expect(detail.mergePlaybackCandidates, hasLength(1));
+    expect(detail.mergePlaybackCandidates.single.libraryId, 3);
+    expect(detail.mergePlaybackCandidates.single.libraryName, 'VR');
+    expect(detail.mergePlaybackCandidates.single.segmentCount, 2);
+  });
 }

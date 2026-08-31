@@ -185,20 +185,15 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
       danger: true,
       confirmLabel: '删除',
       confirmKey: const Key('video-delete-confirm-button'),
+      onConfirm: () => ref.read(videosApiProvider).deleteVideo(video.id),
+      failureFallback: '删除失败，请重试',
     );
     if (!mounted || !confirmed) {
       return;
     }
-    try {
-      await ref.read(videosApiProvider).deleteVideo(video.id);
-      // 广播删除信号：列表 provider 精准移除，页面刷新合集横滑区。
-      ref.read(videoMutationEventsProvider.notifier).reportDeleted(video.id);
-      if (mounted) {
-        showToast('已删除视频');
-      }
-    } catch (error) {
-      showToast(apiErrorMessage(error, fallback: '删除失败，请重试'));
-    }
+    // 广播删除信号：列表 provider 精准移除，页面刷新合集横滑区。
+    ref.read(videoMutationEventsProvider.notifier).reportDeleted(video.id);
+    showToast('已删除视频');
   }
 
   List<VideoItemListItemDto> get _loadedVideos =>

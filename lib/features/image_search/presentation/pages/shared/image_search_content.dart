@@ -19,6 +19,7 @@ import 'package:sakuramedia/features/image_search/presentation/providers/image_s
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_scope.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
@@ -934,11 +935,14 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
       customHandler(context, item);
       return;
     }
-    context.pushDesktopMoviePlayer(
-      movieNumber: item.movieNumber,
-      fallbackPath: desktopImageSearchPath,
-      mediaId: item.mediaId > 0 ? item.mediaId : null,
-      positionSeconds: item.offsetSeconds,
+    unawaited(
+      launchMoviePlayback(
+        context,
+        movieNumber: item.movieNumber,
+        mediaId: item.mediaId > 0 ? item.mediaId : null,
+        positionSeconds: item.offsetSeconds,
+        inAppFallbackPath: desktopImageSearchPath,
+      ),
     );
   }
 

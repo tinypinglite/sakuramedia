@@ -12,6 +12,7 @@ import 'package:sakuramedia/features/discovery/presentation/providers/discovery_
 import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
 import 'package:sakuramedia/features/moments/presentation/moment_listing_models.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_state.dart';
@@ -348,11 +349,14 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
       // discovery 推荐时刻当前后端只返 JAV，理论上 movieNumber 必然存在；兜底防御。
       return;
     }
-    context.pushDesktopMoviePlayer(
-      movieNumber: movieNumber,
-      fallbackPath: desktopDiscoverPath,
-      mediaId: item.mediaId > 0 ? item.mediaId : null,
-      positionSeconds: item.offsetSeconds,
+    unawaited(
+      launchMoviePlayback(
+        context,
+        movieNumber: movieNumber,
+        mediaId: item.mediaId > 0 ? item.mediaId : null,
+        positionSeconds: item.offsetSeconds,
+        inAppFallbackPath: desktopDiscoverPath,
+      ),
     );
   }
 

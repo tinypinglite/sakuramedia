@@ -48,6 +48,7 @@ typedef ClipConfirm = Future<bool> Function(
   required String confirmLabel,
   required Key confirmKey,
   Key? drawerKey,
+  Future<void> Function()? onConfirm,
 });
 
 typedef ClipPlayAllBuilder = Widget Function(
@@ -132,8 +133,7 @@ class ClipCollectionDetailContent extends ConsumerStatefulWidget {
   /// 「来源影片」（桌面 push / 移动 push 路由），由壳实现。
   final void Function(BuildContext context, MediaClipDto clip)? onOpenMovie;
 
-  /// 确认弹层（桌面 `showAppConfirmDialog` / 移动 `showMobileClipConfirmDrawer`），
-  /// 由壳实现；`drawerKey` 仅移动端使用。
+  /// 确认弹层（桌面 dialog / 移动 drawer），由壳实现；`drawerKey` 仅移动端使用。
   final ClipConfirm? confirm;
 
   /// 改名 / 编辑合集（桌面对话框 / 移动底部抽屉），由壳实现；返回更新后的合集。
@@ -756,26 +756,20 @@ class _ClipCollectionDetailContentState
   Future<void> _deleteClip(MediaClipDto clip) async {
     final title = clip.displayTitle.trim();
     final label = title.isEmpty ? '该切片' : '“$title”';
+    final notifier = ref.read(_providerRef.notifier);
     final confirmed = await _confirm(
       title: '删除切片',
       message: '确认删除$label？切片文件会被一并删除，该操作不可恢复。',
       confirmLabel: '删除',
       confirmKey: Key('${widget.keyPrefix}-delete-confirm-button'),
       drawerKey: _isMobile ? Key('${widget.keyPrefix}-delete-drawer') : null,
+      onConfirm: () => notifier.deleteClip(clip.clipId),
     );
     if (!mounted || !confirmed) {
       return;
     }
-    final error = await ref
-        .read(_providerRef.notifier)
-        .deleteClip(clip.clipId);
-    if (!mounted) {
-      return;
-    }
-    if (error == null) {
-      _mutationBroadcaster.reportDeleted(clip.clipId);
-    }
-    showToast(error ?? '已删除切片');
+    _mutationBroadcaster.reportDeleted(clip.clipId);
+    showToast('已删除切片');
   }
 
   Future<bool> _confirm({
@@ -784,6 +778,7 @@ class _ClipCollectionDetailContentState
     required String confirmLabel,
     required Key confirmKey,
     Key? drawerKey,
+    Future<void> Function()? onConfirm,
   }) async {
     final handler = widget.confirm;
     if (handler == null) {
@@ -796,6 +791,7 @@ class _ClipCollectionDetailContentState
       confirmLabel: confirmLabel,
       confirmKey: confirmKey,
       drawerKey: drawerKey,
+      onConfirm: onConfirm,
     );
   }
 

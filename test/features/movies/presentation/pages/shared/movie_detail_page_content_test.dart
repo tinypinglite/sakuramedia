@@ -152,6 +152,45 @@ void main() {
       expect(find.byKey(const Key('movie-similar-movies-title')), findsNothing);
     },
   );
+
+  testWidgets('movie detail exposes the optional merge playback action', (
+    WidgetTester tester,
+  ) async {
+    var tapCount = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraMobileThemeData,
+        home: Scaffold(
+          body: MovieDetailPageContent(
+            movie: _movieDetail(),
+            selectedPreviewKey: 'movie-preview',
+            selectedPreviewUrl: null,
+            isCollection: false,
+            isSubscribed: false,
+            isCollectionUpdating: false,
+            isSubscriptionUpdating: false,
+            selectedMediaId: 100,
+            statItems: const <MovieDetailStatItem>[],
+            similarMovies: const <MovieListItemDto>[],
+            isSimilarMoviesLoading: false,
+            onInspectorTap: _noop,
+            onPlaylistTap: _noop,
+            onCollectionToggle: _noop,
+            onMediaSelect: (_) {},
+            mergePlaybackLabel: '合并播放（2 段）',
+            onMergePlaybackTap: () => tapCount += 1,
+          ),
+        ),
+      ),
+    );
+
+    final action = find.byKey(const Key('movie-media-merge-playback-button'));
+    await tester.ensureVisible(action);
+    await tester.tap(action);
+    await tester.pump();
+
+    expect(tapCount, 1);
+  });
 }
 
 MovieDetailDto _movieDetail({int? seriesId}) {

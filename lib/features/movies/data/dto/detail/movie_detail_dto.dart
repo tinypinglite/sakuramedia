@@ -29,6 +29,7 @@ class MovieDetailDto {
     required this.actors,
     required this.tags,
     required this.mediaItems,
+    this.mergePlaybackCandidates = const <MovieMergePlaybackCandidateDto>[],
     required this.playlists,
   });
 
@@ -61,6 +62,7 @@ class MovieDetailDto {
   final List<MovieActorDto> actors;
   final List<MovieTagDto> tags;
   final List<MovieMediaItemDto> mediaItems;
+  final List<MovieMergePlaybackCandidateDto> mergePlaybackCandidates;
   final List<MoviePlaylistSummaryDto> playlists;
 
   /// DMM 简介与翻译链路已下线，desc/desc_zh 随 API 移除（存量收拢进 [summary]），
@@ -108,11 +110,48 @@ class MovieDetailDto {
         json['media_items'],
         (item) => MovieMediaItemDto.fromJson(item),
       ),
+      mergePlaybackCandidates: _listFromJson(
+        json['merge_playback_candidates'],
+        (item) => MovieMergePlaybackCandidateDto.fromJson(item),
+      ),
       playlists: _listFromJson(
         json['playlists'],
         (item) => MoviePlaylistSummaryDto.fromJson(item),
       ),
     );
+  }
+}
+
+class MovieMergePlaybackCandidateDto {
+  const MovieMergePlaybackCandidateDto({
+    required this.libraryId,
+    required this.libraryName,
+    required this.providerKey,
+    required this.segmentCount,
+  });
+
+  final int libraryId;
+  final String libraryName;
+  final String providerKey;
+  final int segmentCount;
+
+  factory MovieMergePlaybackCandidateDto.fromJson(Map<String, dynamic> json) {
+    return MovieMergePlaybackCandidateDto(
+      libraryId: _intFromJson(json['library_id']) ?? 0,
+      libraryName: json['library_name'] as String? ?? '',
+      providerKey: json['provider_key'] as String? ?? '',
+      segmentCount: _intFromJson(json['segment_count']) ?? 0,
+    );
+  }
+}
+
+class MovieMergedPlaybackDto {
+  const MovieMergedPlaybackDto({required this.playUrl});
+
+  final String playUrl;
+
+  factory MovieMergedPlaybackDto.fromJson(Map<String, dynamic> json) {
+    return MovieMergedPlaybackDto(playUrl: json['play_url'] as String? ?? '');
   }
 }
 

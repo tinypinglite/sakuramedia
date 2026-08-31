@@ -543,20 +543,16 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
       danger: true,
       confirmLabel: '删除',
       confirmKey: const Key('clip-delete-confirm-button'),
+      onConfirm: () =>
+          ref.read(clipsApiProvider).deleteClip(clipId: clip.clipId),
+      failureFallback: '删除失败，请重试',
     );
     if (!mounted || !confirmed) {
       return;
     }
-    try {
-      await ref.read(clipsApiProvider).deleteClip(clipId: clip.clipId);
-      // 广播删除信号：本页监听后从网格精准移除，并刷新合集横滑区（封面 / 计数可能变化）。
-      ref.read(clipMutationEventsProvider.notifier).reportDeleted(clip.clipId);
-      if (mounted) {
-        showToast('已删除切片');
-      }
-    } catch (error) {
-      showToast(apiErrorMessage(error, fallback: '删除失败，请重试'));
-    }
+    // 广播删除信号：本页监听后从网格精准移除，并刷新合集横滑区（封面 / 计数可能变化）。
+    ref.read(clipMutationEventsProvider.notifier).reportDeleted(clip.clipId);
+    showToast('已删除切片');
   }
 
   Future<void> _addToCollection(MediaClipDto clip) async {

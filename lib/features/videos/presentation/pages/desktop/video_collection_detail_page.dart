@@ -77,6 +77,7 @@ class DesktopVideoCollectionDetailPage extends StatelessWidget {
         required confirmLabel,
         required confirmKey,
         drawerKey,
+        onConfirm,
       }) =>
           showAppConfirmDialog(
             context,
@@ -85,6 +86,8 @@ class DesktopVideoCollectionDetailPage extends StatelessWidget {
             danger: true,
             confirmLabel: confirmLabel,
             confirmKey: confirmKey,
+            onConfirm: onConfirm,
+            failureFallback: '删除失败，请重试',
           ),
     );
   }

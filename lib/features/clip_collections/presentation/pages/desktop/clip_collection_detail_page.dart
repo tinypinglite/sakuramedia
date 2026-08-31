@@ -71,6 +71,7 @@ class DesktopClipCollectionDetailPage extends StatelessWidget {
         required confirmLabel,
         required confirmKey,
         drawerKey,
+        onConfirm,
       }) =>
           showAppConfirmDialog(
             context,
@@ -79,6 +80,8 @@ class DesktopClipCollectionDetailPage extends StatelessWidget {
             danger: true,
             confirmLabel: confirmLabel,
             confirmKey: confirmKey,
+            onConfirm: onConfirm,
+            failureFallback: '删除失败，请重试',
           ),
       onEditCollection: (context, collection) async {
         return showEditClipCollectionDialog(context, collection: collection);
