@@ -15,6 +15,8 @@ part 'media_browse_provider.g.dart';
 /// 筛选状态遵循项目主流约定：值对象 [MediaBrowseFilterState] 由 State 持有，
 /// `fetchPage` 从共享筛选 mixin 的 [activeFilter] 读取参数；UI 改筛选时先同步
 /// 写入 State 并清多选，再防抖刷新第一页。
+///
+/// 迁移前对应：`MediaBrowseController extends PagedLoadController<MediaListItemDto>`。
 @Riverpod(keepAlive: true, retry: kNoAsyncNotifierRetry)
 class MediaBrowse extends _$MediaBrowse
     with
@@ -58,7 +60,9 @@ class MediaBrowse extends _$MediaBrowse
           pageSize: pageSize,
           kind: mediaBrowseKindWire(filter.kind),
           libraryId: filter.libraryId,
-          thumbnailGenerationState: filter.thumbnailGenerationState?.apiValue,
+          rapidUploadStatus: filter.rapidUploadStatus?.apiValue,
+          thumbnailGenerationState:
+              filter.thumbnailGenerationState?.apiValue,
           sort: filter.sortWire,
         );
   }
@@ -97,11 +101,20 @@ class MediaBrowse extends _$MediaBrowse
 
   /// 全选 / 取消全选**当前已加载**的条目（非叠加所有页）。
   ///
+  /// 通过 [isBulkSelectableRapidUploadStatus] 白名单过滤：`in_progress` 与未识别
+  /// 的 `unknown` 状态都不批量选，避免后端 `active_media_id` 唯一约束 422 或后端
+  /// 未来新增"不可批量"语义时前端静默混入。单点 tap 不受此限（用户主动操作）。
   /// 已全选时再点即清空当前页，对应工具条「全选本页 ↔ 取消全选本页」同一按钮。
   void toggleSelectAllLoaded() {
     final current = state.value;
     if (current == null) return;
-    final loadedIds = current.paged.items.map((item) => item.id).toList();
+    final loadedIds = current.paged.items
+        .where(
+          (item) =>
+              isBulkSelectableRapidUploadStatus(item.lastRapidUploadStatus),
+        )
+        .map((item) => item.id)
+        .toList(growable: false);
     if (loadedIds.isEmpty) {
       return;
     }
@@ -121,7 +134,7 @@ class MediaBrowse extends _$MediaBrowse
     state = AsyncData(current.copyWith(selectedIds: const <int>{}));
   }
 
-  /// 删除成功后，把已从服务端移除的条目从本地列表移除。
+  /// 秒传触发成功后，把已进入批次的条目从本地列表移除。
   ///
   /// - 已在列表中的：移除条目 + 同步扣减 total + `hasMore` 重算；
   /// - 只在多选集合里的（当前列表看不到）：仅剔除多选。

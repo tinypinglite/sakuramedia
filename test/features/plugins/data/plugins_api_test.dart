@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
-import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
 import 'package:sakuramedia/features/plugins/data/plugins_api.dart';
 
 import '../../../support/fake_http_client_adapter.dart';
@@ -72,87 +71,6 @@ void main() {
         'true',
       );
     });
-
-    test(
-      'checks a GitHub Release without sending the SakuraMedia token',
-      () async {
-        const releaseUrl =
-            'https://api.github.com/repos/example/demo_plugin/releases/latest';
-        adapter.enqueueJson(
-          method: 'GET',
-          path: releaseUrl,
-          body: <String, dynamic>{
-            'tag_name': 'v1.1.0',
-            'body': '修复下载失败',
-            'assets': <Map<String, dynamic>>[
-              <String, dynamic>{
-                'name': 'demo_plugin-1.1.0.zip',
-                'browser_download_url':
-                    'https://github.com/example/demo/download.zip',
-                'digest':
-                    'sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-              },
-            ],
-          },
-        );
-
-        final update = await api.checkForUpdate(
-          pluginSummaryDto(releaseApiUrl: releaseUrl),
-        );
-
-        expect(update, isNotNull);
-        expect(update!.version, '1.1.0');
-        expect(update.notes, '修复下载失败');
-        expect(update.sha256, hasLength(64));
-        final request = adapter.requests.single;
-        expect(request.path, releaseUrl);
-        expect(request.headers.containsKey('Authorization'), isFalse);
-      },
-    );
-
-    test(
-      'downloads a release zip and uploads it to the upgrade endpoint',
-      () async {
-        const update = PluginReleaseUpdate(
-          version: '1.1.0',
-          notes: '',
-          assetUrl: 'https://github.com/example/demo/download.zip',
-          assetFileName: 'demo_plugin-1.1.0.zip',
-          sha256:
-              '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-        );
-        adapter.enqueueBytes(
-          method: 'GET',
-          path: update.assetUrl,
-          body: Uint8List.fromList(<int>[80, 75, 3, 4]),
-        );
-        adapter.enqueueJson(
-          method: 'POST',
-          path: '/system/plugins/demo_plugin/upgrade',
-          body: <String, dynamic>{
-            'plugin_id': 'demo_plugin',
-            'version': '1.1.0',
-            'pending_restart': <String>['api', 'aps'],
-          },
-        );
-
-        final bytes = await api.downloadUpdate(update);
-        final version = await api.upgrade(
-          pluginId: 'demo_plugin',
-          update: update,
-          fileBytes: bytes,
-        );
-
-        expect(version, '1.1.0');
-        final request = adapter.requests.last;
-        final formData = request.body as FormData;
-        expect(formData.files.single.value.filename, update.assetFileName);
-        expect(
-          formData.fields.singleWhere((entry) => entry.key == 'sha256').value,
-          update.sha256,
-        );
-      },
-    );
 
     test('sets enabled via query parameter', () async {
       adapter.enqueueJson(

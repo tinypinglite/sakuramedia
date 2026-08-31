@@ -25,7 +25,6 @@ import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
@@ -606,23 +605,26 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
 
   Future<void> _deleteClip(MediaClipDto clip) async {
     final title = clip.title.trim().isEmpty ? '该切片' : '“${clip.title.trim()}”';
-    final confirmed = await showAppConfirmDialog(
+    final confirmed = await showMobileClipConfirmDrawer(
       context,
       title: '删除切片',
       message: '确认删除$title？切片文件会被一并删除，该操作不可恢复。',
       confirmLabel: '删除',
-      danger: true,
-      dialogKey: const Key('mobile-clip-delete-drawer'),
-      confirmKey: const Key('mobile-clip-delete-confirm-button'),
-      onConfirm: () =>
-          ref.read(clipsApiProvider).deleteClip(clipId: clip.clipId),
-      failureFallback: '删除失败，请重试',
+      drawerKey: const Key('mobile-clip-delete-drawer'),
+      confirmButtonKey: const Key('mobile-clip-delete-confirm-button'),
     );
-    if (!mounted || !confirmed) {
+    if (!mounted || confirmed != true) {
       return;
     }
-    ref.read(clipMutationEventsProvider.notifier).reportDeleted(clip.clipId);
-    showToast('已删除切片');
+    try {
+      await ref.read(clipsApiProvider).deleteClip(clipId: clip.clipId);
+      ref.read(clipMutationEventsProvider.notifier).reportDeleted(clip.clipId);
+      if (mounted) {
+        showToast('已删除切片');
+      }
+    } catch (error) {
+      showToast(apiErrorMessage(error, fallback: '删除失败，请重试'));
+    }
   }
 
   Future<void> _addToCollection(MediaClipDto clip) async {

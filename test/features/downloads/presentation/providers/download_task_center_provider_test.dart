@@ -38,19 +38,16 @@ void main() {
     sessionStore.dispose();
   });
 
-  test('build loads a list snapshot with the current task fields', () async {
+  test('build loads a list snapshot and exposes server metrics', () async {
     _enqueueTaskPage(bundle, [taskJson(id: 1)]);
     _enqueueClients(bundle);
 
     final state = await container.read(downloadTaskCenterProvider.future);
 
     expect(state.paged.items.single.task.id, 1);
-    expect(state.paged.items.single.task.remoteId, 'remote-1');
-    expect(state.paged.items.single.state, 'downloading');
-    expect(state.clientOptions, const [
-      DownloadClientOption(id: 2, name: 'qb-main'),
-    ]);
-    expect(state.clientNames, {2: 'qb-main'});
+    expect(state.totalDownloadSpeedBytes, 2048);
+    expect(state.totalUploadSpeedBytes, 256);
+    expect(state.paged.items.single.task.totalSizeBytes, 1250);
   });
 
   test('startPolling replaces the list with a fresh snapshot', () async {
@@ -66,10 +63,48 @@ void main() {
     expect(state.paged.items.single.task.id, 2);
   });
 
-  test('delete updates the current snapshot', () async {
-    _enqueueTaskPage(bundle, [taskJson(id: 3)]);
+  test('pause, resume and delete update the current snapshot', () async {
+    _enqueueTaskPage(bundle, [taskJson(id: 3, downloadState: 'downloading')]);
     _enqueueClients(bundle);
     await container.read(downloadTaskCenterProvider.future);
+
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-tasks/3/pause',
+      body: <String, dynamic>{'task_id': 3, 'action': 'pause', 'status': 'ok'},
+    );
+    await container.read(downloadTaskCenterProvider.notifier).pauseTask(3);
+    expect(
+      container
+          .read(downloadTaskCenterProvider)
+          .requireValue
+          .paged
+          .items
+          .single
+          .downloadState,
+      'paused',
+    );
+
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-tasks/3/resume',
+      body: <String, dynamic>{
+        'task_id': 3,
+        'action': 'resume',
+        'status': 'ok',
+      },
+    );
+    await container.read(downloadTaskCenterProvider.notifier).resumeTask(3);
+    expect(
+      container
+          .read(downloadTaskCenterProvider)
+          .requireValue
+          .paged
+          .items
+          .single
+          .downloadState,
+      'downloading',
+    );
 
     bundle.adapter.enqueueJson(
       method: 'DELETE',
@@ -88,15 +123,23 @@ void main() {
 
 Map<String, dynamic> taskJson({
   required int id,
-  String state = 'downloading',
+  String downloadState = 'downloading',
 }) => <String, dynamic>{
   'id': id,
   'client_id': 2,
   'movie_number': 'ABC-00$id',
   'name': 'ABC-00$id',
-  'remote_id': 'remote-$id',
-  'state': state,
+  'info_hash': 'hash-$id',
+  'save_path': '/mnt/$id',
   'progress': 0.5,
+  'raw_state': downloadState,
+  'download_state': downloadState,
+  'download_speed_bytes': 2048,
+  'uploaded_speed_bytes': 256,
+  'downloaded_bytes': 750,
+  'total_size_bytes': 1250,
+  'eta_seconds': 60,
+  'progress_synced_at': '2026-07-10T08:01:00Z',
   'import_status': 'pending',
   'import_status_label': '等待导入',
   'created_at': '2026-07-10T08:00:00Z',
@@ -129,8 +172,13 @@ void _enqueueClients(TestApiBundle bundle) {
       <String, dynamic>{
         'id': 2,
         'name': 'qb-main',
-        'library_id': 1,
-        'provider_config': <String, dynamic>{'endpoint': 'http://qb:8080'},
+        'kind': 'qbittorrent',
+        'base_url': 'http://qb:8080',
+        'username': 'admin',
+        'client_save_path': '/downloads',
+        'local_root_path': '/mnt/qb',
+        'media_library_id': 1,
+        'has_password': true,
       },
     ],
   );

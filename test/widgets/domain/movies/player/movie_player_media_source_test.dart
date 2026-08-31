@@ -6,7 +6,7 @@ void main() {
   group('Movie player configuration', () {
     test('native media uses the stable generic browser user agent', () {
       final media = buildMoviePlayerMedia(
-        'https://example.com/media/1/play/?expires=1777777777&signature=abc',
+        'https://example.com/media/1/stream',
         startPosition: const Duration(seconds: 12),
       );
 

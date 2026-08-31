@@ -25,18 +25,3 @@ String? resolveMediaUrl({required String? rawUrl, required String baseUrl}) {
 
   return '$base/$path';
 }
-
-String withProxyMediaDelivery(String url) {
-  final uri = Uri.tryParse(url);
-  if (uri == null) {
-    return url;
-  }
-  return uri
-      .replace(
-        queryParameters: <String, String>{
-          ...uri.queryParameters,
-          'delivery': 'proxy',
-        },
-      )
-      .toString();
-}

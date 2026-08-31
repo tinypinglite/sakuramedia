@@ -110,7 +110,6 @@ void main() {
         find.byKey(const Key('plugins-delete-confirm-dialog')),
         findsOneWidget,
       );
-      expect(find.textContaining('运行数据（data/）会保留'), findsOneWidget);
       await tester.tap(find.byKey(const Key('plugins-delete-confirm-button')));
       await tester.pumpAndSettle();
 
@@ -202,78 +201,6 @@ void main() {
 
       expect(bundle.adapter.hitCount('POST', '/system/plugins'), 1);
       expect(find.byKey(const Key('plugins-list-card')), findsOneWidget);
-      await tester.pump(const Duration(seconds: 3)); // 排掉 oktoast 计时器
-    });
-
-    testWidgets('checks a release, shows its notes, and upgrades the plugin', (
-      WidgetTester tester,
-    ) async {
-      const releaseUrl =
-          'https://api.github.com/repos/example/demo_plugin/releases/latest';
-      const assetUrl = 'https://github.com/example/demo/download.zip';
-      _enqueueList(
-        bundle,
-        plugins: <Map<String, dynamic>>[
-          pluginSummaryJson(releaseApiUrl: releaseUrl),
-        ],
-      );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: releaseUrl,
-        body: <String, dynamic>{
-          'tag_name': 'v1.1.0',
-          'body': '修复下载失败',
-          'assets': <Map<String, dynamic>>[
-            <String, dynamic>{
-              'name': 'demo_plugin-1.1.0.zip',
-              'browser_download_url': assetUrl,
-            },
-          ],
-        },
-      );
-      bundle.adapter.enqueueBytes(
-        method: 'GET',
-        path: assetUrl,
-        body: Uint8List.fromList(<int>[80, 75, 3, 4]),
-      );
-      bundle.adapter.enqueueJson(
-        method: 'POST',
-        path: '/system/plugins/demo_plugin/upgrade',
-        body: <String, dynamic>{
-          'plugin_id': 'demo_plugin',
-          'version': '1.1.0',
-          'pending_restart': <String>['api', 'aps'],
-        },
-      );
-
-      await _pumpSection(tester, bundle, active: true);
-      await tester.tap(find.byKey(const Key('plugins-check-updates-button')));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byKey(const Key('plugin-upgrade-button-demo_plugin')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(const Key('plugin-upgrade-button-demo_plugin')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byKey(const Key('plugin-upgrade-confirm-dialog-demo_plugin')),
-        findsOneWidget,
-      );
-      expect(find.textContaining('修复下载失败'), findsOneWidget);
-      await tester.tap(
-        find.byKey(const Key('plugin-upgrade-confirm-button-demo_plugin')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(
-        bundle.adapter.hitCount('POST', '/system/plugins/demo_plugin/upgrade'),
-        1,
-      );
-      expect(find.textContaining('v1.1.0 · demo_plugin'), findsOneWidget);
       await tester.pump(const Duration(seconds: 3)); // 排掉 oktoast 计时器
     });
   });

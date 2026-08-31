@@ -28,7 +28,6 @@ import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -191,22 +190,26 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
   Future<void> _deleteVideo(VideoItemListItemDto video) async {
     final title = video.preferredTitle.trim();
     final label = title.isEmpty ? '该视频' : '“$title”';
-    final confirmed = await showAppConfirmDialog(
+    final confirmed = await showMobileClipConfirmDrawer(
       context,
       title: '删除视频',
       message: '确认删除$label？该操作不可恢复。',
       confirmLabel: '删除',
-      danger: true,
-      dialogKey: const Key('mobile-video-delete-drawer'),
-      confirmKey: const Key('mobile-video-delete-confirm-button'),
-      onConfirm: () => ref.read(videosApiProvider).deleteVideo(video.id),
-      failureFallback: '删除失败，请重试',
+      drawerKey: const Key('mobile-video-delete-drawer'),
+      confirmButtonKey: const Key('mobile-video-delete-confirm-button'),
     );
-    if (!mounted || !confirmed) {
+    if (!mounted || confirmed != true) {
       return;
     }
-    ref.read(videoMutationEventsProvider.notifier).reportDeleted(video.id);
-    showToast('已删除视频');
+    try {
+      await ref.read(videosApiProvider).deleteVideo(video.id);
+      ref.read(videoMutationEventsProvider.notifier).reportDeleted(video.id);
+      if (mounted) {
+        showToast('已删除视频');
+      }
+    } catch (error) {
+      showToast(apiErrorMessage(error, fallback: '删除失败，请重试'));
+    }
   }
 
   // --------------------------------------------------------- 批量动作

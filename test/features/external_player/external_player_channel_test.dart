@@ -19,26 +19,16 @@ void main() {
     messenger.setMockMethodCallHandler(channel, null);
   });
 
-  test('iOS 平台 isSupported 为 false 且方法安全降级', () async {
+  test('非 Android 平台 isSupported 为 false 且方法安全降级', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
     const external = ExternalPlayerChannel();
 
     expect(external.isSupported, isFalse);
     expect(await external.listPlayers(), isEmpty);
     expect(
-      await external.launch(playerId: 'org.videolan.vlc', url: 'http://x/v'),
+      await external.launch(packageName: 'org.videolan.vlc', url: 'http://x/v'),
       isFalse,
     );
-  });
-
-  test('macOS 与 Windows 支持外部播放器通道', () {
-    for (final platform in <TargetPlatform>[
-      TargetPlatform.macOS,
-      TargetPlatform.windows,
-    ]) {
-      debugDefaultTargetPlatformOverride = platform;
-      expect(const ExternalPlayerChannel().isSupported, isTrue);
-    }
   });
 
   test('listPlayers 解析原生返回并按名称排序', () async {
@@ -46,9 +36,9 @@ void main() {
       expect(call.method, 'listPlayers');
       expect((call.arguments as Map)['sampleUrl'], 'http://nas:8000');
       return <Map<String, String>>[
-        <String, String>{'id': 'org.videolan.vlc', 'label': 'VLC'},
+        <String, String>{'packageName': 'org.videolan.vlc', 'label': 'VLC'},
         <String, String>{
-          'id': 'com.mxtech.videoplayer.ad',
+          'packageName': 'com.mxtech.videoplayer.ad',
           'label': 'MX Player',
         },
       ];
@@ -58,14 +48,14 @@ void main() {
     final players = await external.listPlayers(sampleUrl: 'http://nas:8000');
 
     expect(players.map((p) => p.label).toList(), <String>['MX Player', 'VLC']);
-    expect(players.first.id, 'com.mxtech.videoplayer.ad');
+    expect(players.first.packageName, 'com.mxtech.videoplayer.ad');
   });
 
-  test('listPlayers 丢弃缺少标识的无效条目', () async {
+  test('listPlayers 丢弃缺少包名的无效条目', () async {
     messenger.setMockMethodCallHandler(channel, (call) async {
       return <dynamic>[
-        <String, String>{'label': '缺标识'},
-        <String, String>{'id': 'org.videolan.vlc', 'label': 'VLC'},
+        <String, String>{'label': '缺包名'},
+        <String, String>{'packageName': 'org.videolan.vlc', 'label': 'VLC'},
       ];
     });
 
@@ -73,10 +63,10 @@ void main() {
     final players = await external.listPlayers();
 
     expect(players, hasLength(1));
-    expect(players.single.id, 'org.videolan.vlc');
+    expect(players.single.packageName, 'org.videolan.vlc');
   });
 
-  test('launch 透传播放器标识/直链/标题/位置参数', () async {
+  test('launch 透传包名/直链/标题/位置参数', () async {
     MethodCall? captured;
     messenger.setMockMethodCallHandler(channel, (call) async {
       captured = call;
@@ -85,8 +75,8 @@ void main() {
 
     const external = ExternalPlayerChannel();
     final launched = await external.launch(
-      playerId: 'org.videolan.vlc',
-      url: 'http://nas:8000/media/1/play/?expires=1777777777&signature=abc',
+      packageName: 'org.videolan.vlc',
+      url: 'http://nas:8000/media/1/stream?signature=abc',
       title: '影片标题',
       positionMs: 90000,
     );
@@ -94,11 +84,8 @@ void main() {
     expect(launched, isTrue);
     expect(captured?.method, 'launch');
     final args = captured!.arguments as Map;
-    expect(args['playerId'], 'org.videolan.vlc');
-    expect(
-      args['url'],
-      'http://nas:8000/media/1/play/?expires=1777777777&signature=abc',
-    );
+    expect(args['packageName'], 'org.videolan.vlc');
+    expect(args['url'], 'http://nas:8000/media/1/stream?signature=abc');
     expect(args['title'], '影片标题');
     expect(args['positionMs'], 90000);
   });
@@ -110,7 +97,7 @@ void main() {
 
     const external = ExternalPlayerChannel();
     expect(
-      await external.launch(playerId: 'org.videolan.vlc', url: 'http://x/v'),
+      await external.launch(packageName: 'org.videolan.vlc', url: 'http://x/v'),
       isFalse,
     );
   });

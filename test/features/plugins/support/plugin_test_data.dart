@@ -1,10 +1,7 @@
 import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
 
 /// 插件列表项的 JSON 夹具，字段与后端 `GET /system/plugins` 对齐。
-Map<String, dynamic> pluginSummaryJson({
-  bool enabled = true,
-  String? releaseApiUrl,
-}) {
+Map<String, dynamic> pluginSummaryJson({bool enabled = true}) {
   return <String, dynamic>{
     'plugin_id': 'demo_plugin',
     'display_name': '演示插件',
@@ -13,7 +10,6 @@ Map<String, dynamic> pluginSummaryJson({
     'enabled': enabled,
     'load_status': 'ok',
     'load_error': null,
-    'release_api_url': releaseApiUrl,
   };
 }
 
@@ -21,7 +17,6 @@ Map<String, dynamic> pluginSummaryJson({
 PluginSummaryDto pluginSummaryDto({
   String id = 'demo_plugin',
   bool enabled = false,
-  String? releaseApiUrl,
 }) {
   return PluginSummaryDto(
     pluginId: id,
@@ -30,6 +25,5 @@ PluginSummaryDto pluginSummaryDto({
     hostApiVersion: 1,
     enabled: enabled,
     loadStatus: 'ok',
-    releaseApiUrl: releaseApiUrl,
   );
 }

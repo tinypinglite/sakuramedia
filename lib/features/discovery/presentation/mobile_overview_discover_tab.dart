@@ -114,9 +114,6 @@ class MobileOverviewDiscoverTab extends ConsumerWidget {
         _MobileDiscoverSectionTitle(
           title: '女优上新',
           totalText: '${paged?.total ?? 0} 部',
-          actionKey: const Key('mobile-discover-load-more-follow'),
-          actionLabel: '更多',
-          onActionTap: () => context.push(mobileFollowPath),
         ),
         SizedBox(height: context.appSpacing.md),
         MovieSummaryGrid(

@@ -70,6 +70,36 @@ void main() {
     },
   );
 
+  testWidgets(
+    'masked image crops to visible width factor using provided alignment',
+    (WidgetTester tester) async {
+      final sessionStore = SessionStore.inMemory();
+      await sessionStore.saveBaseUrl('https://api.example.com');
+
+      await tester.pumpWidget(
+        _TestApp(
+          sessionStore: sessionStore,
+          child: const MaskedImage(
+            url: '/covers/a.jpg',
+            visibleWidthFactor: 0.47,
+            visibleAlignment: Alignment.centerRight,
+          ),
+        ),
+      );
+
+      final clipRectSize = tester.getSize(find.byType(ClipRect));
+      final imageSize = tester.getSize(find.byType(Image));
+      final overflowBox = tester.widget<OverflowBox>(find.byType(OverflowBox));
+      final expectedWidth = 160 / 0.47;
+
+      expect(find.byType(ClipRect), findsOneWidget);
+      expect(find.byType(OverflowBox), findsOneWidget);
+      expect(clipRectSize.width, 160);
+      expect(imageSize.width, moreOrLessEquals(expectedWidth, epsilon: 0.01));
+      expect(overflowBox.alignment, Alignment.centerRight);
+    },
+  );
+
   testWidgets('masked image forwards alignment to underlying Image', (
     WidgetTester tester,
   ) async {
@@ -167,6 +197,17 @@ void main() {
       );
     },
   );
+
+  test('masked image rejects invalid visible width factor values', () {
+    expect(
+      () => MaskedImage(url: '/covers/a.jpg', visibleWidthFactor: 0),
+      throwsAssertionError,
+    );
+    expect(
+      () => MaskedImage(url: '/covers/a.jpg', visibleWidthFactor: 1.1),
+      throwsAssertionError,
+    );
+  });
 }
 
 class _TestApp extends StatelessWidget {

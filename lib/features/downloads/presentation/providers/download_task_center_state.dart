@@ -1,21 +1,30 @@
 import 'package:flutter/foundation.dart';
+import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
 import 'package:sakuramedia/features/downloads/presentation/download_task_filter_state.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 
 @immutable
 class DownloadClientOption {
-  const DownloadClientOption({required this.id, required this.name});
+  const DownloadClientOption({
+    required this.id,
+    required this.name,
+    required this.kind,
+  });
 
   final int id;
   final String name;
+  final DownloadClientKind kind;
 
   @override
   bool operator ==(Object other) =>
-      other is DownloadClientOption && other.id == id && other.name == name;
+      other is DownloadClientOption &&
+      other.id == id &&
+      other.name == name &&
+      other.kind == kind;
 
   @override
-  int get hashCode => Object.hash(id, name);
+  int get hashCode => Object.hash(id, name, kind);
 }
 
 enum DownloadTaskPollingState { idle, polling }
@@ -27,7 +36,7 @@ class DownloadTaskRowState {
   final DownloadTaskDto task;
 
   double get progress => task.progress;
-  String get state => task.state;
+  String get downloadState => task.downloadState;
 }
 
 @immutable
@@ -38,6 +47,7 @@ class DownloadTaskCenterState {
     this.pollingState = DownloadTaskPollingState.idle,
     this.clientOptions = const <DownloadClientOption>[],
     this.clientNames = const <int, String>{},
+    this.clientKinds = const <int, DownloadClientKind>{},
     this.pendingActionTaskIds = const <int>{},
   });
 
@@ -51,12 +61,21 @@ class DownloadTaskCenterState {
   final DownloadTaskPollingState pollingState;
   final List<DownloadClientOption> clientOptions;
   final Map<int, String> clientNames;
+  final Map<int, DownloadClientKind> clientKinds;
   final Set<int> pendingActionTaskIds;
 
   bool isTaskPending(int taskId) => pendingActionTaskIds.contains(taskId);
 
-  String clientNameOf(int clientId) =>
-      clientNames[clientId] ?? '客户端 #$clientId';
+  String clientNameOf(int clientId) => clientNames[clientId] ?? '客户端 #$clientId';
+
+  DownloadClientKind clientKindOf(int clientId) =>
+      clientKinds[clientId] ?? DownloadClientKind.qbittorrent;
+
+  int get totalDownloadSpeedBytes => paged.items.fold(
+      0, (total, row) => total + row.task.downloadSpeedBytes);
+
+  int get totalUploadSpeedBytes => paged.items.fold(
+      0, (total, row) => total + row.task.uploadedSpeedBytes);
 
   DownloadTaskCenterState copyWith({
     PagedListState<DownloadTaskRowState>? paged,
@@ -64,6 +83,7 @@ class DownloadTaskCenterState {
     DownloadTaskPollingState? pollingState,
     List<DownloadClientOption>? clientOptions,
     Map<int, String>? clientNames,
+    Map<int, DownloadClientKind>? clientKinds,
     Set<int>? pendingActionTaskIds,
   }) {
     return DownloadTaskCenterState(
@@ -72,6 +92,7 @@ class DownloadTaskCenterState {
       pollingState: pollingState ?? this.pollingState,
       clientOptions: clientOptions ?? this.clientOptions,
       clientNames: clientNames ?? this.clientNames,
+      clientKinds: clientKinds ?? this.clientKinds,
       pendingActionTaskIds: pendingActionTaskIds ?? this.pendingActionTaskIds,
     );
   }

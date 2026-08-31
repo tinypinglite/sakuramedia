@@ -102,43 +102,6 @@ void main() {
     expect(container.read(pluginsProvider).requireValue.isInstalling, isFalse);
   });
 
-  test('checks and installs an available plugin update', () async {
-    api.listHandler = () async => <PluginSummaryDto>[
-      pluginSummaryDto(
-        id: 'demo_plugin',
-        releaseApiUrl:
-            'https://api.github.com/repos/example/demo_plugin/releases/latest',
-      ),
-    ];
-    await container.read(pluginsProvider.future);
-    const update = PluginReleaseUpdate(
-      version: '1.1.0',
-      notes: '修复下载失败',
-      assetUrl: 'https://github.com/example/demo/download.zip',
-      assetFileName: 'demo_plugin-1.1.0.zip',
-    );
-    api.checkForUpdateHandler = (_) async => update;
-
-    final allChecksSucceeded = await container
-        .read(pluginsProvider.notifier)
-        .checkUpdates();
-
-    expect(allChecksSucceeded, isTrue);
-    expect(
-      container.read(pluginsProvider).requireValue.updates['demo_plugin'],
-      update,
-    );
-
-    api.downloadUpdateHandler = (_) async => Uint8List.fromList(<int>[80, 75]);
-    api.upgradeHandler = (_, __, ___) async => '1.1.0';
-    await container.read(pluginsProvider.notifier).upgrade('demo_plugin');
-
-    final state = container.read(pluginsProvider).requireValue;
-    expect(state.plugins.single.version, '1.1.0');
-    expect(state.updates, isEmpty);
-    expect(state.busyPluginIds, isEmpty);
-  });
-
   test(
     'install keeps the old list and returns false when refresh fails',
     () async {
@@ -179,11 +142,6 @@ class _FakePluginsApi extends PluginsApi {
 
   Future<List<PluginSummaryDto>> Function()? listHandler;
   Future<void> Function(Uint8List, String)? installHandler;
-  Future<PluginReleaseUpdate?> Function(PluginSummaryDto)?
-  checkForUpdateHandler;
-  Future<Uint8List> Function(PluginReleaseUpdate)? downloadUpdateHandler;
-  Future<String> Function(String, PluginReleaseUpdate, Uint8List)?
-  upgradeHandler;
   Future<PluginSummaryDto> Function(String, bool)? setEnabledHandler;
   Future<void> Function(String)? removeHandler;
 
@@ -196,25 +154,6 @@ class _FakePluginsApi extends PluginsApi {
     required String fileName,
   }) {
     return installHandler!(fileBytes, fileName);
-  }
-
-  @override
-  Future<PluginReleaseUpdate?> checkForUpdate(PluginSummaryDto plugin) {
-    return checkForUpdateHandler!(plugin);
-  }
-
-  @override
-  Future<Uint8List> downloadUpdate(PluginReleaseUpdate update) {
-    return downloadUpdateHandler!(update);
-  }
-
-  @override
-  Future<String> upgrade({
-    required String pluginId,
-    required PluginReleaseUpdate update,
-    required Uint8List fileBytes,
-  }) {
-    return upgradeHandler!(pluginId, update, fileBytes);
   }
 
   @override

@@ -55,25 +55,6 @@ void main() {
     expect(find.byIcon(Icons.public_rounded), findsOneWidget);
   });
 
-  testWidgets('catalog search field can hide the trailing search action', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: sakuraThemeData,
-        home: Material(
-          child: CatalogSearchField(
-            controller: TextEditingController(),
-            hintText: '找影片',
-            showSearchButton: false,
-          ),
-        ),
-      ),
-    );
-
-    expect(find.byIcon(Icons.search_rounded), findsNothing);
-  });
-
   testWidgets('catalog search field renders image search icon when enabled', (
     WidgetTester tester,
   ) async {
@@ -114,32 +95,6 @@ void main() {
     );
 
     await tester.tap(find.byIcon(Icons.image_search_outlined));
-    await tester.pump();
-
-    expect(tapped, isTrue);
-  });
-
-  testWidgets('catalog search field exposes a separate text image search', (
-    WidgetTester tester,
-  ) async {
-    var tapped = false;
-
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: sakuraThemeData,
-        home: Material(
-          child: CatalogSearchField(
-            controller: TextEditingController(),
-            hintText: '找影片',
-            showTextImageSearchButton: true,
-            onTextImageSearchTap: () => tapped = true,
-          ),
-        ),
-      ),
-    );
-
-    expect(find.byIcon(Icons.text_fields_rounded), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.text_fields_rounded));
     await tester.pump();
 
     expect(tapped, isTrue);

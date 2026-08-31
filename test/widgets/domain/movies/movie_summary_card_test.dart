@@ -83,6 +83,7 @@ void main() {
     final maskedImage = tester.widget<MaskedImage>(find.byType(MaskedImage));
     expect(maskedImage.url, '/thin-large.jpg');
     expect(maskedImage.fit, BoxFit.cover);
+    expect(maskedImage.visibleWidthFactor, isNull);
 
     final playableBadgeContainer = tester.widget<Container>(
       find.descendant(
@@ -169,6 +170,7 @@ void main() {
     final maskedImage = tester.widget<MaskedImage>(find.byType(MaskedImage));
     expect(maskedImage.url, '/cover-large.jpg');
     expect(maskedImage.fit, BoxFit.contain);
+    expect(maskedImage.visibleWidthFactor, isNull);
   });
 
   testWidgets(

@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/activity/presentation/pages/desktop/activit
 import 'package:sakuramedia/features/actors/presentation/pages/mobile/actors_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/configuration_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/desktop_discover_page.dart';
+import 'package:sakuramedia/features/hot_reviews/presentation/pages/desktop/hot_reviews_page.dart';
 import 'package:sakuramedia/features/media/presentation/pages/desktop/media_management_page.dart';
 import 'package:sakuramedia/features/media_import/presentation/pages/desktop/media_import_page.dart';
 import 'package:sakuramedia/features/activity/presentation/pages/desktop/notifications_page.dart';
@@ -235,6 +236,20 @@ const List<_NavSeed> _desktopNavSeeds = [
     ],
   ),
   _NavSeed(
+    id: 'hot-reviews',
+    label: '热评',
+    icon: Icons.rate_review_outlined,
+    section: '浏览',
+    items: [
+      _NavItemSeed(
+        slug: 'library/hot-reviews',
+        label: '热评',
+        icon: Icons.rate_review_outlined,
+        description: '本地热评快照浏览、周期切换与评论洞察入口。',
+      ),
+    ],
+  ),
+  _NavSeed(
     id: 'media',
     label: '媒体管理',
     icon: Icons.video_settings_outlined,
@@ -244,7 +259,7 @@ const List<_NavSeed> _desktopNavSeeds = [
         slug: 'system/media',
         label: '媒体管理',
         icon: Icons.video_settings_outlined,
-        description: '媒体文件浏览、失效巡检与删除的统一入口。',
+        description: '媒体文件浏览、失效巡检与秒传批次的统一入口。',
       ),
     ],
   ),
@@ -258,7 +273,7 @@ const List<_NavSeed> _desktopNavSeeds = [
         slug: 'system/media-import',
         label: '资源导入',
         icon: Icons.drive_folder_upload_outlined,
-        description: '导入 JAV 与普通视频，并在任务中心查看进度和结果。',
+        description: '导入 JAV、PornBox 影片与 JAV 字幕，并在任务中心查看进度和结果。',
       ),
     ],
   ),
@@ -332,13 +347,14 @@ final Map<String, WidgetBuilder> _desktopRouteBuilders =
       desktopClipsPath: (_) => const DesktopClipsPage(),
       desktopVideosPath: (_) => const DesktopVideoListPage(),
       desktopRankingsPath: (_) => const DesktopRankingsPage(),
+      desktopHotReviewsPath: (_) => const DesktopHotReviewsPage(),
       desktopActivityPath: (_) => const DesktopActivityPage(),
       desktopMediaPath: (_) => const DesktopMediaManagementPage(),
       desktopNotificationsPath: (_) => const DesktopNotificationsPage(),
       desktopConfigurationPath: (_) => const DesktopConfigurationPage(),
       desktopMediaImportPath: (_) => const DesktopMediaImportPage(),
-      desktopMovieSubscriptionsPath: (_) =>
-          const DesktopMovieSubscriptionsPage(),
+      desktopMovieSubscriptionsPath:
+          (_) => const DesktopMovieSubscriptionsPage(),
     };
 
 final Map<String, WidgetBuilder> _mobileRouteBuilders = <String, WidgetBuilder>{

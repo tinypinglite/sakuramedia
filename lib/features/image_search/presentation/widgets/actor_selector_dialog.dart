@@ -1,58 +1,72 @@
 import 'package:flutter/material.dart';
+import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
-/// 桌面端以图搜图「选择女优」弹窗。
-Future<List<ActorListItemDto>?> showActorSelectorDialog(
+/// 以图搜图「选择女优」弹层。
+///
+/// 按 `AppPlatformScope` 分派：mobile → 底部抽屉，其余（desktop / 无
+/// scope）→ 桌面对话框。返回选中的女优列表；取消 / 点遮罩返回 null。
+Future<List<ActorListItemDto>?> showActorSelectorOverlay(
   BuildContext context, {
   required List<ActorListItemDto> actors,
   required List<ActorListItemDto> initialSelectedActors,
 }) {
+  final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
+  if (isMobile) {
+    return showAppBottomDrawer<List<ActorListItemDto>>(
+      context: context,
+      drawerKey: const Key('image-search-actor-selector-drawer'),
+      heightFactor: 0.85,
+      builder:
+          (drawerContext) => Padding(
+            padding: EdgeInsets.all(drawerContext.appSpacing.lg),
+            child: _ActorSelectorBody(
+              actors: actors,
+              initialSelectedActors: initialSelectedActors,
+            ),
+          ),
+    );
+  }
   return showDialog<List<ActorListItemDto>>(
     context: context,
-    builder: (dialogContext) => AppDesktopDialog(
-      constraints: const BoxConstraints(maxWidth: 760, maxHeight: 780),
-      child: ImageSearchActorSelectorBody(
-        actors: actors,
-        initialSelectedActors: initialSelectedActors,
-        onCancel: () => Navigator.of(dialogContext).pop(),
-        onDone: (selected) => Navigator.of(dialogContext).pop(selected),
-      ),
-    ),
+    builder:
+        (dialogContext) => AppDesktopDialog(
+          constraints: const BoxConstraints(maxWidth: 760, maxHeight: 780),
+          child: _ActorSelectorBody(
+            actors: actors,
+            initialSelectedActors: initialSelectedActors,
+          ),
+        ),
   );
 }
 
-class ImageSearchActorSelectorBody extends StatefulWidget {
-  const ImageSearchActorSelectorBody({
-    super.key,
+class _ActorSelectorBody extends StatefulWidget {
+  const _ActorSelectorBody({
     required this.actors,
     required this.initialSelectedActors,
-    required this.onCancel,
-    required this.onDone,
   });
 
   final List<ActorListItemDto> actors;
   final List<ActorListItemDto> initialSelectedActors;
-  final VoidCallback onCancel;
-  final ValueChanged<List<ActorListItemDto>> onDone;
 
   @override
-  State<ImageSearchActorSelectorBody> createState() =>
-      _ImageSearchActorSelectorBodyState();
+  State<_ActorSelectorBody> createState() => _ActorSelectorBodyState();
 }
 
-class _ImageSearchActorSelectorBodyState
-    extends State<ImageSearchActorSelectorBody> {
+class _ActorSelectorBodyState extends State<_ActorSelectorBody> {
   late final Set<int> _selectedActorIds;
 
   @override
   void initState() {
     super.initState();
-    _selectedActorIds = widget.initialSelectedActors
-        .map((ActorListItemDto actor) => actor.id)
-        .toSet();
+    _selectedActorIds =
+        widget.initialSelectedActors
+            .map((ActorListItemDto actor) => actor.id)
+            .toSet();
   }
 
   @override
@@ -92,13 +106,14 @@ class _ImageSearchActorSelectorBodyState
               return InkWell(
                 key: Key('desktop-image-search-actor-option-${actor.id}'),
                 borderRadius: context.appRadius.mdBorder,
-                onTap: () => setState(() {
-                  if (selected) {
-                    _selectedActorIds.remove(actor.id);
-                  } else {
-                    _selectedActorIds.add(actor.id);
-                  }
-                }),
+                onTap:
+                    () => setState(() {
+                      if (selected) {
+                        _selectedActorIds.remove(actor.id);
+                      } else {
+                        _selectedActorIds.add(actor.id);
+                      }
+                    }),
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: spacing.lg,
@@ -108,9 +123,10 @@ class _ImageSearchActorSelectorBodyState
                     color: context.appColors.surfaceCard,
                     borderRadius: context.appRadius.mdBorder,
                     border: Border.all(
-                      color: selected
-                          ? Theme.of(context).colorScheme.primary
-                          : context.appColors.borderSubtle,
+                      color:
+                          selected
+                              ? Theme.of(context).colorScheme.primary
+                              : context.appColors.borderSubtle,
                     ),
                   ),
                   child: Row(
@@ -138,19 +154,20 @@ class _ImageSearchActorSelectorBodyState
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            AppButton(label: '取消', onPressed: widget.onCancel),
+            AppButton(label: '取消', onPressed: () => Navigator.of(context).pop()),
             SizedBox(width: spacing.sm),
             AppButton(
               label: '完成',
               variant: AppButtonVariant.primary,
-              onPressed: () => widget.onDone(
-                widget.actors
-                    .where(
-                      (ActorListItemDto actor) =>
-                          _selectedActorIds.contains(actor.id),
-                    )
-                    .toList(growable: false),
-              ),
+              onPressed:
+                  () => Navigator.of(context).pop(
+                    widget.actors
+                        .where(
+                          (ActorListItemDto actor) =>
+                              _selectedActorIds.contains(actor.id),
+                        )
+                        .toList(growable: false),
+                  ),
             ),
           ],
         ),

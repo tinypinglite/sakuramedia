@@ -1,16 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/providers/movie_subscription_toggle_provider.dart';
-import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
 
 const double _similarMovieCardWidthFactor = 0.75;
 
-class MovieSimilarMovieStrip extends ConsumerWidget {
+class MovieSimilarMovieStrip extends StatelessWidget {
   const MovieSimilarMovieStrip({
     super.key,
     required this.movies,
@@ -30,11 +25,10 @@ class MovieSimilarMovieStrip extends ConsumerWidget {
   onMovieMenuRequest;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final cardWidth =
         context.appComponentTokens.movieCardTargetWidth *
         _similarMovieCardWidthFactor;
-    final updatingMovieNumbers = ref.watch(movieSubscriptionToggleProvider);
 
     if (isLoading) {
       return _MovieSimilarMovieStripScroller(
@@ -74,32 +68,17 @@ class MovieSimilarMovieStrip extends ConsumerWidget {
               child: MovieSummaryCard(
                 movie: movie,
                 onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
-                onRequestMenu: onMovieMenuRequest == null
-                    ? null
-                    : (globalPosition) =>
-                          onMovieMenuRequest!(movie, globalPosition),
-                onSubscriptionTap: () =>
-                    unawaited(_toggleMovieSubscription(ref, context, movie)),
-                isSubscriptionUpdating: updatingMovieNumbers.contains(
-                  movie.movieNumber,
-                ),
+                onRequestMenu:
+                    onMovieMenuRequest == null
+                        ? null
+                        : (globalPosition) =>
+                            onMovieMenuRequest!(movie, globalPosition),
               ),
             ),
           )
           .toList(growable: false),
     );
   }
-}
-
-Future<void> _toggleMovieSubscription(
-  WidgetRef ref,
-  BuildContext context,
-  MovieListItemDto movie,
-) async {
-  final result = await ref
-      .read(movieSubscriptionToggleProvider.notifier)
-      .toggle(movieNumber: movie.movieNumber, isSubscribed: movie.isSubscribed);
-  if (context.mounted) showMovieSubscriptionFeedback(result);
 }
 
 class _MovieSimilarMovieStripScroller extends StatelessWidget {

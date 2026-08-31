@@ -44,6 +44,7 @@ const List<String> _desktopSmokeRoutes = <String>[
   desktopClipsPath,
   desktopClipCollectionsPath,
   desktopRankingsPath,
+  desktopHotReviewsPath,
   desktopPlaylistsPath,
   desktopMomentsPath,
   desktopDiscoverMoviesPath,

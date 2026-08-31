@@ -122,11 +122,12 @@ class IndexerEntryFormFields extends StatelessWidget {
           enabled: enabled,
           autovalidateMode: autovalidateMode,
           textInputAction: TextInputAction.next,
-          validator: (value) => validateIndexerNameField(
-            value,
-            existingEntries: existingEntries,
-            editingEntryId: editingEntryId,
-          ),
+          validator:
+              (value) => validateIndexerNameField(
+                value,
+                existingEntries: existingEntries,
+                editingEntryId: editingEntryId,
+              ),
         ),
         SizedBox(height: spacing.lg),
         const IndexerFormFieldLabel(label: '资源地址 (URL)'),
@@ -191,7 +192,9 @@ class IndexerEntryFormFields extends StatelessWidget {
             initialValue: selectedDownloadClientIds,
             validator: validateIndexerDownloadClientsField,
             builder: (field) {
-              final availableClients = downloadClients;
+              final availableClients = downloadClients
+                  .where((client) => kind == 'bt' || client.isQbittorrent)
+                  .toList(growable: false);
               void toggle(DownloadClientDto client) {
                 if (!enabled) return;
                 final next = List<int>.of(selectedDownloadClientIds);
@@ -207,7 +210,15 @@ class IndexerEntryFormFields extends StatelessWidget {
                   SizedBox(height: spacing.sm),
                   if (availableClients.isEmpty)
                     AppSettingsGroup(
-                      children: [AppSettingCell(title: '请先在下载器页创建下载器')],
+                      children: [
+                        AppSettingCell(
+                          title:
+                              kind == 'pt'
+                                  ? '没有可用的 qBittorrent 下载器'
+                                  : '请先在下载器页创建下载器',
+                          subtitle: kind == 'pt' ? 'PT 索引器不支持 115 离线下载' : null,
+                        ),
+                      ],
                     )
                   else
                     AppSettingsGroup(
@@ -216,6 +227,7 @@ class IndexerEntryFormFields extends StatelessWidget {
                           AppSettingCell(
                             key: Key('indexer-download-client-${client.id}'),
                             title: client.name,
+                            subtitle: client.kind.label,
                             trailing: Checkbox(
                               value: selectedDownloadClientIds.contains(
                                 client.id,
@@ -256,15 +268,14 @@ class IndexerSourceAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final layoutTokens = context.appLayoutTokens;
-    final backgroundColor = kind == 'bt'
-        ? colors.selectionSurface
-        : colors.errorSurface;
-    final foregroundColor = kind == 'bt'
-        ? context.appTextPalette.accent
-        : colors.errorAccentForeground;
-    final icon = kind == 'bt'
-        ? Icons.language_rounded
-        : Icons.cloud_download_outlined;
+    final backgroundColor =
+        kind == 'bt' ? colors.selectionSurface : colors.errorSurface;
+    final foregroundColor =
+        kind == 'bt'
+            ? context.appTextPalette.accent
+            : colors.errorAccentForeground;
+    final icon =
+        kind == 'bt' ? Icons.language_rounded : Icons.cloud_download_outlined;
 
     return Container(
       width: layoutTokens.panelIconContainerSize,
@@ -316,13 +327,13 @@ class IndexerKindOptionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final layoutTokens = context.appLayoutTokens;
-    final backgroundColor = selected
-        ? colors.selectionSurface
-        : colors.surfaceMuted;
+    final backgroundColor =
+        selected ? colors.selectionSurface : colors.surfaceMuted;
     final borderColor = selected ? colors.selectionBorder : colors.borderSubtle;
-    final foregroundColor = selected
-        ? context.appTextPalette.accent
-        : context.appTextPalette.secondary;
+    final foregroundColor =
+        selected
+            ? context.appTextPalette.accent
+            : context.appTextPalette.secondary;
 
     return InkWell(
       onTap: enabled ? onTap : null,
@@ -338,15 +349,14 @@ class IndexerKindOptionButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style:
-              resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.tertiary,
-              ).copyWith(
-                color: enabled ? foregroundColor : context.appTextPalette.muted,
-              ),
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.tertiary,
+          ).copyWith(
+            color: enabled ? foregroundColor : context.appTextPalette.muted,
+          ),
         ),
       ),
     );

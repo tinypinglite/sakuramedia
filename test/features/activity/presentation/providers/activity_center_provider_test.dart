@@ -86,62 +86,6 @@ void main() {
       '/system/task-runs',
     );
   });
-
-  test('polling keeps a long-running task outside the history page', () async {
-    final subscription = container.listen(activityCenterProvider, (_, __) {});
-    addTearDown(subscription.close);
-    _enqueueJobs(bundle);
-    _enqueueBootstrap(bundle, activeTaskId: 8, historyTaskId: 9);
-    await container.read(activityCenterProvider.future);
-
-    bundle.adapter.enqueueJson(
-      method: 'POST',
-      path: '/system/jobs/media_import/run',
-      body: const <String, dynamic>{
-        'task_run_id': 10,
-        'task_key': 'media_import',
-        'state': 'pending',
-      },
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/task-runs',
-      body: <String, dynamic>{
-        'items': <Map<String, dynamic>>[
-          _taskRunJson(id: 9, state: 'completed'),
-        ],
-        'page': 1,
-        'page_size': 20,
-        'total': 1,
-      },
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/task-runs/active',
-      body: <Map<String, dynamic>>[
-        _taskRunJson(id: 8, state: 'running', progressCurrent: 7),
-        _taskRunJson(id: 10, state: 'pending'),
-      ],
-    );
-
-    await container
-        .read(activityCenterProvider.notifier)
-        .triggerJob('media_import');
-
-    final activeTask = container
-        .read(activityCenterProvider)
-        .requireValue
-        .activeTaskRuns
-        .firstWhere((task) => task.id == 8);
-    expect(activeTask.id, 8);
-    expect(activeTask.progressCurrent, 7);
-    expect(
-      bundle.adapter.requests
-          .where((request) => request.path == '/system/task-runs/active')
-          .length,
-      1,
-    );
-  });
 }
 
 void _enqueueJobs(TestApiBundle bundle) {
@@ -183,18 +127,14 @@ void _enqueueBootstrap(
   );
 }
 
-Map<String, dynamic> _taskRunJson({
-  required int id,
-  required String state,
-  int progressCurrent = 1,
-}) =>
+Map<String, dynamic> _taskRunJson({required int id, required String state}) =>
     <String, dynamic>{
       'id': id,
       'task_key': 'media_import',
       'task_name': '媒体导入',
       'trigger_type': 'manual',
       'state': state,
-      'progress_current': progressCurrent,
+      'progress_current': 1,
       'progress_total': 2,
       'progress_text': '处理中',
       'created_at': '2026-03-26T09:10:00Z',

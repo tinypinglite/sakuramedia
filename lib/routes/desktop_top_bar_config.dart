@@ -171,7 +171,7 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
 
   if (currentPath == desktopImageSearchPath) {
     return DesktopTopBarConfig(
-      title: '画面搜索',
+      title: '以图搜图',
       fallbackPath:
           _fallbackPathFromExtra(routeExtra, currentPath: currentPath) ??
           AppBackDestination.defaultLocationForPath(currentPath),

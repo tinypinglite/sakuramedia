@@ -1,10 +1,12 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/media/data/duplicate_media_group_dto.dart';
 import 'package:sakuramedia/features/media/data/invalid_media_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
+import 'package:sakuramedia/features/media/data/media_play_url_dto.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/media/data/media_point_list_item_dto.dart';
+import 'package:sakuramedia/features/media/data/media_rapid_upload_dto.dart';
+import 'package:sakuramedia/features/media/data/media_validity_check_result_dto.dart';
 
 class MediaApi {
   const MediaApi({required ApiClient apiClient}) : _apiClient = apiClient;
@@ -16,6 +18,8 @@ class MediaApi {
   /// - [kind] 传 `all` / `jav` / `video`，`null` 走后端默认（`all`）。
   /// - [libraryId] 指定媒体库过滤，null 时不加参数。
   /// - [actorIds] 订阅女优 OR 筛选，会拼成逗号分隔字符串下发。
+  /// - [rapidUploadStatus] 按上次秒传状态过滤：`none / not_hit / failed /
+  ///   cleanup_failed / in_progress`，`null` 时不筛选。
   /// - [sort] 例如 `heat:desc`、`file_size_bytes:desc`，`null` 时后端默认 `created_at:desc`。
   Future<PaginatedResponseDto<MediaListItemDto>> getMediaList({
     int page = 1,
@@ -23,6 +27,7 @@ class MediaApi {
     String? kind,
     int? libraryId,
     List<int>? actorIds,
+    String? rapidUploadStatus,
     String? thumbnailGenerationState,
     String? sort,
   }) async {
@@ -39,6 +44,9 @@ class MediaApi {
     if (actorIds != null && actorIds.isNotEmpty) {
       queryParameters['actor_ids'] = actorIds.join(',');
     }
+    if (rapidUploadStatus != null && rapidUploadStatus.isNotEmpty) {
+      queryParameters['rapid_upload_status'] = rapidUploadStatus;
+    }
     if (thumbnailGenerationState != null &&
         thumbnailGenerationState.isNotEmpty) {
       queryParameters['thumbnail_generation_state'] = thumbnailGenerationState;
@@ -54,6 +62,54 @@ class MediaApi {
       response,
       MediaListItemDto.fromJson,
     );
+  }
+
+  /// `POST /media/rapid-uploads`：异步创建一次秒传批次。
+  Future<MediaRapidUploadTriggerResponseDto> createMediaRapidUpload({
+    required List<int> mediaIds,
+    required int targetLibraryId,
+  }) async {
+    final response = await _apiClient.post(
+      '/media/rapid-uploads',
+      data: <String, dynamic>{
+        'media_ids': mediaIds,
+        'target_library_id': targetLibraryId,
+      },
+    );
+    return MediaRapidUploadTriggerResponseDto.fromJson(response);
+  }
+
+  /// `GET /media/rapid-uploads`：分页查询秒传批次。
+  Future<PaginatedResponseDto<MediaRapidUploadBatchListItemDto>>
+  getMediaRapidUploads({int page = 1, int pageSize = 20}) async {
+    final response = await _apiClient.get(
+      '/media/rapid-uploads',
+      queryParameters: <String, dynamic>{'page': page, 'page_size': pageSize},
+    );
+    return PaginatedResponseDto<MediaRapidUploadBatchListItemDto>.fromJson(
+      response,
+      MediaRapidUploadBatchListItemDto.fromJson,
+    );
+  }
+
+  /// `GET /media/rapid-uploads/{batch_id}`：单批次含 items 详情。
+  Future<MediaRapidUploadBatchDto> getMediaRapidUpload({
+    required int batchId,
+  }) async {
+    final response = await _apiClient.get('/media/rapid-uploads/$batchId');
+    return MediaRapidUploadBatchDto.fromJson(response);
+  }
+
+  /// `POST /media/rapid-uploads/{batch_id}/retry`：只重试失败/清理失败项。
+  ///
+  /// 若批次无可重试项，后端会以 `422 media_rapid_upload_no_retryable_items` 拒绝。
+  Future<MediaRapidUploadTriggerResponseDto> retryMediaRapidUpload({
+    required int batchId,
+  }) async {
+    final response = await _apiClient.post(
+      '/media/rapid-uploads/$batchId/retry',
+    );
+    return MediaRapidUploadTriggerResponseDto.fromJson(response);
   }
 
   Future<PaginatedResponseDto<MediaPointListItemDto>> getGlobalMediaPoints({
@@ -99,23 +155,11 @@ class MediaApi {
     );
   }
 
-  Future<PaginatedResponseDto<DuplicateMediaGroupDto>> getDuplicateMediaGroups({
-    required String kind,
-    int page = 1,
-    int pageSize = 20,
+  Future<MediaValidityCheckResultDto> checkMediaValidity({
+    required int mediaId,
   }) async {
-    final response = await _apiClient.get(
-      '/media/duplicates',
-      queryParameters: <String, dynamic>{
-        'kind': kind,
-        'page': page,
-        'page_size': pageSize,
-      },
-    );
-    return PaginatedResponseDto<DuplicateMediaGroupDto>.fromJson(
-      response,
-      DuplicateMediaGroupDto.fromJson,
-    );
+    final response = await _apiClient.post('/media/$mediaId/validity-check');
+    return MediaValidityCheckResultDto.fromJson(response);
   }
 
   Future<MediaPointDto> createMediaPoint({
@@ -135,5 +179,43 @@ class MediaApi {
 
   Future<void> deleteMedia({required int mediaId}) {
     return _apiClient.deleteNoContent('/media/$mediaId');
+  }
+
+  /// `GET /media/play-url`：解析影片播放链接。
+  ///
+  /// 按播放源（本地/115）与播放模式（单个/合并）返回签名地址；本地多分段返回
+  /// 虚拟合并 URL，115 多分段返回后端 HLS 代理的合播 m3u8 URL（`kind=cloud115Merged`）。
+  Future<MoviePlayUrlDto> getMoviePlayUrl({
+    required String movieNumber,
+    required MoviePlayUrlSource source,
+    required MoviePlayUrlMode mode,
+  }) async {
+    final response = await _apiClient.get(
+      '/media/play-url',
+      queryParameters: <String, dynamic>{
+        'movie_number': movieNumber,
+        'source': source.apiValue,
+        'mode': mode.apiValue,
+      },
+    );
+    return MoviePlayUrlDto.fromJson(response);
+  }
+
+  /// 探测合并播放流是否可播。
+  ///
+  /// 合并的真实规格校验（编码/分辨率/帧率一致）发生在 `/media/merged-stream`
+  /// 端点请求时；发送 `Range: bytes=0-0` 触发后端构建合并布局并校验，2xx 视为
+  /// 可播。后端对 layout 有进程内缓存（TTL 300s），正式播放会复用同一次解析。
+  Future<bool> probeMergedPlayback({required String playUrl}) async {
+    try {
+      await _apiClient.getBytes(
+        playUrl,
+        requiresAuth: false,
+        headers: const <String, dynamic>{'Range': 'bytes=0-0'},
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 }

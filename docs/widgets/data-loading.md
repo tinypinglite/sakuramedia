@@ -23,5 +23,6 @@
 - `SelectionCheckBadge`：卡片选中标记。
 - `AppSelectionToolbar`：桌面批量操作条。
 - `AppSelectionBottomBar`：移动批量操作条。
+- `AppSelectableTile`：可选择的通用条目。
 
 选中项、批量动作和失败反馈由业务页面或 Provider 管理；组件不直接发送业务请求。

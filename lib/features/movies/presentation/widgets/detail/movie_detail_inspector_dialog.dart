@@ -1,13 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_inspector_panel.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_preview_overlay.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
@@ -62,13 +60,11 @@ Future<void> showMovieDetailInspectorDialog({
               if (!context.mounted) {
                 return;
               }
-              unawaited(
-                launchMoviePlayback(
-                  context,
-                  movieNumber: movieNumber,
-                  mediaId: thumbnail.mediaId > 0 ? thumbnail.mediaId : null,
-                  positionSeconds: thumbnail.offsetSeconds,
-                ),
+              context.pushDesktopMoviePlayer(
+                movieNumber: movieNumber,
+                fallbackPath: buildDesktopMovieDetailRoutePath(movieNumber),
+                mediaId: thumbnail.mediaId > 0 ? thumbnail.mediaId : null,
+                positionSeconds: thumbnail.offsetSeconds,
               );
             });
           },

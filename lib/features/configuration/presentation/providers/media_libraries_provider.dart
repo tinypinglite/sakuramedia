@@ -75,6 +75,7 @@ class MediaLibraries extends _$MediaLibraries
     );
   }
 
+  /// Cloud115 流程在 View 中完成后，调用方用其返回 DTO 回写共享列表。
   void upsert(MediaLibraryDto library) {
     if (isDisposed) return;
     final current = state.value;

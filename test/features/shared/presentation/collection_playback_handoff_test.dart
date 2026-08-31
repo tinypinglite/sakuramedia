@@ -8,7 +8,7 @@ void main() {
       VideoCollectionItemDto.fromJson(<String, dynamic>{
         'item_id': id,
         'position': id,
-        'play_url': '/media/$id/play/?expires=1777777777&signature=abc',
+        'play_url': '/media/$id/stream',
         'video': <String, dynamic>{
           'id': id,
           'title': 'V$id',

@@ -8,7 +8,6 @@ import 'package:sakuramedia/app/providers/app_shell_providers.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/notification_center_provider.dart';
 import 'package:sakuramedia/app/app_version_info_state.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
-import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
@@ -546,17 +545,15 @@ class _SidebarSearchSectionState extends State<_SidebarSearchSection> {
         return CatalogSearchField(
           key: const Key('sidebar-search-field'),
           fieldKey: const Key('sidebar-search-input'),
+          searchButtonKey: const Key('sidebar-search-submit'),
           imageSearchButtonKey: const Key('sidebar-search-image'),
-          textImageSearchButtonKey: const Key('sidebar-search-text-image'),
           controller: _controller,
           hintText: '如 SSNI-888、三上悠亚',
-          showSearchButton: false,
           showImageSearchButton: true,
-          showTextImageSearchButton: true,
           fillColor: context.appColors.surfaceElevated,
           onSubmitted: (_) => _submit(context),
           onImageSearchTap: () => _pickAndOpenImageSearch(context),
-          onTextImageSearchTap: () => _openTextImageSearch(context),
+          onSearchTap: () => _submit(context),
         );
       },
     );
@@ -569,13 +566,6 @@ class _SidebarSearchSectionState extends State<_SidebarSearchSection> {
     }
     context.pushDesktopSearch(query: query, fallbackPath: widget.currentPath);
     _controller.clear();
-  }
-
-  void _openTextImageSearch(BuildContext context) {
-    context.pushDesktopImageSearch(
-      fallbackPath: widget.currentPath,
-      initialInputKind: ImageSearchInputKind.text,
-    );
   }
 
   Future<void> _pickAndOpenImageSearch(BuildContext context) async {

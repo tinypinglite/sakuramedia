@@ -10,42 +10,25 @@ String formatGigabytes(int bytes) {
 }
 
 extension OverviewSystemInfoFormat on OverviewSystemInfoState {
-  String buildEmbeddingServiceHealthValue() {
+  String buildJoyTagHealthValue() {
     if (imageSearchStatus == null) {
       return '不可用';
     }
-    return imageSearchStatus!.embeddingService.healthy ? '正常' : '异常';
+    return imageSearchStatus!.joyTag.healthy ? '正常' : '异常';
   }
 
-  String buildEmbeddingServiceSpaceValue() {
-    final spaceId = imageSearchStatus?.embeddingService.spaceId;
-    if (spaceId == null || spaceId.trim().isEmpty) {
+  String buildJoyTagDeviceValue() {
+    final device = imageSearchStatus?.joyTag.usedDevice;
+    if (device == null || device.trim().isEmpty) {
       return '未知';
     }
-    return spaceId;
+    return device;
   }
 
-  String buildEmbeddingServiceIndexingValue() {
+  String buildJoyTagIndexingValue() {
     if (imageSearchStatus == null) {
       return '不可用';
     }
     return imageSearchStatus!.indexing.pendingThumbnails.toString();
-  }
-
-  String buildImageSearchIndexSpaceValue() {
-    final status = imageSearchStatus;
-    if (status == null) {
-      return '不可用';
-    }
-    if (status.indexSpace.isRebuilding) {
-      return '重建中';
-    }
-    return switch (status.indexSpace.state) {
-      'ready' => '就绪',
-      'rebuild_required' => '需重建',
-      'uninitialized' => '未建立',
-      'unavailable' => '不可用',
-      _ => '未知',
-    };
   }
 }

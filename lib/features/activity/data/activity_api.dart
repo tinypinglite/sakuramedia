@@ -89,11 +89,6 @@ class ActivityApi {
     return ManualJobTriggerResponseDto.fromJson(response);
   }
 
-  Future<List<TaskRunDto>> getActiveTaskRuns() async {
-    final response = await _apiClient.getList('/system/task-runs/active');
-    return response.map(TaskRunDto.fromJson).toList(growable: false);
-  }
-
   Future<PaginatedResponseDto<TaskRunDto>> getTaskRuns({
     int page = 1,
     int pageSize = 20,

@@ -48,7 +48,6 @@ typedef VideoCollectionConfirm =
       required String confirmLabel,
       required Key confirmKey,
       Key? drawerKey,
-      Future<void> Function()? onConfirm,
     });
 
 typedef VideoCollectionPlayAllBuilder =
@@ -136,7 +135,8 @@ class VideoCollectionDetailContent extends ConsumerStatefulWidget {
   /// 「跳到其它合集」（桌面 push / 移动 push 路由），由壳实现。
   final void Function(BuildContext context, int collectionId)? onOpenCollection;
 
-  /// 确认弹层（桌面 dialog / 移动 drawer），由壳实现；`drawerKey` 仅移动端使用。
+  /// 确认弹层（桌面 `showAppConfirmDialog` / 移动 `showMobileClipConfirmDrawer`），
+  /// 由壳实现；`drawerKey` 仅移动端使用。
   final VideoCollectionConfirm? confirm;
 
   @override
@@ -772,22 +772,27 @@ class _VideoCollectionDetailContentState
     if (videoId == null) {
       return;
     }
-    final targetVideoId = videoId;
     final label = title.isEmpty ? '该视频' : '“$title”';
-    final notifier = ref.read(_providerRef.notifier);
     final confirmed = await _confirm(
       title: '删除视频',
       message: '确认删除$label？该操作不可恢复。',
       confirmLabel: '删除',
       confirmKey: Key('${widget.keyPrefix}-delete-confirm-button'),
       drawerKey: _isMobile ? Key('${widget.keyPrefix}-delete-drawer') : null,
-      onConfirm: () => notifier.deleteVideo(itemId, targetVideoId),
     );
     if (!mounted || !confirmed) {
       return;
     }
-    _mutationBroadcaster.reportDeleted(targetVideoId);
-    showToast('已删除视频');
+    final error = await ref
+        .read(_providerRef.notifier)
+        .deleteVideo(itemId, videoId);
+    if (!mounted) {
+      return;
+    }
+    if (error == null) {
+      _mutationBroadcaster.reportDeleted(videoId);
+    }
+    showToast(error ?? '已删除视频');
   }
 
   Future<bool> _confirm({
@@ -796,7 +801,6 @@ class _VideoCollectionDetailContentState
     required String confirmLabel,
     required Key confirmKey,
     Key? drawerKey,
-    Future<void> Function()? onConfirm,
   }) async {
     final handler = widget.confirm;
     if (handler == null) {
@@ -809,7 +813,6 @@ class _VideoCollectionDetailContentState
       confirmLabel: confirmLabel,
       confirmKey: confirmKey,
       drawerKey: drawerKey,
-      onConfirm: onConfirm,
     );
   }
 

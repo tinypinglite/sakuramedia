@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:sakuramedia/features/clips/presentation/pages/mobile/clip_confirm_drawer.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_player_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/shared/video_collection_detail_content.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 
 export 'package:sakuramedia/features/videos/presentation/pages/shared/video_collection_detail_content.dart'
@@ -89,19 +89,17 @@ class MobileVideoCollectionDetailPage extends StatelessWidget {
         required confirmLabel,
         required confirmKey,
         drawerKey,
-        onConfirm,
-      }) =>
-          showAppConfirmDialog(
-            context,
-            title: title,
-            message: message,
-            danger: true,
-            confirmLabel: confirmLabel,
-            dialogKey: drawerKey,
-            confirmKey: confirmKey,
-            onConfirm: onConfirm,
-            failureFallback: '删除失败，请重试',
-          ),
+      }) async {
+        final confirmed = await showMobileClipConfirmDrawer(
+          context,
+          title: title,
+          message: message,
+          confirmLabel: confirmLabel,
+          drawerKey: drawerKey,
+          confirmButtonKey: confirmKey,
+        );
+        return confirmed == true;
+      },
     );
   }
 }

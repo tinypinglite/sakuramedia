@@ -3,20 +3,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 
-class AppFilterPopoverController {
-  VoidCallback? _close;
-
-  void close() => _close?.call();
-
-  void _attach(VoidCallback close) => _close = close;
-
-  void _detach(VoidCallback close) {
-    if (_close == close) {
-      _close = null;
-    }
-  }
-}
-
 /// 通用「触发按钮 + 展开浮层面板」外壳。
 ///
 /// actor / movie / ranking 三个 FilterToolbar 的浮层骨架
@@ -47,7 +33,6 @@ class AppFilterPopover extends StatefulWidget {
     this.initialTriggerSize = const Size(160, 36),
     this.alignment = AppFilterPopoverAlignment.rightAlignedToTrigger,
     this.triggerBuilder,
-    this.controller,
   });
 
   final String triggerLabel;
@@ -97,9 +82,6 @@ class AppFilterPopover extends StatefulWidget {
   final Widget Function(BuildContext context, bool isOpen, VoidCallback toggle)?
   triggerBuilder;
 
-  /// 需要在面板内完成“应用并关闭”时使用。
-  final AppFilterPopoverController? controller;
-
   @override
   State<AppFilterPopover> createState() => _AppFilterPopoverState();
 }
@@ -118,29 +100,16 @@ class _AppFilterPopoverState extends State<AppFilterPopover> {
   static const double _panelVerticalGap = 8;
 
   @override
-  void initState() {
-    super.initState();
-    widget.controller?._attach(_closeFromController);
-  }
-
-  @override
   void didUpdateWidget(covariant AppFilterPopover oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      oldWidget.controller?._detach(_closeFromController);
-      widget.controller?._attach(_closeFromController);
-    }
     _scheduleOverlayRebuild();
   }
 
   @override
   void dispose() {
-    widget.controller?._detach(_closeFromController);
     _removeOverlay(updateState: false);
     super.dispose();
   }
-
-  void _closeFromController() => _removeOverlay();
 
   void _togglePanel() {
     if (!widget.enabled) {

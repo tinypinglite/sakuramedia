@@ -213,6 +213,7 @@ class DesktopVideoCollectionPlayRouteData extends _DesktopNoTransitionRouteData
       path: desktopVideoCollectionsPath,
     ),
     TypedGoRoute<DesktopRankingsRouteData>(path: desktopRankingsPath),
+    TypedGoRoute<DesktopHotReviewsRouteData>(path: desktopHotReviewsPath),
     TypedGoRoute<DesktopActivityRouteData>(path: desktopActivityPath),
     TypedGoRoute<DesktopMediaRouteData>(path: desktopMediaPath),
     TypedGoRoute<DesktopNotificationsRouteData>(path: desktopNotificationsPath),
@@ -377,6 +378,11 @@ class DesktopRankingsRouteData extends _DesktopShellSpecRouteData
   const DesktopRankingsRouteData() : super(desktopRankingsPath);
 }
 
+class DesktopHotReviewsRouteData extends _DesktopShellSpecRouteData
+    with $DesktopHotReviewsRouteData {
+  const DesktopHotReviewsRouteData() : super(desktopHotReviewsPath);
+}
+
 class DesktopConfigurationRouteData extends _DesktopShellSpecRouteData
     with $DesktopConfigurationRouteData {
   const DesktopConfigurationRouteData() : super(desktopConfigurationPath);
@@ -516,13 +522,11 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
     this.draftId,
     this.currentMovieNumber,
     this.currentMovieScope = 'all',
-    this.mode = 'image',
   });
 
   final String? draftId;
   final String? currentMovieNumber;
   final String currentMovieScope;
-  final String mode;
 
   @override
   String get pageName => 'desktop-image-search';
@@ -534,7 +538,6 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
       if (draftId != null) 'draftId': draftId,
       if (currentMovieNumber != null) 'currentMovieNumber': currentMovieNumber,
       if (currentMovieScope != 'all') 'currentMovieScope': currentMovieScope,
-      if (mode != 'image') 'mode': mode,
     },
   );
 
@@ -567,14 +570,6 @@ class DesktopImageSearchRouteData extends _DesktopShellPageRouteData
               fallback: currentMovieScope,
             ) ??
             currentMovieScope,
-      ),
-      initialInputKind: parseImageSearchInputKind(
-        resolveStringQueryParameter(
-              state,
-              names: const <String>['mode'],
-              fallback: mode,
-            ) ??
-            mode,
       ),
     );
   }

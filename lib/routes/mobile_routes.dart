@@ -39,7 +39,6 @@ import 'package:sakuramedia/features/overview/presentation/pages/mobile/system_o
 import 'package:sakuramedia/features/playlists/presentation/pages/mobile/playlists_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/pages/mobile/playlist_detail_page.dart';
 import 'package:sakuramedia/features/search/presentation/pages/mobile/catalog_search_page.dart';
-import 'package:sakuramedia/features/subscriptions/presentation/pages/mobile/follow_page.dart';
 import 'package:sakuramedia/features/tags/presentation/pages/mobile/tags_page.dart';
 import 'package:sakuramedia/routes/app_route_helpers.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -129,19 +128,17 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
     this.draftId,
     this.currentMovieNumber,
     this.currentMovieScope = 'all',
-    this.mode = 'image',
   });
 
   final String? draftId;
   final String? currentMovieNumber;
   final String currentMovieScope;
-  final String mode;
 
   @override
   String get pageName => 'mobile-image-search';
 
   @override
-  String get title => '画面搜索';
+  String get title => '以图搜图';
 
   @override
   String get defaultLocation => mobileOverviewPath;
@@ -153,7 +150,6 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
       if (draftId != null) 'draftId': draftId,
       if (currentMovieNumber != null) 'currentMovieNumber': currentMovieNumber,
       if (currentMovieScope != 'all') 'currentMovieScope': currentMovieScope,
-      if (mode != 'image') 'mode': mode,
     },
   );
 
@@ -184,14 +180,6 @@ class MobileImageSearchRouteData extends _MobileSubpageRouteData
               fallback: currentMovieScope,
             ) ??
             currentMovieScope,
-      ),
-      initialInputKind: parseImageSearchInputKind(
-        resolveStringQueryParameter(
-              state,
-              names: const <String>['mode'],
-              fallback: mode,
-            ) ??
-            mode,
       ),
     );
   }
@@ -741,7 +729,6 @@ class MobileVideoCollectionPlayRouteData extends _MobileCupertinoRouteData
         TypedGoRoute<MobileOverviewRouteData>(
           path: mobileOverviewPath,
           routes: <TypedRoute<RouteData>>[
-            TypedGoRoute<MobileFollowRouteData>(path: 'discover/follow'),
             TypedGoRoute<MobileDiscoverMoviesRouteData>(
               path: 'discover/movies',
             ),
@@ -1538,28 +1525,6 @@ class MobilePlaylistDetailRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobilePlaylistDetailPage(playlistId: playlistId);
-  }
-}
-
-class MobileFollowRouteData extends _MobileSubpageRouteData
-    with $MobileFollowRouteData {
-  const MobileFollowRouteData();
-
-  static final GlobalKey<NavigatorState> $parentNavigatorKey =
-      mobileRootNavigatorKey;
-
-  @override
-  String get pageName => 'mobile-follow';
-
-  @override
-  String get title => '女优上新';
-
-  @override
-  String get defaultLocation => mobileOverviewPath;
-
-  @override
-  Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return const MobileFollowPage();
   }
 }
 

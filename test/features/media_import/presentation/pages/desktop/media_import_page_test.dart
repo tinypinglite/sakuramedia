@@ -10,7 +10,9 @@ import '../../../../../support/test_api_bundle.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('shows unified import entry tabs', (tester) async {
+  testWidgets('shows unified import entry tabs without legacy job lists', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -33,7 +35,11 @@ void main() {
 
     expect(find.byKey(const Key('media-import-page')), findsOneWidget);
     expect(find.byKey(const Key('media-import-tab-jav')), findsOneWidget);
-    expect(find.byKey(const Key('media-import-tab-video')), findsOneWidget);
+    expect(find.byKey(const Key('media-import-tab-pornbox')), findsOneWidget);
+    expect(
+      find.byKey(const Key('media-import-tab-jav-subtitle')),
+      findsOneWidget,
+    );
     expect(find.byType(Text, skipOffstage: false), findsWidgets);
     expect(find.byKey(const Key('media-import-create-button')), findsOneWidget);
   });

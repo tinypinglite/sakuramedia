@@ -4,11 +4,11 @@ import 'package:sakuramedia/features/clip_collections/presentation/widgets/add_c
 import 'package:sakuramedia/features/clip_collections/presentation/widgets/create_clip_collection_dialog.dart';
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/pages/mobile/clip_actions_sheet.dart';
+import 'package:sakuramedia/features/clips/presentation/pages/mobile/clip_confirm_drawer.dart';
 import 'package:sakuramedia/features/clips/presentation/pages/mobile/clip_player_page.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 
 export 'package:sakuramedia/features/clip_collections/presentation/pages/shared/clip_collection_detail_content.dart'
@@ -81,19 +81,17 @@ class MobileClipCollectionDetailPage extends StatelessWidget {
         required confirmLabel,
         required confirmKey,
         drawerKey,
-        onConfirm,
-      }) =>
-          showAppConfirmDialog(
-            context,
-            title: title,
-            message: message,
-            danger: true,
-            confirmLabel: confirmLabel,
-            dialogKey: drawerKey,
-            confirmKey: confirmKey,
-            onConfirm: onConfirm,
-            failureFallback: '删除失败，请重试',
-          ),
+      }) async {
+        final confirmed = await showMobileClipConfirmDrawer(
+          context,
+          title: title,
+          message: message,
+          confirmLabel: confirmLabel,
+          drawerKey: drawerKey,
+          confirmButtonKey: confirmKey,
+        );
+        return confirmed == true;
+      },
       onEditCollection: (context, collection) async {
         return showEditClipCollectionDialog(
           context,

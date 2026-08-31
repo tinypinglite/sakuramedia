@@ -62,7 +62,7 @@ class MomentFilterSectionGroup extends StatelessWidget {
 /// 弹出移动端时刻筛选底部抽屉。内容与桌面 `AppListHeader` 的就地浮层面板**完全
 /// 一致**（同一个 [MomentFilterSectionGroup]），**即时生效**。
 ///
-/// 类型与排序都是必选其一、没有「恢复默认」语义，故不带 footer——对齐榜单。
+/// 类型与排序都是必选其一、没有「恢复默认」语义，故不带 footer——对齐榜单 / 热评。
 Future<void> showMobileMomentFilterDrawer(
   BuildContext context, {
   required MomentKindFilter kindFilter,

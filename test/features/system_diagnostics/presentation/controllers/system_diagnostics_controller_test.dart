@@ -64,8 +64,7 @@ Map<String, dynamic> _library({int id = 1, String name = 'Main'}) {
   return <String, dynamic>{
     'id': id,
     'name': name,
-    'provider_key': 'demo',
-    'provider_config': <String, dynamic>{'root': '/media'},
+    'root_path': '/media',
     'created_at': null,
     'updated_at': null,
   };
@@ -75,8 +74,68 @@ Map<String, dynamic> _clientDto({int id = 1, String name = 'qb'}) {
   return <String, dynamic>{
     'id': id,
     'name': name,
-    'provider_config': <String, dynamic>{'endpoint': 'http://qb.example'},
-    'library_id': 1,
+    'kind': 'qbittorrent',
+    'base_url': 'http://qb.example',
+    'username': 'user',
+    'client_save_path': '/dl',
+    'local_root_path': '/mnt/dl',
+    'media_library_id': 1,
+    'has_password': true,
+  };
+}
+
+Map<String, dynamic> _connectivityResult({
+  required bool healthy,
+  int clientId = 1,
+  String? errorType,
+  String? errorMessage,
+}) {
+  return <String, dynamic>{
+    'healthy': healthy,
+    'checked_at': null,
+    'client_id': clientId,
+    'client_name': 'qb',
+    'base_url': 'http://qb.example',
+    'elapsed_ms': 20,
+    'version': healthy ? '5.0.4' : null,
+    'web_api_version': healthy ? '2.11' : null,
+    'error':
+        errorType == null
+            ? null
+            : <String, dynamic>{
+              'type': errorType,
+              'message': errorMessage ?? '',
+            },
+  };
+}
+
+Map<String, dynamic> _storageResult({required bool healthy, int clientId = 1}) {
+  return <String, dynamic>{
+    'healthy': healthy,
+    'checked_at': null,
+    'client_id': clientId,
+    'client_name': 'qb',
+    'elapsed_ms': 30,
+    'warnings': const <String>[],
+    'directory_mapping': <String, dynamic>{
+      'status': healthy ? 'ok' : 'error',
+      'client_save_path': '/dl',
+      'local_root_path': '/mnt/dl',
+      'probe_remote_dir': '/dl/.p',
+      'probe_local_dir': '/mnt/dl/.p',
+      'sentinel_visible_to_qb': healthy,
+      'error':
+          healthy
+              ? null
+              : <String, dynamic>{'type': 'mapping', 'message': 'nope'},
+    },
+    'hardlink': <String, dynamic>{
+      'status': 'ok',
+      'supported': true,
+      'source_path': '/mnt/dl/.p/s',
+      'target_path': '/media/.p/s',
+      'error': null,
+    },
   };
 }
 
@@ -93,6 +152,7 @@ Map<String, dynamic> _indexerSettings({
               <String, dynamic>{
                 'id': entry['download_client_id'],
                 'name': entry['download_client_name'],
+                'kind': 'qbittorrent',
               },
             ],
           };
@@ -116,9 +176,13 @@ Map<String, dynamic> _indexerConnectionTest({
     'indexers_checked': indexersChecked,
     'result_count': resultCount,
     'elapsed_ms': elapsedMs,
-    'error': errorType == null
-        ? null
-        : <String, dynamic>{'type': errorType, 'message': errorMessage ?? ''},
+    'error':
+        errorType == null
+            ? null
+            : <String, dynamic>{
+              'type': errorType,
+              'message': errorMessage ?? '',
+            },
   };
 }
 
@@ -136,9 +200,10 @@ Map<String, dynamic> _providerTest({
     'provider': provider,
     'movie_number': 'SSNI-888',
     'elapsed_ms': 42,
-    'error': healthy
-        ? null
-        : <String, dynamic>{'type': errorType, 'message': errorMessage},
+    'error':
+        healthy
+            ? null
+            : <String, dynamic>{'type': errorType, 'message': errorMessage},
   };
 }
 
@@ -148,12 +213,10 @@ Map<String, dynamic> _imageSearchStatus({required bool joyTagHealthy}) {
   return <String, dynamic>{
     'healthy': joyTagHealthy,
     'checked_at': '2026-07-11T08:00:00Z',
-    'embedding_service': <String, dynamic>{
+    'joytag': <String, dynamic>{
       'healthy': joyTagHealthy,
-      'space_id': 'clip-vit-l-14',
-      'dimension': 768,
-      'modalities': <String>['image', 'text'],
-      'endpoint': 'http://embedding:8000',
+      'used_device': joyTagHealthy ? 'cuda:0' : null,
+      'endpoint': 'http://joytag:8000',
       'error': joyTagHealthy ? null : 'model file not found',
     },
     'indexing': <String, dynamic>{
@@ -164,8 +227,7 @@ Map<String, dynamic> _imageSearchStatus({required bool joyTagHealthy}) {
   };
 }
 
-// 独立探针的响应：一次性 enqueue 好，媒体库/索引器分支是否继续都不影响
-// JavDB 与 JoyTag 探针执行。
+// 独立探针的响应：一次性 enqueue 好，无论媒体库/下载器分支是否触发它们都会跑。
 void _enqueueIndependentProbes({
   bool javdbHealthy = true,
   bool joyTagHealthy = true,
@@ -222,6 +284,16 @@ void main() {
     );
     _bundle.adapter.enqueueJson(
       method: 'GET',
+      path: '/download-clients/1/test',
+      body: _connectivityResult(healthy: true),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-clients/1/storage-test',
+      body: _storageResult(healthy: true),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
       path: '/indexer-settings',
       body: _indexerSettings(
         entries: <Map<String, dynamic>>[
@@ -256,7 +328,80 @@ void main() {
     expect(indexer.summary, contains('2 条候选'));
   });
 
-  test('媒体库为空 → 索引器 blocked，不发索引器请求', () async {
+  test('cloud115 downloader probes login state without storage test', () async {
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-libraries',
+      body: <Map<String, dynamic>>[_library()],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 8,
+          'name': '115 主账号',
+          'kind': 'cloud115',
+          'base_url': null,
+          'username': null,
+          'client_save_path': null,
+          'local_root_path': null,
+          'media_library_id': 1,
+          'has_password': false,
+        },
+      ],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients/8/test',
+      body: <String, dynamic>{
+        ..._connectivityResult(healthy: true, clientId: 8),
+        'client_name': '115 主账号',
+        'base_url': null,
+        'version': null,
+        'web_api_version': null,
+      },
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings',
+      body: _indexerSettings(
+        entries: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 1,
+            'name': 'dmhy',
+            'url': 'https://torznab.example/api',
+            'kind': 'bt',
+            'download_clients': <Map<String, dynamic>>[
+              <String, dynamic>{'id': 8, 'name': '115 主账号', 'kind': 'cloud115'},
+            ],
+          },
+        ],
+      ),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings/test',
+      body: _indexerConnectionTest(healthy: true),
+    );
+    _enqueueIndependentProbes();
+
+    final controller = _newController();
+    await controller.runAll();
+
+    expect(
+      _bundle.adapter.hitCount('POST', '/download-clients/8/storage-test'),
+      0,
+    );
+    final connectivity = _find(
+      controller,
+      (item) => item.itemKey == 'downloader-connectivity-8',
+    );
+    expect(connectivity.status, DiagnosticItemStatus.healthy);
+    expect(connectivity.summary, '115 登录状态正常');
+  });
+
+  test('媒体库空 → 下载器 + 索引器全部 blocked，不发多余请求', () async {
     _bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/media-libraries',
@@ -270,15 +415,140 @@ void main() {
     final ml = _find(c, (i) => i.kind == DiagnosticItemKind.mediaLibrary);
     expect(ml.status, DiagnosticItemStatus.unhealthy);
 
-    final chainCat = c.categories.firstWhere((cat) => cat.label == '下载与检索链');
+    final downloaderCat = c.categories.firstWhere(
+      (cat) => cat.label == '下载与检索链',
+    );
     expect(
-      chainCat.items.every((i) => i.status == DiagnosticItemStatus.blocked),
+      downloaderCat.items.every(
+        (i) => i.status == DiagnosticItemStatus.blocked,
+      ),
       isTrue,
     );
 
-    // 媒体库未就绪时索引器阶段被跳过；独立的 JavDB/JoyTag 探针仍会完成。
+    // Stage C/D 都被跳过 → 不应看到下载器/索引器请求。
     expect(_bundle.adapter.hitCount('GET', '/download-clients'), 0);
     expect(_bundle.adapter.hitCount('GET', '/indexer-settings'), 0);
+  });
+
+  test('下载器 1 挂 + 下载器 2 通 → 索引器仍能跑', () async {
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-libraries',
+      body: <Map<String, dynamic>>[_library()],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients',
+      body: <Map<String, dynamic>>[
+        _clientDto(id: 1, name: 'qb-a'),
+        _clientDto(id: 2, name: 'qb-b'),
+      ],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients/1/test',
+      body: _connectivityResult(
+        healthy: false,
+        clientId: 1,
+        // 后端 qB 只发这一种 type，认证/网络靠 message 尽力细分。
+        errorType: 'qbittorrent_request_error',
+        errorMessage: 'Login authorization failed.',
+      ),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-clients/1/storage-test',
+      body: _storageResult(healthy: false, clientId: 1),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients/2/test',
+      body: _connectivityResult(healthy: true, clientId: 2),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-clients/2/storage-test',
+      body: _storageResult(healthy: true, clientId: 2),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings',
+      body: _indexerSettings(
+        entries: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 1,
+            'name': 'e1',
+            'url': 'https://torznab.example',
+            'kind': 'pt',
+            'download_client_id': 2,
+            'download_client_name': 'qb-b',
+          },
+        ],
+      ),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/indexer-settings/test',
+      body: _indexerConnectionTest(healthy: true, resultCount: 0),
+    );
+    _enqueueIndependentProbes();
+
+    final c = _newController();
+    await c.runAll();
+
+    // 索引器不被 block（因为有健康的下载器 2），真实搜索无候选仍代表连通正常。
+    final idx = _find(c, (i) => i.kind == DiagnosticItemKind.indexer);
+    expect(idx.status, DiagnosticItemStatus.healthy);
+    expect(idx.summary, contains('未返回候选'));
+
+    // 下载器 1 连通性 → unhealthy，命中 qB auth 细分 hint。
+    final c1 = _find(
+      c,
+      (i) =>
+          i.kind == DiagnosticItemKind.downloaderConnectivity &&
+          i.itemKey == 'downloader-connectivity-1',
+    );
+    expect(c1.status, DiagnosticItemStatus.unhealthy);
+    expect(c1.cause, contains('不认这个账号密码'));
+    // 状态短句用后端 message，而不是内部 type 名。
+    expect(c1.summary, 'Login authorization failed.');
+  });
+
+  test('下载器全挂 → 索引器 blocked', () async {
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-libraries',
+      body: <Map<String, dynamic>>[_library()],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients',
+      body: <Map<String, dynamic>>[_clientDto()],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients/1/test',
+      body: _connectivityResult(
+        healthy: false,
+        errorType: 'qbittorrent_request_error',
+        errorMessage: 'connect timed out',
+      ),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-clients/1/storage-test',
+      body: _storageResult(healthy: false),
+    );
+    _enqueueIndependentProbes();
+
+    final c = _newController();
+    await c.runAll();
+
+    // 索引器 blocked → 不该发 GET /indexer-settings。
+    expect(_bundle.adapter.hitCount('GET', '/indexer-settings'), 0);
+    final idx = _find(c, (i) => i.kind == DiagnosticItemKind.indexer);
+    expect(idx.status, DiagnosticItemStatus.blocked);
+    expect(idx.blockedByLabel, '下载器');
   });
 
   test('索引器静态校验失败时不发起真实搜索', () async {
@@ -291,6 +561,16 @@ void main() {
       method: 'GET',
       path: '/download-clients',
       body: <Map<String, dynamic>>[_clientDto()],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients/1/test',
+      body: _connectivityResult(healthy: true),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-clients/1/storage-test',
+      body: _storageResult(healthy: true),
     );
     _bundle.adapter.enqueueJson(
       method: 'GET',
@@ -329,6 +609,16 @@ void main() {
       method: 'GET',
       path: '/download-clients',
       body: <Map<String, dynamic>>[_clientDto()],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/download-clients/1/test',
+      body: _connectivityResult(healthy: true),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-clients/1/storage-test',
+      body: _storageResult(healthy: true),
     );
     _bundle.adapter.enqueueJson(
       method: 'GET',
@@ -421,8 +711,7 @@ void main() {
     expect(_bundle.adapter.hitCount('GET', '/media-libraries'), 1);
   });
 
-  // 独立探针场景的最小骨架：媒体库有 1 个，索引器配置列表为空，
-  // 只验证 JavDB/JoyTag 的结果与媒体库状态互不干扰。
+  // 只跑独立探针的最小骨架：媒体库有 1 个、下载器 0 个，Stage C/D 不产生额外请求。
   Future<_SystemDiagnosticsHarness> _runWithProbes({
     required void Function() enqueueProbes,
   }) async {
@@ -487,7 +776,7 @@ void main() {
       final javdb = _find(c, (i) => i.kind == DiagnosticItemKind.javdb);
       expect(javdb.status, DiagnosticItemStatus.unhealthy);
       expect(javdb.cause, contains('后端没有响应'));
-      // 探测端点 500 时不能引导用户检查应用内不存在的代理字段。
+      // 旧实现 probe 失败会套 proxy-required 文案，让用户去查一个应用内已不存在的代理字段。
       expect(javdb.fixHint, isNot(contains('代理')));
     });
   });
@@ -528,4 +817,5 @@ void main() {
     // 这一条不该给"去建媒体库"的跳转。
     expect(ml.fixTarget, isNull);
   });
+
 }

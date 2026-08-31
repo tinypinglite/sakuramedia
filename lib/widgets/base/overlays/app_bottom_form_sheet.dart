@@ -9,8 +9,8 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 /// [AppBottomDrawerSurface] 在抽屉外壳层统一兜底（`AnimatedPadding(viewInsets)`），
 /// 此处不再自补偿，避免双 padding。
 ///
-/// [body] 由调用方组装 —— 通常是 FormFields，也可以在其后追加页面所需的
-/// 校验提示或其他局部控件。
+/// [body] 由调用方组装 —— 通常是 FormFields，也可以在其后追加探针 chips 之类
+/// 附加控件（如 downloaders 页会追加 `DownloadClientEditorProbeChips`）。
 class AppBottomFormSheet extends StatelessWidget {
   const AppBottomFormSheet({
     super.key,

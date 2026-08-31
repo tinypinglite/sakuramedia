@@ -13,15 +13,17 @@ part of 'clip_collection_detail_provider.dart';
 /// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
 /// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
 ///
-/// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-/// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
-/// 执行一个 mutation。
+/// **本仓库首个 [OptimisticPatchMixin] 业务采用者**：reorder / removeClip /
+/// deleteClip 三处都用 [withOptimisticPatch]（本地立即变 → await API → 失败
+/// 整体回滚）。三处共用 [_mutationKey]：保持原 controller 「同时只允许一个
+/// mutation」的语义（先前 `_isMutating` bool 的等价）。
 ///
 /// 三个 mutation 方法**保留返回 `Future<String?>`（成功 null / 失败错误文案）
 /// 的 UI 兼容语义**——mixin 内核是 rethrow，本 provider 在外包 try/catch
 /// 转文案，让两个 detail page 的 UI 调用点不动。
 ///
-/// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
+/// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放；对齐
+/// `mediaRapidUploadBatchDetail` 唯一 autoDispose family 先例。
 
 @ProviderFor(ClipCollectionDetail)
 final clipCollectionDetailProvider = ClipCollectionDetailFamily._();
@@ -31,15 +33,17 @@ final clipCollectionDetailProvider = ClipCollectionDetailFamily._();
 /// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
 /// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
 ///
-/// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-/// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
-/// 执行一个 mutation。
+/// **本仓库首个 [OptimisticPatchMixin] 业务采用者**：reorder / removeClip /
+/// deleteClip 三处都用 [withOptimisticPatch]（本地立即变 → await API → 失败
+/// 整体回滚）。三处共用 [_mutationKey]：保持原 controller 「同时只允许一个
+/// mutation」的语义（先前 `_isMutating` bool 的等价）。
 ///
 /// 三个 mutation 方法**保留返回 `Future<String?>`（成功 null / 失败错误文案）
 /// 的 UI 兼容语义**——mixin 内核是 rethrow，本 provider 在外包 try/catch
 /// 转文案，让两个 detail page 的 UI 调用点不动。
 ///
-/// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
+/// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放；对齐
+/// `mediaRapidUploadBatchDetail` 唯一 autoDispose family 先例。
 final class ClipCollectionDetailProvider
     extends
         $AsyncNotifierProvider<
@@ -51,15 +55,17 @@ final class ClipCollectionDetailProvider
   /// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
   /// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
   ///
-  /// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-  /// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
-  /// 执行一个 mutation。
+  /// **本仓库首个 [OptimisticPatchMixin] 业务采用者**：reorder / removeClip /
+  /// deleteClip 三处都用 [withOptimisticPatch]（本地立即变 → await API → 失败
+  /// 整体回滚）。三处共用 [_mutationKey]：保持原 controller 「同时只允许一个
+  /// mutation」的语义（先前 `_isMutating` bool 的等价）。
   ///
   /// 三个 mutation 方法**保留返回 `Future<String?>`（成功 null / 失败错误文案）
   /// 的 UI 兼容语义**——mixin 内核是 rethrow，本 provider 在外包 try/catch
   /// 转文案，让两个 detail page 的 UI 调用点不动。
   ///
-  /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
+  /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放；对齐
+  /// `mediaRapidUploadBatchDetail` 唯一 autoDispose family 先例。
   ClipCollectionDetailProvider._({
     required ClipCollectionDetailFamily super.from,
     required int super.argument,
@@ -104,15 +110,17 @@ String _$clipCollectionDetailHash() =>
 /// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
 /// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
 ///
-/// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-/// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
-/// 执行一个 mutation。
+/// **本仓库首个 [OptimisticPatchMixin] 业务采用者**：reorder / removeClip /
+/// deleteClip 三处都用 [withOptimisticPatch]（本地立即变 → await API → 失败
+/// 整体回滚）。三处共用 [_mutationKey]：保持原 controller 「同时只允许一个
+/// mutation」的语义（先前 `_isMutating` bool 的等价）。
 ///
 /// 三个 mutation 方法**保留返回 `Future<String?>`（成功 null / 失败错误文案）
 /// 的 UI 兼容语义**——mixin 内核是 rethrow，本 provider 在外包 try/catch
 /// 转文案，让两个 detail page 的 UI 调用点不动。
 ///
-/// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
+/// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放；对齐
+/// `mediaRapidUploadBatchDetail` 唯一 autoDispose family 先例。
 
 final class ClipCollectionDetailFamily extends $Family
     with
@@ -137,15 +145,17 @@ final class ClipCollectionDetailFamily extends $Family
   /// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
   /// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
   ///
-  /// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-  /// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
-  /// 执行一个 mutation。
+  /// **本仓库首个 [OptimisticPatchMixin] 业务采用者**：reorder / removeClip /
+  /// deleteClip 三处都用 [withOptimisticPatch]（本地立即变 → await API → 失败
+  /// 整体回滚）。三处共用 [_mutationKey]：保持原 controller 「同时只允许一个
+  /// mutation」的语义（先前 `_isMutating` bool 的等价）。
   ///
   /// 三个 mutation 方法**保留返回 `Future<String?>`（成功 null / 失败错误文案）
   /// 的 UI 兼容语义**——mixin 内核是 rethrow，本 provider 在外包 try/catch
   /// 转文案，让两个 detail page 的 UI 调用点不动。
   ///
-  /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
+  /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放；对齐
+  /// `mediaRapidUploadBatchDetail` 唯一 autoDispose family 先例。
 
   ClipCollectionDetailProvider call(int collectionId) =>
       ClipCollectionDetailProvider._(argument: collectionId, from: this);
@@ -159,15 +169,17 @@ final class ClipCollectionDetailFamily extends $Family
 /// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
 /// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
 ///
-/// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-/// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
-/// 执行一个 mutation。
+/// **本仓库首个 [OptimisticPatchMixin] 业务采用者**：reorder / removeClip /
+/// deleteClip 三处都用 [withOptimisticPatch]（本地立即变 → await API → 失败
+/// 整体回滚）。三处共用 [_mutationKey]：保持原 controller 「同时只允许一个
+/// mutation」的语义（先前 `_isMutating` bool 的等价）。
 ///
 /// 三个 mutation 方法**保留返回 `Future<String?>`（成功 null / 失败错误文案）
 /// 的 UI 兼容语义**——mixin 内核是 rethrow，本 provider 在外包 try/catch
 /// 转文案，让两个 detail page 的 UI 调用点不动。
 ///
-/// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
+/// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放；对齐
+/// `mediaRapidUploadBatchDetail` 唯一 autoDispose family 先例。
 
 abstract class _$ClipCollectionDetail
     extends $AsyncNotifier<ClipCollectionDetailState> {

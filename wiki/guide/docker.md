@@ -1,57 +1,68 @@
 ---
 outline: [2, 4]
+
 ---
 
-# SigLIP2 嵌入服务硬件方案
+### Joytag推理服务 GPU方案
 
-快速开始中的 CPU 镜像适用于 AMD、Intel 和 ARM64 主机。SigLIP2 镜像已包含模型和运行时，**不需要**下载模型、挂载模型目录或预先缩放图片。
+#### 1. Intel核显
 
-后端和嵌入服务在同一个 Compose 项目中时，不需要映射端口；后端默认通过 `http://siglip2-embed:8080` 访问服务。
+如果你已经用 CPU 版把系统跑通，并且满足下面条件，可以考虑试 `openvino`：
 
-## Intel 核显
-
-适用于 Linux amd64 的 Intel 核显主机。将快速开始中的 `siglip2-embed` 服务替换为：
+- 机器是 Intel CPU
+- 机器有 Intel 核显
 
 ```yaml
-  siglip2-embed:
-    image: tinyping/siglip2-embed-service:intel
-    container_name: siglip2-embed
+  joytag-infer:
+    image: tinyping/joytag-infer:openvino
+    container_name: joytag-infer
     restart: unless-stopped
+    environment:
+      JOYTAG_INFER_BACKEND: "openvino"
+      JOYTAG_INFER_OPENVINO_DEVICE_TYPE: "GPU"
+      JOYTAG_INFER_MODEL_PATH: "/data/lib/joytag/model_vit_768.onnx"
+      JOYTAG_INFER_API_KEY: ""
+    volumes:
+      - ./docker-data/joytag:/data/lib/joytag
     devices:
       - /dev/dri:/dev/dri
-    group_add:
-      - "${RENDER_GID:-0}"
-    environment:
-      EMBEDDING_BACKEND: "intel_gpu"
-      CPU_CONCURRENCY: "1"
-```
-
-在宿主机执行 `getent group render` 查看 `render` 组的 GID，并在同目录的 `.env` 文件写入 `RENDER_GID=实际GID`。确认 `/dev/dri` 存在后再启动容器。
-
-## NVIDIA CUDA
-
-宿主机需要已安装 NVIDIA 驱动、`nvidia-container-toolkit`，且 `nvidia-smi` 能正常显示显卡。将快速开始中的服务替换为：
-
-```yaml
-  siglip2-embed:
-    image: tinyping/siglip2-embed-service:cuda
-    container_name: siglip2-embed
-    restart: unless-stopped
-    gpus: all
-    environment:
-      EMBEDDING_BACKEND: "cuda"
-      CPU_CONCURRENCY: "1"
-```
-
-若容器启动后没有使用 GPU，先检查 `docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi` 是否成功，再检查 NVIDIA Container Toolkit 配置。
-
-## 将嵌入服务部署到其他主机
-
-仅在后端与 SigLIP2 不在同一个 Compose 网络时才需要映射端口，例如添加：
-
-```yaml
     ports:
-      - "8080:8080"
+      - "8001:8001" # 如果你想要在其他机器部署 Joytag 推理服务可以映射端口， 然后修改配置文件中的 joytag 相关配置。
 ```
 
-然后把 `config.toml` 的 `[image_search].inference_base_url` 改为该服务的可访问 HTTP 地址。若服务启用了鉴权，同时填写 `inference_api_key`。
+#### 2. CUDA 方案
+
+如果你的机器装了 NVIDIA 独立显卡，可以用 `cuda` 版本的 `joytag-infer`，把图片搜索推理跑在 GPU 上。
+
+##### 前置条件
+
+部署 `cuda` 版前，宿主机需要先满足：
+
+- 已经装好 NVIDIA 驱动，`nvidia-smi` 能正常输出 GPU 信息
+- 驱动版本不低于 `550`（这是 CUDA 12.4 runtime 的最低要求）
+- 已经装好 `nvidia-container-toolkit`，并且把 `nvidia` runtime 注册到了 Docker
+
+```yaml
+  joytag-infer:
+    image: tinyping/joytag-infer:cuda
+    container_name: joytag-infer
+    restart: unless-stopped
+    runtime: nvidia
+    environment:
+      NVIDIA_VISIBLE_DEVICES: "all"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
+      JOYTAG_INFER_BACKEND: "cuda"
+      JOYTAG_INFER_MODEL_PATH: "/data/lib/joytag/model_vit_768.onnx"
+      JOYTAG_INFER_API_KEY: ""
+    volumes:
+      - ./docker-data/joytag:/data/lib/joytag
+    ports:
+      - "8001:8001" # 如果你想要在其他机器部署 Joytag 推理服务可以映射端口， 然后修改配置文件中的 joytag 相关配置。
+```
+
+这里有几个容易踩坑的点：
+
+- `runtime: nvidia` 走的是 NVIDIA 老式 runtime 路径，目前最稳。在部分 Docker 和 toolkit 版本上，改用 `--gpus all` 会出现"容器能起来但 GPU 没注入"的情况，容器日志里会看到 `WARNING: The NVIDIA Driver was not detected`
+- `NVIDIA_VISIBLE_DEVICES` 和 `NVIDIA_DRIVER_CAPABILITIES` 是 nvidia runtime 用来决定挂哪些设备和库的开关，不要省略
+- `JOYTAG_INFER_BACKEND` 必须显式写成 `cuda`。容器启动时会硬校验 CUDA 是否真的可用，CUDA 不可用就直接抛错退出，不会静默回退到 CPU
+

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_media_source.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
 
 /// 读取 mpv 原生属性(如 `video-bitrate`)的注入点;
@@ -56,6 +57,18 @@ int? parseDemuxerForwardBytes(String? raw) {
   return parsed;
 }
 
+MoviePlayerPlaybackMediaOrigin moviePlayerPlaybackMediaOriginFor(
+  MoviePlayerMediaSourceKind sourceKind,
+) {
+  return switch (sourceKind) {
+    MoviePlayerMediaSourceKind.local => MoviePlayerPlaybackMediaOrigin.local,
+    MoviePlayerMediaSourceKind.cloud115 =>
+      MoviePlayerPlaybackMediaOrigin.cloud115,
+    MoviePlayerMediaSourceKind.unknown =>
+      MoviePlayerPlaybackMediaOrigin.unknown,
+  };
+}
+
 /// 播放信息采样机:聚合两路输入产出 [MoviePlayerPlaybackInfoSnapshot]。
 ///
 /// - **流式输入**(Surface 把 player stream 接进来):track / videoParams /
@@ -67,12 +80,15 @@ int? parseDemuxerForwardBytes(String? raw) {
 class MoviePlayerNativeStatsSampler {
   MoviePlayerNativeStatsSampler({
     required MoviePlayerNativePropertyReader readNativeProperty,
+    required MoviePlayerPlaybackMediaOrigin mediaOrigin,
     required String originalUrl,
   }) : _readNativeProperty = readNativeProperty,
+       _mediaOrigin = mediaOrigin,
        _originalUrl = originalUrl;
 
   final MoviePlayerNativePropertyReader _readNativeProperty;
 
+  MoviePlayerPlaybackMediaOrigin _mediaOrigin;
   String _originalUrl;
 
   final ValueNotifier<MoviePlayerPlaybackInfoSnapshot> _snapshotNotifier =
@@ -108,6 +124,7 @@ class MoviePlayerNativeStatsSampler {
   double? _previousVoDelayedFrameCount;
   double? _previousMistimedFrameCount;
   String? _fileFormat;
+  double? _hlsBitrate;
   double? _demuxerCacheDurationSeconds;
   int? _demuxerForwardBytes;
   double? _downloadRateBytesPerSecond;
@@ -144,7 +161,11 @@ class MoviePlayerNativeStatsSampler {
   }
 
   /// 换片/来源变化时同步快照上下文;不清采样字段,需要清时另调 [reset]。
-  void updateContext({required String originalUrl}) {
+  void updateContext({
+    required MoviePlayerPlaybackMediaOrigin mediaOrigin,
+    required String originalUrl,
+  }) {
+    _mediaOrigin = mediaOrigin;
     _originalUrl = originalUrl;
     _refreshSnapshot();
   }
@@ -168,6 +189,7 @@ class MoviePlayerNativeStatsSampler {
     _previousVoDelayedFrameCount = null;
     _previousMistimedFrameCount = null;
     _fileFormat = null;
+    _hlsBitrate = null;
     _demuxerCacheDurationSeconds = null;
     _demuxerForwardBytes = null;
     _downloadRateBytesPerSecond = null;
@@ -191,6 +213,7 @@ class MoviePlayerNativeStatsSampler {
         _readNativeProperty('vo-delayed-frame-count'),
         _readNativeProperty('mistimed-frame-count'),
         _readNativeProperty('file-format'),
+        _readNativeProperty('hls-bitrate'),
         _readNativeProperty('demuxer-cache-duration'),
         _readNativeProperty('demuxer-cache-state'),
       ]);
@@ -203,12 +226,14 @@ class MoviePlayerNativeStatsSampler {
       final voDelayedFrameCount = _parseNativeCounter(results[5]);
       final mistimedFrameCount = _parseNativeCounter(results[6]);
       final fileFormat = results[7];
-      final cacheDurationSeconds = _parseNativeDouble(results[8]);
-      final forwardBytes = parseDemuxerForwardBytes(results[9]);
+      final hlsBitrate = _parseNativeDouble(results[8]);
+      final cacheDurationSeconds = _parseNativeDouble(results[9]);
+      final forwardBytes = parseDemuxerForwardBytes(results[10]);
       final previousSampleAt = _previousCounterSampleAt;
-      final elapsedSeconds = previousSampleAt == null
-          ? null
-          : now.difference(previousSampleAt).inMilliseconds / 1000;
+      final elapsedSeconds =
+          previousSampleAt == null
+              ? null
+              : now.difference(previousSampleAt).inMilliseconds / 1000;
 
       _hwdecCurrent = results[0];
       _videoBitrate = _parseNativeDouble(results[1]);
@@ -218,6 +243,7 @@ class MoviePlayerNativeStatsSampler {
       _voDelayedFrameCount = voDelayedFrameCount;
       _mistimedFrameCount = mistimedFrameCount;
       _fileFormat = fileFormat;
+      _hlsBitrate = hlsBitrate;
       _demuxerCacheDurationSeconds = cacheDurationSeconds;
       _demuxerForwardBytes = forwardBytes;
       _downloadRateBytesPerSecond = _computeDownloadRatePerSecond(
@@ -281,8 +307,10 @@ class MoviePlayerNativeStatsSampler {
       decoderDropFramePerSecond: _decoderFrameDropPerSecond,
       delayedFramePerSecond: _voDelayedFramePerSecond,
       mistimedFramePerSecond: _mistimedFramePerSecond,
+      mediaOrigin: _mediaOrigin,
       originalUrl: _originalUrl,
       fileFormat: _fileFormat,
+      hlsBitrate: _hlsBitrate,
       bufferCacheDurationSeconds: _demuxerCacheDurationSeconds,
       bufferForwardBytes: _demuxerForwardBytes,
       downloadRateBytesPerSecond: _downloadRateBytesPerSecond,

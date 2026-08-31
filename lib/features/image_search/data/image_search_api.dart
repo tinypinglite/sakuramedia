@@ -41,30 +41,6 @@ class ImageSearchApi {
     return ImageSearchSessionDto.fromJson(response, target: target);
   }
 
-  Future<ImageSearchSessionDto> createTextSession({
-    required String text,
-    int pageSize = 20,
-    List<int>? movieIds,
-    List<int>? excludeMovieIds,
-    double? scoreThreshold,
-    ImageSearchTarget target = ImageSearchTarget.thumbnail,
-  }) async {
-    final formData = FormData.fromMap(<String, dynamic>{
-      'text': text,
-      'page_size': '$pageSize',
-      if (_encodeIdList(movieIds).isNotEmpty)
-        'movie_ids': _encodeIdList(movieIds),
-      if (_encodeIdList(excludeMovieIds).isNotEmpty)
-        'exclude_movie_ids': _encodeIdList(excludeMovieIds),
-      if (scoreThreshold != null) 'score_threshold': '$scoreThreshold',
-    });
-    final response = await _apiClient.post(
-      _textSessionPath(target),
-      data: formData,
-    );
-    return ImageSearchSessionDto.fromJson(response, target: target);
-  }
-
   Future<ImageSearchSessionDto> getNextResults({
     required String sessionId,
     required String cursor,
@@ -81,13 +57,6 @@ class ImageSearchApi {
     return switch (target) {
       ImageSearchTarget.thumbnail => '/image-search/sessions',
       ImageSearchTarget.plot => '/image-search/plot-sessions',
-    };
-  }
-
-  String _textSessionPath(ImageSearchTarget target) {
-    return switch (target) {
-      ImageSearchTarget.thumbnail => '/image-search/text-sessions',
-      ImageSearchTarget.plot => '/image-search/plot-text-sessions',
     };
   }
 

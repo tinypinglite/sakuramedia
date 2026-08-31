@@ -72,13 +72,14 @@ class _SystemDiagnosticsStripState
           semanticLabel: '重新检测',
           size: AppIconButtonSize.mini,
           icon: const Icon(Icons.refresh),
-          onPressed: ref
-              .read(
-                systemDiagnosticsProvider(
-                  SystemDiagnosticsHost.overviewStrip,
-                ).notifier,
-              )
-              .runAll,
+          onPressed:
+              ref
+                  .read(
+                    systemDiagnosticsProvider(
+                      SystemDiagnosticsHost.overviewStrip,
+                    ).notifier,
+                  )
+                  .runAll,
         ),
         SizedBox(width: context.appSpacing.xs),
         AppIconButton(
@@ -128,7 +129,7 @@ class _SystemDiagnosticsStripState
         children: [
           Expanded(
             child: Text(
-              '一键检测媒体库、索引器、外部数据源与 JoyTag 的连通性。',
+              '一键检测媒体库、下载器、索引器、外部数据源与 JoyTag 的连通性。',
               style: resolveAppTextStyle(
                 context,
                 size: AppTextSize.s12,
@@ -144,13 +145,14 @@ class _SystemDiagnosticsStripState
             variant: AppButtonVariant.primary,
             size: AppButtonSize.small,
             icon: const Icon(Icons.radar_rounded),
-            onPressed: ref
-                .read(
-                  systemDiagnosticsProvider(
-                    SystemDiagnosticsHost.overviewStrip,
-                  ).notifier,
-                )
-                .runAll,
+            onPressed:
+                ref
+                    .read(
+                      systemDiagnosticsProvider(
+                        SystemDiagnosticsHost.overviewStrip,
+                      ).notifier,
+                    )
+                    .runAll,
           ),
         ],
       );
@@ -184,9 +186,10 @@ class _SystemDiagnosticsStripState
                   context,
                   size: AppTextSize.s12,
                   weight: AppTextWeight.regular,
-                  tone: c.unhealthyCount > 0
-                      ? AppTextTone.error
-                      : AppTextTone.muted,
+                  tone:
+                      c.unhealthyCount > 0
+                          ? AppTextTone.error
+                          : AppTextTone.muted,
                 ),
               ),
             ),
@@ -197,9 +200,10 @@ class _SystemDiagnosticsStripState
   }
 
   String? _detailForCategory(DiagnosticCategoryState cat) {
-    final unhealthy = cat.items
-        .where((i) => i.status == DiagnosticItemStatus.unhealthy)
-        .length;
+    final unhealthy =
+        cat.items
+            .where((i) => i.status == DiagnosticItemStatus.unhealthy)
+            .length;
     if (unhealthy > 0) return '$unhealthy';
     return null;
   }

@@ -14,7 +14,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
-import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_card_context_menu.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
@@ -72,10 +71,6 @@ class _BlacklistedMoviesSectionState
     }
   }
 
-  Future<void> _refresh() {
-    return ref.read(movieSummaryProvider(_scope).notifier).reload();
-  }
-
   Future<void> _showMovieActions(
     MovieListItemDto movie,
     Offset globalPosition,
@@ -100,14 +95,6 @@ class _BlacklistedMoviesSectionState
     if (!_initialized && !widget.active) {
       return const SizedBox.shrink();
     }
-
-    final content = _buildContent(context);
-    return widget.active
-        ? AppPageRefreshScope(onRefresh: _refresh, child: content)
-        : content;
-  }
-
-  Widget _buildContent(BuildContext context) {
     final async = ref.watch(movieSummaryProvider(_scope));
     return async.when(
       loading: () => const AppSectionSkeleton(lineCount: 4),

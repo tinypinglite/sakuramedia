@@ -94,6 +94,7 @@ void main() {
     expect(componentTokens.movieCardTargetWidth, 160);
     expect(componentTokens.movieThumbnailTargetWidth, 128);
     expect(componentTokens.movieCardAspectRatio, 0.7);
+    expect(componentTokens.movieCardCoverVisibleWidthFactor, 0.47);
     expect(componentTokens.iconSizeXs, 16);
     expect(componentTokens.iconSize2xs, 14);
     expect(componentTokens.iconSize3xs, 12);

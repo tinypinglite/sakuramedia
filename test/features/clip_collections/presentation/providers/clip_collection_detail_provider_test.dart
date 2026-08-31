@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
-import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/clip_collections/data/api/clip_collections_api.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
@@ -200,9 +199,11 @@ void main() {
         statusCode: 204,
       );
 
-      await container
+      final error = await container
           .read(clipCollectionDetailProvider(7).notifier)
           .deleteClip(11);
+
+      expect(error, isNull);
       final state =
           container.read(clipCollectionDetailProvider(7)).requireValue;
       expect(state.clips.map((clip) => clip.clipId).toList(), <int>[10, 12]);
@@ -210,7 +211,7 @@ void main() {
     },
   );
 
-  test('deleteClip rolls back on failure and rethrows', () async {
+  test('deleteClip rolls back on failure', () async {
     enqueueLoad();
 
     keepAlive();
@@ -225,10 +226,11 @@ void main() {
       },
     );
 
-    await expectLater(
-      container.read(clipCollectionDetailProvider(7).notifier).deleteClip(11),
-      throwsA(isA<ApiException>()),
-    );
+    final error = await container
+        .read(clipCollectionDetailProvider(7).notifier)
+        .deleteClip(11);
+
+    expect(error, isNotNull);
     final state = container.read(clipCollectionDetailProvider(7)).requireValue;
     expect(state.clips.map((clip) => clip.clipId).toList(), <int>[10, 11, 12]);
     // 回滚同时把 clipCount 恢复到 3（不是 2）。

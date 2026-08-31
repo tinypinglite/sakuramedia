@@ -249,6 +249,10 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
       factory: $DesktopRankingsRouteData._fromState,
     ),
     GoRouteData.$route(
+      path: '/desktop/library/hot-reviews',
+      factory: $DesktopHotReviewsRouteData._fromState,
+    ),
+    GoRouteData.$route(
       path: '/desktop/system/activity',
       factory: $DesktopActivityRouteData._fromState,
     ),
@@ -647,6 +651,27 @@ mixin $DesktopRankingsRouteData on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
+mixin $DesktopHotReviewsRouteData on GoRouteData {
+  static DesktopHotReviewsRouteData _fromState(GoRouterState state) =>
+      const DesktopHotReviewsRouteData();
+
+  @override
+  String get location => GoRouteData.$location('/desktop/library/hot-reviews');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
 mixin $DesktopActivityRouteData on GoRouteData {
   static DesktopActivityRouteData _fromState(GoRouterState state) =>
       DesktopActivityRouteData(
@@ -849,7 +874,6 @@ mixin $DesktopImageSearchRouteData on GoRouteData {
         currentMovieNumber: state.uri.queryParameters['current-movie-number'],
         currentMovieScope:
             state.uri.queryParameters['current-movie-scope'] ?? 'all',
-        mode: state.uri.queryParameters['mode'] ?? 'image',
       );
 
   DesktopImageSearchRouteData get _self => this as DesktopImageSearchRouteData;
@@ -863,7 +887,6 @@ mixin $DesktopImageSearchRouteData on GoRouteData {
         'current-movie-number': _self.currentMovieNumber,
       if (_self.currentMovieScope != 'all')
         'current-movie-scope': _self.currentMovieScope,
-      if (_self.mode != 'image') 'mode': _self.mode,
     },
   );
 

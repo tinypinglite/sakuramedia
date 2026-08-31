@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/account_security_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/advanced_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/download_clients_section.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/desktop/download_preference_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/indexer_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/media_libraries_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/playlists_section.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/desktop/system_maintenance_section.dart';
-import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
-import 'package:sakuramedia/features/external_player/presentation/widgets/external_player_settings_content.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/blacklisted_movies_section.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/desktop/plugins_section.dart';
 import 'package:sakuramedia/theme.dart';
@@ -43,7 +41,7 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
           label: '账号安全',
           icon: Icons.shield_outlined,
         ),
-        builder: (active) => AccountSecuritySection(active: active),
+        builder: (_) => const AccountSecuritySection(),
       ),
       _ConfigurationTab(
         category: const _ConfigurationCategory(
@@ -71,21 +69,20 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
       ),
       _ConfigurationTab(
         category: const _ConfigurationCategory(
+          itemKey: Key('configuration-tab-download-preference'),
+          label: '下载偏好',
+          icon: Icons.low_priority_outlined,
+        ),
+        builder: (active) => DesktopDownloadPreferenceSection(active: active),
+      ),
+      _ConfigurationTab(
+        category: const _ConfigurationCategory(
           itemKey: Key('configuration-tab-playlists'),
           label: '播放列表',
           icon: Icons.playlist_play_outlined,
         ),
         builder: (active) => PlaylistsSection(active: active),
       ),
-      if (const ExternalPlayerChannel().isSupported)
-        _ConfigurationTab(
-          category: const _ConfigurationCategory(
-            itemKey: Key('configuration-tab-external-player'),
-            label: '外部播放器',
-            icon: Icons.open_in_new_rounded,
-          ),
-          builder: (active) => ExternalPlayerSettingsContent(active: active),
-        ),
       _ConfigurationTab(
         category: const _ConfigurationCategory(
           itemKey: Key('configuration-tab-blacklisted-movies'),
@@ -112,14 +109,6 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
           icon: Icons.extension_outlined,
         ),
         builder: (active) => DesktopPluginsSection(active: active),
-      ),
-      _ConfigurationTab(
-        category: const _ConfigurationCategory(
-          itemKey: Key('configuration-tab-system-maintenance'),
-          label: '系统维护',
-          icon: Icons.build_outlined,
-        ),
-        builder: (active) => SystemMaintenanceSection(active: active),
       ),
       // 媒体维护 / 媒体管理已迁出：并入侧边栏「管理 > 媒体管理」独立页（三 tab）。
     ];
@@ -217,7 +206,10 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
 
 /// 系统设置单个分类页：分类描述 + 内容构建器。
 class _ConfigurationTab {
-  const _ConfigurationTab({required this.category, required this.builder});
+  const _ConfigurationTab({
+    required this.category,
+    required this.builder,
+  });
 
   final _ConfigurationCategory category;
   final Widget Function(bool active) builder;

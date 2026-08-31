@@ -1,5 +1,5 @@
 import 'package:sakuramedia/core/json/json_parse.dart'
-    show asDateTime, asInt, asMap, asMapOrNull, asStringList;
+    show asDateTime, asInt, asMap, asMapOrNull;
 
 class ActorStatsDto {
   const ActorStatsDto({
@@ -120,34 +120,28 @@ class ThumbnailStatsDto {
   }
 }
 
-class ImageSearchEmbeddingServiceStatsDto {
-  const ImageSearchEmbeddingServiceStatsDto({
+class ImageSearchJoyTagStatsDto {
+  const ImageSearchJoyTagStatsDto({
     required this.healthy,
+    this.usedDevice,
     this.endpoint,
-    this.spaceId,
-    this.dimension,
-    this.modalities = const <String>[],
     this.error,
   });
 
   final bool healthy;
+  final String? usedDevice;
+
+  /// 推理服务地址（后端 `settings.image_search.inference_base_url`）。
   final String? endpoint;
-  final String? spaceId;
-  final int? dimension;
-  final List<String> modalities;
 
   /// 探测失败原因；healthy 为 true 时后端不返回。诊断页要用它给出可定位的文案。
   final String? error;
 
-  factory ImageSearchEmbeddingServiceStatsDto.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    return ImageSearchEmbeddingServiceStatsDto(
+  factory ImageSearchJoyTagStatsDto.fromJson(Map<String, dynamic> json) {
+    return ImageSearchJoyTagStatsDto(
       healthy: _asBool(json['healthy']),
+      usedDevice: json['used_device'] as String?,
       endpoint: json['endpoint'] as String?,
-      spaceId: json['space_id'] as String?,
-      dimension: (json['dimension'] as num?)?.toInt(),
-      modalities: asStringList(json['modalities'], trim: true),
       error: json['error'] as String?,
     );
   }
@@ -155,45 +149,9 @@ class ImageSearchEmbeddingServiceStatsDto {
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'healthy': healthy,
+      'used_device': usedDevice,
       'endpoint': endpoint,
-      'space_id': spaceId,
-      'dimension': dimension,
-      'modalities': modalities,
       'error': error,
-    };
-  }
-}
-
-class ImageSearchIndexSpaceStatsDto {
-  const ImageSearchIndexSpaceStatsDto({
-    required this.state,
-    this.indexedSpaceId,
-    this.currentSpaceId,
-    this.isRebuilding = false,
-  });
-
-  final String state;
-  final String? indexedSpaceId;
-  final String? currentSpaceId;
-  final bool isRebuilding;
-
-  bool get requiresRebuild => state == 'rebuild_required';
-
-  factory ImageSearchIndexSpaceStatsDto.fromJson(Map<String, dynamic> json) {
-    return ImageSearchIndexSpaceStatsDto(
-      state: json['state'] as String? ?? 'unknown',
-      indexedSpaceId: json['indexed_space_id'] as String?,
-      currentSpaceId: json['current_space_id'] as String?,
-      isRebuilding: _asBool(json['is_rebuilding']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'state': state,
-      'indexed_space_id': indexedSpaceId,
-      'current_space_id': currentSpaceId,
-      'is_rebuilding': isRebuilding,
     };
   }
 }
@@ -225,37 +183,29 @@ class ImageSearchIndexingStatsDto {
 class StatusImageSearchDto {
   const StatusImageSearchDto({
     required this.healthy,
-    required this.embeddingService,
+    required this.joyTag,
     required this.indexing,
-    required this.indexSpace,
   });
 
-  /// 后端口径是嵌入服务与向量库（Qdrant）的 AND。向量库不单独做诊断项，
+  /// 后端口径是 joytag 与向量库（Qdrant）的 AND。向量库不单独做诊断项，
   /// 所以这里只透出聚合值，不解析 `image_search_vector_store` 节。
   final bool healthy;
-  final ImageSearchEmbeddingServiceStatsDto embeddingService;
+  final ImageSearchJoyTagStatsDto joyTag;
   final ImageSearchIndexingStatsDto indexing;
-  final ImageSearchIndexSpaceStatsDto indexSpace;
 
   factory StatusImageSearchDto.fromJson(Map<String, dynamic> json) {
     return StatusImageSearchDto(
       healthy: _asBool(json['healthy']),
-      embeddingService: ImageSearchEmbeddingServiceStatsDto.fromJson(
-        asMap(json['embedding_service']),
-      ),
+      joyTag: ImageSearchJoyTagStatsDto.fromJson(asMap(json['joytag'])),
       indexing: ImageSearchIndexingStatsDto.fromJson(asMap(json['indexing'])),
-      indexSpace: ImageSearchIndexSpaceStatsDto.fromJson(
-        asMap(json['index_space']),
-      ),
     );
   }
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'healthy': healthy,
-      'embedding_service': embeddingService.toJson(),
+      'joytag': joyTag.toJson(),
       'indexing': indexing.toJson(),
-      'index_space': indexSpace.toJson(),
     };
   }
 }
@@ -351,9 +301,10 @@ class StatusMetadataProviderTestDto {
       movieNumber: json['movie_number'] as String? ?? '',
       elapsedMs: asInt(json['elapsed_ms']),
       checkedAt: asDateTime(json['checked_at']),
-      error: errorJson == null
-          ? null
-          : StatusMetadataProviderTestErrorDto.fromJson(errorJson),
+      error:
+          errorJson == null
+              ? null
+              : StatusMetadataProviderTestErrorDto.fromJson(errorJson),
     );
   }
 
@@ -367,6 +318,113 @@ class StatusMetadataProviderTestDto {
       'error': error?.toJson(),
     };
   }
+}
+
+enum Cloud115CookieStatus { alive, expired, unavailable }
+
+extension Cloud115CookieStatusX on Cloud115CookieStatus {
+  static Cloud115CookieStatus fromWire(dynamic value) => switch (value) {
+    'alive' => Cloud115CookieStatus.alive,
+    'expired' => Cloud115CookieStatus.expired,
+    _ => Cloud115CookieStatus.unavailable,
+  };
+
+  String get wireValue => switch (this) {
+    Cloud115CookieStatus.alive => 'alive',
+    Cloud115CookieStatus.expired => 'expired',
+    Cloud115CookieStatus.unavailable => 'unavailable',
+  };
+}
+
+class StatusCloud115LibraryCookieDto {
+  const StatusCloud115LibraryCookieDto({
+    required this.libraryId,
+    required this.name,
+    required this.cookieStatus,
+  });
+
+  final int libraryId;
+  final String name;
+  final Cloud115CookieStatus cookieStatus;
+
+  factory StatusCloud115LibraryCookieDto.fromJson(Map<String, dynamic> json) {
+    return StatusCloud115LibraryCookieDto(
+      libraryId: asInt(json['library_id']),
+      name: json['name'] as String? ?? '',
+      cookieStatus: Cloud115CookieStatusX.fromWire(json['cookie_status']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'library_id': libraryId,
+    'name': name,
+    'cookie_status': cookieStatus.wireValue,
+  };
+}
+
+class StatusCloud115CookieSummaryDto {
+  const StatusCloud115CookieSummaryDto({
+    required this.total,
+    required this.alive,
+    required this.expired,
+    required this.unavailable,
+  });
+
+  final int total;
+  final int alive;
+  final int expired;
+  final int unavailable;
+
+  factory StatusCloud115CookieSummaryDto.fromJson(Map<String, dynamic> json) {
+    return StatusCloud115CookieSummaryDto(
+      total: asInt(json['total']),
+      alive: asInt(json['alive']),
+      expired: asInt(json['expired']),
+      unavailable: asInt(json['unavailable']),
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'total': total,
+    'alive': alive,
+    'expired': expired,
+    'unavailable': unavailable,
+  };
+}
+
+class StatusCloud115CookiesDto {
+  const StatusCloud115CookiesDto({
+    required this.checkedAt,
+    required this.summary,
+    required this.libraries,
+  });
+
+  final DateTime? checkedAt;
+  final StatusCloud115CookieSummaryDto summary;
+  final List<StatusCloud115LibraryCookieDto> libraries;
+
+  factory StatusCloud115CookiesDto.fromJson(Map<String, dynamic> json) {
+    final librariesJson = json['libraries'];
+    return StatusCloud115CookiesDto(
+      checkedAt: asDateTime(json['checked_at']),
+      summary: StatusCloud115CookieSummaryDto.fromJson(asMap(json['summary'])),
+      libraries:
+          librariesJson is List
+              ? librariesJson
+                  .map(asMap)
+                  .map(StatusCloud115LibraryCookieDto.fromJson)
+                  .toList(growable: false)
+              : const <StatusCloud115LibraryCookieDto>[],
+    );
+  }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'checked_at': checkedAt?.toIso8601String(),
+    'summary': summary.toJson(),
+    'libraries': libraries
+        .map((StatusCloud115LibraryCookieDto item) => item.toJson())
+        .toList(growable: false),
+  };
 }
 
 class StatusDto {

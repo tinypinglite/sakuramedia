@@ -10,34 +10,40 @@ part of 'overview_system_info_provider.dart';
 // ignore_for_file: type=lint, type=warning
 /// 系统概览(一次性加载 + 两个手动探针,无轮询)。
 ///
-/// 同步 Notifier + 显式 flags，供桌面/移动概览页分别展示刷新与探针状态；
-/// autoDispose，离开页面即释放。
+/// 迁移前对应 `OverviewSystemInfoController`。同步 Notifier + 显式 flags:
+/// UI 依赖「刷新中 isLoadingStatus=true 且旧 status 保留」等复合态。
+/// autoDispose:离开页面即释放。
 ///
+/// 与旧控制器一致的两点(勿"顺手统一"):
 /// - [load] 不置 loading 标志([refresh] 才置)——桌面概览页刷新走 [load],
 ///   统计条不闪骨架;移动页刷新走 [refresh],闪骨架。
-/// - 元数据源探针进行中直接 return；系统信息与图片搜索两条加载腿不加重入锁。
+/// - 两个探针带「进行中直接 return」重入锁;两条加载腿无重入锁(与旧同)。
 
 @ProviderFor(OverviewSystemInfo)
 final overviewSystemInfoProvider = OverviewSystemInfoProvider._();
 
 /// 系统概览(一次性加载 + 两个手动探针,无轮询)。
 ///
-/// 同步 Notifier + 显式 flags，供桌面/移动概览页分别展示刷新与探针状态；
-/// autoDispose，离开页面即释放。
+/// 迁移前对应 `OverviewSystemInfoController`。同步 Notifier + 显式 flags:
+/// UI 依赖「刷新中 isLoadingStatus=true 且旧 status 保留」等复合态。
+/// autoDispose:离开页面即释放。
 ///
+/// 与旧控制器一致的两点(勿"顺手统一"):
 /// - [load] 不置 loading 标志([refresh] 才置)——桌面概览页刷新走 [load],
 ///   统计条不闪骨架;移动页刷新走 [refresh],闪骨架。
-/// - 元数据源探针进行中直接 return；系统信息与图片搜索两条加载腿不加重入锁。
+/// - 两个探针带「进行中直接 return」重入锁;两条加载腿无重入锁(与旧同)。
 final class OverviewSystemInfoProvider
     extends $NotifierProvider<OverviewSystemInfo, OverviewSystemInfoState> {
   /// 系统概览(一次性加载 + 两个手动探针,无轮询)。
   ///
-  /// 同步 Notifier + 显式 flags，供桌面/移动概览页分别展示刷新与探针状态；
-  /// autoDispose，离开页面即释放。
+  /// 迁移前对应 `OverviewSystemInfoController`。同步 Notifier + 显式 flags:
+  /// UI 依赖「刷新中 isLoadingStatus=true 且旧 status 保留」等复合态。
+  /// autoDispose:离开页面即释放。
   ///
+  /// 与旧控制器一致的两点(勿"顺手统一"):
   /// - [load] 不置 loading 标志([refresh] 才置)——桌面概览页刷新走 [load],
   ///   统计条不闪骨架;移动页刷新走 [refresh],闪骨架。
-  /// - 元数据源探针进行中直接 return；系统信息与图片搜索两条加载腿不加重入锁。
+  /// - 两个探针带「进行中直接 return」重入锁;两条加载腿无重入锁(与旧同)。
   OverviewSystemInfoProvider._()
     : super(
         from: null,
@@ -66,16 +72,18 @@ final class OverviewSystemInfoProvider
 }
 
 String _$overviewSystemInfoHash() =>
-    r'67e784d261347f29721e15c4c22926e9fa0c2cf7';
+    r'fa45842890422614a1e7e4a759fb52ae405e6d48';
 
 /// 系统概览(一次性加载 + 两个手动探针,无轮询)。
 ///
-/// 同步 Notifier + 显式 flags，供桌面/移动概览页分别展示刷新与探针状态；
-/// autoDispose，离开页面即释放。
+/// 迁移前对应 `OverviewSystemInfoController`。同步 Notifier + 显式 flags:
+/// UI 依赖「刷新中 isLoadingStatus=true 且旧 status 保留」等复合态。
+/// autoDispose:离开页面即释放。
 ///
+/// 与旧控制器一致的两点(勿"顺手统一"):
 /// - [load] 不置 loading 标志([refresh] 才置)——桌面概览页刷新走 [load],
 ///   统计条不闪骨架;移动页刷新走 [refresh],闪骨架。
-/// - 元数据源探针进行中直接 return；系统信息与图片搜索两条加载腿不加重入锁。
+/// - 两个探针带「进行中直接 return」重入锁;两条加载腿无重入锁(与旧同)。
 
 abstract class _$OverviewSystemInfo extends $Notifier<OverviewSystemInfoState> {
   OverviewSystemInfoState build();

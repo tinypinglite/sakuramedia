@@ -8,6 +8,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_candidate_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
@@ -413,7 +414,7 @@ void main() {
             ({required String movieNumber, String? indexerKind}) async {
               return const <DownloadCandidateDto>[
                 DownloadCandidateDto(
-                  sourceUri: 'provider://torznab/abcdef',
+                  source: 'torznab',
                   indexerName: 'mteam',
                   indexerKind: 'bt',
                   resolvedClientId: 2,
@@ -422,6 +423,9 @@ void main() {
                   title: 'ABC-001 4K 中文字幕',
                   sizeBytes: 12884901888,
                   seeders: 35,
+                  magnetUrl: 'magnet:?xt=urn:btih:abcdef',
+                  torrentUrl: '',
+                  tags: <String>['4K', '中字'],
                 ),
               ];
             },
@@ -465,19 +469,30 @@ void main() {
     WidgetTester tester,
   ) async {
     const candidate = DownloadCandidateDto(
-      sourceUri: 'provider://dmhy/abcdef',
+      source: 'torznab',
       indexerName: 'dmhy',
       indexerKind: 'bt',
       resolvedClientId: 2,
       resolvedClientName: 'qb-main',
       downloadClients: <DownloadCandidateClientDto>[
-        DownloadCandidateClientDto(id: 2, name: 'qb-main'),
-        DownloadCandidateClientDto(id: 3, name: '115-main'),
+        DownloadCandidateClientDto(
+          id: 2,
+          name: 'qb-main',
+          kind: DownloadClientKind.qbittorrent,
+        ),
+        DownloadCandidateClientDto(
+          id: 3,
+          name: '115-main',
+          kind: DownloadClientKind.cloud115,
+        ),
       ],
       movieNumber: 'ABC-001',
       title: 'ABC-001 中文字幕',
       sizeBytes: 1024,
       seeders: 8,
+      magnetUrl: 'magnet:?xt=urn:btih:abcdef',
+      torrentUrl: '',
+      tags: <String>[],
     );
     int? submittedClientId;
 
@@ -519,7 +534,7 @@ void main() {
       find.byKey(Key('movie-detail-magnet-client-${candidate.submitKey}')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('115-main').last);
+    await tester.tap(find.text('115-main · 115 离线').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('movie-detail-magnet-submit-0')));
     await tester.pumpAndSettle();
@@ -528,10 +543,10 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  testWidgets('magnet candidate shows and copies its source URI', (
+  testWidgets('magnet candidate shows and copies its full magnet link', (
     WidgetTester tester,
   ) async {
-    const sourceUri = 'provider://dmhy/abcdef?dn=ABC-001';
+    const magnetUrl = 'magnet:?xt=urn:btih:abcdef&dn=ABC-001';
     Object? clipboardArguments;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.platform,
@@ -563,7 +578,7 @@ void main() {
           ({required String movieNumber, String? indexerKind}) async =>
               const <DownloadCandidateDto>[
                 DownloadCandidateDto(
-                  sourceUri: sourceUri,
+                  source: 'torznab',
                   indexerName: 'dmhy',
                   indexerKind: 'bt',
                   resolvedClientId: 2,
@@ -572,6 +587,9 @@ void main() {
                   title: 'ABC-001 中文字幕',
                   sizeBytes: 1024,
                   seeders: 8,
+                  magnetUrl: magnetUrl,
+                  torrentUrl: '',
+                  tags: <String>[],
                 ),
               ],
     );
@@ -583,16 +601,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('资源地址'), findsOneWidget);
-    expect(find.text(sourceUri), findsOneWidget);
+    expect(find.text('磁力链接'), findsOneWidget);
+    expect(find.text(magnetUrl), findsOneWidget);
 
     final copyButton = find.byKey(const Key('movie-detail-magnet-copy-0'));
     await tester.ensureVisible(copyButton);
     await tester.tap(copyButton);
     await tester.pump();
 
-    expect(clipboardArguments, <String, dynamic>{'text': sourceUri});
-    expect(find.text('资源地址已复制'), findsOneWidget);
+    expect(clipboardArguments, <String, dynamic>{'text': magnetUrl});
+    expect(find.text('磁力链接已复制'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
   });
 
@@ -733,9 +751,10 @@ DownloadTaskDto _emptyDownloadTask({required int clientId}) {
     clientId: clientId,
     movieNumber: null,
     name: '',
-    remoteId: '',
-    state: '',
+    infoHash: '',
+    savePath: '',
     progress: 0,
+    downloadState: '',
     importStatus: '',
     importStatusLabel: '',
     createdAt: null,

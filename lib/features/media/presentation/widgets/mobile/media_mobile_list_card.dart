@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
+import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_cover_thumbnail.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_meta_line.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_path_line.dart';
@@ -9,41 +9,46 @@ import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_b
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_left_cover_card.dart';
 
-/// 移动端媒体卡：封面贴左（竖版 thin 图）+ 标题 / 元数据 / 文件名。
+/// 移动端媒体卡：封面贴左（竖版 thin 图）+ 标题 / 元数据 / 路径。
 ///
 /// 交互与桌面行不同：
 /// - 非多选态：长按整卡进入多选态并选中该行；封面独立可点跳影片详情（JAV 项）；
 /// - 多选态：整卡点击切换选中，封面不再跳转；选中行左上角叠 [SelectionCheckBadge]。
+/// - 有禁选原因（秒传进行中）的行不响应长按与点选。
 class MediaMobileListCard extends StatelessWidget {
   const MediaMobileListCard({
     super.key,
     required this.keyPrefix,
     required this.item,
-    this.library,
+    required this.storage,
     required this.isSelected,
     required this.selectionMode,
     required this.onLongPress,
     this.onToggleSelect,
     this.onOpenMovieDetail,
+    this.disabledReason,
   });
 
   /// 测试 Key 前缀（移动端 `mobile-media-management`）。
   final String keyPrefix;
 
   final MediaListItemDto item;
-  final MediaLibraryDto? library;
+  final MediaStorageDescriptor storage;
   final bool isSelected;
   final bool selectionMode;
 
-  /// 非多选态长按：进入多选态。
+  /// 非多选态长按：进入多选态；有禁选原因时调用方应传 null。
   final VoidCallback? onLongPress;
 
-  /// 多选态整卡点选切换。
+  /// 多选态整卡点选切换；`null` 表示该行不可选。
   final VoidCallback? onToggleSelect;
 
   /// 封面跳影片详情回调（JAV 项）；null 时封面纯图不可点。
   final void Function(BuildContext context, String movieNumber)?
   onOpenMovieDetail;
+
+  /// 非空时行禁选：不响应长按/点选，挂 Tooltip 说明原因。
+  final String? disabledReason;
 
   @override
   Widget build(BuildContext context) {
@@ -79,14 +84,18 @@ class MediaMobileListCard extends StatelessWidget {
           SizedBox(height: spacing.xs),
           MediaListItemMetaLine(
             item: item,
-            library: library,
+            storage: storage,
             spacing: spacing.xs,
             runSpacing: spacing.xs,
             showZeroFileSize: false,
           ),
-          if (item.fileName.isNotEmpty) ...[
+          if (item.path.isNotEmpty) ...[
             SizedBox(height: spacing.xs),
-            MediaListItemPathLine(keyPrefix: keyPrefix, item: item),
+            MediaListItemPathLine(
+              keyPrefix: keyPrefix,
+              item: item,
+              storage: storage,
+            ),
           ],
         ],
       ),
@@ -102,6 +111,10 @@ class MediaMobileListCard extends StatelessWidget {
       );
     }
 
+    final reason = disabledReason;
+    if (reason != null) {
+      return Tooltip(message: reason, child: interactive);
+    }
     return interactive;
   }
 }

@@ -63,7 +63,7 @@ final class MediaApiProvider
 
 String _$mediaApiHash() => r'7f047ba1ec647f0cbb74ace57db563dedb08b937';
 
-/// media 页需要读媒体库列表（用于筛选和展示归属信息）。
+/// media 页需要读媒体库列表（用于筛选、秒传目标选择、存储描述解析）。
 ///
 /// `MediaLibrariesApi` 归属 configuration 域；configuration 迁移完成后该
 /// bridge 仍保持现状（configuration 页面、media、system_diagnostics、
@@ -72,7 +72,7 @@ String _$mediaApiHash() => r'7f047ba1ec647f0cbb74ace57db563dedb08b937';
 @ProviderFor(mediaLibrariesApi)
 final mediaLibrariesApiProvider = MediaLibrariesApiProvider._();
 
-/// media 页需要读媒体库列表（用于筛选和展示归属信息）。
+/// media 页需要读媒体库列表（用于筛选、秒传目标选择、存储描述解析）。
 ///
 /// `MediaLibrariesApi` 归属 configuration 域；configuration 迁移完成后该
 /// bridge 仍保持现状（configuration 页面、media、system_diagnostics、
@@ -86,7 +86,7 @@ final class MediaLibrariesApiProvider
           MediaLibrariesApi
         >
     with $Provider<MediaLibrariesApi> {
-  /// media 页需要读媒体库列表（用于筛选和展示归属信息）。
+  /// media 页需要读媒体库列表（用于筛选、秒传目标选择、存储描述解析）。
   ///
   /// `MediaLibrariesApi` 归属 configuration 域；configuration 迁移完成后该
   /// bridge 仍保持现状（configuration 页面、media、system_diagnostics、

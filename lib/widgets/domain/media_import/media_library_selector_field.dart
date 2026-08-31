@@ -21,7 +21,7 @@ import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 /// - **自管** 媒体库列表 + loading/error state，caller 只持有 [selectedLibraryId]。
 /// - 首次成功加载后，若 caller 未指定选中值，自动通过 [onLibraryChanged] 上抛
 ///   列表首项；若 caller 已指定但该 id 在新列表里找不到，会回退到首项。
-/// - dropdown 条目标签使用 `名称 · provider_key`，不暴露任何 provider 专属分支。
+/// - dropdown 条目标签固定为 `名称 · 本地存储 / 115 网盘`，两个导入弹窗共用。
 class MediaLibrarySelectorField extends ConsumerStatefulWidget {
   const MediaLibrarySelectorField({
     super.key,
@@ -132,7 +132,9 @@ class _MediaLibrarySelectorFieldState
           .map(
             (library) => DropdownMenuItem<int>(
               value: library.id,
-              child: Text('${library.name} · ${library.providerKey}'),
+              child: Text(
+                '${library.name} · ${library.isCloud115 ? '115 网盘' : '本地存储'}',
+              ),
             ),
           )
           .toList(growable: false),

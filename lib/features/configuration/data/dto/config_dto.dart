@@ -1,4 +1,5 @@
 import 'package:sakuramedia/core/json/json_parse.dart';
+import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 
 /// `GET /config` 返回的整包配置快照。
 class ConfigResourceDto {
@@ -58,30 +59,60 @@ class ConfigUpdateResultDto {
 }
 
 class AdvancedMediaConfigDto {
-  const AdvancedMediaConfigDto({required this.allowedMinVideoFileSize});
+  const AdvancedMediaConfigDto({
+    required this.innerSubTags,
+    required this.bluerayTags,
+    required this.uncensoredTags,
+    required this.uncensoredPrefix,
+    required this.allowedMinVideoFileSize,
+  });
 
+  final List<String> innerSubTags;
+  final List<String> bluerayTags;
+  final List<String> uncensoredTags;
+  final List<String> uncensoredPrefix;
   final int allowedMinVideoFileSize;
 
   factory AdvancedMediaConfigDto.fromJson(Map<String, dynamic> json) {
     return AdvancedMediaConfigDto(
+      innerSubTags: List<String>.unmodifiable(
+        asStringList(json['inner_sub_tags']),
+      ),
+      bluerayTags: List<String>.unmodifiable(
+        asStringList(json['blueray_tags']),
+      ),
+      uncensoredTags: List<String>.unmodifiable(
+        asStringList(json['uncensored_tags']),
+      ),
+      uncensoredPrefix: List<String>.unmodifiable(
+        asStringList(json['uncensored_prefix']),
+      ),
       allowedMinVideoFileSize: _intAt(json, 'allowed_min_video_file_size'),
     );
   }
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
+      'inner_sub_tags': innerSubTags,
+      'blueray_tags': bluerayTags,
+      'uncensored_tags': uncensoredTags,
+      'uncensored_prefix': uncensoredPrefix,
       'allowed_min_video_file_size': allowedMinVideoFileSize,
     };
   }
 }
 
 class AdvancedMetadataConfigDto {
-  const AdvancedMetadataConfigDto({required this.javdbHost});
+  const AdvancedMetadataConfigDto({
+    required this.javdbHost,
+  });
 
   final String javdbHost;
 
   factory AdvancedMetadataConfigDto.fromJson(Map<String, dynamic> json) {
-    return AdvancedMetadataConfigDto(javdbHost: _stringAt(json, 'javdb_host'));
+    return AdvancedMetadataConfigDto(
+      javdbHost: _stringAt(json, 'javdb_host'),
+    );
   }
 
   Map<String, dynamic> toJson() {
@@ -97,10 +128,14 @@ class AdvancedSchedulerConfigDto {
     'subscribed_movie_auto_download',
     'download_task_sync',
     'download_task_auto_import',
+    'download_small_file_cleanup',
     'movie_heat',
     'movie_interaction_sync',
+    'hot_review_sync',
+    'media_file_scan',
     'media_thumbnail',
     'image_search_index',
+    'image_search_optimize',
     'movie_similarity_recompute',
     'moment_recommendation_generate',
     'daily_recommendation_generate',
@@ -111,9 +146,17 @@ class AdvancedSchedulerConfigDto {
 
   factory AdvancedSchedulerConfigDto.fromJson(Map<String, dynamic> json) {
     return AdvancedSchedulerConfigDto(
-      crons: Map<String, String>.unmodifiable(<String, String>{
-        for (final key in cronKeys) key: json['${key}_cron'] as String,
-      }),
+      crons: Map<String, String>.unmodifiable(
+        cronKeys.fold<Map<String, String>>(<String, String>{}, (result, key) {
+          final cron = asStringOrNull(json['${key}_cron']);
+          // 后端删/改某个 cron 时跳过该项，UI 侧 `crons[key] ?? ''` 已能兜住。
+          if (cron == null) {
+            return result;
+          }
+          result[key] = cron;
+          return result;
+        }),
+      ),
     );
   }
 
@@ -126,33 +169,60 @@ class AdvancedSchedulerConfigDto {
 
 class AdvancedDownloadsConfigDto {
   const AdvancedDownloadsConfigDto({
-    required this.subscriptionSearchFreshDays,
-    required this.subscriptionSearchStaleAttemptLimit,
+    required this.smallFileCleanupThresholdMb,
+    required this.preferredClientKinds,
   });
 
-  final int subscriptionSearchFreshDays;
-  final int subscriptionSearchStaleAttemptLimit;
+  final int smallFileCleanupThresholdMb;
+  final List<DownloadClientKind> preferredClientKinds;
 
   factory AdvancedDownloadsConfigDto.fromJson(Map<String, dynamic> json) {
     return AdvancedDownloadsConfigDto(
-      subscriptionSearchFreshDays: _intAt(
+      smallFileCleanupThresholdMb: _intAt(
         json,
-        'subscription_search_fresh_days',
+        'small_file_cleanup_threshold_mb',
       ),
-      subscriptionSearchStaleAttemptLimit: _intAt(
-        json,
-        'subscription_search_stale_attempt_limit',
-      ),
+      preferredClientKinds: _preferredClientKinds(json),
     );
   }
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
-      'subscription_search_fresh_days': subscriptionSearchFreshDays,
-      'subscription_search_stale_attempt_limit':
-          subscriptionSearchStaleAttemptLimit,
+      'small_file_cleanup_threshold_mb': smallFileCleanupThresholdMb,
+      'preferred_client_kinds': preferredClientKinds
+          .map((kind) => kind.wireValue)
+          .toList(growable: false),
     };
   }
+}
+
+List<DownloadClientKind> _preferredClientKinds(Map<String, dynamic> json) {
+  const fallback = <DownloadClientKind>[
+    DownloadClientKind.qbittorrent,
+    DownloadClientKind.cloud115,
+  ];
+  final value = json['preferred_client_kinds'];
+  if (value is! List) {
+    return fallback;
+  }
+
+  final parsed = <DownloadClientKind>[];
+  for (final item in value) {
+    final kind = switch (item) {
+      'qbittorrent' => DownloadClientKind.qbittorrent,
+      'cloud115' => DownloadClientKind.cloud115,
+      _ => null,
+    };
+    if (kind != null && !parsed.contains(kind)) {
+      parsed.add(kind);
+    }
+  }
+  for (final kind in fallback) {
+    if (!parsed.contains(kind)) {
+      parsed.add(kind);
+    }
+  }
+  return List<DownloadClientKind>.unmodifiable(parsed);
 }
 
 class AdvancedLoggingConfigDto {

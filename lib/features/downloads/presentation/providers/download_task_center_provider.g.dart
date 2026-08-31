@@ -8,16 +8,16 @@ part of 'download_task_center_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 下载任务中心：列表快照轮询 + 删除。
+/// 下载任务中心：列表快照轮询 + 暂停/恢复/删除。
 
 @ProviderFor(DownloadTaskCenter)
 final downloadTaskCenterProvider = DownloadTaskCenterProvider._();
 
-/// 下载任务中心：列表快照轮询 + 删除。
+/// 下载任务中心：列表快照轮询 + 暂停/恢复/删除。
 final class DownloadTaskCenterProvider
     extends
         $AsyncNotifierProvider<DownloadTaskCenter, DownloadTaskCenterState> {
-  /// 下载任务中心：列表快照轮询 + 删除。
+  /// 下载任务中心：列表快照轮询 + 暂停/恢复/删除。
   DownloadTaskCenterProvider._()
     : super(
         from: null,
@@ -38,9 +38,9 @@ final class DownloadTaskCenterProvider
 }
 
 String _$downloadTaskCenterHash() =>
-    r'b97b3837827fa9bf2013b5f7c8790c2e8b8cf3c7';
+    r'f59705ed4e19faf4a34e49ac10260c40c791d2a0';
 
-/// 下载任务中心：列表快照轮询 + 删除。
+/// 下载任务中心：列表快照轮询 + 暂停/恢复/删除。
 
 abstract class _$DownloadTaskCenter
     extends $AsyncNotifier<DownloadTaskCenterState> {

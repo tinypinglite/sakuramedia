@@ -134,7 +134,6 @@ mixin $MobileImageSearchRouteData on GoRouteData {
         currentMovieNumber: state.uri.queryParameters['current-movie-number'],
         currentMovieScope:
             state.uri.queryParameters['current-movie-scope'] ?? 'all',
-        mode: state.uri.queryParameters['mode'] ?? 'image',
       );
 
   MobileImageSearchRouteData get _self => this as MobileImageSearchRouteData;
@@ -148,7 +147,6 @@ mixin $MobileImageSearchRouteData on GoRouteData {
         'current-movie-number': _self.currentMovieNumber,
       if (_self.currentMovieScope != 'all')
         'current-movie-scope': _self.currentMovieScope,
-      if (_self.mode != 'image') 'mode': _self.mode,
     },
   );
 
@@ -823,11 +821,6 @@ RouteBase get $mobileRootShellRouteData => StatefulShellRouteData.$route(
           factory: $MobileOverviewRouteData._fromState,
           routes: [
             GoRouteData.$route(
-              path: 'discover/follow',
-              parentNavigatorKey: MobileFollowRouteData.$parentNavigatorKey,
-              factory: $MobileFollowRouteData._fromState,
-            ),
-            GoRouteData.$route(
               path: 'discover/movies',
               parentNavigatorKey:
                   MobileDiscoverMoviesRouteData.$parentNavigatorKey,
@@ -927,28 +920,6 @@ mixin $MobileOverviewRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/mobile/overview');
-
-  @override
-  void go(BuildContext context) => context.go(location);
-
-  @override
-  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
-
-  @override
-  void pushReplacement(BuildContext context) =>
-      context.pushReplacement(location);
-
-  @override
-  void replace(BuildContext context) => context.replace(location);
-}
-
-mixin $MobileFollowRouteData on GoRouteData {
-  static MobileFollowRouteData _fromState(GoRouterState state) =>
-      const MobileFollowRouteData();
-
-  @override
-  String get location =>
-      GoRouteData.$location('/mobile/overview/discover/follow');
 
   @override
   void go(BuildContext context) => context.go(location);

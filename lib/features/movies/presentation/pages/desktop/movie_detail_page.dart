@@ -5,15 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
-import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
+import 'package:sakuramedia/features/external_player/presentation/external_player_availability.dart';
 import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
+import 'package:sakuramedia/features/media/data/media_play_url_dto.dart';
+import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_copy.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_menu.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_support.dart';
-import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/detail/movie_clip_section_mixin.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_behavior_mixin.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_page_content.dart';
@@ -22,6 +22,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_
 import 'package:sakuramedia/features/movies/presentation/providers/movie_subtitles_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_plot_image_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_playback_options.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/movie_playlist_picker_dialog.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -33,7 +34,6 @@ import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_inspector_dialog.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_preview_overlay.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_merge_playback_candidate_list.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_subtitle_viewer.dart';
 
 class DesktopMovieDetailPage extends ConsumerStatefulWidget {
@@ -49,8 +49,6 @@ class DesktopMovieDetailPage extends ConsumerStatefulWidget {
 class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
     with MovieClipSectionMixin, MovieDetailBehaviorMixin {
   late final MovieSubscriptionEvents _subscriptionChangeNotifier;
-
-  bool _isLaunchingPlayback = false;
 
   @override
   String get movieNumber => widget.movieNumber;
@@ -122,23 +120,17 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
           final isBlacklisted = derived.isBlacklisted;
           final isCollection = derived.isCollection;
           final isActionControlsLocked = derived.isActionControlsLocked;
+          final sourceOptions = derived.sourceOptions;
+          final effectivePlaySource = derived.effectivePlaySource;
           final selectedMedia = derived.selectedMedia;
-          final externalPlayerSelection = ref
-              .watch(externalPlayerPreferenceProvider)
-              .value;
-          final mergePlaybackCandidates = movie.mergePlaybackCandidates;
-          final canLaunchMergedPlayback =
-              const ExternalPlayerChannel().isSupported &&
-              externalPlayerSelection?.hasExternalPlayer == true;
-          final mergePlaybackLabel =
-              !canLaunchMergedPlayback || mergePlaybackCandidates.isEmpty
-              ? null
-              : mergePlaybackCandidates.length == 1
-              ? '合并播放（${mergePlaybackCandidates.single.segmentCount} 段）'
-              : '合并播放（${mergePlaybackCandidates.length} 个媒体库）';
+          final mergedPlaybackAvailable =
+              isExternalPlayerReady(context) &&
+              effectivePlaySource == MoviePlayUrlSource.local &&
+              sourceOptions.localCount >= 2;
           return MovieDetailPageContent(
             movie: movie,
             mediaItemsOverride: derived.visibleMediaItems,
+            storageDescriptors: detailState.storageDescriptors,
             selectedPreviewKey: detailState.selectedPreviewKey,
             selectedPreviewUrl: detailState.selectedPreviewUrl,
             isCollection: isCollection,
@@ -173,12 +165,18 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
                     selectedMedia,
                   ),
             onPlayTap: selectedMedia != null && selectedMedia.hasPlayableUrl
-                ? () => _openMoviePlayer(
-                    movie: movie,
+                ? () => context.pushDesktopMoviePlayer(
+                    movieNumber: widget.movieNumber,
+                    fallbackPath: buildDesktopMovieDetailRoutePath(
+                      widget.movieNumber,
+                    ),
                     mediaId: selectedMedia.mediaId,
                   )
                 : null,
-            isPlayLoading: _isLaunchingPlayback,
+            sourceOptions: sourceOptions,
+            selectedPlaySource: effectivePlaySource,
+            onPlaySourceChanged: _handlePlaySourceChanged,
+            mergedPlaybackAvailable: mergedPlaybackAvailable,
             onPlaylistTap: () => showMoviePlaylistPickerDialog(
               context,
               movieNumber: widget.movieNumber,
@@ -188,13 +186,9 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
             onCollectionToggle: isActionControlsLocked
                 ? null
                 : () => toggleMovieCollectionType(isCollection: isCollection),
-            onMediaSelect: selectMedia,
-            mergePlaybackLabel: mergePlaybackLabel,
-            onMergePlaybackTap:
-                mergePlaybackLabel == null || _isLaunchingPlayback
-                ? null
-                : () => _openMergedPlayback(movie),
-            isMergePlaybackLoading: _isLaunchingPlayback,
+            onMediaSelect: (item) => setState(() {
+              selectedMediaId = item.mediaId;
+            }),
             isDeletingSelectedMedia:
                 selectedMedia != null &&
                 deletingMediaId == selectedMedia.mediaId,
@@ -272,19 +266,25 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
 
   @override
   Future<bool?> confirmDeleteMedia(MovieMediaItemDto mediaItem) {
+    final storage = resolveMediaStorageDescriptor(
+      mediaItem.libraryId,
+      ref.read(movieDetailProvider(widget.movieNumber)).storageDescriptors,
+    );
     return showAppConfirmDialog(
       context,
       title: '删除媒体文件',
-      message: mediaDeleteMessage(mediaItem),
+      message: mediaDeleteMessage(
+        mediaItem,
+        isCloud115: storage.isCloud115,
+        isLocal: storage.isLocal,
+      ),
       confirmLabel: '删除',
       danger: true,
       dialogKey: const Key('movie-media-delete-confirm-dialog'),
       confirmKey: const Key('movie-media-delete-confirm'),
       cancelKey: const Key('movie-media-delete-cancel'),
       extraContent: Text(
-        mediaItem.fileName.trim().isEmpty
-            ? '媒体 ${mediaItem.mediaId}'
-            : mediaItem.fileName.trim(),
+        mediaStorageLabel(storage),
         key: const Key('movie-media-delete-path'),
         style: resolveAppTextStyle(
           context,
@@ -426,6 +426,26 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
     );
   }
 
+  /// 切换播放源：选中该源下第一个可播放媒体。桌面无外部播放器，不涉及合并模式。
+  void _handlePlaySourceChanged(MoviePlayUrlSource source) {
+    final detailState = ref.read(movieDetailProvider(widget.movieNumber));
+    final movie = detailState.movie;
+    if (movie == null) {
+      return;
+    }
+    setState(() {
+      playSource = source;
+      final target = resolveFirstPlayableMediaId(
+        mediaItems: resolveMediaItems(movie),
+        storageDescriptors: detailState.storageDescriptors,
+        source: source,
+      );
+      if (target != null) {
+        selectedMediaId = target;
+      }
+    });
+  }
+
   @override
   Future<void> openMediaPointPreview(
     MovieMediaItemDto mediaItem,
@@ -491,85 +511,11 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
     MovieMediaItemDto mediaItem,
     MovieMediaPointDto point,
   ) {
-    _openMoviePlayer(
+    context.pushDesktopMoviePlayer(
+      movieNumber: widget.movieNumber,
+      fallbackPath: buildDesktopMovieDetailRoutePath(widget.movieNumber),
       mediaId: mediaItem.mediaId,
       positionSeconds: point.offsetSeconds,
-    );
-  }
-
-  void _openMoviePlayer({
-    MovieDetailDto? movie,
-    int? mediaId,
-    int? positionSeconds,
-  }) {
-    if (_isLaunchingPlayback) {
-      return;
-    }
-    setState(() {
-      _isLaunchingPlayback = true;
-    });
-    unawaited(
-      launchMoviePlayback(
-        context,
-        movieNumber: widget.movieNumber,
-        mediaId: mediaId,
-        positionSeconds: positionSeconds,
-        movie: movie ?? ref.read(movieDetailProvider(widget.movieNumber)).movie,
-      ).whenComplete(() {
-        if (mounted) {
-          setState(() {
-            _isLaunchingPlayback = false;
-          });
-        }
-      }),
-    );
-  }
-
-  Future<void> _openMergedPlayback(MovieDetailDto movie) async {
-    if (_isLaunchingPlayback) {
-      return;
-    }
-    final candidate = await _pickMergePlaybackCandidate(
-      movie.mergePlaybackCandidates,
-    );
-    if (candidate == null || !mounted) {
-      return;
-    }
-    setState(() {
-      _isLaunchingPlayback = true;
-    });
-    try {
-      await launchMovieMergedPlayback(
-        context,
-        movieNumber: movie.movieNumber,
-        libraryId: candidate.libraryId,
-        movie: movie,
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLaunchingPlayback = false;
-        });
-      }
-    }
-  }
-
-  Future<MovieMergePlaybackCandidateDto?> _pickMergePlaybackCandidate(
-    List<MovieMergePlaybackCandidateDto> candidates,
-  ) {
-    if (candidates.length == 1) {
-      return Future<MovieMergePlaybackCandidateDto?>.value(candidates.single);
-    }
-    return showDialog<MovieMergePlaybackCandidateDto>(
-      context: context,
-      builder: (dialogContext) => AppDesktopDialog(
-        dialogKey: const Key('movie-merge-playback-library-dialog'),
-        width: dialogContext.appLayoutTokens.dialogWidthSm,
-        child: MovieMergePlaybackCandidateList(
-          candidates: candidates,
-          onSelected: (candidate) => Navigator.of(dialogContext).pop(candidate),
-        ),
-      ),
     );
   }
 }

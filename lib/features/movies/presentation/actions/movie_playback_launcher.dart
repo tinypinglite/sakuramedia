@@ -1,47 +1,75 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
-import 'package:sakuramedia/core/media/media_url_resolver.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
+import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_selection.dart';
 import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
+import 'package:sakuramedia/features/media/data/media_play_url_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/desktop_routes.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
-import 'package:oktoast/oktoast.dart';
 
 /// 统一的影片播放入口：根据用户是否设置了默认外部播放器，决定跳应用内播放页
-/// 还是直接拉起外部播放器。
+/// 还是直接拉起外部播放器。所有播放入口都应经由此函数，保证行为一致。
 ///
-/// 详情接口返回的 [MovieMediaItemDto.playUrl] 已经是后端签名播放地址。前端只
-/// 负责把相对地址补成完整 URL，不再探测、拼接或转换播放流。
+/// [movie] 可传入已加载的详情以避免重复请求（详情页场景）；缺省时按需拉取。
+/// [playMode] 为 [MoviePlayUrlMode.merged] 时**只走外部播放器**（内置播放器不消费
+/// 合并链接）：按 [playSource] 向后端解析合并播放链接后传给外部播放器；外部播放器
+/// 不可用、解析失败或链接为空时回落到应用内单播。
 Future<void> launchMoviePlayback(
   BuildContext context, {
   required String movieNumber,
   int? mediaId,
   int? positionSeconds,
   MovieDetailDto? movie,
-  String? inAppFallbackPath,
+  MoviePlayUrlSource? playSource,
+  MoviePlayUrlMode playMode = MoviePlayUrlMode.single,
 }) async {
   final selection = _readExternalPlayerSelection(context);
   const channel = ExternalPlayerChannel();
   final canUseExternal =
       selection != null && selection.hasExternalPlayer && channel.isSupported;
 
+  if (playMode == MoviePlayUrlMode.merged) {
+    if (!canUseExternal) {
+      // 合并播放只走外部播放器，外部播放器不可用时回落到应用内单播并提示。
+      showToast('合并播放不可用，已使用应用内播放');
+      _pushInAppPlayer(
+        context,
+        movieNumber: movieNumber,
+        mediaId: mediaId,
+        positionSeconds: positionSeconds,
+      );
+      return;
+    }
+    await _launchExternalMergedPlayback(
+      context,
+      movieNumber: movieNumber,
+      mediaId: mediaId,
+      positionSeconds: positionSeconds,
+      movie: movie,
+      selection: selection,
+      source: playSource ?? MoviePlayUrlSource.local,
+    );
+    return;
+  }
+
+  // 未设置外部播放器、当前平台不支持、或偏好未注入（如局部测试树），
+  // 直接走应用内播放页。
   if (!canUseExternal) {
     _pushInAppPlayer(
       context,
       movieNumber: movieNumber,
       mediaId: mediaId,
       positionSeconds: positionSeconds,
-      fallbackPath: inAppFallbackPath,
     );
     return;
   }
+
+  final packageName = selection.packageName!;
 
   // 外部播放器需要完整直链与标题，按需补齐影片详情。
   var detail = movie;
@@ -60,15 +88,20 @@ Future<void> launchMoviePlayback(
   }
 
   final media = _resolvePlayableMedia(detail, mediaId);
-  final baseUrl = ProviderScope.containerOf(
-    context,
-    listen: false,
-  ).read(sessionStoreProvider).baseUrl;
-  final resolvedUrl = media == null
-      ? null
-      : resolveMediaUrl(rawUrl: media.playUrl, baseUrl: baseUrl);
+  final baseUrl =
+      ProviderScope.containerOf(
+        context,
+        listen: false,
+      ).read(sessionStoreProvider).baseUrl;
+  final resolvedUrl =
+      media == null
+          ? null
+          : resolveMediaUrl(
+            rawUrl: resolveExternalPlayerSingleUrl(media),
+            baseUrl: baseUrl,
+          );
 
-  // 拿不到后端签名播放地址时回落到应用内播放页。
+  // 拿不到可播放直链时回落到应用内播放页。
   if (detail == null ||
       media == null ||
       resolvedUrl == null ||
@@ -78,19 +111,17 @@ Future<void> launchMoviePlayback(
       movieNumber: movieNumber,
       mediaId: mediaId,
       positionSeconds: positionSeconds,
-      fallbackPath: inAppFallbackPath,
     );
     return;
   }
 
   final resumeSeconds =
       positionSeconds ?? media.progress?.lastPositionSeconds ?? 0;
-  final title = detail.preferredTitle.isNotEmpty
-      ? detail.preferredTitle
-      : movieNumber;
+  final title =
+      detail.preferredTitle.isNotEmpty ? detail.preferredTitle : movieNumber;
 
   final launched = await channel.launch(
-    playerId: selection.playerId!,
+    packageName: packageName,
     url: resolvedUrl,
     title: title,
     positionMs: resumeSeconds > 0 ? resumeSeconds * 1000 : null,
@@ -106,63 +137,121 @@ Future<void> launchMoviePlayback(
       movieNumber: movieNumber,
       mediaId: mediaId,
       positionSeconds: positionSeconds,
-      fallbackPath: inAppFallbackPath,
     );
   }
 }
 
-/// 合并播放只能交给外部播放器；应用内播放器只理解单个媒体源。
-Future<void> launchMovieMergedPlayback(
+/// 合并播放走外部播放器：调 `/media/play-url` 拿合并链接后拉起外部播放器。
+Future<void> _launchExternalMergedPlayback(
   BuildContext context, {
   required String movieNumber,
-  required int libraryId,
+  int? mediaId,
+  int? positionSeconds,
   MovieDetailDto? movie,
+  required ExternalPlayerSelection selection,
+  required MoviePlayUrlSource source,
 }) async {
-  final selection = _readExternalPlayerSelection(context);
   const channel = ExternalPlayerChannel();
-  if (selection == null ||
-      !selection.hasExternalPlayer ||
-      !channel.isSupported) {
-    if (context.mounted) {
-      showToast('合并播放需要配置外部播放器');
-    }
-    return;
-  }
 
-  try {
-    final container = ProviderScope.containerOf(context, listen: false);
-    final mergedPlayback = await container
-        .read(moviesApiProvider)
-        .getMergedPlayback(movieNumber: movieNumber, libraryId: libraryId);
+  var detail = movie;
+  if (detail == null) {
+    try {
+      detail = await ProviderScope.containerOf(
+        context,
+        listen: false,
+      ).read(moviesApiProvider).getMovieDetail(movieNumber: movieNumber);
+    } catch (_) {
+      detail = null;
+    }
     if (!context.mounted) {
       return;
     }
-    final resolvedUrl = resolveMediaUrl(
-      rawUrl: mergedPlayback.playUrl,
-      baseUrl: container.read(sessionStoreProvider).baseUrl,
+  }
+
+  final title =
+      (detail != null && detail.preferredTitle.isNotEmpty)
+          ? detail.preferredTitle
+          : movieNumber;
+
+  MoviePlayUrlDto playUrl;
+  try {
+    playUrl = await ProviderScope.containerOf(context, listen: false)
+        .read(mediaApiProvider)
+        .getMoviePlayUrl(
+          movieNumber: movieNumber,
+          source: source,
+          mode: MoviePlayUrlMode.merged,
+        );
+  } catch (_) {
+    playUrl = const MoviePlayUrlDto(
+      playUrl: null,
+      kind: MoviePlayUrlKind.none,
+      segmentCount: 0,
+      segments: <MoviePlayUrlSegmentDto>[],
     );
-    if (resolvedUrl == null || resolvedUrl.isEmpty) {
-      showToast('无法获取合并播放地址');
-      return;
-    }
-    final title = movie?.preferredTitle.trim() ?? '';
-    final launched = await channel.launch(
-      playerId: selection.playerId!,
-      url: resolvedUrl,
-      title: title.isEmpty ? movieNumber : title,
+  }
+  if (!context.mounted) {
+    return;
+  }
+
+  final baseUrl =
+      ProviderScope.containerOf(
+        context,
+        listen: false,
+      ).read(sessionStoreProvider).baseUrl;
+  final resolvedUrl =
+      playUrl.hasPlayableUrl
+          ? resolveMediaUrl(rawUrl: playUrl.playUrl, baseUrl: baseUrl)
+          : null;
+
+  if (resolvedUrl == null || resolvedUrl.isEmpty) {
+    showToast('合并播放暂不可用，已使用应用内播放');
+    _pushInAppPlayer(
+      context,
+      movieNumber: movieNumber,
+      mediaId: mediaId,
+      positionSeconds: positionSeconds,
     );
-    if (context.mounted && !launched) {
-      showToast('外部播放器不可用');
-    }
-  } catch (error) {
-    if (context.mounted) {
-      showToast(apiErrorMessage(error, fallback: '合并播放启动失败，请稍后重试'));
-    }
+    return;
+  }
+
+  // 拉起外部播放器前先探测合并流：规格不一致等校验在 merged-stream 端点进行，
+  // 提前用 Range: bytes=0-0 触发，422/404 就直接提示用户，不跳外部播放器也不回退单播。
+  final probeOk = await ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(mediaApiProvider).probeMergedPlayback(playUrl: playUrl.playUrl!);
+  if (!context.mounted) {
+    return;
+  }
+  if (!probeOk) {
+    showToast('分段规格不一致，无法合并播放');
+    return;
+  }
+
+  // 合并播放不传续播位置：逻辑文件跨多个分段，单段 stored progress 对不上。
+  final launched = await channel.launch(
+    packageName: selection.packageName!,
+    url: resolvedUrl,
+    title: title,
+  );
+  if (!context.mounted) {
+    return;
+  }
+  if (!launched) {
+    showToast('外部播放器不可用，已使用应用内播放');
+    _pushInAppPlayer(
+      context,
+      movieNumber: movieNumber,
+      mediaId: mediaId,
+      positionSeconds: positionSeconds,
+    );
   }
 }
 
-/// 安全读取偏好；树上没有 [ProviderScope] 的局部上下文（部分 widget 测试）
-/// 或偏好尚未读完返回 null（降级为应用内播放）。
+/// 安全读取偏好；树上没有 `ProviderScope` 的局部上下文（部分 widget 测试）
+/// 或偏好尚未读完（AsyncValue 无值）返回 null（降级为应用内播放），与旧
+/// `ProviderNotFoundException` / isLoaded=false 语义一致。
 ExternalPlayerSelection? _readExternalPlayerSelection(BuildContext context) {
   try {
     return ProviderScope.containerOf(
@@ -179,29 +268,12 @@ void _pushInAppPlayer(
   required String movieNumber,
   int? mediaId,
   int? positionSeconds,
-  String? fallbackPath,
 }) {
-  switch (defaultTargetPlatform) {
-    case TargetPlatform.macOS:
-    case TargetPlatform.windows:
-    case TargetPlatform.linux:
-      context.pushDesktopMoviePlayer(
-        movieNumber: movieNumber,
-        fallbackPath:
-            fallbackPath ??
-            DesktopMovieDetailRouteData(movieNumber: movieNumber).location,
-        mediaId: mediaId,
-        positionSeconds: positionSeconds,
-      );
-    case TargetPlatform.android:
-    case TargetPlatform.iOS:
-    case TargetPlatform.fuchsia:
-      MobileMoviePlayerRouteData(
-        movieNumber: movieNumber,
-        mediaId: mediaId,
-        positionSeconds: positionSeconds,
-      ).push(context);
-  }
+  MobileMoviePlayerRouteData(
+    movieNumber: movieNumber,
+    mediaId: mediaId,
+    positionSeconds: positionSeconds,
+  ).push(context);
 }
 
 MovieMediaItemDto? _resolvePlayableMedia(MovieDetailDto? movie, int? mediaId) {
@@ -221,4 +293,18 @@ MovieMediaItemDto? _resolvePlayableMedia(MovieDetailDto? movie, int? mediaId) {
     }
   }
   return null;
+}
+
+/// 外部播放器单播地址：115 媒体换成后端 HLS 代理的 `.m3u8`。
+///
+/// 签名载荷（`media:{id}:{expires}`）与路径后缀无关，把 `/stream` 换成
+/// `/stream.m3u8` 后原签名仍有效；http 部署下 ExoPlayer 系播放器不跟随
+/// http->https 的 302 跳转，且需要 `.m3u8` 后缀才能按 HLS 解析，故 115 源
+/// 必须走代理。本地媒体保持原 `/stream` 字节流。
+@visibleForTesting
+String resolveExternalPlayerSingleUrl(MovieMediaItemDto media) {
+  if (!media.isCloud115) {
+    return media.playUrl;
+  }
+  return media.playUrl.replaceFirst('/stream?', '/stream.m3u8?');
 }

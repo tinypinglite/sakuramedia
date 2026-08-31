@@ -44,7 +44,7 @@ void main() {
           <String, dynamic>{
             'item_id': 100,
             'position': 0,
-            'play_url': '/media/9/play/?expires=1777777777&signature=abc',
+            'play_url': '/media/9/stream?sig=a',
             'first_media_id': 9,
             'video': <String, dynamic>{
               'id': 1,
@@ -81,10 +81,7 @@ void main() {
     expect(result.items.first.itemId, 100);
     expect(result.items.first.position, 0);
     expect(result.items.first.video.title, '第一段');
-    expect(
-      result.items.first.playUrl,
-      '/media/9/play/?expires=1777777777&signature=abc',
-    );
+    expect(result.items.first.playUrl, '/media/9/stream?sig=a');
     expect(result.items.first.firstMediaId, 9);
     expect(result.items.last.video.id, 2);
     // 后端未内联（无媒体）的成员 playUrl / firstMediaId 为 null。

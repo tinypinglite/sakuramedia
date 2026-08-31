@@ -77,7 +77,7 @@ class VideoCollectionFilterSectionGroup extends StatelessWidget {
 /// 弹出移动端视频合集排序底部抽屉。内容与桌面 `AppListHeader` 的就地浮层面板
 /// **完全一致**（同一个 [VideoCollectionFilterSectionGroup]），**即时生效**。
 ///
-/// 排序是必选其一、没有「恢复默认」语义，故不带 footer——对齐榜单 / 时刻。
+/// 排序是必选其一、没有「恢复默认」语义，故不带 footer——对齐榜单 / 热评 / 时刻。
 Future<void> showMobileVideoCollectionFilterDrawer(
   BuildContext context, {
   required VideoSortField? sortField,

@@ -27,14 +27,22 @@ class MediaBrowseState {
 
   bool isSelected(int id) => selectedIds.contains(id);
 
-  /// 当前已加载页中的条目是否已全部选中。
+  /// 当前已加载页中「可批量操作」的条目是否已全部选中。
+  ///
+  /// 供「全选本页 ↔ 取消全选本页」同一个按钮切换语义使用；白名单与
+  /// [isBulkSelectableRapidUploadStatus] 一致（`in_progress` / `unknown` 不参与）。
   bool get allLoadedSelected {
+    var hasSelectable = false;
     for (final item in paged.items) {
+      if (!isBulkSelectableRapidUploadStatus(item.lastRapidUploadStatus)) {
+        continue;
+      }
+      hasSelectable = true;
       if (!selectedIds.contains(item.id)) {
         return false;
       }
     }
-    return paged.items.isNotEmpty;
+    return hasSelectable;
   }
 
   MediaBrowseState copyWith({

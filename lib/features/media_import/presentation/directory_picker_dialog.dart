@@ -11,12 +11,12 @@ class MediaImportRequest {
   const MediaImportRequest({
     required this.libraryId,
     required this.source,
-    required this.sourceDisposition,
+    required this.transferMode,
   });
 
   final int libraryId;
   final MediaImportSource source;
-  final SourceDisposition sourceDisposition;
+  final TransferMode transferMode;
 }
 
 Future<MediaImportRequest?> showDirectoryPickerDialog(BuildContext context) {
@@ -37,7 +37,9 @@ class _DirectoryPickerDialog extends StatefulWidget {
 class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog> {
   MediaLibraryDto? _selectedLibrary;
   MediaImportSource? _source;
-  SourceDisposition _sourceDisposition = SourceDisposition.keep;
+  TransferMode _transferMode = TransferMode.auto;
+
+  bool get _isCloud115 => _selectedLibrary?.isCloud115 ?? false;
 
   bool get _canSubmit => _selectedLibrary != null && _source != null;
 
@@ -45,7 +47,10 @@ class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog> {
     setState(() {
       _selectedLibrary = library;
       _source = null;
-      _sourceDisposition = SourceDisposition.keep;
+      _transferMode =
+          library == null
+              ? TransferMode.auto
+              : MediaImportSourcePicker.defaultTransferModeFor(library);
     });
   }
 
@@ -59,7 +64,7 @@ class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog> {
       MediaImportRequest(
         libraryId: library.id,
         source: source,
-        sourceDisposition: _sourceDisposition,
+        transferMode: _transferMode,
       ),
     );
   }
@@ -67,6 +72,8 @@ class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog> {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final deletingCloudSource =
+        _isCloud115 && _transferMode == TransferMode.cleanupSource;
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -90,18 +97,18 @@ class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog> {
             SizedBox(height: spacing.md),
             MediaImportSourcePicker(
               selectedLibrary: _selectedLibrary,
-              sourceDisposition: _sourceDisposition,
+              transferMode: _transferMode,
               onSourceChanged: (source) {
                 if (source == _source) {
                   return;
                 }
                 setState(() => _source = source);
               },
-              onSourceDispositionChanged: (disposition) {
-                if (disposition == _sourceDisposition) {
+              onTransferModeChanged: (mode) {
+                if (mode == _transferMode) {
                   return;
                 }
-                setState(() => _sourceDisposition = disposition);
+                setState(() => _transferMode = mode);
               },
             ),
           ],
@@ -119,7 +126,7 @@ class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog> {
               Expanded(
                 child: AppButton(
                   key: const Key('media-import-picker-submit-button'),
-                  label: '开始导入',
+                  label: deletingCloudSource ? '导入并删除源文件' : '开始导入',
                   variant: AppButtonVariant.primary,
                   onPressed: _canSubmit ? _submit : null,
                 ),

@@ -70,39 +70,6 @@ void main() {
     expect(readState().nextCursor, 'cursor-1');
   });
 
-  test('text source creates a text search session', () async {
-    bundle.adapter.enqueueJson(
-      method: 'POST',
-      path: '/image-search/text-sessions',
-      body: _sessionBody(nextCursor: null, thumbnailId: 123),
-    );
-
-    notifier.setTextSource('白色连衣裙');
-    await notifier.search();
-
-    expect(readState().inputKind, ImageSearchInputKind.text);
-    expect(readState().items.single.thumbnailId, 123);
-    final formData = bundle.adapter.requests.single.body as FormData;
-    expect(Map<String, String>.fromEntries(formData.fields)['text'], '白色连衣裙');
-  });
-
-  test('input mode can start as text and switch without a stale source', () {
-    notifier.initialize(
-      ImageSearchCurrentMovieScope.all,
-      initialInputKind: ImageSearchInputKind.text,
-    );
-
-    expect(readState().inputKind, ImageSearchInputKind.text);
-    expect(readState().hasSource, isFalse);
-
-    notifier.setTextSource('海边');
-    notifier.selectInputKind(ImageSearchInputKind.image);
-
-    expect(readState().inputKind, ImageSearchInputKind.image);
-    expect(readState().textQuery, isNull);
-    expect(readState().hasSource, isFalse);
-  });
-
   test('plot target uses dedicated paths for search and pagination', () async {
     bundle.adapter.enqueueJson(
       method: 'POST',
@@ -194,29 +161,6 @@ void main() {
       expect(readState().sessionId, isNull);
       expect(readState().items, isEmpty);
       expect(readState().errorMessage, '以图搜图失败，请稍后重试');
-    },
-  );
-
-  test(
-    'space mismatch tells the user to rebuild the image-search index',
-    () async {
-      bundle.adapter.enqueueJson(
-        method: 'POST',
-        path: '/image-search/sessions',
-        statusCode: 409,
-        body: <String, dynamic>{
-          'error': <String, dynamic>{
-            'code': 'image_search_index_rebuild_required',
-            'message': 'Image search index must be rebuilt',
-          },
-        },
-      );
-
-      _setSource(notifier);
-      await notifier.search();
-
-      expect(readState().errorMessage, '嵌入空间已变更，请先重建图搜索索引');
-      expect(readState().sessionId, isNull);
     },
   );
 

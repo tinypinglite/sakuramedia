@@ -12,30 +12,36 @@ class OverviewSystemInfoState {
   const OverviewSystemInfoState({
     this.isLoadingStatus = true,
     this.isLoadingImageSearchStatus = true,
-    this.isResettingImageSearch = false,
     this.isTestingMetadataProviders = false,
+    this.isTestingCloud115Authentication = false,
+    this.cloud115AuthenticationRequestFailed = false,
     this.status,
     this.imageSearchStatus,
+    this.cloud115CookiesStatus,
     this.javdbHealthy,
     this.statusError,
   });
 
   final bool isLoadingStatus;
   final bool isLoadingImageSearchStatus;
-  final bool isResettingImageSearch;
   final bool isTestingMetadataProviders;
+  final bool isTestingCloud115Authentication;
+  final bool cloud115AuthenticationRequestFailed;
   final StatusDto? status;
   final StatusImageSearchDto? imageSearchStatus;
+  final StatusCloud115CookiesDto? cloud115CookiesStatus;
   final bool? javdbHealthy;
   final String? statusError;
 
   OverviewSystemInfoState copyWith({
     bool? isLoadingStatus,
     bool? isLoadingImageSearchStatus,
-    bool? isResettingImageSearch,
     bool? isTestingMetadataProviders,
+    bool? isTestingCloud115Authentication,
+    bool? cloud115AuthenticationRequestFailed,
     Object? status = _kSentinel,
     Object? imageSearchStatus = _kSentinel,
+    Object? cloud115CookiesStatus = _kSentinel,
     Object? javdbHealthy = _kSentinel,
     Object? statusError = _kSentinel,
   }) {
@@ -43,22 +49,32 @@ class OverviewSystemInfoState {
       isLoadingStatus: isLoadingStatus ?? this.isLoadingStatus,
       isLoadingImageSearchStatus:
           isLoadingImageSearchStatus ?? this.isLoadingImageSearchStatus,
-      isResettingImageSearch:
-          isResettingImageSearch ?? this.isResettingImageSearch,
       isTestingMetadataProviders:
           isTestingMetadataProviders ?? this.isTestingMetadataProviders,
-      status: identical(status, _kSentinel)
-          ? this.status
-          : status as StatusDto?,
-      imageSearchStatus: identical(imageSearchStatus, _kSentinel)
-          ? this.imageSearchStatus
-          : imageSearchStatus as StatusImageSearchDto?,
-      javdbHealthy: identical(javdbHealthy, _kSentinel)
-          ? this.javdbHealthy
-          : javdbHealthy as bool?,
-      statusError: identical(statusError, _kSentinel)
-          ? this.statusError
-          : statusError as String?,
+      isTestingCloud115Authentication:
+          isTestingCloud115Authentication ??
+          this.isTestingCloud115Authentication,
+      cloud115AuthenticationRequestFailed:
+          cloud115AuthenticationRequestFailed ??
+          this.cloud115AuthenticationRequestFailed,
+      status:
+          identical(status, _kSentinel) ? this.status : status as StatusDto?,
+      imageSearchStatus:
+          identical(imageSearchStatus, _kSentinel)
+              ? this.imageSearchStatus
+              : imageSearchStatus as StatusImageSearchDto?,
+      cloud115CookiesStatus:
+          identical(cloud115CookiesStatus, _kSentinel)
+              ? this.cloud115CookiesStatus
+              : cloud115CookiesStatus as StatusCloud115CookiesDto?,
+      javdbHealthy:
+          identical(javdbHealthy, _kSentinel)
+              ? this.javdbHealthy
+              : javdbHealthy as bool?,
+      statusError:
+          identical(statusError, _kSentinel)
+              ? this.statusError
+              : statusError as String?,
     );
   }
 }

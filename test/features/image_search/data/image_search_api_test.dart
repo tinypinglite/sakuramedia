@@ -119,25 +119,6 @@ void main() {
     expect(fields['exclude_movie_ids'], '30,40');
   });
 
-  test('createTextSession sends text to the selected target endpoint', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/image-search/plot-text-sessions',
-      body: _plotSessionBody(plotImageId: 321),
-    );
-
-    final session = await imageSearchApi.createTextSession(
-      text: '长发 海边',
-      target: ImageSearchTarget.plot,
-    );
-
-    expect(session.items.single.plotImageId, 321);
-    final formData = adapter.requests.single.body as FormData;
-    final fields = Map<String, String>.fromEntries(formData.fields);
-    expect(fields['text'], '长发 海边');
-    expect(adapter.requests.single.path, '/image-search/plot-text-sessions');
-  });
-
   test(
     'getNextResults sends cursor query parameter and parses response',
     () async {

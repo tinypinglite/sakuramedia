@@ -38,8 +38,6 @@ class ThemedVideoPlayer extends StatefulWidget {
     this.guardInitialSeek = false,
     this.resumePosition,
     this.onResumePromptResolved,
-    this.playbackSessionKey,
-    this.onInitialPlaybackError,
   });
 
   final VideoController videoController;
@@ -78,12 +76,6 @@ class ThemedVideoPlayer extends StatefulWidget {
   /// 用户继续、从头、手动 seek 或提示超时后调用，用于解除业务层的进度上报冻结。
   final VoidCallback? onResumePromptResolved;
 
-  /// Playlist 切换时标识新的首帧阶段；普通单媒体不需要传。
-  final Object? playbackSessionKey;
-
-  /// 首帧前收到播放器错误时由调用方决定是否改用代理重试一次。
-  final bool Function()? onInitialPlaybackError;
-
   @override
   State<ThemedVideoPlayer> createState() => _ThemedVideoPlayerState();
 }
@@ -95,7 +87,6 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
   bool _initialFrameReady = false;
   bool _resumePromptVisible = false;
   StreamSubscription<Duration>? _positionSubscription;
-  StreamSubscription<String>? _errorSubscription;
   Duration? _lastPromptPosition;
   DateTime? _lastPromptPositionAt;
 
@@ -104,7 +95,6 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
     super.initState();
     _seekEnabled = !widget.guardInitialSeek;
     _attachPositionMonitor();
-    _attachErrorMonitor();
     _armFirstFrameIndicator();
     _armInitialSeekGuard();
   }
@@ -118,14 +108,9 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
       _initialFrameReady = false;
       _resumePromptVisible = false;
       _attachPositionMonitor();
-      _attachErrorMonitor();
       _armFirstFrameIndicator();
       _armInitialSeekGuard();
       return;
-    }
-    if (oldWidget.playbackSessionKey != widget.playbackSessionKey) {
-      _initialFrameReady = false;
-      _armFirstFrameIndicator();
     }
     if (oldWidget.resumePosition != widget.resumePosition) {
       if (widget.resumePosition == null) {
@@ -141,7 +126,6 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
     _guardRequestId++;
     _firstFrameRequestId++;
     _positionSubscription?.cancel();
-    _errorSubscription?.cancel();
     super.dispose();
   }
 
@@ -161,20 +145,6 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
     _positionSubscription?.cancel();
     _positionSubscription = widget.videoController.player.stream.position
         .listen(_handlePositionChanged);
-  }
-
-  void _attachErrorMonitor() {
-    _errorSubscription?.cancel();
-    _errorSubscription = widget.videoController.player.stream.error.listen((_) {
-      if (_initialFrameReady) {
-        return;
-      }
-      if (widget.onInitialPlaybackError?.call() != true) {
-        return;
-      }
-      _initialFrameReady = false;
-      _armFirstFrameIndicator();
-    });
   }
 
   void _armInitialSeekGuard() {

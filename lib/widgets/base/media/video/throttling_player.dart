@@ -5,12 +5,12 @@ import 'package:media_kit/media_kit.dart';
 ///
 /// ## 为什么需要它
 ///
-/// 播放 CDN 对**同一签名 URL 的并发连接数通常有限**，超出可能直接返回 403。
+/// 115 CDN 对**同一签名 URL 的并发连接上限 ≈ 2 条**，超出即回 `403 115 pmt`。
 /// 而 media_kit_video 的 `MaterialSeekBar` 在 `onPointerMove` 里每帧调
 /// `player.seek()`——鼠标拖动进度条时 seek 调用速率高达 30-60 次/秒。libmpv
 /// 每次 seek 都要在新位置开 range 请求（关旧连接 + 开新连接一次都要 100-200ms），
-/// 开的速率 > 关的速率，短时间内并发连接就会超过服务端上限，之后所有直链请求
-/// 都可能失败。
+/// 开的速率 > 关的速率，2-3 秒内并发连接就堆到 3+ 条打爆 115 的上限，
+/// 之后所有直链请求全部 403。
 ///
 /// 直接改 `MaterialSeekBar` 得 fork media_kit_video；重写自定义 seek bar 又要
 /// 复刻整套 overlay（seek 手势、buffer bar、自动隐藏 timer 等）。**在 Player 层

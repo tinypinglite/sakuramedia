@@ -7,6 +7,7 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/api/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
+import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
@@ -16,10 +17,12 @@ import 'package:sakuramedia/features/downloads/presentation/providers/downloads_
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/status/presentation/providers/status_api_provider.dart';
 import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_category_state.dart';
+import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_fix_target.dart';
 import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_item_kind.dart';
 import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_item_state.dart';
 import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_item_status.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/hints/diagnostic_hints.dart';
+import 'package:sakuramedia/features/system_diagnostics/presentation/hints/downloader_hints.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/hints/indexer_hints.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/hints/joytag_hints.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/hints/media_library_hints.dart';
@@ -27,7 +30,7 @@ import 'package:sakuramedia/features/system_diagnostics/presentation/hints/metad
 
 part 'system_diagnostics_controller.g.dart';
 
-/// 两个宿主各自保留一次诊断会话，避免概览条与独立页互相覆盖运行状态。
+/// 两个宿主各自保留一次诊断会话，维持迁移前 strip 与独立页互不共享的语义。
 enum SystemDiagnosticsHost { overviewStrip, desktopPage }
 
 @immutable
@@ -36,36 +39,50 @@ class SystemDiagnosticsState {
     required this.categories,
     required this.isRunning,
     required this.lastRunAt,
+    required this.connectivityResults,
+    required this.storageResults,
+    required this.clients,
   });
 
   final List<DiagnosticCategoryState> categories;
   final bool isRunning;
   final DateTime? lastRunAt;
+  final Map<int, DownloadClientTestResultDto> connectivityResults;
+  final Map<int, DownloadClientStorageTestResultDto> storageResults;
+  final Map<int, DownloadClientDto> clients;
 
   DiagnosticItemStatus get overallStatus =>
       mergeDiagnosticStatuses(categories.map((cat) => cat.aggregate));
-  int get unhealthyCount => categories
-      .expand((cat) => cat.items)
-      .where((item) => item.status == DiagnosticItemStatus.unhealthy)
-      .length;
+  int get unhealthyCount =>
+      categories
+          .expand((cat) => cat.items)
+          .where((item) => item.status == DiagnosticItemStatus.unhealthy)
+          .length;
   int get totalItemCount =>
       categories.fold(0, (sum, cat) => sum + cat.items.length);
-  int get completedItemCount => categories
-      .expand((cat) => cat.items)
-      .where(
-        (item) =>
-            item.status != DiagnosticItemStatus.notTested &&
-            item.status != DiagnosticItemStatus.probing,
-      )
-      .length;
+  int get completedItemCount =>
+      categories
+          .expand((cat) => cat.items)
+          .where(
+            (item) =>
+                item.status != DiagnosticItemStatus.notTested &&
+                item.status != DiagnosticItemStatus.probing,
+          )
+          .length;
+  DownloadClientTestResultDto? connectivityResultFor(int clientId) =>
+      connectivityResults[clientId];
+  DownloadClientStorageTestResultDto? storageResultFor(int clientId) =>
+      storageResults[clientId];
+  DownloadClientDto? clientFor(int clientId) => clients[clientId];
 }
 
 /// 一次「组件诊断」检测的调度器。
 ///
 /// 调度算法（[runAll]）：
 ///   Stage A（基础资源）：媒体库。空 → 后置全部 blocked。
-///   Stage B（独立探针，与 A 并行）：JavDB / 嵌入服务。
-///   Stage C（依赖 A）：索引器 —— 静态校验、绑定核对和真实搜索测试。
+///   Stage B（独立探针，与 A 并行）：JavDB / JoyTag。
+///   Stage C（依赖 A）：下载器（每个 client → 连通性 + 存储 两项，全部并发）。
+///   Stage D（依赖 C）：索引器 —— 静态校验、下载器绑定核对和真实搜索测试。
 ///
 /// 单项 try/catch 隔离，任何一项抛异常不影响整体流水推进。
 @riverpod
@@ -96,6 +113,14 @@ class SystemDiagnostics extends _$SystemDiagnostics {
   DateTime? _lastRunAt;
   late List<DiagnosticCategoryState> _categories;
 
+  // 保留一份下载器 diagnostics 原始 DTO，供 tile 上的「查看诊断详情」dialog 复用。
+  final Map<int, DownloadClientTestResultDto> _lastConnectivityResults =
+      <int, DownloadClientTestResultDto>{};
+  final Map<int, DownloadClientStorageTestResultDto> _lastStorageResults =
+      <int, DownloadClientStorageTestResultDto>{};
+  final Map<int, DownloadClientDto> _lastKnownClients =
+      <int, DownloadClientDto>{};
+
   void _publish() {
     if (!_disposed) state = _snapshot();
   }
@@ -104,6 +129,13 @@ class SystemDiagnostics extends _$SystemDiagnostics {
     categories: List<DiagnosticCategoryState>.unmodifiable(_categories),
     isRunning: _isRunning,
     lastRunAt: _lastRunAt,
+    connectivityResults: Map<int, DownloadClientTestResultDto>.unmodifiable(
+      _lastConnectivityResults,
+    ),
+    storageResults: Map<int, DownloadClientStorageTestResultDto>.unmodifiable(
+      _lastStorageResults,
+    ),
+    clients: Map<int, DownloadClientDto>.unmodifiable(_lastKnownClients),
   );
 
   /// 幂等：正在跑就直接 return。
@@ -122,9 +154,15 @@ class SystemDiagnostics extends _$SystemDiagnostics {
     _replaceItem('基础资源', mediaLibrary);
     _publish();
 
-    // Stage C：媒体库不通 → 索引器 blocked。
+    // Stage C：媒体库不通 → 下载器 + 索引器全 blocked。
     if (mediaLibrary.status != DiagnosticItemStatus.healthy) {
       _replaceCategoryItems('下载与检索链', <DiagnosticItemState>[
+        DiagnosticItemState.blocked(
+          kind: DiagnosticItemKind.downloaderConnectivity,
+          itemKey: 'downloader-blocked',
+          displayName: '下载器',
+          blockedByLabel: '媒体库',
+        ),
         DiagnosticItemState.blocked(
           kind: DiagnosticItemKind.indexer,
           itemKey: _indexerItemKey,
@@ -133,8 +171,18 @@ class SystemDiagnostics extends _$SystemDiagnostics {
         ),
       ]);
     } else {
-      final indexerItem = await _probeIndexer();
-      _replaceCategoryItems('下载与检索链', <DiagnosticItemState>[indexerItem]);
+      final downloaderItems = await _probeAllDownloaders();
+      final indexerItem = await _probeIndexer(
+        downloaderConnectivityItems: downloaderItems
+            .where(
+              (item) => item.kind == DiagnosticItemKind.downloaderConnectivity,
+            )
+            .toList(growable: false),
+      );
+      _replaceCategoryItems('下载与检索链', <DiagnosticItemState>[
+        ...downloaderItems,
+        indexerItem,
+      ]);
     }
     _publish();
 
@@ -188,10 +236,166 @@ class SystemDiagnostics extends _$SystemDiagnostics {
     }
   }
 
-  Future<DiagnosticItemState> _probeIndexer() async {
+  Future<List<DiagnosticItemState>> _probeAllDownloaders() async {
+    final List<DownloadClientDto> clients;
+    try {
+      clients = await _downloadClientsApi.getClients();
+    } catch (_) {
+      return <DiagnosticItemState>[
+        _fromHint(
+          kind: DiagnosticItemKind.downloaderConnectivity,
+          itemKey: 'downloader-list-error',
+          displayName: '下载器',
+          status: DiagnosticItemStatus.unhealthy,
+          hint: downloaderConnectivityHints['unknown']!,
+          summary: '获取下载器列表失败',
+        ),
+      ];
+    }
+
+    _lastKnownClients
+      ..clear()
+      ..addEntries(clients.map((c) => MapEntry(c.id, c)));
+    _lastConnectivityResults.clear();
+    _lastStorageResults.clear();
+
+    if (clients.isEmpty) {
+      return <DiagnosticItemState>[
+        DiagnosticItemState(
+          kind: DiagnosticItemKind.downloaderConnectivity,
+          itemKey: 'downloader-empty',
+          displayName: '下载器',
+          status: DiagnosticItemStatus.unhealthy,
+          summary: '尚未配置任何下载器',
+          cause: '还没有配置下载器。',
+          fixHint: '在「下载器」页添加 qBittorrent 或 115 离线下载，并绑定媒体库。',
+          fixTarget: const DiagnosticFixTarget.configurationTab(2),
+        ),
+      ];
+    }
+
+    return Future.wait<DiagnosticItemState>([
+      for (final client in clients) ...<Future<DiagnosticItemState>>[
+        _probeDownloaderConnectivity(client),
+        if (client.isQbittorrent) _probeDownloaderStorage(client),
+      ],
+    ]);
+  }
+
+  Future<DiagnosticItemState> _probeDownloaderConnectivity(
+    DownloadClientDto client,
+  ) async {
+    try {
+      final result = await _downloadClientsApi.testClient(client.id);
+      _lastConnectivityResults[client.id] = result;
+      if (result.healthy) {
+        return DiagnosticItemState.healthy(
+          kind: DiagnosticItemKind.downloaderConnectivity,
+          itemKey: 'downloader-connectivity-${client.id}',
+          displayName: '${client.name} · 连通性',
+          elapsedMs: result.elapsedMs,
+          summary:
+              client.isCloud115
+                  ? '115 登录状态正常'
+                  : _downloaderVersionSummary(result),
+        );
+      }
+      final hintKey = resolveDownloaderConnectivityHintKey(result.error);
+      final hint =
+          downloaderConnectivityHints[hintKey] ??
+          downloaderConnectivityHints['unknown']!;
+      return _fromHint(
+        kind: DiagnosticItemKind.downloaderConnectivity,
+        itemKey: 'downloader-connectivity-${client.id}',
+        displayName: '${client.name} · 连通性',
+        status: DiagnosticItemStatus.unhealthy,
+        hint: hint,
+        elapsedMs: result.elapsedMs,
+        // 后端的 message 比 type 对用户有用得多（type 只有三种、还都是内部名）。
+        summary: _errorSummary(
+          result.error?.message,
+          result.error?.type,
+          fallback: '连通失败',
+        ),
+      );
+    } catch (error) {
+      // 探测接口本身失败 ≠ 下载器不通，别把后端故障说成下载器网络问题。
+      return _fromHint(
+        kind: DiagnosticItemKind.downloaderConnectivity,
+        itemKey: 'downloader-connectivity-${client.id}',
+        displayName: '${client.name} · 连通性',
+        status: DiagnosticItemStatus.unhealthy,
+        hint: downloaderConnectivityHints['probe-request-failed']!,
+        summary: _shortenError(apiErrorMessage(error, fallback: '连通性探测请求失败')),
+      );
+    }
+  }
+
+  Future<DiagnosticItemState> _probeDownloaderStorage(
+    DownloadClientDto client,
+  ) async {
+    try {
+      final result = await _downloadClientsApi.storageTestClient(client.id);
+      _lastStorageResults[client.id] = result;
+      if (result.healthy && result.warnings.isEmpty) {
+        return DiagnosticItemState.healthy(
+          kind: DiagnosticItemKind.downloaderStorage,
+          itemKey: 'downloader-storage-${client.id}',
+          displayName: '${client.name} · 目录映射',
+          elapsedMs: result.elapsedMs,
+          summary: '目录映射 + 硬链接均通过',
+        );
+      }
+      final hintKey = resolveDownloaderStorageHintKey(result);
+      final hint =
+          downloaderStorageHints[hintKey] ?? downloaderStorageHints['unknown']!;
+      // 业务上 healthy 但带 warnings（例如硬链接不支持）→ 落 warning，不阻塞。
+      final status =
+          result.healthy
+              ? DiagnosticItemStatus.warning
+              : DiagnosticItemStatus.unhealthy;
+      return _fromHint(
+        kind: DiagnosticItemKind.downloaderStorage,
+        itemKey: 'downloader-storage-${client.id}',
+        displayName: '${client.name} · 目录映射',
+        status: status,
+        hint: hint,
+        elapsedMs: result.elapsedMs,
+        summary: _storageSummary(result, status: status),
+      );
+    } catch (error) {
+      return _fromHint(
+        kind: DiagnosticItemKind.downloaderStorage,
+        itemKey: 'downloader-storage-${client.id}',
+        displayName: '${client.name} · 目录映射',
+        status: DiagnosticItemStatus.unhealthy,
+        hint: downloaderStorageHints['probe-request-failed']!,
+        summary: _shortenError(apiErrorMessage(error, fallback: '存储探测请求失败')),
+      );
+    }
+  }
+
+  Future<DiagnosticItemState> _probeIndexer({
+    required List<DiagnosticItemState> downloaderConnectivityItems,
+  }) async {
+    // 下载器一个都没健康 → 索引器 blocked。
+    final anyHealthyDownloader = downloaderConnectivityItems.any(
+      (item) => item.status == DiagnosticItemStatus.healthy,
+    );
+    if (!anyHealthyDownloader) {
+      return DiagnosticItemState.blocked(
+        kind: DiagnosticItemKind.indexer,
+        itemKey: _indexerItemKey,
+        displayName: '索引器',
+        blockedByLabel: '下载器',
+      );
+    }
+
     try {
       final settings = await _indexerSettingsApi.getSettings();
-      final clients = await _downloadClientsApi.getClients();
+      final List<DownloadClientDto> clients = _lastKnownClients.values.toList(
+        growable: false,
+      );
       final hintKey = resolveIndexerConfigHintKey(
         settings: settings,
         existingClients: clients,
@@ -292,37 +496,32 @@ class SystemDiagnostics extends _$SystemDiagnostics {
       return _fromHint(
         kind: DiagnosticItemKind.joyTag,
         itemKey: _joyTagItemKey,
-        displayName: '嵌入服务',
+        displayName: 'JoyTag 推理',
         status: DiagnosticItemStatus.unhealthy,
         hint: joyTagHints['status-unavailable']!,
         summary: _shortenError(apiErrorMessage(error, fallback: '检测请求失败')),
       );
     }
     final elapsed = DateTime.now().difference(started).inMilliseconds;
-    if (status.embeddingService.healthy) {
-      final spaceId = status.embeddingService.spaceId;
-      final dimension = status.embeddingService.dimension;
+    if (status.joyTag.healthy) {
+      final device = status.joyTag.usedDevice;
       return DiagnosticItemState.healthy(
         kind: DiagnosticItemKind.joyTag,
         itemKey: _joyTagItemKey,
-        displayName: '嵌入服务',
+        displayName: 'JoyTag 推理',
         elapsedMs: elapsed,
-        summary: spaceId == null || spaceId.isEmpty
-            ? '嵌入模型加载正常'
-            : dimension == null
-            ? '空间：$spaceId'
-            : '空间：$spaceId · $dimension 维',
+        summary: device == null || device.isEmpty ? '模型加载正常' : '推理设备：$device',
       );
     }
     return _fromHint(
       kind: DiagnosticItemKind.joyTag,
       itemKey: _joyTagItemKey,
-      displayName: '嵌入服务',
+      displayName: 'JoyTag 推理',
       status: DiagnosticItemStatus.unhealthy,
       hint: joyTagHints['unhealthy']!,
       elapsedMs: elapsed,
       // 后端带了失败原因，直接透出去比"模型未就绪"有用。
-      summary: _shortenError(status.embeddingService.error ?? '模型未就绪'),
+      summary: _shortenError(status.joyTag.error ?? '模型未就绪'),
     );
   }
 
@@ -413,6 +612,11 @@ class SystemDiagnostics extends _$SystemDiagnostics {
         label: '下载与检索链',
         icon: Icons.download_outlined,
         items: <DiagnosticItemState>[
+          make(
+            DiagnosticItemKind.downloaderConnectivity,
+            'downloader-placeholder',
+            '下载器',
+          ),
           make(DiagnosticItemKind.indexer, _indexerItemKey, '索引器'),
         ],
       ),
@@ -427,7 +631,7 @@ class SystemDiagnostics extends _$SystemDiagnostics {
         label: '智能能力',
         icon: Icons.psychology_outlined,
         items: <DiagnosticItemState>[
-          make(DiagnosticItemKind.joyTag, _joyTagItemKey, '嵌入服务'),
+          make(DiagnosticItemKind.joyTag, _joyTagItemKey, 'JoyTag 推理'),
         ],
       ),
     ];
@@ -438,6 +642,13 @@ class SystemDiagnostics extends _$SystemDiagnostics {
       return '1 个可用（${libraries.first.name}）';
     }
     return '${libraries.length} 个可用';
+  }
+
+  String _downloaderVersionSummary(DownloadClientTestResultDto result) {
+    if (result.version != null && result.version!.isNotEmpty) {
+      return '${result.version}';
+    }
+    return '连通正常';
   }
 
   String _indexerSummary(String hintKey, IndexerSettingsDto settings) {
@@ -480,7 +691,8 @@ class SystemDiagnostics extends _$SystemDiagnostics {
 
   /// 状态短句优先用后端 message，退回 type，再退回 [fallback]。
   ///
-  /// type 是内部标识，对用户几乎没信息量，只在没有 message 时才拿它顶着。
+  /// type（`qbittorrent_request_error` 之类）是内部标识，对用户几乎没信息量，
+  /// 只在没有 message 时才拿它顶着。
   String _errorSummary(
     String? message,
     String? type, {
@@ -491,6 +703,33 @@ class SystemDiagnostics extends _$SystemDiagnostics {
     }
     if (type != null && type.trim().isNotEmpty) return type.trim();
     return fallback;
+  }
+
+  String _storageSummary(
+    DownloadClientStorageTestResultDto result, {
+    required DiagnosticItemStatus status,
+  }) {
+    // mapping 失败时用它自己的 error message；hardlink 不支持时 warnings 里那句最贴切。
+    final mappingError = result.directoryMapping.error;
+    if (status == DiagnosticItemStatus.unhealthy && mappingError != null) {
+      return _errorSummary(
+        mappingError.message,
+        mappingError.type,
+        fallback: '存储映射不通',
+      );
+    }
+    if (result.warnings.isNotEmpty) {
+      return _shortenError(result.warnings.first);
+    }
+    final hardlinkError = result.hardlink.error;
+    if (hardlinkError != null) {
+      return _errorSummary(
+        hardlinkError.message,
+        hardlinkError.type,
+        fallback: '硬链接不可用',
+      );
+    }
+    return status == DiagnosticItemStatus.unhealthy ? '存储映射不通' : '存在告警';
   }
 
   /// healthy 时把后端返回的实证数据摆出来，让"绿"是可验证的而不是一句"连通正常"。
@@ -506,9 +745,8 @@ class SystemDiagnostics extends _$SystemDiagnostics {
     return _errorSummary(
       error.message,
       error.type,
-      fallback: result.movieNumber.isEmpty
-          ? '探测失败'
-          : '${result.movieNumber} 探测失败',
+      fallback:
+          result.movieNumber.isEmpty ? '探测失败' : '${result.movieNumber} 探测失败',
     );
   }
 }

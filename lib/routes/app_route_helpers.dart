@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
-import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 
 String buildRouteLocation({
@@ -66,13 +65,6 @@ ImageSearchCurrentMovieScope parseImageSearchCurrentMovieScope(String value) {
   return ImageSearchCurrentMovieScope.values.firstWhere(
     (scope) => scope.name == value,
     orElse: () => ImageSearchCurrentMovieScope.all,
-  );
-}
-
-ImageSearchInputKind parseImageSearchInputKind(String value) {
-  return ImageSearchInputKind.values.firstWhere(
-    (kind) => kind.name == value,
-    orElse: () => ImageSearchInputKind.image,
   );
 }
 
