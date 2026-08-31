@@ -16,9 +16,12 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/base/forms/app_password_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
 class AccountSecuritySection extends ConsumerStatefulWidget {
-  const AccountSecuritySection({super.key});
+  const AccountSecuritySection({super.key, required this.active});
+
+  final bool active;
 
   @override
   ConsumerState<AccountSecuritySection> createState() =>
@@ -173,6 +176,13 @@ class _AccountSecuritySectionState
     _confirmPasswordController.clear();
   }
 
+  Future<void> _refresh() async {
+    if (_isSubmitting || ref.read(accountProfileProvider).isSaving) {
+      return;
+    }
+    await ref.read(accountProfileProvider.notifier).load();
+  }
+
   String? _validateCurrentPassword(String? value) {
     if (value == null || value.trim().isEmpty) {
       return '请输入当前密码';
@@ -215,7 +225,7 @@ class _AccountSecuritySectionState
     final profileState = ref.watch(accountProfileProvider);
     _syncInitialUsername(profileState);
 
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildAccountProfileCard(context, profileState),
@@ -223,6 +233,9 @@ class _AccountSecuritySectionState
         _buildPasswordCard(context),
       ],
     );
+    return widget.active
+        ? AppPageRefreshScope(onRefresh: _refresh, child: content)
+        : content;
   }
 
   Widget _buildAccountProfileCard(

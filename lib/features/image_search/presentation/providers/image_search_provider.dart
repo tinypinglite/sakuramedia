@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actors_api_provider.dart';
@@ -36,7 +37,10 @@ class ImageSearch extends _$ImageSearch {
     return ImageSearchState();
   }
 
-  void initialize(ImageSearchCurrentMovieScope initialCurrentMovieScope) {
+  void initialize(
+    ImageSearchCurrentMovieScope initialCurrentMovieScope, {
+    ImageSearchInputKind initialInputKind = ImageSearchInputKind.image,
+  }) {
     if (state.hasInitialized) {
       return;
     }
@@ -44,7 +48,31 @@ class ImageSearch extends _$ImageSearch {
       filterState: state.filterState.copyWith(
         currentMovieScope: initialCurrentMovieScope,
       ),
+      inputKind: initialInputKind,
       hasInitialized: true,
+    );
+  }
+
+  void selectInputKind(ImageSearchInputKind inputKind) {
+    if (state.inputKind == inputKind) {
+      return;
+    }
+    _searchVersion += 1;
+    state = state.copyWith(
+      fileBytes: null,
+      fileName: null,
+      mimeType: null,
+      inputKind: inputKind,
+      textQuery: null,
+      sessionId: null,
+      nextCursor: null,
+      expiresAt: null,
+      items: const <ImageSearchResultItemDto>[],
+      isSearching: false,
+      isLoadingMore: false,
+      isResolvingActorMovieIds: false,
+      errorMessage: null,
+      bootstrappedSourceSignature: null,
     );
   }
 
@@ -63,6 +91,8 @@ class ImageSearch extends _$ImageSearch {
       fileBytes: fileBytes,
       fileName: fileName,
       mimeType: mimeType,
+      inputKind: ImageSearchInputKind.image,
+      textQuery: null,
       sessionId: null,
       nextCursor: null,
       expiresAt: null,
@@ -75,12 +105,28 @@ class ImageSearch extends _$ImageSearch {
     );
   }
 
-  void togglePreviewExpanded() {
-    state = state.copyWith(isPreviewExpanded: !state.isPreviewExpanded);
+  void setTextSource(String text) {
+    _searchVersion += 1;
+    state = state.copyWith(
+      fileBytes: null,
+      fileName: null,
+      mimeType: null,
+      inputKind: ImageSearchInputKind.text,
+      textQuery: text.trim(),
+      sessionId: null,
+      nextCursor: null,
+      expiresAt: null,
+      items: const <ImageSearchResultItemDto>[],
+      isSearching: false,
+      isLoadingMore: false,
+      isResolvingActorMovieIds: false,
+      errorMessage: null,
+      bootstrappedSourceSignature: null,
+    );
   }
 
-  void toggleFilterExpanded() {
-    state = state.copyWith(isFilterExpanded: !state.isFilterExpanded);
+  void togglePreviewExpanded() {
+    state = state.copyWith(isPreviewExpanded: !state.isPreviewExpanded);
   }
 
   Future<void> ensureSubscribedActorsLoaded() async {
@@ -163,25 +209,36 @@ class ImageSearch extends _$ImageSearch {
       }
 
       final source = state;
-      final session = await ref
-          .read(imageSearchApiProvider)
-          .createSession(
-            fileBytes: source.fileBytes!,
-            fileName: source.fileName!,
-            mimeType: source.mimeType,
-            movieIds: resolved.includeMovieIds,
-            excludeMovieIds: resolved.excludeMovieIds,
-            scoreThreshold: filter.scoreThreshold,
-            target: filter.searchTarget,
-          );
+      final api = ref.read(imageSearchApiProvider);
+      final session = source.inputKind == ImageSearchInputKind.image
+          ? await api.createSession(
+              fileBytes: source.fileBytes!,
+              fileName: source.fileName!,
+              mimeType: source.mimeType,
+              movieIds: resolved.includeMovieIds,
+              excludeMovieIds: resolved.excludeMovieIds,
+              scoreThreshold: filter.scoreThreshold,
+              target: filter.searchTarget,
+            )
+          : await api.createTextSession(
+              text: source.textQuery!,
+              movieIds: resolved.includeMovieIds,
+              excludeMovieIds: resolved.excludeMovieIds,
+              scoreThreshold: filter.scoreThreshold,
+              target: filter.searchTarget,
+            );
       if (!_isCurrentSearch(requestVersion)) {
         return;
       }
       _applySession(session, replaceItems: true);
-    } catch (_) {
+    } catch (error) {
       if (_isCurrentSearch(requestVersion)) {
         state = state.copyWith(
-          errorMessage: '以图搜图失败，请稍后重试',
+          errorMessage:
+              _imageSearchRebuildRequiredMessage(error) ??
+              (state.inputKind == ImageSearchInputKind.image
+                  ? '以图搜图失败，请稍后重试'
+                  : '文字搜索失败，请稍后重试'),
           items: const <ImageSearchResultItemDto>[],
           sessionId: null,
           nextCursor: null,
@@ -229,10 +286,16 @@ class ImageSearch extends _$ImageSearch {
         replaceItems: false,
         requestedCursor: requestedCursor,
       );
-    } catch (_) {
+    } catch (error) {
       if (_isCurrentSearch(requestVersion) &&
           state.sessionId == requestedSessionId) {
-        state = state.copyWith(errorMessage: '加载更多失败，请稍后重试');
+        final rebuildRequiredMessage = _imageSearchRebuildRequiredMessage(
+          error,
+        );
+        state = state.copyWith(
+          errorMessage: rebuildRequiredMessage ?? '加载更多失败，请稍后重试',
+          nextCursor: rebuildRequiredMessage == null ? state.nextCursor : null,
+        );
       }
     } finally {
       if (_isCurrentSearch(requestVersion) &&
@@ -248,8 +311,9 @@ class ImageSearch extends _$ImageSearch {
     String? requestedCursor,
   }) {
     final nextCursor = session.nextCursor;
-    final normalizedNextCursor =
-        nextCursor == requestedCursor ? null : nextCursor;
+    final normalizedNextCursor = nextCursor == requestedCursor
+        ? null
+        : nextCursor;
     final filteredItems = session.items
         .where(_matchesCurrentMovieFilter)
         .toList(growable: false);
@@ -257,11 +321,18 @@ class ImageSearch extends _$ImageSearch {
       sessionId: session.sessionId,
       nextCursor: normalizedNextCursor,
       expiresAt: session.expiresAt,
-      items:
-          replaceItems
-              ? filteredItems
-              : <ImageSearchResultItemDto>[...state.items, ...filteredItems],
+      items: replaceItems
+          ? filteredItems
+          : <ImageSearchResultItemDto>[...state.items, ...filteredItems],
     );
+  }
+
+  String? _imageSearchRebuildRequiredMessage(Object error) {
+    if (error is ApiException &&
+        error.error?.code == 'image_search_index_rebuild_required') {
+      return '嵌入空间已变更，请先重建图搜索索引';
+    }
+    return null;
   }
 
   bool _matchesCurrentMovieFilter(ImageSearchResultItemDto item) {

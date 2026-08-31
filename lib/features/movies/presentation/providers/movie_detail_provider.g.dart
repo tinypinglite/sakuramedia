@@ -9,46 +9,43 @@ part of 'movie_detail_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// 影片详情 provider —— autoDispose family (movieNumber) + `cacheLink` 挂
-/// [RiverpodPageCache]，跨导航保活。迁移前对应 `MovieDetailController`
-/// (`ChangeNotifier` + `DisposeSafeNotifier`，双端 detail 页 initState new 出)。
+/// [RiverpodPageCache]，跨导航保活。
 ///
-/// 语义等价旧 controller：
-/// - `load()` 首次进入：`isLoading=true` + 清 similar/error，并行拉 detail /
-///   storageDescriptors + 相似影片。失败置 `errorMessage`，movie/storage 归空。
-/// - `refresh()`：**不置** `isLoading` (统计条不闪骨架)，并行重拉后原地写。
+/// 页面进入时显式调用 [load]，并行加载影片详情和相似影片；[refresh] 保留当前
+/// 详情内容并重新请求；[applyMovie] 用外部拿到的新 DTO 就地更新影片信息。
+///
+/// - `load()` 会清空旧的相似影片与错误状态，并行拉取 detail / 相似影片；失败时
+///   写入 `errorMessage`。
+/// - `refresh()` 不置 `isLoading`（统计条不闪骨架），并行重拉后原地写入；
 ///   相似影片仍先置 `isSimilarMoviesLoading` 再写。
-/// - `applyMovie(movie, resetPreview)`：外部（如详情动作 refreshMetadata）
-///   拿到新 DTO 后就地写入 + 决策预览是否重置。
 /// - `retryLoadSimilarMovies()`：仅重拉相似影片，不清列表。
 
 @ProviderFor(MovieDetail)
 final movieDetailProvider = MovieDetailFamily._();
 
 /// 影片详情 provider —— autoDispose family (movieNumber) + `cacheLink` 挂
-/// [RiverpodPageCache]，跨导航保活。迁移前对应 `MovieDetailController`
-/// (`ChangeNotifier` + `DisposeSafeNotifier`，双端 detail 页 initState new 出)。
+/// [RiverpodPageCache]，跨导航保活。
 ///
-/// 语义等价旧 controller：
-/// - `load()` 首次进入：`isLoading=true` + 清 similar/error，并行拉 detail /
-///   storageDescriptors + 相似影片。失败置 `errorMessage`，movie/storage 归空。
-/// - `refresh()`：**不置** `isLoading` (统计条不闪骨架)，并行重拉后原地写。
+/// 页面进入时显式调用 [load]，并行加载影片详情和相似影片；[refresh] 保留当前
+/// 详情内容并重新请求；[applyMovie] 用外部拿到的新 DTO 就地更新影片信息。
+///
+/// - `load()` 会清空旧的相似影片与错误状态，并行拉取 detail / 相似影片；失败时
+///   写入 `errorMessage`。
+/// - `refresh()` 不置 `isLoading`（统计条不闪骨架），并行重拉后原地写入；
 ///   相似影片仍先置 `isSimilarMoviesLoading` 再写。
-/// - `applyMovie(movie, resetPreview)`：外部（如详情动作 refreshMetadata）
-///   拿到新 DTO 后就地写入 + 决策预览是否重置。
 /// - `retryLoadSimilarMovies()`：仅重拉相似影片，不清列表。
 final class MovieDetailProvider
     extends $NotifierProvider<MovieDetail, MovieDetailState> {
   /// 影片详情 provider —— autoDispose family (movieNumber) + `cacheLink` 挂
-  /// [RiverpodPageCache]，跨导航保活。迁移前对应 `MovieDetailController`
-  /// (`ChangeNotifier` + `DisposeSafeNotifier`，双端 detail 页 initState new 出)。
+  /// [RiverpodPageCache]，跨导航保活。
   ///
-  /// 语义等价旧 controller：
-  /// - `load()` 首次进入：`isLoading=true` + 清 similar/error，并行拉 detail /
-  ///   storageDescriptors + 相似影片。失败置 `errorMessage`，movie/storage 归空。
-  /// - `refresh()`：**不置** `isLoading` (统计条不闪骨架)，并行重拉后原地写。
+  /// 页面进入时显式调用 [load]，并行加载影片详情和相似影片；[refresh] 保留当前
+  /// 详情内容并重新请求；[applyMovie] 用外部拿到的新 DTO 就地更新影片信息。
+  ///
+  /// - `load()` 会清空旧的相似影片与错误状态，并行拉取 detail / 相似影片；失败时
+  ///   写入 `errorMessage`。
+  /// - `refresh()` 不置 `isLoading`（统计条不闪骨架），并行重拉后原地写入；
   ///   相似影片仍先置 `isSimilarMoviesLoading` 再写。
-  /// - `applyMovie(movie, resetPreview)`：外部（如详情动作 refreshMetadata）
-  ///   拿到新 DTO 后就地写入 + 决策预览是否重置。
   /// - `retryLoadSimilarMovies()`：仅重拉相似影片，不清列表。
   MovieDetailProvider._({
     required MovieDetailFamily super.from,
@@ -94,19 +91,18 @@ final class MovieDetailProvider
   }
 }
 
-String _$movieDetailHash() => r'4019398edede627e1362d0b9dd927d786b62f99d';
+String _$movieDetailHash() => r'66c8f8a525d23c16858e46998e3713f571b300d9';
 
 /// 影片详情 provider —— autoDispose family (movieNumber) + `cacheLink` 挂
-/// [RiverpodPageCache]，跨导航保活。迁移前对应 `MovieDetailController`
-/// (`ChangeNotifier` + `DisposeSafeNotifier`，双端 detail 页 initState new 出)。
+/// [RiverpodPageCache]，跨导航保活。
 ///
-/// 语义等价旧 controller：
-/// - `load()` 首次进入：`isLoading=true` + 清 similar/error，并行拉 detail /
-///   storageDescriptors + 相似影片。失败置 `errorMessage`，movie/storage 归空。
-/// - `refresh()`：**不置** `isLoading` (统计条不闪骨架)，并行重拉后原地写。
+/// 页面进入时显式调用 [load]，并行加载影片详情和相似影片；[refresh] 保留当前
+/// 详情内容并重新请求；[applyMovie] 用外部拿到的新 DTO 就地更新影片信息。
+///
+/// - `load()` 会清空旧的相似影片与错误状态，并行拉取 detail / 相似影片；失败时
+///   写入 `errorMessage`。
+/// - `refresh()` 不置 `isLoading`（统计条不闪骨架），并行重拉后原地写入；
 ///   相似影片仍先置 `isSimilarMoviesLoading` 再写。
-/// - `applyMovie(movie, resetPreview)`：外部（如详情动作 refreshMetadata）
-///   拿到新 DTO 后就地写入 + 决策预览是否重置。
 /// - `retryLoadSimilarMovies()`：仅重拉相似影片，不清列表。
 
 final class MovieDetailFamily extends $Family
@@ -128,16 +124,15 @@ final class MovieDetailFamily extends $Family
       );
 
   /// 影片详情 provider —— autoDispose family (movieNumber) + `cacheLink` 挂
-  /// [RiverpodPageCache]，跨导航保活。迁移前对应 `MovieDetailController`
-  /// (`ChangeNotifier` + `DisposeSafeNotifier`，双端 detail 页 initState new 出)。
+  /// [RiverpodPageCache]，跨导航保活。
   ///
-  /// 语义等价旧 controller：
-  /// - `load()` 首次进入：`isLoading=true` + 清 similar/error，并行拉 detail /
-  ///   storageDescriptors + 相似影片。失败置 `errorMessage`，movie/storage 归空。
-  /// - `refresh()`：**不置** `isLoading` (统计条不闪骨架)，并行重拉后原地写。
+  /// 页面进入时显式调用 [load]，并行加载影片详情和相似影片；[refresh] 保留当前
+  /// 详情内容并重新请求；[applyMovie] 用外部拿到的新 DTO 就地更新影片信息。
+  ///
+  /// - `load()` 会清空旧的相似影片与错误状态，并行拉取 detail / 相似影片；失败时
+  ///   写入 `errorMessage`。
+  /// - `refresh()` 不置 `isLoading`（统计条不闪骨架），并行重拉后原地写入；
   ///   相似影片仍先置 `isSimilarMoviesLoading` 再写。
-  /// - `applyMovie(movie, resetPreview)`：外部（如详情动作 refreshMetadata）
-  ///   拿到新 DTO 后就地写入 + 决策预览是否重置。
   /// - `retryLoadSimilarMovies()`：仅重拉相似影片，不清列表。
 
   MovieDetailProvider call(String movieNumber) =>
@@ -148,16 +143,15 @@ final class MovieDetailFamily extends $Family
 }
 
 /// 影片详情 provider —— autoDispose family (movieNumber) + `cacheLink` 挂
-/// [RiverpodPageCache]，跨导航保活。迁移前对应 `MovieDetailController`
-/// (`ChangeNotifier` + `DisposeSafeNotifier`，双端 detail 页 initState new 出)。
+/// [RiverpodPageCache]，跨导航保活。
 ///
-/// 语义等价旧 controller：
-/// - `load()` 首次进入：`isLoading=true` + 清 similar/error，并行拉 detail /
-///   storageDescriptors + 相似影片。失败置 `errorMessage`，movie/storage 归空。
-/// - `refresh()`：**不置** `isLoading` (统计条不闪骨架)，并行重拉后原地写。
+/// 页面进入时显式调用 [load]，并行加载影片详情和相似影片；[refresh] 保留当前
+/// 详情内容并重新请求；[applyMovie] 用外部拿到的新 DTO 就地更新影片信息。
+///
+/// - `load()` 会清空旧的相似影片与错误状态，并行拉取 detail / 相似影片；失败时
+///   写入 `errorMessage`。
+/// - `refresh()` 不置 `isLoading`（统计条不闪骨架），并行重拉后原地写入；
 ///   相似影片仍先置 `isSimilarMoviesLoading` 再写。
-/// - `applyMovie(movie, resetPreview)`：外部（如详情动作 refreshMetadata）
-///   拿到新 DTO 后就地写入 + 决策预览是否重置。
 /// - `retryLoadSimilarMovies()`：仅重拉相似影片，不清列表。
 
 abstract class _$MovieDetail extends $Notifier<MovieDetailState> {

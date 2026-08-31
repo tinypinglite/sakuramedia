@@ -8,21 +8,21 @@ part of 'media_libraries_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 媒体库列表 provider：keepAlive；两页（媒体管理 + 媒体维护）与秒传弹窗共享一份，
-/// 避免每次进 tab 各拉一次。加载失败以 `AsyncError` 呈现，消费方可 fallback
-/// 到 [MediaLibrariesState.empty]（对齐 legacy 行为——库加载失败不阻断主流程）。
+/// 配置域媒体库 provider 的派生投影：keepAlive；媒体管理页与维护页共享一份，
+/// 避免每次进 tab 各拉一次。列表更新由配置域 owner 推送，
+/// 本 provider 只负责构造 [MediaLibrariesState] 的派生字段。
 
 @ProviderFor(MediaLibraries)
 final mediaLibrariesProvider = MediaLibrariesProvider._();
 
-/// 媒体库列表 provider：keepAlive；两页（媒体管理 + 媒体维护）与秒传弹窗共享一份，
-/// 避免每次进 tab 各拉一次。加载失败以 `AsyncError` 呈现，消费方可 fallback
-/// 到 [MediaLibrariesState.empty]（对齐 legacy 行为——库加载失败不阻断主流程）。
+/// 配置域媒体库 provider 的派生投影：keepAlive；媒体管理页与维护页共享一份，
+/// 避免每次进 tab 各拉一次。列表更新由配置域 owner 推送，
+/// 本 provider 只负责构造 [MediaLibrariesState] 的派生字段。
 final class MediaLibrariesProvider
     extends $AsyncNotifierProvider<MediaLibraries, MediaLibrariesState> {
-  /// 媒体库列表 provider：keepAlive；两页（媒体管理 + 媒体维护）与秒传弹窗共享一份，
-  /// 避免每次进 tab 各拉一次。加载失败以 `AsyncError` 呈现，消费方可 fallback
-  /// 到 [MediaLibrariesState.empty]（对齐 legacy 行为——库加载失败不阻断主流程）。
+  /// 配置域媒体库 provider 的派生投影：keepAlive；媒体管理页与维护页共享一份，
+  /// 避免每次进 tab 各拉一次。列表更新由配置域 owner 推送，
+  /// 本 provider 只负责构造 [MediaLibrariesState] 的派生字段。
   MediaLibrariesProvider._()
     : super(
         from: null,
@@ -42,11 +42,11 @@ final class MediaLibrariesProvider
   MediaLibraries create() => MediaLibraries();
 }
 
-String _$mediaLibrariesHash() => r'ef76a95a8b203cc1e045df0b6f04790ec6a49201';
+String _$mediaLibrariesHash() => r'366002323d44aeef1103bfb341c14d05fd819711';
 
-/// 媒体库列表 provider：keepAlive；两页（媒体管理 + 媒体维护）与秒传弹窗共享一份，
-/// 避免每次进 tab 各拉一次。加载失败以 `AsyncError` 呈现，消费方可 fallback
-/// 到 [MediaLibrariesState.empty]（对齐 legacy 行为——库加载失败不阻断主流程）。
+/// 配置域媒体库 provider 的派生投影：keepAlive；媒体管理页与维护页共享一份，
+/// 避免每次进 tab 各拉一次。列表更新由配置域 owner 推送，
+/// 本 provider 只负责构造 [MediaLibrariesState] 的派生字段。
 
 abstract class _$MediaLibraries extends $AsyncNotifier<MediaLibrariesState> {
   FutureOr<MediaLibrariesState> build();

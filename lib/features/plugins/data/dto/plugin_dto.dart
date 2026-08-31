@@ -10,6 +10,7 @@ class PluginSummaryDto {
     required this.enabled,
     required this.loadStatus,
     this.loadError,
+    this.releaseApiUrl,
   });
 
   final String pluginId;
@@ -19,6 +20,7 @@ class PluginSummaryDto {
   final bool enabled;
   final String loadStatus;
   final String? loadError;
+  final String? releaseApiUrl;
 
   factory PluginSummaryDto.fromJson(Map<String, dynamic> json) {
     return PluginSummaryDto(
@@ -29,8 +31,39 @@ class PluginSummaryDto {
       enabled: json['enabled'] == true,
       loadStatus: asStringOrNull(json['load_status']) ?? 'ok',
       loadError: asStringOrNull(json['load_error']),
+      releaseApiUrl: asStringOrNull(json['release_api_url'], trim: true),
     );
   }
+
+  PluginSummaryDto copyWith({String? version}) {
+    return PluginSummaryDto(
+      pluginId: pluginId,
+      displayName: displayName,
+      version: version ?? this.version,
+      hostApiVersion: hostApiVersion,
+      enabled: enabled,
+      loadStatus: loadStatus,
+      loadError: loadError,
+      releaseApiUrl: releaseApiUrl,
+    );
+  }
+}
+
+/// GitHub Release 中可供安装的插件更新。
+class PluginReleaseUpdate {
+  const PluginReleaseUpdate({
+    required this.version,
+    required this.notes,
+    required this.assetUrl,
+    required this.assetFileName,
+    this.sha256,
+  });
+
+  final String version;
+  final String notes;
+  final String assetUrl;
+  final String assetFileName;
+  final String? sha256;
 }
 
 /// 插件私有配置接口的响应（`plugins.settings.<plugin_id>`）。

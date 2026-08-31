@@ -20,7 +20,6 @@ const String desktopClipCollectionsPath = '/desktop/library/clip-collections';
 const String desktopVideosPath = '/desktop/library/videos';
 const String desktopVideoCollectionsPath = '/desktop/library/video-collections';
 const String desktopRankingsPath = '/desktop/library/rankings';
-const String desktopHotReviewsPath = '/desktop/library/hot-reviews';
 const String desktopActivityPath = '/desktop/system/activity';
 const String desktopMediaPath = '/desktop/system/media';
 const String desktopNotificationsPath = '/desktop/system/notifications';
@@ -31,6 +30,7 @@ const String desktopMovieSubscriptionsPath =
 const String desktopSystemDiagnosticsPath = '/desktop/system/diagnostics';
 
 const String mobileOverviewPath = '/mobile/overview';
+const String mobileFollowPath = '$mobileOverviewPath/discover/follow';
 const String mobileDiscoverMoviesPath = '$mobileOverviewPath/discover/movies';
 const String mobileDiscoverMomentsPath = '$mobileOverviewPath/discover/moments';
 const String mobileHotActressReleasesPath =

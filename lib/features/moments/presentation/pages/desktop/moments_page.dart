@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
 import 'package:sakuramedia/features/moments/presentation/moment_listing_models.dart';
 import 'package:sakuramedia/features/moments/presentation/pages/shared/moments_content.dart';
+import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
@@ -19,10 +20,8 @@ class DesktopMomentsPage extends StatelessWidget {
     return MomentsContent(
       keyPrefix: 'moments',
       rootKey: const Key('moments-page'),
-      onSearchSimilar: (context, item) => _searchSimilarFromMoment(
-        context,
-        item,
-      ),
+      onSearchSimilar: (context, item) =>
+          _searchSimilarFromMoment(context, item),
       onOpenVideo: _openVideoForMoment,
       onOpenPlayer: _openPlayerForMoment,
       onOpenMovieDetail: _openMovieDetailForMoment,
@@ -56,11 +55,14 @@ class DesktopMomentsPage extends StatelessWidget {
   }
 
   void _openPlayerForMoment(BuildContext context, MomentListItem item) {
-    context.pushDesktopMoviePlayer(
-      movieNumber: item.movieNumber!,
-      fallbackPath: desktopMomentsPath,
-      mediaId: item.mediaId > 0 ? item.mediaId : null,
-      positionSeconds: item.offsetSeconds,
+    unawaited(
+      launchMoviePlayback(
+        context,
+        movieNumber: item.movieNumber!,
+        mediaId: item.mediaId > 0 ? item.mediaId : null,
+        positionSeconds: item.offsetSeconds,
+        inAppFallbackPath: desktopMomentsPath,
+      ),
     );
   }
 

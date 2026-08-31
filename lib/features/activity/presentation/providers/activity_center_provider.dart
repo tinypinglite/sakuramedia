@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_bootstrap_dto.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
@@ -18,9 +17,10 @@ part 'activity_center_provider.g.dart';
 class ActivityCenter extends _$ActivityCenter
     with AsyncNotifierDisposeGuardMixin<ActivityCenterState> {
   static const int _pageSize = 20;
-  static const Duration _pollingInterval = Duration(seconds: 30);
+  static const Duration _pollingInterval = Duration(seconds: 3);
 
   Timer? _pollTimer;
+  bool _isPolling = false;
   late final DebouncedLatestRequest _taskFilterRequests =
       DebouncedLatestRequest();
   int _taskFilterGeneration = 0;
@@ -43,7 +43,7 @@ class ActivityCenter extends _$ActivityCenter
     }
     return initial.copyWith(
       connectionState: ActivityConnectionState.polling,
-      connectionMessage: '每 30 秒同步任务进度',
+      connectionMessage: '每 3 秒同步任务进度',
     );
   }
 
@@ -117,7 +117,7 @@ class ActivityCenter extends _$ActivityCenter
           jobs: jobsResult.jobs,
           jobErrorMessage: jobsResult.errorMessage,
           connectionState: ActivityConnectionState.polling,
-          connectionMessage: '每 30 秒同步任务进度',
+          connectionMessage: '每 3 秒同步任务进度',
         ),
       );
       _startPolling();
@@ -353,12 +353,13 @@ class ActivityCenter extends _$ActivityCenter
   }
 
   Future<void> _refreshFromPolling() async {
-    if (isDisposed || state.value == null) return;
+    if (isDisposed || state.value == null || _isPolling) return;
+    _isPolling = true;
     final generation = _taskFilterGeneration;
     try {
       final filter = current.taskFilter;
       final api = ref.read(activityApiProvider);
-      final responses = await Future.wait<PaginatedResponseDto<TaskRunDto>>([
+      final (taskResponse, activeTaskRuns) = await (
         api.getTaskRuns(
           page: 1,
           pageSize: _pageSize,
@@ -367,26 +368,21 @@ class ActivityCenter extends _$ActivityCenter
           triggerType: filter.triggerType,
           sort: filter.sort.apiValue,
         ),
-        api.getTaskRuns(
-          page: 1,
-          pageSize: 100,
-          sort: 'started_at:desc',
-        ),
-      ]);
+        api.getActiveTaskRuns(),
+      ).wait;
       if (isDisposed) return;
       final now = current;
       if (generation != _taskFilterGeneration || !now.taskFilterUpdate.isIdle) {
         state = AsyncData(
           now.copyWith(
-            activeTaskRuns: _activeTaskRuns(responses[1].items),
+            activeTaskRuns: activeTaskRuns,
           ),
         );
         return;
       }
-      final taskResponse = responses[0];
       state = AsyncData(
         now.copyWith(
-          activeTaskRuns: _activeTaskRuns(responses[1].items),
+          activeTaskRuns: activeTaskRuns,
           taskRuns: _sortHistoryTasks(taskResponse.items, filter),
           taskNextPage: taskResponse.page + 1,
           hasMoreTasks:
@@ -394,7 +390,7 @@ class ActivityCenter extends _$ActivityCenter
           taskLoadMoreErrorMessage: null,
           taskRefreshErrorMessage: null,
           connectionState: ActivityConnectionState.polling,
-          connectionMessage: '每 30 秒同步任务进度',
+          connectionMessage: '每 3 秒同步任务进度',
         ),
       );
     } catch (_) {
@@ -406,17 +402,9 @@ class ActivityCenter extends _$ActivityCenter
           ),
         );
       }
+    } finally {
+      _isPolling = false;
     }
-  }
-
-  List<TaskRunDto> _activeTaskRuns(List<TaskRunDto> items) {
-    final active = items.where((item) => item.isActive).toList();
-    active.sort((left, right) {
-      final leftAt = left.startedAt?.millisecondsSinceEpoch ?? 0;
-      final rightAt = right.startedAt?.millisecondsSinceEpoch ?? 0;
-      return rightAt.compareTo(leftAt);
-    });
-    return active;
   }
 
   List<TaskRunDto> _sortHistoryTasks(

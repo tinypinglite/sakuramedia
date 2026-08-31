@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/core/session/providers/credential_store_provider.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
+import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/desktop_image_search_route_state.dart';
@@ -34,8 +35,6 @@ extension AppNavigationActions on BuildContext {
         return const DesktopPlaylistsRouteData().go(this);
       case desktopRankingsPath:
         return const DesktopRankingsRouteData().go(this);
-      case desktopHotReviewsPath:
-        return const DesktopHotReviewsRouteData().go(this);
       case desktopConfigurationPath:
         return const DesktopConfigurationRouteData().go(this);
       case desktopActivityPath:
@@ -217,6 +216,7 @@ extension AppNavigationActions on BuildContext {
     String? currentMovieNumber,
     ImageSearchCurrentMovieScope initialCurrentMovieScope =
         ImageSearchCurrentMovieScope.all,
+    ImageSearchInputKind initialInputKind = ImageSearchInputKind.image,
   }) {
     GoRouter.optionURLReflectsImperativeAPIs = true;
     final draftId = _saveImageSearchDraft(
@@ -228,6 +228,7 @@ extension AppNavigationActions on BuildContext {
       draftId: draftId,
       currentMovieNumber: currentMovieNumber,
       currentMovieScope: initialCurrentMovieScope.name,
+      mode: initialInputKind.name,
     );
     GoRouter.of(this).push<void>(
       route.location,
@@ -243,6 +244,7 @@ extension AppNavigationActions on BuildContext {
     String? currentMovieNumber,
     ImageSearchCurrentMovieScope initialCurrentMovieScope =
         ImageSearchCurrentMovieScope.all,
+    ImageSearchInputKind initialInputKind = ImageSearchInputKind.image,
   }) {
     GoRouter.optionURLReflectsImperativeAPIs = true;
     final draftId = _saveImageSearchDraft(
@@ -254,6 +256,7 @@ extension AppNavigationActions on BuildContext {
       draftId: draftId,
       currentMovieNumber: currentMovieNumber,
       currentMovieScope: initialCurrentMovieScope.name,
+      mode: initialInputKind.name,
     );
     GoRouter.of(this).go(
       route.location,
@@ -294,6 +297,7 @@ extension AppNavigationActions on BuildContext {
     String? currentMovieNumber,
     ImageSearchCurrentMovieScope initialCurrentMovieScope =
         ImageSearchCurrentMovieScope.all,
+    ImageSearchInputKind initialInputKind = ImageSearchInputKind.image,
   }) {
     GoRouter.optionURLReflectsImperativeAPIs = true;
     final draftId = _saveImageSearchDraft(
@@ -305,6 +309,7 @@ extension AppNavigationActions on BuildContext {
       draftId: draftId,
       currentMovieNumber: currentMovieNumber,
       currentMovieScope: initialCurrentMovieScope.name,
+      mode: initialInputKind.name,
     ).push(this);
   }
 

@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/configuration/data/dto/config_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/advanced_settings_section.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
 import '../../../../../support/test_api_bundle.dart';
 
@@ -54,6 +54,57 @@ void main() {
       expect(bundle.adapter.hitCount('GET', '/config'), 1);
     });
 
+    testWidgets('confirms before refreshing dirty settings', (
+      WidgetTester tester,
+    ) async {
+      _enqueueAdvancedConfig(bundle);
+      _enqueueAdvancedConfig(bundle);
+      AppPageRefreshCallback? refresh;
+      final registrar = AppPageRefreshRegistrar(
+        register: (callback) => refresh = callback,
+        unregister: (callback) {
+          if (identical(refresh, callback)) {
+            refresh = null;
+          }
+        },
+      );
+
+      await _pumpSection(
+        tester,
+        bundle,
+        active: true,
+        refreshRegistrar: registrar,
+      );
+      await tester.enterText(
+        find.byKey(const Key('configuration-advanced-min-video-size-field')),
+        '257',
+      );
+
+      final cancelledRefresh = refresh!();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('configuration-advanced-refresh-confirm-dialog')),
+        findsOneWidget,
+      );
+      expect(bundle.adapter.hitCount('GET', '/config'), 1);
+
+      await tester.tap(
+        find.byKey(const Key('configuration-advanced-refresh-cancel-button')),
+      );
+      await tester.pumpAndSettle();
+      await cancelledRefresh;
+      expect(bundle.adapter.hitCount('GET', '/config'), 1);
+
+      final confirmedRefresh = refresh!();
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-advanced-refresh-confirm-button')),
+      );
+      await tester.pumpAndSettle();
+      await confirmedRefresh;
+      expect(bundle.adapter.hitCount('GET', '/config'), 2);
+    });
+
     testWidgets('saves media as partial patch', (
       WidgetTester tester,
     ) async {
@@ -74,10 +125,6 @@ void main() {
       );
       expect(request.body.keys, contains('media'));
       expect(request.body.keys, isNot(contains('metadata')));
-      expect(
-        request.body['media'].keys,
-        isNot(contains('others_number_features')),
-      );
       expect(request.body['media']['allowed_min_video_file_size'], 268435456);
       await tester.pump(const Duration(seconds: 3));
     });
@@ -149,10 +196,6 @@ void main() {
         schedulerRequest.body['scheduler']['movie_heat_cron'],
         '30 0 * * *',
       );
-      expect(
-        schedulerRequest.body['scheduler'].keys,
-        isNot(contains('movie_collection_sync_cron')),
-      );
       await tester.pump(const Duration(seconds: 3));
     });
 
@@ -219,7 +262,6 @@ void main() {
       () {
         expect(
           buildAdvancedConfigSaveSuccessMessage(const <String>[
-            'scheduler.hot_review_sync_cron',
             'scheduler.movie_heat_cron',
           ]),
           '已保存，需重启容器才生效',
@@ -230,13 +272,11 @@ void main() {
     test(
       'collapses both restart kinds into a single container-restart notice',
       () {
-        // 对用户而言 api / scheduler 都是同一个容器，同一次「其他」卡改动里出现
-        // logging(api) + downloads(scheduler) 两种 restart 时不需要区分，只提示
-        // 一次「重启容器」即可。
+        // 对用户而言多种重启范围都是同一个容器提示。
         expect(
           buildAdvancedConfigSaveSuccessMessage(const <String>[
             'logging.level',
-            'downloads.small_file_cleanup_threshold_mb',
+            'downloads.subscription_search_fresh_days',
           ]),
           '已保存，需重启容器才生效',
         );
@@ -249,9 +289,13 @@ Future<void> _pumpSection(
   WidgetTester tester,
   TestApiBundle bundle, {
   required bool active,
+  AppPageRefreshRegistrar? refreshRegistrar,
 }) async {
   tester.view.physicalSize = const Size(1280, 900);
   tester.view.devicePixelRatio = 1;
+  final section = SingleChildScrollView(
+    child: DesktopAdvancedSettingsSection(active: active),
+  );
   await tester.pumpWidget(
     ProviderScope(
       overrides: bundle.riverpodOverrides(),
@@ -259,9 +303,12 @@ Future<void> _pumpSection(
         child: MaterialApp(
           theme: sakuraThemeData,
           home: Scaffold(
-            body: SingleChildScrollView(
-              child: DesktopAdvancedSettingsSection(active: active),
-            ),
+            body: refreshRegistrar == null
+                ? section
+                : AppPageRefreshRegistrarScope(
+                    registrar: refreshRegistrar,
+                    child: section,
+                  ),
           ),
         ),
       ),
@@ -300,22 +347,28 @@ Map<String, dynamic> _buildAdvancedConfigJson({
   return <String, dynamic>{
     'values': <String, dynamic>{
       'media': <String, dynamic>{
-        'inner_sub_tags': <String>['中字', '-C'],
-        'blueray_tags': <String>['蓝光', '4K'],
-        'uncensored_tags': <String>['uncensored', '-UC'],
-        'uncensored_prefix': <String>['PT-', 'S2M'],
         'allowed_min_video_file_size': 268435456,
       },
       'metadata': <String, dynamic>{
         'javdb_host': 'jdforrepam.com',
       },
-      'scheduler': <String, dynamic>{
-        for (final key in AdvancedSchedulerConfigDto.cronKeys)
-          '${key}_cron': key == 'movie_heat' ? '15 0 * * *' : '0 2 * * *',
+      'scheduler': const <String, dynamic>{
+        'actor_subscription_sync_cron': '0 2 * * *',
+        'subscribed_movie_auto_download_cron': '30 2 * * *',
+        'download_task_sync_cron': '* * * * *',
+        'download_task_auto_import_cron': '* * * * *',
+        'movie_heat_cron': '15 0 * * *',
+        'movie_interaction_sync_cron': '0 5 * * *',
+        'media_thumbnail_cron': '*/30 * * * *',
+        'image_search_index_cron': '*/5 * * * *',
+        'movie_similarity_recompute_cron': '30 3 * * *',
+        'moment_recommendation_generate_cron': '0 4 * * *',
+        'daily_recommendation_generate_cron': '0 5 * * *',
+        'activity_cleanup_cron': '30 5 * * *',
       },
       'downloads': <String, dynamic>{
-        'small_file_cleanup_threshold_mb': 256,
-        'preferred_client_kinds': <String>['qbittorrent', 'cloud115'],
+        'subscription_search_fresh_days': 7,
+        'subscription_search_stale_attempt_limit': 3,
       },
       'logging': <String, dynamic>{'level': 'INFO'},
     },

@@ -53,6 +53,8 @@ class _MobileVideoPlayerPageState extends ConsumerState<MobileVideoPlayerPage> {
   int? _lastReportedPositionSeconds;
   Duration? _resumePosition;
   bool _isResumeDecisionPending = false;
+  String? _activeUrl;
+  bool _hasProxyFallback = false;
 
   @override
   void initState() {
@@ -106,6 +108,8 @@ class _MobileVideoPlayerPageState extends ConsumerState<MobileVideoPlayerPage> {
         durationSeconds: playable.media.durationSeconds,
       );
       _isResumeDecisionPending = _resumePosition != null;
+      _activeUrl = playable.url;
+      _hasProxyFallback = false;
       _positionSubscription = player.stream.position.listen((position) {
         _currentPlaybackSeconds = position.inSeconds;
       });
@@ -117,7 +121,7 @@ class _MobileVideoPlayerPageState extends ConsumerState<MobileVideoPlayerPage> {
         _player = player;
         _controller = controller;
       });
-      await player.open(Media(playable.url));
+      await _openMedia(player, playable.url);
     } catch (error) {
       if (!mounted) {
         return;
@@ -127,6 +131,45 @@ class _MobileVideoPlayerPageState extends ConsumerState<MobileVideoPlayerPage> {
         _errorMessage = apiErrorMessage(error, fallback: '加载失败，请重试');
       });
     }
+  }
+
+  Future<void> _openMedia(Player player, String url) async {
+    try {
+      await player.open(Media(url));
+    } catch (error) {
+      if (_activeUrl != url || _retryWithProxy()) {
+        return;
+      }
+      _showPlaybackError(error);
+    }
+  }
+
+  bool _retryWithProxy() {
+    final player = _player;
+    final sourceUrl = _activeUrl;
+    if (!mounted ||
+        player == null ||
+        sourceUrl == null ||
+        _hasProxyFallback) {
+      return false;
+    }
+    final proxyUrl = withProxyMediaDelivery(sourceUrl);
+    if (proxyUrl == sourceUrl) {
+      return false;
+    }
+    _hasProxyFallback = true;
+    _activeUrl = proxyUrl;
+    unawaited(_openMedia(player, proxyUrl));
+    return true;
+  }
+
+  void _showPlaybackError(Object error) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _errorMessage = apiErrorMessage(error, fallback: '加载失败，请重试');
+    });
   }
 
   /// 从媒体列表挑首个可播放的 url 并解析为绝对地址，无可播放项返回 `null`。
@@ -231,6 +274,7 @@ class _MobileVideoPlayerPageState extends ConsumerState<MobileVideoPlayerPage> {
       videoController: videoController,
       useTouchOptimizedControls: true,
       guardInitialSeek: true,
+      onInitialPlaybackError: _retryWithProxy,
       resumePosition: _resumePosition,
       onResumePromptResolved: _resolveResumePrompt,
       videoKey: const Key('mobile-video-player-video'),

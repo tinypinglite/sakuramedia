@@ -46,6 +46,7 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     this.useTouchOptimizedControls = false,
     this.mediaSourceKind = MoviePlayerMediaSourceKind.unknown,
     this.mediaInfo,
+    this.onInitialPlaybackError,
   });
 
   final String movieNumber;
@@ -71,6 +72,9 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
   final bool useTouchOptimizedControls;
   final MoviePlayerMediaSourceKind mediaSourceKind;
   final MoviePlayerMediaInfo? mediaInfo;
+
+  /// 首帧前的播放器错误可由调用方改用代理重试一次；返回 `true` 表示已接管。
+  final bool Function()? onInitialPlaybackError;
 
   @override
   ConsumerState<MoviePlayerSurface> createState() => _MoviePlayerSurfaceState();
@@ -120,7 +124,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _readiness = MoviePlayerSurfaceReadiness();
     _statsSampler = MoviePlayerNativeStatsSampler(
       readNativeProperty: createMediaKitNativePropertyReader(_player),
-      mediaOrigin: moviePlayerPlaybackMediaOriginFor(widget.mediaSourceKind),
       originalUrl: widget.resolvedUrl,
     );
     _resumePrompt = MoviePlayerResumePromptCoordinator(
@@ -147,9 +150,8 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       setRate: _player.setRate,
       initialRate: _player.state.rate,
     )..addListener(_handlePlaybackRateChanged);
-    _mobileDrawer =
-        MoviePlayerMobileDrawerCoordinator()
-          ..addListener(_handleMobileDrawerChanged);
+    _mobileDrawer = MoviePlayerMobileDrawerCoordinator()
+      ..addListener(_handleMobileDrawerChanged);
     _seekSubscription = widget.surfaceController.seekStream.listen(
       _handleSurfaceSeekRequested,
     );
@@ -205,12 +207,8 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
         unawaited(_player.play());
       });
     }
-    if (oldWidget.resolvedUrl != widget.resolvedUrl ||
-        oldWidget.mediaSourceKind != widget.mediaSourceKind) {
-      _statsSampler.updateContext(
-        mediaOrigin: moviePlayerPlaybackMediaOriginFor(widget.mediaSourceKind),
-        originalUrl: widget.resolvedUrl,
-      );
+    if (oldWidget.resolvedUrl != widget.resolvedUrl) {
+      _statsSampler.updateContext(originalUrl: widget.resolvedUrl);
     }
     if (oldWidget.resolvedUrl != widget.resolvedUrl) {
       _playbackRate.resetMobileDisplayForNewMedia(_player.state.rate);
@@ -276,28 +274,26 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     }
     try {
       await _openCoordinator.open(
-        open:
-            (url, {required startPosition, required play}) => _player.open(
-              buildMoviePlayerMedia(url, startPosition: startPosition),
-              play: play,
-            ),
+        open: (url, {required startPosition, required play}) => _player.open(
+          buildMoviePlayerMedia(url, startPosition: startPosition),
+          play: play,
+        ),
         play: _player.play,
         seek: _player.seek,
-        waitUntilFirstFrameRendered:
-            () => _controller.waitUntilFirstFrameRendered,
+        waitUntilFirstFrameRendered: () =>
+            _controller.waitUntilFirstFrameRendered,
         resolvedUrl: widget.resolvedUrl,
         initialPosition: widget.initialPosition,
         shouldContinue: () => mounted && requestId == _openRequestId,
-        waitUntilSeekReady:
-            _guardsInitialSeek
-                ? () => waitUntilInitialSeekReady(
-                  firstFrame: _controller.waitUntilFirstFrameRendered,
-                  positionStream: _player.stream.position,
-                  currentPosition: () => _player.state.position,
-                  isPlaying: () => _player.state.playing,
-                  isBuffering: () => _player.state.buffering,
-                )
-                : null,
+        waitUntilSeekReady: _guardsInitialSeek
+            ? () => waitUntilInitialSeekReady(
+                firstFrame: _controller.waitUntilFirstFrameRendered,
+                positionStream: _player.stream.position,
+                currentPosition: () => _player.state.position,
+                isPlaying: () => _player.state.playing,
+                isBuffering: () => _player.state.buffering,
+              )
+            : null,
         markReady: _markSurfaceReady,
       );
     } catch (error) {
@@ -323,8 +319,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     } catch (_) {}
   }
 
-  bool get _guardsInitialSeek =>
-      widget.mediaSourceKind != MoviePlayerMediaSourceKind.local;
+  bool get _guardsInitialSeek => true;
 
   void _handleSurfaceSeekRequested(Duration position) {
     _resumePrompt.resolve();
@@ -356,6 +351,9 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
 
   void _markPlaybackFailed(String error) {
     if (!mounted || _hasPlaybackError) {
+      return;
+    }
+    if (!_readiness.isReady && widget.onInitialPlaybackError?.call() == true) {
       return;
     }
     debugPrint('[player-debug] playback_failed error=$error');
@@ -487,10 +485,10 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     final mobileBottomControls = buildMoviePlayerMobileBottomControls(
       activeDrawer: _mobileDrawer.activeDrawer,
       speedDisplayListenable: _playbackRate.mobileSpeedDisplay,
-      onSpeedButtonPressed:
-          () => _mobileDrawer.toggle(MoviePlayerMobileDrawerType.speed),
-      onSubtitleButtonPressed:
-          () => _mobileDrawer.toggle(MoviePlayerMobileDrawerType.subtitle),
+      onSpeedButtonPressed: () =>
+          _mobileDrawer.toggle(MoviePlayerMobileDrawerType.speed),
+      onSubtitleButtonPressed: () =>
+          _mobileDrawer.toggle(MoviePlayerMobileDrawerType.subtitle),
     );
     final desktopBottomControls = buildMoviePlayerDesktopBottomControls(
       currentRate: _playbackRate.currentRate,

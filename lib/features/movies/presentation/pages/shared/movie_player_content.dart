@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
@@ -25,7 +26,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_media_source.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface_controller.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_player_thumbnail_panel.dart';
@@ -83,6 +83,8 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
   late final MoviePlayer _controller;
   late final MultiSplitViewController _splitController;
   late final MoviePlayerSurfaceController _surfaceController;
+  String? _proxyFallbackSourceUrl;
+  String? _proxyFallbackUrl;
 
   MoviePlayerState get _playerState => ref.read(moviePlayerProvider(_scope));
 
@@ -138,29 +140,39 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
         ),
       );
     } else {
-      final resolvedUrl = playerState.resolvedPlayUrl(_scope.baseUrl);
-      if (resolvedUrl == null) {
+      final primaryResolvedUrl = playerState.resolvedPlayUrl(_scope.baseUrl);
+      if (primaryResolvedUrl == null) {
         content = wrapWithMoviePlayerBackButton(
           onBackPressed: _handleBack,
           child: MoviePlayerSplitLayout(
             controller: _splitController,
             dividerHandleBuffer: widget.dividerHandleBuffer,
             leftChild: const MoviePlayerEmptyState(),
-            rightChild:
-                playerState.selectedMedia == null
-                    ? const SizedBox.expand()
-                    : _buildThumbnailPanel(),
+            rightChild: playerState.selectedMedia == null
+                ? const SizedBox.expand()
+                : _buildThumbnailPanel(),
           ),
         );
       } else {
+        final isUsingProxyFallback =
+            _proxyFallbackSourceUrl == primaryResolvedUrl &&
+            _proxyFallbackUrl != null;
+        final resolvedUrl = isUsingProxyFallback
+            ? _proxyFallbackUrl!
+            : primaryResolvedUrl;
         content = MoviePlayerSplitLayout(
           controller: _splitController,
           dividerHandleBuffer: widget.dividerHandleBuffer,
-          leftChild: _buildPlayerSurface(context, resolvedUrl),
-          rightChild:
-              playerState.selectedMedia == null
-                  ? const SizedBox.expand()
-                  : _buildThumbnailPanel(),
+          leftChild: _buildPlayerSurface(
+            context,
+            resolvedUrl,
+            onInitialPlaybackError: isUsingProxyFallback
+                ? null
+                : () => _retryWithProxy(primaryResolvedUrl),
+          ),
+          rightChild: playerState.selectedMedia == null
+              ? const SizedBox.expand()
+              : _buildThumbnailPanel(),
         );
       }
     }
@@ -178,7 +190,11 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
     );
   }
 
-  Widget _buildPlayerSurface(BuildContext context, String resolvedUrl) {
+  Widget _buildPlayerSurface(
+    BuildContext context,
+    String resolvedUrl, {
+    bool Function()? onInitialPlaybackError,
+  }) {
     if (widget.surfaceBuilder != null) {
       return widget.surfaceBuilder!(
         context,
@@ -199,6 +215,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
     return MoviePlayerSurface(
       movieNumber: widget.movieNumber,
       resolvedUrl: resolvedUrl,
+      onInitialPlaybackError: onInitialPlaybackError,
       surfaceController: _surfaceController,
       initialPosition: _playerState.startupPlaybackPosition,
       resumePosition: _playerState.resumePlaybackPosition,
@@ -210,14 +227,23 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
       onSubtitleReloadRequested: _controller.loadSubtitles,
       onBackPressed: _handleBack,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
-      mediaSourceKind:
-          _playerState.selectedMediaStorage.isCloud115
-              ? MoviePlayerMediaSourceKind.cloud115
-              : _playerState.selectedMediaStorage.isLocal
-              ? MoviePlayerMediaSourceKind.local
-              : MoviePlayerMediaSourceKind.unknown,
       mediaInfo: _buildMediaInfo(),
     );
+  }
+
+  bool _retryWithProxy(String sourceUrl) {
+    if (!mounted || _proxyFallbackSourceUrl == sourceUrl) {
+      return false;
+    }
+    final proxyUrl = withProxyMediaDelivery(sourceUrl);
+    if (proxyUrl == sourceUrl) {
+      return false;
+    }
+    setState(() {
+      _proxyFallbackSourceUrl = sourceUrl;
+      _proxyFallbackUrl = proxyUrl;
+    });
+    return true;
   }
 
   MoviePlayerMediaInfo? _buildMediaInfo() {
@@ -225,20 +251,20 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
     if (media == null) {
       return null;
     }
-    final storage = _playerState.selectedMediaStorage;
     return MoviePlayerMediaInfo(
-      sourceLabel: storage.sourceLabel,
-      libraryLabel:
-          storage.normalizedLibraryName ??
-          (storage.libraryId == null ? '--' : '媒体库 ${storage.libraryId}'),
-      fileSizeLabel:
-          media.fileSizeBytes > 0 ? formatFileSize(media.fileSizeBytes) : '--',
-      durationLabel:
-          media.durationSeconds > 0
-              ? formatMediaTimecode(media.durationSeconds)
-              : '--',
-      resolutionLabel:
-          media.resolution.trim().isEmpty ? '--' : media.resolution.trim(),
+      sourceLabel: media.providerKey?.trim().isNotEmpty == true
+          ? media.providerKey!.trim()
+          : '--',
+      libraryLabel: media.libraryId == null ? '--' : '媒体库 ${media.libraryId}',
+      fileSizeLabel: media.fileSizeBytes > 0
+          ? formatFileSize(media.fileSizeBytes)
+          : '--',
+      durationLabel: media.durationSeconds > 0
+          ? formatMediaTimecode(media.durationSeconds)
+          : '--',
+      resolutionLabel: media.resolution?.trim().isNotEmpty == true
+          ? media.resolution!.trim()
+          : '--',
     );
   }
 
@@ -359,10 +385,9 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
       AppImageActionDescriptor(
         type: AppImageActionType.toggleMark,
         label: point == null ? '添加标记' : '删除标记',
-        icon:
-            point == null
-                ? Icons.bookmark_add_outlined
-                : Icons.bookmark_remove_outlined,
+        icon: point == null
+            ? Icons.bookmark_add_outlined
+            : Icons.bookmark_remove_outlined,
         enabled: hasMedia,
       ),
       AppImageActionDescriptor(
@@ -417,13 +442,14 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
         );
         break;
       case AppImageActionType.saveToLocal:
-        final result = await ImageSaveService(
-          fetchBytes: ref.read(apiClientProvider).getBytes,
-        ).saveImageFromUrl(
-          imageUrl: imageUrl,
-          fileName: fileName,
-          dialogTitle: '保存到本地',
-        );
+        final result =
+            await ImageSaveService(
+              fetchBytes: ref.read(apiClientProvider).getBytes,
+            ).saveImageFromUrl(
+              imageUrl: imageUrl,
+              fileName: fileName,
+              dialogTitle: '保存到本地',
+            );
         if (!mounted) {
           return;
         }

@@ -130,7 +130,7 @@ void main() {
         DownloadClientDto.fromJson(_buildClientJson()),
       ],
     );
-      final indexerSettingsApi = _RefreshFailureIndexerSettingsApi(
+    final indexerSettingsApi = _RefreshFailureIndexerSettingsApi(
       apiClient: _bundle.apiClient,
       initialSettings: IndexerSettingsDto.fromJson(
         _buildSettingsJson(
@@ -206,7 +206,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('已配置'), findsWidgets);
-    expect(find.byKey(const Key('mobile-indexer-detail-drawer')), findsOneWidget);
+    expect(
+      find.byKey(const Key('mobile-indexer-detail-drawer')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('tests saved Torznab settings and shows the result', (
@@ -365,81 +368,6 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  testWidgets('BT indexer can bind qBittorrent and cloud115 together', (
-    WidgetTester tester,
-  ) async {
-    _enqueueIndexersData(
-      _bundle,
-      clients: <Map<String, dynamic>>[..._defaultClients, _cloudDownloadClient],
-      indexers: const <Map<String, dynamic>>[],
-    );
-    _bundle.adapter.enqueueJson(
-      method: 'PATCH',
-      path: '/indexer-settings',
-      body: _buildSettingsJson(
-        indexers: const <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 3,
-            'name': 'DMHY',
-            'url': 'https://dmhy.example/api',
-            'kind': 'bt',
-            'api_key': null,
-            'download_clients': <Map<String, dynamic>>[
-              <String, dynamic>{
-                'id': 1,
-                'name': 'client-a',
-                'kind': 'qbittorrent',
-              },
-              <String, dynamic>{'id': 8, 'name': '115 主账号', 'kind': 'cloud115'},
-            ],
-          },
-        ],
-      ),
-    );
-
-    await _pumpPage(tester);
-    await tester.tap(find.byKey(const Key('mobile-indexers-create-button')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('indexer-entry-name-field')),
-      'DMHY',
-    );
-    await tester.enterText(
-      find.byKey(const Key('indexer-entry-url-field')),
-      'https://dmhy.example/api',
-    );
-    expect(find.byKey(const Key('indexer-download-client-8')), findsNothing);
-    await tester.tap(find.text('BT (公网)').last);
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const Key('indexer-download-client-1')),
-    );
-    await tester.tap(find.byKey(const Key('indexer-download-client-1')));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const Key('indexer-download-client-8')),
-    );
-    await tester.tap(find.byKey(const Key('indexer-download-client-8')));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const Key('mobile-indexer-submit-button')),
-    );
-    await tester.tap(find.byKey(const Key('mobile-indexer-submit-button')));
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    final patchRequest = _bundle.adapter.requests.firstWhere(
-      (request) =>
-          request.method == 'PATCH' && request.path == '/indexer-settings',
-    );
-    expect(patchRequest.body['indexers'][0]['download_client_ids'], <int>[
-      1,
-      8,
-    ]);
-    expect(find.textContaining('client-a、115 主账号'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 3));
-  });
-
   testWidgets('opens detail drawer and edits indexer', (
     WidgetTester tester,
   ) async {
@@ -513,9 +441,7 @@ void main() {
     _bundle.adapter.enqueueJson(
       method: 'PATCH',
       path: '/indexer-settings',
-      body: _buildSettingsJson(
-        indexers: const <Map<String, dynamic>>[],
-      ),
+      body: _buildSettingsJson(indexers: const <Map<String, dynamic>>[]),
     );
 
     await _pumpPage(tester);
@@ -644,6 +570,44 @@ void main() {
       await tester.pump(const Duration(seconds: 3));
     },
   );
+
+  testWidgets(
+    'does not clear an invalid binding when no replacement client exists',
+    (WidgetTester tester) async {
+      _enqueueIndexersData(
+        _bundle,
+        clients: const <Map<String, dynamic>>[],
+        indexers: const <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 1,
+            'name': '失效索引器',
+            'url': 'https://broken.example/api',
+            'kind': 'bt',
+            'api_key': null,
+            'download_client_id': 99,
+            'download_client_name': 'missing-client',
+          },
+        ],
+      );
+
+      await _pumpPage(tester);
+      await tester.tap(find.byKey(const Key('mobile-indexer-card-body-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('mobile-indexer-detail-edit-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const Key('mobile-indexer-submit-button')),
+      );
+      await tester.tap(find.byKey(const Key('mobile-indexer-submit-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('请至少选择一个仍可用的下载器'), findsOneWidget);
+      expect(_bundle.adapter.hitCount('PATCH', '/indexer-settings'), 0);
+      await tester.pump(const Duration(seconds: 3));
+    },
+  );
 }
 
 Future<void> _pumpPage(
@@ -689,36 +653,38 @@ Map<String, dynamic> _buildSettingsJson({
   List<Map<String, dynamic>>? indexers,
 }) {
   return <String, dynamic>{
-    'indexers': (indexers ??
-            const <Map<String, dynamic>>[
-              <String, dynamic>{
-                'id': 1,
-                'name': '馒头',
-                'url': 'https://mt.example/api',
-                'kind': 'pt',
-                'api_key': 'secret-key',
-                'download_client_id': 1,
-                'download_client_name': 'client-a',
-              },
-            ])
-        .map((entry) {
-          final withApiKey = <String, dynamic>{
-            ...entry,
-            'api_key': entry.containsKey('api_key') ? entry['api_key'] : 'secret-key',
-          };
-          if (entry.containsKey('download_clients')) return withApiKey;
-          return <String, dynamic>{
-            ...withApiKey,
-            'download_clients': <Map<String, dynamic>>[
-              <String, dynamic>{
-                'id': entry['download_client_id'],
-                'name': entry['download_client_name'],
-                'kind': 'qbittorrent',
-              },
-            ],
-          };
-        })
-        .toList(growable: false),
+    'indexers':
+        (indexers ??
+                const <Map<String, dynamic>>[
+                  <String, dynamic>{
+                    'id': 1,
+                    'name': '馒头',
+                    'url': 'https://mt.example/api',
+                    'kind': 'pt',
+                    'api_key': 'secret-key',
+                    'download_client_id': 1,
+                    'download_client_name': 'client-a',
+                  },
+                ])
+            .map((entry) {
+              final withApiKey = <String, dynamic>{
+                ...entry,
+                'api_key': entry.containsKey('api_key')
+                    ? entry['api_key']
+                    : 'secret-key',
+              };
+              if (entry.containsKey('download_clients')) return withApiKey;
+              return <String, dynamic>{
+                ...withApiKey,
+                'download_clients': <Map<String, dynamic>>[
+                  <String, dynamic>{
+                    'id': entry['download_client_id'],
+                    'name': entry['download_client_name'],
+                  },
+                ],
+              };
+            })
+            .toList(growable: false),
   };
 }
 
@@ -726,13 +692,8 @@ Map<String, dynamic> _buildClientJson({int id = 1, String name = 'client-a'}) {
   return <String, dynamic>{
     'id': id,
     'name': name,
-    'kind': 'qbittorrent',
-    'base_url': 'http://qb.local:8080',
-    'username': 'alice',
-    'client_save_path': '/downloads/a',
-    'local_root_path': '/mnt/downloads/a',
-    'media_library_id': 1,
-    'has_password': true,
+    'provider_config': <String, dynamic>{'endpoint': 'http://qb.local:8080'},
+    'library_id': 1,
     'created_at': '2026-03-08T09:30:00Z',
     'updated_at': '2026-03-08T10:30:00Z',
   };
@@ -742,31 +703,12 @@ const List<Map<String, dynamic>> _defaultClients = <Map<String, dynamic>>[
   <String, dynamic>{
     'id': 1,
     'name': 'client-a',
-    'kind': 'qbittorrent',
-    'base_url': 'http://qb.local:8080',
-    'username': 'alice',
-    'client_save_path': '/downloads/a',
-    'local_root_path': '/mnt/downloads/a',
-    'media_library_id': 1,
-    'has_password': true,
+    'provider_config': <String, dynamic>{'endpoint': 'http://qb.local:8080'},
+    'library_id': 1,
     'created_at': '2026-03-08T09:30:00Z',
     'updated_at': '2026-03-08T10:30:00Z',
   },
 ];
-
-const Map<String, dynamic> _cloudDownloadClient = <String, dynamic>{
-  'id': 8,
-  'name': '115 主账号',
-  'kind': 'cloud115',
-  'base_url': null,
-  'username': null,
-  'client_save_path': null,
-  'local_root_path': null,
-  'media_library_id': 8,
-  'has_password': false,
-  'created_at': '2026-07-15T08:00:00Z',
-  'updated_at': '2026-07-15T08:00:00Z',
-};
 
 Future<SessionStore> _buildLoggedInSessionStore() async {
   final store = SessionStore.inMemory();

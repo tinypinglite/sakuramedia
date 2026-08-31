@@ -94,13 +94,13 @@ void main() {
           <String, dynamic>{
             'media_id': 31,
             'library_id': 1,
+            'playback_deliveries': <String>['proxy'],
             'play_url': '/files/videos/7/clip.mp4?sig=abc',
             'path': '/data/videos/7/clip.mp4',
             'storage_mode': 'local',
             'resolution': '1080p',
             'file_size_bytes': 1048576,
             'duration_seconds': 600,
-            'special_tags': '',
             'valid': true,
             'progress': <String, dynamic>{
               'last_position_seconds': 120,

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
 import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
@@ -206,7 +207,7 @@ void main() {
     expect(state.items.map((item) => item.itemId).toList(), <int>[100, 101]);
   });
 
-  test('deleteVideo 成功：乐观移除该成员并返回 null', () async {
+  test('deleteVideo 成功：乐观移除该成员', () async {
     enqueueLoad();
     // 删除的是视频本体（itemId 100 对应 video.id 1）。
     adapter.enqueueJson(
@@ -219,17 +220,15 @@ void main() {
     keepAlive();
     await container.read(videoCollectionDetailProvider(3).future);
 
-    final error = await container
+    await container
         .read(videoCollectionDetailProvider(3).notifier)
         .deleteVideo(100, 1);
-
-    expect(error, isNull);
     final state = container.read(videoCollectionDetailProvider(3)).requireValue;
     expect(state.items.map((item) => item.itemId).toList(), <int>[101]);
     expect(adapter.requests.last.path, '/videos/1');
   });
 
-  test('deleteVideo 失败：回滚并返回错误消息', () async {
+  test('deleteVideo 失败：回滚并抛出原始错误', () async {
     enqueueLoad();
     adapter.enqueueJson(
       method: 'DELETE',
@@ -243,11 +242,12 @@ void main() {
     keepAlive();
     await container.read(videoCollectionDetailProvider(3).future);
 
-    final error = await container
-        .read(videoCollectionDetailProvider(3).notifier)
-        .deleteVideo(100, 1);
-
-    expect(error, isNotNull);
+    await expectLater(
+      container
+          .read(videoCollectionDetailProvider(3).notifier)
+          .deleteVideo(100, 1),
+      throwsA(isA<ApiException>()),
+    );
     final state = container.read(videoCollectionDetailProvider(3)).requireValue;
     // 失败回滚，成员仍在。
     expect(state.items.map((item) => item.itemId).toList(), <int>[100, 101]);

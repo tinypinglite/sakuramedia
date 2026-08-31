@@ -45,7 +45,7 @@ class Plugins extends _$Plugins
     required String fileName,
   }) async {
     final current = state.value;
-    if (current == null || current.isInstalling) {
+    if (current == null || current.isInstalling || current.isCheckingUpdates) {
       return false;
     }
     state = AsyncData(current.copyWith(isInstalling: true));
@@ -71,10 +71,72 @@ class Plugins extends _$Plugins
     }
   }
 
+  /// 按各插件 manifest 声明的 Release API 查询可用更新。
+  ///
+  /// 单个 GitHub 请求失败不影响其他插件，返回值用于让页面提示部分失败。
+  Future<bool> checkUpdates() async {
+    final current = state.value;
+    if (current == null ||
+        current.isInstalling ||
+        current.isCheckingUpdates ||
+        current.busyPluginIds.isNotEmpty) {
+      return false;
+    }
+    state = AsyncData(current.copyWith(isCheckingUpdates: true));
+    final updates = <String, PluginReleaseUpdate>{};
+    var allChecksSucceeded = true;
+    for (final plugin in current.plugins) {
+      if (plugin.releaseApiUrl == null) {
+        continue;
+      }
+      try {
+        final update = await _api.checkForUpdate(plugin);
+        if (update != null) {
+          updates[plugin.pluginId] = update;
+        }
+      } catch (_) {
+        allChecksSucceeded = false;
+      }
+    }
+    if (!isDisposed) {
+      state = AsyncData(
+        current.copyWith(updates: updates, isCheckingUpdates: false),
+      );
+    }
+    return allChecksSucceeded;
+  }
+
+  /// 下载 Release zip 并交给后端替换已安装插件；生效时机仍由用户手动重启容器决定。
+  Future<void> upgrade(String pluginId) async {
+    final current = state.value;
+    final update = current?.updates[pluginId];
+    if (current == null ||
+        update == null ||
+        current.isInstalling ||
+        current.isCheckingUpdates ||
+        current.busyPluginIds.contains(pluginId)) {
+      return;
+    }
+    _setBusy(pluginId, true);
+    try {
+      final fileBytes = await _api.downloadUpdate(update);
+      final version = await _api.upgrade(
+        pluginId: pluginId,
+        update: update,
+        fileBytes: fileBytes,
+      );
+      _applyUpgrade(pluginId, version);
+    } catch (_) {
+      _setBusy(pluginId, false);
+      rethrow;
+    }
+  }
+
   Future<void> setEnabled(String pluginId, bool enabled) async {
     final current = state.value;
     if (current == null ||
         current.isInstalling ||
+        current.isCheckingUpdates ||
         current.busyPluginIds.contains(pluginId)) {
       return;
     }
@@ -92,6 +154,7 @@ class Plugins extends _$Plugins
     final current = state.value;
     if (current == null ||
         current.isInstalling ||
+        current.isCheckingUpdates ||
         current.busyPluginIds.contains(pluginId)) {
       return;
     }
@@ -99,11 +162,14 @@ class Plugins extends _$Plugins
     try {
       await _api.remove(pluginId);
       if (!isDisposed) {
+        final updates = Map<String, PluginReleaseUpdate>.of(current.updates)
+          ..remove(pluginId);
         state = AsyncData(
           current.copyWith(
             plugins: current.plugins
                 .where((plugin) => plugin.pluginId != pluginId)
                 .toList(growable: false),
+            updates: updates,
           ),
         );
       }
@@ -141,6 +207,30 @@ class Plugins extends _$Plugins
             if (plugin.pluginId == updated.pluginId) updated else plugin,
         ],
         busyPluginIds: busyPluginIds,
+      ),
+    );
+  }
+
+  void _applyUpgrade(String pluginId, String version) {
+    final current = state.value;
+    if (current == null) {
+      return;
+    }
+    final busyPluginIds = Set<String>.of(current.busyPluginIds)
+      ..remove(pluginId);
+    final updates = Map<String, PluginReleaseUpdate>.of(current.updates)
+      ..remove(pluginId);
+    state = AsyncData(
+      current.copyWith(
+        plugins: <PluginSummaryDto>[
+          for (final plugin in current.plugins)
+            if (plugin.pluginId == pluginId)
+              plugin.copyWith(version: version)
+            else
+              plugin,
+        ],
+        busyPluginIds: busyPluginIds,
+        updates: updates,
       ),
     );
   }

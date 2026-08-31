@@ -136,7 +136,7 @@ class MoviePlayerResumePromptCoordinator extends ChangeNotifier {
 
 /// 起播 seek 重试状态机(从 `_MoviePlayerSurfaceState` 抽出的引擎件)。
 ///
-/// 场景:115/HLS 源上 open 时的初始 seek 偶尔被静默吞掉。开播后在
+/// 远程签名直链上 open 时的初始 seek 偶尔被静默吞掉。开播后在
 /// [maxWindowMs] 窗口内用位置流探针验证「已接近目标」([minNearSamples]
 /// 个连续样本);不达标且过了 [retryDelayMs] 冷却则补发 seek,最多
 /// [maxRetries] 次;窗口耗尽放弃。
@@ -170,10 +170,9 @@ class MoviePlayerStartupSeekCoordinator {
 
   /// 开播新媒体:`initialPosition > 0` 才进入守卫,否则直接 settle。
   void begin(Duration? initialPosition) {
-    _target =
-        initialPosition != null && initialPosition > Duration.zero
-            ? initialPosition
-            : null;
+    _target = initialPosition != null && initialPosition > Duration.zero
+        ? initialPosition
+        : null;
     _startedAt = _now();
     _retryCount = 0;
     _nearTargetSamples = 0;

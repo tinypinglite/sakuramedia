@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/image_search/presentation/image_search_file
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_router.dart';
+import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 
 import 'support/test_api_bundle.dart';
@@ -433,8 +434,70 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('sidebar-search-field')), findsOneWidget);
+    expect(find.byKey(const Key('sidebar-search-submit')), findsNothing);
     expect(find.byKey(const Key('sidebar-search-image')), findsOneWidget);
+    expect(find.byKey(const Key('sidebar-search-text-image')), findsOneWidget);
     expect(find.byKey(const Key('sidebar-search-button')), findsNothing);
+  });
+
+  testWidgets('desktop sidebar text image search opens unified search page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueOverviewResponses(bundle);
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/image-search/text-sessions',
+      body: <String, dynamic>{
+        'session_id': 'text-session-1',
+        'status': 'ready',
+        'page_size': 20,
+        'next_cursor': null,
+        'expires_at': '2026-03-08T10:10:00Z',
+        'items': const <Map<String, dynamic>>[],
+      },
+    );
+
+    final router = await _pumpDesktopAppWithRouter(
+      tester,
+      bundle: bundle,
+      sessionStore: sessionStore,
+      statusApi: bundle.statusApi,
+      moviesApi: bundle.moviesApi,
+      actorsApi: bundle.actorsApi,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('sidebar-search-text-image')));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      desktopImageSearchPath,
+    );
+    expect(
+      router.routeInformationProvider.value.uri.queryParameters['mode'],
+      'text',
+    );
+    expect(find.byKey(const Key('image-search-mode-text')), findsOneWidget);
+    expect(
+      find.byKey(const Key('image-search-text-source-field')),
+      findsOneWidget,
+    );
+    expect(bundle.adapter.hitCount('POST', '/image-search/text-sessions'), 0);
+
+    await tester.enterText(
+      find.byKey(const Key('image-search-text-source-field')),
+      '白色连衣裙 海边',
+    );
+    await tester.tap(
+      find.byKey(const Key('image-search-text-source-search-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(bundle.adapter.hitCount('POST', '/image-search/text-sessions'), 1);
   });
 
   testWidgets('desktop sidebar image search button opens image search page', (
@@ -450,6 +513,18 @@ void main() {
       path: '/image-search/sessions',
       body: <String, dynamic>{
         'session_id': 'session-1',
+        'status': 'ready',
+        'page_size': 20,
+        'next_cursor': null,
+        'expires_at': '2026-03-08T10:10:00Z',
+        'items': const <Map<String, dynamic>>[],
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/image-search/sessions',
+      body: <String, dynamic>{
+        'session_id': 'session-2',
         'status': 'ready',
         'page_size': 20,
         'next_cursor': null,
@@ -482,6 +557,28 @@ void main() {
       '/desktop/search/image',
     );
     expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);
+
+    await tester.tap(
+      find.byKey(const Key('desktop-image-search-toggle-filter')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('desktop-image-search-filter-panel')),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('剧情图'));
+    await tester.pump();
+    expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);
+
+    await tester.tap(find.byKey(const Key('image-search-filter-apply')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('desktop-image-search-filter-panel')),
+      findsNothing,
+    );
+    expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 2);
   });
 
   testWidgets(
@@ -666,7 +763,12 @@ void _enqueueOverviewResponses(TestApiBundle bundle) {
     path: '/status/image-search',
     body: <String, dynamic>{
       'healthy': true,
-      'joytag': <String, dynamic>{'healthy': true, 'used_device': 'GPU'},
+      'embedding_service': <String, dynamic>{
+        'healthy': true,
+        'space_id': 'clip-vit-l-14',
+        'dimension': 768,
+        'modalities': <String>['image', 'text'],
+      },
       'indexing': <String, dynamic>{
         'pending_thumbnails': 23,
         'failed_thumbnails': 2,

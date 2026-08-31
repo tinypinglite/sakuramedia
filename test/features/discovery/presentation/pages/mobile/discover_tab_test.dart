@@ -61,7 +61,7 @@ void main() {
       );
       expect(
         find.byKey(const Key('mobile-discover-load-more-follow')),
-        findsNothing,
+        findsOneWidget,
       );
       expect(
         find.byKey(const Key('mobile-discover-load-more-daily')),

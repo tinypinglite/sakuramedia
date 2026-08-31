@@ -9,7 +9,6 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_format.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/overview_system_info_provider.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/overview_system_info_state.dart';
-import 'package:sakuramedia/features/overview/presentation/widgets/cloud115_authentication_status_chips.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
@@ -85,92 +84,86 @@ class _DesktopOverviewPageState extends ConsumerState<DesktopOverviewPage> {
     final moviesAsync = ref.watch(movieSummaryProvider(_latestScope));
     final movies = moviesAsync.value;
     final paged = movies?.paged;
-    final stats =
-        systemInfo.status == null
-            ? const <OverviewStatItem>[]
-            : <OverviewStatItem>[
-              OverviewStatItem(
-                id: 'movies-total',
-                label: '影片总数',
-                value: systemInfo.status!.movies.total.toString(),
+    final stats = systemInfo.status == null
+        ? const <OverviewStatItem>[]
+        : <OverviewStatItem>[
+            OverviewStatItem(
+              id: 'movies-total',
+              label: '影片总数',
+              value: systemInfo.status!.movies.total.toString(),
+            ),
+            OverviewStatItem(
+              id: 'movies-playable',
+              label: '可播放影片',
+              value: systemInfo.status!.movies.playable.toString(),
+            ),
+            OverviewStatItem(
+              id: 'actors-female-total',
+              label: '女优总数',
+              value: systemInfo.status!.actors.femaleTotal.toString(),
+            ),
+            OverviewStatItem(
+              id: 'media-files-total',
+              label: '媒体文件',
+              value: systemInfo.status!.mediaFiles.total.toString(),
+            ),
+            OverviewStatItem(
+              id: 'media-libraries-total',
+              label: '资源库',
+              value: systemInfo.status!.mediaLibraries.total.toString(),
+            ),
+            OverviewStatItem(
+              id: 'media-files-size',
+              label: '媒体总量',
+              value: formatGigabytes(
+                systemInfo.status!.mediaFiles.totalSizeBytes,
               ),
-              OverviewStatItem(
-                id: 'movies-playable',
-                label: '可播放影片',
-                value: systemInfo.status!.movies.playable.toString(),
+            ),
+            OverviewStatItem(
+              id: 'thumbnails-total',
+              label: '缩略图总数',
+              value: systemInfo.status!.thumbnails.total.toString(),
+            ),
+            OverviewStatItem(
+              id: 'thumbnails-pending',
+              label: '待生成缩略图',
+              value: systemInfo.status!.thumbnails.pendingMedia.toString(),
+            ),
+            OverviewStatItem(
+              id: 'embedding-service-health',
+              label: '嵌入服务健康',
+              value: systemInfo.buildEmbeddingServiceHealthValue(),
+              isLoading: systemInfo.isLoadingImageSearchStatus,
+            ),
+            OverviewStatItem(
+              id: 'embedding-service-space',
+              label: '嵌入空间',
+              value: systemInfo.buildEmbeddingServiceSpaceValue(),
+              isLoading: systemInfo.isLoadingImageSearchStatus,
+            ),
+            OverviewStatItem(
+              id: 'image-search-index-space',
+              label: '图搜索索引',
+              value: systemInfo.buildImageSearchIndexSpaceValue(),
+              isLoading: systemInfo.isLoadingImageSearchStatus,
+            ),
+            OverviewStatItem(
+              id: 'embedding-service-indexing-backlog',
+              label: '待索引',
+              value: systemInfo.buildEmbeddingServiceIndexingValue(),
+              isLoading: systemInfo.isLoadingImageSearchStatus,
+            ),
+            OverviewStatItem(
+              id: 'external-data-sources',
+              label: '外部数据源',
+              valueWidget: ExternalDataSourceStatusChips(
+                javdbHealthy: systemInfo.javdbHealthy,
+                isTesting: systemInfo.isTestingMetadataProviders,
               ),
-              OverviewStatItem(
-                id: 'actors-female-total',
-                label: '女优总数',
-                value: systemInfo.status!.actors.femaleTotal.toString(),
-              ),
-              OverviewStatItem(
-                id: 'media-files-total',
-                label: '媒体文件',
-                value: systemInfo.status!.mediaFiles.total.toString(),
-              ),
-              OverviewStatItem(
-                id: 'media-libraries-total',
-                label: '资源库',
-                value: systemInfo.status!.mediaLibraries.total.toString(),
-              ),
-              OverviewStatItem(
-                id: 'media-files-size',
-                label: '媒体总量',
-                value: formatGigabytes(
-                  systemInfo.status!.mediaFiles.totalSizeBytes,
-                ),
-              ),
-              OverviewStatItem(
-                id: 'thumbnails-total',
-                label: '缩略图总数',
-                value: systemInfo.status!.thumbnails.total.toString(),
-              ),
-              OverviewStatItem(
-                id: 'thumbnails-pending',
-                label: '待生成缩略图',
-                value: systemInfo.status!.thumbnails.pendingMedia.toString(),
-              ),
-              OverviewStatItem(
-                id: 'joytag-health',
-                label: 'JoyTag 健康',
-                value: systemInfo.buildJoyTagHealthValue(),
-                isLoading: systemInfo.isLoadingImageSearchStatus,
-              ),
-              OverviewStatItem(
-                id: 'joytag-device',
-                label: '推理设备',
-                value: systemInfo.buildJoyTagDeviceValue(),
-                isLoading: systemInfo.isLoadingImageSearchStatus,
-              ),
-              OverviewStatItem(
-                id: 'joytag-indexing-backlog',
-                label: '待索引',
-                value: systemInfo.buildJoyTagIndexingValue(),
-                isLoading: systemInfo.isLoadingImageSearchStatus,
-              ),
-              OverviewStatItem(
-                id: 'external-data-sources',
-                label: '外部数据源',
-                valueWidget: ExternalDataSourceStatusChips(
-                  javdbHealthy: systemInfo.javdbHealthy,
-                  isTesting: systemInfo.isTestingMetadataProviders,
-                ),
-                maxWidth: 260,
-                action: _buildExternalDataSourcesAction(context, systemInfo),
-              ),
-              OverviewStatItem(
-                id: 'cloud115-authentication',
-                label: '115 认证状态',
-                valueWidget: Cloud115AuthenticationStatusChips(
-                  summary: systemInfo.cloud115CookiesStatus?.summary,
-                  isTesting: systemInfo.isTestingCloud115Authentication,
-                  requestFailed: systemInfo.cloud115AuthenticationRequestFailed,
-                ),
-                maxWidth: 260,
-                action: _buildCloud115AuthenticationAction(context, systemInfo),
-              ),
-            ];
+              maxWidth: 260,
+              action: _buildExternalDataSourcesAction(context, systemInfo),
+            ),
+          ];
 
     return AppPageRefreshScope(
       onRefresh: _refreshOverview,
@@ -219,31 +212,25 @@ class _DesktopOverviewPageState extends ConsumerState<DesktopOverviewPage> {
                     MovieSummarySliver(
                       items: paged?.items ?? const [],
                       isLoading: moviesAsync.isLoading && movies == null,
-                      errorMessage:
-                          moviesAsync.hasError && movies == null
-                              ? _latestScope.initialLoadErrorText
-                              : null,
-                      onMovieTap:
-                          (movie) => context.pushDesktopMovieDetail(
-                            movieNumber: movie.movieNumber,
-                            fallbackPath: desktopOverviewPath,
-                          ),
-                      onMovieMenuRequest:
-                          (movie, globalPosition) => requestMovieCollectionMenu(
+                      errorMessage: moviesAsync.hasError && movies == null
+                          ? _latestScope.initialLoadErrorText
+                          : null,
+                      onMovieTap: (movie) => context.pushDesktopMovieDetail(
+                        movieNumber: movie.movieNumber,
+                        fallbackPath: desktopOverviewPath,
+                      ),
+                      onMovieMenuRequest: (movie, globalPosition) =>
+                          requestMovieCollectionMenu(
                             context,
                             movie.movieNumber,
                             globalPosition,
                             isSubscribed: movie.isSubscribed,
                           ),
-                      onMovieSubscriptionTap:
-                          (movie) =>
-                              _toggleMovieSubscription(movie.movieNumber),
-                      isMovieSubscriptionUpdating:
-                          (movie) =>
-                              movies?.isSubscriptionUpdating(
-                                movie.movieNumber,
-                              ) ??
-                              false,
+                      onMovieSubscriptionTap: (movie) =>
+                          _toggleMovieSubscription(movie.movieNumber),
+                      isMovieSubscriptionUpdating: (movie) =>
+                          movies?.isSubscriptionUpdating(movie.movieNumber) ??
+                          false,
                       emptyMessage: '暂无入库影片，去搜索看看吧',
                     ),
                     if (_buildMovieLoadMoreFooter(context, movies)
@@ -273,52 +260,21 @@ class _DesktopOverviewPageState extends ConsumerState<DesktopOverviewPage> {
       tooltip: '检测外部数据源',
       semanticLabel: '检测外部数据源',
       size: AppIconButtonSize.mini,
-      onPressed:
-          systemInfo.isTestingMetadataProviders
-              ? null
-              : ref
-                  .read(overviewSystemInfoProvider.notifier)
-                  .testExternalDataSources,
-      icon:
-          systemInfo.isTestingMetadataProviders
-              ? SizedBox(
-                width: context.appComponentTokens.iconSizeSm,
-                height: context.appComponentTokens.iconSizeSm,
-                child: CircularProgressIndicator.adaptive(
-                  strokeWidth:
-                      context.appComponentTokens.movieCardLoaderStrokeWidth,
-                ),
-              )
-              : const Icon(Icons.radar_rounded),
-    );
-  }
-
-  Widget _buildCloud115AuthenticationAction(
-    BuildContext context,
-    OverviewSystemInfoState systemInfo,
-  ) {
-    return AppIconButton(
-      key: const Key('overview-cloud115-authentication-test-button'),
-      tooltip: '检测 115 认证状态',
-      semanticLabel: '检测 115 认证状态',
-      size: AppIconButtonSize.mini,
-      onPressed:
-          systemInfo.isTestingCloud115Authentication
-              ? null
-              : ref
-                  .read(overviewSystemInfoProvider.notifier)
-                  .testCloud115Authentication,
-      icon:
-          systemInfo.isTestingCloud115Authentication
-              ? SizedBox(
-                width: context.appComponentTokens.iconSizeSm,
-                height: context.appComponentTokens.iconSizeSm,
-                child: CircularProgressIndicator.adaptive(
-                  strokeWidth:
-                      context.appComponentTokens.movieCardLoaderStrokeWidth,
-                ),
-              )
-              : const Icon(Icons.radar_rounded),
+      onPressed: systemInfo.isTestingMetadataProviders
+          ? null
+          : ref
+                .read(overviewSystemInfoProvider.notifier)
+                .testExternalDataSources,
+      icon: systemInfo.isTestingMetadataProviders
+          ? SizedBox(
+              width: context.appComponentTokens.iconSizeSm,
+              height: context.appComponentTokens.iconSizeSm,
+              child: CircularProgressIndicator.adaptive(
+                strokeWidth:
+                    context.appComponentTokens.movieCardLoaderStrokeWidth,
+              ),
+            )
+          : const Icon(Icons.radar_rounded),
     );
   }
 
@@ -385,11 +341,9 @@ class _DesktopOverviewPageState extends ConsumerState<DesktopOverviewPage> {
               ),
               SizedBox(width: spacing.sm),
               TextButton(
-                onPressed:
-                    () =>
-                        ref
-                            .read(movieSummaryProvider(_latestScope).notifier)
-                            .loadMore(),
+                onPressed: () => ref
+                    .read(movieSummaryProvider(_latestScope).notifier)
+                    .loadMore(),
                 style: TextButton.styleFrom(
                   foregroundColor: Theme.of(context).colorScheme.primary,
                   padding: EdgeInsets.symmetric(

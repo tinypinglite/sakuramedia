@@ -16,6 +16,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
 import 'package:sakuramedia/widgets/domain/playlists/playlist_management_card.dart';
@@ -122,11 +123,23 @@ class _PlaylistsSectionState extends ConsumerState<PlaylistsSection> {
     }
   }
 
+  Future<void> _refresh() {
+    return ref.read(playlistsOverviewProvider(_scope).notifier).refresh();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_initialized && !widget.active) {
       return const SizedBox.shrink();
     }
+
+    final content = _buildSection(context);
+    return widget.active
+        ? AppPageRefreshScope(onRefresh: _refresh, child: content)
+        : content;
+  }
+
+  Widget _buildSection(BuildContext context) {
     final spacing = context.appSpacing;
     final async = ref.watch(playlistsOverviewProvider(_scope));
     return Builder(

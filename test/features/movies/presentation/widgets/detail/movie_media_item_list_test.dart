@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
-import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
@@ -30,7 +28,7 @@ void main() {
     },
   );
 
-  testWidgets('movie media item list shows cloud115 storage and basic info', (
+  testWidgets('movie media item list shows provider and basic info', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -40,12 +38,12 @@ void main() {
             MovieMediaItemDto(
               mediaId: 115,
               libraryId: 9,
-              playUrl: '/media/115/stream?expires=1&signature=x',
-              storageMode: 'copy',
+              providerKey: 'cloud-drive',
+              playUrl: '/media/115/play/movie.mp4?expires=1&signature=x',
+              fileName: 'movie.mp4',
               resolution: '3840x2160',
               fileSizeBytes: 2147483648,
               durationSeconds: 3661,
-              specialTags: '4K',
               valid: true,
               progress: null,
               points: <MovieMediaPointDto>[],
@@ -53,20 +51,16 @@ void main() {
             ),
           ],
           selectedMediaId: 115,
-          storageDescriptors: const <int, MediaStorageDescriptor>{
-            9: MediaStorageDescriptor(
-              libraryId: 9,
-              libraryName: '云盘库',
-              backend: MediaLibraryBackend.cloud115,
-            ),
-          },
           onSelect: (_) {},
         ),
       ),
     );
 
-    expect(find.text('4K 2.0 GB'), findsOneWidget);
-    expect(find.text('115 网盘 · 云盘库 · 3840x2160 · 01:01:01'), findsOneWidget);
+    expect(find.text('2.0 GB'), findsOneWidget);
+    expect(
+      find.text('cloud-drive · movie.mp4 · 3840x2160 · 01:01:01'),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
@@ -79,12 +73,12 @@ void main() {
               MovieMediaItemDto(
                 mediaId: 100,
                 libraryId: 1,
+                providerKey: 'filesystem',
                 playUrl: '/files/media/movies/ABC-001/video.mp4',
-                storageMode: 'hardlink',
+                fileName: 'ABC-001.mp4',
                 resolution: '1920x1080',
                 fileSizeBytes: 1073741824,
                 durationSeconds: 7200,
-                specialTags: '普通',
                 valid: false,
                 progress: MovieMediaProgressDto(
                   lastPositionSeconds: 600,
@@ -128,12 +122,12 @@ void main() {
               MovieMediaItemDto(
                 mediaId: 101,
                 libraryId: 1,
+                providerKey: 'filesystem',
                 playUrl: '/files/media/movies/ABC-001/video-alt.mp4',
-                storageMode: 'hardlink',
+                fileName: 'ABC-001-alt.mp4',
                 resolution: '1280x720',
                 fileSizeBytes: 524288000,
                 durationSeconds: 5400,
-                specialTags: '导演剪辑版',
                 valid: true,
                 progress: null,
                 points: <MovieMediaPointDto>[
@@ -176,13 +170,15 @@ void main() {
         ),
       );
 
-      expect(find.text('普通 1.0 GB'), findsOneWidget);
-      expect(find.text('导演剪辑版 500.0 MB'), findsOneWidget);
+      expect(find.text('1.0 GB'), findsOneWidget);
+      expect(find.text('500.0 MB'), findsOneWidget);
       expect(find.byType(MovieDetailPillWrap), findsOneWidget);
       expect(find.byKey(const Key('movie-media-tech-summary')), findsOneWidget);
       expect(find.byKey(const Key('movie-media-points-title')), findsOneWidget);
       expect(
-        find.text('1920x1080 · 02:00:00 · H.264 · 22.8 Mbps · 29.97 fps'),
+        find.text(
+          'filesystem · ABC-001.mp4 · 1920x1080 · 02:00:00 · H.264 · 22.8 Mbps · 29.97 fps',
+        ),
         findsOneWidget,
       );
       expect(
@@ -196,8 +192,8 @@ void main() {
         '02:00',
       );
 
-      final selectedText = tester.widget<Text>(find.text('普通 1.0 GB'));
-      final unselectedText = tester.widget<Text>(find.text('导演剪辑版 500.0 MB'));
+      final selectedText = tester.widget<Text>(find.text('1.0 GB'));
+      final unselectedText = tester.widget<Text>(find.text('500.0 MB'));
 
       expect(
         selectedText.style?.fontWeight,
@@ -208,20 +204,18 @@ void main() {
         sakuraThemeData.appTextWeights.medium,
       );
 
-      final pillWrapBottom =
-          tester.getBottomLeft(find.byType(MovieDetailPillWrap)).dy;
-      final techSummaryTop =
-          tester
-              .getTopLeft(find.byKey(const Key('movie-media-tech-summary')))
-              .dy;
-      final techSummaryBottom =
-          tester
-              .getBottomLeft(find.byKey(const Key('movie-media-tech-summary')))
-              .dy;
-      final pointsTitleTop =
-          tester
-              .getTopLeft(find.byKey(const Key('movie-media-points-title')))
-              .dy;
+      final pillWrapBottom = tester
+          .getBottomLeft(find.byType(MovieDetailPillWrap))
+          .dy;
+      final techSummaryTop = tester
+          .getTopLeft(find.byKey(const Key('movie-media-tech-summary')))
+          .dy;
+      final techSummaryBottom = tester
+          .getBottomLeft(find.byKey(const Key('movie-media-tech-summary')))
+          .dy;
+      final pointsTitleTop = tester
+          .getTopLeft(find.byKey(const Key('movie-media-points-title')))
+          .dy;
 
       expect(
         techSummaryTop - pillWrapBottom,
@@ -232,11 +226,13 @@ void main() {
         AppComponentTokens.defaults().movieDetailSectionTitleGap,
       );
 
-      await tester.tap(find.text('导演剪辑版 500.0 MB'));
+      await tester.tap(find.text('500.0 MB'));
       await tester.pumpAndSettle();
 
       expect(
-        find.text('1280x720 · 01:30:00 · H.265 · 6.5 Mbps · 24 fps'),
+        find.text(
+          'filesystem · ABC-001-alt.mp4 · 1280x720 · 01:30:00 · H.265 · 6.5 Mbps · 24 fps',
+        ),
         findsOneWidget,
       );
       expect(
@@ -258,12 +254,12 @@ void main() {
               MovieMediaItemDto(
                 mediaId: 100,
                 libraryId: 1,
+                providerKey: null,
                 playUrl: '/files/media/movies/ABC-001/video.mp4',
-                storageMode: 'hardlink',
+                fileName: '',
                 resolution: '',
                 fileSizeBytes: 1073741824,
                 durationSeconds: 0,
-                specialTags: '普通',
                 valid: true,
                 progress: null,
                 points: <MovieMediaPointDto>[],
@@ -313,12 +309,12 @@ void main() {
               MovieMediaItemDto(
                 mediaId: 100,
                 libraryId: 1,
+                providerKey: 'filesystem',
                 playUrl: '/files/media/movies/ABC-001/video.mp4',
-                storageMode: 'hardlink',
+                fileName: 'ABC-001.mp4',
                 resolution: '1920x1080',
                 fileSizeBytes: 1073741824,
                 durationSeconds: 7200,
-                specialTags: '普通',
                 valid: true,
                 progress: null,
                 points: <MovieMediaPointDto>[],
@@ -358,12 +354,12 @@ void main() {
               MovieMediaItemDto(
                 mediaId: 100,
                 libraryId: 1,
+                providerKey: 'filesystem',
                 playUrl: '/files/media/movies/ABC-001/video.mp4',
-                storageMode: 'hardlink',
+                fileName: 'ABC-001.mp4',
                 resolution: '1920x1080',
                 fileSizeBytes: 1073741824,
                 durationSeconds: 7200,
-                specialTags: '普通',
                 valid: true,
                 progress: null,
                 points: <MovieMediaPointDto>[],
@@ -396,12 +392,12 @@ void main() {
               MovieMediaItemDto(
                 mediaId: 100,
                 libraryId: 1,
+                providerKey: 'filesystem',
                 playUrl: '/files/media/movies/ABC-001/video.mp4',
-                storageMode: 'hardlink',
+                fileName: 'ABC-001.mp4',
                 resolution: '1920x1080',
                 fileSizeBytes: 1073741824,
                 durationSeconds: 7200,
-                specialTags: '普通',
                 valid: true,
                 progress: null,
                 points: <MovieMediaPointDto>[],
@@ -434,14 +430,12 @@ void main() {
         ),
       );
 
-      final summaryRight =
-          tester
-              .getTopRight(find.byKey(const Key('movie-media-tech-summary')))
-              .dx;
-      final deleteLeft =
-          tester
-              .getTopLeft(find.byKey(const Key('movie-media-delete-button')))
-              .dx;
+      final summaryRight = tester
+          .getTopRight(find.byKey(const Key('movie-media-tech-summary')))
+          .dx;
+      final deleteLeft = tester
+          .getTopLeft(find.byKey(const Key('movie-media-delete-button')))
+          .dx;
 
       expect(deleteLeft - summaryRight, const AppSpacing.defaults().md);
     },
@@ -480,6 +474,9 @@ Widget _testApp({required Widget child}) {
   final sessionStore = SessionStore.inMemory();
   return ProviderScope(
     overrides: [sessionStoreProvider.overrideWithValue(sessionStore)],
-    child: MaterialApp(theme: sakuraThemeData, home: Scaffold(body: child)),
+    child: MaterialApp(
+      theme: sakuraThemeData,
+      home: Scaffold(body: child),
+    ),
   );
 }

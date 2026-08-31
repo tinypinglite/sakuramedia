@@ -58,9 +58,9 @@ class ImageSearchFilterState {
   final double? scoreThreshold;
 
   bool get isDefault =>
+      searchTarget == ImageSearchTarget.thumbnail &&
       currentMovieScope == ImageSearchCurrentMovieScope.all &&
       actorFilterMode == ImageSearchActorFilterMode.none &&
-      selectedActors.isEmpty &&
       scoreThreshold == null;
 
   int get selectedActorCount => selectedActors.length;
@@ -81,8 +81,9 @@ class ImageSearchFilterState {
       currentMovieScope: currentMovieScope ?? this.currentMovieScope,
       actorFilterMode: actorFilterMode ?? this.actorFilterMode,
       selectedActors: selectedActors ?? this.selectedActors,
-      scoreThreshold:
-          clearScoreThreshold ? null : scoreThreshold ?? this.scoreThreshold,
+      scoreThreshold: clearScoreThreshold
+          ? null
+          : scoreThreshold ?? this.scoreThreshold,
     );
   }
 }

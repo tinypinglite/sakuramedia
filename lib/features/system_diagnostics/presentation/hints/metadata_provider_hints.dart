@@ -31,7 +31,7 @@ const Map<String, DiagnosticHint> javdbHints = <String, DiagnosticHint>{
   ),
   MetadataProviderErrorType.unexpected: DiagnosticHint(
     cause: 'JavDB 抓取时出错了。',
-    fixHint: '点「查看诊断详情」看具体报错。',
+    fixHint: '确认后端日志后重新检测。',
   ),
   'probe-request-failed': _probeRequestFailedHint,
 };

@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
-import 'package:sakuramedia/features/media/data/media_storage_descriptor.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
@@ -12,8 +11,6 @@ class MoviePlayerState {
   MoviePlayerState({
     this.movie,
     this.selectedMedia,
-    Map<int, MediaStorageDescriptor> storageDescriptors =
-        const <int, MediaStorageDescriptor>{},
     List<MovieMediaThumbnailDto> thumbnails = const <MovieMediaThumbnailDto>[],
     this.isLoading = true,
     this.isThumbnailLoading = false,
@@ -34,17 +31,13 @@ class MoviePlayerState {
     this.startupPlaybackPosition,
     this.resumePlaybackPosition,
     this.isResumeDecisionPending = false,
-  }) : storageDescriptors = Map<int, MediaStorageDescriptor>.unmodifiable(
-         storageDescriptors,
-       ),
-       thumbnails = List<MovieMediaThumbnailDto>.unmodifiable(thumbnails),
+  }) : thumbnails = List<MovieMediaThumbnailDto>.unmodifiable(thumbnails),
        subtitleOptions = List<MoviePlayerSubtitleOption>.unmodifiable(
          subtitleOptions,
        );
 
   final MovieDetailDto? movie;
   final MovieMediaItemDto? selectedMedia;
-  final Map<int, MediaStorageDescriptor> storageDescriptors;
   final List<MovieMediaThumbnailDto> thumbnails;
   final bool isLoading;
   final bool isThumbnailLoading;
@@ -64,12 +57,6 @@ class MoviePlayerState {
   final Duration? startupPlaybackPosition;
   final Duration? resumePlaybackPosition;
   final bool isResumeDecisionPending;
-
-  MediaStorageDescriptor get selectedMediaStorage =>
-      resolveMediaStorageDescriptor(
-        selectedMedia?.libraryId,
-        storageDescriptors,
-      );
 
   bool get usesAutoThumbnailColumns => !hasManualThumbnailColumnOverride;
 
@@ -101,8 +88,10 @@ class MoviePlayerState {
     errorMessage: subtitleErrorMessage,
   );
 
-  String? resolvedPlayUrl(String baseUrl) =>
-      resolveMediaUrl(rawUrl: selectedMedia?.playUrl, baseUrl: baseUrl);
+  String? resolvedPlayUrl(String baseUrl) => resolveMediaUrl(
+    rawUrl: selectedMedia?.playUrl,
+    baseUrl: baseUrl,
+  );
 
   MovieMediaThumbnailDto? _thumbnailAt(int? index) {
     if (index == null || index < 0 || index >= thumbnails.length) {
@@ -114,7 +103,6 @@ class MoviePlayerState {
   MoviePlayerState copyWith({
     Object? movie = _unsetMoviePlayerValue,
     Object? selectedMedia = _unsetMoviePlayerValue,
-    Map<int, MediaStorageDescriptor>? storageDescriptors,
     List<MovieMediaThumbnailDto>? thumbnails,
     bool? isLoading,
     bool? isThumbnailLoading,
@@ -136,63 +124,55 @@ class MoviePlayerState {
     bool? isResumeDecisionPending,
   }) {
     return MoviePlayerState(
-      movie:
-          identical(movie, _unsetMoviePlayerValue)
-              ? this.movie
-              : movie as MovieDetailDto?,
-      selectedMedia:
-          identical(selectedMedia, _unsetMoviePlayerValue)
-              ? this.selectedMedia
-              : selectedMedia as MovieMediaItemDto?,
-      storageDescriptors: storageDescriptors ?? this.storageDescriptors,
+      movie: identical(movie, _unsetMoviePlayerValue)
+          ? this.movie
+          : movie as MovieDetailDto?,
+      selectedMedia: identical(selectedMedia, _unsetMoviePlayerValue)
+          ? this.selectedMedia
+          : selectedMedia as MovieMediaItemDto?,
       thumbnails: thumbnails ?? this.thumbnails,
       isLoading: isLoading ?? this.isLoading,
       isThumbnailLoading: isThumbnailLoading ?? this.isThumbnailLoading,
       isSubtitleLoading: isSubtitleLoading ?? this.isSubtitleLoading,
       isThumbnailScrollLocked:
           isThumbnailScrollLocked ?? this.isThumbnailScrollLocked,
-      thumbnailColumns:
-          identical(thumbnailColumns, _unsetMoviePlayerValue)
-              ? this.thumbnailColumns
-              : thumbnailColumns as int?,
+      thumbnailColumns: identical(thumbnailColumns, _unsetMoviePlayerValue)
+          ? this.thumbnailColumns
+          : thumbnailColumns as int?,
       hasManualThumbnailColumnOverride:
           hasManualThumbnailColumnOverride ??
           this.hasManualThumbnailColumnOverride,
       clipSelectionMode: clipSelectionMode ?? this.clipSelectionMode,
-      clipStartIndex:
-          identical(clipStartIndex, _unsetMoviePlayerValue)
-              ? this.clipStartIndex
-              : clipStartIndex as int?,
-      clipEndIndex:
-          identical(clipEndIndex, _unsetMoviePlayerValue)
-              ? this.clipEndIndex
-              : clipEndIndex as int?,
-      errorMessage:
-          identical(errorMessage, _unsetMoviePlayerValue)
-              ? this.errorMessage
-              : errorMessage as String?,
+      clipStartIndex: identical(clipStartIndex, _unsetMoviePlayerValue)
+          ? this.clipStartIndex
+          : clipStartIndex as int?,
+      clipEndIndex: identical(clipEndIndex, _unsetMoviePlayerValue)
+          ? this.clipEndIndex
+          : clipEndIndex as int?,
+      errorMessage: identical(errorMessage, _unsetMoviePlayerValue)
+          ? this.errorMessage
+          : errorMessage as String?,
       thumbnailErrorMessage:
           identical(thumbnailErrorMessage, _unsetMoviePlayerValue)
-              ? this.thumbnailErrorMessage
-              : thumbnailErrorMessage as String?,
+          ? this.thumbnailErrorMessage
+          : thumbnailErrorMessage as String?,
       subtitleErrorMessage:
           identical(subtitleErrorMessage, _unsetMoviePlayerValue)
-              ? this.subtitleErrorMessage
-              : subtitleErrorMessage as String?,
+          ? this.subtitleErrorMessage
+          : subtitleErrorMessage as String?,
       subtitleFetchStatus: subtitleFetchStatus ?? this.subtitleFetchStatus,
       subtitleOptions: subtitleOptions ?? this.subtitleOptions,
-      selectedSubtitleId:
-          identical(selectedSubtitleId, _unsetMoviePlayerValue)
-              ? this.selectedSubtitleId
-              : selectedSubtitleId as int?,
+      selectedSubtitleId: identical(selectedSubtitleId, _unsetMoviePlayerValue)
+          ? this.selectedSubtitleId
+          : selectedSubtitleId as int?,
       startupPlaybackPosition:
           identical(startupPlaybackPosition, _unsetMoviePlayerValue)
-              ? this.startupPlaybackPosition
-              : startupPlaybackPosition as Duration?,
+          ? this.startupPlaybackPosition
+          : startupPlaybackPosition as Duration?,
       resumePlaybackPosition:
           identical(resumePlaybackPosition, _unsetMoviePlayerValue)
-              ? this.resumePlaybackPosition
-              : resumePlaybackPosition as Duration?,
+          ? this.resumePlaybackPosition
+          : resumePlaybackPosition as Duration?,
       isResumeDecisionPending:
           isResumeDecisionPending ?? this.isResumeDecisionPending,
     );

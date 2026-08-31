@@ -1,65 +1,39 @@
 import 'package:sakuramedia/core/json/json_parse.dart';
 
-enum DownloadClientKind { qbittorrent, cloud115 }
-
-extension DownloadClientKindX on DownloadClientKind {
-  String get wireValue => switch (this) {
-    DownloadClientKind.qbittorrent => 'qbittorrent',
-    DownloadClientKind.cloud115 => 'cloud115',
-  };
-
-  String get label => switch (this) {
-    DownloadClientKind.qbittorrent => 'qBittorrent',
-    DownloadClientKind.cloud115 => '115 离线',
-  };
-
-  static DownloadClientKind fromWire(dynamic value) => switch (value) {
-    'cloud115' => DownloadClientKind.cloud115,
-    _ => DownloadClientKind.qbittorrent,
-  };
-}
-
+/// A configured download client bound to a media library.
+///
+/// The client implementation is owned by the library provider. The resource
+/// only carries the library relation and opaque provider configuration; the
+/// provider key is resolved from the referenced media library when needed.
 class DownloadClientDto {
   const DownloadClientDto({
     required this.id,
     required this.name,
-    this.kind = DownloadClientKind.qbittorrent,
-    required this.baseUrl,
-    required this.username,
-    required this.clientSavePath,
-    required this.localRootPath,
-    required this.mediaLibraryId,
-    required this.hasPassword,
+    required this.libraryId,
+    this.providerConfig = const <String, dynamic>{},
     required this.createdAt,
     required this.updatedAt,
   });
 
   final int id;
   final String name;
-  final DownloadClientKind kind;
-  final String baseUrl;
-  final String username;
-  final String clientSavePath;
-  final String localRootPath;
-  final int mediaLibraryId;
-  final bool hasPassword;
+  final int libraryId;
+  final Map<String, dynamic> providerConfig;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  bool get isQbittorrent => kind == DownloadClientKind.qbittorrent;
-  bool get isCloud115 => kind == DownloadClientKind.cloud115;
-
   factory DownloadClientDto.fromJson(Map<String, dynamic> json) {
+    final rawConfig = json['provider_config'];
+    final config = rawConfig is Map
+        ? rawConfig.map(
+            (dynamic key, dynamic value) => MapEntry(key.toString(), value),
+          )
+        : <String, dynamic>{};
     return DownloadClientDto(
       id: json['id'] as int? ?? 0,
       name: json['name'] as String? ?? '',
-      kind: DownloadClientKindX.fromWire(json['kind']),
-      baseUrl: json['base_url'] as String? ?? '',
-      username: json['username'] as String? ?? '',
-      clientSavePath: json['client_save_path'] as String? ?? '',
-      localRootPath: json['local_root_path'] as String? ?? '',
-      mediaLibraryId: json['media_library_id'] as int? ?? 0,
-      hasPassword: json['has_password'] as bool? ?? false,
+      libraryId: json['library_id'] as int? ?? 0,
+      providerConfig: Map<String, dynamic>.unmodifiable(config),
       createdAt: asDateTime(json['created_at']),
       updatedAt: asDateTime(json['updated_at']),
     );
@@ -69,34 +43,19 @@ class DownloadClientDto {
 class CreateDownloadClientPayload {
   const CreateDownloadClientPayload({
     required this.name,
-    this.kind = DownloadClientKind.qbittorrent,
-    required this.mediaLibraryId,
-    this.baseUrl,
-    this.username,
-    this.password,
-    this.clientSavePath,
-    this.localRootPath,
+    required this.libraryId,
+    this.providerConfig = const <String, dynamic>{},
   });
 
   final String name;
-  final DownloadClientKind kind;
-  final String? baseUrl;
-  final String? username;
-  final String? password;
-  final String? clientSavePath;
-  final String? localRootPath;
-  final int mediaLibraryId;
+  final int libraryId;
+  final Map<String, dynamic> providerConfig;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'name': name,
-      'kind': kind.wireValue,
-      if (baseUrl != null) 'base_url': baseUrl,
-      if (username != null) 'username': username,
-      if (password != null) 'password': password,
-      if (clientSavePath != null) 'client_save_path': clientSavePath,
-      if (localRootPath != null) 'local_root_path': localRootPath,
-      'media_library_id': mediaLibraryId,
+      'library_id': libraryId,
+      'provider_config': providerConfig,
     };
   }
 }
@@ -104,263 +63,103 @@ class CreateDownloadClientPayload {
 class UpdateDownloadClientPayload {
   const UpdateDownloadClientPayload({
     this.name,
-    this.baseUrl,
-    this.username,
-    this.password,
-    this.clientSavePath,
-    this.localRootPath,
-    this.mediaLibraryId,
+    this.libraryId,
+    this.providerConfig,
   });
 
   final String? name;
-  final String? baseUrl;
-  final String? username;
-  final String? password;
-  final String? clientSavePath;
-  final String? localRootPath;
-  final int? mediaLibraryId;
+  final int? libraryId;
+  final Map<String, dynamic>? providerConfig;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       if (name != null) 'name': name,
-      if (baseUrl != null) 'base_url': baseUrl,
-      if (username != null) 'username': username,
-      if (password != null) 'password': password,
-      if (clientSavePath != null) 'client_save_path': clientSavePath,
-      if (localRootPath != null) 'local_root_path': localRootPath,
-      if (mediaLibraryId != null) 'media_library_id': mediaLibraryId,
+      if (libraryId != null) 'library_id': libraryId,
+      if (providerConfig != null) 'provider_config': providerConfig,
     };
   }
 }
 
-/// 连通性预检 payload。`password` 为 null 时后端会用 `clientId` 从 DB 合并原密码。
-class DownloadClientProbeTestPayload {
-  const DownloadClientProbeTestPayload({
-    required this.baseUrl,
-    required this.username,
-    required this.password,
+class DownloadClientTestPayload {
+  const DownloadClientTestPayload({
+    required this.libraryId,
+    required this.providerConfig,
     this.clientId,
   });
 
-  final String baseUrl;
-  final String username;
-  final String? password;
+  final int libraryId;
+  final Map<String, dynamic> providerConfig;
   final int? clientId;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
-      'base_url': baseUrl,
-      'username': username,
-      'password': password,
+      'library_id': libraryId,
+      'provider_config': providerConfig,
       if (clientId != null) 'client_id': clientId,
     };
   }
 }
 
-/// 目录映射 + 硬链接预检 payload。密码处理规则同 [DownloadClientProbeTestPayload]。
-class DownloadClientProbeStorageTestPayload {
-  const DownloadClientProbeStorageTestPayload({
-    required this.baseUrl,
-    required this.username,
-    required this.password,
-    required this.clientSavePath,
-    required this.localRootPath,
-    required this.mediaLibraryId,
-    this.clientId,
-  });
-
-  final String baseUrl;
-  final String username;
-  final String? password;
-  final String clientSavePath;
-  final String localRootPath;
-  final int mediaLibraryId;
-  final int? clientId;
-
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'base_url': baseUrl,
-      'username': username,
-      'password': password,
-      'client_save_path': clientSavePath,
-      'local_root_path': localRootPath,
-      'media_library_id': mediaLibraryId,
-      if (clientId != null) 'client_id': clientId,
-    };
-  }
-}
-
-class DownloadClientDiagnosticErrorDto {
-  const DownloadClientDiagnosticErrorDto({
-    required this.type,
+class DownloadClientDiagnosticCheckDto {
+  const DownloadClientDiagnosticCheckDto({
+    required this.key,
+    required this.status,
+    required this.code,
     required this.message,
+    this.details,
   });
 
-  final String type;
+  final String key;
+  final String status;
+  final String code;
   final String message;
+  final Map<String, dynamic>? details;
 
-  factory DownloadClientDiagnosticErrorDto.fromJson(Map<String, dynamic> json) {
-    return DownloadClientDiagnosticErrorDto(
-      type: json['type'] as String? ?? '',
+  factory DownloadClientDiagnosticCheckDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return DownloadClientDiagnosticCheckDto(
+      key: json['key'] as String? ?? '',
+      status: json['status'] as String? ?? 'failed',
+      code: json['code'] as String? ?? '',
       message: json['message'] as String? ?? '',
+      details: asMapOrNull(json['details']),
     );
   }
 }
 
-class DownloadClientTestResultDto {
-  const DownloadClientTestResultDto({
-    required this.healthy,
-    required this.checkedAt,
-    required this.clientId,
-    required this.clientName,
-    required this.baseUrl,
-    required this.elapsedMs,
-    required this.version,
-    required this.webApiVersion,
-    required this.error,
-  });
-
-  final bool healthy;
-  final DateTime? checkedAt;
-  final int clientId;
-  final String clientName;
-  final String baseUrl;
-  final int elapsedMs;
-  final String? version;
-  final String? webApiVersion;
-  final DownloadClientDiagnosticErrorDto? error;
-
-  factory DownloadClientTestResultDto.fromJson(Map<String, dynamic> json) {
-    final errorMap = asMapOrNull(json['error']);
-    return DownloadClientTestResultDto(
-      healthy: json['healthy'] as bool? ?? false,
-      checkedAt: asDateTime(json['checked_at']),
-      clientId: asInt(json['client_id']),
-      clientName: json['client_name'] as String? ?? '',
-      baseUrl: json['base_url'] as String? ?? '',
-      elapsedMs: asInt(json['elapsed_ms']),
-      version: asStringOrNull(json['version'], trim: true),
-      webApiVersion: asStringOrNull(json['web_api_version'], trim: true),
-      error:
-          errorMap == null
-              ? null
-              : DownloadClientDiagnosticErrorDto.fromJson(errorMap),
-    );
-  }
-}
-
-class DownloadClientStorageDirectoryMappingResultDto {
-  const DownloadClientStorageDirectoryMappingResultDto({
+class DownloadClientDiagnosticReportDto {
+  const DownloadClientDiagnosticReportDto({
     required this.status,
-    required this.clientSavePath,
-    required this.localRootPath,
-    required this.probeRemoteDir,
-    required this.probeLocalDir,
-    required this.sentinelVisibleToQb,
-    required this.error,
+    required this.checks,
+    required this.checkedAt,
+    required this.elapsedMs,
   });
 
   final String status;
-  final String clientSavePath;
-  final String localRootPath;
-  final String probeRemoteDir;
-  final String probeLocalDir;
-  final bool sentinelVisibleToQb;
-  final DownloadClientDiagnosticErrorDto? error;
-
-  factory DownloadClientStorageDirectoryMappingResultDto.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    final errorMap = asMapOrNull(json['error']);
-    return DownloadClientStorageDirectoryMappingResultDto(
-      status: json['status'] as String? ?? '',
-      clientSavePath: json['client_save_path'] as String? ?? '',
-      localRootPath: json['local_root_path'] as String? ?? '',
-      probeRemoteDir: json['probe_remote_dir'] as String? ?? '',
-      probeLocalDir: json['probe_local_dir'] as String? ?? '',
-      sentinelVisibleToQb: json['sentinel_visible_to_qb'] as bool? ?? false,
-      error:
-          errorMap == null
-              ? null
-              : DownloadClientDiagnosticErrorDto.fromJson(errorMap),
-    );
-  }
-}
-
-class DownloadClientStorageHardlinkResultDto {
-  const DownloadClientStorageHardlinkResultDto({
-    required this.status,
-    required this.supported,
-    required this.sourcePath,
-    required this.targetPath,
-    required this.error,
-  });
-
-  final String status;
-  final bool supported;
-  final String sourcePath;
-  final String targetPath;
-  final DownloadClientDiagnosticErrorDto? error;
-
-  factory DownloadClientStorageHardlinkResultDto.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    final errorMap = asMapOrNull(json['error']);
-    return DownloadClientStorageHardlinkResultDto(
-      status: json['status'] as String? ?? '',
-      supported: json['supported'] as bool? ?? false,
-      sourcePath: json['source_path'] as String? ?? '',
-      targetPath: json['target_path'] as String? ?? '',
-      error:
-          errorMap == null
-              ? null
-              : DownloadClientDiagnosticErrorDto.fromJson(errorMap),
-    );
-  }
-}
-
-class DownloadClientStorageTestResultDto {
-  const DownloadClientStorageTestResultDto({
-    required this.healthy,
-    required this.checkedAt,
-    required this.clientId,
-    required this.clientName,
-    required this.elapsedMs,
-    required this.warnings,
-    required this.directoryMapping,
-    required this.hardlink,
-  });
-
-  final bool healthy;
+  final List<DownloadClientDiagnosticCheckDto> checks;
   final DateTime? checkedAt;
-  final int clientId;
-  final String clientName;
   final int elapsedMs;
-  final List<String> warnings;
-  final DownloadClientStorageDirectoryMappingResultDto directoryMapping;
-  final DownloadClientStorageHardlinkResultDto hardlink;
 
-  factory DownloadClientStorageTestResultDto.fromJson(
+  factory DownloadClientDiagnosticReportDto.fromJson(
     Map<String, dynamic> json,
   ) {
-    final rawWarnings = json['warnings'];
-    final warnings =
-        rawWarnings is List
-            ? rawWarnings.whereType<String>().toList(growable: false)
-            : const <String>[];
-    return DownloadClientStorageTestResultDto(
-      healthy: json['healthy'] as bool? ?? false,
+    final rawChecks = json['checks'];
+    final checks = rawChecks is List
+        ? rawChecks
+              .whereType<Map>()
+              .map(
+                (item) => DownloadClientDiagnosticCheckDto.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              )
+              .toList(growable: false)
+        : const <DownloadClientDiagnosticCheckDto>[];
+    return DownloadClientDiagnosticReportDto(
+      status: json['status'] as String? ?? 'failed',
+      checks: checks,
       checkedAt: asDateTime(json['checked_at']),
-      clientId: asInt(json['client_id']),
-      clientName: json['client_name'] as String? ?? '',
       elapsedMs: asInt(json['elapsed_ms']),
-      warnings: warnings,
-      directoryMapping: DownloadClientStorageDirectoryMappingResultDto.fromJson(
-        asMap(json['directory_mapping']),
-      ),
-      hardlink: DownloadClientStorageHardlinkResultDto.fromJson(
-        asMap(json['hardlink']),
-      ),
     );
   }
 }

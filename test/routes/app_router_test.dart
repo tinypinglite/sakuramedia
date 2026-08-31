@@ -84,7 +84,7 @@ void main() {
   });
 
   test('desktop navigation tree contains moments entry', () {
-    expect(desktopNavGroups.length, 17);
+    expect(desktopNavGroups.length, 16);
     // 管理区顺序：媒体管理 / 资源导入 / 任务中心 / 订阅管理 / 通知 / 系统设置。
     expect(desktopNavGroups.map((group) => group.label), [
       '概览',
@@ -97,7 +97,6 @@ void main() {
       '播放列表',
       'PornBox',
       '排行榜',
-      '热评',
       '媒体管理',
       '资源导入',
       '任务中心',
@@ -118,7 +117,6 @@ void main() {
       desktopPlaylistsPath,
       desktopVideosPath,
       desktopRankingsPath,
-      desktopHotReviewsPath,
       desktopMediaPath,
       desktopMediaImportPath,
       desktopActivityPath,
@@ -221,10 +219,14 @@ void main() {
   });
 
   test('mobile discover list routes expose subpage titles', () {
+    const followRoute = MobileFollowRouteData();
     const moviesRoute = MobileDiscoverMoviesRouteData();
     const momentsRoute = MobileDiscoverMomentsRouteData();
     const hotActressRoute = MobileHotActressReleasesRouteData();
 
+    expect(followRoute.location, mobileFollowPath);
+    expect(followRoute.title, '女优上新');
+    expect(followRoute.defaultLocation, mobileOverviewPath);
     expect(moviesRoute.location, mobileDiscoverMoviesPath);
     expect(moviesRoute.title, '推荐影片');
     expect(moviesRoute.defaultLocation, mobileOverviewPath);
@@ -404,7 +406,7 @@ void main() {
       ),
     );
 
-    expect(config.title, '以图搜图');
+    expect(config.title, '画面搜索');
     expect(config.fallbackPath, desktopMoviesPath);
     expect(config.isBackEnabled, isTrue);
   });
@@ -461,6 +463,10 @@ void main() {
     );
     expect(
       buildDesktopMoviePlayerRoutePath('ABC-001'),
+      '/desktop/library/movies/ABC-001/player',
+    );
+    expect(
+      const DesktopMoviePlayerRouteData(movieNumber: 'ABC-001').location,
       '/desktop/library/movies/ABC-001/player',
     );
   });
@@ -745,7 +751,7 @@ void main() {
     final imageSearchPage = _findPageByName(tester, 'desktop-image-search');
 
     expect(imageSearchPage, isA<NoTransitionPage<void>>());
-    expect(find.text('以图搜图'), findsWidgets);
+    expect(find.text('画面搜索'), findsWidgets);
   });
 
   testWidgets('desktop image search route extra fallback returns to player', (
@@ -1075,7 +1081,6 @@ void main() {
     expect(find.text('关注'), findsNothing);
     expect(find.text('发现'), findsOneWidget);
     expect(find.text('时刻'), findsOneWidget);
-    expect(find.text('热评'), findsOneWidget);
   });
 
   testWidgets('mobile system overview route uses subpage shell', (
@@ -1840,7 +1845,7 @@ void main() {
 
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
-    expect(find.text('以图搜图'), findsOneWidget);
+    expect(find.text('画面搜索'), findsOneWidget);
     expect(
       find.byKey(const Key('desktop-image-search-empty-select-button')),
       findsOneWidget,
@@ -1893,6 +1898,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);
+
+    await tester.tap(
+      find.byKey(const Key('desktop-image-search-toggle-filter')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('mobile-image-search-filter-drawer')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('desktop-image-search-filter-panel')),
+      findsNothing,
+    );
   });
 
   testWidgets(
@@ -3594,7 +3613,12 @@ void _enqueueMobileSystemOverviewResponses(TestApiBundle bundle) {
     path: '/status/image-search',
     body: <String, dynamic>{
       'healthy': true,
-      'joytag': <String, dynamic>{'healthy': true, 'used_device': 'GPU'},
+      'embedding_service': <String, dynamic>{
+        'healthy': true,
+        'space_id': 'clip-vit-l-14',
+        'dimension': 768,
+        'modalities': <String>['image', 'text'],
+      },
       'indexing': <String, dynamic>{
         'pending_thumbnails': 23,
         'failed_thumbnails': 2,
@@ -3881,8 +3905,8 @@ void _enqueueAccountProfile(TestApiBundle bundle) {
   );
 }
 
-/// 「媒体管理」页挂载即发三个请求：媒体列表、秒传批次（轮询监听）、媒体库。
-/// 列表/批次用 fallback 常驻空响应（避免后续切 tab 再打穿），媒体库 enqueue 一次。
+/// 「媒体管理」页挂载即发媒体列表和媒体库请求。
+/// 媒体列表用 fallback 常驻空响应（避免后续切 tab 再打穿），媒体库 enqueue 一次。
 void _enqueueMobileMediaManagementResponses(TestApiBundle bundle) {
   const emptyPage = <String, dynamic>{
     'items': <Map<String, dynamic>>[],
@@ -3893,11 +3917,6 @@ void _enqueueMobileMediaManagementResponses(TestApiBundle bundle) {
   bundle.adapter.setFallbackJson(
     method: 'GET',
     path: '/media',
-    body: emptyPage,
-  );
-  bundle.adapter.setFallbackJson(
-    method: 'GET',
-    path: '/media/rapid-uploads',
     body: emptyPage,
   );
   bundle.adapter.enqueueJson(

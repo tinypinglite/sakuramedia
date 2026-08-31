@@ -6,14 +6,12 @@ part 'overview_system_info_provider.g.dart';
 
 /// 系统概览(一次性加载 + 两个手动探针,无轮询)。
 ///
-/// 迁移前对应 `OverviewSystemInfoController`。同步 Notifier + 显式 flags:
-/// UI 依赖「刷新中 isLoadingStatus=true 且旧 status 保留」等复合态。
-/// autoDispose:离开页面即释放。
+/// 同步 Notifier + 显式 flags，供桌面/移动概览页分别展示刷新与探针状态；
+/// autoDispose，离开页面即释放。
 ///
-/// 与旧控制器一致的两点(勿"顺手统一"):
 /// - [load] 不置 loading 标志([refresh] 才置)——桌面概览页刷新走 [load],
 ///   统计条不闪骨架;移动页刷新走 [refresh],闪骨架。
-/// - 两个探针带「进行中直接 return」重入锁;两条加载腿无重入锁(与旧同)。
+/// - 元数据源探针进行中直接 return；系统信息与图片搜索两条加载腿不加重入锁。
 @riverpod
 class OverviewSystemInfo extends _$OverviewSystemInfo {
   bool _disposed = false;
@@ -21,8 +19,7 @@ class OverviewSystemInfo extends _$OverviewSystemInfo {
   @override
   OverviewSystemInfoState build() {
     ref.onDispose(() => _disposed = true);
-    // 对齐旧消费方 `OverviewSystemInfoController(...)..load()`:创建即请求,
-    // 首帧即处于双 loading 态(State 默认值)。
+    // 创建即请求，首帧保持双 loading 态（由 State 默认值表达）。
     Future<void>.microtask(load);
     return const OverviewSystemInfoState();
   }
@@ -72,6 +69,21 @@ class OverviewSystemInfo extends _$OverviewSystemInfo {
     }
   }
 
+  Future<void> resetImageSearch() async {
+    if (_disposed || state.isResettingImageSearch) {
+      return;
+    }
+    state = state.copyWith(isResettingImageSearch: true);
+    try {
+      await ref.read(statusApiProvider).resetImageSearch();
+      await loadImageSearchStatus();
+    } finally {
+      if (!_disposed) {
+        state = state.copyWith(isResettingImageSearch: false);
+      }
+    }
+  }
+
   Future<void> testExternalDataSources() async {
     if (state.isTestingMetadataProviders) {
       return;
@@ -86,31 +98,6 @@ class OverviewSystemInfo extends _$OverviewSystemInfo {
       javdbHealthy: javdbHealthy,
       isTestingMetadataProviders: false,
     );
-  }
-
-  Future<void> testCloud115Authentication() async {
-    if (state.isTestingCloud115Authentication) {
-      return;
-    }
-
-    state = state.copyWith(
-      isTestingCloud115Authentication: true,
-      cloud115AuthenticationRequestFailed: false,
-      cloud115CookiesStatus: null,
-    );
-
-    try {
-      final next = await ref.read(statusApiProvider).getCloud115CookiesStatus();
-      if (_disposed) return;
-      state = state.copyWith(cloud115CookiesStatus: next);
-    } catch (_) {
-      if (_disposed) return;
-      state = state.copyWith(cloud115AuthenticationRequestFailed: true);
-    } finally {
-      if (!_disposed) {
-        state = state.copyWith(isTestingCloud115Authentication: false);
-      }
-    }
   }
 
   Future<bool> _testMetadataProvider(String provider) async {

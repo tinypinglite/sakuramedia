@@ -19,6 +19,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
@@ -93,11 +94,66 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection> {
     }
   }
 
+  Future<void> _checkUpdates() async {
+    final allChecksSucceeded = await ref
+        .read(pluginsProvider.notifier)
+        .checkUpdates();
+    if (!mounted) {
+      return;
+    }
+    if (!allChecksSucceeded) {
+      showToast('部分插件的更新检查失败，请稍后重试');
+      return;
+    }
+    final updateCount = ref.read(pluginsProvider).value?.updates.length ?? 0;
+    showToast(updateCount == 0 ? '未发现可用更新' : '发现 $updateCount 个插件更新');
+  }
+
+  Future<void> _upgrade(
+    PluginSummaryDto plugin,
+    PluginReleaseUpdate update,
+  ) async {
+    final notes = update.notes.trim();
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '更新插件',
+      message:
+          '将「${plugin.displayName}」从 v${plugin.version} 更新到 v${update.version}。'
+          '更新完成后，需手动重启容器才会生效。',
+      confirmLabel: '更新',
+      dialogKey: Key('plugin-upgrade-confirm-dialog-${plugin.pluginId}'),
+      confirmKey: Key('plugin-upgrade-confirm-button-${plugin.pluginId}'),
+      cancelKey: Key('plugin-upgrade-cancel-button-${plugin.pluginId}'),
+      extraContent: notes.isEmpty
+          ? null
+          : ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 180),
+              child: SingleChildScrollView(
+                child: Text(
+                  '更新内容\n$notes',
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    tone: AppTextTone.secondary,
+                  ),
+                ),
+              ),
+            ),
+      onConfirm: () =>
+          ref.read(pluginsProvider.notifier).upgrade(plugin.pluginId),
+      failureFallback: '更新插件失败',
+    );
+    if (confirmed && mounted) {
+      showToast(buildRestartRequiredMessage('插件已更新'));
+    }
+  }
+
   Future<void> _remove(PluginSummaryDto plugin) async {
     final confirmed = await showAppConfirmDialog(
       context,
       title: '删除插件',
-      message: '确认删除「${plugin.displayName}」？插件目录及其运行数据（data/）都会被删除，且不可恢复。',
+      message:
+          '确认删除「${plugin.displayName}」的插件代码？运行数据（data/）会保留，可在重新安装同一插件后继续使用；仍被媒体库使用的存储插件无法删除。',
       confirmLabel: '删除',
       danger: true,
       dialogKey: const Key('plugins-delete-confirm-dialog'),
@@ -117,13 +173,23 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection> {
     unawaited(showPluginSettingsDialog(context, plugin: plugin));
   }
 
+  Future<void> _refresh() async {
+    final state = ref.read(pluginsProvider).value;
+    if (state?.isInstalling == true ||
+        state?.isCheckingUpdates == true ||
+        state?.busyPluginIds.isNotEmpty == true) {
+      return;
+    }
+    await ref.read(pluginsProvider.notifier).reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.active) {
       return const SizedBox.shrink();
     }
     final asyncPlugins = ref.watch(pluginsProvider);
-    return asyncPlugins.when(
+    final content = asyncPlugins.when(
       loading: () => const AppSectionSkeleton(lineCount: 4),
       error: (error, _) => AppSectionError(
         title: '插件加载失败',
@@ -132,6 +198,7 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection> {
       ),
       data: (state) => _buildLoaded(context, state),
     );
+    return AppPageRefreshScope(onRefresh: _refresh, child: content);
   }
 
   Widget _buildLoaded(BuildContext context, PluginsState state) {
@@ -151,10 +218,13 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection> {
       rows.add(
         _PluginRow(
           plugin: plugin,
+          update: state.updates[plugin.pluginId],
           busy: state.busyPluginIds.contains(plugin.pluginId),
           installing: state.isInstalling,
+          checkingUpdates: state.isCheckingUpdates,
           onTap: () => _openSettings(plugin),
           onToggle: (enabled) => _toggle(plugin, enabled),
+          onUpgrade: (update) => _upgrade(plugin, update),
           onRemove: () => _remove(plugin),
         ),
       );
@@ -165,11 +235,25 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection> {
         const AppNoticeCard(
           key: Key('plugins-restart-notice'),
           leadingIcon: Icons.info_outline_rounded,
-          description: '插件安装、启停、删除或配置修改后，需重启容器才生效。',
+          description: '插件安装、更新、启停、删除或配置修改后，需重启容器才生效。',
         ),
         SizedBox(height: spacing.lg),
         Row(
           children: [
+            AppButton(
+              key: const Key('plugins-check-updates-button'),
+              label: '检查更新',
+              size: AppButtonSize.small,
+              icon: const Icon(Icons.system_update_outlined),
+              isLoading: state.isCheckingUpdates,
+              onPressed:
+                  state.isInstalling ||
+                      state.isCheckingUpdates ||
+                      state.busyPluginIds.isNotEmpty
+                  ? null
+                  : _checkUpdates,
+            ),
+            SizedBox(width: spacing.sm),
             AppButton(
               key: const Key('plugins-install-button'),
               label: '安装插件',
@@ -177,7 +261,9 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection> {
               size: AppButtonSize.small,
               icon: const Icon(Icons.upload_file_outlined),
               isLoading: state.isInstalling,
-              onPressed: state.isInstalling ? null : _install,
+              onPressed: state.isInstalling || state.isCheckingUpdates
+                  ? null
+                  : _install,
             ),
             SizedBox(width: spacing.md),
             Text(
@@ -218,24 +304,30 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection> {
 class _PluginRow extends StatelessWidget {
   const _PluginRow({
     required this.plugin,
+    required this.update,
     required this.busy,
     required this.installing,
+    required this.checkingUpdates,
     required this.onTap,
     required this.onToggle,
+    required this.onUpgrade,
     required this.onRemove,
   });
 
   final PluginSummaryDto plugin;
+  final PluginReleaseUpdate? update;
   final bool busy;
   final bool installing;
+  final bool checkingUpdates;
   final VoidCallback onTap;
   final ValueChanged<bool> onToggle;
+  final ValueChanged<PluginReleaseUpdate> onUpgrade;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final disabled = busy || installing;
+    final disabled = busy || installing || checkingUpdates;
     return InkWell(
       key: Key('plugin-row-${plugin.pluginId}'),
       onTap: disabled ? null : onTap,
@@ -297,6 +389,16 @@ class _PluginRow extends StatelessWidget {
               ),
             ),
             SizedBox(width: spacing.md),
+            if (update != null) ...[
+              AppButton(
+                key: Key('plugin-upgrade-button-${plugin.pluginId}'),
+                label: '更新',
+                variant: AppButtonVariant.primary,
+                size: AppButtonSize.xSmall,
+                onPressed: disabled ? null : () => onUpgrade(update!),
+              ),
+              SizedBox(width: spacing.xs),
+            ],
             if (busy)
               const AppInlineSpinner()
             else

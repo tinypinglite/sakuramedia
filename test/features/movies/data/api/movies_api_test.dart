@@ -910,6 +910,14 @@ void main() {
             'large': 'plot-large.jpg',
           },
         ],
+        'merge_playback_candidates': [
+          <String, dynamic>{
+            'library_id': 9,
+            'library_name': 'VR 媒体库',
+            'provider_key': 'cloud115',
+            'segment_count': 2,
+          },
+        ],
         'playlists': [
           <String, dynamic>{
             'id': 1,
@@ -930,11 +938,11 @@ void main() {
             'library_id': 1,
             'play_url':
                 '/files/media/movies/ABC-001/video.mp4?expires=1700000900&signature=abc',
-            'storage_mode': 'hardlink',
+            'provider_key': 'filesystem',
+            'file_name': 'ABC-001.mp4',
             'resolution': '1920x1080',
             'file_size_bytes': 1073741824,
             'duration_seconds': 7200,
-            'special_tags': '普通',
             'valid': true,
             'progress': <String, dynamic>{
               'last_position_seconds': 600,
@@ -975,6 +983,7 @@ void main() {
                 },
               ],
             },
+            'playback_deliveries': const <String>['proxy', 'redirect'],
             'points': [
               <String, dynamic>{
                 'point_id': 1,
@@ -1029,6 +1038,9 @@ void main() {
     expect(detail.mediaItems.single.videoInfo?.subtitles.single.language, 'zh');
     expect(detail.mediaItems.single.points.single.thumbnailId, 66);
     expect(detail.mediaItems.single.points.single.offsetSeconds, 120);
+    expect(detail.mergePlaybackCandidates.single.libraryId, 9);
+    expect(detail.mergePlaybackCandidates.single.providerKey, 'cloud115');
+    expect(detail.mergePlaybackCandidates.single.segmentCount, 2);
     expect(
       detail.mediaItems.single.points.single.image?.bestAvailableUrl,
       'point-large.webp',
@@ -1037,6 +1049,29 @@ void main() {
     expect(detail.playlists.first.name, '最近播放');
     expect(detail.playlists.first.isSystem, isTrue);
     expect(detail.playlists.last.kind, 'custom');
+  });
+
+  test('getMergedPlayback requests the selected media library', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/merged-playback',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'play_url':
+            '/media/merged-play/index.m3u8?media_ids=10,11&expires=1&signature=sig',
+      },
+    );
+
+    final playback = await moviesApi.getMergedPlayback(
+      movieNumber: 'ABC-001',
+      libraryId: 9,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'GET');
+    expect(request.path, '/movies/ABC-001/merged-playback');
+    expect(request.uri.queryParameters['library_id'], '9');
+    expect(playback.playUrl, contains('/media/merged-play/index.m3u8'));
   });
 
   test(
@@ -1223,17 +1258,18 @@ void main() {
             'media_id': 100,
             'library_id': 1,
             'play_url': '/files/media/movies/ABC-010/video.mp4',
-            'storage_mode': 'hardlink',
+            'provider_key': 'filesystem',
+            'file_name': 'ABC-010.mp4',
             'resolution': '1920x1080',
             'file_size_bytes': 1073741824,
             'duration_seconds': 7200,
-            'special_tags': '普通',
             'valid': true,
             'video_info': <String, dynamic>{
               'container': <String, dynamic>{'format_name': 'mp4'},
               'video': <String, dynamic>{'codec_name': 'h264'},
             },
             'points': const <Map<String, dynamic>>[],
+            'playback_deliveries': const <String>['proxy'],
           },
         ],
       },

@@ -154,6 +154,22 @@ void main() {
     expect(request.uri.queryParameters['sort'], 'updated_at:desc');
   });
 
+  test('getActiveTaskRuns maps the complete active task snapshot', () async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs/active',
+      body: <Map<String, dynamic>>[
+        _taskRunJson(id: 88, state: 'running', progressCurrent: 7),
+      ],
+    );
+
+    final response = await bundle.activityApi.getActiveTaskRuns();
+
+    expect(response.single.id, 88);
+    expect(response.single.progressCurrent, 7);
+    expect(bundle.adapter.requests.single.path, '/system/task-runs/active');
+  });
+
   test('notification mutations use the current response contract', () async {
     bundle.adapter.enqueueJson(
       method: 'POST',
@@ -178,14 +194,18 @@ void main() {
   });
 }
 
-Map<String, dynamic> _taskRunJson({required int id, required String state}) =>
+Map<String, dynamic> _taskRunJson({
+  required int id,
+  required String state,
+  int? progressCurrent,
+}) =>
     <String, dynamic>{
       'id': id,
       'task_key': 'media_import',
       'task_name': '媒体导入',
       'trigger_type': 'manual',
       'state': state,
-      'progress_current': state == 'completed' ? 2 : 1,
+      'progress_current': progressCurrent ?? (state == 'completed' ? 2 : 1),
       'progress_total': 2,
       'progress_text': '处理中',
       'created_at': '2026-03-26T09:10:00Z',

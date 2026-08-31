@@ -64,6 +64,23 @@ void main() {
     expect(find.text('ABC-001'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('does not expose a playback delivery switch', (
+    WidgetTester tester,
+  ) async {
+    _enqueueMovieDetailResponses(bundle);
+
+    await pumpPage(tester);
+
+    expect(
+      find.byKey(const Key('movie-media-playback-delivery-selector')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('movie-media-playback-delivery-switch')),
+      findsNothing,
+    );
+  });
 }
 
 void _enqueueMovieDetailResponses(TestApiBundle bundle) {
@@ -92,7 +109,15 @@ void _enqueueMovieDetailResponses(TestApiBundle bundle) {
       'tags': const <Map<String, dynamic>>[],
       'thin_cover_image': null,
       'plot_images': const <Map<String, dynamic>>[],
-      'media_items': const <Map<String, dynamic>>[],
+      'media_items': const <Map<String, dynamic>>[
+        <String, dynamic>{
+          'media_id': 1,
+          'play_url': '/media/ABC-001.mp4',
+          'file_name': 'ABC-001.mp4',
+          'valid': true,
+          'points': <Map<String, dynamic>>[],
+        },
+      ],
     },
   );
   bundle.adapter.enqueueJson(

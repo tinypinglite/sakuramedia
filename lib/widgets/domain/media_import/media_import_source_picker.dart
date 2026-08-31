@@ -4,15 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/core/network/api_exception.dart';
-import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
-import 'package:sakuramedia/features/configuration/data/dto/cloud115_directory_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
-import 'package:sakuramedia/features/media_import/data/filesystem_entry_dto.dart';
+import 'package:sakuramedia/features/media_import/data/import_source_dto.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_api.dart';
-import 'package:sakuramedia/features/media_import/presentation/providers/media_import_api_provider.dart';
-import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
+import 'package:sakuramedia/features/media_import/presentation/providers/media_import_api_provider.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
@@ -20,55 +16,28 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 
-/// 导入源选择器：媒体库确定后，让用户在本地文件系统或 115 目录树里下钻选定
-/// 一个可导入的目录（普通视频也可直接选视频文件），并选择统一导入接口的传输策略。
+/// Provider-neutral source browser used by the media import dialogs.
 ///
-/// ⚠️ **胶水层例外（与 `MediaPreviewDialog` 同类）**：
-/// 本组件位于 `widgets/domain/`，但会自行 `ref.read(mediaImportApiProvider)`
-/// 与 `ref.read(mediaLibrariesApiProvider)` 发起真实 HTTP 请求（目录浏览、翻页），
-/// 并自持 loading/error state。复用时 caller 无需再包一层控制器。
-///
-/// 边界：
-/// - **不含**媒体库下拉——由 caller 自行渲染并驱动。picker 通过 [selectedLibrary]
-///   感知当前库；库变化时自动重置浏览状态并把 mode 回落到该库的默认值。
-/// - 选中源只在合法可提交时通过 [onSourceChanged] 吐 non-null 值；否则吐 `null`。
-///   默认选择目录；[allowFileSource] 开启后普通视频也可选择本地视频文件或 115 FID。
-///   caller 只需按 `source != null` 判断是否可提交，不用重复实现规则。
+/// The provider owns the meaning of every source reference. The host only
+/// forwards the selected opaque object to `POST /imports`.
 class MediaImportSourcePicker extends ConsumerStatefulWidget {
   const MediaImportSourcePicker({
     super.key,
     required this.selectedLibrary,
-    required this.transferMode,
+    required this.sourceDisposition,
     required this.onSourceChanged,
-    required this.onTransferModeChanged,
-    this.localOnly = false,
+    required this.onSourceDispositionChanged,
     this.allowFileSource = false,
   });
 
   final MediaLibraryDto? selectedLibrary;
-  final TransferMode transferMode;
+  final SourceDisposition sourceDisposition;
   final ValueChanged<MediaImportSource?> onSourceChanged;
-  final ValueChanged<TransferMode> onTransferModeChanged;
+  final ValueChanged<SourceDisposition> onSourceDispositionChanged;
 
-  /// 普通视频允许直接选择本地视频文件或 115 FID；JAV/字幕仍只选择目录。
+  /// JAV imports select directories by default. Video imports may also select
+  /// a provider file entry when this flag is enabled.
   final bool allowFileSource;
-
-  /// 仅浏览服务器本地白名单目录，不依赖媒体库或展示导入方式。
-  ///
-  /// JAV 字幕导入复用这一模式：字幕按影片归档，不能选择 115 或目标媒体库。
-  final bool localOnly;
-
-  /// 该媒体库对应的默认导入方式。caller 首次加载媒体库时用它初始化 `transferMode`，
-  /// picker 自己在库切换时也走这里，避免规则在三处漂移。
-  static TransferMode defaultTransferModeFor(MediaLibraryDto library) =>
-      library.isCloud115 ? TransferMode.cleanupSource : TransferMode.auto;
-
-  /// 该媒体库允许的导入方式集合，用于渲染 transferMode 下拉的选项。
-  static List<TransferMode> availableTransferModesFor(
-    MediaLibraryDto library,
-  ) => library.isCloud115
-      ? const <TransferMode>[TransferMode.cleanupSource]
-      : const <TransferMode>[TransferMode.auto, TransferMode.cleanupSource];
 
   @override
   ConsumerState<MediaImportSourcePicker> createState() =>
@@ -77,19 +46,14 @@ class MediaImportSourcePicker extends ConsumerStatefulWidget {
 
 class _MediaImportSourcePickerState
     extends ConsumerState<MediaImportSourcePicker> {
-  static const int _cloudPageSize = 200;
+  static const int _pageSize = 50;
 
   late final MediaImportApi _mediaImportApi;
-  late final MediaLibrariesApi _librariesApi;
-
-  FilesystemListResponseDto? _localListing;
-  String? _localBrowsePath;
-  String? _selectedLocalFilePath;
-  Cloud115DirectoryPageDto? _cloudPage;
-  List<Cloud115DirectoryEntryDto> _cloudEntries =
-      const <Cloud115DirectoryEntryDto>[];
-  List<_CloudPathSegment> _cloudPath = const <_CloudPathSegment>[];
-  String? _selectedCloudFileId;
+  ImportBrowseResponseDto? _page;
+  List<ImportBrowseEntryDto> _entries = const <ImportBrowseEntryDto>[];
+  List<_BrowseSegment> _path = const <_BrowseSegment>[];
+  Map<String, dynamic>? _parentRef;
+  ImportBrowseEntryDto? _selectedEntry;
 
   bool _isBrowsing = false;
   bool _isLoadingMore = false;
@@ -97,39 +61,20 @@ class _MediaImportSourcePickerState
   String? _loadMoreError;
   int _browseGeneration = 0;
 
-  bool get _isCloud115 =>
-      !widget.localOnly && (widget.selectedLibrary?.isCloud115 ?? false);
-
-  List<TransferMode> get _availableTransferModes {
-    final library = widget.selectedLibrary;
-    if (library == null) {
-      return const <TransferMode>[
-        TransferMode.auto,
-        TransferMode.cleanupSource,
-      ];
-    }
-    return MediaImportSourcePicker.availableTransferModesFor(library);
-  }
-
   @override
   void initState() {
     super.initState();
     _mediaImportApi = ref.read(mediaImportApiProvider);
-    _librariesApi = ref.read(mediaLibrariesApiProvider);
-    if (widget.localOnly) {
-      unawaited(_resetLocalOnlyBrowse());
-    } else if (widget.selectedLibrary != null) {
-      unawaited(_resetAndBrowse(widget.selectedLibrary!));
+    final library = widget.selectedLibrary;
+    if (library != null) {
+      unawaited(_resetAndBrowse(library));
     }
   }
 
   @override
   void didUpdateWidget(covariant MediaImportSourcePicker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final previousId = oldWidget.selectedLibrary?.id;
-    final currentId = widget.selectedLibrary?.id;
-    if (!widget.localOnly &&
-        previousId != currentId &&
+    if (oldWidget.selectedLibrary?.id != widget.selectedLibrary?.id &&
         widget.selectedLibrary != null) {
       unawaited(_resetAndBrowse(widget.selectedLibrary!));
     }
@@ -143,203 +88,141 @@ class _MediaImportSourcePickerState
 
   Future<void> _resetAndBrowse(MediaLibraryDto library) async {
     final generation = ++_browseGeneration;
-    final defaultMode = MediaImportSourcePicker.defaultTransferModeFor(library);
-    final shouldResetTransferMode = widget.transferMode != defaultMode;
-    // 库变化时把 caller 的 source/mode 都同步回默认；调用发生在 initState /
-    // didUpdateWidget 里，用 microtask 推迟到 lifecycle 之外，避免在
-    // build phase 里给 parent 递 setState。
     scheduleMicrotask(() {
-      if (!mounted) {
-        return;
-      }
-      widget.onSourceChanged(null);
-      if (shouldResetTransferMode) {
-        widget.onTransferModeChanged(defaultMode);
+      if (mounted) {
+        widget.onSourceChanged(null);
       }
     });
     setState(() {
-      _localListing = null;
-      _localBrowsePath = null;
-      _selectedLocalFilePath = null;
-      _cloudPage = null;
-      _cloudEntries = const <Cloud115DirectoryEntryDto>[];
-      _cloudPath = library.isCloud115
-          ? const <_CloudPathSegment>[
-              _CloudPathSegment(cid: '0', name: '115 网盘'),
-            ]
-          : const <_CloudPathSegment>[];
-      _selectedCloudFileId = null;
+      _page = null;
+      _entries = const <ImportBrowseEntryDto>[];
+      _path = const <_BrowseSegment>[];
+      _parentRef = null;
+      _selectedEntry = null;
       _browseError = null;
       _loadMoreError = null;
       _isLoadingMore = false;
       _isBrowsing = true;
     });
-    if (library.isCloud115) {
-      await _fetchCloudDirectory(generation: generation, cid: '0');
-    } else {
-      await _fetchLocalDirectory(generation: generation, path: null);
-    }
+    await _fetchPage(generation: generation, libraryId: library.id);
   }
 
-  Future<void> _resetLocalOnlyBrowse() async {
-    final generation = ++_browseGeneration;
-    widget.onSourceChanged(null);
-    setState(() {
-      _localListing = null;
-      _localBrowsePath = null;
-      _selectedLocalFilePath = null;
-      _cloudPage = null;
-      _cloudEntries = const <Cloud115DirectoryEntryDto>[];
-      _cloudPath = const <_CloudPathSegment>[];
-      _selectedCloudFileId = null;
-      _browseError = null;
-      _loadMoreError = null;
-      _isLoadingMore = false;
-      _isBrowsing = true;
-    });
-    await _fetchLocalDirectory(generation: generation, path: null);
-  }
-
-  Future<void> _browseLocal(String? path) async {
-    final generation = ++_browseGeneration;
-    widget.onSourceChanged(null);
-    setState(() {
-      _localBrowsePath = path;
-      _localListing = null;
-      _selectedLocalFilePath = null;
-      _browseError = null;
-      _isBrowsing = true;
-    });
-    await _fetchLocalDirectory(generation: generation, path: path);
-  }
-
-  Future<void> _fetchLocalDirectory({
-    required int generation,
-    required String? path,
-  }) async {
-    try {
-      final listing = await _mediaImportApi.listEntries(path: path);
-      if (!mounted || generation != _browseGeneration) {
-        return;
-      }
-      setState(() {
-        _localListing = listing;
-        _localBrowsePath = listing.path;
-        _isBrowsing = false;
-      });
-      _publishLocalSource();
-    } catch (error) {
-      if (!mounted || generation != _browseGeneration) {
-        return;
-      }
-      setState(() {
-        _isBrowsing = false;
-        _browseError = _browseErrorMessage(error);
-      });
-    }
-  }
-
-  Future<void> _browseCloudFolder(Cloud115DirectoryEntryDto entry) async {
-    final generation = ++_browseGeneration;
-    widget.onSourceChanged(null);
-    setState(() {
-      _cloudPath = <_CloudPathSegment>[
-        ..._cloudPath,
-        _CloudPathSegment(cid: entry.entryId, name: entry.name),
-      ];
-      _cloudPage = null;
-      _cloudEntries = const <Cloud115DirectoryEntryDto>[];
-      _selectedCloudFileId = null;
-      _browseError = null;
-      _loadMoreError = null;
-      _isLoadingMore = false;
-      _isBrowsing = true;
-    });
-    await _fetchCloudDirectory(generation: generation, cid: entry.entryId);
-  }
-
-  Future<void> _browseCloudParent() async {
-    if (_cloudPath.length <= 1) {
-      return;
-    }
-    final nextPath = _cloudPath.sublist(0, _cloudPath.length - 1);
-    final generation = ++_browseGeneration;
-    widget.onSourceChanged(null);
-    setState(() {
-      _cloudPath = nextPath;
-      _cloudPage = null;
-      _cloudEntries = const <Cloud115DirectoryEntryDto>[];
-      _selectedCloudFileId = null;
-      _browseError = null;
-      _loadMoreError = null;
-      _isLoadingMore = false;
-      _isBrowsing = true;
-    });
-    await _fetchCloudDirectory(generation: generation, cid: nextPath.last.cid);
-  }
-
-  Future<void> _fetchCloudDirectory({
-    required int generation,
-    required String cid,
-  }) async {
+  Future<void> _browseFolder(ImportBrowseEntryDto entry) async {
     final library = widget.selectedLibrary;
-    if (library == null || !library.isCloud115) {
+    if (library == null || !entry.isDirectory) {
       return;
     }
+    final nextPath = <_BrowseSegment>[
+      ..._path,
+      _BrowseSegment(name: entry.name, parentRef: entry.sourceRef),
+    ];
+    final generation = ++_browseGeneration;
+    widget.onSourceChanged(null);
+    setState(() {
+      _page = null;
+      _entries = const <ImportBrowseEntryDto>[];
+      _path = nextPath;
+      _parentRef = entry.sourceRef;
+      _selectedEntry = null;
+      _browseError = null;
+      _loadMoreError = null;
+      _isLoadingMore = false;
+      _isBrowsing = true;
+    });
+    await _fetchPage(
+      generation: generation,
+      libraryId: library.id,
+      parentRef: entry.sourceRef,
+    );
+  }
+
+  Future<void> _browseParent() async {
+    final library = widget.selectedLibrary;
+    if (library == null || _path.isEmpty) {
+      return;
+    }
+    final nextPath = _path.sublist(0, _path.length - 1);
+    final parentRef = nextPath.isEmpty ? null : nextPath.last.parentRef;
+    final generation = ++_browseGeneration;
+    widget.onSourceChanged(null);
+    setState(() {
+      _page = null;
+      _entries = const <ImportBrowseEntryDto>[];
+      _path = nextPath;
+      _parentRef = parentRef;
+      _selectedEntry = null;
+      _browseError = null;
+      _loadMoreError = null;
+      _isLoadingMore = true;
+      _isBrowsing = true;
+    });
+    await _fetchPage(
+      generation: generation,
+      libraryId: library.id,
+      parentRef: parentRef,
+    );
+  }
+
+  Future<void> _fetchPage({
+    required int generation,
+    required int libraryId,
+    Map<String, dynamic>? parentRef,
+    String? cursor,
+  }) async {
     try {
-      final page = await _librariesApi.listCloud115Directory(
-        libraryId: library.id,
-        cid: cid,
-        limit: _cloudPageSize,
+      final page = await _mediaImportApi.browseSources(
+        libraryId: libraryId,
+        parentRef: parentRef,
+        cursor: cursor,
+        limit: _pageSize,
       );
       if (!mounted || generation != _browseGeneration) {
         return;
       }
       setState(() {
-        _cloudPage = page;
-        _cloudEntries = page.entries;
+        _page = page;
+        _entries = cursor == null
+            ? page.entries
+            : <ImportBrowseEntryDto>[..._entries, ...page.entries];
         _isBrowsing = false;
+        _isLoadingMore = false;
       });
-      _publishCloudSource();
     } catch (error) {
       if (!mounted || generation != _browseGeneration) {
         return;
       }
       setState(() {
         _isBrowsing = false;
+        _isLoadingMore = false;
         _browseError = _browseErrorMessage(error);
       });
     }
   }
 
-  Future<void> _loadMoreCloud() async {
+  Future<void> _loadMore() async {
     final library = widget.selectedLibrary;
-    final page = _cloudPage;
-    if (library == null || page == null || _isLoadingMore || !page.hasMore) {
+    final cursor = _page?.nextCursor;
+    if (library == null || cursor == null || _isLoadingMore) {
       return;
     }
     final generation = _browseGeneration;
-    final cid = page.cid;
     setState(() {
       _isLoadingMore = true;
       _loadMoreError = null;
     });
     try {
-      final nextPage = await _librariesApi.listCloud115Directory(
+      final page = await _mediaImportApi.browseSources(
         libraryId: library.id,
-        cid: cid,
-        offset: _cloudEntries.length,
-        limit: _cloudPageSize,
+        parentRef: _parentRef,
+        cursor: cursor,
+        limit: _pageSize,
       );
-      if (!mounted || generation != _browseGeneration || nextPage.cid != cid) {
+      if (!mounted || generation != _browseGeneration) {
         return;
       }
       setState(() {
-        _cloudPage = nextPage;
-        _cloudEntries = <Cloud115DirectoryEntryDto>[
-          ..._cloudEntries,
-          ...nextPage.entries,
-        ];
+        _page = page;
+        _entries = <ImportBrowseEntryDto>[..._entries, ...page.entries];
         _isLoadingMore = false;
       });
     } catch (error) {
@@ -353,104 +236,59 @@ class _MediaImportSourcePickerState
     }
   }
 
-  void _publishLocalSource() {
-    final selectedFilePath = _selectedLocalFilePath;
-    if (selectedFilePath != null) {
-      widget.onSourceChanged(MediaImportSource.local(selectedFilePath));
+  void _selectEntry(ImportBrowseEntryDto entry) {
+    if (!entry.isDirectory && !widget.allowFileSource) {
       return;
     }
-    final listing = _localListing;
-    if (listing == null || listing.isRootsOverview || listing.path.isEmpty) {
-      widget.onSourceChanged(null);
-      return;
-    }
-    widget.onSourceChanged(MediaImportSource.local(listing.path));
+    setState(() => _selectedEntry = entry);
+    widget.onSourceChanged(MediaImportSource(sourceRef: entry.sourceRef));
   }
 
-  void _selectLocalFile(FilesystemEntryDto entry) {
-    if (!widget.allowFileSource || !entry.isVideo) return;
-    setState(() => _selectedLocalFilePath = entry.path);
-    widget.onSourceChanged(MediaImportSource.local(entry.path));
-  }
-
-  void _publishCloudSource() {
-    final selectedFileId = _selectedCloudFileId;
-    if (selectedFileId != null) {
-      widget.onSourceChanged(
-        MediaImportSource.cloud115File(selectedFileId),
-      );
-      return;
-    }
-    final page = _cloudPage;
-    if (page == null || _cloudPath.length <= 1) {
-      widget.onSourceChanged(null);
-      return;
-    }
-    // 已下钻到非根目录且当前 cid 不是媒体库管理目录，才算合法源。
-    final currentCid = _cloudPath.last.cid;
-    if (currentCid == page.rootCid) {
-      widget.onSourceChanged(null);
-      return;
-    }
-    widget.onSourceChanged(MediaImportSource.cloud115(currentCid));
-  }
-
-  void _selectCloudFile(Cloud115DirectoryEntryDto entry) {
-    if (!widget.allowFileSource || !entry.isVideo) return;
-    setState(() => _selectedCloudFileId = entry.entryId);
-    widget.onSourceChanged(MediaImportSource.cloud115File(entry.entryId));
-  }
-
-  String _browseErrorMessage(Object error) {
-    if (error is ApiException &&
-        error.error?.code == 'cloud115_cookies_invalid') {
-      return '115 登录已失效，请前往“系统设置 → 媒体库”重新认证后重试。';
-    }
-    return apiErrorMessage(error, fallback: '浏览目录失败，请重试。');
-  }
+  String _browseErrorMessage(Object error) =>
+      apiErrorMessage(error, fallback: '浏览来源失败，请重试。');
 
   void _retryBrowse() {
-    if (_isCloud115) {
-      final cid = _cloudPath.isEmpty ? '0' : _cloudPath.last.cid;
-      final generation = ++_browseGeneration;
-      setState(() {
-        _browseError = null;
-        _isBrowsing = true;
-      });
-      unawaited(_fetchCloudDirectory(generation: generation, cid: cid));
+    final library = widget.selectedLibrary;
+    if (library == null) {
       return;
     }
-    unawaited(_browseLocal(_localBrowsePath));
+    final generation = ++_browseGeneration;
+    setState(() {
+      _browseError = null;
+      _isBrowsing = true;
+    });
+    unawaited(
+      _fetchPage(
+        generation: generation,
+        libraryId: library.id,
+        parentRef: _parentRef,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
     final library = widget.selectedLibrary;
-    if (library == null && !widget.localOnly) {
+    if (library == null) {
       return const SizedBox.shrink();
     }
-    final deletingCloudSource =
-        _isCloud115 && widget.transferMode == TransferMode.cleanupSource;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildPathBar(context),
-        SizedBox(height: spacing.sm),
+        SizedBox(height: context.appSpacing.sm),
         _buildBrowser(context),
-        if (!widget.localOnly) ...[
-          SizedBox(height: spacing.lg),
-          _buildTransferModeSelector(context),
-        ],
-        if (deletingCloudSource) ...[
-          SizedBox(height: spacing.md),
+        SizedBox(height: context.appSpacing.lg),
+        _buildSourceDispositionSelector(context),
+        if (widget.sourceDisposition ==
+            SourceDisposition.deleteAfterCommit) ...[
+          SizedBox(height: context.appSpacing.md),
           const AppNoticeCard(
-            key: Key('media-import-cloud-cleanup-warning'),
+            key: Key('media-import-source-disposition-warning'),
             leadingIcon: Icons.warning_amber_rounded,
-            title: '导入完成后将删除源文件',
-            description:
-                'SakuraMedia 会先在 115 网盘内复制并确认媒体已入库，再删除所选来源目录中的已成功导入文件。',
+            title: '导入成功后将删除源文件',
+            description: '仅在媒体已成功入库后由存储提供方执行删除。',
           ),
         ],
       ],
@@ -458,67 +296,32 @@ class _MediaImportSourcePickerState
   }
 
   Widget _buildPathBar(BuildContext context) {
-    final listing = _localListing;
-    final canGoUp =
-        !_isBrowsing &&
-        (_isCloud115 ? _cloudPath.length > 1 : listing?.parent != null);
-    final pathText = _isCloud115
-        ? (_cloudPath.isEmpty
-              ? '115 网盘'
-              : _cloudPath.map((segment) => segment.name).join(' / '))
-        : switch (listing) {
-            null when _localBrowsePath != null => _localBrowsePath!,
-            null => '加载中…',
-            final value when value.isRootsOverview => '选择一个白名单根目录',
-            final value => value.path,
-          };
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final canGoUp = !_isBrowsing && _path.isNotEmpty;
+    final pathText = _path.isEmpty
+        ? '选择来源'
+        : _path.map((segment) => segment.name).join(' / ');
+    return Row(
       children: [
-        Row(
-          children: [
-            AppIconButton(
-              key: const Key('media-import-picker-up-button'),
-              icon: const Icon(Icons.arrow_upward_rounded),
-              tooltip: '上一级',
-              onPressed: canGoUp
-                  ? () {
-                      if (_isCloud115) {
-                        unawaited(_browseCloudParent());
-                      } else {
-                        unawaited(_browseLocal(listing!.parent));
-                      }
-                    }
-                  : null,
-            ),
-            SizedBox(width: context.appSpacing.sm),
-            Expanded(
-              child: Text(
-                pathText,
-                key: const Key('media-import-picker-current-path'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
-            ),
-          ],
+        AppIconButton(
+          key: const Key('media-import-picker-up-button'),
+          icon: const Icon(Icons.arrow_upward_rounded),
+          tooltip: '上一级',
+          onPressed: canGoUp ? () => unawaited(_browseParent()) : null,
         ),
-        if (_isCloud115 && _cloudPath.length <= 1) ...[
-          SizedBox(height: context.appSpacing.xs),
-          Text(
-            '请选择根目录下的来源文件夹；115 根目录本身不能作为导入源。',
-            key: const Key('media-import-cloud-root-hint'),
+        SizedBox(width: context.appSpacing.sm),
+        Expanded(
+          child: Text(
+            pathText,
+            key: const Key('media-import-picker-current-path'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s12,
-              tone: AppTextTone.muted,
+              tone: AppTextTone.secondary,
             ),
           ),
-        ],
+        ),
       ],
     );
   }
@@ -560,65 +363,36 @@ class _MediaImportSourcePickerState
         ),
       );
     }
-    return _isCloud115
-        ? _buildCloudBrowserBody(context)
-        : _buildLocalBrowserBody(context);
-  }
-
-  Widget _buildLocalBrowserBody(BuildContext context) {
-    final listing = _localListing;
-    if (listing == null || listing.entries.isEmpty) {
-      return const AppEmptyState(message: '该目录下没有可显示的子目录或视频文件');
-    }
-    return ListView.separated(
-      padding: EdgeInsets.symmetric(vertical: context.appSpacing.xs),
-      itemCount: listing.entries.length,
-      separatorBuilder: (_, __) =>
-          Divider(height: 1, color: context.appColors.divider),
-      itemBuilder: (context, index) {
-        final entry = listing.entries[index];
-        return _LocalEntryRow(
-          entry: entry,
-          selected: entry.path == _selectedLocalFilePath,
-          onTap: entry.isDirectory
-              ? () => unawaited(_browseLocal(entry.path))
-              : () => _selectLocalFile(entry),
-        );
-      },
-    );
-  }
-
-  Widget _buildCloudBrowserBody(BuildContext context) {
-    if (_cloudEntries.isEmpty) {
-      return const AppEmptyState(message: '该目录下没有可显示的子目录或视频文件');
+    if (_entries.isEmpty) {
+      return const AppEmptyState(message: '该来源下没有可导入的文件或目录');
     }
     final showFooter =
-        _cloudPage?.hasMore == true || _loadMoreError != null || _isLoadingMore;
+        _page?.nextCursor != null || _loadMoreError != null || _isLoadingMore;
     return ListView.separated(
       padding: EdgeInsets.symmetric(vertical: context.appSpacing.xs),
-      itemCount: _cloudEntries.length + (showFooter ? 1 : 0),
+      itemCount: _entries.length + (showFooter ? 1 : 0),
       separatorBuilder: (_, __) =>
           Divider(height: 1, color: context.appColors.divider),
       itemBuilder: (context, index) {
-        if (index == _cloudEntries.length) {
-          return _buildCloudLoadMoreFooter(context);
+        if (index == _entries.length) {
+          return _buildLoadMoreFooter(context);
         }
-        final entry = _cloudEntries[index];
-        final isManagementDirectory =
-            entry.isDirectory && entry.entryId == _cloudPage?.rootCid;
-        return _CloudEntryRow(
+        final entry = _entries[index];
+        return _ImportEntryRow(
+          key: Key('media-import-entry-$index'),
           entry: entry,
-          isManagementDirectory: isManagementDirectory,
-          selected: entry.entryId == _selectedCloudFileId,
-          onTap: entry.isDirectory && !isManagementDirectory
-              ? () => unawaited(_browseCloudFolder(entry))
-              : () => _selectCloudFile(entry),
+          selected: identical(entry, _selectedEntry),
+          canSelect: entry.isDirectory || widget.allowFileSource,
+          onSelect: () => _selectEntry(entry),
+          onOpen: entry.isDirectory
+              ? () => unawaited(_browseFolder(entry))
+              : null,
         );
       },
     );
   }
 
-  Widget _buildCloudLoadMoreFooter(BuildContext context) {
+  Widget _buildLoadMoreFooter(BuildContext context) {
     if (_isLoadingMore) {
       return Padding(
         padding: EdgeInsets.all(context.appSpacing.md),
@@ -639,43 +413,41 @@ class _MediaImportSourcePickerState
               ),
             ),
           AppButton(
-            key: const Key('media-import-cloud-load-more-button'),
+            key: const Key('media-import-picker-load-more-button'),
             label: _loadMoreError == null ? '加载更多' : '重试加载',
             size: AppButtonSize.small,
-            onPressed: () => unawaited(_loadMoreCloud()),
+            onPressed: () => unawaited(_loadMore()),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTransferModeSelector(BuildContext context) {
+  Widget _buildSourceDispositionSelector(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppSelectField<TransferMode>(
-          key: const Key('media-import-picker-transfer-mode-select'),
-          label: '导入方式',
-          value: widget.transferMode,
-          items: _availableTransferModes
+        AppSelectField<SourceDisposition>(
+          key: const Key('media-import-picker-source-disposition-select'),
+          label: '源文件处理',
+          value: widget.sourceDisposition,
+          items: SourceDisposition.values
               .map(
-                (mode) => DropdownMenuItem<TransferMode>(
-                  value: mode,
-                  child: Text(mode.label),
+                (disposition) => DropdownMenuItem<SourceDisposition>(
+                  value: disposition,
+                  child: Text(disposition.label),
                 ),
               )
               .toList(growable: false),
           onChanged: (value) {
             if (value != null) {
-              widget.onTransferModeChanged(value);
+              widget.onSourceDispositionChanged(value);
             }
           },
         ),
         SizedBox(height: context.appSpacing.xs),
         Text(
-          _isCloud115
-              ? '115 导入在云端完成，文件不会经过当前设备。'
-              : '硬链接优先模式要求来源和媒体库根路径位于同一块物理盘，否则会回退到复制。',
+          '源文件处理方式由存储提供方执行，导入任务会在活动中心显示结果。',
           style: resolveAppTextStyle(
             context,
             size: AppTextSize.s12,
@@ -687,89 +459,35 @@ class _MediaImportSourcePickerState
   }
 }
 
-class _CloudPathSegment {
-  const _CloudPathSegment({required this.cid, required this.name});
+class _BrowseSegment {
+  const _BrowseSegment({required this.name, required this.parentRef});
 
-  final String cid;
   final String name;
+  final Map<String, dynamic> parentRef;
 }
 
-class _LocalEntryRow extends StatelessWidget {
-  const _LocalEntryRow({
-    required this.entry,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final FilesystemEntryDto entry;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _DirectoryEntryRow(
-      name: entry.name,
-      isDirectory: entry.isDirectory,
-      size: entry.size,
-      onTap: onTap,
-      selected: selected,
-    );
-  }
-}
-
-class _CloudEntryRow extends StatelessWidget {
-  const _CloudEntryRow({
-    required this.entry,
-    required this.isManagementDirectory,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final Cloud115DirectoryEntryDto entry;
-  final bool isManagementDirectory;
-  final bool selected;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return _DirectoryEntryRow(
-      key: Key('media-import-cloud-entry-${entry.entryId}'),
-      name: entry.name,
-      isDirectory: entry.isDirectory,
-      size: entry.size,
-      trailingText: isManagementDirectory ? '媒体库管理目录，不可选择' : null,
-      muted: isManagementDirectory,
-      onTap: onTap,
-      selected: selected,
-    );
-  }
-}
-
-class _DirectoryEntryRow extends StatelessWidget {
-  const _DirectoryEntryRow({
+class _ImportEntryRow extends StatelessWidget {
+  const _ImportEntryRow({
     super.key,
-    required this.name,
-    required this.isDirectory,
-    required this.size,
-    required this.onTap,
-    this.selected = false,
-    this.trailingText,
-    this.muted = false,
+    required this.entry,
+    required this.selected,
+    required this.canSelect,
+    required this.onSelect,
+    required this.onOpen,
   });
 
-  final String name;
-  final bool isDirectory;
-  final int size;
-  final VoidCallback? onTap;
+  final ImportBrowseEntryDto entry;
   final bool selected;
-  final String? trailingText;
-  final bool muted;
+  final bool canSelect;
+  final VoidCallback onSelect;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final muted = !canSelect;
     return InkWell(
-      onTap: onTap,
+      onTap: canSelect ? onSelect : null,
       child: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: spacing.md,
@@ -778,20 +496,20 @@ class _DirectoryEntryRow extends StatelessWidget {
         child: Row(
           children: [
             Icon(
-              isDirectory ? Icons.folder_rounded : Icons.movie_outlined,
+              entry.isDirectory ? Icons.folder_rounded : Icons.movie_outlined,
               size: context.appComponentTokens.iconSizeSm,
               color: selected
                   ? context.appTextPalette.accent
                   : muted
                   ? context.appTextPalette.muted
-                  : isDirectory
+                  : entry.isDirectory
                   ? context.appTextPalette.accent
                   : context.appTextPalette.muted,
             ),
             SizedBox(width: spacing.sm),
             Expanded(
               child: Text(
-                name,
+                entry.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: resolveAppTextStyle(
@@ -799,7 +517,7 @@ class _DirectoryEntryRow extends StatelessWidget {
                   size: AppTextSize.s12,
                   tone: muted
                       ? AppTextTone.muted
-                      : isDirectory
+                      : entry.isDirectory
                       ? AppTextTone.primary
                       : AppTextTone.muted,
                 ),
@@ -814,20 +532,17 @@ class _DirectoryEntryRow extends StatelessWidget {
                   color: context.appTextPalette.accent,
                 ),
               ),
-            if (trailingText != null) ...[
+            if (entry.isDirectory && onOpen != null)
+              AppIconButton(
+                key: Key('media-import-entry-open-${entry.name}'),
+                icon: const Icon(Icons.chevron_right_rounded),
+                tooltip: '打开目录',
+                onPressed: onOpen,
+              )
+            else if (!entry.isDirectory && entry.sizeBytes != null) ...[
               SizedBox(width: spacing.sm),
               Text(
-                trailingText!,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  tone: AppTextTone.muted,
-                ),
-              ),
-            ] else if (!isDirectory) ...[
-              SizedBox(width: spacing.sm),
-              Text(
-                formatFileSize(size),
+                formatFileSize(entry.sizeBytes!),
                 style: resolveAppTextStyle(
                   context,
                   size: AppTextSize.s12,
