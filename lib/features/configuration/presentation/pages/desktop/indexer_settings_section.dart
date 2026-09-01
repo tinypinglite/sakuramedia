@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +16,6 @@ import 'package:sakuramedia/features/configuration/presentation/widgets/shared/i
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_inline_action_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
@@ -46,7 +44,6 @@ class _IndexerSettingsSectionState
   String? _errorMessage;
   List<IndexerEntryDto> _indexers = <IndexerEntryDto>[];
   List<DownloadClientDto> _downloadClients = <DownloadClientDto>[];
-  IndexerSettingsDto? _savedSettings;
   final Object _connectionTestScope = Object();
 
   List<DownloadClientDto> get _currentDownloadClients =>
@@ -98,20 +95,6 @@ class _IndexerSettingsSectionState
     if (_isLoading || _isSaving) {
       return;
     }
-    if (_hasUnsavedChanges) {
-      final confirmed = await showAppConfirmDialog(
-        context,
-        title: '有未保存的改动',
-        message: '刷新将丢弃当前未保存的索引器配置，确认刷新？',
-        confirmLabel: '刷新',
-        dialogKey: const Key('configuration-indexers-refresh-confirm-dialog'),
-        confirmKey: const Key('configuration-indexers-refresh-confirm-button'),
-        cancelKey: const Key('configuration-indexers-refresh-cancel-button'),
-      );
-      if (!confirmed || !mounted) {
-        return;
-      }
-    }
     ref.invalidate(indexerSettingsProvider);
     ref.invalidate(downloadClientsProvider);
     await _loadData();
@@ -133,56 +116,28 @@ class _IndexerSettingsSectionState
 
   void _applySettings(IndexerSettingsDto settings) {
     _indexers = List<IndexerEntryDto>.from(settings.indexers);
-    _savedSettings = settings;
     ref
         .read(indexerConnectionTestProvider(_connectionTestScope).notifier)
         .invalidate();
   }
 
-  bool get _hasUnsavedChanges {
-    final saved = _savedSettings;
-    if (saved == null) {
-      return false;
-    }
-    if (_indexers.length != saved.indexers.length) {
-      return true;
-    }
-    for (var index = 0; index < _indexers.length; index++) {
-      final current = _indexers[index];
-      final previous = saved.indexers[index];
-      if (current.id != previous.id ||
-          current.name != previous.name ||
-          current.url != previous.url ||
-          current.kind != previous.kind ||
-          current.apiKey != previous.apiKey ||
-          !listEquals(current.downloadClientIds, previous.downloadClientIds)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   bool get _isConnectionTestEnabled =>
       !_isSaving &&
-      !ref
-          .read(indexerConnectionTestProvider(_connectionTestScope))
-          .isTesting &&
-      !_hasUnsavedChanges;
+      !ref.read(indexerConnectionTestProvider(_connectionTestScope)).isTesting;
 
-  String? get _connectionTestDisabledMessage {
-    if (_hasUnsavedChanges) {
-      return '当前配置尚未保存，保存后再测试。';
+  Future<void> _saveIndexers(
+    List<IndexerEntryDto> indexers, {
+    required String successToast,
+  }) async {
+    if (_isSaving) {
+      return;
     }
-    return null;
-  }
-
-  Future<void> _saveSettings() async {
-    final duplicateNames = findDuplicateIndexerNames(_indexers);
+    final duplicateNames = findDuplicateIndexerNames(indexers);
     if (duplicateNames.isNotEmpty) {
       showToast('索引器名称重复: ${duplicateNames.first}');
       return;
     }
-    for (final item in _indexers) {
+    for (final item in indexers) {
       if (!isValidIndexerHttpUrl(item.url)) {
         showToast('索引器 URL 必须是合法的 http/https 地址');
         return;
@@ -210,7 +165,7 @@ class _IndexerSettingsSectionState
     try {
       final saved = await ref
           .read(indexerSettingsProvider.notifier)
-          .saveDraft(indexers: _indexers);
+          .saveDraft(indexers: indexers);
       if (!mounted) {
         return;
       }
@@ -218,7 +173,7 @@ class _IndexerSettingsSectionState
         _applySettings(saved);
         _isSaving = false;
       });
-      showToast('索引器配置已保存');
+      showToast(successToast);
     } catch (error) {
       if (!mounted) {
         return;
@@ -246,6 +201,9 @@ class _IndexerSettingsSectionState
   }
 
   Future<void> _createIndexer() async {
+    if (_isSaving) {
+      return;
+    }
     final result = await showDialog<IndexerEntryDto>(
       context: context,
       builder: (dialogContext) => IndexerEntryDialog(
@@ -256,15 +214,16 @@ class _IndexerSettingsSectionState
     if (result == null) {
       return;
     }
-    setState(() {
-      _indexers = List<IndexerEntryDto>.from(_indexers)..add(result);
-      ref
-          .read(indexerConnectionTestProvider(_connectionTestScope).notifier)
-          .invalidate();
-    });
+    await _saveIndexers(
+      List<IndexerEntryDto>.from(_indexers)..add(result),
+      successToast: '索引器已创建',
+    );
   }
 
   Future<void> _editIndexer(int index) async {
+    if (_isSaving) {
+      return;
+    }
     final result = await showDialog<IndexerEntryDto>(
       context: context,
       builder: (dialogContext) => IndexerEntryDialog(
@@ -276,21 +235,17 @@ class _IndexerSettingsSectionState
     if (result == null) {
       return;
     }
-    setState(() {
-      _indexers = List<IndexerEntryDto>.from(_indexers)..[index] = result;
-      ref
-          .read(indexerConnectionTestProvider(_connectionTestScope).notifier)
-          .invalidate();
-    });
+    await _saveIndexers(
+      List<IndexerEntryDto>.from(_indexers)..[index] = result,
+      successToast: '索引器已更新',
+    );
   }
 
-  void _deleteIndexer(int index) {
-    setState(() {
-      _indexers = List<IndexerEntryDto>.from(_indexers)..removeAt(index);
-      ref
-          .read(indexerConnectionTestProvider(_connectionTestScope).notifier)
-          .invalidate();
-    });
+  Future<void> _deleteIndexer(int index) async {
+    await _saveIndexers(
+      List<IndexerEntryDto>.from(_indexers)..removeAt(index),
+      successToast: '索引器已删除',
+    );
   }
 
   @override
@@ -361,7 +316,6 @@ class _IndexerSettingsSectionState
                 onTest: _testConnection,
                 result: connectionTest.result,
                 requestError: connectionTest.requestError,
-                disabledMessage: _connectionTestDisabledMessage,
                 testButtonKey: const Key(
                   'configuration-indexer-connection-test-button',
                 ),
@@ -388,7 +342,9 @@ class _IndexerSettingsSectionState
             ),
             AppButton(
               key: const Key('configuration-indexer-create-button'),
-              onPressed: downloadClients.isEmpty ? null : _createIndexer,
+              onPressed: downloadClients.isEmpty || _isSaving
+                  ? null
+                  : _createIndexer,
               icon: const Icon(Icons.add_rounded),
               label: '添加',
               size: AppButtonSize.small,
@@ -420,25 +376,19 @@ class _IndexerSettingsSectionState
                 IndexerEntryCard(
                   entry: item,
                   index: _indexers.indexOf(item),
-                  onEdit: () => _editIndexer(_indexers.indexOf(item)),
-                  onDelete: () => _deleteIndexer(_indexers.indexOf(item)),
+                  onEdit: () {
+                    if (!_isSaving) {
+                      _editIndexer(_indexers.indexOf(item));
+                    }
+                  },
+                  onDelete: () {
+                    if (!_isSaving) {
+                      _deleteIndexer(_indexers.indexOf(item));
+                    }
+                  },
                 ),
             ],
           ),
-        SizedBox(height: spacing.xl),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            AppButton(
-              key: const Key('configuration-indexer-save-button'),
-              onPressed: _isSaving ? null : _saveSettings,
-              icon: _isSaving ? null : const Icon(Icons.save_outlined),
-              label: _isSaving ? '保存中' : '保存配置',
-              isLoading: _isSaving,
-              variant: AppButtonVariant.primary,
-            ),
-          ],
-        ),
       ],
     );
   }

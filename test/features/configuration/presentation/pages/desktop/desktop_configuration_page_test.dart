@@ -1236,7 +1236,7 @@ void main() {
       },
     );
 
-    testWidgets('confirms before refreshing dirty indexer settings', (
+    testWidgets('refreshes indexer settings without a save confirmation', (
       WidgetTester tester,
     ) async {
       _enqueueMediaLibraries(bundle);
@@ -1253,43 +1253,14 @@ void main() {
       );
       await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('configuration-indexer-create-button')),
-      );
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const Key('indexer-entry-name-field')),
-        'mteam',
-      );
-      await tester.enterText(
-        find.byKey(const Key('indexer-entry-url-field')),
-        'https://mirror.example.com/torznab',
-      );
-      await tester.tap(find.byKey(const Key('indexer-download-client-add-1')));
-      await tester.tap(find.text('保存').last);
-      await tester.pumpAndSettle();
 
       final refreshButton = find.byKey(const Key('topbar-refresh-button'));
       await tester.tap(refreshButton);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
       expect(
         find.byKey(const Key('configuration-indexers-refresh-confirm-dialog')),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 1);
-
-      await tester.tap(
-        find.byKey(const Key('configuration-indexers-refresh-cancel-button')),
-      );
-      await tester.pumpAndSettle();
-      expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 1);
-
-      await tester.tap(refreshButton);
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.tap(
-        find.byKey(const Key('configuration-indexers-refresh-confirm-button')),
-      );
-      await tester.pumpAndSettle();
       expect(bundle.adapter.hitCount('GET', '/indexer-settings'), 2);
       expect(bundle.adapter.hitCount('GET', '/download-clients'), 2);
     });
@@ -1332,39 +1303,6 @@ void main() {
         );
       },
     );
-
-    testWidgets('blocks saving an indexer with a stale download binding', (
-      WidgetTester tester,
-    ) async {
-      _enqueueMediaLibraries(bundle);
-      _enqueueIndexerSettings(
-        bundle,
-        indexers: const [
-          {
-            'id': 1,
-            'name': 'mteam',
-            'url': 'https://mirror.example.com/torznab',
-            'kind': 'pt',
-            'download_clients': [
-              {'id': 999, 'name': 'removed-client'},
-            ],
-          },
-        ],
-      );
-      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
-
-      await _pumpPage(tester, bundle, sessionStore: sessionStore);
-      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('configuration-indexer-save-button')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('索引器绑定的下载器已失效，请重新选择'), findsOneWidget);
-      expect(bundle.adapter.hitCount('PATCH', '/indexer-settings'), 0);
-      await tester.pump(const Duration(seconds: 3));
-    });
 
     testWidgets('tests saved Torznab settings and shows the result', (
       WidgetTester tester,
@@ -1453,7 +1391,7 @@ void main() {
     });
 
     testWidgets(
-      'saves indexers with download client binding and shows client name',
+      'creates an indexer immediately with its download client binding',
       (WidgetTester tester) async {
         _enqueueMediaLibraries(bundle);
         _enqueueIndexerSettings(bundle, indexers: const []);
@@ -1480,6 +1418,10 @@ void main() {
         await _pumpPage(tester, bundle, sessionStore: sessionStore);
         await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
         await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('configuration-indexer-save-button')),
+          findsNothing,
+        );
         await tester.tap(
           find.byKey(const Key('configuration-indexer-create-button')),
         );
@@ -1502,10 +1444,6 @@ void main() {
         );
         await tester.pumpAndSettle();
         await tester.tap(find.text('保存').last);
-        await tester.pumpAndSettle();
-        await tester.tap(
-          find.byKey(const Key('configuration-indexer-save-button')),
-        );
         await tester.pumpAndSettle();
 
         final patchRequest = bundle.adapter.requests.firstWhere(
@@ -1579,10 +1517,6 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('保存').last);
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('configuration-indexer-save-button')),
-      );
-      await tester.pumpAndSettle();
 
       final patchRequest = bundle.adapter.requests.firstWhere(
         (request) =>
@@ -1592,6 +1526,43 @@ void main() {
         2,
         1,
       ]);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('deletes an indexer immediately', (WidgetTester tester) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueIndexerSettings(
+        bundle,
+        indexers: const [
+          {
+            'id': 1,
+            'name': 'mteam',
+            'url': 'https://mirror.example.com/torznab',
+            'kind': 'pt',
+            'download_client_id': 1,
+            'download_client_name': 'client-a',
+          },
+        ],
+      );
+      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/indexer-settings',
+        body: const {'indexers': []},
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('indexer-entry-delete-0')));
+      await tester.pumpAndSettle();
+
+      final patchRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'PATCH' && request.path == '/indexer-settings',
+      );
+      expect(patchRequest.body['indexers'], isEmpty);
+      expect(find.text('还没有配置索引站'), findsOneWidget);
       await tester.pump(const Duration(seconds: 3));
     });
 
@@ -1684,10 +1655,6 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('保存').last);
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('configuration-indexer-save-button')),
-      );
-      await tester.pumpAndSettle();
 
       final patchRequest = bundle.adapter.requests.firstWhere(
         (request) =>
@@ -1740,10 +1707,6 @@ void main() {
       await tester.tap(find.byKey(const Key('indexer-download-client-add-1')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('保存').last);
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('configuration-indexer-save-button')),
-      );
       await tester.pumpAndSettle();
 
       expect(bundle.adapter.hitCount('PATCH', '/indexer-settings'), 0);
