@@ -48,6 +48,14 @@ void main() {
         ),
         findsNothing,
       );
+      expect(
+        find.byKey(const Key('configuration-advanced-metadata-card')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('configuration-advanced-javdb-host-field')),
+        findsNothing,
+      );
 
       await _pumpSection(tester, bundle, active: true);
 
@@ -126,37 +134,6 @@ void main() {
       expect(request.body.keys, contains('media'));
       expect(request.body.keys, isNot(contains('metadata')));
       expect(request.body['media']['allowed_min_video_file_size'], 268435456);
-      await tester.pump(const Duration(seconds: 3));
-    });
-
-    testWidgets('saves host in metadata config', (
-      WidgetTester tester,
-    ) async {
-      _enqueueAdvancedConfig(bundle);
-      _enqueueAdvancedConfigPatch(bundle);
-
-      await _pumpSection(tester, bundle, active: true);
-      await tester.ensureVisible(
-        find.byKey(const Key('configuration-advanced-javdb-host-field')),
-      );
-      await tester.enterText(
-        find.byKey(const Key('configuration-advanced-javdb-host-field')),
-        'jdforrepam.com',
-      );
-      await tester.ensureVisible(
-        find.byKey(const Key('configuration-advanced-metadata-save-button')),
-      );
-      await tester.tap(
-        find.byKey(const Key('configuration-advanced-metadata-save-button')),
-      );
-      await tester.pumpAndSettle();
-
-      final request = bundle.adapter.requests.firstWhere(
-        (item) => item.method == 'PATCH' && item.path == '/config',
-      );
-      expect(request.body['metadata'], <String, dynamic>{
-        'javdb_host': 'jdforrepam.com',
-      });
       await tester.pump(const Duration(seconds: 3));
     });
 
@@ -348,9 +325,6 @@ Map<String, dynamic> _buildAdvancedConfigJson({
     'values': <String, dynamic>{
       'media': <String, dynamic>{
         'allowed_min_video_file_size': 268435456,
-      },
-      'metadata': <String, dynamic>{
-        'javdb_host': 'jdforrepam.com',
       },
       'scheduler': const <String, dynamic>{
         'actor_subscription_sync_cron': '0 2 * * *',

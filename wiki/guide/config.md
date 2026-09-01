@@ -88,7 +88,6 @@ media_clip_ffmpeg_timeout_seconds = 120
 
 ```toml
 [metadata]
-javdb_host = "jdforrepam.com"
 gfriends_filetree_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends/Filetree.json"
 gfriends_cdn_base_url = "https://cdn.jsdelivr.net/gh/xinxin8816/gfriends"
 gfriends_filetree_cache_path = "/data/cache/gfriends/gfriends-filetree.json"
@@ -98,7 +97,6 @@ import_metadata_max_workers = 3
 
 | 字段 | 作用 |
 |---|---|
-| `javdb_host` | JavDB API 域名，不带协议头。 |
 | `gfriends_filetree_url` | GFriends 文件树索引地址。 |
 | `gfriends_cdn_base_url` | GFriends CDN 根地址。 |
 | `gfriends_filetree_cache_path` | 文件树本地缓存路径。 |

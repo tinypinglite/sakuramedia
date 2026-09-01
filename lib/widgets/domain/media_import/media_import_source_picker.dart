@@ -54,6 +54,7 @@ class _MediaImportSourcePickerState
   List<_BrowseSegment> _path = const <_BrowseSegment>[];
   Map<String, dynamic>? _parentRef;
   ImportBrowseEntryDto? _selectedEntry;
+  bool _isCurrentDirectorySelected = false;
 
   bool _isBrowsing = false;
   bool _isLoadingMore = false;
@@ -99,6 +100,7 @@ class _MediaImportSourcePickerState
       _path = const <_BrowseSegment>[];
       _parentRef = null;
       _selectedEntry = null;
+      _isCurrentDirectorySelected = false;
       _browseError = null;
       _loadMoreError = null;
       _isLoadingMore = false;
@@ -124,6 +126,7 @@ class _MediaImportSourcePickerState
       _path = nextPath;
       _parentRef = entry.sourceRef;
       _selectedEntry = null;
+      _isCurrentDirectorySelected = false;
       _browseError = null;
       _loadMoreError = null;
       _isLoadingMore = false;
@@ -151,6 +154,7 @@ class _MediaImportSourcePickerState
       _path = nextPath;
       _parentRef = parentRef;
       _selectedEntry = null;
+      _isCurrentDirectorySelected = false;
       _browseError = null;
       _loadMoreError = null;
       _isLoadingMore = true;
@@ -236,12 +240,27 @@ class _MediaImportSourcePickerState
     }
   }
 
-  void _selectEntry(ImportBrowseEntryDto entry) {
-    if (!entry.isDirectory && !widget.allowFileSource) {
+  void _selectFile(ImportBrowseEntryDto entry) {
+    if (entry.isDirectory || !widget.allowFileSource) {
       return;
     }
-    setState(() => _selectedEntry = entry);
+    setState(() {
+      _selectedEntry = entry;
+      _isCurrentDirectorySelected = false;
+    });
     widget.onSourceChanged(MediaImportSource(sourceRef: entry.sourceRef));
+  }
+
+  void _selectCurrentDirectory() {
+    final parentRef = _parentRef;
+    if (parentRef == null) {
+      return;
+    }
+    setState(() {
+      _selectedEntry = null;
+      _isCurrentDirectorySelected = true;
+    });
+    widget.onSourceChanged(MediaImportSource(sourceRef: parentRef));
   }
 
   String _browseErrorMessage(Object error) =>
@@ -322,6 +341,16 @@ class _MediaImportSourcePickerState
             ),
           ),
         ),
+        SizedBox(width: context.appSpacing.sm),
+        AppButton(
+          key: const Key('media-import-picker-select-current-directory-button'),
+          label: _isCurrentDirectorySelected ? '已选择当前目录' : '选择当前目录',
+          size: AppButtonSize.small,
+          isSelected: _isCurrentDirectorySelected,
+          onPressed: !_isBrowsing && _parentRef != null
+              ? _selectCurrentDirectory
+              : null,
+        ),
       ],
     );
   }
@@ -382,11 +411,10 @@ class _MediaImportSourcePickerState
           key: Key('media-import-entry-$index'),
           entry: entry,
           selected: identical(entry, _selectedEntry),
-          canSelect: entry.isDirectory || widget.allowFileSource,
-          onSelect: () => _selectEntry(entry),
-          onOpen: entry.isDirectory
+          canSelect: !entry.isDirectory && widget.allowFileSource,
+          onTap: entry.isDirectory
               ? () => unawaited(_browseFolder(entry))
-              : null,
+              : () => _selectFile(entry),
         );
       },
     );
@@ -472,22 +500,20 @@ class _ImportEntryRow extends StatelessWidget {
     required this.entry,
     required this.selected,
     required this.canSelect,
-    required this.onSelect,
-    required this.onOpen,
+    required this.onTap,
   });
 
   final ImportBrowseEntryDto entry;
   final bool selected;
   final bool canSelect;
-  final VoidCallback onSelect;
-  final VoidCallback? onOpen;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final muted = !canSelect;
     return InkWell(
-      onTap: canSelect ? onSelect : null,
+      onTap: entry.isDirectory || canSelect ? onTap : null,
       child: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: spacing.md,
@@ -532,12 +558,11 @@ class _ImportEntryRow extends StatelessWidget {
                   color: context.appTextPalette.accent,
                 ),
               ),
-            if (entry.isDirectory && onOpen != null)
-              AppIconButton(
-                key: Key('media-import-entry-open-${entry.name}'),
-                icon: const Icon(Icons.chevron_right_rounded),
-                tooltip: '打开目录',
-                onPressed: onOpen,
+            if (entry.isDirectory)
+              Icon(
+                Icons.chevron_right_rounded,
+                size: context.appComponentTokens.iconSizeSm,
+                color: context.appTextPalette.muted,
               )
             else if (!entry.isDirectory && entry.sizeBytes != null) ...[
               SizedBox(width: spacing.sm),

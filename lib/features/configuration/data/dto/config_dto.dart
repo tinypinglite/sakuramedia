@@ -4,14 +4,12 @@ import 'package:sakuramedia/core/json/json_parse.dart';
 class ConfigResourceDto {
   const ConfigResourceDto({
     required this.media,
-    required this.metadata,
     required this.scheduler,
     required this.downloads,
     required this.logging,
   });
 
   final AdvancedMediaConfigDto media;
-  final AdvancedMetadataConfigDto metadata;
   final AdvancedSchedulerConfigDto scheduler;
   final AdvancedDownloadsConfigDto downloads;
   final AdvancedLoggingConfigDto logging;
@@ -21,9 +19,6 @@ class ConfigResourceDto {
     return ConfigResourceDto(
       media: AdvancedMediaConfigDto.fromJson(
         _objectAt(values, 'media', '/config values'),
-      ),
-      metadata: AdvancedMetadataConfigDto.fromJson(
-        _objectAt(values, 'metadata', '/config values'),
       ),
       scheduler: AdvancedSchedulerConfigDto.fromJson(
         _objectAt(values, 'scheduler', '/config values'),
@@ -72,20 +67,6 @@ class AdvancedMediaConfigDto {
     return <String, dynamic>{
       'allowed_min_video_file_size': allowedMinVideoFileSize,
     };
-  }
-}
-
-class AdvancedMetadataConfigDto {
-  const AdvancedMetadataConfigDto({required this.javdbHost});
-
-  final String javdbHost;
-
-  factory AdvancedMetadataConfigDto.fromJson(Map<String, dynamic> json) {
-    return AdvancedMetadataConfigDto(javdbHost: _stringAt(json, 'javdb_host'));
-  }
-
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{'javdb_host': javdbHost};
   }
 }
 

@@ -58,7 +58,6 @@ Map<String, dynamic> _configJson({
     'media': <String, dynamic>{
       'allowed_min_video_file_size': 268435456,
     },
-    'metadata': <String, dynamic>{'javdb_host': 'jdforrepam.com'},
     'scheduler': const <String, dynamic>{
       'actor_subscription_sync_cron': '0 2 * * *',
       'subscribed_movie_auto_download_cron': '30 2 * * *',

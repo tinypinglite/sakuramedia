@@ -41,7 +41,18 @@ mkdir -p /mnt/ssd/sakuramedia/sakuramedia-data/cache/{assets,gfriends}
 
 ### 2. 准备 `compose.yaml`
 
-下面的示例只挂载应用运行数据。需要额外挂载目录时，按已安装 provider 的部署说明添加，并在 provider 配置中填写其要求的字段。
+下面示例以本地存储与 qBittorrent 为例。已有影片目录、qBittorrent 下载目录和 SakuraMedia 媒体库应位于同一文件系统，并将它们的共同父目录整体挂载到后端容器；这样导入时可以使用硬链接，无法硬链接时会复制文件。
+
+例如，宿主机的媒体根目录为 `/mnt/volume1/media`：
+
+```text
+/mnt/volume1/media
+├── av             # 已有影片
+├── downloads      # qBittorrent 下载目录
+└── sakuramedia    # SakuraMedia 媒体库
+```
+
+按实际目录替换示例中的 `/mnt/volume1/media`，并确保三个子目录已创建。使用其他 provider 时，按其部署说明添加所需挂载。
 
 ```yaml
 services:
@@ -80,6 +91,7 @@ services:
       # NO_PROXY: "localhost,127.0.0.1"
     volumes:
       - ./sakuramedia-data:/data
+      - /mnt/volume1/media:/mnt/volume1/media
 
   siglip2-embed:
     image: tinyping/siglip2-embed-service:cpu
@@ -134,11 +146,15 @@ http://你的IP:38000
 
 进入「系统设置 → 媒体库 → 新增」，选择 media provider，填写 provider 动态提供的配置字段并保存。媒体库的存储、浏览和播放能力由该 provider 提供。
 
+使用「本地存储与 qBittorrent」时，媒体库路径填写 `/mnt/volume1/media/sakuramedia`，手动导入根目录填写 `/mnt/volume1/media/av`。
+
 #### 3. 添加下载器
 
 进入「系统设置 → 下载器 → 新增」，选择下载 provider，填写动态配置字段并绑定目标媒体库。下载完成后，provider 返回的 `completed_source_ref` 会被自动导入流程使用。
 
 下载任务的连接信息和存储参数由下载 provider 的动态配置字段提供。
+
+使用「本地存储与 qBittorrent」时，qBittorrent 保存根目录填写 qBittorrent 容器内的路径，例如 `/downloads`；后端下载根目录填写后端容器内同一目录的挂载路径，例如 `/mnt/volume1/media/downloads`。
 
 #### 4. 配置索引器并绑定下载器
 

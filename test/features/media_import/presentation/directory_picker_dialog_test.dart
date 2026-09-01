@@ -16,7 +16,7 @@ import '../../../support/test_api_bundle.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('browses provider sources and selects an opaque directory', (
+  testWidgets('opens a directory before selecting it as the import source', (
     tester,
   ) async {
     final bundle = await _buildBundle();
@@ -30,6 +30,11 @@ void main() {
         _entry(ref: 'file-1', name: 'movie.mkv', type: 'file', isVideo: true),
       ],
     );
+    _enqueueBrowse(
+      bundle,
+      libraryId: 1,
+      parentRef: <String, dynamic>{'id': 'folder-1'},
+    );
 
     await _pumpHarness(tester, bundle);
     await _openPicker(tester);
@@ -39,6 +44,16 @@ void main() {
     expect(find.text('保留源文件'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('media-import-entry-0')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('media-import-picker-current-path')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(
+        const Key('media-import-picker-select-current-directory-button'),
+      ),
+    );
     await tester.pump();
     await tester.tap(
       find.byKey(const Key('media-import-picker-submit-button')),
@@ -80,7 +95,7 @@ void main() {
 
     await _pumpHarness(tester, bundle);
     await _openPicker(tester);
-    await tester.tap(find.byKey(const Key('media-import-entry-open-Movies')));
+    await tester.tap(find.byKey(const Key('media-import-entry-0')));
     await tester.pumpAndSettle();
 
     expect(find.text('Movies'), findsWidgets);

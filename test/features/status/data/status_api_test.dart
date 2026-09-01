@@ -180,7 +180,6 @@ void main() {
           'indexing': <String, dynamic>{
             'pending_thumbnails': 23,
             'failed_thumbnails': 2,
-            'success_thumbnails': 15295,
           },
           'index_space': <String, dynamic>{
             'state': 'ready',

@@ -2050,7 +2050,6 @@ Map<String, dynamic> _buildAdvancedConfigResponseJson() {
   return <String, dynamic>{
     'values': <String, dynamic>{
       'media': <String, dynamic>{'allowed_min_video_file_size': 268435456},
-      'metadata': <String, dynamic>{'javdb_host': 'jdforrepam.com'},
       'scheduler': <String, dynamic>{
         for (final key in AdvancedSchedulerConfigDto.cronKeys)
           '${key}_cron': '0 2 * * *',

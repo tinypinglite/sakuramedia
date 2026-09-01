@@ -5,7 +5,6 @@ import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/config_api_provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/core/validation/url_validators.dart';
 import 'package:sakuramedia/features/configuration/data/api/config_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/config_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/restart_messages.dart';
@@ -38,12 +37,10 @@ class DesktopAdvancedSettingsSection extends ConsumerStatefulWidget {
 class _DesktopAdvancedSettingsSectionState
     extends ConsumerState<DesktopAdvancedSettingsSection> {
   final GlobalKey<FormState> _mediaFormKey = GlobalKey<FormState>();
-  final GlobalKey<FormState> _metadataFormKey = GlobalKey<FormState>();
   final GlobalKey<FormState> _schedulerFormKey = GlobalKey<FormState>();
   final GlobalKey<FormState> _otherFormKey = GlobalKey<FormState>();
 
   late final TextEditingController _allowedMinVideoFileSizeController;
-  late final TextEditingController _javdbHostController;
   late final Map<String, TextEditingController> _cronControllers;
 
   final Set<_AdvancedCardKind> _dirtyCards = <_AdvancedCardKind>{};
@@ -61,7 +58,6 @@ class _DesktopAdvancedSettingsSectionState
   void initState() {
     super.initState();
     _allowedMinVideoFileSizeController = TextEditingController();
-    _javdbHostController = TextEditingController();
     _cronControllers = <String, TextEditingController>{
       for (final key in AdvancedSchedulerConfigDto.cronKeys)
         key: TextEditingController(),
@@ -82,7 +78,6 @@ class _DesktopAdvancedSettingsSectionState
   @override
   void dispose() {
     _allowedMinVideoFileSizeController.dispose();
-    _javdbHostController.dispose();
     for (final controller in _cronControllers.values) {
       controller.dispose();
     }
@@ -119,8 +114,6 @@ class _DesktopAdvancedSettingsSectionState
       children: [
         _buildMediaCard(context),
         SizedBox(height: spacing.xl),
-        _buildMetadataCard(context),
-        SizedBox(height: spacing.xl),
         _buildSchedulerCard(context),
         SizedBox(height: spacing.xl),
         _buildOtherCard(context),
@@ -149,7 +142,7 @@ class _DesktopAdvancedSettingsSectionState
           children: [
             const _CardTip(
               icon: Icons.info_outline_rounded,
-              message: '这组配置控制媒体导入的最小文件大小。第一次部署通常保持默认。',
+              message: '这组配置仅控制 JAV 类影片导入的最小文件大小。第一次部署通常保持默认。',
             ),
             SizedBox(height: spacing.lg),
             _buildFieldGrid(
@@ -177,56 +170,6 @@ class _DesktopAdvancedSettingsSectionState
               buttonKey: const Key('configuration-advanced-media-save-button'),
               isSaving: _savingCards.contains(_AdvancedCardKind.media),
               onSave: _handleSaveMedia,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetadataCard(BuildContext context) {
-    final spacing = context.appSpacing;
-    return AppContentCard(
-      key: const Key('configuration-advanced-metadata-card'),
-      title: '元数据抓取',
-      padding: EdgeInsets.all(spacing.lg),
-      headerBottomSpacing: spacing.md,
-      headerTrailing: _CardBadges(
-        badges: [
-          const AppBadge(label: '重启容器生效', tone: AppBadgeTone.warning),
-          if (_dirtyCards.contains(_AdvancedCardKind.metadata))
-            const AppBadge(label: '未保存', tone: AppBadgeTone.warning),
-        ],
-      ),
-      child: Form(
-        key: _metadataFormKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const _CardTip(
-              icon: Icons.travel_explore_outlined,
-              message:
-                  '外部站点请求（JavDB / GFriends）统一跟随容器环境变量 HTTP_PROXY / HTTPS_PROXY / NO_PROXY 分流，不再在应用内配置代理；排行榜来源与账号由插件自行管理。',
-            ),
-            SizedBox(height: spacing.lg),
-            AppTextField(
-              fieldKey: const Key('configuration-advanced-javdb-host-field'),
-              controller: _javdbHostController,
-              label: 'JavDB API 域名',
-              hintText: 'jdforrepam.com',
-              helperText: '裸域名或 IP，不带 http/https 协议头。',
-              keyboardType: TextInputType.url,
-              validator: _javdbHostError,
-              onChanged: (_) => _markDirty(_AdvancedCardKind.metadata),
-            ),
-            SizedBox(height: spacing.lg),
-            _buildActions(
-              context,
-              buttonKey: const Key(
-                'configuration-advanced-metadata-save-button',
-              ),
-              isSaving: _savingCards.contains(_AdvancedCardKind.metadata),
-              onSave: _handleSaveMetadata,
             ),
           ],
         ),
@@ -468,15 +411,6 @@ class _DesktopAdvancedSettingsSectionState
     }, (values) => _applyMedia(values.media));
   }
 
-  Future<void> _handleSaveMetadata() async {
-    if (!(_metadataFormKey.currentState?.validate() ?? false)) {
-      return;
-    }
-    await _savePartial(_AdvancedCardKind.metadata, <String, dynamic>{
-      'metadata': _buildMetadataPayload(),
-    }, (values) => _applyMetadata(values.metadata));
-  }
-
   Future<void> _handleSaveScheduler() async {
     if (!(_schedulerFormKey.currentState?.validate() ?? false)) {
       return;
@@ -554,10 +488,6 @@ class _DesktopAdvancedSettingsSectionState
     };
   }
 
-  Map<String, dynamic> _buildMetadataPayload() {
-    return <String, dynamic>{'javdb_host': _javdbHostController.text.trim()};
-  }
-
   Map<String, dynamic> _buildSchedulerPayload() {
     return <String, dynamic>{
       for (final key in AdvancedSchedulerConfigDto.cronKeys)
@@ -571,7 +501,6 @@ class _DesktopAdvancedSettingsSectionState
 
   void _applyResource(ConfigResourceDto resource) {
     _applyMedia(resource.media);
-    _applyMetadata(resource.metadata);
     _applyScheduler(resource.scheduler);
     _applyLogging(resource.logging);
     _dirtyCards.clear();
@@ -580,10 +509,6 @@ class _DesktopAdvancedSettingsSectionState
   void _applyMedia(AdvancedMediaConfigDto media) {
     _allowedMinVideoFileSizeController.text =
         (media.allowedMinVideoFileSize ~/ _bytesPerMegabyte).toString();
-  }
-
-  void _applyMetadata(AdvancedMetadataConfigDto metadata) {
-    _javdbHostController.text = metadata.javdbHost;
   }
 
   void _applyScheduler(AdvancedSchedulerConfigDto scheduler) {
@@ -610,14 +535,6 @@ class _DesktopAdvancedSettingsSectionState
     widget.onDirtyChanged?.call(_dirtyCards.isNotEmpty);
   }
 
-  String? _javdbHostError(String? value) {
-    final trimmed = value?.trim() ?? '';
-    if (trimmed.isEmpty || !isValidHostname(trimmed)) {
-      return '请输入不带协议头的域名或 IP';
-    }
-    return null;
-  }
-
   String? _cronError(String? value) {
     final parts = (value?.trim() ?? '')
         .split(RegExp(r'\s+'))
@@ -642,7 +559,7 @@ class _DesktopAdvancedSettingsSectionState
   }
 }
 
-enum _AdvancedCardKind { media, metadata, scheduler, other }
+enum _AdvancedCardKind { media, scheduler, other }
 
 /// 根据 `PATCH /config` 响应里的 `restart_required` 列表拼保存成功后的 toast 文案。
 ///

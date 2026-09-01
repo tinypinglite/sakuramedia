@@ -26,7 +26,7 @@ docker exec -it --user app -w /app sakuramedia python -m src.start.commands rese
 
 ### 在线搜索入库影片或女优失败
 
-先在「概览」页运行「组件诊断」，确认 JavDB 连通；再检查容器网络和 `javdb_host`。如果图片域名无法访问，也需要检查代理规则和 DNS。
+先在「概览」页运行「组件诊断」，确认 JavDB 连通；再检查容器网络、代理规则和 DNS。如果图片域名无法访问，也需要检查相同的网络设置。
 
 ### 为什么刚启动后看不到影片或女优？
 

@@ -159,7 +159,6 @@ Map<String, dynamic> _imageSearchStatus({required bool joyTagHealthy}) {
     'indexing': <String, dynamic>{
       'pending_thumbnails': 0,
       'failed_thumbnails': 0,
-      'success_thumbnails': 15295,
     },
   };
 }
@@ -452,7 +451,7 @@ void main() {
       expect(javdb.status, DiagnosticItemStatus.unhealthy);
       expect(javdb.fixHint, contains('环境变量'));
       expect(javdb.fixHint, contains('wiki'));
-      // 「JavDB API 域名」不是该让用户改的字段，所以不给跳转。
+      // 没有应用内设置可跳转。
       expect(javdb.fixTarget, isNull);
     });
 
