@@ -1,6 +1,5 @@
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
-import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_mode.dart';
 
 /// 合集详情页 → 连播页 的一次性「交接信箱」。
 ///
@@ -13,13 +12,9 @@ import 'package:sakuramedia/widgets/domain/collections/playback/collection_playb
 /// 连播页 `take*`，均通过 `context.read` 访问。数据是「点击那一刻」的实时列表，
 /// 因此天然新鲜，无需失效逻辑。
 ///
-/// 「播放模式」走独立的 [offerMode]/[takeMode]：与 items 信箱解耦，便于在详情页
-/// 同步弹窗拿到选择后单独 offer。深链/刷新场景取不到 → 连播页回退默认 playlist 模式。
 class CollectionPlaybackHandoff {
   _VideoHandoff? _video;
   _ClipHandoff? _clip;
-  final Map<String, CollectionPlaybackMode> _modes =
-      <String, CollectionPlaybackMode>{};
 
   /// 暂存视频合集成员。成员须带 `playUrl`（详情页以 `includePlayUrl` 加载），否则
   /// 连播页拿到也无法直接组装播放列表。[sort] 须与连播页将收到的排序一致，作匹配键。
@@ -66,17 +61,6 @@ class CollectionPlaybackHandoff {
     }
     _clip = null;
     return cached.clips;
-  }
-
-  /// 暂存用户在详情页选择的「播放模式」；[key] 由调用方约定（切片用 `clip:<id>`、
-  /// 视频用 `video:<id>:<sort>`），与 items 信箱独立。
-  void offerMode({required String key, required CollectionPlaybackMode mode}) {
-    _modes[key] = mode;
-  }
-
-  /// 取走 [key] 上的播放模式；一次性（取后清空），不存在返回 `null`，连播页据此回退默认。
-  CollectionPlaybackMode? takeMode({required String key}) {
-    return _modes.remove(key);
   }
 }
 

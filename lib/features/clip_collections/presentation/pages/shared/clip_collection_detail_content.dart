@@ -30,7 +30,6 @@ import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_cover_card.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
-import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_mode.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 
 /// 合集详情的切片排布方式：纵向列表（可拖序）或网格（侧重浏览）。
@@ -706,21 +705,9 @@ class _ClipCollectionDetailContentState
     if (state == null) {
       return;
     }
-    // 进入连播前先询问形态（列表连播 / 合并播放）；外部点关闭返回 null → 放弃跳转。
-    final mode = await showCollectionPlaybackModePicker(
-      context: context,
-      useBottomDrawer: _isMobile,
-    );
-    if (mode == null || !mounted) {
-      return;
-    }
     final handoff = ref.read(collectionPlaybackHandoffProvider);
     // 切片自带 streamUrl，把当前列表交给连播页直接用，免其二次全量拉取。
-    handoff.offerClips(
-      collectionId: widget.collectionId,
-      clips: state.clips,
-    );
-    handoff.offerMode(key: 'clip:${widget.collectionId}', mode: mode);
+    handoff.offerClips(collectionId: widget.collectionId, clips: state.clips);
     if (_isMobile) {
       MobileClipCollectionPlayRouteData(
         collectionId: widget.collectionId,

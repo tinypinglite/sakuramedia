@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_filmstrip_controller.dart';
-import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_mode.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_media_thumbnail_grid.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_player_thumbnail_panel.dart';
 
@@ -91,11 +90,7 @@ mixin CollectionPlaybackPageMixin<T extends StatefulWidget> on State<T> {
     setState(() => isEpisodePanelOpen = false);
   }
 
-  /// 播放形态；[CollectionPlaybackMode.merged] 时由页面接管底栏进度条 + 隐藏内置 seek bar。
-  CollectionPlaybackMode playbackMode = CollectionPlaybackMode.playlist;
-
-  /// 每集时长（秒），与可播 [Playlist] 顺序对齐；合并模式下供进度条累加为虚拟总时长。
-  /// playlist 模式可不传（保持空列表）。
+  /// 每集时长（秒），与可播 [Playlist] 顺序对齐，供合并进度条累加为虚拟总时长。
   List<int> episodeDurationsSeconds = const <int>[];
 
   StreamSubscription<Playlist>? _playlistSub;
@@ -107,21 +102,17 @@ mixin CollectionPlaybackPageMixin<T extends StatefulWidget> on State<T> {
 
   /// 在 `setState` 内调用：登记播放器/面板并接线 playlist/position 流。
   ///
-  /// [mode] 与 [episodeDurationsSeconds] 用于合并播放形态：前者切换 UI（隐藏内置 seek bar
-  /// 改用 `MergedPositionIndicator`），后者驱动虚拟总时长 / `seekToGlobalSeconds` 反向定位。
-  /// 默认 [CollectionPlaybackMode.playlist]、空列表，行为与旧版完全一致。
+  /// [episodeDurationsSeconds] 驱动虚拟总时长与 [seekToGlobalSeconds] 的反向定位。
   void attachPlayback({
     required Player player,
     required VideoController videoController,
     required CollectionFilmstripController filmstrip,
     required int startIndex,
-    CollectionPlaybackMode mode = CollectionPlaybackMode.playlist,
     List<int> episodeDurationsSeconds = const <int>[],
   }) {
     this.player = player;
     this.videoController = videoController;
     this.filmstrip = filmstrip;
-    playbackMode = mode;
     this.episodeDurationsSeconds = episodeDurationsSeconds;
     currentIndex = startIndex;
     _playlistSub = player.stream.playlist.listen(_handlePlaylist);

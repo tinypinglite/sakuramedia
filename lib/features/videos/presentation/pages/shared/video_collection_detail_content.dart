@@ -31,7 +31,6 @@ import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_stat
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
-import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_mode.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 
 /// 合集详情的成员排布方式：纵向列表（可拖序）或网格（侧重浏览）。
@@ -818,14 +817,6 @@ class _VideoCollectionDetailContentState
     if (state == null) {
       return;
     }
-    // 进入连播前先询问形态（列表连播 / 合并播放）；外部点关闭返回 null → 放弃跳转。
-    final mode = await showCollectionPlaybackModePicker(
-      context: context,
-      useBottomDrawer: _isMobile,
-    );
-    if (mode == null || !mounted) {
-      return;
-    }
     final handoff = ref.read(collectionPlaybackHandoffProvider);
     final sort = state.sort.apiValue;
     // 把当前已排序、带播放地址的成员交给连播页直接用，免其二次全量拉取。
@@ -833,11 +824,6 @@ class _VideoCollectionDetailContentState
       collectionId: widget.collectionId,
       sort: sort,
       items: state.items,
-    );
-    // key 与连播页 takeMode 处保持一致：合集 + 排序，避免同合集换排序后串。
-    handoff.offerMode(
-      key: 'video:${widget.collectionId}:${sort ?? ''}',
-      mode: mode,
     );
     if (_isMobile) {
       MobileVideoCollectionPlayRouteData(

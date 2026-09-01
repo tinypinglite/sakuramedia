@@ -23,7 +23,6 @@
 - `CollectionFilmstripController`：合集胶片条和跨集位置计算。
 - `EpisodeSelectorOverlay`：选集浮层。
 - `MergedPositionIndicator`：合并后的整部进度指示。
-- `showCollectionPlaybackModePicker`：播放模式选择。
 
 这些组件位于 `lib/widgets/domain/collections/playback/` 或其关联的 player 目录。切片合集和视频合集通过闭包传入各自的数据，不要让共享组件依赖某个具体 API。
 

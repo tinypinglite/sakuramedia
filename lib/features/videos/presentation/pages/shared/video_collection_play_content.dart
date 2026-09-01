@@ -25,7 +25,6 @@ import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_episode_queue_item.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_filmstrip_controller.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_play_split_layout.dart';
-import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_mode.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_page_mixin.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/episode_selector_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/merged_position_indicator.dart';
@@ -186,13 +185,6 @@ class _VideoCollectionPlayContentState
               .toList();
         },
       );
-      // 详情页弹窗确认的播放形态（一次性 take，深链/刷新无值则回退 playlist）。
-      // key 含 sort 以与 items 信箱一致，详情页同一合集换排序后选择不会串。
-      final mode =
-          handoff.takeMode(
-            key: 'video:${widget.collectionId}:${widget.sort ?? ''}',
-          ) ??
-          CollectionPlaybackMode.playlist;
       setState(() {
         _videos = playableVideos;
         _playUrls = playUrls;
@@ -202,7 +194,6 @@ class _VideoCollectionPlayContentState
           videoController: videoController,
           filmstrip: filmstrip,
           startIndex: startIndex,
-          mode: mode,
           episodeDurationsSeconds: List<int>.unmodifiable(playableDurations),
         );
         _isLoading = false;
@@ -439,18 +430,11 @@ class _VideoCollectionPlayContentState
     BuildContext context,
     VideoController videoController,
   ) {
-    // 合并模式：底栏 progressIndicator 接管整段进度条 + 时间显示，
-    // 并把 media_kit 自带的 seek bar 关掉（避免两条进度条同时显示）。
-    final useMerged =
-        playbackMode == CollectionPlaybackMode.merged && player != null;
-    final progressIndicator =
-        useMerged
-            ? MergedPositionIndicator(
-              player: player!,
-              episodeDurationsSeconds: episodeDurationsSeconds,
-              onSeekGlobalSeconds: seekToGlobalSeconds,
-            )
-            : null;
+    final progressIndicator = MergedPositionIndicator(
+      player: player!,
+      episodeDurationsSeconds: episodeDurationsSeconds,
+      onSeekGlobalSeconds: seekToGlobalSeconds,
+    );
     return ThemedVideoPlayer(
       videoController: videoController,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
@@ -458,7 +442,7 @@ class _VideoCollectionPlayContentState
       playbackSessionKey: currentIndex,
       onInitialPlaybackError: _retryCurrentWithProxy,
       videoKey: const Key('video-collection-play-video'),
-      displaySeekBar: !useMerged,
+      displaySeekBar: false,
       topControls: buildMoviePlayerTopControls(
         movieNumber: _currentVideoTitle(),
         onBackPressed: _handleBack,
