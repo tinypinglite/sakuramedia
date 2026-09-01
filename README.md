@@ -26,7 +26,9 @@
 
 ## 社区支持
 
-[Telegram](https://t.me/+ysbUBDExCsw5N2Jh)
+- 发现 Bug：[提交 Issue](https://github.com/tinypinglite/sakuramedia/issues)
+- 使用交流或求助：[参与 Discussions](https://github.com/tinypinglite/sakuramedia/discussions)
+- 擅长 Python 或 Flutter，希望开发插件或共同维护项目：[加入 Telegram](https://t.me/+ysbUBDExCsw5N2Jh)（群内不回答使用求助类问题）
 
 <h2 align="center">风险与声明</h2>
 

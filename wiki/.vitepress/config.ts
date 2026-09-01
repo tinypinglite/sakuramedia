@@ -11,7 +11,6 @@ export default defineConfig({
     nav: [
       { text: '指南', link: '/guide/quick-start' },
       { text: 'FAQ', link: '/faq' },
-      { text: 'Telegram', link: 'https://t.me/+ysbUBDExCsw5N2Jh' },
     ],
 
     sidebar: {
