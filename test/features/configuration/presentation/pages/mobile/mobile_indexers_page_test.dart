@@ -349,7 +349,7 @@ void main() {
     await tester.ensureVisible(
       find.byKey(const Key('indexer-download-client-1')),
     );
-    await tester.tap(find.byKey(const Key('indexer-download-client-1')));
+    await tester.tap(find.byKey(const Key('indexer-download-client-add-1')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(
       find.byKey(const Key('mobile-indexer-submit-button')),
@@ -431,6 +431,85 @@ void main() {
     expect(patchRequest.body['indexers'][0]['name'], '馒头-更新');
     expect(patchRequest.body['indexers'][0]['api_key'], 'new-key');
     expect(find.text('馒头-更新'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('saves reordered download client priorities for an indexer', (
+    WidgetTester tester,
+  ) async {
+    _enqueueIndexersData(
+      _bundle,
+      clients: <Map<String, dynamic>>[
+        _buildClientJson(),
+        _buildClientJson(id: 2, name: 'client-b'),
+      ],
+      indexers: const <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'name': '馒头',
+          'url': 'https://mt.example/api',
+          'kind': 'pt',
+          'api_key': 'secret-key',
+          'download_clients': <Map<String, dynamic>>[
+            <String, dynamic>{'id': 1, 'name': 'client-a'},
+            <String, dynamic>{'id': 2, 'name': 'client-b'},
+          ],
+        },
+      ],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'PATCH',
+      path: '/indexer-settings',
+      body: _buildSettingsJson(
+        indexers: const <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 1,
+            'name': '馒头',
+            'url': 'https://mt.example/api',
+            'kind': 'pt',
+            'api_key': 'secret-key',
+            'download_clients': <Map<String, dynamic>>[
+              <String, dynamic>{'id': 2, 'name': 'client-b'},
+              <String, dynamic>{'id': 1, 'name': 'client-a'},
+            ],
+          },
+        ],
+      ),
+    );
+
+    await _pumpPage(tester);
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -200));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mobile-indexer-card-body-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('mobile-indexer-detail-edit-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('下载器优先级'), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const Key('indexer-download-client-move-up-2')),
+    );
+    await tester.tap(
+      find.byKey(const Key('indexer-download-client-move-up-2')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('mobile-indexer-submit-button')),
+    );
+    await tester.tap(find.byKey(const Key('mobile-indexer-submit-button')));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    final patchRequest = _bundle.adapter.requests.firstWhere(
+      (request) =>
+          request.method == 'PATCH' && request.path == '/indexer-settings',
+    );
+    expect(patchRequest.body['indexers'][0]['download_client_ids'], <int>[
+      2,
+      1,
+    ]);
     await tester.pump(const Duration(seconds: 3));
   });
 
@@ -548,7 +627,7 @@ void main() {
       await tester.ensureVisible(
         find.byKey(const Key('indexer-download-client-1')),
       );
-      await tester.tap(find.byKey(const Key('indexer-download-client-1')));
+      await tester.tap(find.byKey(const Key('indexer-download-client-add-1')));
       await tester.pumpAndSettle();
       await tester.ensureVisible(
         find.byKey(const Key('mobile-indexer-submit-button')),

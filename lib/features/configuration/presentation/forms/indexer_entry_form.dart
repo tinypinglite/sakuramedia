@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/indexer_settings_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/forms/app_password_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
@@ -191,41 +193,179 @@ class IndexerEntryFormFields extends StatelessWidget {
             initialValue: selectedDownloadClientIds,
             validator: validateIndexerDownloadClientsField,
             builder: (field) {
-              final availableClients = downloadClients;
-              void toggle(DownloadClientDto client) {
-                if (!enabled) return;
-                final next = List<int>.of(selectedDownloadClientIds);
-                if (!next.remove(client.id)) next.add(client.id);
+              final clientsById = <int, DownloadClientDto>{
+                for (final client in downloadClients) client.id: client,
+              };
+              final selectedClients = selectedDownloadClientIds
+                  .map((id) => clientsById[id])
+                  .whereType<DownloadClientDto>()
+                  .toList(growable: false);
+              final selectedClientIds = selectedDownloadClientIds.toSet();
+              final unboundClients = downloadClients
+                  .where((client) => !selectedClientIds.contains(client.id))
+                  .toList(growable: false);
+
+              void updateSelection(List<int> next) {
                 field.didChange(next);
                 onDownloadClientsChanged(next);
+              }
+
+              void add(DownloadClientDto client) {
+                if (!enabled) return;
+                final next = List<int>.of(selectedDownloadClientIds);
+                next.add(client.id);
+                updateSelection(next);
+              }
+
+              void remove(DownloadClientDto client) {
+                if (!enabled) return;
+                final next = List<int>.of(selectedDownloadClientIds)
+                  ..remove(client.id);
+                updateSelection(next);
+              }
+
+              void move(int index, int offset) {
+                if (!enabled) return;
+                final nextIndex = index + offset;
+                if (nextIndex < 0 ||
+                    nextIndex >= selectedDownloadClientIds.length) {
+                  return;
+                }
+                final next = List<int>.of(selectedDownloadClientIds);
+                final clientId = next.removeAt(index);
+                next.insert(nextIndex, clientId);
+                updateSelection(next);
               }
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const IndexerFormFieldLabel(label: '绑定下载器'),
+                  const IndexerFormFieldLabel(label: '下载器优先级'),
                   SizedBox(height: spacing.sm),
-                  if (availableClients.isEmpty)
+                  Text(
+                    '首位下载器将作为自动下载和资源投递的默认目标。',
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.muted,
+                    ),
+                  ),
+                  SizedBox(height: spacing.sm),
+                  if (downloadClients.isEmpty)
                     AppSettingsGroup(
                       children: [AppSettingCell(title: '请先在下载器页创建下载器')],
                     )
-                  else
-                    AppSettingsGroup(
-                      children: [
-                        for (final client in availableClients)
+                  else ...[
+                    if (selectedClients.isEmpty)
+                      AppSettingsGroup(
+                        header: '已绑定下载器',
+                        children: const [
                           AppSettingCell(
-                            key: Key('indexer-download-client-${client.id}'),
-                            title: client.name,
-                            trailing: Checkbox(
-                              value: selectedDownloadClientIds.contains(
-                                client.id,
-                              ),
-                              onChanged: enabled ? (_) => toggle(client) : null,
-                            ),
-                            onTap: enabled ? () => toggle(client) : null,
+                            icon: Icons.download_outlined,
+                            title: '尚未绑定下载器',
+                            subtitle: '请从下方添加至少一个下载器',
                           ),
-                      ],
-                    ),
+                        ],
+                      )
+                    else
+                      AppSettingsGroup(
+                        header: '已绑定下载器',
+                        children: [
+                          for (
+                            var index = 0;
+                            index < selectedClients.length;
+                            index++
+                          )
+                            AppSettingCell(
+                              key: Key(
+                                'indexer-download-client-${selectedClients[index].id}',
+                              ),
+                              icon: index == 0
+                                  ? Icons.download_done_rounded
+                                  : Icons.download_rounded,
+                              iconColor: index == 0
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                              title: selectedClients[index].name,
+                              subtitle: index == 0
+                                  ? '默认下载器'
+                                  : '优先级 ${index + 1}',
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  AppIconButton(
+                                    key: Key(
+                                      'indexer-download-client-move-up-${selectedClients[index].id}',
+                                    ),
+                                    icon: const Icon(
+                                      Icons.arrow_upward_rounded,
+                                    ),
+                                    onPressed: !enabled || index == 0
+                                        ? null
+                                        : () => move(index, -1),
+                                    tooltip: '上移',
+                                    semanticLabel:
+                                        '上移 ${selectedClients[index].name}',
+                                  ),
+                                  AppIconButton(
+                                    key: Key(
+                                      'indexer-download-client-move-down-${selectedClients[index].id}',
+                                    ),
+                                    icon: const Icon(
+                                      Icons.arrow_downward_rounded,
+                                    ),
+                                    onPressed:
+                                        !enabled ||
+                                            index == selectedClients.length - 1
+                                        ? null
+                                        : () => move(index, 1),
+                                    tooltip: '下移',
+                                    semanticLabel:
+                                        '下移 ${selectedClients[index].name}',
+                                  ),
+                                  AppTextButton(
+                                    key: Key(
+                                      'indexer-download-client-remove-${selectedClients[index].id}',
+                                    ),
+                                    onPressed: enabled
+                                        ? () => remove(selectedClients[index])
+                                        : null,
+                                    label: '移除',
+                                    size: AppTextButtonSize.xSmall,
+                                    backgroundStyle:
+                                        AppTextButtonBackgroundStyle.muted,
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    if (unboundClients.isNotEmpty) ...[
+                      SizedBox(height: spacing.md),
+                      AppSettingsGroup(
+                        header: '添加下载器',
+                        children: [
+                          for (final client in unboundClients)
+                            AppSettingCell(
+                              key: Key('indexer-download-client-${client.id}'),
+                              icon: Icons.download_outlined,
+                              title: client.name,
+                              subtitle: '未绑定',
+                              trailing: AppTextButton(
+                                key: Key(
+                                  'indexer-download-client-add-${client.id}',
+                                ),
+                                onPressed: enabled ? () => add(client) : null,
+                                label: '添加',
+                                size: AppTextButtonSize.xSmall,
+                                emphasis: AppTextButtonEmphasis.accent,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ],
                   if (field.hasError) ...[
                     SizedBox(height: spacing.xs),
                     Text(

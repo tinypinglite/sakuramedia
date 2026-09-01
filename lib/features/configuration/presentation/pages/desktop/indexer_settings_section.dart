@@ -635,10 +635,7 @@ class _IndexerEntryDialogState extends ConsumerState<IndexerEntryDialog> {
         .map((id) => clientsById[id])
         .whereType<DownloadClientDto>()
         .map(
-          (client) => IndexerBoundClientDto(
-            id: client.id,
-            name: client.name,
-          ),
+          (client) => IndexerBoundClientDto(id: client.id, name: client.name),
         )
         .toList(growable: false);
   }
@@ -671,20 +668,24 @@ class _IndexerEntryDialogState extends ConsumerState<IndexerEntryDialog> {
               ),
             ),
             SizedBox(height: spacing.xl),
-            IndexerEntryFormFields(
-              nameController: _nameController,
-              urlController: _urlController,
-              apiKeyController: _apiKeyController,
-              kind: _kind,
-              downloadClients: widget.downloadClients,
-              selectedDownloadClientIds: _selectedDownloadClientIds,
-              onKindChanged: (value) => setState(() {
-                _kind = value;
-              }),
-              onDownloadClientsChanged: (value) => setState(() {
-                _selectedDownloadClientIds = value;
-              }),
-              onSubmitted: _submit,
+            Flexible(
+              child: SingleChildScrollView(
+                child: IndexerEntryFormFields(
+                  nameController: _nameController,
+                  urlController: _urlController,
+                  apiKeyController: _apiKeyController,
+                  kind: _kind,
+                  downloadClients: widget.downloadClients,
+                  selectedDownloadClientIds: _selectedDownloadClientIds,
+                  onKindChanged: (value) => setState(() {
+                    _kind = value;
+                  }),
+                  onDownloadClientsChanged: (value) => setState(() {
+                    _selectedDownloadClientIds = value;
+                  }),
+                  onSubmitted: _submit,
+                ),
+              ),
             ),
             SizedBox(height: spacing.xl),
             Row(

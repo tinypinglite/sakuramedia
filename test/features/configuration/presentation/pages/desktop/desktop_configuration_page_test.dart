@@ -1265,7 +1265,7 @@ void main() {
         find.byKey(const Key('indexer-entry-url-field')),
         'https://mirror.example.com/torznab',
       );
-      await tester.tap(find.byKey(const Key('indexer-download-client-1')));
+      await tester.tap(find.byKey(const Key('indexer-download-client-add-1')));
       await tester.tap(find.text('保存').last);
       await tester.pumpAndSettle();
 
@@ -1497,7 +1497,9 @@ void main() {
           find.byKey(const Key('indexer-entry-api-key-field')),
           'secret-key',
         );
-        await tester.tap(find.byKey(const Key('indexer-download-client-1')));
+        await tester.tap(
+          find.byKey(const Key('indexer-download-client-add-1')),
+        );
         await tester.pumpAndSettle();
         await tester.tap(find.text('保存').last);
         await tester.pumpAndSettle();
@@ -1518,6 +1520,80 @@ void main() {
         await tester.pump(const Duration(seconds: 3));
       },
     );
+
+    testWidgets('saves reordered download client priorities for an indexer', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueIndexerSettings(
+        bundle,
+        indexers: const [
+          {
+            'id': 1,
+            'name': 'mteam',
+            'url': 'https://mirror.example.com/torznab',
+            'kind': 'pt',
+            'download_clients': [
+              {'id': 1, 'name': 'client-a'},
+              {'id': 2, 'name': 'client-b'},
+            ],
+          },
+        ],
+      );
+      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/indexer-settings',
+        body: {
+          'indexers': [
+            {
+              'id': 1,
+              'name': 'mteam',
+              'url': 'https://mirror.example.com/torznab',
+              'kind': 'pt',
+              'api_key': 'secret-key',
+              'download_clients': [
+                {'id': 2, 'name': 'client-b'},
+                {'id': 1, 'name': 'client-a'},
+              ],
+            },
+          ],
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('indexer-entry-edit-0')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('下载器优先级'), findsOneWidget);
+      expect(find.text('默认下载器'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.ensureVisible(
+        find.byKey(const Key('indexer-download-client-move-up-2')),
+      );
+      await tester.tap(
+        find.byKey(const Key('indexer-download-client-move-up-2')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-indexer-save-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final patchRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'PATCH' && request.path == '/indexer-settings',
+      );
+      expect(patchRequest.body['indexers'][0]['download_client_ids'], <int>[
+        2,
+        1,
+      ]);
+      await tester.pump(const Duration(seconds: 3));
+    });
 
     testWidgets('searches indexers by bound download client name', (
       WidgetTester tester,
@@ -1600,9 +1676,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('client-a'), findsWidgets);
-      await tester.tap(find.byKey(const Key('indexer-download-client-1')));
+      await tester.tap(
+        find.byKey(const Key('indexer-download-client-remove-1')),
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('indexer-download-client-2')));
+      await tester.tap(find.byKey(const Key('indexer-download-client-add-2')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('保存').last);
       await tester.pumpAndSettle();
@@ -1659,7 +1737,7 @@ void main() {
         find.byKey(const Key('indexer-entry-url-field')),
         'https://mirror.example.com/torznab',
       );
-      await tester.tap(find.byKey(const Key('indexer-download-client-1')));
+      await tester.tap(find.byKey(const Key('indexer-download-client-add-1')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('保存').last);
       await tester.pumpAndSettle();
