@@ -24,6 +24,10 @@
   <a href="https://github.com/tinypinglite/sakuramediabe"><strong>后端项目</strong></a>
 </p>
 
+## 社区支持
+
+[Telegram](https://t.me/+ysbUBDExCsw5N2Jh)
+
 <h2 align="center">风险与声明</h2>
 
 - **SakuraMedia 当前仍处于快速迭代阶段，不保证任何功能可用性及历史版本兼容性**。
