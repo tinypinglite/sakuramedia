@@ -9,6 +9,9 @@ final class PassthroughVisualEffectView: NSVisualEffectView {
 }
 
 class MainFlutterWindow: NSWindow {
+  private static let iinaBundleIdentifier = "com.colliderli.iina"
+  private static let vlcBundleIdentifier = "org.videolan.vlc"
+  private static let infuseBundleIdentifier = "com.firecore.infuse"
   private static let externalPlayerBundleIdentifiers: Set<String> = [
     "org.videolan.vlc",
     "com.colliderli.iina",
@@ -135,9 +138,112 @@ class MainFlutterWindow: NSWindow {
       return
     }
 
+    let bundleIdentifier = Bundle(url: applicationURL)?.bundleIdentifier
+    if bundleIdentifier == Self.iinaBundleIdentifier {
+      var components = URLComponents()
+      components.scheme = "iina"
+      components.host = "open"
+      components.queryItems = [
+        URLQueryItem(name: "url", value: streamURL.absoluteString),
+      ]
+      guard let iinaURL = components.url else {
+        result(false)
+        return
+      }
+      NSWorkspace.shared.open(
+        iinaURL,
+        configuration: NSWorkspace.OpenConfiguration()
+      ) { _, error in
+        result(error == nil)
+      }
+      return
+    }
+
+    if bundleIdentifier == Self.vlcBundleIdentifier {
+      launchVLC(
+        applicationURL: applicationURL,
+        streamURL: streamURL,
+        result: result
+      )
+      return
+    }
+
+    if bundleIdentifier == Self.infuseBundleIdentifier {
+      launchInfuse(
+        streamURL: streamURL,
+        title: arguments["title"] as? String,
+        positionMs: arguments["positionMs"] as? Int,
+        result: result
+      )
+      return
+    }
+
     NSWorkspace.shared.open(
       [streamURL],
       withApplicationAt: applicationURL,
+      configuration: NSWorkspace.OpenConfiguration()
+    ) { _, error in
+      result(error == nil)
+    }
+  }
+
+  private func launchVLC(
+    applicationURL: URL,
+    streamURL: URL,
+    result: @escaping FlutterResult
+  ) {
+    let playlistURL = URL(fileURLWithPath: NSTemporaryDirectory())
+      .appendingPathComponent(UUID().uuidString)
+      .appendingPathExtension("m3u")
+    let playlistData = Data("#EXTM3U\n\(streamURL.absoluteString)\n".utf8)
+    guard FileManager.default.createFile(
+      atPath: playlistURL.path,
+      contents: playlistData,
+      attributes: [.posixPermissions: NSNumber(value: 0o600)]
+    ) else {
+      result(false)
+      return
+    }
+
+    NSWorkspace.shared.open(
+      [playlistURL],
+      withApplicationAt: applicationURL,
+      configuration: NSWorkspace.OpenConfiguration()
+    ) { _, error in
+      result(error == nil)
+      DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
+        try? FileManager.default.removeItem(at: playlistURL)
+      }
+    }
+  }
+
+  private func launchInfuse(
+    streamURL: URL,
+    title: String?,
+    positionMs: Int?,
+    result: @escaping FlutterResult
+  ) {
+    var components = URLComponents()
+    components.scheme = "infuse"
+    components.host = "x-callback-url"
+    components.path = "/play"
+    var queryItems = [URLQueryItem(name: "url", value: streamURL.absoluteString)]
+    if let title, !title.isEmpty {
+      queryItems.append(URLQueryItem(name: "filename", value: title))
+    }
+    if let positionMs, positionMs > 0 {
+      queryItems.append(
+        URLQueryItem(name: "position", value: String(positionMs / 1000))
+      )
+    }
+    components.queryItems = queryItems
+    guard let infuseURL = components.url else {
+      result(false)
+      return
+    }
+
+    NSWorkspace.shared.open(
+      infuseURL,
       configuration: NSWorkspace.OpenConfiguration()
     ) { _, error in
       result(error == nil)
