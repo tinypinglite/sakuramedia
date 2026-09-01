@@ -17,6 +17,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
+import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/preview_image_stage.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_thumbnail.dart';
@@ -352,8 +353,12 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
                   fullscreenImageKey: const Key(
                     'image-search-result-preview-fullscreen-image',
                   ),
-                  overlayChild:
-                      _canPlay ? _CenterPlayButton(onTap: _handlePlay) : null,
+                  overlayChild: _canPlay
+                      ? MediaCenterPlayButton(
+                          buttonKey: const Key('media-preview-center-play'),
+                          onTap: _handlePlay,
+                        )
+                      : null,
                 ),
                 Container(
                   key: const Key('image-search-result-preview-summary'),
@@ -395,7 +400,12 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
           onClose: () => Navigator.of(context).pop(),
           showCloseButton: false,
           enablePinchToFullscreen: false,
-          overlayChild: _canPlay ? _CenterPlayButton(onTap: _handlePlay) : null,
+          overlayChild: _canPlay
+              ? MediaCenterPlayButton(
+                  buttonKey: const Key('media-preview-center-play'),
+                  onTap: _handlePlay,
+                )
+              : null,
         ),
         Container(
           key: const Key('image-search-result-preview-summary'),
@@ -638,46 +648,6 @@ class _MediaPreviewSectionDivider extends StatelessWidget {
       height: 1,
       thickness: 1,
       color: context.appColors.borderSubtle.withValues(alpha: 0.72),
-    );
-  }
-}
-
-class _CenterPlayButton extends StatelessWidget {
-  const _CenterPlayButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final iconSize = context.appComponentTokens.iconSize4xl;
-    final padding = context.appSpacing.xs;
-    // Icon + padding 组成的正方形直径,ClipOval 保证 InkWell 的 hitTest
-    // 严格按圆形裁,四角 tap 穿透到底层的 AppPinchToFullscreenImage,
-    // 不抢移动端 drawer 分支的"点图放大"手势。
-    final diameter = iconSize + padding * 2;
-    return Positioned.fill(
-      child: Center(
-        child: SizedBox.square(
-          dimension: diameter,
-          child: ClipOval(
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                key: const Key('media-preview-center-play'),
-                onTap: onTap,
-                child: Padding(
-                  padding: EdgeInsets.all(padding),
-                  child: Icon(
-                    Icons.play_circle_outline_rounded,
-                    size: iconSize,
-                    color: Colors.white.withValues(alpha: 0.92),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

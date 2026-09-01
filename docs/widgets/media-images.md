@@ -20,6 +20,7 @@
 
 - `MediaPreviewDialog` / `showMediaPreviewOverlay`：`lib/widgets/domain/media/preview/media_preview_dialog.dart`，桌面 dialog 和移动 overlay 的统一入口。
 - `PreviewImageStage`：预览主图区域。
+- `MediaCenterPlayButton`：媒体封面中的可点击居中播放入口；只在确实可播放时放入封面 `Stack`。
 - `MediaPreviewActionGrid` / `MediaPreviewActionTile`：预览动作区。
 - `MomentPreviewDialog`：时刻语义的预览入口。
 

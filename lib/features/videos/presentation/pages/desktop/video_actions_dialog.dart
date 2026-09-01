@@ -5,6 +5,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/media_duration_badge.dart';
+import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
 
 /// 桌面版视频操作弹窗：点击视频卡后弹出居中对话框。
@@ -140,6 +141,10 @@ class DesktopVideoActionsDialogBody extends StatelessWidget {
                     right: spacing.xs,
                     bottom: spacing.xs,
                     child: MediaDurationBadge(seconds: video.durationSeconds),
+                  ),
+                if (video.canPlay)
+                  MediaCenterPlayButton(
+                    onTap: () => _run(context, onPlay),
                   ),
               ],
             ),

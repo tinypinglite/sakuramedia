@@ -4,6 +4,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/domain/media/media_duration_badge.dart';
+import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
 
 /// 移动端切片操作抽屉：点击切片卡 / 行任意位置后从底部弹出。
@@ -137,6 +138,9 @@ class MobileClipActionsSheet extends StatelessWidget {
                     right: spacing.xs,
                     bottom: spacing.xs,
                     child: MediaDurationBadge(seconds: clip.durationSeconds),
+                  ),
+                  MediaCenterPlayButton(
+                    onTap: () => _run(context, onPlay),
                   ),
                 ],
               ),
