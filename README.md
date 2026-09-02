@@ -30,6 +30,8 @@
 - 使用交流或求助：[参与 Discussions](https://github.com/tinypinglite/sakuramedia/discussions)
 - 擅长 Python 或 Flutter，希望开发插件或共同维护项目：[加入 Telegram](https://t.me/+ysbUBDExCsw5N2Jh)（群内不回答使用求助类问题）
 
+- **项目当前处理快速迭代阶段， 如遇问题可尝试将前后端以及各个插件升级到最新版本**
+
 <h2 align="center">风险与声明</h2>
 
 - **SakuraMedia 当前仍处于快速迭代阶段，不保证任何功能可用性及历史版本兼容性**。
