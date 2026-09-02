@@ -4,6 +4,7 @@
 
 - `AppDesktopShell`：`lib/widgets/shell/desktop/app_desktop_shell.dart`，桌面工作台容器。
 - `AppSidebar`、`AppSidebarGroup`、`AppSidebarItem`：`app_sidebar.dart`，桌面导航分组和条目。
+- `AppVersionInfoCard`：`app_version_info_card.dart`，应用版本与可用更新提示。
 - `AppTopBar`：`app_top_bar.dart`，桌面页面顶栏和操作区。
 - `AppMobileShell`、`AppMobileSubpageShell`：`lib/widgets/shell/mobile/`，移动一级入口和子页面容器。
 - `AppWindowDragArea`：`lib/widgets/shell/window/`，桌面窗口拖拽区。

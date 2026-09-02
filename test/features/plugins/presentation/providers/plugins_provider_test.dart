@@ -140,6 +140,39 @@ void main() {
   });
 
   test(
+    'keeps a known update when a later check for that plugin fails',
+    () async {
+      api.listHandler = () async => <PluginSummaryDto>[
+        pluginSummaryDto(
+          id: 'demo_plugin',
+          releaseApiUrl:
+              'https://api.github.com/repos/example/demo_plugin/releases/latest',
+        ),
+      ];
+      await container.read(pluginsProvider.future);
+      const update = PluginReleaseUpdate(
+        version: '1.1.0',
+        notes: '',
+        assetUrl: 'https://github.com/example/demo/download.zip',
+        assetFileName: 'demo_plugin-1.1.0.zip',
+      );
+      api.checkForUpdateHandler = (_) async => update;
+      await container.read(pluginsProvider.notifier).checkUpdates();
+
+      api.checkForUpdateHandler = (_) async => throw StateError('offline');
+      final allChecksSucceeded = await container
+          .read(pluginsProvider.notifier)
+          .checkUpdates();
+
+      expect(allChecksSucceeded, isFalse);
+      expect(
+        container.read(pluginsProvider).requireValue.updates['demo_plugin'],
+        update,
+      );
+    },
+  );
+
+  test(
     'install keeps the old list and returns false when refresh fails',
     () async {
       api.listHandler = () async => <PluginSummaryDto>[];

@@ -1,12 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/app/providers/app_shell_providers.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/notification_center_provider.dart';
-import 'package:sakuramedia/app/app_version_info_state.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
@@ -14,6 +11,7 @@ import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/shell/app_version_info_card.dart';
 import 'package:sakuramedia/widgets/shell/window/app_window_drag_area.dart';
 import 'package:sakuramedia/widgets/domain/search/catalog_search_field.dart';
 
@@ -128,7 +126,7 @@ class AppSidebar extends ConsumerWidget {
                   color: _sidebarDividerColor(appColors, useMacSidebarGlass),
                 ),
                 SizedBox(height: context.appSpacing.sm),
-                _SidebarVersionInfo(isCompact: isCompact),
+                AppVersionInfoCard(isCompact: isCompact),
                 SizedBox(height: context.appSpacing.sm),
                 AppSidebarItem(
                   key: const Key('sidebar-logout-button'),
@@ -324,127 +322,6 @@ class _SidebarNavScrollAreaState extends State<_SidebarNavScrollArea> {
 }
 
 const double _sidebarNavFadeHeight = 32;
-
-class _SidebarVersionInfo extends ConsumerStatefulWidget {
-  const _SidebarVersionInfo({required this.isCompact});
-
-  final bool isCompact;
-
-  @override
-  ConsumerState<_SidebarVersionInfo> createState() =>
-      _SidebarVersionInfoState();
-}
-
-class _SidebarVersionInfoState extends ConsumerState<_SidebarVersionInfo> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        unawaited(ref.read(appVersionInfoProvider.notifier).load());
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final versionInfo =
-        ref.watch(appVersionInfoProvider).value ?? AppVersionInfoState.initial;
-    final frontendVersion = versionInfo.frontendVersionLabel;
-    final backendVersion = versionInfo.backendVersionLabel;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final shouldUseCompact =
-            widget.isCompact || constraints.maxWidth < sidebarVersionMinWidth;
-        if (shouldUseCompact) {
-          return Tooltip(
-            message: versionInfo.tooltipLabel,
-            waitDuration: const Duration(milliseconds: 300),
-            child: Center(
-              child: Container(
-                key: const Key('sidebar-version-info-collapsed'),
-                width: context.appSidebarTokens.itemHeight,
-                height: context.appSidebarTokens.itemHeight,
-                decoration: BoxDecoration(
-                  color: context.appColors.surfaceMuted,
-                  borderRadius: context.appRadius.smBorder,
-                ),
-                child: Icon(
-                  Icons.info_outline_rounded,
-                  size: context.appComponentTokens.iconSizeSm,
-                  color: context.appTextPalette.muted,
-                ),
-              ),
-            ),
-          );
-        }
-
-        return Padding(
-          key: const Key('sidebar-version-info'),
-          padding: EdgeInsets.all(context.appSpacing.sm),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '系统版本',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  weight: AppTextWeight.medium,
-                  tone: AppTextTone.tertiary,
-                ),
-              ),
-              SizedBox(height: context.appSpacing.xs),
-              _SidebarVersionRow(label: '客户端', value: frontendVersion),
-              SizedBox(height: context.appSpacing.xs),
-              _SidebarVersionRow(label: '服务端', value: backendVersion),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-const double sidebarVersionMinWidth = 144;
-
-class _SidebarVersionRow extends StatelessWidget {
-  const _SidebarVersionRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          label,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            tone: AppTextTone.muted,
-          ),
-        ),
-        SizedBox(width: context.appSpacing.sm),
-        Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            overflow: TextOverflow.ellipsis,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.medium,
-              tone: AppTextTone.tertiary,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class AppSidebarGroup extends ConsumerWidget {
   const AppSidebarGroup({

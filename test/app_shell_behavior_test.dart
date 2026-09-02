@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 
 import 'support/test_api_bundle.dart';
 
@@ -103,6 +104,106 @@ void main() {
       findsOneWidget,
     );
     expect(find.byTooltip('客户端 0.2.3 · 服务端 v0.2.0'), findsOneWidget);
+  });
+
+  testWidgets('desktop sidebar highlights available backend and plugin updates', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueOverviewResponses(bundle);
+    const frontendReleaseUrl =
+        'https://api.github.com/repos/tinypinglite/sakuramedia/releases/latest';
+    const backendReleaseUrl =
+        'https://api.github.com/repos/tinypinglite/sakuramediabe/releases/latest';
+    const pluginReleaseUrl =
+        'https://api.github.com/repos/example/demo_plugin/releases/latest';
+    bundle.adapter.setFallbackJson(
+      method: 'GET',
+      path: '/system/plugins',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'plugin_id': 'demo_plugin',
+          'display_name': '演示插件',
+          'version': '1.0.0',
+          'host_api_version': 1,
+          'enabled': true,
+          'load_status': 'ok',
+          'release_api_url': pluginReleaseUrl,
+        },
+      ],
+    );
+    bundle.adapter.setFallbackJson(
+      method: 'GET',
+      path: frontendReleaseUrl,
+      body: <String, dynamic>{'tag_name': 'v0.3.0'},
+    );
+    bundle.adapter.setFallbackJson(
+      method: 'GET',
+      path: backendReleaseUrl,
+      body: <String, dynamic>{'tag_name': 'v0.3.0'},
+    );
+    bundle.adapter.setFallbackJson(
+      method: 'GET',
+      path: pluginReleaseUrl,
+      body: <String, dynamic>{
+        'tag_name': 'v1.1.0',
+        'assets': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'name': 'demo_plugin-1.1.0.zip',
+            'browser_download_url':
+                'https://github.com/example/demo_plugin/releases/download/v1.1.0/demo_plugin-1.1.0.zip',
+          },
+        ],
+      },
+    );
+
+    await _pumpDesktopApp(
+      tester,
+      bundle: bundle,
+      sessionStore: sessionStore,
+      statusApi: bundle.statusApi,
+      moviesApi: bundle.moviesApi,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('sidebar-update-notice')), findsOneWidget);
+    expect(find.text('有更新'), findsOneWidget);
+    expect(find.text('发现可用更新'), findsOneWidget);
+    expect(find.text('客户端 v0.3.0 · 服务端 v0.3.0 · 1 个插件'), findsOneWidget);
+    final colors = sakuraThemeData.extension<AppColors>()!;
+    final textPalette = sakuraThemeData.extension<AppTextPalette>()!;
+    final updateNotice = tester.widget<Container>(
+      find.byKey(const Key('sidebar-update-notice')),
+    );
+    final updateNoticeDecoration = updateNotice.decoration! as BoxDecoration;
+    expect(updateNoticeDecoration.color, colors.selectionSurface);
+    final updateBadge = find.descendant(
+      of: find.byKey(const Key('sidebar-version-info')),
+      matching: find.byType(AppBadge),
+    );
+    expect(tester.widget<AppBadge>(updateBadge).tone, AppBadgeTone.primary);
+
+    await tester.tap(find.byKey(const Key('sidebar-toggle-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('sidebar-version-update-dot')), findsOneWidget);
+    final collapsedVersionInfo = tester.widget<Container>(
+      find.byKey(const Key('sidebar-version-info-collapsed')),
+    );
+    final collapsedDecoration =
+        collapsedVersionInfo.decoration! as BoxDecoration;
+    expect(collapsedDecoration.color, colors.selectionSurface);
+    final updateDot = tester.widget<Container>(
+      find.byKey(const Key('sidebar-version-update-dot')),
+    );
+    final updateDotDecoration = updateDot.decoration! as BoxDecoration;
+    expect(updateDotDecoration.color, textPalette.accent);
+    expect(
+      find.byTooltip('客户端 0.2.3 · 服务端 v0.2.0\n客户端可更新至 v0.3.0\n服务端可更新至 v0.3.0\n1 个插件可更新'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('desktop sidebar groups nav items into 浏览/管理 sections', (

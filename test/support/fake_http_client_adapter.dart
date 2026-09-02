@@ -15,6 +15,7 @@ class RecordedRequest {
     required this.uri,
     required this.headers,
     required this.body,
+    required this.connectTimeout,
     required this.receiveTimeout,
   });
 
@@ -23,6 +24,7 @@ class RecordedRequest {
   final Uri uri;
   final Map<String, dynamic> headers;
   final dynamic body;
+  final Duration? connectTimeout;
   final Duration? receiveTimeout;
 }
 
@@ -179,6 +181,7 @@ class FakeHttpClientAdapter implements HttpClientAdapter {
         uri: options.uri,
         headers: Map<String, dynamic>.from(options.headers),
         body: requestBody,
+        connectTimeout: options.connectTimeout,
         receiveTimeout: options.receiveTimeout,
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 
 /// `GET /media` 归属划分：`jav` 关联影片番号；`video` 关联 videos 域视频。
 enum MediaListItemKind { jav, video, unknown }
@@ -58,6 +59,7 @@ class MediaListItemDto {
     required this.updatedAt,
     this.thumbnailGenerationState = MediaThumbnailGenerationState.unknown,
     this.thumbnailLastErrorCode,
+    this.collections = const <VideoCollectionRef>[],
   });
 
   final int id;
@@ -79,6 +81,7 @@ class MediaListItemDto {
   final DateTime? updatedAt;
   final MediaThumbnailGenerationState thumbnailGenerationState;
   final String? thumbnailLastErrorCode;
+  final List<VideoCollectionRef> collections;
 
   bool get isJav => kind == MediaListItemKind.jav;
   bool get isVideo => kind == MediaListItemKind.video;
@@ -151,6 +154,7 @@ class MediaListItemDto {
         json['thumbnail_last_error_code'],
         trim: true,
       ),
+      collections: videoCollectionRefsFromJson(json['collections']),
     );
   }
 

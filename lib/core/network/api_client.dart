@@ -56,12 +56,16 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
+    Duration? connectTimeout,
+    Duration? receiveTimeout,
   }) async {
     final response = await _request<Map<String, dynamic>>(
       method: 'GET',
       path: path,
       queryParameters: queryParameters,
       requiresAuth: requiresAuth,
+      connectTimeout: connectTimeout,
+      receiveTimeout: receiveTimeout,
     );
     return _asJsonMap(response.data);
   }
@@ -255,6 +259,7 @@ class ApiClient {
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
     ResponseType? responseType,
+    Duration? connectTimeout,
     Duration? receiveTimeout,
     Map<String, dynamic>? headers,
     bool Function(int?)? validateStatus,
@@ -269,6 +274,7 @@ class ApiClient {
         options: Options(
           method: method,
           responseType: responseType,
+          connectTimeout: connectTimeout,
           receiveTimeout: receiveTimeout,
           headers: headers,
           validateStatus: validateStatus,

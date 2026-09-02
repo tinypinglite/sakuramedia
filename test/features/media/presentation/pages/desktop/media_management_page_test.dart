@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/presentation/pages/desktop/media_management_page.dart';
+import 'package:sakuramedia/features/media/presentation/pages/shared/media_management_content.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/theme.dart';
 
@@ -144,6 +145,38 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
+  testWidgets('shows and opens collections for duplicate PornBox media', (
+    tester,
+  ) async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/duplicates',
+      body: _page(total: 1, items: [_duplicateVideoGroupJson()]),
+    );
+    int? openedCollectionId;
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      onOpenVideoCollectionDetail: (collectionId) {
+        openedCollectionId = collectionId;
+      },
+    );
+
+    await tester.tap(find.byKey(const Key('media-management-tab-duplicates')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('duplicate-media-collections-title-1')),
+      findsOneWidget,
+    );
+    expect(find.text('系列 A'), findsOneWidget);
+    expect(find.text('稍后再看'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('video-collection-chip-8')));
+    expect(openedCollectionId, 8);
+  });
+
   testWidgets('deletes an invalid media item directly', (tester) async {
     adapter.enqueueJson(
       method: 'GET',
@@ -183,6 +216,7 @@ Future<void> _pumpPage(
   required MediaApi mediaApi,
   required ApiClient apiClient,
   bool switchToMaintenance = false,
+  void Function(int collectionId)? onOpenVideoCollectionDetail,
 }) async {
   tester.view.physicalSize = const Size(1280, 900);
   tester.view.devicePixelRatio = 1;
@@ -199,8 +233,18 @@ Future<void> _pumpPage(
       ],
       child: MaterialApp(
         theme: sakuraThemeData,
-        home: const OKToast(
-          child: Scaffold(body: DesktopMediaManagementPage()),
+        home: OKToast(
+          child: Scaffold(
+            body: onOpenVideoCollectionDetail == null
+                ? const DesktopMediaManagementPage()
+                : MediaManagementContent(
+                    keyPrefix: 'media-management',
+                    rootKey: const Key('desktop-media-management-page'),
+                    onOpenMovieDetail: (_, _) {},
+                    onOpenVideoCollectionDetail: (_, collectionId) =>
+                        onOpenVideoCollectionDetail(collectionId),
+                  ),
+          ),
         ),
       ),
     ),
@@ -255,12 +299,36 @@ Map<String, dynamic> _duplicateGroupJson() {
   };
 }
 
-Map<String, dynamic> _duplicateMediaItemJson(int id) {
+Map<String, dynamic> _duplicateVideoGroupJson() {
+  return <String, dynamic>{
+    'kind': 'video',
+    'media_count': 2,
+    'media_items': [
+      _duplicateMediaItemJson(
+        1,
+        kind: 'video',
+        videoItemId: 101,
+        collections: <Map<String, dynamic>>[
+          <String, dynamic>{'id': 3, 'name': '系列 A'},
+          <String, dynamic>{'id': 8, 'name': '稍后再看'},
+        ],
+      ),
+      _duplicateMediaItemJson(2, kind: 'video', videoItemId: 102),
+    ],
+  };
+}
+
+Map<String, dynamic> _duplicateMediaItemJson(
+  int id, {
+  String kind = 'jav',
+  int? videoItemId,
+  List<Map<String, dynamic>> collections = const <Map<String, dynamic>>[],
+}) {
   return <String, dynamic>{
     'id': id,
-    'kind': 'jav',
-    'movie_number': 'ABC-$id',
-    'video_item_id': null,
+    'kind': kind,
+    'movie_number': kind == 'jav' ? 'ABC-$id' : null,
+    'video_item_id': videoItemId,
     'title': 'Movie $id',
     'cover_image': null,
     'thin_cover_image': null,
@@ -274,6 +342,7 @@ Map<String, dynamic> _duplicateMediaItemJson(int id) {
     'thumbnail_generation_state': 'succeeded',
     'thumbnail_last_error_code': null,
     'heat': 100,
+    'collections': collections,
     'created_at': '2026-05-13T12:00:00Z',
     'updated_at': '2026-05-13T12:00:00Z',
   };

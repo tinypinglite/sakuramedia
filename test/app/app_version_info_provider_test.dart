@@ -54,23 +54,38 @@ void main() {
     apiClient.dispose();
   });
 
-  test('loads frontend and backend version labels once', () async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/status',
-      body: _statusJson(backendVersion: 'v0.2.0'),
-    );
+  test(
+    'coalesces concurrent requests and refreshes backend version later',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/status',
+        body: _statusJson(backendVersion: 'v0.2.0'),
+      );
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/status',
+        body: _statusJson(backendVersion: 'v0.2.1'),
+      );
 
-    final notifier = container.read(appVersionInfoProvider.notifier);
-    await Future.wait<void>([notifier.load(), notifier.load()]);
+      final notifier = container.read(appVersionInfoProvider.notifier);
+      await Future.wait<void>([notifier.load(), notifier.load()]);
 
-    final state = container.read(appVersionInfoProvider).requireValue;
-    expect(state.frontendVersionLabel, '0.2.3');
-    expect(state.backendVersionLabel, 'v0.2.0');
-    expect(state.tooltipLabel, '客户端 0.2.3 · 服务端 v0.2.0');
-    expect(packageLoadCount, 1);
-    expect(adapter.hitCount('GET', '/status'), 1);
-  });
+      var state = container.read(appVersionInfoProvider).requireValue;
+      expect(state.frontendVersionLabel, '0.2.3');
+      expect(state.backendVersionLabel, 'v0.2.0');
+      expect(state.tooltipLabel, '客户端 0.2.3 · 服务端 v0.2.0');
+      expect(packageLoadCount, 1);
+      expect(adapter.hitCount('GET', '/status'), 1);
+
+      await notifier.load();
+
+      state = container.read(appVersionInfoProvider).requireValue;
+      expect(state.backendVersionLabel, 'v0.2.1');
+      expect(packageLoadCount, 1);
+      expect(adapter.hitCount('GET', '/status'), 2);
+    },
+  );
 
   test('keeps backend placeholder when status request fails', () async {
     adapter.enqueueJson(

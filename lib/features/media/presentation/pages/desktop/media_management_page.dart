@@ -15,6 +15,8 @@ class DesktopMediaManagementPage extends StatelessWidget {
       rootKey: const Key('desktop-media-management-page'),
       onOpenMovieDetail: (context, movieNumber) =>
           context.pushDesktopMovieDetail(movieNumber: movieNumber),
+      onOpenVideoCollectionDetail: (context, collectionId) =>
+          context.pushDesktopVideoCollectionDetail(collectionId: collectionId),
     );
   }
 }

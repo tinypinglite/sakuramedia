@@ -83,7 +83,7 @@ class Plugins extends _$Plugins
       return false;
     }
     state = AsyncData(current.copyWith(isCheckingUpdates: true));
-    final updates = <String, PluginReleaseUpdate>{};
+    final updates = Map<String, PluginReleaseUpdate>.of(current.updates);
     var allChecksSucceeded = true;
     for (final plugin in current.plugins) {
       if (plugin.releaseApiUrl == null) {
@@ -93,6 +93,8 @@ class Plugins extends _$Plugins
         final update = await _api.checkForUpdate(plugin);
         if (update != null) {
           updates[plugin.pluginId] = update;
+        } else {
+          updates.remove(plugin.pluginId);
         }
       } catch (_) {
         allChecksSucceeded = false;

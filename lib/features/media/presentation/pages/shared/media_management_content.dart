@@ -30,6 +30,7 @@ class MediaManagementContent extends HookConsumerWidget {
     required this.keyPrefix,
     required this.rootKey,
     required this.onOpenMovieDetail,
+    required this.onOpenVideoCollectionDetail,
     this.mobile = false,
   });
 
@@ -37,6 +38,8 @@ class MediaManagementContent extends HookConsumerWidget {
   final Key rootKey;
   final void Function(BuildContext context, String movieNumber)
   onOpenMovieDetail;
+  final void Function(BuildContext context, int collectionId)
+  onOpenVideoCollectionDetail;
   final bool mobile;
 
   static const int _duplicateTabIndex = 1;
@@ -141,6 +144,7 @@ class MediaManagementContent extends HookConsumerWidget {
                   duplicateKind: duplicateKind.value,
                 ),
                 onOpenMovieDetail: onOpenMovieDetail,
+                onOpenVideoCollectionDetail: onOpenVideoCollectionDetail,
               ),
               _ => MediaListSection(
                 scrollController: scrollController,

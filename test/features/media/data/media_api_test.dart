@@ -300,6 +300,44 @@ void main() {
     });
   });
 
+  test('getDuplicateMediaGroups maps video collection refs', () async {
+    final videoItem = _duplicateMediaItemJson(id: 100)
+      ..['kind'] = 'video'
+      ..['movie_number'] = null
+      ..['video_item_id'] = 10
+      ..['collections'] = <Map<String, dynamic>>[
+        <String, dynamic>{'id': 3, 'name': '收藏'},
+        <String, dynamic>{'id': 8, 'name': '稍后再看'},
+      ];
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/duplicates',
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'kind': 'video',
+            'media_count': 1,
+            'media_items': [videoItem],
+          },
+        ],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
+    );
+
+    final page = await mediaApi.getDuplicateMediaGroups(kind: 'video');
+
+    expect(
+      page.items.single.mediaItems.single.collections.map((item) => item.id),
+      [3, 8],
+    );
+    expect(
+      page.items.single.mediaItems.single.collections.map((item) => item.name),
+      ['收藏', '稍后再看'],
+    );
+  });
+
   test('createMediaPoint maps POST /media/{media_id}/points', () async {
     adapter.enqueueJson(
       method: 'POST',

@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/media/presentation/widgets/shared/media_lis
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_path_line.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_async_section.dart';
+import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_collection_chips.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
@@ -31,6 +32,7 @@ class DuplicateMediaSection extends ConsumerWidget {
     required this.keyPrefix,
     required this.mobile,
     required this.onRefresh,
+    required this.onOpenVideoCollectionDetail,
     this.onOpenMovieDetail,
   });
 
@@ -40,6 +42,8 @@ class DuplicateMediaSection extends ConsumerWidget {
   final String keyPrefix;
   final bool mobile;
   final Future<void> Function() onRefresh;
+  final void Function(BuildContext context, int collectionId)
+  onOpenVideoCollectionDetail;
   final void Function(BuildContext context, String movieNumber)?
   onOpenMovieDetail;
 
@@ -95,6 +99,7 @@ class DuplicateMediaSection extends ConsumerWidget {
           keyPrefix: keyPrefix,
           mobile: mobile,
           onOpenMovieDetail: onOpenMovieDetail,
+          onOpenVideoCollectionDetail: onOpenVideoCollectionDetail,
           onDelete: (group, item) => unawaited(deleteMedia(group, item)),
         ),
         SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.xxl)),
@@ -208,6 +213,7 @@ class _DuplicateMediaBodySliver extends ConsumerWidget {
     required this.keyPrefix,
     required this.mobile,
     required this.onDelete,
+    required this.onOpenVideoCollectionDetail,
     this.onOpenMovieDetail,
   });
 
@@ -216,6 +222,8 @@ class _DuplicateMediaBodySliver extends ConsumerWidget {
   final bool mobile;
   final void Function(DuplicateMediaGroupDto group, MediaListItemDto item)
   onDelete;
+  final void Function(BuildContext context, int collectionId)
+  onOpenVideoCollectionDetail;
   final void Function(BuildContext context, String movieNumber)?
   onOpenMovieDetail;
 
@@ -247,6 +255,7 @@ class _DuplicateMediaBodySliver extends ConsumerWidget {
         mobile: mobile,
         onDelete: onDelete,
         onOpenMovieDetail: onOpenMovieDetail,
+        onOpenVideoCollectionDetail: onOpenVideoCollectionDetail,
       ),
     );
   }
@@ -265,6 +274,7 @@ class _DuplicateMediaGroupCard extends StatelessWidget {
     required this.keyPrefix,
     required this.mobile,
     required this.onDelete,
+    required this.onOpenVideoCollectionDetail,
     this.onOpenMovieDetail,
   });
 
@@ -273,6 +283,8 @@ class _DuplicateMediaGroupCard extends StatelessWidget {
   final bool mobile;
   final void Function(DuplicateMediaGroupDto group, MediaListItemDto item)
   onDelete;
+  final void Function(BuildContext context, int collectionId)
+  onOpenVideoCollectionDetail;
   final void Function(BuildContext context, String movieNumber)?
   onOpenMovieDetail;
 
@@ -302,6 +314,7 @@ class _DuplicateMediaGroupCard extends StatelessWidget {
                 mobile: mobile,
                 onDelete: () => onDelete(group, group.mediaItems[index]),
                 onOpenMovieDetail: onOpenMovieDetail,
+                onOpenVideoCollectionDetail: onOpenVideoCollectionDetail,
               ),
             ],
           ],
@@ -318,6 +331,7 @@ class _DuplicateMediaItemRow extends StatelessWidget {
     required this.keyPrefix,
     required this.mobile,
     required this.onDelete,
+    required this.onOpenVideoCollectionDetail,
     this.onOpenMovieDetail,
   });
 
@@ -325,6 +339,8 @@ class _DuplicateMediaItemRow extends StatelessWidget {
   final String keyPrefix;
   final bool mobile;
   final VoidCallback onDelete;
+  final void Function(BuildContext context, int collectionId)
+  onOpenVideoCollectionDetail;
   final void Function(BuildContext context, String movieNumber)?
   onOpenMovieDetail;
 
@@ -341,7 +357,11 @@ class _DuplicateMediaItemRow extends StatelessWidget {
         ),
         SizedBox(width: spacing.md),
         Expanded(
-          child: _DuplicateMediaItemDetails(item: item, mobile: mobile),
+          child: _DuplicateMediaItemDetails(
+            item: item,
+            mobile: mobile,
+            onOpenVideoCollectionDetail: onOpenVideoCollectionDetail,
+          ),
         ),
       ],
     );
@@ -375,10 +395,16 @@ class _DuplicateMediaItemRow extends StatelessWidget {
 }
 
 class _DuplicateMediaItemDetails extends ConsumerWidget {
-  const _DuplicateMediaItemDetails({required this.item, required this.mobile});
+  const _DuplicateMediaItemDetails({
+    required this.item,
+    required this.mobile,
+    required this.onOpenVideoCollectionDetail,
+  });
 
   final MediaListItemDto item;
   final bool mobile;
+  final void Function(BuildContext context, int collectionId)
+  onOpenVideoCollectionDetail;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -432,6 +458,25 @@ class _DuplicateMediaItemDetails extends ConsumerWidget {
               weight: AppTextWeight.regular,
               tone: AppTextTone.secondary,
             ),
+          ),
+        ],
+        if (item.isVideo && item.collections.isNotEmpty) ...[
+          SizedBox(height: spacing.sm),
+          Text(
+            '所属合集',
+            key: Key('duplicate-media-collections-title-${item.id}'),
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.medium,
+              tone: AppTextTone.secondary,
+            ),
+          ),
+          SizedBox(height: spacing.xs),
+          VideoCollectionChips(
+            collections: item.collections,
+            onCollectionTap: (collection) =>
+                onOpenVideoCollectionDetail(context, collection.id),
           ),
         ],
         SizedBox(height: spacing.sm),

@@ -162,6 +162,69 @@ void main() {
   });
 
   test(
+    'checks the latest backend release without sending the login token',
+    () async {
+      const releaseUrl =
+          'https://api.github.com/repos/tinypinglite/sakuramediabe/releases/latest';
+      adapter.enqueueJson(
+        method: 'GET',
+        path: releaseUrl,
+        body: <String, dynamic>{'tag_name': 'v0.2.1'},
+      );
+
+      final updateVersion = await statusApi.checkBackendUpdate('v0.2.0');
+
+      expect(updateVersion, 'v0.2.1');
+      final request = adapter.requests.single;
+      expect(request.path, releaseUrl);
+      expect(request.headers.containsKey('Authorization'), isFalse);
+      expect(request.connectTimeout, const Duration(seconds: 10));
+      expect(request.receiveTimeout, const Duration(seconds: 10));
+    },
+  );
+
+  test(
+    'checks the latest frontend release without sending the login token',
+    () async {
+      const releaseUrl =
+          'https://api.github.com/repos/tinypinglite/sakuramedia/releases/latest';
+      adapter.enqueueJson(
+        method: 'GET',
+        path: releaseUrl,
+        body: <String, dynamic>{'tag_name': 'v0.2.4'},
+      );
+
+      final updateVersion = await statusApi.checkFrontendUpdate('0.2.3');
+
+      expect(updateVersion, 'v0.2.4');
+      final request = adapter.requests.single;
+      expect(request.path, releaseUrl);
+      expect(request.headers.containsKey('Authorization'), isFalse);
+    },
+  );
+
+  test('skips the release request for a local backend version', () async {
+    final updateVersion = await statusApi.checkBackendUpdate('dev-local');
+
+    expect(updateVersion, isNull);
+    expect(adapter.requests, isEmpty);
+  });
+
+  test('treats an invalid release tag as no update', () async {
+    const releaseUrl =
+        'https://api.github.com/repos/tinypinglite/sakuramediabe/releases/latest';
+    adapter.enqueueJson(
+      method: 'GET',
+      path: releaseUrl,
+      body: <String, dynamic>{'tag_name': 'nightly'},
+    );
+
+    final updateVersion = await statusApi.checkBackendUpdate('v0.2.0');
+
+    expect(updateVersion, isNull);
+  });
+
+  test(
     'getImageSearchStatus parses embedding service and indexing stats',
     () async {
       adapter.enqueueJson(

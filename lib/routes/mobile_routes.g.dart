@@ -12,6 +12,7 @@ List<RouteBase> get $appRoutes => [
   $mobileImageSearchRouteData,
   $mobileSearchQueryRouteData,
   $mobileSettingsMediaLibrariesRouteData,
+  $mobileSettingsPluginsRouteData,
   $mobileSystemOverviewRouteData,
   $mobileActivityRouteData,
   $mobileNotificationsRouteData,
@@ -19,6 +20,7 @@ List<RouteBase> get $appRoutes => [
   $mobileSettingsDownloadersRouteData,
   $mobileSettingsIndexersRouteData,
   $mobileSettingsPlaylistsRouteData,
+  $mobileSettingsSystemMaintenanceRouteData,
   $mobileSettingsExternalPlayerRouteData,
   $mobileSettingsUsernameRouteData,
   $mobileSettingsPasswordRouteData,
@@ -237,6 +239,32 @@ mixin $MobileSettingsMediaLibrariesRouteData on GoRouteData {
   void replace(BuildContext context) => context.replace(location);
 }
 
+RouteBase get $mobileSettingsPluginsRouteData => GoRouteData.$route(
+  path: '/mobile/settings/plugins',
+  factory: $MobileSettingsPluginsRouteData._fromState,
+);
+
+mixin $MobileSettingsPluginsRouteData on GoRouteData {
+  static MobileSettingsPluginsRouteData _fromState(GoRouterState state) =>
+      const MobileSettingsPluginsRouteData();
+
+  @override
+  String get location => GoRouteData.$location('/mobile/settings/plugins');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
 RouteBase get $mobileSystemOverviewRouteData => GoRouteData.$route(
   path: '/mobile/system/overview',
   factory: $MobileSystemOverviewRouteData._fromState,
@@ -404,6 +432,34 @@ mixin $MobileSettingsPlaylistsRouteData on GoRouteData {
 
   @override
   String get location => GoRouteData.$location('/mobile/settings/playlists');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileSettingsSystemMaintenanceRouteData => GoRouteData.$route(
+  path: '/mobile/settings/system-maintenance',
+  factory: $MobileSettingsSystemMaintenanceRouteData._fromState,
+);
+
+mixin $MobileSettingsSystemMaintenanceRouteData on GoRouteData {
+  static MobileSettingsSystemMaintenanceRouteData _fromState(
+    GoRouterState state,
+  ) => const MobileSettingsSystemMaintenanceRouteData();
+
+  @override
+  String get location =>
+      GoRouteData.$location('/mobile/settings/system-maintenance');
 
   @override
   void go(BuildContext context) => context.go(location);

@@ -107,8 +107,39 @@ void main() {
         final request = adapter.requests.single;
         expect(request.path, releaseUrl);
         expect(request.headers.containsKey('Authorization'), isFalse);
+        expect(request.connectTimeout, const Duration(seconds: 10));
+        expect(request.receiveTimeout, const Duration(seconds: 10));
       },
     );
+
+    test('treats invalid plugin versions as no update', () async {
+      const releaseUrl =
+          'https://api.github.com/repos/example/demo_plugin/releases/latest';
+      adapter.enqueueJson(
+        method: 'GET',
+        path: releaseUrl,
+        body: <String, dynamic>{'tag_name': 'nightly'},
+      );
+
+      final update = await api.checkForUpdate(
+        pluginSummaryDto(releaseApiUrl: releaseUrl),
+      );
+
+      expect(update, isNull);
+    });
+
+    test('skips the release request for an invalid installed version', () async {
+      final update = await api.checkForUpdate(
+        pluginSummaryDto(
+          version: 'nightly',
+          releaseApiUrl:
+              'https://api.github.com/repos/example/demo_plugin/releases/latest',
+        ),
+      );
+
+      expect(update, isNull);
+      expect(adapter.requests, isEmpty);
+    });
 
     test(
       'downloads a release zip and uploads it to the upgrade endpoint',

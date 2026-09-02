@@ -28,17 +28,28 @@ typedef AppPackageInfoLoader = Future<PackageInfo> Function();
 @Riverpod(keepAlive: true)
 AppPackageInfoLoader appPackageInfoLoader(Ref ref) => PackageInfo.fromPlatform;
 
-/// 前后端版本信息。provider 本身常驻，但 [load] 仍由版本 UI 首次出现时显式
+/// 前后端版本信息。provider 本身常驻，但 [load] 仍由版本 UI 出现时显式
 /// 触发，避免仅创建应用容器就请求 `/status`。
 @Riverpod(keepAlive: true, retry: kNoAsyncNotifierRetry)
 class AppVersionInfo extends _$AppVersionInfo {
   Future<void>? _loadFuture;
+  Future<String>? _frontendVersionFuture;
 
   @override
   FutureOr<AppVersionInfoState> build() => AppVersionInfoState.initial;
 
   Future<void> load() {
-    return _loadFuture ??= _loadVersions();
+    final inFlight = _loadFuture;
+    if (inFlight != null) {
+      return inFlight;
+    }
+    final next = _loadVersions();
+    _loadFuture = next;
+    return next.whenComplete(() {
+      if (identical(_loadFuture, next)) {
+        _loadFuture = null;
+      }
+    });
   }
 
   Future<void> _loadVersions() async {
@@ -46,7 +57,7 @@ class AppVersionInfo extends _$AppVersionInfo {
     state = AsyncData(current.copyWith(isLoading: true));
 
     final results = await Future.wait<String>([
-      _loadFrontendVersion(),
+      _frontendVersionFuture ??= _loadFrontendVersion(),
       _loadBackendVersion(),
     ]);
     if (!ref.mounted) {

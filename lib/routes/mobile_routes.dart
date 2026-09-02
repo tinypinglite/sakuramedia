@@ -1,15 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/app/providers/app_shell_providers.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/notification_center_provider.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/mobile_overview_tab_index_provider.dart';
 import 'package:sakuramedia/app/app_platform.dart';
-import 'package:sakuramedia/app/app_version_info_state.dart';
 import 'package:sakuramedia/features/account/presentation/pages/mobile/change_password_page.dart';
 import 'package:sakuramedia/features/account/presentation/pages/mobile/change_username_page.dart';
 import 'package:sakuramedia/features/actors/presentation/pages/mobile/actor_detail_page.dart';
@@ -25,6 +21,8 @@ import 'package:sakuramedia/features/media/presentation/pages/mobile/media_manag
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_downloaders_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_indexers_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_media_libraries_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_system_maintenance_page.dart';
+import 'package:sakuramedia/features/plugins/presentation/pages/mobile/mobile_plugins_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collection_detail_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collection_play_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collections_page.dart';
@@ -46,6 +44,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/shell/app_version_info_card.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_shell.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 
@@ -260,6 +259,26 @@ class MobileSettingsMediaLibrariesRouteData extends _MobileSubpageRouteData
   }
 }
 
+@TypedGoRoute<MobileSettingsPluginsRouteData>(path: mobileSettingsPluginsPath)
+class MobileSettingsPluginsRouteData extends _MobileSubpageRouteData
+    with $MobileSettingsPluginsRouteData {
+  const MobileSettingsPluginsRouteData();
+
+  @override
+  String get pageName => 'mobile-settings-plugins';
+
+  @override
+  String get title => '插件';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobilePluginsPage();
+  }
+}
+
 @TypedGoRoute<MobileSystemOverviewRouteData>(path: mobileSystemOverviewPath)
 class MobileSystemOverviewRouteData extends _MobileSubpageRouteData
     with $MobileSystemOverviewRouteData {
@@ -401,6 +420,28 @@ class MobileSettingsPlaylistsRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return const MobilePlaylistsPage();
+  }
+}
+
+@TypedGoRoute<MobileSettingsSystemMaintenanceRouteData>(
+  path: mobileSettingsSystemMaintenancePath,
+)
+class MobileSettingsSystemMaintenanceRouteData extends _MobileSubpageRouteData
+    with $MobileSettingsSystemMaintenanceRouteData {
+  const MobileSettingsSystemMaintenanceRouteData();
+
+  @override
+  String get pageName => 'mobile-settings-system-maintenance';
+
+  @override
+  String get title => '系统维护';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileSystemMaintenancePage();
   }
 }
 
@@ -945,6 +986,20 @@ class _MobileOverviewDrawer extends ConsumerWidget {
         label: '任务中心',
       );
 
+  static const _MobileOverviewDrawerMenuItem _systemMaintenanceItem =
+      _MobileOverviewDrawerMenuItem(
+        key: 'system-maintenance',
+        icon: Icons.build_outlined,
+        label: '系统维护',
+      );
+
+  static const _MobileOverviewDrawerMenuItem _pluginsItem =
+      _MobileOverviewDrawerMenuItem(
+        key: 'plugins',
+        icon: Icons.extension_outlined,
+        label: '插件',
+      );
+
   static const _MobileOverviewDrawerMenuItem _externalPlayerItem =
       _MobileOverviewDrawerMenuItem(
         key: 'external-player',
@@ -1098,6 +1153,14 @@ class _MobileOverviewDrawer extends ConsumerWidget {
                             context: context,
                             item: _activityItem,
                           ),
+                          _buildMenuEntry(
+                            context: context,
+                            item: _systemMaintenanceItem,
+                          ),
+                          _buildMenuEntry(
+                            context: context,
+                            item: _pluginsItem,
+                          ),
                         ],
                       ),
                       SizedBox(height: spacing.md),
@@ -1129,7 +1192,9 @@ class _MobileOverviewDrawer extends ConsumerWidget {
                         ],
                       ),
                       SizedBox(height: spacing.md),
-                      const _MobileDrawerVersionCard(),
+                      const AppVersionInfoCard(
+                        cardKey: Key('mobile-overview-drawer-version-card'),
+                      ),
                     ],
                   ),
                 ),
@@ -1204,6 +1269,12 @@ class _MobileOverviewDrawer extends ConsumerWidget {
       case 'activity':
         const MobileActivityRouteData().push(hostContext);
         return;
+      case 'system-maintenance':
+        const MobileSettingsSystemMaintenanceRouteData().push(hostContext);
+        return;
+      case 'plugins':
+        const MobileSettingsPluginsRouteData().push(hostContext);
+        return;
       case 'playlists':
         const MobileSettingsPlaylistsRouteData().push(hostContext);
         return;
@@ -1219,114 +1290,6 @@ class _MobileOverviewDrawer extends ConsumerWidget {
       default:
         return;
     }
-  }
-}
-
-class _MobileDrawerVersionCard extends ConsumerStatefulWidget {
-  const _MobileDrawerVersionCard();
-
-  @override
-  ConsumerState<_MobileDrawerVersionCard> createState() =>
-      _MobileDrawerVersionCardState();
-}
-
-class _MobileDrawerVersionCardState
-    extends ConsumerState<_MobileDrawerVersionCard> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        unawaited(ref.read(appVersionInfoProvider.notifier).load());
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final versionInfo =
-        ref.watch(appVersionInfoProvider).value ?? AppVersionInfoState.initial;
-    final frontendVersion = versionInfo.frontendVersionLabel;
-    final backendVersion = versionInfo.backendVersionLabel;
-    final spacing = context.appSpacing;
-
-    return Container(
-      key: const Key('mobile-overview-drawer-version-card'),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-      ),
-      padding: EdgeInsets.all(spacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '版本与服务',
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-              ),
-              Text(
-                '自动同步',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  tone: AppTextTone.muted,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: spacing.sm),
-          _MobileDrawerVersionRow(label: '客户端', value: frontendVersion),
-          SizedBox(height: spacing.xs),
-          _MobileDrawerVersionRow(label: '服务端', value: backendVersion),
-        ],
-      ),
-    );
-  }
-}
-
-class _MobileDrawerVersionRow extends StatelessWidget {
-  const _MobileDrawerVersionRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          label,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            tone: AppTextTone.muted,
-          ),
-        ),
-        SizedBox(width: context.appSpacing.md),
-        Expanded(
-          child: Text(
-            value,
-            textAlign: TextAlign.end,
-            overflow: TextOverflow.ellipsis,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.medium,
-              tone: AppTextTone.primary,
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }
 

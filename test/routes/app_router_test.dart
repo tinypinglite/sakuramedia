@@ -57,9 +57,19 @@ const List<_MobileSettingsRouteCase> _mobileSettingsRouteCases =
         pageKey: Key('mobile-settings-indexers'),
       ),
       _MobileSettingsRouteCase(
+        path: mobileSettingsPluginsPath,
+        title: '插件',
+        pageKey: Key('mobile-settings-plugins'),
+      ),
+      _MobileSettingsRouteCase(
         path: mobileSettingsPlaylistsPath,
         title: '播放列表',
         pageKey: Key('mobile-settings-playlists'),
+      ),
+      _MobileSettingsRouteCase(
+        path: mobileSettingsSystemMaintenancePath,
+        title: '系统维护',
+        pageKey: Key('mobile-settings-system-maintenance'),
       ),
       _MobileSettingsRouteCase(
         path: mobileSettingsUsernamePath,
@@ -1191,6 +1201,14 @@ void main() {
         _enqueueMobileDownloadersResponses(bundle);
       } else if (routeCase.path == mobileSettingsIndexersPath) {
         _enqueueMobileIndexersResponses(bundle);
+      } else if (routeCase.path == mobileSettingsPluginsPath) {
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/system/plugins',
+          body: const <Map<String, dynamic>>[],
+        );
+      } else if (routeCase.path == mobileSettingsSystemMaintenancePath) {
+        _enqueueMobileSystemMaintenanceResponses(bundle);
       } else if (routeCase.path == mobileSettingsPlaylistsPath) {
         bundle.adapter.enqueueJson(
           method: 'GET',
@@ -1652,6 +1670,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('mobile-overview-drawer')), findsOneWidget);
+    expect(
+      find.byKey(const Key('mobile-overview-drawer-version-card')),
+      findsOneWidget,
+    );
+    expect(find.text('系统版本'), findsOneWidget);
   });
 
   // 抽屉「管理」分区：点媒体管理 → 打开移动子页（非底栏页面，可返回概览）。
@@ -1764,6 +1787,63 @@ void main() {
     expect(find.byKey(const Key('desktop-activity-page')), findsOneWidget);
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
     expect(router.routeInformationProvider.value.uri.path, mobileActivityPath);
+  });
+
+  testWidgets('mobile drawer management section opens plugins page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/latest',
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 12,
+        'total': 0,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists',
+      body: const <Map<String, dynamic>>[],
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/plugins',
+      body: const <Map<String, dynamic>>[],
+    );
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+    await tester.pumpAndSettle();
+    final pluginsItem = find.byKey(
+      const Key('mobile-overview-drawer-plugins'),
+    );
+    await tester.ensureVisible(pluginsItem);
+    await tester.tap(pluginsItem);
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      mobileSettingsPluginsPath,
+    );
+    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+    expect(find.text('插件'), findsOneWidget);
+    expect(find.byKey(const Key('mobile-settings-plugins')), findsOneWidget);
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
   });
 
   // 侧滑打开抽屉只在「概览根路由 + 停在第一个 tab」时放开:边缘拖拽区盖住多宽,
@@ -2132,6 +2212,14 @@ void main() {
         _enqueueMobileDownloadersResponses(bundle);
       } else if (routeCase.path == mobileSettingsIndexersPath) {
         _enqueueMobileIndexersResponses(bundle);
+      } else if (routeCase.path == mobileSettingsPluginsPath) {
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/system/plugins',
+          body: const <Map<String, dynamic>>[],
+        );
+      } else if (routeCase.path == mobileSettingsSystemMaintenancePath) {
+        _enqueueMobileSystemMaintenanceResponses(bundle);
       } else if (routeCase.path == mobileSettingsUsernamePath) {
         _enqueueAccountProfile(bundle);
       } else if (routeCase.path == mobileMediaManagementPath) {
@@ -3622,6 +3710,32 @@ void _enqueueMobileSystemOverviewResponses(TestApiBundle bundle) {
       'indexing': <String, dynamic>{
         'pending_thumbnails': 23,
         'failed_thumbnails': 2,
+      },
+    },
+  );
+}
+
+void _enqueueMobileSystemMaintenanceResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/status/image-search',
+    body: <String, dynamic>{
+      'healthy': true,
+      'embedding_service': <String, dynamic>{
+        'healthy': true,
+        'space_id': 'clip-vit-l-14',
+        'dimension': 768,
+        'modalities': <String>['image', 'text'],
+      },
+      'indexing': <String, dynamic>{
+        'pending_thumbnails': 0,
+        'failed_thumbnails': 0,
+      },
+      'index_space': <String, dynamic>{
+        'state': 'ready',
+        'indexed_space_id': 'clip-vit-l-14',
+        'current_space_id': 'clip-vit-l-14',
+        'is_rebuilding': false,
       },
     },
   );

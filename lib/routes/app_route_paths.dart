@@ -51,9 +51,12 @@ const String mobileRankingsPath = '/mobile/rankings';
 const String mobilePornboxPath = '/mobile/pornbox';
 const String mobileSettingsMediaLibrariesPath =
     '/mobile/settings/media-libraries';
+const String mobileSettingsPluginsPath = '/mobile/settings/plugins';
 const String mobileSettingsDownloadersPath = '/mobile/settings/downloaders';
 const String mobileSettingsIndexersPath = '/mobile/settings/indexers';
 const String mobileSettingsPlaylistsPath = '/mobile/settings/playlists';
+const String mobileSettingsSystemMaintenancePath =
+    '/mobile/settings/system-maintenance';
 const String mobileSettingsExternalPlayerPath =
     '/mobile/settings/external-player';
 const String mobileSettingsUsernamePath = '/mobile/settings/username';

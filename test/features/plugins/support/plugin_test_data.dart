@@ -20,13 +20,14 @@ Map<String, dynamic> pluginSummaryJson({
 /// 插件列表项的 DTO 夹具。
 PluginSummaryDto pluginSummaryDto({
   String id = 'demo_plugin',
+  String version = '1.0.0',
   bool enabled = false,
   String? releaseApiUrl,
 }) {
   return PluginSummaryDto(
     pluginId: id,
     displayName: '演示插件',
-    version: '1.0.0',
+    version: version,
     hostApiVersion: 1,
     enabled: enabled,
     loadStatus: 'ok',

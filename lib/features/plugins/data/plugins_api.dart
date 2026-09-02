@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:sakuramedia/core/format/release_version.dart';
 import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
@@ -8,6 +9,8 @@ import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
 /// `/system/plugins` 管理接口与插件私有配置读写。
 class PluginsApi {
   const PluginsApi({required ApiClient apiClient}) : _apiClient = apiClient;
+
+  static const _releaseCheckTimeout = Duration(seconds: 10);
 
   final ApiClient _apiClient;
 
@@ -33,12 +36,22 @@ class PluginsApi {
     if (releaseApiUrl == null) {
       return null;
     }
-    final release = await _apiClient.get(releaseApiUrl, requiresAuth: false);
-    final latestVersion = _PluginVersion.parse(
-      asStringOrNull(release['tag_name'], trim: true) ??
-          (throw const FormatException('Release 缺少 tag_name')),
+    final installedVersion = ReleaseVersion.tryParse(plugin.version);
+    if (installedVersion == null) {
+      return null;
+    }
+    final release = await _apiClient.get(
+      releaseApiUrl,
+      requiresAuth: false,
+      connectTimeout: _releaseCheckTimeout,
+      receiveTimeout: _releaseCheckTimeout,
     );
-    final installedVersion = _PluginVersion.parse(plugin.version);
+    final latestVersion = ReleaseVersion.tryParse(
+      asStringOrNull(release['tag_name'], trim: true) ?? '',
+    );
+    if (latestVersion == null) {
+      return null;
+    }
     if (latestVersion.compareTo(installedVersion) <= 0) {
       return null;
     }
@@ -137,40 +150,4 @@ String? _sha256FromDigest(String? digest) {
   }
   final match = RegExp(r'^sha256:([a-fA-F0-9]{64})$').firstMatch(digest);
   return match?.group(1)?.toLowerCase();
-}
-
-class _PluginVersion implements Comparable<_PluginVersion> {
-  const _PluginVersion(this.major, this.minor, this.patch);
-
-  final int major;
-  final int minor;
-  final int patch;
-
-  factory _PluginVersion.parse(String value) {
-    final match = RegExp(r'^v?(\d+)\.(\d+)\.(\d+)$').firstMatch(value.trim());
-    if (match == null) {
-      throw FormatException('不支持的插件版本格式: $value');
-    }
-    return _PluginVersion(
-      int.parse(match.group(1)!),
-      int.parse(match.group(2)!),
-      int.parse(match.group(3)!),
-    );
-  }
-
-  @override
-  int compareTo(_PluginVersion other) {
-    final majorComparison = major.compareTo(other.major);
-    if (majorComparison != 0) {
-      return majorComparison;
-    }
-    final minorComparison = minor.compareTo(other.minor);
-    if (minorComparison != 0) {
-      return minorComparison;
-    }
-    return patch.compareTo(other.patch);
-  }
-
-  @override
-  String toString() => '$major.$minor.$patch';
 }
