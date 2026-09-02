@@ -41,7 +41,11 @@ mkdir -p sakuramedia/sakuramedia-data/cache/{assets,gfriends}
 
 ### 2. 准备 `compose.yaml`
 
-下面示例以本地存储与 qBittorrent 为例。已有影片目录、qBittorrent 下载目录和 SakuraMedia 媒体库应位于同一文件系统，并将它们的共同父目录整体挂载到后端容器；这样导入时可以使用硬链接，无法硬链接时会复制文件。
+在刚才创建的 `sakuramedia` 目录中新建 `compose.yaml`（即 `sakuramedia/compose.yaml`）。下面示例以本地存储与 qBittorrent 为例。已有影片目录、qBittorrent 下载目录和 SakuraMedia 媒体库应位于同一文件系统，并将它们的共同父目录整体挂载到后端容器；这样导入时可以使用硬链接，无法硬链接时会复制文件。
+
+::: danger 保存前必须修改
+示例中的 `/mnt/volume1/media` 必须替换为宿主机实际的媒体根目录，并与后续填写的媒体库路径和后端下载根目录保持一致。若不使用中国时区，也要修改 `TZ`。
+:::
 
 以下目录结构仅作示例；实际部署时请按宿主机的实际目录结构替换。示例中，媒体根目录为 `/mnt/volume1/media`：
 
@@ -80,11 +84,13 @@ services:
       postgres:
         condition: service_healthy
     ports:
+      # 需要使用其他宿主机端口时修改左侧的 38000。
       - "38000:8000"
     environment:
       # 如果你知道这两个参数的含义，可以修改。
       PUID: 0
       PGID: 0
+      # 不使用中国时区时修改为宿主机所在时区。
       TZ: "Asia/Shanghai"
       # 需要为 JavDB / GFriends 配置代理时再填写。
       # HTTP_PROXY: "http://192.168.1.1:7890"
@@ -92,6 +98,7 @@ services:
       # NO_PROXY: "localhost,127.0.0.1"
     volumes:
       - ./sakuramedia-data:/data
+      # 必须替换为宿主机实际的媒体根目录。
       - /mnt/volume1/media:/mnt/volume1/media
 
   siglip2-embed:
