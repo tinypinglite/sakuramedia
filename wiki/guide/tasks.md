@@ -14,12 +14,11 @@ SakuraMedia 宿主内置定时任务，插件也可以注册自己的任务。�
 | 已订阅缺失影片自动下载 | 搜索并提交符合条件的资源 | 每天 02:30 |
 | 影片热度重算 | 更新影片热度 | 每天 00:15 |
 | 影片互动数同步 | 同步评分、想看和评论等统计 | 每天 05:00 |
-| 下载任务状态同步 | 同步各 provider 下载器的任务状态 | 每 5 分钟 |
-| 已完成下载自动导入 | 使用 `completed_source_ref` 将完成任务交给导入流程 | 每 10 分钟 |
+| 下载任务状态同步 | 同步各 provider 下载器的任务状态 | 每分钟 |
+| 已完成下载自动导入 | 使用 `completed_source_ref` 将完成任务交给导入流程 | 每分钟 |
+| 媒体文件哈希补齐 | 为缺少哈希的媒体文件计算哈希值 | 每天 03:00 |
 | 媒体缩略图生成 | 为可播放媒体生成缩略图 | 每 30 分钟 |
-| 以图搜图索引 | 为媒体缩略图生成向量 | 每天 00:00 |
-| 剧情图索引 | 为剧情图生成向量 | 每天 00:30 |
-| 以图搜图索引优化 | 优化图片搜索向量索引 | 每天 03:00 |
+| 以图搜图索引 | 为媒体缩略图和剧情图生成向量 | 每 5 分钟 |
 | 影片相似度重算 | 计算影片相似结果 | 每天 03:30 |
 | 推荐时刻生成 | 生成推荐时刻候选 | 每天 04:00 |
 | 每日推荐生成 | 生成每日推荐快照 | 每天 05:00 |
@@ -45,8 +44,8 @@ SakuraMedia 宿主内置定时任务，插件也可以注册自己的任务。�
 ## 媒体与发现任务
 
 - **媒体缩略图生成**：为可播放媒体准备时刻预览和以图搜图所需的缩略图。
-- **以图搜图索引 / 剧情图索引**：将待处理图片交给 SigLIP2 嵌入服务，再写入 Qdrant。
-- **以图搜图索引优化**：定期维护向量索引。
+- **媒体文件哈希补齐**：为缺少哈希的媒体文件计算哈希值。
+- **以图搜图索引**：将待处理的媒体缩略图和剧情图交给 SigLIP2 嵌入服务，再写入 Qdrant。
 - **影片相似度重算**：离线计算详情页的相似影片结果。
 - **推荐时刻生成 / 每日推荐生成**：准备发现页和推荐页数据。
 - **影片热度重算、互动数同步**：更新影片的发现和排序数据。
@@ -61,14 +60,13 @@ log_dir = "/data/logs"
 
 actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
-download_task_sync_cron = "*/5 * * * *"
-download_task_auto_import_cron = "*/10 * * * *"
+download_task_sync_cron = "* * * * *"
+download_task_auto_import_cron = "* * * * *"
 movie_heat_cron = "15 0 * * *"
 movie_interaction_sync_cron = "0 5 * * *"
+media_file_hash_backfill_cron = "0 3 * * *"
 media_thumbnail_cron = "*/30 * * * *"
-image_search_index_cron = "0 0 * * *"
-plot_image_search_index_cron = "30 0 * * *"
-image_search_optimize_cron = "0 3 * * *"
+image_search_index_cron = "*/5 * * * *"
 movie_similarity_recompute_cron = "30 3 * * *"
 moment_recommendation_generate_cron = "0 4 * * *"
 daily_recommendation_generate_cron = "0 5 * * *"

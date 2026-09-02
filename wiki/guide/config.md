@@ -134,14 +134,13 @@ enabled = true
 log_dir = "/data/logs"
 actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
-download_task_sync_cron = "*/5 * * * *"
-download_task_auto_import_cron = "*/10 * * * *"
+download_task_sync_cron = "* * * * *"
+download_task_auto_import_cron = "* * * * *"
 movie_heat_cron = "15 0 * * *"
 movie_interaction_sync_cron = "0 5 * * *"
+media_file_hash_backfill_cron = "0 3 * * *"
 media_thumbnail_cron = "*/30 * * * *"
-image_search_index_cron = "0 0 * * *"
-plot_image_search_index_cron = "30 0 * * *"
-image_search_optimize_cron = "0 3 * * *"
+image_search_index_cron = "*/5 * * * *"
 movie_similarity_recompute_cron = "30 3 * * *"
 moment_recommendation_generate_cron = "0 4 * * *"
 daily_recommendation_generate_cron = "0 5 * * *"
@@ -161,10 +160,9 @@ activity_notification_read_retention_days = 3
 | `download_task_auto_import_cron` | 将 provider 已完成任务交给导入流程。 |
 | `movie_heat_cron` | 影片热度重算。 |
 | `movie_interaction_sync_cron` | 影片互动数同步。 |
+| `media_file_hash_backfill_cron` | 补齐缺少哈希的媒体文件。 |
 | `media_thumbnail_cron` | 媒体缩略图生成。 |
-| `image_search_index_cron` | 媒体缩略图向量索引。 |
-| `plot_image_search_index_cron` | 剧情图向量索引。 |
-| `image_search_optimize_cron` | 图片搜索索引优化。 |
+| `image_search_index_cron` | 媒体缩略图和剧情图向量索引。 |
 | `movie_similarity_recompute_cron` | 影片相似度重算。 |
 | `moment_recommendation_generate_cron` | 推荐时刻生成。 |
 | `daily_recommendation_generate_cron` | 每日推荐快照生成。 |

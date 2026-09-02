@@ -32,18 +32,18 @@ outline: [2, 4]
 
 ### 1. 创建数据目录
 
-准备一个目录存放运行时数据和 `compose.yaml`，例如：
+先找一个容量充足且是SSD的目录， 再创建存放运行时数据和 `compose.yaml` 的目录：
 
 ```bash
-mkdir -p /mnt/ssd/sakuramedia/sakuramedia-data/{cache,logs,config,media-clips,image-search-index,postgres,plugins}
-mkdir -p /mnt/ssd/sakuramedia/sakuramedia-data/cache/{assets,gfriends}
+mkdir -p sakuramedia/sakuramedia-data/{cache,logs,config,media-clips,image-search-index,postgres,plugins}
+mkdir -p sakuramedia/sakuramedia-data/cache/{assets,gfriends}
 ```
 
 ### 2. 准备 `compose.yaml`
 
 下面示例以本地存储与 qBittorrent 为例。已有影片目录、qBittorrent 下载目录和 SakuraMedia 媒体库应位于同一文件系统，并将它们的共同父目录整体挂载到后端容器；这样导入时可以使用硬链接，无法硬链接时会复制文件。
 
-例如，宿主机的媒体根目录为 `/mnt/volume1/media`：
+以下目录结构仅作示例；实际部署时请按宿主机的实际目录结构替换。示例中，媒体根目录为 `/mnt/volume1/media`：
 
 ```text
 /mnt/volume1/media
@@ -52,7 +52,7 @@ mkdir -p /mnt/ssd/sakuramedia/sakuramedia-data/cache/{assets,gfriends}
 └── sakuramedia    # SakuraMedia 媒体库
 ```
 
-按实际目录替换示例中的 `/mnt/volume1/media`，并确保三个子目录已创建。使用其他 provider 时，按其部署说明添加所需挂载。
+确保三个子目录已创建。使用其他 provider 时，按其部署说明添加所需挂载。
 
 ```yaml
 services:
@@ -73,7 +73,7 @@ services:
       retries: 10
 
   sakuramedia:
-    image: tinyping/sakuramediabe:v0.6.0
+    image: tinyping/sakuramediabe:latest
     container_name: sakuramedia
     restart: unless-stopped
     depends_on:
@@ -82,6 +82,7 @@ services:
     ports:
       - "38000:8000"
     environment:
+      # 如果你知道这两个参数的含义，可以修改。
       PUID: 0
       PGID: 0
       TZ: "Asia/Shanghai"
@@ -124,7 +125,7 @@ services:
 ### 3. 启动
 
 ```bash
-cd /mnt/ssd/sakuramedia
+cd sakuramedia
 docker compose up -d
 ```
 
@@ -140,7 +141,7 @@ http://你的IP:38000
 
 #### 1. 安装并启用插件
 
-从[开源插件目录](/guide/plugins)选择需要的插件，再进入「系统设置 → 插件」安装并启用。插件安装后按提示重启 `api` 和 `aps` 服务。
+从[开源插件目录](/guide/plugins)选择需要的插件，再进入「系统设置 → 插件」安装并启用。插件安装后按提示重启容器。
 
 #### 2. 创建媒体库
 
@@ -150,9 +151,7 @@ http://你的IP:38000
 
 #### 3. 添加下载器
 
-进入「系统设置 → 下载器 → 新增」，选择下载 provider，填写动态配置字段并绑定目标媒体库。下载完成后，provider 返回的 `completed_source_ref` 会被自动导入流程使用。
-
-下载任务的连接信息和存储参数由下载 provider 的动态配置字段提供。
+进入「系统设置 → 下载器 → 新增」，选择目标媒体库。系统会根据该媒体库所属的 provider 显示下载配置字段，填写后保存。下载完成后，provider 返回的 `completed_source_ref` 会被自动导入流程使用。
 
 使用「本地存储与 qBittorrent」时，qBittorrent 保存根目录填写 qBittorrent 容器内的路径，例如 `/downloads`；后端下载根目录填写后端容器内同一目录的挂载路径，例如 `/mnt/volume1/media/downloads`。
 
