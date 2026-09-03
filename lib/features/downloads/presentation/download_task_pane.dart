@@ -63,7 +63,7 @@ List<Widget> buildDownloadTaskSlivers({
         child: _DownloadFilterBar(state: state),
       ),
     ),
-    if (!state.paged.filterUpdate.isIdle)
+    if (state.paged.filterUpdate.hasFailed)
       SliverToBoxAdapter(
         key: const Key('download-tasks-reloading-indicator'),
         child: Padding(

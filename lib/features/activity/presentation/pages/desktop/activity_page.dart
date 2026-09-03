@@ -17,6 +17,7 @@ import 'package:sakuramedia/features/downloads/presentation/download_task_pane.d
 import 'package:sakuramedia/features/downloads/presentation/download_task_filter_state.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_provider.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_state.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
@@ -25,7 +26,9 @@ import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_sc
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_section_skeleton.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
@@ -270,7 +273,7 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
   List<Widget> _buildTaskSlivers(BuildContext context) {
     final titleStyle = resolveAppTextStyle(
       context,
-      size: AppTextSize.s18,
+      size: AppTextSize.s14,
       weight: AppTextWeight.semibold,
       tone: AppTextTone.primary,
     );
@@ -394,9 +397,10 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
   Widget build(BuildContext context) {
     final activityAsync = ref.watch(activityCenterProvider);
     final activeTab = activityAsync.value?.activeTab ?? ActivityTab.tasks;
-    if (_hasOpenedDownloadTasks || activeTab == ActivityTab.downloadTasks) {
-      ref.watch(downloadTaskCenterProvider);
-    }
+    final downloadAsync =
+        _hasOpenedDownloadTasks || activeTab == ActivityTab.downloadTasks
+        ? ref.watch(downloadTaskCenterProvider)
+        : null;
     ref.listen<ActivityTab>(
       activityCenterProvider.select(
         (value) => value.value?.activeTab ?? ActivityTab.tasks,
@@ -439,41 +443,52 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
         (_, __) => _handleControllerChanged(),
       );
     }
+    final filterUpdate = switch (activeTab) {
+      ActivityTab.tasks => _controller.taskFilterUpdate,
+      ActivityTab.downloadTasks =>
+        downloadAsync?.value?.paged.filterUpdate ??
+            const FilterUpdateState.idle(),
+    };
+    final hasPreviousItems = switch (activeTab) {
+      ActivityTab.tasks => _controller.taskRuns.isNotEmpty,
+      ActivityTab.downloadTasks =>
+        downloadAsync?.value?.paged.items.isNotEmpty ?? false,
+    };
     return AppPageRefreshScope(
       onRefresh: _refreshActiveTab,
-      child: Stack(
-        children: [
-          CustomScrollView(
-            controller: _pageScrollController,
-            slivers: [
-              SliverToBoxAdapter(
-                child: Column(
-                  key: const Key('desktop-activity-page'),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppTabBar(
-                      controller: _tabController,
-                      tabs: const [
-                        Tab(key: Key('activity-tab-tasks'), text: '后台任务'),
-                        Tab(
-                          key: Key('activity-tab-download-tasks'),
-                          text: '下载任务',
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: context.appSpacing.lg),
-                    _ConnectionBanner(
-                      state: _controller.connectionState,
-                      message: _controller.connectionMessage,
-                    ),
-                    SizedBox(height: context.appSpacing.xl),
-                  ],
-                ),
+      child: AppFilterResultLoadingOverlay(
+        isLoading: filterUpdate.isLoading,
+        hasPreviousItems: hasPreviousItems,
+        child: CustomScrollView(
+          controller: _pageScrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                key: const Key('desktop-activity-page'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppTabBar(
+                    controller: _tabController,
+                    tabs: const [
+                      Tab(key: Key('activity-tab-tasks'), text: '后台任务'),
+                      Tab(
+                        key: Key('activity-tab-download-tasks'),
+                        text: '下载任务',
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: context.appSpacing.lg),
+                  _ConnectionBanner(
+                    state: _controller.connectionState,
+                    message: _controller.connectionMessage,
+                  ),
+                  SizedBox(height: context.appSpacing.xl),
+                ],
               ),
-              ..._buildTabSlivers(context),
-            ],
-          ),
-        ],
+            ),
+            ..._buildTabSlivers(context),
+          ],
+        ),
       ),
     );
   }
@@ -486,14 +501,14 @@ class _InitialLoadingState extends StatelessWidget {
   Widget build(BuildContext context) {
     return _ActivitySection(
       title: '任务中心',
-      child: SizedBox(
-        width: double.infinity,
-        height: 220,
-        child: Center(
-          child: CircularProgressIndicator(
-            strokeWidth: context.appComponentTokens.movieCardLoaderStrokeWidth,
-          ),
-        ),
+      child: Column(
+        key: const Key('activity-initial-skeleton'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AppSectionSkeleton(lineCount: 3),
+          SizedBox(height: context.appSpacing.lg),
+          const AppSectionSkeleton(lineCount: 4),
+        ],
       ),
     );
   }
@@ -542,7 +557,7 @@ class _ActivitySection extends StatelessWidget {
               titleStyle ??
               resolveAppTextStyle(
                 context,
-                size: AppTextSize.s18,
+                size: AppTextSize.s14,
                 weight: AppTextWeight.semibold,
                 tone: AppTextTone.primary,
               ),

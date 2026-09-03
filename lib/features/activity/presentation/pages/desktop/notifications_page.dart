@@ -10,7 +10,9 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 
 /// 独立的「通知」消息中心页。列表、分页、筛选和无感已读由全局通知 provider
 /// 驱动，卡片被渲染时即上报已读。
@@ -104,11 +106,15 @@ class _DesktopNotificationsPageState
               message: state.initialErrorMessage!,
               onRetry: ref.read(notificationCenterProvider.notifier).reloadAll,
             )
-          : CustomScrollView(
-              controller: _scrollController,
-              // 收敛视口外预构建，避免卡片「提前已读」。
-              cacheExtent: 0,
-              slivers: _buildSlivers(context, state),
+          : AppFilterResultLoadingOverlay(
+              isLoading: state.filterUpdate.isLoading,
+              hasPreviousItems: state.notifications.isNotEmpty,
+              child: CustomScrollView(
+                controller: _scrollController,
+                // 收敛视口外预构建，避免卡片「提前已读」。
+                cacheExtent: 0,
+                slivers: _buildSlivers(context, state),
+              ),
             ),
     );
   }
@@ -213,17 +219,10 @@ class _NotificationsLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      key: const Key('desktop-notifications-loading'),
-      child: SizedBox(
-        width: double.infinity,
-        height: 220,
-        child: Center(
-          child: CircularProgressIndicator(
-            strokeWidth: context.appComponentTokens.movieCardLoaderStrokeWidth,
-          ),
-        ),
-      ),
+    return const AppMobileSkeletonList(
+      key: Key('desktop-notifications-loading'),
+      itemCount: 5,
+      padding: EdgeInsets.zero,
     );
   }
 }

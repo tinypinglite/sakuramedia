@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
@@ -121,70 +122,74 @@ class _DesktopActorsPageState extends ConsumerState<DesktopActorsPage> {
       onRefresh: _refresh,
       child: ColoredBox(
         color: context.appColors.surfaceElevated,
-        child: CustomScrollView(
-          key: const PageStorageKey<String>('desktop:actors:list'),
-          controller: _scrollController,
-          slivers: [
-            SliverMainAxisGroup(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Column(
-                    key: const Key('actors-page'),
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _ActorsHeader(
-                        total: paged?.total ?? 0,
-                        filterState: filter,
-                        filterUpdate:
-                            paged?.filterUpdate ??
-                            const FilterUpdateState.idle(),
-                        hasPreviousItems: items.isNotEmpty,
-                        onRetryFilter: () => unawaited(
-                          ref
-                              .read(actorSummaryProvider(_scope).notifier)
-                              .retryFilter(),
-                        ),
-                        onFilterChanged: _applyFilter,
-                        onResetFilters: _resetFilters,
-                      ),
-                      SizedBox(height: context.appSpacing.lg),
-                    ],
-                  ),
-                ),
-                if (!(paged?.filterUpdate.hasFailed ?? false) ||
-                    items.isNotEmpty)
-                  ActorSummarySliver(
-                    items: items,
-                    isLoading: isInitialLoading,
-                    errorMessage: initialErrorMessage,
-                    onActorTap: (actor) => context.pushDesktopActorDetail(
-                      actorId: actor.id,
-                      fallbackPath: desktopActorsPath,
-                    ),
-                    onActorSubscriptionTap: (actor) =>
-                        _toggleActorSubscription(actor.id),
-                    isActorSubscriptionUpdating: (actor) =>
-                        summary?.isSubscriptionUpdating(actor.id) ?? false,
-                    emptyMessage: filter.isDefault
-                        ? '暂无女优，去搜索看看吧'
-                        : '当前筛选条件下暂无匹配女优',
-                  ),
-                if (showFooter)
+        child: AppFilterResultLoadingOverlay(
+          isLoading: paged?.filterUpdate.isLoading ?? false,
+          hasPreviousItems: items.isNotEmpty,
+          child: CustomScrollView(
+            key: const PageStorageKey<String>('desktop:actors:list'),
+            controller: _scrollController,
+            slivers: [
+              SliverMainAxisGroup(
+                slivers: [
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.only(top: context.appSpacing.md),
-                      child: AppPagedLoadMoreFooter(
-                        isLoading: paged.isLoadingMore,
-                        errorMessage: paged.loadMoreErrorMessage,
-                        onRetry: () => ref
-                            .read(actorSummaryProvider(_scope).notifier)
-                            .loadMore(),
-                      ),
+                    child: Column(
+                      key: const Key('actors-page'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ActorsHeader(
+                          total: paged?.total ?? 0,
+                          filterState: filter,
+                          filterUpdate:
+                              paged?.filterUpdate ??
+                              const FilterUpdateState.idle(),
+                          hasPreviousItems: items.isNotEmpty,
+                          onRetryFilter: () => unawaited(
+                            ref
+                                .read(actorSummaryProvider(_scope).notifier)
+                                .retryFilter(),
+                          ),
+                          onFilterChanged: _applyFilter,
+                          onResetFilters: _resetFilters,
+                        ),
+                        SizedBox(height: context.appSpacing.lg),
+                      ],
                     ),
                   ),
-              ],
-            ),
-          ],
+                  if (!(paged?.filterUpdate.hasFailed ?? false) ||
+                      items.isNotEmpty)
+                    ActorSummarySliver(
+                      items: items,
+                      isLoading: isInitialLoading,
+                      errorMessage: initialErrorMessage,
+                      onActorTap: (actor) => context.pushDesktopActorDetail(
+                        actorId: actor.id,
+                        fallbackPath: desktopActorsPath,
+                      ),
+                      onActorSubscriptionTap: (actor) =>
+                          _toggleActorSubscription(actor.id),
+                      isActorSubscriptionUpdating: (actor) =>
+                          summary?.isSubscriptionUpdating(actor.id) ?? false,
+                      emptyMessage: filter.isDefault
+                          ? '暂无女优，去搜索看看吧'
+                          : '当前筛选条件下暂无匹配女优',
+                    ),
+                  if (showFooter)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: context.appSpacing.md),
+                        child: AppPagedLoadMoreFooter(
+                          isLoading: paged.isLoadingMore,
+                          errorMessage: paged.loadMoreErrorMessage,
+                          onRetry: () => ref
+                              .read(actorSummaryProvider(_scope).notifier)
+                              .loadMore(),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

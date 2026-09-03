@@ -131,13 +131,52 @@ void main() {
     expect(during.filter, 1);
     expect(during.selected, isEmpty);
     expect(during.paged.items, before);
-    expect(during.paged.filterUpdate.isLoading, isTrue);
+    expect(during.paged.filterUpdate.isWaiting, isTrue);
     expect(requests, [(1, 0)]);
 
     await future;
     final after = container.read(_provider).requireValue;
     expect(after.paged.items, [100, 101, 102]);
     expect(after.paged.filterUpdate.isIdle, isTrue);
+  });
+
+  test('防抖结束、实际请求开始后才进入 loading', () async {
+    final firstPageGate = Completer<PaginatedResponseDto<int>>();
+    final staged = ProviderContainer(
+      overrides: [
+        _fetcherProvider.overrideWithValue((page, pageSize, filter) {
+          if (filter == 1) return firstPageGate.future;
+          return Future.value(
+            _page(
+              page: page,
+              items: List<int>.generate(3, (i) => filter * 100 + i),
+              total: 3,
+            ),
+          );
+        }),
+      ],
+    );
+    addTearDown(staged.dispose);
+    await staged.read(_provider.future);
+
+    final future = staged.read(_provider.notifier).applyFilterState(1);
+    expect(
+      staged.read(_provider).requireValue.paged.filterUpdate.isWaiting,
+      isTrue,
+    );
+
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    expect(
+      staged.read(_provider).requireValue.paged.filterUpdate.isLoading,
+      isTrue,
+    );
+
+    firstPageGate.complete(_page(page: 1, items: const [100], total: 1));
+    await future;
+    expect(
+      staged.read(_provider).requireValue.paged.filterUpdate.isIdle,
+      isTrue,
+    );
   });
 
   test('防抖窗口内连续筛选只请求最终条件', () async {

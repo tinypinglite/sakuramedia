@@ -189,7 +189,7 @@ class _DesktopConfigurationPageState extends State<DesktopConfigurationPage> {
                   _tabs[_selectedIndex].category.label,
                   style: resolveAppTextStyle(
                     context,
-                    size: AppTextSize.s20,
+                    size: AppTextSize.s18,
                     weight: AppTextWeight.semibold,
                     tone: AppTextTone.primary,
                   ),

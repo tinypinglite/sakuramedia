@@ -24,6 +24,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
@@ -229,7 +230,13 @@ class _VideoCollectionDetailContentState
             SizedBox(
               height: _isMobile ? context.appSpacing.md : context.appSpacing.lg,
             ),
-            Expanded(child: _buildBody(context, state)),
+            Expanded(
+              child: AppFilterResultLoadingOverlay(
+                isLoading: state.filterUpdate.isLoading,
+                hasPreviousItems: state.items.isNotEmpty,
+                child: _buildBody(context, state),
+              ),
+            ),
             if (_isMobile && selectionMode) _buildBatchBar(context, state),
           ],
         );

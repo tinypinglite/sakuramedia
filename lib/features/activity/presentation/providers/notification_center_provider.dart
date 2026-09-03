@@ -113,7 +113,7 @@ class NotificationCenter extends _$NotificationCenter {
     _notificationFilterGeneration++;
     state = state.copyWith(
       filter: next,
-      filterUpdate: const FilterUpdateState.loading(),
+      filterUpdate: const FilterUpdateState.waiting(),
       isRefreshing: true,
       isLoadingMore: false,
       refreshErrorMessage: null,
@@ -135,12 +135,17 @@ class NotificationCenter extends _$NotificationCenter {
   }
 
   Future<void> _refreshNotifications(int requestId) async {
+    if (!ref.mounted || !_filterRequests.isCurrent(requestId)) return;
+    final filter = state.filter;
+    state = state.copyWith(filterUpdate: const FilterUpdateState.loading());
     try {
-      final response = await ref.read(activityApiProvider).getNotifications(
-        page: 1,
-        pageSize: _pageSize,
-        category: state.filter.category,
-      );
+      final response = await ref
+          .read(activityApiProvider)
+          .getNotifications(
+            page: 1,
+            pageSize: _pageSize,
+            category: filter.category,
+          );
       if (!ref.mounted || !_filterRequests.isCurrent(requestId)) return;
       final notifications = _sortNotifications(response.items);
       _nextPage = response.page + 1;
@@ -175,11 +180,13 @@ class NotificationCenter extends _$NotificationCenter {
     state = state.copyWith(isLoadingMore: true, loadMoreErrorMessage: null);
     final generation = _notificationFilterGeneration;
     try {
-      final response = await ref.read(activityApiProvider).getNotifications(
-        page: _nextPage,
-        pageSize: _pageSize,
-        category: state.filter.category,
-      );
+      final response = await ref
+          .read(activityApiProvider)
+          .getNotifications(
+            page: _nextPage,
+            pageSize: _pageSize,
+            category: state.filter.category,
+          );
       if (!ref.mounted || generation != _notificationFilterGeneration) return;
       final ids = state.notifications.map((item) => item.id).toSet();
       final notifications = <ActivityNotificationDto>[
@@ -230,7 +237,9 @@ class NotificationCenter extends _$NotificationCenter {
       notifications: _setLocalRead(state.notifications, ids, isRead: true),
     );
     try {
-      final result = await ref.read(activityApiProvider).markNotificationsRead(ids);
+      final result = await ref
+          .read(activityApiProvider)
+          .markNotificationsRead(ids);
       if (ref.mounted) state = state.copyWith(unreadCount: result.unreadCount);
     } catch (_) {
       if (ref.mounted) {
@@ -258,10 +267,13 @@ class NotificationCenter extends _$NotificationCenter {
       unreadCount: 0,
     );
     try {
-      final result = await ref.read(activityApiProvider).markAllNotificationsRead();
+      final result = await ref
+          .read(activityApiProvider)
+          .markAllNotificationsRead();
       if (ref.mounted) state = state.copyWith(unreadCount: result.unreadCount);
     } catch (_) {
-      if (ref.mounted) state = state.copyWith(notifications: previous, unreadCount: unread);
+      if (ref.mounted)
+        state = state.copyWith(notifications: previous, unreadCount: unread);
     } finally {
       if (ref.mounted) state = state.copyWith(isMarkingAllRead: false);
     }

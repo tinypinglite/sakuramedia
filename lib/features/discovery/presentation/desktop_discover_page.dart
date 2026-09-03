@@ -274,14 +274,14 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
     BuildContext context,
     DiscoveryPreviewState<MomentRecommendationDto> moment,
   ) {
-    if (moment.isLoading) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: context.appLayoutTokens.emptySectionVerticalPadding,
-          ),
-          child: const CircularProgressIndicator(),
-        ),
+    if (moment.isLoading && moment.items.isEmpty) {
+      return MomentGrid(
+        items: const <MomentListItem>[],
+        isLoading: true,
+        placeholderCount: _previewPageSize,
+        maxRows: 2,
+        maxColumns: 6,
+        onItemTap: _ignoreMomentTap,
       );
     }
     if (moment.errorMessage != null) {
@@ -372,6 +372,8 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
   }
 }
 
+void _ignoreMomentTap(MomentListItem _) {}
+
 class _DiscoverSectionTitle extends StatelessWidget {
   const _DiscoverSectionTitle({
     required this.title,
@@ -396,7 +398,7 @@ class _DiscoverSectionTitle extends StatelessWidget {
           title,
           style: resolveAppTextStyle(
             context,
-            size: AppTextSize.s18,
+            size: AppTextSize.s14,
             weight: AppTextWeight.semibold,
             tone: AppTextTone.primary,
           ),

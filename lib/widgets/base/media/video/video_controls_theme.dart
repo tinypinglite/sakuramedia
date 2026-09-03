@@ -39,6 +39,7 @@ MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
   required List<Widget> bottomControls,
   bool displaySeekBar = true,
   bool seekEnabled = true,
+  bool showBufferingIndicator = true,
 }) {
   final overlayTokens = theme.appOverlayTokens;
   return MaterialVideoControlsThemeData(
@@ -54,7 +55,9 @@ MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
     volumeGesture: true,
     speedUpOnLongPress: true,
     brightnessGesture: true,
-    bufferingIndicatorBuilder: buildMoviePlayerBufferingIndicator,
+    bufferingIndicatorBuilder: showBufferingIndicator
+        ? buildMoviePlayerBufferingIndicator
+        : (_) => const SizedBox.shrink(),
     seekBarThumbColor: theme.colorScheme.primary,
     seekBarPositionColor: theme.colorScheme.primary,
     seekBarHeight: 6,
@@ -77,10 +80,13 @@ MaterialDesktopVideoControlsThemeData buildMoviePlayerDesktopControlsThemeData({
   required List<Widget> topControls,
   required List<Widget> bottomControls,
   bool displaySeekBar = true,
+  bool showBufferingIndicator = true,
 }) {
   final overlayTokens = theme.appOverlayTokens;
   return MaterialDesktopVideoControlsThemeData(
-    bufferingIndicatorBuilder: buildMoviePlayerBufferingIndicator,
+    bufferingIndicatorBuilder: showBufferingIndicator
+        ? buildMoviePlayerBufferingIndicator
+        : (_) => const SizedBox.shrink(),
     seekBarThumbColor: theme.colorScheme.primary,
     seekBarPositionColor: theme.colorScheme.primary,
     seekBarHeight: 6,

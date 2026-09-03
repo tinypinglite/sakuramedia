@@ -115,7 +115,7 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
         paged: current.paged.copyWith(
           isLoadingMore: false,
           loadMoreErrorMessage: null,
-          filterUpdate: const FilterUpdateState.loading(),
+          filterUpdate: const FilterUpdateState.waiting(),
         ),
       ),
     );
@@ -140,10 +140,21 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
   }
 
   Future<void> _loadSelectedFilter(int requestId) async {
-    if (state.value == null) {
+    final current = state.value;
+    if (current == null) {
       await super.reload();
       return;
     }
+    if (isDisposed || !_filterRequests.isCurrent(requestId)) return;
+    state = AsyncData(
+      current.copyWith(
+        paged: current.paged.copyWith(
+          isLoadingMore: false,
+          loadMoreErrorMessage: null,
+          filterUpdate: const FilterUpdateState.loading(),
+        ),
+      ),
+    );
     try {
       final firstPage = await loadInitialPage();
       if (isDisposed || !_filterRequests.isCurrent(requestId)) return;

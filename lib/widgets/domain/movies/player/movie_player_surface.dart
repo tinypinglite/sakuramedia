@@ -98,6 +98,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   StreamSubscription<bool>? _playingSubscription;
   StreamSubscription<bool>? _completedSubscription;
   StreamSubscription<double>? _rateSubscription;
+  StreamSubscription<PlayerLog>? _logSubscription;
   StreamSubscription<String>? _errorSubscription;
   StreamSubscription<Track>? _trackSubscription;
   StreamSubscription<VideoParams>? _videoParamsSubscription;
@@ -184,6 +185,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _rateSubscription = _player.stream.rate.listen(
       _playbackRate.onRateStreamEvent,
     );
+    _logSubscription = _player.stream.log.listen(_handlePlayerLog);
     _errorSubscription = _player.stream.error.listen((error) {
       _markPlaybackFailed(error);
     });
@@ -237,6 +239,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _playingSubscription?.cancel();
     _completedSubscription?.cancel();
     _rateSubscription?.cancel();
+    _logSubscription?.cancel();
     _errorSubscription?.cancel();
     _trackSubscription?.cancel();
     _videoParamsSubscription?.cancel();
@@ -312,11 +315,18 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     }
     final dynamic nativePlayer = platformPlayer;
     try {
+      await nativePlayer.setProperty('msg-level', 'all=warn,ffmpeg=trace');
+    } catch (_) {}
+    try {
       await nativePlayer.setProperty(
         'hr-seek-demuxer-offset',
         _hrSeekDemuxerOffsetSeconds.toString(),
       );
     } catch (_) {}
+  }
+
+  void _handlePlayerLog(PlayerLog log) {
+    _statsSampler.updateNetworkLog(log);
   }
 
   bool get _guardsInitialSeek => true;

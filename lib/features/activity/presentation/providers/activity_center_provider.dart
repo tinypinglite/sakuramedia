@@ -53,11 +53,12 @@ class ActivityCenter extends _$ActivityCenter
       final bootstrap = await _fetchBootstrap(ActivityTaskFilterState.initial);
       final jobsResult = await jobsFuture;
       if (isDisposed) return ActivityCenterState.initial;
-      var next = _applyBootstrap(ActivityCenterState.initial, bootstrap).copyWith(
-        initialized: true,
-        jobs: jobsResult.jobs,
-        jobErrorMessage: jobsResult.errorMessage,
-      );
+      var next = _applyBootstrap(ActivityCenterState.initial, bootstrap)
+          .copyWith(
+            initialized: true,
+            jobs: jobsResult.jobs,
+            jobErrorMessage: jobsResult.errorMessage,
+          );
       if (_pendingActiveTab != null || _hasPendingHighlight) {
         next = next.copyWith(
           activeTab: _pendingActiveTab ?? next.activeTab,
@@ -151,7 +152,10 @@ class ActivityCenter extends _$ActivityCenter
       return;
     }
     state = AsyncData(
-      current.copyWith(activeTab: tab, highlightedTaskRunId: highlightTaskRunId),
+      current.copyWith(
+        activeTab: tab,
+        highlightedTaskRunId: highlightTaskRunId,
+      ),
     );
   }
 
@@ -161,7 +165,7 @@ class ActivityCenter extends _$ActivityCenter
     state = AsyncData(
       current.copyWith(
         taskFilter: next,
-        taskFilterUpdate: const FilterUpdateState.loading(),
+        taskFilterUpdate: const FilterUpdateState.waiting(),
         isRefreshingTaskHistory: true,
         isLoadingMoreTasks: false,
         taskRefreshErrorMessage: null,
@@ -187,15 +191,21 @@ class ActivityCenter extends _$ActivityCenter
 
   Future<void> _refreshTaskHistory(int requestId) async {
     final filter = current.taskFilter;
+    if (isDisposed || !_taskFilterRequests.isCurrent(requestId)) return;
+    state = AsyncData(
+      current.copyWith(taskFilterUpdate: const FilterUpdateState.loading()),
+    );
     try {
-      final response = await ref.read(activityApiProvider).getTaskRuns(
-        page: 1,
-        pageSize: _pageSize,
-        state: filter.state,
-        taskKey: filter.taskKey,
-        triggerType: filter.triggerType,
-        sort: filter.sort.apiValue,
-      );
+      final response = await ref
+          .read(activityApiProvider)
+          .getTaskRuns(
+            page: 1,
+            pageSize: _pageSize,
+            state: filter.state,
+            taskKey: filter.taskKey,
+            triggerType: filter.triggerType,
+            sort: filter.sort.apiValue,
+          );
       if (isDisposed || !_taskFilterRequests.isCurrent(requestId)) return;
       final tasks = _sortHistoryTasks(response.items, filter);
       state = AsyncData(
@@ -224,7 +234,9 @@ class ActivityCenter extends _$ActivityCenter
 
   Future<void> refreshJobs() async {
     if (current.isLoadingJobs) return;
-    state = AsyncData(current.copyWith(isLoadingJobs: true, jobErrorMessage: null));
+    state = AsyncData(
+      current.copyWith(isLoadingJobs: true, jobErrorMessage: null),
+    );
     final result = await _fetchJobs();
     if (!isDisposed) {
       state = AsyncData(
@@ -285,16 +297,22 @@ class ActivityCenter extends _$ActivityCenter
     final generation = _taskFilterGeneration;
     final filter = now.taskFilter;
     try {
-      final response = await ref.read(activityApiProvider).getTaskRuns(
-        page: now.taskNextPage,
-        pageSize: _pageSize,
-        state: filter.state,
-        taskKey: filter.taskKey,
-        triggerType: filter.triggerType,
-        sort: filter.sort.apiValue,
-      );
+      final response = await ref
+          .read(activityApiProvider)
+          .getTaskRuns(
+            page: now.taskNextPage,
+            pageSize: _pageSize,
+            state: filter.state,
+            taskKey: filter.taskKey,
+            triggerType: filter.triggerType,
+            sort: filter.sort.apiValue,
+          );
       if (isDisposed || generation != _taskFilterGeneration) return;
-      final tasks = _appendUniqueTasks(current.taskRuns, response.items, filter);
+      final tasks = _appendUniqueTasks(
+        current.taskRuns,
+        response.items,
+        filter,
+      );
       state = AsyncData(
         current.copyWith(
           taskRuns: tasks,
@@ -319,12 +337,14 @@ class ActivityCenter extends _$ActivityCenter
   }
 
   Future<ActivityBootstrapDto> _fetchBootstrap(ActivityTaskFilterState filter) {
-    return ref.read(activityApiProvider).getBootstrap(
-      taskState: filter.state,
-      taskKey: filter.taskKey,
-      taskTriggerType: filter.triggerType,
-      taskSort: filter.sort.apiValue,
-    );
+    return ref
+        .read(activityApiProvider)
+        .getBootstrap(
+          taskState: filter.state,
+          taskKey: filter.taskKey,
+          taskTriggerType: filter.triggerType,
+          taskSort: filter.sort.apiValue,
+        );
   }
 
   Future<_JobsResult> _fetchJobs() async {
@@ -373,11 +393,7 @@ class ActivityCenter extends _$ActivityCenter
       if (isDisposed) return;
       final now = current;
       if (generation != _taskFilterGeneration || !now.taskFilterUpdate.isIdle) {
-        state = AsyncData(
-          now.copyWith(
-            activeTaskRuns: activeTaskRuns,
-          ),
-        );
+        state = AsyncData(now.copyWith(activeTaskRuns: activeTaskRuns));
         return;
       }
       state = AsyncData(
@@ -385,8 +401,7 @@ class ActivityCenter extends _$ActivityCenter
           activeTaskRuns: activeTaskRuns,
           taskRuns: _sortHistoryTasks(taskResponse.items, filter),
           taskNextPage: taskResponse.page + 1,
-          hasMoreTasks:
-              taskResponse.items.length < taskResponse.total,
+          hasMoreTasks: taskResponse.items.length < taskResponse.total,
           taskLoadMoreErrorMessage: null,
           taskRefreshErrorMessage: null,
           connectionState: ActivityConnectionState.polling,
@@ -411,7 +426,9 @@ class ActivityCenter extends _$ActivityCenter
     List<TaskRunDto> items,
     ActivityTaskFilterState filter,
   ) {
-    final sorted = items.where((item) => _matchesTaskFilter(item, filter)).toList();
+    final sorted = items
+        .where((item) => _matchesTaskFilter(item, filter))
+        .toList();
     int timestampFor(TaskRunDto item) => switch (filter.sort) {
       ActivityTaskSort.startedAtDesc || ActivityTaskSort.startedAtAsc =>
         item.startedAt?.millisecondsSinceEpoch ?? 0,

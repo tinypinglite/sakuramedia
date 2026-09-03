@@ -24,7 +24,9 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_cover_card_skeleton.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
@@ -128,18 +130,6 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
         color: context.appColors.surfaceElevated,
         child: Builder(
           builder: (context) {
-            // 仅首屏（尚无任何切片）才整页 spinner；切换排序等重载时保留页面骨架，
-            // 让合集区与标题栏不被销毁重建，旧列表沿用到新数据返回。
-            if (clipsAsync.isLoading && clips.isEmpty) {
-              return const Center(
-                child: SizedBox(
-                  key: Key('clips-page-loading'),
-                  width: 40,
-                  height: 40,
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
             if (clipsAsync.hasError && clips.isEmpty) {
               return AppEmptyState(
                 message: apiErrorMessage(
@@ -148,18 +138,26 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
                 ),
               );
             }
-            return CustomScrollView(
-              controller: _scrollController,
-              slivers: <Widget>[
-                SliverToBoxAdapter(
-                  child: _buildCollectionsSection(context, collectionsAsync),
-                ),
-                SliverToBoxAdapter(child: _buildClipsHeader(context, clips)),
-                _buildClipsSliver(context, clips),
-                SliverToBoxAdapter(
-                  child: _buildFooter(context, clipsState?.paged),
-                ),
-              ],
+            return AppFilterResultLoadingOverlay(
+              isLoading: clipsState?.paged.filterUpdate.isLoading ?? false,
+              hasPreviousItems: clips.isNotEmpty,
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: <Widget>[
+                  SliverToBoxAdapter(
+                    child: _buildCollectionsSection(context, collectionsAsync),
+                  ),
+                  SliverToBoxAdapter(child: _buildClipsHeader(context, clips)),
+                  _buildClipsSliver(
+                    context,
+                    clips,
+                    isInitialLoading: clipsAsync.isLoading && clips.isEmpty,
+                  ),
+                  SliverToBoxAdapter(
+                    child: _buildFooter(context, clipsState?.paged),
+                  ),
+                ],
+              ),
             );
           },
         ),
@@ -184,7 +182,7 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
               '我的合集',
               style: resolveAppTextStyle(
                 context,
-                size: AppTextSize.s16,
+                size: AppTextSize.s14,
                 weight: AppTextWeight.semibold,
                 tone: AppTextTone.primary,
               ),
@@ -228,9 +226,11 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
       );
     }
     if (collectionsAsync.isLoading && collections.isEmpty) {
-      return const SizedBox(
-        height: 60,
-        child: Center(child: CircularProgressIndicator()),
+      return CollectionCardSkeletonRow(
+        key: const Key('clips-collections-skeleton-row'),
+        height: 172,
+        itemWidth: 210,
+        itemSpacing: context.appSpacing.md,
       );
     }
     if (collections.isEmpty) {
@@ -279,7 +279,7 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
                 '全部切片',
                 style: resolveAppTextStyle(
                   context,
-                  size: AppTextSize.s16,
+                  size: AppTextSize.s14,
                   weight: AppTextWeight.semibold,
                   tone: AppTextTone.primary,
                 ),
@@ -406,12 +406,42 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
     );
   }
 
-  Widget _buildClipsSliver(BuildContext context, List<MediaClipDto> clips) {
+  Widget _buildClipsSliver(
+    BuildContext context,
+    List<MediaClipDto> clips, {
+    required bool isInitialLoading,
+  }) {
     final filterUpdate = ref
         .read(clipsOverviewProvider)
         .value
         ?.paged
         .filterUpdate;
+    if (isInitialLoading) {
+      final spacing = context.appSpacing;
+      return SliverLayoutBuilder(
+        builder: (context, constraints) {
+          final columns = _resolveColumnCount(
+            constraints.crossAxisExtent,
+            spacing.md,
+          );
+          return SliverGrid(
+            key: const Key('clips-grid-skeleton'),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              mainAxisSpacing: spacing.md,
+              crossAxisSpacing: spacing.md,
+              childAspectRatio: 16 / 9,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => AppCoverCardSkeleton(
+                posterKey: Key('clips-grid-skeleton-$index'),
+              ),
+              childCount: 8,
+            ),
+          );
+        },
+      );
+    }
     if (clips.isEmpty && (filterUpdate?.hasFailed ?? false)) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }

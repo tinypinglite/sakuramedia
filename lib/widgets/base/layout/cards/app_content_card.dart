@@ -40,7 +40,7 @@ class AppContentCard extends StatelessWidget {
                   titleStyle ??
                   resolveAppTextStyle(
                     context,
-                    size: AppTextSize.s18,
+                    size: AppTextSize.s14,
                     weight: AppTextWeight.semibold,
                     tone: AppTextTone.primary,
                   ),
@@ -55,7 +55,7 @@ class AppContentCard extends StatelessWidget {
                         titleStyle ??
                         resolveAppTextStyle(
                           context,
-                          size: AppTextSize.s18,
+                          size: AppTextSize.s14,
                           weight: AppTextWeight.semibold,
                           tone: AppTextTone.primary,
                         ),

@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/shared/presentation/hooks/paged_scroll_hook
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -126,17 +127,21 @@ class MomentsContent extends HookConsumerWidget {
       onRefresh: () => _handleRefresh(context, ref),
       child: ColoredBox(
         color: context.appColors.surfaceCard,
-        child: enablePullToRefresh
-            ? AppAdaptiveRefreshScrollView(
-                onRefresh: () => _handleRefresh(context, ref),
-                controller: scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[sliver],
-              )
-            : CustomScrollView(
-                controller: scrollController,
-                slivers: <Widget>[sliver],
-              ),
+        child: AppFilterResultLoadingOverlay(
+          isLoading: paged.filterUpdate.isLoading,
+          hasPreviousItems: paged.items.isNotEmpty,
+          child: enablePullToRefresh
+              ? AppAdaptiveRefreshScrollView(
+                  onRefresh: () => _handleRefresh(context, ref),
+                  controller: scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: <Widget>[sliver],
+                )
+              : CustomScrollView(
+                  controller: scrollController,
+                  slivers: <Widget>[sliver],
+                ),
+        ),
       ),
     );
   }

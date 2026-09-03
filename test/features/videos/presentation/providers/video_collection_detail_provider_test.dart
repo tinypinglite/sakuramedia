@@ -292,7 +292,7 @@ void main() {
         .requireValue;
     expect(pending.sort.field, VideoSortField.duration);
     expect(pending.sort.direction, SortDirection.desc);
-    expect(pending.filterUpdate.isLoading, isTrue);
+    expect(pending.filterUpdate.isWaiting, isTrue);
     expect(pending.items, isNotEmpty);
     expect(adapter.hitCount('GET', '/video-collections/3/items'), 1);
 

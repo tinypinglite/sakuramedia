@@ -252,12 +252,6 @@ class _MobileSystemOverviewSection extends StatelessWidget {
       title: title,
       padding: EdgeInsets.all(context.appSpacing.lg),
       headerBottomSpacing: context.appSpacing.md,
-      titleStyle: resolveAppTextStyle(
-        context,
-        size: AppTextSize.s16,
-        weight: AppTextWeight.semibold,
-        tone: AppTextTone.primary,
-      ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final spacing = context.appSpacing.sm;

@@ -103,13 +103,18 @@ class _DesktopClipCollectionsPageState
     AsyncValue<List<ClipCollectionDto>> async,
   ) {
     if (async.isLoading && async.value == null) {
-      return const Center(
-        child: SizedBox(
-          key: Key('clip-collections-loading'),
-          width: 40,
-          height: 40,
-          child: CircularProgressIndicator(),
+      final spacing = context.appSpacing;
+      return GridView.builder(
+        key: const Key('clip-collections-loading'),
+        padding: EdgeInsets.only(bottom: spacing.lg),
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 240,
+          mainAxisSpacing: spacing.md,
+          crossAxisSpacing: spacing.md,
+          childAspectRatio: 1.2,
         ),
+        itemCount: 8,
+        itemBuilder: (_, _) => const CollectionCardSkeleton(),
       );
     }
     if (async.hasError && async.value == null) {

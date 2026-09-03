@@ -22,6 +22,7 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
@@ -63,16 +64,25 @@ class MovieSubscriptionListSection extends HookConsumerWidget {
         }
       },
     );
-    return CustomScrollView(
-      key: const Key('movie-subscriptions-scroll-view'),
-      controller: effectiveScrollController,
-      slivers: [
-        const SliverToBoxAdapter(child: _ListHeader()),
-        SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
-        const SliverToBoxAdapter(child: _queryExplanationTip),
-        SliverToBoxAdapter(child: SizedBox(height: spacing.md)),
-        _ListBodySliver(onOpenMovie: onOpenMovie),
-      ],
+    final paged = ref.watch(
+      movieSubscriptionManagerProvider.select(
+        (asyncState) => asyncState.value?.paged,
+      ),
+    );
+    return AppFilterResultLoadingOverlay(
+      isLoading: paged?.filterUpdate.isLoading ?? false,
+      hasPreviousItems: paged?.items.isNotEmpty ?? false,
+      child: CustomScrollView(
+        key: const Key('movie-subscriptions-scroll-view'),
+        controller: effectiveScrollController,
+        slivers: [
+          const SliverToBoxAdapter(child: _ListHeader()),
+          SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
+          const SliverToBoxAdapter(child: _queryExplanationTip),
+          SliverToBoxAdapter(child: SizedBox(height: spacing.md)),
+          _ListBodySliver(onOpenMovie: onOpenMovie),
+        ],
+      ),
     );
   }
 }

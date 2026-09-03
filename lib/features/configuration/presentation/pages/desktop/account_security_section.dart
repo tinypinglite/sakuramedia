@@ -251,12 +251,6 @@ class _AccountSecuritySectionState
     return AppContentCard(
       title: '账号资料',
       padding: EdgeInsets.all(spacing.lg),
-      titleStyle: resolveAppTextStyle(
-        context,
-        size: AppTextSize.s18,
-        weight: AppTextWeight.semibold,
-        tone: AppTextTone.primary,
-      ),
       headerBottomSpacing: spacing.md,
       child: Form(
         key: _profileFormKey,
@@ -334,12 +328,6 @@ class _AccountSecuritySectionState
     return AppContentCard(
       title: '修改密码',
       padding: EdgeInsets.all(spacing.lg),
-      titleStyle: resolveAppTextStyle(
-        context,
-        size: AppTextSize.s18,
-        weight: AppTextWeight.semibold,
-        tone: AppTextTone.primary,
-      ),
       headerBottomSpacing: spacing.md,
       child: Form(
         key: _formKey,

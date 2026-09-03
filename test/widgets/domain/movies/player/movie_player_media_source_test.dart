@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_media_source.dart';
 
 void main() {
@@ -25,6 +26,13 @@ void main() {
       expect(
         buildMoviePlayerConfiguration(platform: TargetPlatform.windows).libass,
         isTrue,
+      );
+    });
+
+    test('configuration keeps FFmpeg network logs available', () {
+      expect(
+        buildMoviePlayerConfiguration(platform: TargetPlatform.macOS).logLevel,
+        MPVLogLevel.trace,
       );
     });
 

@@ -499,12 +499,6 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
     return AppContentCard(
       key: const Key('desktop-image-search-preview-panel'),
       title: '图片预览',
-      titleStyle: resolveAppTextStyle(
-        context,
-        size: AppTextSize.s16,
-        weight: AppTextWeight.semibold,
-        tone: AppTextTone.primary,
-      ),
       child: Center(
         child: MoviePlotThumbnail(
           imageProvider: MemoryImage(_searchState.fileBytes!),

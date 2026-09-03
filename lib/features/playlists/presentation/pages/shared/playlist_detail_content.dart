@@ -19,7 +19,9 @@ import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_fil
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -118,9 +120,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
       child: Builder(
         builder: (context) {
           if (detailAsync.isLoading && detailAsync.value == null) {
-            return const SizedBox.expand(
-              child: Center(child: CircularProgressIndicator()),
-            );
+            return const _PlaylistDetailLoadingContent();
           }
 
           if (detailAsync.hasError && detailAsync.value == null) {
@@ -195,20 +195,28 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
             slivers: slivers,
           );
 
+          final Widget listContent;
           if (!widget.enablePullToRefresh) {
-            return scrollView;
-          }
-
-          if (defaultTargetPlatform == TargetPlatform.iOS) {
-            return AppAdaptiveRefreshScrollView(
+            listContent = scrollView;
+          } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+            listContent = AppAdaptiveRefreshScrollView(
               onRefresh: _handleRefresh,
               controller: _scrollController,
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: slivers,
             );
+          } else {
+            listContent = AppPullToRefresh(
+              onRefresh: _handleRefresh,
+              child: scrollView,
+            );
           }
 
-          return AppPullToRefresh(onRefresh: _handleRefresh, child: scrollView);
+          return AppFilterResultLoadingOverlay(
+            isLoading: paged?.filterUpdate.isLoading ?? false,
+            hasPreviousItems: paged?.items.isNotEmpty ?? false,
+            child: listContent,
+          );
         },
       ),
     );
@@ -387,3 +395,42 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
     );
   }
 }
+
+class _PlaylistDetailLoadingContent extends StatelessWidget {
+  const _PlaylistDetailLoadingContent();
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    return CustomScrollView(
+      key: const Key('playlist-detail-loading'),
+      slivers: [
+        const SliverToBoxAdapter(child: PlaylistBannerCardSkeleton()),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: spacing.sm),
+            child: Row(
+              children: [
+                const AppSkeletonBlock(width: 96, height: 14),
+                const Spacer(),
+                AppSkeletonBlock(
+                  width: 76,
+                  height: context.appComponentTokens.buttonHeightXs,
+                  radius: context.appRadius.pillBorder,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const MovieSummarySliver(
+          items: <MovieListItemDto>[],
+          isLoading: true,
+          placeholderCount: 12,
+          onMovieTap: _ignoreMovieTap,
+        ),
+      ],
+    );
+  }
+}
+
+void _ignoreMovieTap(MovieListItemDto _) {}

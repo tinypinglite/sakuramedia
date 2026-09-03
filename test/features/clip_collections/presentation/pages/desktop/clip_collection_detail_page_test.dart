@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
@@ -14,6 +17,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_filter_entry_button.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_cover_card_skeleton.dart';
 
 import '../../../../../support/fake_http_client_adapter.dart';
 
@@ -85,7 +89,7 @@ void main() {
     );
   }
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(WidgetTester tester, {bool settle = true}) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1280, 900);
     addTearDown(() {
@@ -112,8 +116,55 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+    }
   }
+
+  testWidgets('首屏加载显示切片合集详情骨架', (tester) async {
+    final pendingCollection = Completer<ResponseBody>();
+    adapter.enqueueResponder(
+      method: 'GET',
+      path: '/clip-collections/1',
+      responder: (_, __) => pendingCollection.future,
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/clip-collections/1/clips',
+      body: const <String, dynamic>{
+        'items': <dynamic>[],
+        'page': 1,
+        'page_size': 50,
+        'total': 0,
+      },
+    );
+
+    await pumpPage(tester, settle: false);
+
+    expect(
+      find.byKey(const Key('clip-collection-detail-loading')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('clip-collection-detail-skeleton-grid')),
+      findsOneWidget,
+    );
+    expect(find.byType(AppCoverCardSkeleton), findsWidgets);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    pendingCollection.complete(
+      ResponseBody.fromString(
+        '{"id":1,"name":"我的合集","description":"","clip_count":0,"cover_image":null}',
+        200,
+        headers: const <String, List<String>>{
+          Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+  });
 
   testWidgets('「播放全部」是 primary 按钮且贴右，与视频合集详情一致', (WidgetTester tester) async {
     enqueueInitialLoad();

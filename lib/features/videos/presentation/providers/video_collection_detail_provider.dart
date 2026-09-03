@@ -96,7 +96,7 @@ class VideoCollectionDetail extends _$VideoCollectionDetail
     state = AsyncData(
       current.copyWith(
         sort: nextSort,
-        filterUpdate: const FilterUpdateState.loading(),
+        filterUpdate: const FilterUpdateState.waiting(),
       ),
     );
     return _sortRequests.schedule(
@@ -118,6 +118,10 @@ class VideoCollectionDetail extends _$VideoCollectionDetail
   Future<void> _loadSort(int requestId, VideoCollectionSort sort) async {
     final current = state.value;
     if (current == null) return;
+    if (isDisposed || !_sortRequests.isCurrent(requestId)) return;
+    state = AsyncData(
+      current.copyWith(filterUpdate: const FilterUpdateState.loading()),
+    );
     try {
       final items = await ref
           .read(videoCollectionsApiProvider)

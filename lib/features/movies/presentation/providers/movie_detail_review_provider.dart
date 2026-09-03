@@ -148,7 +148,7 @@ class MovieDetailReview extends _$MovieDetailReview {
       sort: nextSort,
       isLoadingMore: false,
       loadMoreErrorMessage: null,
-      filterUpdate: const FilterUpdateState.loading(),
+      filterUpdate: const FilterUpdateState.waiting(),
     );
     return _filterRequests.schedule(_loadSortedFirstPage);
   }
@@ -166,6 +166,8 @@ class MovieDetailReview extends _$MovieDetailReview {
 
   Future<void> _loadSortedFirstPage(int requestId) async {
     final sort = state.sort;
+    if (_isDisposed || !_filterRequests.isCurrent(requestId)) return;
+    state = state.copyWith(filterUpdate: const FilterUpdateState.loading());
     try {
       final reviews = await ref
           .read(moviesApiProvider)

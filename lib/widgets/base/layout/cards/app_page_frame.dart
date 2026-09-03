@@ -46,7 +46,7 @@ class AppPageFrame extends StatelessWidget {
               title,
               style: resolveAppTextStyle(
                 context,
-                size: AppTextSize.s20,
+                size: AppTextSize.s18,
                 weight: AppTextWeight.semibold,
                 tone: AppTextTone.primary,
               ),
@@ -59,7 +59,7 @@ class AppPageFrame extends StatelessWidget {
                 description!,
                 style: resolveAppTextStyle(
                   context,
-                  size: AppTextSize.s16,
+                  size: AppTextSize.s14,
                   weight: AppTextWeight.regular,
                   tone: AppTextTone.secondary,
                 ),

@@ -381,7 +381,7 @@ class _MobileDiscoverSectionTitle extends StatelessWidget {
           title,
           style: resolveAppTextStyle(
             context,
-            size: AppTextSize.s16,
+            size: AppTextSize.s14,
             weight: AppTextWeight.semibold,
             tone: AppTextTone.primary,
           ),

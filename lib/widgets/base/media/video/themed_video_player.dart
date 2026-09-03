@@ -272,17 +272,21 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
     final theme = Theme.of(context);
     final fullscreenBottom =
         widget.fullscreenBottomControls ?? widget.bottomControls;
+    // 首帧前由本组件的加载浮层统一反馈，避免和 media_kit 的 buffering 指示器重叠。
+    final showBufferingIndicator = _initialFrameReady;
     final desktopThemeData = buildMoviePlayerDesktopControlsThemeData(
       theme: theme,
       topControls: widget.topControls,
       bottomControls: widget.bottomControls,
       displaySeekBar: widget.displaySeekBar,
+      showBufferingIndicator: showBufferingIndicator,
     );
     final desktopFullscreenThemeData = buildMoviePlayerDesktopControlsThemeData(
       theme: theme,
       topControls: widget.topControls,
       bottomControls: fullscreenBottom,
       displaySeekBar: widget.displaySeekBar,
+      showBufferingIndicator: showBufferingIndicator,
     );
     final mobileThemeData = buildMoviePlayerMobileControlsThemeData(
       theme: theme,
@@ -290,6 +294,7 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
       bottomControls: widget.bottomControls,
       displaySeekBar: widget.displaySeekBar,
       seekEnabled: _seekEnabled,
+      showBufferingIndicator: showBufferingIndicator,
     );
     final mobileFullscreenThemeData = buildMoviePlayerMobileControlsThemeData(
       theme: theme,
@@ -297,6 +302,7 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
       bottomControls: fullscreenBottom,
       displaySeekBar: widget.displaySeekBar,
       seekEnabled: _seekEnabled,
+      showBufferingIndicator: showBufferingIndicator,
     );
     return MaterialVideoControlsTheme(
       normal: mobileThemeData,

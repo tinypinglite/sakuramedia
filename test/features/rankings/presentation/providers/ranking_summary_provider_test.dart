@@ -160,7 +160,7 @@ void main() {
         .read(rankingSummaryProvider(scope))
         .requireValue;
     expect(pendingPeriod.filters.selectedPeriod, 'weekly');
-    expect(pendingPeriod.paged.filterUpdate.isLoading, isTrue);
+    expect(pendingPeriod.paged.filterUpdate.isWaiting, isTrue);
     expect(pendingPeriod.paged.items.single.movieNumber, 'ABC-001');
     expect(
       adapter.hitCount('GET', '/ranking-sources/javdb/boards/censored/items'),
@@ -182,7 +182,7 @@ void main() {
         .read(rankingSummaryProvider(scope))
         .requireValue;
     expect(pendingSort.filters.selectedSortField, RankingSortField.heat);
-    expect(pendingSort.paged.filterUpdate.isLoading, isTrue);
+    expect(pendingSort.paged.filterUpdate.isWaiting, isTrue);
     expect(pendingSort.paged.items.single.movieNumber, 'ABC-002');
 
     await sortUpdate;

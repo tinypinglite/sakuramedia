@@ -5,17 +5,20 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 
-enum FilterUpdatePhase { idle, loading, failed }
+enum FilterUpdatePhase { idle, waiting, loading, failed }
 
 /// 服务端筛选结果与当前 UI 筛选条件之间的同步状态。
 ///
-/// 筛选条件始终先写入业务 State；[loading] / [failed] 期间分页条目仍是上一次
-/// 成功结果，页面应保留列表并给出轻量进度或重试反馈。
+/// 筛选条件始终先写入业务 State；[waiting] 是尾随防抖窗口，[loading] 是实际
+/// 请求中。两者期间分页条目仍是上一次成功结果，页面应保留列表；只有实际请求
+/// 持续一小段时间后，结果区才需要显示进度反馈。
 @immutable
 class FilterUpdateState {
   const FilterUpdateState._(this.phase, this.errorMessage);
 
   const FilterUpdateState.idle() : this._(FilterUpdatePhase.idle, null);
+
+  const FilterUpdateState.waiting() : this._(FilterUpdatePhase.waiting, null);
 
   const FilterUpdateState.loading() : this._(FilterUpdatePhase.loading, null);
 
@@ -26,6 +29,7 @@ class FilterUpdateState {
   final String? errorMessage;
 
   bool get isIdle => phase == FilterUpdatePhase.idle;
+  bool get isWaiting => phase == FilterUpdatePhase.waiting;
   bool get isLoading => phase == FilterUpdatePhase.loading;
   bool get hasFailed => phase == FilterUpdatePhase.failed;
 
@@ -357,8 +361,8 @@ mixin PagedAsyncNotifierMixin<S, T> on $AsyncNotifier<S> {
 
   /// 让**当前正在飞的 [loadMore]** 视为过期结果（回来后不再写回 State）。
   ///
-  /// 子类在自定义「重置首页」路径（比如筛选切换想要保留旧 items + 展示轻量
-  /// LinearProgressIndicator 而不走 [reload] 的 AsyncLoading 分支）时，
+  /// 子类在自定义「重置首页」路径（比如筛选切换想要保留旧 items + 展示结果区
+  /// 轻量进度层而不走 [reload] 的 AsyncLoading 分支）时，
   /// 在**开始拉取新第一页之前**调用一次，避免旧 loadMore 覆盖新首页。
   @protected
   void invalidateInFlightLoadMore() {
@@ -566,18 +570,26 @@ mixin FilterablePagedAsyncNotifierMixin<S, T, F>
     if (_activeFilter == next) return Future<void>.value();
     _activeFilter = next;
     _ensureFilterDisposeGuard();
-    _writePendingFilter(next);
+    _writePendingFilter(next, filterUpdate: const FilterUpdateState.waiting());
     return _filterRequests.schedule(_loadSelectedFilter);
   }
 
   /// 立即重试当前筛选，跳过防抖窗口。
   Future<void> retryFilter() {
     _ensureFilterDisposeGuard();
-    _writePendingFilter(_activeFilter, applyFilter: false);
+    _writePendingFilter(
+      _activeFilter,
+      applyFilter: false,
+      filterUpdate: const FilterUpdateState.loading(),
+    );
     return _filterRequests.runNow(_loadSelectedFilter);
   }
 
-  void _writePendingFilter(F next, {bool applyFilter = true}) {
+  void _writePendingFilter(
+    F next, {
+    required FilterUpdateState filterUpdate,
+    bool applyFilter = true,
+  }) {
     final current = state.value;
     if (current == null) return;
 
@@ -586,7 +598,7 @@ mixin FilterablePagedAsyncNotifierMixin<S, T, F>
     final pendingPaged = currentPaged.copyWith(
       isLoadingMore: false,
       loadMoreErrorMessage: null,
-      filterUpdate: const FilterUpdateState.loading(),
+      filterUpdate: filterUpdate,
     );
     final base = applyPaged(current, pendingPaged);
     state = AsyncData(applyFilter ? applyFilterToState(base, next) : base);
@@ -599,6 +611,18 @@ mixin FilterablePagedAsyncNotifierMixin<S, T, F>
       await super.reload();
       return;
     }
+
+    if (isDisposed || !_filterRequests.isCurrent(requestId)) return;
+    state = AsyncData(
+      applyPaged(
+        current,
+        pagedOf(current).copyWith(
+          isLoadingMore: false,
+          loadMoreErrorMessage: null,
+          filterUpdate: const FilterUpdateState.loading(),
+        ),
+      ),
+    );
 
     try {
       final firstPage = await loadInitialPage();

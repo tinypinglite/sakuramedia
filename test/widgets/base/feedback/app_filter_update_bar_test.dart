@@ -14,7 +14,7 @@ void main() {
     );
   }
 
-  testWidgets('idle 不占空间，loading 保留内容并显示更新进度', (tester) async {
+  testWidgets('idle、等待和请求中都不占据顶栏空间', (tester) async {
     await tester.pumpWidget(
       wrap(
         const AppFilterUpdateBar(
@@ -29,6 +29,20 @@ void main() {
     await tester.pumpWidget(
       wrap(
         const AppFilterUpdateBar(
+          state: FilterUpdateState.waiting(),
+          hasPreviousItems: true,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.text('正在更新筛选结果'), findsNothing);
+    expect(tester.getSize(find.byType(AppFilterUpdateBar)).height, 0);
+
+    await tester.pumpWidget(
+      wrap(
+        const AppFilterUpdateBar(
           state: FilterUpdateState.loading(),
           hasPreviousItems: true,
         ),
@@ -36,8 +50,9 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.byType(LinearProgressIndicator), findsOneWidget);
-    expect(find.text('正在更新筛选结果'), findsOneWidget);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(find.text('正在更新筛选结果'), findsNothing);
+    expect(tester.getSize(find.byType(AppFilterUpdateBar)).height, 0);
   });
 
   testWidgets('已有旧结果时失败显示轻量提示并可重试', (tester) async {

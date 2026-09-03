@@ -96,6 +96,37 @@ void main() {
       expect(find.text('正在缓冲…'), findsNWidgets(2));
     });
 
+    testWidgets('buffering indicator can be hidden before the first frame', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: Builder(
+            builder: (context) => Column(
+              children: [
+                buildMoviePlayerMobileControlsThemeData(
+                  theme: Theme.of(context),
+                  topControls: const <Widget>[],
+                  bottomControls: const <Widget>[],
+                  showBufferingIndicator: false,
+                ).bufferingIndicatorBuilder!(context),
+                buildMoviePlayerDesktopControlsThemeData(
+                  theme: Theme.of(context),
+                  topControls: const <Widget>[],
+                  bottomControls: const <Widget>[],
+                  showBufferingIndicator: false,
+                ).bufferingIndicatorBuilder!(context),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(VideoLoadingIndicator), findsNothing);
+      expect(find.text('正在缓冲…'), findsNothing);
+    });
+
     test('mobile controls theme supports top and bottom button bars', () {
       const top = SizedBox(key: Key('top-control'));
       const bottom = MaterialPlayOrPauseButton();

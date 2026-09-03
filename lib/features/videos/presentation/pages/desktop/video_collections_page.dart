@@ -116,10 +116,14 @@ class DesktopVideoCollectionsPage extends ConsumerWidget {
     AsyncValue<List<VideoCollectionDto>> async,
   ) {
     if (async.isLoading && async.value == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: CircularProgressIndicator(),
+      final spacing = context.appSpacing;
+      return Wrap(
+        key: const Key('video-collections-loading'),
+        spacing: spacing.md,
+        runSpacing: spacing.md,
+        children: List<Widget>.generate(
+          4,
+          (_) => const SizedBox(width: 280, child: CollectionCardSkeleton()),
         ),
       );
     }

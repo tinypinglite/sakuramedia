@@ -29,6 +29,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -334,32 +335,38 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
       child: Column(
         children: [
           Expanded(
-            child: AppAdaptiveRefreshScrollView(
-              key: const PageStorageKey<String>('mobile:pornbox:list'),
-              controller: _scrollController,
-              onRefresh: _refresh,
-              slivers: <Widget>[
-                if (!selectionMode)
-                  SliverToBoxAdapter(child: _buildCollectionsSection(context)),
-                SliverToBoxAdapter(
-                  child: _buildVideosHeader(
+            child: AppFilterResultLoadingOverlay(
+              isLoading: paged.filterUpdate.isLoading,
+              hasPreviousItems: paged.items.isNotEmpty,
+              child: AppAdaptiveRefreshScrollView(
+                key: const PageStorageKey<String>('mobile:pornbox:list'),
+                controller: _scrollController,
+                onRefresh: _refresh,
+                slivers: <Widget>[
+                  if (!selectionMode)
+                    SliverToBoxAdapter(
+                      child: _buildCollectionsSection(context),
+                    ),
+                  SliverToBoxAdapter(
+                    child: _buildVideosHeader(
+                      context,
+                      paged: paged,
+                      videos: paged.items,
+                      filter: filter,
+                      total: paged.total,
+                    ),
+                  ),
+                  _buildVideosSliver(
                     context,
                     paged: paged,
-                    videos: paged.items,
-                    filter: filter,
-                    total: paged.total,
+                    isInitialLoading: videosAsync.isLoading && summary == null,
+                    initialErrorMessage: videosAsync.hasError && summary == null
+                        ? '视频列表加载失败，请稍后重试'
+                        : null,
                   ),
-                ),
-                _buildVideosSliver(
-                  context,
-                  paged: paged,
-                  isInitialLoading: videosAsync.isLoading && summary == null,
-                  initialErrorMessage: videosAsync.hasError && summary == null
-                      ? '视频列表加载失败，请稍后重试'
-                      : null,
-                ),
-                SliverToBoxAdapter(child: _buildFooter(context, paged)),
-              ],
+                  SliverToBoxAdapter(child: _buildFooter(context, paged)),
+                ],
+              ),
             ),
           ),
           if (selectionMode) _buildBatchBar(context),

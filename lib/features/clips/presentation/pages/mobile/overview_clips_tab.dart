@@ -26,7 +26,9 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_cover_card_skeleton.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -134,22 +136,26 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
       children: [
         if (selectionMode) _buildSelectionBar(context, clips),
         Expanded(
-          child: AppAdaptiveRefreshScrollView(
-            key: const Key('mobile-clips-tab-scroll'),
-            controller: _scrollController,
-            onRefresh: _refresh,
-            slivers: <Widget>[
-              // 选择模式下隐藏合集横滑区，只剩切片网格，与移动 PornBox 一致。
-              if (!selectionMode)
+          child: AppFilterResultLoadingOverlay(
+            isLoading: clipsState?.paged.filterUpdate.isLoading ?? false,
+            hasPreviousItems: clips.isNotEmpty,
+            child: AppAdaptiveRefreshScrollView(
+              key: const Key('mobile-clips-tab-scroll'),
+              controller: _scrollController,
+              onRefresh: _refresh,
+              slivers: <Widget>[
+                // 选择模式下隐藏合集横滑区，只剩切片网格，与移动 PornBox 一致。
+                if (!selectionMode)
+                  SliverToBoxAdapter(
+                    child: _buildCollectionsSection(context, collectionsAsync),
+                  ),
+                SliverToBoxAdapter(child: _buildClipsHeader(context, clips)),
+                _buildClipsSliver(context, clipsAsync, clips),
                 SliverToBoxAdapter(
-                  child: _buildCollectionsSection(context, collectionsAsync),
+                  child: _buildFooter(context, clipsState?.paged),
                 ),
-              SliverToBoxAdapter(child: _buildClipsHeader(context, clips)),
-              _buildClipsSliver(context, clipsAsync, clips),
-              SliverToBoxAdapter(
-                child: _buildFooter(context, clipsState?.paged),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         if (selectionMode) _buildBatchBar(context),
@@ -175,7 +181,7 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
               '我的合集',
               style: resolveAppTextStyle(
                 context,
-                size: AppTextSize.s16,
+                size: AppTextSize.s14,
                 weight: AppTextWeight.semibold,
                 tone: AppTextTone.primary,
               ),
@@ -210,6 +216,7 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
     AsyncValue<List<ClipCollectionDto>> collectionsAsync,
     List<ClipCollectionDto> collections,
   ) {
+    final spacing = context.appSpacing;
     if (collectionsAsync.hasError && collections.isEmpty) {
       return _HintBox(
         message: apiErrorMessage(
@@ -219,15 +226,16 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
       );
     }
     if (collectionsAsync.isLoading && collections.isEmpty) {
-      return const SizedBox(
-        height: 60,
-        child: Center(child: CircularProgressIndicator()),
+      return CollectionCardSkeletonRow(
+        key: const Key('mobile-clips-collections-skeleton-row'),
+        height: 148,
+        itemWidth: 168,
+        itemSpacing: spacing.sm,
       );
     }
     if (collections.isEmpty) {
       return const _HintBox(message: '还没有合集，点「新建」把喜欢的切片攒成一个连播合集吧');
     }
-    final spacing = context.appSpacing;
     return SizedBox(
       height: 148,
       child: ListView.separated(
@@ -270,7 +278,7 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
                 '全部切片',
                 style: resolveAppTextStyle(
                   context,
-                  size: AppTextSize.s16,
+                  size: AppTextSize.s14,
                   weight: AppTextWeight.semibold,
                   tone: AppTextTone.primary,
                 ),
@@ -355,18 +363,30 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
     if (clipsAsync.isLoading && clips.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: SizedBox(
-          height: 200,
-          child: Center(
-            child: SizedBox(
-              key: Key('mobile-clips-loading'),
-              width: 32,
-              height: 32,
-              child: CircularProgressIndicator(),
+      final spacing = context.appSpacing;
+      return SliverLayoutBuilder(
+        builder: (context, constraints) {
+          final columns = _resolveColumnCount(
+            constraints.crossAxisExtent,
+            spacing.md,
+          );
+          return SliverGrid(
+            key: const Key('mobile-clips-grid-skeleton'),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              mainAxisSpacing: spacing.md,
+              crossAxisSpacing: spacing.md,
+              childAspectRatio: 16 / 9,
             ),
-          ),
-        ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => AppCoverCardSkeleton(
+                key: Key('mobile-clips-grid-skeleton-$index'),
+                aspectRatio: 16 / 9,
+              ),
+              childCount: 6,
+            ),
+          );
+        },
       );
     }
     if (clipsAsync.hasError && clips.isEmpty) {

@@ -267,7 +267,11 @@ void main() {
       await tester.pump();
 
       expect(find.text('hot-review-1'), findsOneWidget);
-      expect(find.text('正在更新筛选结果'), findsOneWidget);
+      expect(find.text('正在更新筛选结果'), findsNothing);
+      expect(
+        find.byKey(const Key('app-filter-result-loading-overlay')),
+        findsNothing,
+      );
       expect(
         find.byKey(
           const Key('movie-detail-review-sort-switch-loading-spinner'),
@@ -289,6 +293,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 260));
       expect(requestCount, 2);
       expect(find.text('hot-review-1'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(
+        find.byKey(const Key('app-filter-result-loading-overlay')),
+        findsOneWidget,
+      );
 
       pendingRecently.complete(<MovieReviewDto>[
         _buildReview(prefix: 'recent'),

@@ -405,16 +405,12 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
     AsyncValue<PagedListState<MomentRecommendationDto>> async,
     PagedListState<MomentRecommendationDto> paged,
   ) {
-    if (async.isLoading) {
-      return SliverToBoxAdapter(
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: context.appLayoutTokens.emptySectionVerticalPadding,
-            ),
-            child: const CircularProgressIndicator(),
-          ),
-        ),
+    if (async.isLoading && async.value == null) {
+      return MomentSliver(
+        items: const <MomentListItem>[],
+        isLoading: true,
+        placeholderCount: pageSize,
+        onItemTap: _ignoreMomentTap,
       );
     }
     if (async.hasError) {
@@ -515,6 +511,8 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
     ).toString();
   }
 }
+
+void _ignoreMomentTap(MomentListItem _) {}
 
 class DiscoveryRetryEmptyState extends StatelessWidget {
   const DiscoveryRetryEmptyState({

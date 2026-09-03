@@ -19,6 +19,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
@@ -432,88 +433,93 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
                         .loadMore(),
                   );
 
-            return widget.bodyBuilder(
-              context,
-              _scrollController,
-              SliverMainAxisGroup(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: KeyedSubtree(
-                      key: widget.contentKey,
-                      child: widget.headerBuilder(
-                        context,
-                        actor,
-                        movies?.paged.total ?? 0,
-                        isActorSubscribed,
-                        _isActorSubscriptionUpdating,
-                        _isActorSubscriptionUpdating
-                            ? null
-                            : () => _toggleActorSubscription(
-                                isSubscribed: isActorSubscribed,
-                              ),
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: widget.sectionSpacing),
-                  ),
-                  SliverToBoxAdapter(
-                    child: selectionMode
-                        ? (widget.useMobileSelectionLayout
-                              ? buildMobileBatchSelectionHeader()
-                              : buildBatchSelectionToolbar())
-                        : _buildFilterHeader(context, movies?.paged),
-                  ),
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: widget.sectionSpacing),
-                  ),
-                  if (!(movies?.paged.filterUpdate.hasFailed ?? false) ||
-                      (movies?.paged.items.isNotEmpty ?? false))
-                    MovieSummarySliver(
-                      items: movies?.paged.items ?? const [],
-                      isLoading: moviesAsync.isLoading && movies == null,
-                      errorMessage: moviesAsync.hasError && movies == null
-                          ? _scope.initialLoadErrorText
-                          : null,
-                      onMovieTap: (movie) =>
-                          widget.onMovieTap(context, movie.movieNumber),
-                      onMovieMenuRequest: (movie, globalPosition) {
-                        unawaited(
-                          showMovieCollectionFeatureActionMenu(
-                            context: context,
-                            movieNumber: movie.movieNumber,
-                            globalPosition: globalPosition,
-                            isSubscribed: movie.isSubscribed,
-                            onEnterSelection: widget.useMobileSelectionLayout
-                                ? () {
-                                    enterSelection();
-                                    toggleSelect(movie.movieNumber);
-                                  }
-                                : null,
-                          ),
-                        );
-                      },
-                      onMovieSubscriptionTap: (movie) =>
-                          _toggleMovieSubscription(movie.movieNumber),
-                      isMovieSubscriptionUpdating: (movie) =>
-                          movies?.isSubscriptionUpdating(movie.movieNumber) ??
-                          false,
-                      emptyMessage: '暂无影片数据',
-                      selectionMode: selectionMode,
-                      isMovieSelected: (movie) => isSelected(movie.movieNumber),
-                      onMovieSelectedChanged: (movie, _) =>
-                          toggleSelect(movie.movieNumber),
-                    ),
-                  if (footer != null)
+            return AppFilterResultLoadingOverlay(
+              isLoading: movies?.paged.filterUpdate.isLoading ?? false,
+              hasPreviousItems: movies?.paged.items.isNotEmpty ?? false,
+              child: widget.bodyBuilder(
+                context,
+                _scrollController,
+                SliverMainAxisGroup(
+                  slivers: [
                     SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.only(top: context.appSpacing.md),
-                        child: footer,
+                      child: KeyedSubtree(
+                        key: widget.contentKey,
+                        child: widget.headerBuilder(
+                          context,
+                          actor,
+                          movies?.paged.total ?? 0,
+                          isActorSubscribed,
+                          _isActorSubscriptionUpdating,
+                          _isActorSubscriptionUpdating
+                              ? null
+                              : () => _toggleActorSubscription(
+                                  isSubscribed: isActorSubscribed,
+                                ),
+                        ),
                       ),
                     ),
-                ],
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: widget.sectionSpacing),
+                    ),
+                    SliverToBoxAdapter(
+                      child: selectionMode
+                          ? (widget.useMobileSelectionLayout
+                                ? buildMobileBatchSelectionHeader()
+                                : buildBatchSelectionToolbar())
+                          : _buildFilterHeader(context, movies?.paged),
+                    ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: widget.sectionSpacing),
+                    ),
+                    if (!(movies?.paged.filterUpdate.hasFailed ?? false) ||
+                        (movies?.paged.items.isNotEmpty ?? false))
+                      MovieSummarySliver(
+                        items: movies?.paged.items ?? const [],
+                        isLoading: moviesAsync.isLoading && movies == null,
+                        errorMessage: moviesAsync.hasError && movies == null
+                            ? _scope.initialLoadErrorText
+                            : null,
+                        onMovieTap: (movie) =>
+                            widget.onMovieTap(context, movie.movieNumber),
+                        onMovieMenuRequest: (movie, globalPosition) {
+                          unawaited(
+                            showMovieCollectionFeatureActionMenu(
+                              context: context,
+                              movieNumber: movie.movieNumber,
+                              globalPosition: globalPosition,
+                              isSubscribed: movie.isSubscribed,
+                              onEnterSelection: widget.useMobileSelectionLayout
+                                  ? () {
+                                      enterSelection();
+                                      toggleSelect(movie.movieNumber);
+                                    }
+                                  : null,
+                            ),
+                          );
+                        },
+                        onMovieSubscriptionTap: (movie) =>
+                            _toggleMovieSubscription(movie.movieNumber),
+                        isMovieSubscriptionUpdating: (movie) =>
+                            movies?.isSubscriptionUpdating(movie.movieNumber) ??
+                            false,
+                        emptyMessage: '暂无影片数据',
+                        selectionMode: selectionMode,
+                        isMovieSelected: (movie) =>
+                            isSelected(movie.movieNumber),
+                        onMovieSelectedChanged: (movie, _) =>
+                            toggleSelect(movie.movieNumber),
+                      ),
+                    if (footer != null)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: context.appSpacing.md),
+                          child: footer,
+                        ),
+                      ),
+                  ],
+                ),
+                widget.enableRefresh ? _handleRefresh : null,
               ),
-              widget.enableRefresh ? _handleRefresh : null,
             );
           },
         ),

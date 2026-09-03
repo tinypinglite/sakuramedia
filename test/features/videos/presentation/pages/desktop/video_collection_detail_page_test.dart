@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
@@ -82,7 +85,7 @@ void main() {
     );
   }
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(WidgetTester tester, {bool settle = true}) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1200, 800);
     addTearDown(() {
@@ -109,8 +112,54 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+    }
   }
+
+  testWidgets('首屏加载显示视频合集详情骨架', (tester) async {
+    final pendingCollection = Completer<ResponseBody>();
+    adapter.enqueueResponder(
+      method: 'GET',
+      path: '/video-collections/1',
+      responder: (_, __) => pendingCollection.future,
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-collections/1/items',
+      body: const <String, dynamic>{
+        'items': <dynamic>[],
+        'page': 1,
+        'page_size': 100,
+        'total': 0,
+      },
+    );
+
+    await pumpPage(tester, settle: false);
+
+    expect(
+      find.byKey(const Key('video-collection-detail-loading')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('video-collection-detail-skeleton-list')),
+      findsOneWidget,
+    );
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    pendingCollection.complete(
+      ResponseBody.fromString(
+        '{"id":1,"name":"我的合集","description":"","item_count":0,"cover_image":null}',
+        200,
+        headers: const <String, List<String>>{
+          Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+  });
 
   testWidgets('桌面详情渲染标题块 / 播放全部 / 成员总数', (WidgetTester tester) async {
     enqueueInitialLoad();

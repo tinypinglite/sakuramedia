@@ -15,6 +15,7 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -118,7 +119,13 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
       color: context.appColors.surfaceCard,
       child: Column(
         children: [
-          Expanded(child: _buildScrollView(context, summary)),
+          Expanded(
+            child: AppFilterResultLoadingOverlay(
+              isLoading: summary.paged.filterUpdate.isLoading,
+              hasPreviousItems: summary.paged.items.isNotEmpty,
+              child: _buildScrollView(context, summary),
+            ),
+          ),
           // 多选态的批量动作贴底常驻，与影片列表 / PornBox 一致。
           if (selectionMode) buildMobileBatchSelectionBottomBar(),
         ],

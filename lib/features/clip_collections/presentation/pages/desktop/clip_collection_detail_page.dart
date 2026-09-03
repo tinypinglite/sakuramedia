@@ -6,6 +6,8 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_cover_card_skeleton.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_player_dialog.dart';
 
 export 'package:sakuramedia/features/clip_collections/presentation/pages/shared/clip_collection_detail_content.dart'
@@ -31,14 +33,7 @@ class DesktopClipCollectionDetailPage extends StatelessWidget {
       hoistTitleToSubpageShell: false,
       enableReorder: true,
       defaultLayout: ClipCollectionDetailLayout.grid,
-      loadingBuilder: (_) => const Center(
-        child: SizedBox(
-          key: Key('clip-collection-detail-loading'),
-          width: 40,
-          height: 40,
-          child: CircularProgressIndicator(),
-        ),
-      ),
+      loadingBuilder: (_) => const _DesktopClipCollectionDetailLoadingState(),
       playAllBuilder: (context, {required enabled, required onPlayFrom}) {
         return AppButton(
           key: const Key('clip-collection-play-all-button'),
@@ -93,6 +88,64 @@ class DesktopClipCollectionDetailPage extends StatelessWidget {
           memberClipIds: memberClipIds,
         );
       },
+    );
+  }
+}
+
+class _DesktopClipCollectionDetailLoadingState extends StatelessWidget {
+  const _DesktopClipCollectionDetailLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    return Column(
+      key: const Key('clip-collection-detail-loading'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const AppSkeletonBlock(width: 196, height: 24),
+            const Spacer(),
+            AppSkeletonBlock(
+              width: 84,
+              height: context.appComponentTokens.buttonHeightSm,
+              radius: context.appRadius.pillBorder,
+            ),
+          ],
+        ),
+        SizedBox(height: spacing.md),
+        Row(
+          children: [
+            AppSkeletonBlock(
+              width: 96,
+              height: context.appComponentTokens.buttonHeightXs,
+              radius: context.appRadius.pillBorder,
+            ),
+            SizedBox(width: spacing.sm),
+            const AppSkeletonBlock(width: 68, height: 14),
+            const Spacer(),
+            AppSkeletonBlock(
+              width: context.appComponentTokens.buttonHeightSm,
+              height: context.appComponentTokens.buttonHeightSm,
+              radius: context.appRadius.mdBorder,
+            ),
+          ],
+        ),
+        SizedBox(height: spacing.md),
+        Expanded(
+          child: GridView.builder(
+            key: const Key('clip-collection-detail-skeleton-grid'),
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 280,
+              mainAxisSpacing: spacing.md,
+              crossAxisSpacing: spacing.md,
+              childAspectRatio: 16 / 9,
+            ),
+            itemCount: 8,
+            itemBuilder: (_, _) => const AppCoverCardSkeleton(),
+          ),
+        ),
+      ],
     );
   }
 }

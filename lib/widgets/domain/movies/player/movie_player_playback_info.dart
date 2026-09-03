@@ -9,6 +9,16 @@ enum MoviePlayerDecodingMode { hardware, software, unknown }
 
 enum MoviePlayerDynamicRangeMode { hdr, sdr, unknown }
 
+/// 从 libmpv 的 FFmpeg 网络诊断中识别出的请求主机与 TCP 对端。
+@immutable
+class MoviePlayerNetworkConnection {
+  const MoviePlayerNetworkConnection({required this.host, this.ip, this.port});
+
+  final String host;
+  final String? ip;
+  final int? port;
+}
+
 /// 面板左侧 label 列固定宽度。
 const double _kLabelColumnWidth = 88;
 
@@ -53,6 +63,8 @@ class MoviePlayerPlaybackInfoSnapshot {
     required this.dynamicRangeDetailLabel,
     this.playbackGatewayHostLabel,
     this.playbackGatewayRequestPathLabel,
+    this.playbackDeliveryLabel = '检测中',
+    this.playbackActualConnectionLabel,
     this.playbackDemuxerFormatLabel = '--',
     this.playbackSourceBufferLabel,
     this.playbackSourceDownloadRateLabel,
@@ -108,6 +120,12 @@ class MoviePlayerPlaybackInfoSnapshot {
   /// `null` 表示不展示该行。
   final String? playbackGatewayRequestPathLabel;
 
+  /// 基于 libmpv FFmpeg 的最终请求主机判断的实际线路。
+  final String playbackDeliveryLabel;
+
+  /// libmpv 最后一次确认的 `请求主机 → TCP 对端`；尚未收到网络日志时为 null。
+  final String? playbackActualConnectionLabel;
+
   /// libmpv 报告的解复用格式；未知时展示 `--`。
   final String playbackDemuxerFormatLabel;
 
@@ -145,6 +163,8 @@ class MoviePlayerPlaybackInfoSnapshot {
         other.playbackGatewayHostLabel == playbackGatewayHostLabel &&
         other.playbackGatewayRequestPathLabel ==
             playbackGatewayRequestPathLabel &&
+        other.playbackDeliveryLabel == playbackDeliveryLabel &&
+        other.playbackActualConnectionLabel == playbackActualConnectionLabel &&
         other.playbackDemuxerFormatLabel == playbackDemuxerFormatLabel &&
         other.playbackSourceBufferLabel == playbackSourceBufferLabel &&
         other.playbackSourceDownloadRateLabel ==
@@ -174,6 +194,8 @@ class MoviePlayerPlaybackInfoSnapshot {
     dynamicRangeDetailLabel,
     playbackGatewayHostLabel,
     playbackGatewayRequestPathLabel,
+    playbackDeliveryLabel,
+    playbackActualConnectionLabel,
     playbackDemuxerFormatLabel,
     playbackSourceBufferLabel,
     playbackSourceDownloadRateLabel,
@@ -201,6 +223,7 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
   double? bufferCacheDurationSeconds,
   int? bufferForwardBytes,
   double? downloadRateBytesPerSecond,
+  MoviePlayerNetworkConnection? networkConnection,
 }) {
   final decodingMode = _resolveDecodingMode(
     hwdecCurrent: hwdecCurrent,
@@ -264,6 +287,13 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     dynamicRangeDetailLabel: _buildDynamicRangeDetailLabel(videoParams),
     playbackGatewayHostLabel: _extractHost(originalUrl),
     playbackGatewayRequestPathLabel: _extractPathAndTail(originalUrl),
+    playbackDeliveryLabel: _buildPlaybackDeliveryLabel(
+      originalUrl: originalUrl,
+      connection: networkConnection,
+    ),
+    playbackActualConnectionLabel: _buildActualConnectionLabel(
+      networkConnection,
+    ),
     playbackDemuxerFormatLabel: _normalizeTechnicalText(fileFormat),
     playbackSourceBufferLabel: _buildBufferLabel(
       cacheDurationSeconds: bufferCacheDurationSeconds,
@@ -273,6 +303,43 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
       downloadRateBytesPerSecond,
     ),
   );
+}
+
+String _buildPlaybackDeliveryLabel({
+  required String? originalUrl,
+  required MoviePlayerNetworkConnection? connection,
+}) {
+  if (connection == null) {
+    return '检测中';
+  }
+  final gatewayHost = Uri.tryParse(originalUrl?.trim() ?? '')?.host;
+  if (gatewayHost == null || gatewayHost.isEmpty) {
+    return '已连接';
+  }
+  final normalizedGatewayHost = _normalizeConnectionHost(gatewayHost);
+  if (_normalizeConnectionHost(connection.host) == normalizedGatewayHost ||
+      (connection.ip != null &&
+          _normalizeConnectionHost(connection.ip!) == normalizedGatewayHost)) {
+    return '转发';
+  }
+  return '直连';
+}
+
+String? _buildActualConnectionLabel(MoviePlayerNetworkConnection? connection) {
+  if (connection == null) {
+    return null;
+  }
+  final ip = connection.ip;
+  if (ip == null || ip.isEmpty) {
+    return connection.host;
+  }
+  final port = connection.port;
+  final endpoint = port == null ? ip : '$ip:$port';
+  return '${connection.host} → $endpoint';
+}
+
+String _normalizeConnectionHost(String value) {
+  return value.trim().toLowerCase().replaceAll(RegExp(r'^\[|\]$'), '');
 }
 
 String? _extractHost(String? url) {
@@ -950,6 +1017,23 @@ List<Widget> _buildPlaybackRouteSection(MoviePlayerPlaybackInfoSnapshot info) {
         copyable: true,
         copyButtonKey: const Key(
           'movie-player-info-copy-playback-gateway-path',
+        ),
+      ),
+    _MoviePlayerPlaybackInfoRowData(
+      label: '实际线路',
+      value: info.playbackDeliveryLabel,
+      valueKey: const Key('movie-player-info-value-playback-delivery'),
+    ),
+    if (info.playbackActualConnectionLabel case final connection?)
+      _MoviePlayerPlaybackInfoRowData(
+        label: '实际连接',
+        value: connection,
+        valueKey: const Key(
+          'movie-player-info-value-playback-actual-connection',
+        ),
+        copyable: true,
+        copyButtonKey: const Key(
+          'movie-player-info-copy-playback-actual-connection',
         ),
       ),
     _MoviePlayerPlaybackInfoRowData(

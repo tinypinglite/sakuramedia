@@ -184,7 +184,7 @@ class RankingSummary extends _$RankingSummary
         paged: current.paged.copyWith(
           isLoadingMore: false,
           loadMoreErrorMessage: null,
-          filterUpdate: const FilterUpdateState.loading(),
+          filterUpdate: const FilterUpdateState.waiting(),
         ),
       ),
     );
@@ -194,6 +194,16 @@ class RankingSummary extends _$RankingSummary
   }
 
   Future<void> _loadSource(int requestId, RankingSourceDto source) async {
+    if (isDisposed || !_filterRequests.isCurrent(requestId)) return;
+    final currentAtStart = state.value;
+    if (currentAtStart == null) return;
+    state = AsyncData(
+      currentAtStart.copyWith(
+        paged: currentAtStart.paged.copyWith(
+          filterUpdate: const FilterUpdateState.loading(),
+        ),
+      ),
+    );
     try {
       final boards = await ref
           .read(rankingsApiProvider)
@@ -370,7 +380,7 @@ class RankingSummary extends _$RankingSummary
         paged: current.paged.copyWith(
           isLoadingMore: false,
           loadMoreErrorMessage: null,
-          filterUpdate: const FilterUpdateState.loading(),
+          filterUpdate: const FilterUpdateState.waiting(),
         ),
       ),
     );
@@ -382,6 +392,14 @@ class RankingSummary extends _$RankingSummary
     if (current == null) {
       return;
     }
+    if (isDisposed || !_filterRequests.isCurrent(requestId)) return;
+    state = AsyncData(
+      current.copyWith(
+        paged: current.paged.copyWith(
+          filterUpdate: const FilterUpdateState.loading(),
+        ),
+      ),
+    );
     try {
       final paged = await loadInitialPage();
       if (isDisposed || !_filterRequests.isCurrent(requestId)) {

@@ -22,6 +22,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_selection_status_bar.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
@@ -452,7 +453,13 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
             onRetry: () => unawaited(_controller.retrySort()),
           ),
           SizedBox(height: context.appSpacing.sm),
-          Expanded(child: _buildContent(context, state)),
+          Expanded(
+            child: AppFilterResultLoadingOverlay(
+              isLoading: state.filterUpdate.isLoading,
+              hasPreviousItems: state.items.isNotEmpty,
+              child: _buildContent(context, state),
+            ),
+          ),
         ],
       ),
     );

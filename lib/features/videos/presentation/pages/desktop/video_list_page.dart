@@ -25,6 +25,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
@@ -304,44 +305,48 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
       onRefresh: _handlePageRefresh,
       child: ColoredBox(
         color: context.appColors.surfaceElevated,
-        child: CustomScrollView(
-          key: const PageStorageKey<String>('desktop:videos:list'),
-          controller: _scrollController,
-          slivers: [
-            SliverToBoxAdapter(
-              child: Column(
-                key: const Key('videos-page'),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildCollectionsSection(context),
-                  SizedBox(height: context.appSpacing.lg),
-                ],
+        child: AppFilterResultLoadingOverlay(
+          isLoading: paged?.filterUpdate.isLoading ?? false,
+          hasPreviousItems: paged?.items.isNotEmpty ?? false,
+          child: CustomScrollView(
+            key: const PageStorageKey<String>('desktop:videos:list'),
+            controller: _scrollController,
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  key: const Key('videos-page'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildCollectionsSection(context),
+                    SizedBox(height: context.appSpacing.lg),
+                  ],
+                ),
               ),
-            ),
-            VideoListContent(
-              paged: paged ?? const PagedListState<VideoItemListItemDto>(),
-              isInitialLoading: videosAsync.isLoading && summary == null,
-              initialErrorMessage: videosAsync.hasError && summary == null
-                  ? '视频列表加载失败，请稍后重试'
-                  : null,
-              filterState: filter,
-              onFilterChanged: _applySort,
-              onRetryFilter: () => unawaited(
-                ref.read(videoSummaryProvider(_scope).notifier).retryFilter(),
+              VideoListContent(
+                paged: paged ?? const PagedListState<VideoItemListItemDto>(),
+                isInitialLoading: videosAsync.isLoading && summary == null,
+                initialErrorMessage: videosAsync.hasError && summary == null
+                    ? '视频列表加载失败，请稍后重试'
+                    : null,
+                filterState: filter,
+                onFilterChanged: _applySort,
+                onRetryFilter: () => unawaited(
+                  ref.read(videoSummaryProvider(_scope).notifier).retryFilter(),
+                ),
+                onLoadMore: () =>
+                    ref.read(videoSummaryProvider(_scope).notifier).loadMore(),
+                contentKey: const Key('videos-page-list'),
+                totalKey: const Key('videos-page-total'),
+                sectionSpacing: context.appSpacing.lg,
+                onVideoTap: _openActionsDialog,
+                selectionMode: selectionMode,
+                selectedIds: selectedIds,
+                onVideoToggleSelect: (video) => toggleSelect(video.id),
+                selectionHeaderBuilder: _buildSelectionHeader,
+                headerActionsBuilder: _buildInlineSelectionTrigger,
               ),
-              onLoadMore: () =>
-                  ref.read(videoSummaryProvider(_scope).notifier).loadMore(),
-              contentKey: const Key('videos-page-list'),
-              totalKey: const Key('videos-page-total'),
-              sectionSpacing: context.appSpacing.lg,
-              onVideoTap: _openActionsDialog,
-              selectionMode: selectionMode,
-              selectedIds: selectedIds,
-              onVideoToggleSelect: (video) => toggleSelect(video.id),
-              selectionHeaderBuilder: _buildSelectionHeader,
-              headerActionsBuilder: _buildInlineSelectionTrigger,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -407,7 +412,7 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
                   '视频合集',
                   style: resolveAppTextStyle(
                     context,
-                    size: AppTextSize.s16,
+                    size: AppTextSize.s14,
                     weight: AppTextWeight.semibold,
                     tone: AppTextTone.primary,
                   ),

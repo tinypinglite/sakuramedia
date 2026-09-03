@@ -106,7 +106,8 @@ class AppListHeader extends StatelessWidget {
   /// 不是另一种状态。
   final bool filterEnabled;
 
-  /// 当前筛选条件与列表结果的同步状态。非 idle 时在顶栏下方显示轻量反馈。
+  /// 当前筛选条件与列表结果的同步状态。失败时在顶栏下方显示重试反馈；请求中
+  /// 的进度由列表外层的 [AppFilterResultLoadingOverlay] 呈现。
   final FilterUpdateState filterUpdate;
   final bool hasPreviousFilterItems;
   final VoidCallback? onRetryFilter;

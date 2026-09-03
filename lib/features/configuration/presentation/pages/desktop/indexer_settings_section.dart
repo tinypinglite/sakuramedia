@@ -295,12 +295,6 @@ class _IndexerSettingsSectionState
       children: [
         AppContentCard(
           title: 'Torznab 连通性',
-          titleStyle: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s16,
-            weight: AppTextWeight.semibold,
-            tone: AppTextTone.primary,
-          ),
           headerBottomSpacing: spacing.md,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

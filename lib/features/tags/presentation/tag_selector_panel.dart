@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_s
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 /// 标签多选区：搜索框 + 已选标签 chips + 热门/搜索结果标签云。
@@ -174,27 +175,18 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
 
   Widget _buildLoading(BuildContext context) {
     final spacing = context.appSpacing;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    const widths = <double>[88, 116, 76, 132, 98, 108, 82, 124, 92, 112];
+    return Wrap(
+      key: const Key('tags-selector-skeleton'),
+      spacing: spacing.sm,
+      runSpacing: spacing.sm,
       children: [
-        SizedBox(
-          width: 14,
-          height: 14,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Theme.of(context).colorScheme.primary,
+        for (final width in widths)
+          AppSkeletonBlock(
+            width: width,
+            height: context.appComponentTokens.buttonHeightXs,
+            radius: context.appRadius.pillBorder,
           ),
-        ),
-        SizedBox(width: spacing.sm),
-        Text(
-          '标签加载中',
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.muted,
-          ),
-        ),
       ],
     );
   }

@@ -19,6 +19,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_left_cover_card.dart';
@@ -115,12 +116,24 @@ class MediaListSection extends StatelessWidget {
         ),
       ],
     );
+    final resultView = Consumer(
+      builder: (context, ref, _) {
+        final paged = ref.watch(
+          mediaBrowseProvider.select((asyncState) => asyncState.value?.paged),
+        );
+        return AppFilterResultLoadingOverlay(
+          isLoading: paged?.filterUpdate.isLoading ?? false,
+          hasPreviousItems: paged?.items.isNotEmpty ?? false,
+          child: scrollView,
+        );
+      },
+    );
 
     // 移动端多选态：列表下方常驻批量删除操作条。
     if (mobile && selectionMode) {
       return Column(
         children: [
-          Expanded(child: scrollView),
+          Expanded(child: resultView),
           _MediaMobileSelectionBar(
             keyPrefix: keyPrefix,
             isDeleting: isDeleting,
@@ -129,7 +142,7 @@ class MediaListSection extends StatelessWidget {
         ],
       );
     }
-    return scrollView;
+    return resultView;
   }
 }
 

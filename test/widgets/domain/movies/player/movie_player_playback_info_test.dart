@@ -9,6 +9,7 @@ MoviePlayerPlaybackInfoSnapshot _snapshot({
   VideoParams videoParams = const VideoParams(),
   String? fileFormat,
   String? originalUrl,
+  MoviePlayerNetworkConnection? networkConnection,
 }) {
   return buildMoviePlayerPlaybackInfoSnapshot(
     track: track,
@@ -28,6 +29,7 @@ MoviePlayerPlaybackInfoSnapshot _snapshot({
     mistimedFramePerSecond: null,
     originalUrl: originalUrl,
     fileFormat: fileFormat,
+    networkConnection: networkConnection,
   );
 }
 
@@ -57,6 +59,37 @@ void main() {
     expect(snapshot.playbackDemuxerFormatLabel, 'hls');
   });
 
+  test('identifies actual direct and proxied FFmpeg connections', () {
+    const originalUrl = 'https://backend.example.com/media/1/play/';
+    final direct = _snapshot(
+      originalUrl: originalUrl,
+      networkConnection: const MoviePlayerNetworkConnection(
+        host: 'cdn.example.com',
+        ip: '203.0.113.8',
+        port: 443,
+      ),
+    );
+    final proxied = _snapshot(
+      originalUrl: originalUrl,
+      networkConnection: const MoviePlayerNetworkConnection(
+        host: 'backend.example.com',
+        ip: '203.0.113.7',
+        port: 443,
+      ),
+    );
+
+    expect(direct.playbackDeliveryLabel, '直连');
+    expect(
+      direct.playbackActualConnectionLabel,
+      'cdn.example.com → 203.0.113.8:443',
+    );
+    expect(proxied.playbackDeliveryLabel, '转发');
+    expect(
+      proxied.playbackActualConnectionLabel,
+      'backend.example.com → 203.0.113.7:443',
+    );
+  });
+
   test('keeps unknown demuxer format neutral', () {
     final snapshot = _snapshot();
     expect(snapshot.playbackDemuxerFormatLabel, '--');
@@ -81,6 +114,11 @@ void main() {
         fileFormat: 'hls',
         originalUrl:
             'https://backend.example.com/media/1/play/?signature=x&delivery=proxy',
+        networkConnection: const MoviePlayerNetworkConnection(
+          host: 'backend.example.com',
+          ip: '203.0.113.7',
+          port: 443,
+        ),
       ),
     );
     addTearDown(info.dispose);
@@ -101,6 +139,13 @@ void main() {
     expect(find.text('播放链路'), findsOneWidget);
     expect(find.text('网关主机'), findsOneWidget);
     expect(find.text('backend.example.com'), findsOneWidget);
+    expect(find.text('实际线路'), findsOneWidget);
+    expect(find.text('转发'), findsOneWidget);
+    expect(find.text('实际连接'), findsOneWidget);
+    expect(
+      find.text('backend.example.com → 203.0.113.7:443'),
+      findsOneWidget,
+    );
     expect(find.text('解复用格式'), findsOneWidget);
     expect(find.text('hls'), findsOneWidget);
     expect(find.textContaining('直链 · demuxer='), findsNothing);

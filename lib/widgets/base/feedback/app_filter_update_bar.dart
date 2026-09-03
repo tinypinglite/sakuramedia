@@ -4,9 +4,10 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 
-/// 服务端筛选的轻量结果反馈。
+/// 服务端筛选失败反馈。
 ///
-/// 控件选中态由业务 State 同步更新；本组件只说明下方结果是否仍在追赶当前条件。
+/// 控件选中态由业务 State 同步更新；请求中的反馈由
+/// [AppFilterResultLoadingOverlay] 贴在结果区中央，本组件只保留失败说明和重试。
 class AppFilterUpdateBar extends StatelessWidget {
   const AppFilterUpdateBar({
     super.key,
@@ -21,7 +22,7 @@ class AppFilterUpdateBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.isIdle) return const SizedBox.shrink();
+    if (!state.hasFailed) return const SizedBox.shrink();
 
     if (state.hasFailed && !hasPreviousItems) {
       return AppEmptyState(
@@ -35,28 +36,6 @@ class AppFilterUpdateBar extends StatelessWidget {
     }
 
     final spacing = context.appSpacing;
-    if (state.isLoading) {
-      return Padding(
-        key: const Key('app-filter-update-loading'),
-        padding: EdgeInsets.only(top: spacing.xs),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            LinearProgressIndicator(minHeight: spacing.xs / 2),
-            SizedBox(height: spacing.xs),
-            Text(
-              '正在更新筛选结果',
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                tone: AppTextTone.secondary,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Container(
       key: const Key('app-filter-update-error'),
       margin: EdgeInsets.only(top: spacing.xs),

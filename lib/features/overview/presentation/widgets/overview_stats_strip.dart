@@ -77,7 +77,7 @@ class OverviewStatsStrip extends StatelessWidget {
           '系统信息',
           style: resolveAppTextStyle(
             context,
-            size: AppTextSize.s18,
+            size: AppTextSize.s14,
             weight: AppTextWeight.semibold,
             tone: AppTextTone.primary,
           ),

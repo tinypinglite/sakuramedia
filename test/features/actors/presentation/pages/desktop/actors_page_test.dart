@@ -95,7 +95,11 @@ void main() {
     // 控件与摘要先动，250ms 防抖窗口内不请求，旧列表/总数继续显示。
     expect(bundle.adapter.hitCount('GET', '/actors'), 1);
     expect(find.text('3 位'), findsOneWidget);
-    expect(find.text('正在更新筛选结果'), findsOneWidget);
+    expect(find.text('正在更新筛选结果'), findsNothing);
+    expect(
+      find.byKey(const Key('app-filter-result-loading-overlay')),
+      findsNothing,
+    );
     final pendingEntry = tester.widget<AppFilterEntryButton>(
       find.byType(AppFilterEntryButton),
     );

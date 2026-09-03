@@ -13,6 +13,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/domain/playlists/playlist_banner_card.dart';
 
@@ -54,16 +55,7 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
       child: Builder(
         builder: (context) {
           if (async.isLoading && async.value == null) {
-            return const SizedBox.expand(
-              child: Center(
-                child: SizedBox(
-                  key: Key('playlists-page-loading'),
-                  width: 40,
-                  height: 40,
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-            );
+            return const _DesktopPlaylistsLoadingState();
           }
           if (async.hasError && async.value == null) {
             return AppEmptyState(
@@ -88,7 +80,7 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
                       '播放列表',
                       style: resolveAppTextStyle(
                         context,
-                        size: AppTextSize.s18,
+                        size: AppTextSize.s14,
                         weight: AppTextWeight.semibold,
                         tone: AppTextTone.primary,
                       ),
@@ -232,5 +224,42 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
       return;
     }
     showToast('已创建播放列表');
+  }
+}
+
+class _DesktopPlaylistsLoadingState extends StatelessWidget {
+  const _DesktopPlaylistsLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    return ColoredBox(
+      color: context.appColors.surfaceElevated,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const AppSkeletonBlock(width: 88, height: 22),
+              const Spacer(),
+              AppSkeletonBlock(
+                width: 108,
+                height: context.appComponentTokens.buttonHeightSm,
+                radius: context.appRadius.pillBorder,
+              ),
+            ],
+          ),
+          SizedBox(height: spacing.lg),
+          Expanded(
+            child: ListView.separated(
+              key: const Key('playlists-page-loading'),
+              itemCount: 3,
+              separatorBuilder: (_, _) => SizedBox(height: spacing.sm),
+              itemBuilder: (_, _) => const PlaylistBannerCardSkeleton(),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
