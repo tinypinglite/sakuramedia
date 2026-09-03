@@ -146,10 +146,6 @@ class _IndexerSettingsSectionState
         showToast('索引器类型仅支持 pt 或 bt');
         return;
       }
-      if (item.downloadClients.isEmpty) {
-        showToast('请为每个索引器至少选择一个下载器');
-        return;
-      }
       final availableClientIds = _currentDownloadClients
           .map((client) => client.id)
           .toSet();

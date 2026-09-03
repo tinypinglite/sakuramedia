@@ -1459,6 +1459,80 @@ void main() {
       },
     );
 
+    testWidgets('creates an indexer while preserving unbound legacy indexers', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueIndexerSettings(
+        bundle,
+        indexers: const [
+          {
+            'id': 1,
+            'name': 'legacy-unbound',
+            'url': 'https://legacy.example.com/torznab',
+            'kind': 'pt',
+            'download_clients': <Map<String, Object?>>[],
+          },
+        ],
+      );
+      _enqueueDownloadClientsList(bundle, clients: _defaultDownloadClients);
+      bundle.adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/indexer-settings',
+        body: {
+          'indexers': [
+            {
+              'id': 1,
+              'name': 'legacy-unbound',
+              'url': 'https://legacy.example.com/torznab',
+              'kind': 'pt',
+              'api_key': 'secret-key',
+              'download_clients': <Map<String, Object?>>[],
+            },
+            {
+              'id': 2,
+              'name': 'mteam',
+              'url': 'https://mirror.example.com/torznab',
+              'kind': 'pt',
+              'api_key': 'secret-key',
+              'download_clients': [
+                {'id': 1, 'name': 'client-a'},
+              ],
+            },
+          ],
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await tester.tap(find.byKey(const Key('configuration-tab-indexers')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-indexer-create-button')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('indexer-entry-name-field')),
+        'mteam',
+      );
+      await tester.enterText(
+        find.byKey(const Key('indexer-entry-url-field')),
+        'https://mirror.example.com/torznab',
+      );
+      await tester.tap(find.byKey(const Key('indexer-download-client-add-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('保存').last);
+      await tester.pumpAndSettle();
+
+      final patchRequest = bundle.adapter.requests.firstWhere(
+        (request) =>
+            request.method == 'PATCH' && request.path == '/indexer-settings',
+      );
+      expect(patchRequest.body['indexers'][0]['download_client_ids'], isEmpty);
+      expect(patchRequest.body['indexers'][1]['download_client_ids'], <int>[1]);
+      expect(find.text('mteam'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 3));
+    });
+
     testWidgets('saves reordered download client priorities for an indexer', (
       WidgetTester tester,
     ) async {
