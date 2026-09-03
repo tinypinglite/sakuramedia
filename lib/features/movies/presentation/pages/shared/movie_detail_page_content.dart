@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.d
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_actor_wrap.dart';
@@ -223,6 +224,9 @@ class MovieDetailPageContent extends StatelessWidget {
     required double heroHeight,
   }) {
     final mediaItems = mediaItemsOverride ?? movie.mediaItems;
+    final normalizedMergePlaybackLabel = mergePlaybackLabel?.trim() ?? '';
+    final hasMergePlaybackAction = normalizedMergePlaybackLabel.isNotEmpty;
+    final isMergePlaybackPrimary = hasMergePlaybackAction && onPlayTap == null;
     final orderedActors = <MovieActorDto>[
       ...movie.actors.where((actor) => actor.isFemale),
       ...movie.actors.where((actor) => !actor.isFemale),
@@ -293,6 +297,19 @@ class MovieDetailPageContent extends StatelessWidget {
           isPlayLoading: isPlayLoading,
           onPlayTap: onPlayTap,
         ),
+        if (hasMergePlaybackAction) ...[
+          SizedBox(height: context.appSpacing.sm),
+          AppButton(
+            key: const Key('movie-detail-merge-playback-button'),
+            label: normalizedMergePlaybackLabel,
+            icon: const Icon(Icons.merge_rounded),
+            variant: isMergePlaybackPrimary
+                ? AppButtonVariant.primary
+                : AppButtonVariant.secondary,
+            isLoading: isMergePlaybackLoading,
+            onPressed: onMergePlaybackTap,
+          ),
+        ],
         SizedBox(height: context.appSpacing.lg),
         MoviePlotGallery(
           plotImages: movie.plotImages,
@@ -341,9 +358,6 @@ class MovieDetailPageContent extends StatelessWidget {
                   onDeleteSelectedMedia: onDeleteSelectedMedia,
                   onOpenPointPreview: onOpenMediaPointPreview,
                   onRequestPointMenu: onRequestMediaPointMenu,
-                  mergePlaybackLabel: mergePlaybackLabel,
-                  onMergePlaybackTap: onMergePlaybackTap,
-                  isMergePlaybackLoading: isMergePlaybackLoading,
                 ),
               ],
             ),

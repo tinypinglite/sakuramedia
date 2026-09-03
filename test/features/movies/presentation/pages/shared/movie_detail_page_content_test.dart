@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_page_content.dart';
+import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_hero_card.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_bottom_info_bar.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_stat_row.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_tag_wrap.dart';
@@ -153,7 +155,7 @@ void main() {
     },
   );
 
-  testWidgets('movie detail exposes the optional merge playback action', (
+  testWidgets('movie detail places merge playback below the hero', (
     WidgetTester tester,
   ) async {
     var tapCount = 0;
@@ -177,15 +179,29 @@ void main() {
             onPlaylistTap: _noop,
             onCollectionToggle: _noop,
             onMediaSelect: (_) {},
-            mergePlaybackLabel: '合并播放（2 段）',
+            mergePlaybackLabel: '合并播放 · 2 段',
             onMergePlaybackTap: () => tapCount += 1,
           ),
         ),
       ),
     );
 
-    final action = find.byKey(const Key('movie-media-merge-playback-button'));
+    final action = find.byKey(const Key('movie-detail-merge-playback-button'));
     await tester.ensureVisible(action);
+
+    final heroBottom = tester
+        .getBottomLeft(find.byType(MovieDetailHeroCard))
+        .dy;
+    final actionTop = tester.getTopLeft(action).dy;
+    final numberTop = tester
+        .getTopLeft(find.byKey(const Key('movie-detail-number')))
+        .dy;
+    final button = tester.widget<AppButton>(action);
+
+    expect(actionTop, greaterThanOrEqualTo(heroBottom));
+    expect(actionTop, lessThan(numberTop));
+    expect(button.variant, AppButtonVariant.primary);
+
     await tester.tap(action);
     await tester.pump();
 

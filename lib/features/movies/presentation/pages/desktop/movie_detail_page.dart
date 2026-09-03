@@ -134,8 +134,8 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
               !canLaunchMergedPlayback || mergePlaybackCandidates.isEmpty
               ? null
               : mergePlaybackCandidates.length == 1
-              ? '合并播放（${mergePlaybackCandidates.single.segmentCount} 段）'
-              : '合并播放（${mergePlaybackCandidates.length} 个媒体库）';
+              ? '合并播放 · ${mergePlaybackCandidates.single.segmentCount} 段'
+              : '合并播放';
           return MovieDetailPageContent(
             movie: movie,
             mediaItemsOverride: derived.visibleMediaItems,
