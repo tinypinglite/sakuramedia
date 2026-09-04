@@ -60,7 +60,9 @@ void main() {
             body: MediaListSection(
               scrollController: scrollController,
               isDeleting: false,
+              isTransferring: false,
               onBatchDelete: _noOp,
+              onBatchTransfer: _noOp,
             ),
           ),
         ),

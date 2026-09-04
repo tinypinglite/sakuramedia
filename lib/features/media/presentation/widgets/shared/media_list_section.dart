@@ -33,7 +33,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart'
 /// 「媒体管理」列表 tab 的主体：筛选头 + 白底 media card 列表（桌面 / 移动共用）。
 ///
 /// 数据源：`mediaBrowseProvider` + `mediaLibrariesProvider`。多选、筛选、reload 全部
-/// 由内部 `ref.read(...notifier)` 触发；父页只提供跨 provider 的批量删除与复合刷新。
+/// 由内部 `ref.read(...notifier)` 触发；父页只提供跨 provider 的批量操作与复合刷新。
 ///
 /// 平台差异（`mobile: true` 时启用）：
 /// - 行卡片：桌面固定行高 `_MediaRow` / 移动流式 [MediaMobileListCard]（长按进入多选态）；
@@ -48,7 +48,9 @@ class MediaListSection extends StatelessWidget {
     super.key,
     required this.scrollController,
     required this.isDeleting,
+    required this.isTransferring,
     required this.onBatchDelete,
+    required this.onBatchTransfer,
     this.onRefresh,
     this.onOpenMovieDetail,
     this.keyPrefix = 'media-management',
@@ -60,11 +62,15 @@ class MediaListSection extends StatelessWidget {
 
   final ScrollController scrollController;
 
-  /// 批量删除进行中——按钮 spinner + 禁用其它多选动作；父页编排 confirm + 串行循环。
+  /// 批量删除或迁移进行中——按钮 spinner + 禁用其它多选动作。
   final bool isDeleting;
+
+  final bool isTransferring;
 
   /// 父页批量删除入口：弹二次确认 → 串行循环 `mediaApi.deleteMedia` → 汇总 toast。
   final Future<void> Function() onBatchDelete;
+
+  final Future<void> Function() onBatchTransfer;
 
   /// 可选：父页复合刷新；不传则默认刷新媒体列表 + 媒体库。
   final Future<void> Function()? onRefresh;
@@ -101,7 +107,9 @@ class MediaListSection extends StatelessWidget {
             mobile: mobile,
             selectionMode: selectionMode,
             isDeleting: isDeleting,
+            isTransferring: isTransferring,
             onBatchDelete: onBatchDelete,
+            onBatchTransfer: onBatchTransfer,
             onRefresh: onRefresh,
             onExitSelection: onExitSelection,
           ),
@@ -129,7 +137,7 @@ class MediaListSection extends StatelessWidget {
       },
     );
 
-    // 移动端多选态：列表下方常驻批量删除操作条。
+    // 移动端多选态：列表下方常驻批量操作条。
     if (mobile && selectionMode) {
       return Column(
         children: [
@@ -137,7 +145,9 @@ class MediaListSection extends StatelessWidget {
           _MediaMobileSelectionBar(
             keyPrefix: keyPrefix,
             isDeleting: isDeleting,
+            isTransferring: isTransferring,
             onBatchDelete: onBatchDelete,
+            onBatchTransfer: onBatchTransfer,
           ),
         ],
       );
@@ -152,7 +162,9 @@ class _MediaListHeader extends ConsumerWidget {
     required this.mobile,
     required this.selectionMode,
     required this.isDeleting,
+    required this.isTransferring,
     required this.onBatchDelete,
+    required this.onBatchTransfer,
     required this.onRefresh,
     required this.onExitSelection,
   });
@@ -161,7 +173,9 @@ class _MediaListHeader extends ConsumerWidget {
   final bool mobile;
   final bool selectionMode;
   final bool isDeleting;
+  final bool isTransferring;
   final Future<void> Function() onBatchDelete;
+  final Future<void> Function() onBatchTransfer;
   final Future<void> Function()? onRefresh;
   final VoidCallback? onExitSelection;
 
@@ -224,7 +238,7 @@ class _MediaListHeader extends ConsumerWidget {
         currentState != null && currentState.paged.items.isNotEmpty;
     final filter = currentState?.filter ?? MediaBrowseFilterState.initial;
     final isInitialLoading = asyncState.isLoading && !asyncState.hasValue;
-    final busy = isDeleting;
+    final busy = isDeleting || isTransferring;
     final allLoadedSelected = currentState?.allLoadedSelected ?? false;
 
     // 移动端多选态：顶栏换 `AppListHeader.selection`（退出 / 计数 / 全选），
@@ -315,9 +329,11 @@ class _MediaListHeader extends ConsumerWidget {
         selectionCount: selectionCount,
         allLoadedSelected: allLoadedSelected,
         isDeleting: isDeleting,
+        isTransferring: isTransferring,
         isInitialLoading: isInitialLoading,
         busy: busy,
         onBatchDelete: onBatchDelete,
+        onBatchTransfer: onBatchTransfer,
         onRefresh: () => unawaited((onRefresh ?? () => _defaultRefresh(ref))()),
       ),
     );
@@ -484,17 +500,21 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
   }
 }
 
-/// 移动端多选态底部批量删除操作条。
+/// 移动端多选态底部批量操作条。
 class _MediaMobileSelectionBar extends ConsumerWidget {
   const _MediaMobileSelectionBar({
     required this.keyPrefix,
     required this.isDeleting,
+    required this.isTransferring,
     required this.onBatchDelete,
+    required this.onBatchTransfer,
   });
 
   final String keyPrefix;
   final bool isDeleting;
+  final bool isTransferring;
   final Future<void> Function() onBatchDelete;
+  final Future<void> Function() onBatchTransfer;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -503,7 +523,7 @@ class _MediaMobileSelectionBar extends ConsumerWidget {
         (asyncState) => asyncState.value?.selectionCount ?? 0,
       ),
     );
-    final busy = isDeleting;
+    final busy = isDeleting || isTransferring;
     return AppSelectionBottomBar(
       leading: Text(
         '已选 $selectionCount 项',
@@ -516,6 +536,13 @@ class _MediaMobileSelectionBar extends ConsumerWidget {
         ),
       ),
       actions: [
+        AppButton(
+          key: Key('$keyPrefix-batch-transfer-button'),
+          label: '迁移',
+          icon: const Icon(Icons.drive_file_move_outline),
+          isLoading: isTransferring,
+          onPressed: busy || selectionCount == 0 ? null : onBatchTransfer,
+        ),
         AppButton(
           key: Key('$keyPrefix-batch-delete-button'),
           label: '删除',
@@ -564,10 +591,10 @@ class _MediaRowConsumer extends ConsumerWidget {
   }
 }
 
-/// 顶栏右侧多选操作条：全选 / 清空 / 批量删除 / 刷新。
+/// 顶栏右侧多选操作条：全选 / 迁移 / 清空 / 批量删除 / 刷新。
 ///
 /// 无选择态：仅保留「全选本页」+「刷新」（不占空间过多，视觉上不喧宾夺主）；
-/// 有选择态：追加「清空 / 批量删除」，危险色收拢注意力。
+/// 有选择态：追加「迁移 / 清空 / 批量删除」，危险色只用于删除。
 class _MediaListActionBar extends ConsumerWidget {
   const _MediaListActionBar({
     required this.hasItems,
@@ -575,9 +602,11 @@ class _MediaListActionBar extends ConsumerWidget {
     required this.selectionCount,
     required this.allLoadedSelected,
     required this.isDeleting,
+    required this.isTransferring,
     required this.isInitialLoading,
     required this.busy,
     required this.onBatchDelete,
+    required this.onBatchTransfer,
     required this.onRefresh,
   });
 
@@ -586,9 +615,11 @@ class _MediaListActionBar extends ConsumerWidget {
   final int selectionCount;
   final bool allLoadedSelected;
   final bool isDeleting;
+  final bool isTransferring;
   final bool isInitialLoading;
   final bool busy;
   final Future<void> Function() onBatchDelete;
+  final Future<void> Function() onBatchTransfer;
   final VoidCallback onRefresh;
 
   @override
@@ -610,6 +641,15 @@ class _MediaListActionBar extends ConsumerWidget {
                     .read(mediaBrowseProvider.notifier)
                     .toggleSelectAllLoaded(),
         ),
+        if (hasSelection)
+          AppButton(
+            key: const Key('media-management-batch-transfer-button'),
+            label: '迁移（$selectionCount）',
+            size: AppButtonSize.small,
+            icon: const Icon(Icons.drive_file_move_outline),
+            isLoading: isTransferring,
+            onPressed: busy ? null : onBatchTransfer,
+          ),
         if (hasSelection)
           AppButton(
             key: const Key('media-management-clear-selection-button'),

@@ -118,41 +118,44 @@ void main() {
     expect(request.uri.queryParameters['is_read'], 'true');
   });
 
-  test('getTaskRuns is the polling endpoint for task progress and results', () async {
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/task-runs',
-      body: <String, dynamic>{
-        'items': <Map<String, dynamic>>[
-          <String, dynamic>{
-            ..._taskRunJson(id: 42, state: 'completed'),
-            'result_text': '导入完成',
-            'result_summary': <String, dynamic>{'imported': 2},
-          },
-        ],
-        'page': 1,
-        'page_size': 20,
-        'total': 1,
-      },
-    );
+  test(
+    'getTaskRuns is the polling endpoint for task progress and results',
+    () async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/task-runs',
+        body: <String, dynamic>{
+          'items': <Map<String, dynamic>>[
+            <String, dynamic>{
+              ..._taskRunJson(id: 42, state: 'completed'),
+              'result_text': '导入完成',
+              'result_summary': <String, dynamic>{'imported': 2},
+            },
+          ],
+          'page': 1,
+          'page_size': 20,
+          'total': 1,
+        },
+      );
 
-    final response = await bundle.activityApi.getTaskRuns(
-      page: 1,
-      pageSize: 20,
-      state: 'completed',
-      taskKey: 'media_import',
-      triggerType: 'manual',
-      sort: 'updated_at:desc',
-    );
+      final response = await bundle.activityApi.getTaskRuns(
+        page: 1,
+        pageSize: 20,
+        state: 'completed',
+        taskKey: 'media_import',
+        triggerType: 'manual',
+        sort: 'updated_at:desc',
+      );
 
-    expect(response.items.single.resultSummary?['imported'], 2);
-    expect(response.items.single.displaySummary, '导入完成');
-    final request = bundle.adapter.requests.single;
-    expect(request.uri.queryParameters['state'], 'completed');
-    expect(request.uri.queryParameters['task_key'], 'media_import');
-    expect(request.uri.queryParameters['trigger_type'], 'manual');
-    expect(request.uri.queryParameters['sort'], 'updated_at:desc');
-  });
+      expect(response.items.single.resultSummary?['imported'], 2);
+      expect(response.items.single.displaySummary, '导入完成');
+      final request = bundle.adapter.requests.single;
+      expect(request.uri.queryParameters['state'], 'completed');
+      expect(request.uri.queryParameters['task_key'], 'media_import');
+      expect(request.uri.queryParameters['trigger_type'], 'manual');
+      expect(request.uri.queryParameters['sort'], 'updated_at:desc');
+    },
+  );
 
   test('getActiveTaskRuns maps the complete active task snapshot', () async {
     bundle.adapter.enqueueJson(
@@ -169,6 +172,41 @@ void main() {
     expect(response.single.progressCurrent, 7);
     expect(bundle.adapter.requests.single.path, '/system/task-runs/active');
   });
+
+  test(
+    'media transfer task displays structured counts instead of wire keys',
+    () async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/task-runs',
+        body: <String, dynamic>{
+          'items': <Map<String, dynamic>>[
+            <String, dynamic>{
+              ..._taskRunJson(id: 43, state: 'completed'),
+              'task_key': 'media_storage_transfer',
+              'result_text': 'transferred_count=2 skipped_count=1',
+              'result_summary': <String, dynamic>{
+                'transferred_count': 2,
+                'skipped_count': 1,
+                'cleanup_incomplete_count': 1,
+                'unexecuted_media_ids': <int>[99],
+              },
+            },
+          ],
+          'page': 1,
+          'page_size': 20,
+          'total': 1,
+        },
+      );
+
+      final response = await bundle.activityApi.getTaskRuns();
+
+      expect(
+        response.items.single.displaySummary,
+        '已迁移 2 项 · 已跳过 1 项 · 源文件待确认 1 项 · 未执行 1 项',
+      );
+    },
+  );
 
   test('notification mutations use the current response contract', () async {
     bundle.adapter.enqueueJson(
@@ -198,16 +236,15 @@ Map<String, dynamic> _taskRunJson({
   required int id,
   required String state,
   int? progressCurrent,
-}) =>
-    <String, dynamic>{
-      'id': id,
-      'task_key': 'media_import',
-      'task_name': '媒体导入',
-      'trigger_type': 'manual',
-      'state': state,
-      'progress_current': progressCurrent ?? (state == 'completed' ? 2 : 1),
-      'progress_total': 2,
-      'progress_text': '处理中',
-      'created_at': '2026-03-26T09:10:00Z',
-      'updated_at': '2026-03-26T09:11:00Z',
-    };
+}) => <String, dynamic>{
+  'id': id,
+  'task_key': 'media_import',
+  'task_name': '媒体导入',
+  'trigger_type': 'manual',
+  'state': state,
+  'progress_current': progressCurrent ?? (state == 'completed' ? 2 : 1),
+  'progress_total': 2,
+  'progress_text': '处理中',
+  'created_at': '2026-03-26T09:10:00Z',
+  'updated_at': '2026-03-26T09:11:00Z',
+};

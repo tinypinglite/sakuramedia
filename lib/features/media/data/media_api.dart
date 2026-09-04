@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/media/data/invalid_media_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/media/data/media_point_list_item_dto.dart';
+import 'package:sakuramedia/features/media/data/media_transfer_dto.dart';
 
 class MediaApi {
   const MediaApi({required ApiClient apiClient}) : _apiClient = apiClient;
@@ -135,5 +136,29 @@ class MediaApi {
 
   Future<void> deleteMedia({required int mediaId}) {
     return _apiClient.deleteNoContent('/media/$mediaId');
+  }
+
+  Future<MediaTransferCandidatesDto> getMediaTransferCandidates({
+    required List<int> mediaIds,
+  }) async {
+    final response = await _apiClient.post(
+      '/media-transfers/candidates',
+      data: <String, dynamic>{'media_ids': mediaIds},
+    );
+    return MediaTransferCandidatesDto.fromJson(response);
+  }
+
+  Future<MediaTransferAcceptedResponseDto> createMediaTransfer({
+    required List<int> mediaIds,
+    required int targetLibraryId,
+  }) async {
+    final response = await _apiClient.post(
+      '/media-transfers',
+      data: <String, dynamic>{
+        'media_ids': mediaIds,
+        'target_library_id': targetLibraryId,
+      },
+    );
+    return MediaTransferAcceptedResponseDto.fromJson(response);
   }
 }

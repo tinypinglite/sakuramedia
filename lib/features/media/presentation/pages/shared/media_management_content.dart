@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/media/presentation/providers/media_librarie
 import 'package:sakuramedia/features/media/presentation/widgets/shared/duplicate_media_section.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/invalid_media_section.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_section.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_transfer_target_dialog.dart';
 import 'package:sakuramedia/features/shared/presentation/hooks/paged_scroll_hook.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
@@ -94,6 +95,7 @@ class MediaManagementContent extends HookConsumerWidget {
     }, [tabController, scrollController]);
 
     final isDeleting = useState<bool>(false);
+    final isTransferring = useState<bool>(false);
     final selectionMode = useState<bool>(false);
 
     void exitSelectionMode() {
@@ -149,10 +151,17 @@ class MediaManagementContent extends HookConsumerWidget {
               _ => MediaListSection(
                 scrollController: scrollController,
                 isDeleting: isDeleting.value,
+                isTransferring: isTransferring.value,
                 onBatchDelete: () => _openBatchDeleteDialog(
                   context,
                   ref,
                   isDeleting,
+                  selectionMode,
+                ),
+                onBatchTransfer: () => _openBatchTransferDialog(
+                  context,
+                  ref,
+                  isTransferring,
                   selectionMode,
                 ),
                 onRefresh: () => _refreshAll(
@@ -255,6 +264,52 @@ class MediaManagementContent extends HookConsumerWidget {
           : apiErrorMessage(firstError, fallback: '批量删除失败');
       showToast('已删除 ${okIds.length} 项，${failedIds.length} 项失败：$errorMessage');
       unawaited(ref.read(mediaBrowseProvider.notifier).refresh());
+    }
+  }
+
+  Future<void> _openBatchTransferDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ValueNotifier<bool> isTransferring,
+    ValueNotifier<bool> selectionMode,
+  ) async {
+    if (isTransferring.value) return;
+    final browseState = ref.read(mediaBrowseProvider).value;
+    if (browseState == null || browseState.selectedIds.isEmpty) return;
+    final selectedIds = browseState.selectedIds.toList(growable: false);
+
+    isTransferring.value = true;
+    try {
+      final mediaApi = ref.read(mediaApiProvider);
+      final candidates = await mediaApi.getMediaTransferCandidates(
+        mediaIds: selectedIds,
+      );
+      if (!context.mounted) return;
+      isTransferring.value = false;
+      if (candidates.targets.isEmpty) {
+        showToast('当前媒体库没有可用的迁移目标');
+        return;
+      }
+      final targetLibraryId = await showMediaTransferTargetDialog(
+        context,
+        selectedCount: selectedIds.length,
+        candidates: candidates,
+      );
+      if (targetLibraryId == null || !context.mounted) return;
+      isTransferring.value = true;
+      final accepted = await mediaApi.createMediaTransfer(
+        mediaIds: selectedIds,
+        targetLibraryId: targetLibraryId,
+      );
+      ref.read(mediaBrowseProvider.notifier).clearSelection();
+      if (mobile) selectionMode.value = false;
+      showToast('迁移任务 #${accepted.taskRunId} 已提交，请在活动中心查看进度');
+    } catch (error) {
+      if (context.mounted) {
+        showToast(apiErrorMessage(error, fallback: '提交迁移任务失败，请稍后重试。'));
+      }
+    } finally {
+      if (context.mounted) isTransferring.value = false;
     }
   }
 }

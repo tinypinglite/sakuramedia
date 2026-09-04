@@ -76,7 +76,9 @@ void main() {
     );
   });
 
-  testWidgets('long press exposes only batch delete action', (tester) async {
+  testWidgets('long press exposes batch transfer and delete actions', (
+    tester,
+  ) async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/media',
@@ -95,6 +97,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.byKey(const Key('mobile-media-management-batch-delete-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('mobile-media-management-batch-transfer-button')),
       findsOneWidget,
     );
   });

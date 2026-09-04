@@ -387,6 +387,51 @@ void main() {
   );
 
   test(
+    'media transfer candidates and submission use provider-neutral payloads',
+    () async {
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/media-transfers/candidates',
+        body: <String, dynamic>{
+          'source_library': <String, dynamic>{'id': 3, 'name': '影视库'},
+          'targets': <Map<String, dynamic>>[
+            <String, dynamic>{'id': 8, 'name': '归档库'},
+          ],
+        },
+      );
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/media-transfers',
+        statusCode: 202,
+        body: <String, dynamic>{
+          'task_run_id': 91,
+          'task_key': 'media_storage_transfer',
+          'state': 'pending',
+        },
+      );
+
+      final candidates = await mediaApi.getMediaTransferCandidates(
+        mediaIds: const <int>[10, 11],
+      );
+      final accepted = await mediaApi.createMediaTransfer(
+        mediaIds: const <int>[10, 11],
+        targetLibraryId: candidates.targets.single.id,
+      );
+
+      expect(candidates.sourceLibrary.name, '影视库');
+      expect(candidates.targets.single.name, '归档库');
+      expect(accepted.taskRunId, 91);
+      expect(adapter.requests[0].body, <String, dynamic>{
+        'media_ids': <int>[10, 11],
+      });
+      expect(adapter.requests[1].body, <String, dynamic>{
+        'media_ids': <int>[10, 11],
+        'target_library_id': 8,
+      });
+    },
+  );
+
+  test(
     'getMediaList sends backend-supported filters and sort params',
     () async {
       adapter.enqueueJson(

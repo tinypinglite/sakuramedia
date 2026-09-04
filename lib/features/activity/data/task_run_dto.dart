@@ -51,6 +51,10 @@ class TaskRunDto {
         errorMessage!.trim().isNotEmpty) {
       return errorMessage;
     }
+    final mediaTransferSummary = _mediaTransferSummary;
+    if (mediaTransferSummary != null) {
+      return mediaTransferSummary;
+    }
     if (resultText != null && resultText!.trim().isNotEmpty) {
       return resultText;
     }
@@ -58,6 +62,28 @@ class TaskRunDto {
       return progressText;
     }
     return null;
+  }
+
+  String? get _mediaTransferSummary {
+    if (taskKey != 'media_storage_transfer' || resultSummary == null) {
+      return null;
+    }
+    final summary = resultSummary!;
+    final fragments = <String>[];
+    void addCount(String key, String label) {
+      final value = summary[key];
+      if (value is int && value > 0) fragments.add('$label $value 项');
+    }
+
+    addCount('transferred_count', '已迁移');
+    addCount('skipped_count', '已跳过');
+    addCount('failed_count', '迁移失败');
+    addCount('cleanup_incomplete_count', '源文件待确认');
+    final unexecuted = summary['unexecuted_media_ids'];
+    if (unexecuted is List && unexecuted.isNotEmpty) {
+      fragments.add('未执行 ${unexecuted.length} 项');
+    }
+    return fragments.isEmpty ? null : fragments.join(' · ');
   }
 
   TaskRunDto copyWith({
@@ -82,46 +108,36 @@ class TaskRunDto {
       taskName: taskName ?? this.taskName,
       triggerType: triggerType ?? this.triggerType,
       state: state ?? this.state,
-      progressCurrent:
-          identical(progressCurrent, _sentinel)
-              ? this.progressCurrent
-              : progressCurrent as int?,
-      progressTotal:
-          identical(progressTotal, _sentinel)
-              ? this.progressTotal
-              : progressTotal as int?,
-      progressText:
-          identical(progressText, _sentinel)
-              ? this.progressText
-              : progressText as String?,
-      resultText:
-          identical(resultText, _sentinel)
-              ? this.resultText
-              : resultText as String?,
-      resultSummary:
-          identical(resultSummary, _sentinel)
-              ? this.resultSummary
-              : resultSummary as Map<String, dynamic>?,
-      errorMessage:
-          identical(errorMessage, _sentinel)
-              ? this.errorMessage
-              : errorMessage as String?,
-      startedAt:
-          identical(startedAt, _sentinel)
-              ? this.startedAt
-              : startedAt as DateTime?,
-      finishedAt:
-          identical(finishedAt, _sentinel)
-              ? this.finishedAt
-              : finishedAt as DateTime?,
-      createdAt:
-          identical(createdAt, _sentinel)
-              ? this.createdAt
-              : createdAt as DateTime?,
-      updatedAt:
-          identical(updatedAt, _sentinel)
-              ? this.updatedAt
-              : updatedAt as DateTime?,
+      progressCurrent: identical(progressCurrent, _sentinel)
+          ? this.progressCurrent
+          : progressCurrent as int?,
+      progressTotal: identical(progressTotal, _sentinel)
+          ? this.progressTotal
+          : progressTotal as int?,
+      progressText: identical(progressText, _sentinel)
+          ? this.progressText
+          : progressText as String?,
+      resultText: identical(resultText, _sentinel)
+          ? this.resultText
+          : resultText as String?,
+      resultSummary: identical(resultSummary, _sentinel)
+          ? this.resultSummary
+          : resultSummary as Map<String, dynamic>?,
+      errorMessage: identical(errorMessage, _sentinel)
+          ? this.errorMessage
+          : errorMessage as String?,
+      startedAt: identical(startedAt, _sentinel)
+          ? this.startedAt
+          : startedAt as DateTime?,
+      finishedAt: identical(finishedAt, _sentinel)
+          ? this.finishedAt
+          : finishedAt as DateTime?,
+      createdAt: identical(createdAt, _sentinel)
+          ? this.createdAt
+          : createdAt as DateTime?,
+      updatedAt: identical(updatedAt, _sentinel)
+          ? this.updatedAt
+          : updatedAt as DateTime?,
     );
   }
 

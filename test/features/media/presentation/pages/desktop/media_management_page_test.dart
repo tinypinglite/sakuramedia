@@ -208,6 +208,78 @@ void main() {
     expect(find.byKey(const Key('invalid-media-delete-1')), findsNothing);
     await tester.pump(const Duration(seconds: 3));
   });
+
+  testWidgets(
+    'submits a provider-neutral media transfer from the batch toolbar',
+    (tester) async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media',
+        body: _page(total: 1, items: [_duplicateMediaItemJson(1)]),
+      );
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/media-transfers/candidates',
+        body: <String, dynamic>{
+          'source_library': <String, dynamic>{'id': 1, 'name': '媒体库 A'},
+          'targets': <Map<String, dynamic>>[
+            <String, dynamic>{'id': 9, 'name': '媒体库 B'},
+          ],
+        },
+      );
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/media-transfers',
+        statusCode: 202,
+        body: <String, dynamic>{
+          'task_run_id': 88,
+          'task_key': 'media_storage_transfer',
+          'state': 'pending',
+        },
+      );
+      await _pumpPage(
+        tester,
+        sessionStore: sessionStore,
+        mediaApi: mediaApi,
+        apiClient: apiClient,
+      );
+
+      await tester.tap(find.byKey(const Key('media-management-row-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('media-management-batch-transfer-button')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('media-management-transfer-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('媒体库 B'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const Key('media-management-transfer-confirm-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final requests = adapter.requests
+          .where((request) => request.method == 'POST')
+          .toList(growable: false);
+      expect(requests[0].path, '/media-transfers/candidates');
+      expect(requests[0].body, <String, dynamic>{
+        'media_ids': <int>[1],
+      });
+      expect(requests[1].path, '/media-transfers');
+      expect(requests[1].body, <String, dynamic>{
+        'media_ids': <int>[1],
+        'target_library_id': 9,
+      });
+      expect(
+        find.byKey(const Key('media-management-batch-transfer-button')),
+        findsNothing,
+      );
+      await tester.pump(const Duration(seconds: 3));
+    },
+  );
 }
 
 Future<void> _pumpPage(
