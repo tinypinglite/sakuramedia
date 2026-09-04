@@ -1,8 +1,37 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_native_stats_sampler.dart';
 
 void main() {
+  test(
+    'ignores a previous media sample that finishes after a playlist switch',
+    () async {
+      final oldFormat = Completer<String?>();
+      var format = oldFormat.future;
+      final sampler = MoviePlayerNativeStatsSampler(
+        readNativeProperty: (property) =>
+            property == 'file-format' ? format : Future.value(null),
+        originalUrl: 'https://host/media/1/play/',
+      );
+      addTearDown(sampler.dispose);
+      final oldRefresh = sampler.refreshNative();
+      sampler.reset();
+      sampler.updateContext(originalUrl: 'https://host/media-clips/2/stream');
+      oldFormat.complete('hls');
+      await oldRefresh;
+      expect(sampler.snapshot.value.playbackStreamTypeLabel, '未确认');
+      format = Future.value('mov,mp4');
+      await sampler.refreshNative();
+      expect(sampler.snapshot.value.playbackStreamTypeLabel, 'HTTP 文件流');
+      expect(
+        sampler.snapshot.value.playbackGatewayRequestPathLabel,
+        '/media-clips/2/stream',
+      );
+    },
+  );
+
   test('parses demuxer forward bytes from native state', () {
     expect(parseDemuxerForwardBytes('{fw-bytes=8388608}'), 8388608);
     expect(parseDemuxerForwardBytes('{"fw-bytes": 1024}'), 1024);

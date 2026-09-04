@@ -29,3 +29,11 @@
 ## 播放器控制
 
 `MoviePlayerBackOverlay`、`MoviePlayerSpeedButton`、`MoviePlayerSubtitleButton` 和 `MoviePlayerMenuItemRow` 位于 `lib/widgets/domain/movies/player/`。移动端控制条需要保留触控唤起行为，桌面端可以使用 hover/鼠标行为；平台参数由页面壳传入。
+
+## 播放信息
+
+`MoviePlayerPlaybackInfoPanel` 复用播放器实际采样，独立展示播放模式、流类型和原始解复用格式。流类型为 HLS、HTTP 文件流或未确认，不通过 URL 后缀猜测 HLS，也不把 MP4/MKV 当作 HTTP Range 的证据。
+
+HTTP(S) 播放中，解复用格式 `mkv` 与 `matroska` 均识别为 HTTP 文件流。
+
+`MediaPlaybackInfoButton` 位于 `lib/widgets/domain/media/`，供 PornBox 单播/合集和切片单播/合集复用。控制条的信息按钮在窗口与全屏中均可打开同一侧面板；切换合集成员时重置采样并忽略过期结果。媒体网关播放地址使用 `withPlaybackAttemptId` 生成本次播放标识，模式查询失败时显示未确认；切片固定由后端提供文件。

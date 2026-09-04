@@ -48,7 +48,6 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     this.useTouchOptimizedControls = false,
     this.mediaSourceKind = MoviePlayerMediaSourceKind.unknown,
     this.mediaInfo,
-    this.onInitialPlaybackError,
   });
 
   final String movieNumber;
@@ -74,9 +73,6 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
   final bool useTouchOptimizedControls;
   final MoviePlayerMediaSourceKind mediaSourceKind;
   final MoviePlayerMediaInfo? mediaInfo;
-
-  /// 首帧前的播放器错误可由调用方改用代理重试一次；返回 `true` 表示已接管。
-  final bool Function()? onInitialPlaybackError;
 
   @override
   ConsumerState<MoviePlayerSurface> createState() => _MoviePlayerSurfaceState();
@@ -400,9 +396,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
 
   void _markPlaybackFailed(String error) {
     if (!mounted || _hasPlaybackError) {
-      return;
-    }
-    if (!_readiness.isReady && widget.onInitialPlaybackError?.call() == true) {
       return;
     }
     debugPrint('[player-debug] playback_failed error=$error');

@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:math';
+
 String? resolveMediaUrl({required String? rawUrl, required String baseUrl}) {
   final normalizedRawUrl = rawUrl?.trim() ?? '';
   if (normalizedRawUrl.isEmpty) {
@@ -26,22 +29,10 @@ String? resolveMediaUrl({required String? rawUrl, required String baseUrl}) {
   return '$base/$path';
 }
 
-String withProxyMediaDelivery(String url) {
-  final uri = Uri.tryParse(url);
-  if (uri == null) {
-    return url;
-  }
-  return uri
-      .replace(
-        queryParameters: <String, String>{
-          ...uri.queryParameters,
-          'delivery': 'proxy',
-        },
-      )
-      .toString();
-}
-
-String withPlaybackAttemptId(String url, String attemptId) {
+String withPlaybackAttemptId(String url, [String? attemptId]) {
+  attemptId ??= base64UrlEncode(
+    List<int>.generate(16, (_) => _playbackAttemptRandom.nextInt(256)),
+  ).replaceAll('=', '');
   final uri = Uri.tryParse(url);
   if (uri == null || attemptId.isEmpty) {
     return url;
@@ -55,3 +46,5 @@ String withPlaybackAttemptId(String url, String attemptId) {
       )
       .toString();
 }
+
+final _playbackAttemptRandom = Random.secure();

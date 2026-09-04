@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sakuramedia/widgets/domain/media/media_playback_info_button.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/collection_playback_handoff_provider.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/providers/clip_collections_api_provider.dart';
 import 'package:sakuramedia/features/clips/presentation/providers/clips_api_provider.dart';
@@ -258,10 +259,14 @@ class _ClipCollectionPlayContentState
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
       videoKey: const Key('clip-collection-play-video'),
       displaySeekBar: false,
-      topControls: buildMoviePlayerTopControls(
-        movieNumber: _currentClipTitle(),
-        onBackPressed: _handleBack,
-      ),
+      topControls: [
+        ...buildMoviePlayerTopControls(
+          movieNumber: _currentClipTitle(),
+          onBackPressed: _handleBack,
+        ),
+        const Spacer(),
+        MediaPlaybackInfoButton(player: videoController.player),
+      ],
       bottomControls: buildCollectionPlayBottomControls(
         useTouchOptimizedControls: widget.useTouchOptimizedControls,
         onOpenEpisodes: openEpisodePanel,

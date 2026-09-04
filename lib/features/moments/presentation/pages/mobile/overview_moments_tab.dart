@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/moments/presentation/moment_listing_models.
 import 'package:sakuramedia/features/moments/presentation/pages/shared/moments_content.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_player_page.dart';
+import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_image.dart';
@@ -48,14 +49,26 @@ class MobileOverviewMomentsTab extends StatelessWidget {
     );
   }
 
-  void _openVideoForMoment(BuildContext context, MomentListItem item) {
+  Future<void> _openVideoForMoment(
+    BuildContext context,
+    MomentListItem item,
+  ) async {
+    if (await tryLaunchExternalVideoPlayback(
+      context,
+      videoId: item.videoItemId!,
+      title: item.displayLabel,
+    )) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(
-        builder:
-            (_) => MobileVideoPlayerPage(
-              videoId: item.videoItemId!,
-              title: item.displayLabel,
-            ),
+        builder: (_) => MobileVideoPlayerPage(
+          videoId: item.videoItemId!,
+          title: item.displayLabel,
+        ),
       ),
     );
   }

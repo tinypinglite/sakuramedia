@@ -37,6 +37,11 @@ const List<_MobileSettingsRouteCase> _mobileSettingsRouteCases =
         pageKey: Key('mobile-system-overview-page'),
       ),
       _MobileSettingsRouteCase(
+        path: mobileMediaImportPath,
+        title: '资源导入',
+        pageKey: Key('media-import-page'),
+      ),
+      _MobileSettingsRouteCase(
         path: mobileActivityPath,
         title: '任务中心',
         pageKey: Key('desktop-activity-page'),
@@ -1734,6 +1739,83 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, mobileOverviewPath);
+  });
+
+  testWidgets('mobile drawer management section opens media import page', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/latest',
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 12,
+        'total': 0,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists',
+      body: const <Map<String, dynamic>>[],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: bundle.riverpodOverrides(),
+        child: AppPlatformScope(
+          platform: AppPlatform.mobile,
+          child: OKToast(
+            child: MaterialApp.router(
+              theme: sakuraMobileThemeData,
+              routerConfig: router,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('mobile-overview-drawer-management-section')),
+      findsOneWidget,
+    );
+
+    // 抽屉内容可滚动，「管理」分区可能落在首屏之外，先滚到可见再点。
+    final mediaImportItem = find.byKey(
+      const Key('mobile-overview-drawer-media-import'),
+    );
+    await tester.ensureVisible(mediaImportItem);
+    await tester.pumpAndSettle();
+    await tester.tap(mediaImportItem);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('media-import-page')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+
+    _enqueueActivityCenterResponses(bundle);
+    await tester.tap(find.byKey(const Key('media-import-task-center-button')));
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, mobileActivityPath);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, mobileMediaImportPath);
 
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();

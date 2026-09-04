@@ -6,7 +6,7 @@ import 'package:sakuramedia/features/actors/presentation/pages/mobile/actors_pag
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/configuration_page.dart';
 import 'package:sakuramedia/features/discovery/presentation/desktop_discover_page.dart';
 import 'package:sakuramedia/features/media/presentation/pages/desktop/media_management_page.dart';
-import 'package:sakuramedia/features/media_import/presentation/pages/desktop/media_import_page.dart';
+import 'package:sakuramedia/features/media_import/presentation/pages/shared/media_import_page.dart';
 import 'package:sakuramedia/features/activity/presentation/pages/desktop/notifications_page.dart';
 import 'package:sakuramedia/features/moments/presentation/pages/desktop/moments_page.dart';
 import 'package:sakuramedia/features/tags/presentation/pages/desktop/tags_page.dart';
@@ -336,7 +336,7 @@ final Map<String, WidgetBuilder> _desktopRouteBuilders =
       desktopMediaPath: (_) => const DesktopMediaManagementPage(),
       desktopNotificationsPath: (_) => const DesktopNotificationsPage(),
       desktopConfigurationPath: (_) => const DesktopConfigurationPage(),
-      desktopMediaImportPath: (_) => const DesktopMediaImportPage(),
+      desktopMediaImportPath: (_) => const MediaImportPage(),
       desktopMovieSubscriptionsPath: (_) =>
           const DesktopMovieSubscriptionsPage(),
     };

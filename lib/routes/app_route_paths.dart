@@ -39,6 +39,7 @@ const String mobileSystemOverviewPath = '/mobile/system/overview';
 const String mobileActivityPath = '/mobile/system/activity';
 const String mobileNotificationsPath = '/mobile/system/notifications';
 const String mobileMediaManagementPath = '/mobile/system/media';
+const String mobileMediaImportPath = '/mobile/system/media-import';
 const String mobileSearchPath = '/mobile/search';
 const String mobileImageSearchPath = '/mobile/search/image';
 const String mobileMoviesPath = '/mobile/library/movies';

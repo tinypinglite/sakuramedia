@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/app/app_platform.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/videos_api_provider.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
@@ -10,7 +10,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/domain/media_import/media_import_source_picker.dart';
 import 'package:sakuramedia/widgets/domain/media_import/media_library_selector_field.dart';
 
@@ -31,9 +31,10 @@ class VideoImportRequest {
 
 /// 打开视频导入对话框；用户确认后返回 [VideoImportRequest]，取消返回 `null`。
 Future<VideoImportRequest?> showVideoImportDialog(BuildContext context) {
-  return showDialog<VideoImportRequest>(
+  return showAppAdaptiveModal<VideoImportRequest>(
     context: context,
-    builder: (dialogContext) => const VideoImportDialog(),
+    modalKey: const Key('video-import-modal'),
+    builder: (_) => const VideoImportDialog(),
   );
 }
 
@@ -72,7 +73,12 @@ class _VideoImportDialogState extends ConsumerState<VideoImportDialog> {
   }
 
   Future<void> _createCollection() async {
-    final created = await showVideoCollectionDialog(context);
+    final created = await showVideoCollectionDialog(
+      context,
+      presentation: AppPlatformScope.maybeOf(context) == AppPlatform.mobile
+          ? VideoCollectionEditPresentation.bottomDrawer
+          : VideoCollectionEditPresentation.dialog,
+    );
     if (created == null || !mounted) {
       return;
     }
@@ -93,12 +99,7 @@ class _VideoImportDialogState extends ConsumerState<VideoImportDialog> {
   void _submit() {
     final library = _selectedLibrary;
     final source = _source;
-    if (source == null) {
-      showToast('请先选择要导入的目录');
-      return;
-    }
-    if (library == null) {
-      showToast('请选择导入到的媒体库');
+    if (library == null || source == null) {
       return;
     }
     Navigator.of(context).pop(
@@ -114,8 +115,8 @@ class _VideoImportDialogState extends ConsumerState<VideoImportDialog> {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    return AppDesktopDialog(
-      width: context.appLayoutTokens.dialogWidthMd,
+    return SafeArea(
+      top: false,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -168,19 +169,22 @@ class _VideoImportDialogState extends ConsumerState<VideoImportDialog> {
           SizedBox(height: spacing.xl),
           Row(
             children: [
-              const Spacer(),
-              AppButton(
-                label: '取消',
-                size: AppButtonSize.small,
-                onPressed: () => Navigator.of(context).pop(),
+              Expanded(
+                child: AppButton(
+                  label: '取消',
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
               ),
               SizedBox(width: spacing.sm),
-              AppButton(
-                key: const Key('video-import-submit-button'),
-                label: '开始导入',
-                variant: AppButtonVariant.primary,
-                size: AppButtonSize.small,
-                onPressed: _submit,
+              Expanded(
+                child: AppButton(
+                  key: const Key('video-import-submit-button'),
+                  label: '开始导入',
+                  variant: AppButtonVariant.primary,
+                  onPressed: _selectedLibrary != null && _source != null
+                      ? _submit
+                      : null,
+                ),
               ),
             ],
           ),

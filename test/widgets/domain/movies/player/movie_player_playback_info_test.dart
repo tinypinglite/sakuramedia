@@ -32,6 +32,61 @@ MoviePlayerPlaybackInfoSnapshot _snapshot({
 }
 
 void main() {
+  test('classifies actual HLS independently of URL suffix and delivery', () {
+    for (final format in ['hls', 'HLS', 'applehttp']) {
+      expect(
+        _snapshot(
+          fileFormat: format,
+          originalUrl: 'https://host/media/1/play/?delivery=proxy',
+        ).playbackStreamTypeLabel,
+        'HLS',
+      );
+    }
+  });
+
+  test('recognizes HTTP files without claiming a Range response', () {
+    for (final format in [
+      'mov,mp4,m4a,3gp,3g2,mj2',
+      'matroska,webm',
+      'mkv',
+      'mpegts',
+    ]) {
+      expect(
+        _snapshot(
+          fileFormat: format,
+          originalUrl: 'https://host/media/1/play/',
+        ).playbackStreamTypeLabel,
+        'HTTP 文件流',
+      );
+    }
+  });
+
+  test(
+    'keeps unknown and non-HTTP inputs neutral instead of guessing from URL',
+    () {
+      expect(
+        _snapshot(
+          originalUrl: 'https://host/file.m3u8',
+        ).playbackStreamTypeLabel,
+        '未确认',
+      );
+      expect(
+        _snapshot(
+          fileFormat: 'dash',
+          originalUrl: 'https://host/stream',
+        ).playbackStreamTypeLabel,
+        '未确认',
+      );
+      expect(
+        _snapshot(
+          fileFormat: 'mp4',
+          originalUrl: 'file:///movie.mp4',
+        ).playbackStreamTypeLabel,
+        '未确认',
+      );
+    },
+  );
+
   test('prefers native hwdec-current for decoding mode', () {
     final snapshot = _snapshot(
       videoParams: const VideoParams(hwPixelformat: 'nv12'),
@@ -105,6 +160,8 @@ void main() {
     expect(find.text('确认中'), findsOneWidget);
     expect(find.text('解复用格式'), findsOneWidget);
     expect(find.text('hls'), findsOneWidget);
+    expect(find.text('流类型'), findsOneWidget);
+    expect(find.text('HLS'), findsOneWidget);
     expect(find.textContaining('直链 · demuxer='), findsNothing);
   });
 }

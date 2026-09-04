@@ -6,6 +6,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sakuramedia/widgets/domain/media/media_playback_info_button.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/collection_playback_handoff_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/videos_api_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
@@ -13,6 +14,7 @@ import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
@@ -68,7 +70,7 @@ class _VideoCollectionPlayContentState
     with CollectionPlaybackPageMixin<VideoCollectionPlayContent> {
   List<VideoItemListItemDto> _videos = const <VideoItemListItemDto>[];
   List<String> _playUrls = <String>[];
-  final Set<int> _proxyFallbackIndexes = <int>{};
+  MediaPlaybackInfoController? _playbackInfoController;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -81,6 +83,7 @@ class _VideoCollectionPlayContentState
 
   @override
   void dispose() {
+    _playbackInfoController?.dispose();
     disposePlayback();
     super.dispose();
   }
@@ -185,10 +188,15 @@ class _VideoCollectionPlayContentState
               .toList();
         },
       );
+      final playbackInfoController = MediaPlaybackInfoController(
+        player: player,
+        readApiClient: () => ref.read(apiClientProvider),
+      );
       setState(() {
         _videos = playableVideos;
         _playUrls = playUrls;
-        _proxyFallbackIndexes.clear();
+        _playbackInfoController?.dispose();
+        _playbackInfoController = playbackInfoController;
         attachPlayback(
           player: player,
           videoController: videoController,
@@ -220,13 +228,14 @@ class _VideoCollectionPlayContentState
     try {
       await activePlayer.open(
         Playlist(
-          _playUrls.map((url) => Media(url)).toList(growable: false),
+          _playUrls
+              .map((url) => Media(withPlaybackAttemptId(url)))
+              .toList(growable: false),
           index: index,
         ),
       );
     } catch (error) {
-      if (_playUrls[index] != sourceUrl ||
-          _retryWithProxy(activePlayer, index)) {
+      if (_playUrls[index] != sourceUrl) {
         return;
       }
       if (!mounted) {
@@ -236,35 +245,6 @@ class _VideoCollectionPlayContentState
         _errorMessage = apiErrorMessage(error, fallback: '合集加载失败，请稍后重试');
       });
     }
-  }
-
-  bool _retryCurrentWithProxy() {
-    final activePlayer = player;
-    if (activePlayer == null) {
-      return false;
-    }
-    final playlistIndex = activePlayer.state.playlist.index;
-    final index = playlistIndex >= 0 && playlistIndex < _playUrls.length
-        ? playlistIndex
-        : currentIndex;
-    return _retryWithProxy(activePlayer, index);
-  }
-
-  bool _retryWithProxy(Player activePlayer, int index) {
-    if (!mounted ||
-        index < 0 ||
-        index >= _playUrls.length ||
-        _proxyFallbackIndexes.contains(index)) {
-      return false;
-    }
-    final proxyUrl = withProxyMediaDelivery(_playUrls[index]);
-    if (proxyUrl == _playUrls[index]) {
-      return false;
-    }
-    _proxyFallbackIndexes.add(index);
-    _playUrls[index] = proxyUrl;
-    unawaited(_openPlaylist(activePlayer, index));
-    return true;
   }
 
   void _handleBack() {
@@ -430,36 +410,53 @@ class _VideoCollectionPlayContentState
     BuildContext context,
     VideoController videoController,
   ) {
+    final playbackInfoController = _playbackInfoController!;
     final progressIndicator = MergedPositionIndicator(
       player: player!,
       episodeDurationsSeconds: episodeDurationsSeconds,
       onSeekGlobalSeconds: seekToGlobalSeconds,
     );
-    return ThemedVideoPlayer(
-      videoController: videoController,
-      useTouchOptimizedControls: widget.useTouchOptimizedControls,
-      guardInitialSeek: true,
-      playbackSessionKey: currentIndex,
-      onInitialPlaybackError: _retryCurrentWithProxy,
-      videoKey: const Key('video-collection-play-video'),
-      displaySeekBar: false,
-      topControls: buildMoviePlayerTopControls(
-        movieNumber: _currentVideoTitle(),
-        onBackPressed: _handleBack,
-      ),
-      bottomControls: buildCollectionPlayBottomControls(
-        useTouchOptimizedControls: widget.useTouchOptimizedControls,
-        onOpenEpisodes: openEpisodePanel,
-        progressIndicator: progressIndicator,
-      ),
-      // 全屏由 media_kit push 独立路由，页面级「选集」浮层不在其内，按钮点了
-      // 也看不到——全屏态去掉该按钮，避免死按钮。换集需先退出全屏。
-      fullscreenBottomControls: buildCollectionPlayBottomControls(
-        useTouchOptimizedControls: widget.useTouchOptimizedControls,
-        onOpenEpisodes: openEpisodePanel,
-        includeEpisodeButton: false,
-        progressIndicator: progressIndicator,
-      ),
+    return Overlay(
+      initialEntries: [
+        OverlayEntry(
+          builder: (_) => Positioned.fill(
+            child: ThemedVideoPlayer(
+              videoController: videoController,
+              useTouchOptimizedControls: widget.useTouchOptimizedControls,
+              guardInitialSeek: true,
+              playbackSessionKey: currentIndex,
+              videoKey: const Key('video-collection-play-video'),
+              displaySeekBar: false,
+              topControls: [
+                ...buildMoviePlayerTopControls(
+                  movieNumber: _currentVideoTitle(),
+                  onBackPressed: _handleBack,
+                ),
+                const Spacer(),
+                Builder(
+                  builder: (buttonContext) => MoviePlayerInfoButton(
+                    onPressed: () =>
+                        playbackInfoController.showLocal(buttonContext),
+                  ),
+                ),
+              ],
+              bottomControls: buildCollectionPlayBottomControls(
+                useTouchOptimizedControls: widget.useTouchOptimizedControls,
+                onOpenEpisodes: openEpisodePanel,
+                progressIndicator: progressIndicator,
+              ),
+              // 全屏由 media_kit push 独立路由，页面级「选集」浮层不在其内，按钮点了
+              // 也看不到——全屏态去掉该按钮，避免死按钮。换集需先退出全屏。
+              fullscreenBottomControls: buildCollectionPlayBottomControls(
+                useTouchOptimizedControls: widget.useTouchOptimizedControls,
+                onOpenEpisodes: openEpisodePanel,
+                includeEpisodeButton: false,
+                progressIndicator: progressIndicator,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:sakuramedia/app/app_platform.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -319,7 +320,17 @@ class _MediaImportSourcePickerState
     final pathText = _path.isEmpty
         ? '选择来源'
         : _path.map((segment) => segment.name).join(' / ');
-    return Row(
+    final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
+    final selectButton = AppButton(
+      key: const Key('media-import-picker-select-current-directory-button'),
+      label: _isCurrentDirectorySelected ? '已选择当前目录' : '选择当前目录',
+      size: isMobile ? AppButtonSize.medium : AppButtonSize.small,
+      isSelected: _isCurrentDirectorySelected,
+      onPressed: !_isBrowsing && _parentRef != null
+          ? _selectCurrentDirectory
+          : null,
+    );
+    final path = Row(
       children: [
         AppIconButton(
           key: const Key('media-import-picker-up-button'),
@@ -341,16 +352,19 @@ class _MediaImportSourcePickerState
             ),
           ),
         ),
-        SizedBox(width: context.appSpacing.sm),
-        AppButton(
-          key: const Key('media-import-picker-select-current-directory-button'),
-          label: _isCurrentDirectorySelected ? '已选择当前目录' : '选择当前目录',
-          size: AppButtonSize.small,
-          isSelected: _isCurrentDirectorySelected,
-          onPressed: !_isBrowsing && _parentRef != null
-              ? _selectCurrentDirectory
-              : null,
-        ),
+        if (!isMobile) ...[
+          SizedBox(width: context.appSpacing.sm),
+          selectButton,
+        ],
+      ],
+    );
+    if (!isMobile) return path;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        path,
+        SizedBox(height: context.appSpacing.sm),
+        selectButton,
       ],
     );
   }
@@ -373,22 +387,11 @@ class _MediaImportSourcePickerState
       return const Center(child: CircularProgressIndicator());
     }
     if (_browseError != null) {
-      return Padding(
-        padding: EdgeInsets.all(context.appSpacing.lg),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppEmptyState(message: _browseError!),
-              SizedBox(height: context.appSpacing.md),
-              AppButton(
-                key: const Key('media-import-picker-browse-retry-button'),
-                label: '重试',
-                size: AppButtonSize.small,
-                onPressed: _retryBrowse,
-              ),
-            ],
-          ),
+      return SingleChildScrollView(
+        child: AppEmptyState(
+          message: _browseError!,
+          retryKey: const Key('media-import-picker-browse-retry-button'),
+          onRetry: _retryBrowse,
         ),
       );
     }
@@ -475,7 +478,7 @@ class _MediaImportSourcePickerState
         ),
         SizedBox(height: context.appSpacing.xs),
         Text(
-          '源文件处理方式由存储提供方执行，导入任务会在活动中心显示结果。',
+          '源文件处理方式由存储提供方执行，导入任务会在任务中心显示结果。',
           style: resolveAppTextStyle(
             context,
             size: AppTextSize.s12,
@@ -511,13 +514,14 @@ class _ImportEntryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final muted = !canSelect;
+    final muted = !entry.isDirectory && !canSelect;
+    final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
     return InkWell(
       onTap: entry.isDirectory || canSelect ? onTap : null,
       child: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: spacing.md,
-          vertical: spacing.sm,
+          vertical: isMobile ? spacing.md : spacing.sm,
         ),
         child: Row(
           children: [
@@ -536,16 +540,12 @@ class _ImportEntryRow extends StatelessWidget {
             Expanded(
               child: Text(
                 entry.name,
-                maxLines: 1,
+                maxLines: isMobile ? 2 : 1,
                 overflow: TextOverflow.ellipsis,
                 style: resolveAppTextStyle(
                   context,
-                  size: AppTextSize.s12,
-                  tone: muted
-                      ? AppTextTone.muted
-                      : entry.isDirectory
-                      ? AppTextTone.primary
-                      : AppTextTone.muted,
+                  size: isMobile ? AppTextSize.s14 : AppTextSize.s12,
+                  tone: muted ? AppTextTone.muted : AppTextTone.primary,
                 ),
               ),
             ),

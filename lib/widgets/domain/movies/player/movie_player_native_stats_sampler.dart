@@ -86,6 +86,7 @@ class MoviePlayerNativeStatsSampler {
   Timer? _timer;
   bool _isRefreshing = false;
   bool _isDisposed = false;
+  int _generation = 0;
 
   Track _track = const Track();
   VideoParams _videoParams = const VideoParams();
@@ -158,8 +159,9 @@ class MoviePlayerNativeStatsSampler {
     _refreshSnapshot();
   }
 
-  /// 清空全部原生采样字段(流式输入保留,player 换片会自然重发)。
+  /// 换片时清空原生采样并丢弃旧结果；轨道信息跟随播放器流更新。
   void reset() {
+    _generation++;
     _videoBitrate = null;
     _estimatedVfFps = null;
     _hwdecCurrent = null;
@@ -191,6 +193,7 @@ class MoviePlayerNativeStatsSampler {
       return;
     }
     _isRefreshing = true;
+    final generation = _generation;
     try {
       final results = await Future.wait<String?>([
         _readNativeProperty('hwdec-current'),
@@ -204,7 +207,7 @@ class MoviePlayerNativeStatsSampler {
         _readNativeProperty('demuxer-cache-duration'),
         _readNativeProperty('demuxer-cache-state'),
       ]);
-      if (_isDisposed) {
+      if (_isDisposed || generation != _generation) {
         return;
       }
       final now = DateTime.now();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_player_page.dart';
+import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/shared/video_collection_detail_content.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
@@ -69,6 +70,16 @@ class MobileVideoCollectionDetailPage extends StatelessWidget {
         );
       },
       playSingle: (context, videoId, title) async {
+        if (await tryLaunchExternalVideoPlayback(
+          context,
+          videoId: videoId,
+          title: title,
+        )) {
+          return;
+        }
+        if (!context.mounted) {
+          return;
+        }
         // 用根 Navigator 推全屏页，覆盖底部导航。
         Navigator.of(context, rootNavigator: true).push(
           MaterialPageRoute<void>(

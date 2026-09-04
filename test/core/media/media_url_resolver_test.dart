@@ -2,6 +2,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 
 void main() {
+  test(
+    'generates independent valid attempt IDs and preserves the signed query',
+    () {
+      const url =
+          'https://api.example/media/1/play/?expires=1&signature=sig&delivery=redirect';
+      final first = Uri.parse(withPlaybackAttemptId(url));
+      final second = Uri.parse(withPlaybackAttemptId(url));
+      final id = first.queryParameters['playback_attempt_id']!;
+      expect(id, matches(RegExp(r'^[A-Za-z0-9_-]{22}$')));
+      expect(second.queryParameters['playback_attempt_id'], isNot(id));
+      expect(first.queryParameters['signature'], 'sig');
+      expect(first.queryParameters['delivery'], 'redirect');
+      expect(first.path, '/media/1/play/');
+    },
+  );
+
   test('returns null when raw url is null or empty', () {
     expect(
       resolveMediaUrl(rawUrl: null, baseUrl: 'https://api.example.com'),
@@ -56,28 +72,13 @@ void main() {
     expect(resolveMediaUrl(rawUrl: 'covers/a.jpg', baseUrl: '  '), isNull);
   });
 
-  test('changes a media gateway url to proxy delivery', () {
-    expect(
-      withProxyMediaDelivery(
-        'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=auto',
-      ),
-      'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=proxy',
-    );
-    expect(
-      withProxyMediaDelivery(
-        'https://api.example.com/media/1/play/?expires=1&signature=sig',
-      ),
-      'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=proxy',
-    );
-  });
-
   test('adds a playback attempt id without changing delivery', () {
     expect(
       withPlaybackAttemptId(
-        'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=auto',
+        'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=redirect',
         'attempt-id',
       ),
-      'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=auto&playback_attempt_id=attempt-id',
+      'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=redirect&playback_attempt_id=attempt-id',
     );
   });
 }

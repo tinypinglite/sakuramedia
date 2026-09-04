@@ -55,6 +55,7 @@ class MoviePlayerPlaybackInfoSnapshot {
     this.playbackGatewayRequestPathLabel,
     this.playbackModeLabel = '确认中',
     this.playbackDemuxerFormatLabel = '--',
+    this.playbackStreamTypeLabel = '未确认',
     this.playbackSourceBufferLabel,
     this.playbackSourceDownloadRateLabel,
   });
@@ -115,6 +116,9 @@ class MoviePlayerPlaybackInfoSnapshot {
   /// libmpv 报告的解复用格式；未知时展示 `--`。
   final String playbackDemuxerFormatLabel;
 
+  /// 实际解复用结果识别的流类型，不把文件格式当作 Range 响应证据。
+  final String playbackStreamTypeLabel;
+
   /// 缓冲：`12.3s / 8.2 MB`；未拿到时为 `null`。
   final String? playbackSourceBufferLabel;
 
@@ -151,6 +155,7 @@ class MoviePlayerPlaybackInfoSnapshot {
             playbackGatewayRequestPathLabel &&
         other.playbackModeLabel == playbackModeLabel &&
         other.playbackDemuxerFormatLabel == playbackDemuxerFormatLabel &&
+        other.playbackStreamTypeLabel == playbackStreamTypeLabel &&
         other.playbackSourceBufferLabel == playbackSourceBufferLabel &&
         other.playbackSourceDownloadRateLabel ==
             playbackSourceDownloadRateLabel;
@@ -181,6 +186,7 @@ class MoviePlayerPlaybackInfoSnapshot {
     playbackGatewayRequestPathLabel,
     playbackModeLabel,
     playbackDemuxerFormatLabel,
+    playbackStreamTypeLabel,
     playbackSourceBufferLabel,
     playbackSourceDownloadRateLabel,
   ]);
@@ -273,6 +279,7 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     playbackGatewayRequestPathLabel: _extractPathAndTail(originalUrl),
     playbackModeLabel: playbackModeLabel,
     playbackDemuxerFormatLabel: _normalizeTechnicalText(fileFormat),
+    playbackStreamTypeLabel: _resolveStreamType(fileFormat, originalUrl),
     playbackSourceBufferLabel: _buildBufferLabel(
       cacheDurationSeconds: bufferCacheDurationSeconds,
       forwardBytes: bufferForwardBytes,
@@ -281,6 +288,36 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
       downloadRateBytesPerSecond,
     ),
   );
+}
+
+String _resolveStreamType(String? fileFormat, String? originalUrl) {
+  final formats = (fileFormat ?? '')
+      .toLowerCase()
+      .split(',')
+      .map((s) => s.trim())
+      .toSet();
+  if (formats.contains('hls') || formats.contains('applehttp')) {
+    return 'HLS';
+  }
+  final scheme = Uri.tryParse(originalUrl ?? '')?.scheme.toLowerCase();
+  const fileFormats = {
+    'mov',
+    'mp4',
+    'matroska',
+    'mkv',
+    'webm',
+    'avi',
+    'mpegts',
+    'mpeg',
+    'flv',
+    'asf',
+    'ogg',
+  };
+  if ((scheme == 'http' || scheme == 'https') &&
+      formats.any(fileFormats.contains)) {
+    return 'HTTP 文件流';
+  }
+  return '未确认';
 }
 
 String? _extractHost(String? url) {
@@ -964,6 +1001,11 @@ List<Widget> _buildPlaybackRouteSection(MoviePlayerPlaybackInfoSnapshot info) {
       label: '播放模式',
       value: info.playbackModeLabel,
       valueKey: const Key('movie-player-info-value-playback-mode'),
+    ),
+    _MoviePlayerPlaybackInfoRowData(
+      label: '流类型',
+      value: info.playbackStreamTypeLabel,
+      valueKey: const Key('movie-player-info-value-stream-type'),
     ),
     _MoviePlayerPlaybackInfoRowData(
       label: '解复用格式',

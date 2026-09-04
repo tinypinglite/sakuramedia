@@ -15,6 +15,7 @@ import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/pages/mobile/clip_actions_sheet.dart';
 import 'package:sakuramedia/features/clips/presentation/pages/mobile/clip_confirm_drawer.dart';
 import 'package:sakuramedia/features/clips/presentation/pages/mobile/clip_player_page.dart';
+import 'package:sakuramedia/features/clips/presentation/actions/clip_playback_launcher.dart';
 import 'package:sakuramedia/features/clips/presentation/providers/clip_mutation_events_provider.dart';
 import 'package:sakuramedia/features/clips/presentation/providers/clips_api_provider.dart';
 import 'package:sakuramedia/features/clips/presentation/providers/clips_filter.dart';
@@ -587,7 +588,17 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
     );
   }
 
-  void _playClip(MediaClipDto clip) {
+  Future<void> _playClip(MediaClipDto clip) async {
+    if (await tryLaunchExternalClipPlayback(
+      context,
+      streamUrl: clip.streamUrl,
+      title: clip.title,
+    )) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
     // 用根 Navigator 推全屏页，覆盖底部导航；切片很短，直接传 streamUrl 即可，
     // 无需经 go_router 把签名地址放进 URL。
     Navigator.of(context, rootNavigator: true).push(

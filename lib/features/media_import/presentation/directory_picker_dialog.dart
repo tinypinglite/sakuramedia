@@ -67,7 +67,8 @@ class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog> {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    return SingleChildScrollView(
+    return SafeArea(
+      top: false,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,29 +83,39 @@ class _DirectoryPickerDialogState extends State<_DirectoryPickerDialog> {
             ),
           ),
           SizedBox(height: spacing.md),
-          MediaLibrarySelectorField(
-            selectedLibraryId: _selectedLibrary?.id,
-            onLibraryChanged: _handleLibraryChanged,
-          ),
-          if (_selectedLibrary != null) ...[
-            SizedBox(height: spacing.md),
-            MediaImportSourcePicker(
-              selectedLibrary: _selectedLibrary,
-              sourceDisposition: _sourceDisposition,
-              onSourceChanged: (source) {
-                if (source == _source) {
-                  return;
-                }
-                setState(() => _source = source);
-              },
-              onSourceDispositionChanged: (disposition) {
-                if (disposition == _sourceDisposition) {
-                  return;
-                }
-                setState(() => _sourceDisposition = disposition);
-              },
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  MediaLibrarySelectorField(
+                    selectedLibraryId: _selectedLibrary?.id,
+                    onLibraryChanged: _handleLibraryChanged,
+                  ),
+                  if (_selectedLibrary != null) ...[
+                    SizedBox(height: spacing.md),
+                    MediaImportSourcePicker(
+                      selectedLibrary: _selectedLibrary,
+                      sourceDisposition: _sourceDisposition,
+                      onSourceChanged: (source) {
+                        if (source == _source) {
+                          return;
+                        }
+                        setState(() => _source = source);
+                      },
+                      onSourceDispositionChanged: (disposition) {
+                        if (disposition == _sourceDisposition) {
+                          return;
+                        }
+                        setState(() => _sourceDisposition = disposition);
+                      },
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ],
+          ),
           SizedBox(height: spacing.xl),
           Row(
             children: [

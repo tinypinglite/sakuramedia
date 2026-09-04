@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
@@ -83,8 +82,6 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
   late final MoviePlayer _controller;
   late final MultiSplitViewController _splitController;
   late final MoviePlayerSurfaceController _surfaceController;
-  String? _proxyFallbackSourceUrl;
-  String? _proxyFallbackUrl;
 
   MoviePlayerState get _playerState => ref.read(moviePlayerProvider(_scope));
 
@@ -154,21 +151,12 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
           ),
         );
       } else {
-        final isUsingProxyFallback =
-            _proxyFallbackSourceUrl == primaryResolvedUrl &&
-            _proxyFallbackUrl != null;
-        final resolvedUrl = isUsingProxyFallback
-            ? _proxyFallbackUrl!
-            : primaryResolvedUrl;
         content = MoviePlayerSplitLayout(
           controller: _splitController,
           dividerHandleBuffer: widget.dividerHandleBuffer,
           leftChild: _buildPlayerSurface(
             context,
-            resolvedUrl,
-            onInitialPlaybackError: isUsingProxyFallback
-                ? null
-                : () => _retryWithProxy(primaryResolvedUrl),
+            primaryResolvedUrl,
           ),
           rightChild: playerState.selectedMedia == null
               ? const SizedBox.expand()
@@ -192,9 +180,8 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
 
   Widget _buildPlayerSurface(
     BuildContext context,
-    String resolvedUrl, {
-    bool Function()? onInitialPlaybackError,
-  }) {
+    String resolvedUrl,
+  ) {
     if (widget.surfaceBuilder != null) {
       return widget.surfaceBuilder!(
         context,
@@ -215,7 +202,6 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
     return MoviePlayerSurface(
       movieNumber: widget.movieNumber,
       resolvedUrl: resolvedUrl,
-      onInitialPlaybackError: onInitialPlaybackError,
       surfaceController: _surfaceController,
       initialPosition: _playerState.startupPlaybackPosition,
       resumePosition: _playerState.resumePlaybackPosition,
@@ -229,21 +215,6 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
       mediaInfo: _buildMediaInfo(),
     );
-  }
-
-  bool _retryWithProxy(String sourceUrl) {
-    if (!mounted || _proxyFallbackSourceUrl == sourceUrl) {
-      return false;
-    }
-    final proxyUrl = withProxyMediaDelivery(sourceUrl);
-    if (proxyUrl == sourceUrl) {
-      return false;
-    }
-    setState(() {
-      _proxyFallbackSourceUrl = sourceUrl;
-      _proxyFallbackUrl = proxyUrl;
-    });
-    return true;
   }
 
   MoviePlayerMediaInfo? _buildMediaInfo() {

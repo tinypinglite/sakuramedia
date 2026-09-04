@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sakuramedia/widgets/domain/media/media_playback_info_button.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
@@ -117,10 +118,14 @@ class _MobileClipPlayerPageState extends ConsumerState<MobileClipPlayerPage> {
       videoController: videoController,
       useTouchOptimizedControls: true,
       videoKey: const Key('mobile-clip-player-video'),
-      topControls: buildMoviePlayerTopControls(
-        movieNumber: title.isEmpty ? '切片' : title,
-        onBackPressed: _handleBack,
-      ),
+      topControls: [
+        ...buildMoviePlayerTopControls(
+          movieNumber: title.isEmpty ? '切片' : title,
+          onBackPressed: _handleBack,
+        ),
+        const Spacer(),
+        MediaPlaybackInfoButton(player: videoController.player),
+      ],
       bottomControls: const <Widget>[
         MaterialPlayOrPauseButton(),
         MaterialPositionIndicator(),

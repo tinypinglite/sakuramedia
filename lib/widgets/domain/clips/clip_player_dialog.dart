@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
-import 'package:sakuramedia/core/media/media_url_resolver.dart';
-import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
+import 'package:sakuramedia/features/clips/presentation/actions/clip_playback_launcher.dart';
 import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
 
 /// 轻量切片播放弹层:用签名 `stream_url` 直接 media_kit 播。
@@ -12,23 +10,27 @@ Future<void> showClipPlayerDialog(
   BuildContext context, {
   required String streamUrl,
   required String title,
-}) {
+}) async {
+  if (await tryLaunchExternalClipPlayback(
+    context,
+    streamUrl: streamUrl,
+    title: title,
+  )) {
+    return;
+  }
+  if (!context.mounted) {
+    return;
+  }
   return showDialog<void>(
     context: context,
-    builder:
-        (dialogContext) => QuickPlayDialog(
-          title: title,
-          fallbackTitle: '切片',
-          videoKey: const Key('clip-player-video'),
-          noPlayableMessage: '无效的播放地址',
-          resolvePlayUrl: (innerContext) async {
-            final baseUrl =
-                ProviderScope.containerOf(
-                  innerContext,
-                  listen: false,
-                ).read(sessionStoreProvider).baseUrl;
-            return resolveMediaUrl(rawUrl: streamUrl, baseUrl: baseUrl);
-          },
-        ),
+    builder: (dialogContext) => QuickPlayDialog(
+      title: title,
+      fallbackTitle: '切片',
+      videoKey: const Key('clip-player-video'),
+      noPlayableMessage: '无效的播放地址',
+      resolvePlayUrl: (innerContext) async {
+        return resolveClipPlaybackUrl(innerContext, streamUrl: streamUrl);
+      },
+    ),
   );
 }

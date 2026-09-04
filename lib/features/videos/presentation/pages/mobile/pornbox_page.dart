@@ -17,6 +17,7 @@ import 'package:sakuramedia/features/videos/presentation/widgets/collections/add
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/create_video_collection_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_player_page.dart';
+import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_sort_drawer.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/pick_video_collection_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collections_overview_provider.dart';
@@ -161,7 +162,17 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
     );
   }
 
-  void _playVideo(VideoItemListItemDto video) {
+  Future<void> _playVideo(VideoItemListItemDto video) async {
+    if (await tryLaunchExternalVideoPlayback(
+      context,
+      videoId: video.id,
+      title: video.preferredTitle,
+    )) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
     // 用根 Navigator 推全屏页，覆盖底部导航。
     Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(

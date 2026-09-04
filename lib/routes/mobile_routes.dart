@@ -18,6 +18,7 @@ import 'package:sakuramedia/features/discovery/presentation/pages/mobile/hot_act
 import 'package:sakuramedia/features/image_search/presentation/pages/mobile/image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
 import 'package:sakuramedia/features/media/presentation/pages/mobile/media_management_page.dart';
+import 'package:sakuramedia/features/media_import/presentation/pages/shared/media_import_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_downloaders_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_indexers_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_media_libraries_page.dart';
@@ -296,6 +297,26 @@ class MobileSystemOverviewRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return const MobileSystemOverviewPage();
+  }
+}
+
+@TypedGoRoute<MobileMediaImportRouteData>(path: mobileMediaImportPath)
+class MobileMediaImportRouteData extends _MobileSubpageRouteData
+    with $MobileMediaImportRouteData {
+  const MobileMediaImportRouteData();
+
+  @override
+  String get pageName => 'mobile-media-import';
+
+  @override
+  String get title => '资源导入';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MediaImportPage();
   }
 }
 
@@ -979,6 +1000,13 @@ class _MobileOverviewDrawer extends ConsumerWidget {
         label: '媒体管理',
       );
 
+  static const _MobileOverviewDrawerMenuItem _mediaImportItem =
+      _MobileOverviewDrawerMenuItem(
+        key: 'media-import',
+        icon: Icons.drive_folder_upload_outlined,
+        label: '资源导入',
+      );
+
   static const _MobileOverviewDrawerMenuItem _activityItem =
       _MobileOverviewDrawerMenuItem(
         key: 'activity',
@@ -1151,6 +1179,10 @@ class _MobileOverviewDrawer extends ConsumerWidget {
                           ),
                           _buildMenuEntry(
                             context: context,
+                            item: _mediaImportItem,
+                          ),
+                          _buildMenuEntry(
+                            context: context,
                             item: _activityItem,
                           ),
                           _buildMenuEntry(
@@ -1265,6 +1297,9 @@ class _MobileOverviewDrawer extends ConsumerWidget {
         return;
       case 'media-management':
         const MobileMediaManagementRouteData().push(hostContext);
+        return;
+      case 'media-import':
+        const MobileMediaImportRouteData().push(hostContext);
         return;
       case 'activity':
         const MobileActivityRouteData().push(hostContext);

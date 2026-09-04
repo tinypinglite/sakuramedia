@@ -30,7 +30,7 @@
 
 路径：`lib/widgets/domain/media/`
 
-包含媒体时长徽标、快速播放、媒体缩略图网格、播放器缩略图面板和预览组件。图片预览的统一入口见 [media-images.md](media-images.md)。
+包含媒体时长徽标、快速播放、媒体缩略图网格、播放器缩略图面板和预览组件。图片预览的统一入口见 [media-images.md](media-images.md)。 播放组件直接使用后端提供的播放地址，播放失败时不再改写 `delivery` 并自动重开。
 
 ## moments
 
@@ -45,7 +45,7 @@
 
 ## media import and batch
 
-- `lib/widgets/domain/media_import/`：媒体来源选择器和媒体库选择字段。
+- `lib/widgets/domain/media_import/`：`MediaImportSourcePicker` 和 `MediaLibrarySelectorField` 由桌面、移动端的 JAV / 视频导入表单共用。移动端路径与目录选择按钮分行显示，文件行支持触摸和长名称；浏览、分页、重试与选择回调保持一致。
 - `lib/widgets/base/operations/batch/`：`BatchProgressDialog` 等通用批量任务反馈，不绑定单一业务域。
 
 新增业务展示件时先确认复用范围，再决定放在这里还是 feature 私有目录；文档只同步当前实际文件和公共使用边界。

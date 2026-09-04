@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
-import 'package:sakuramedia/features/media_import/presentation/pages/desktop/media_import_page.dart';
+import 'package:sakuramedia/features/media_import/presentation/pages/shared/media_import_page.dart';
 import 'package:sakuramedia/theme.dart';
 
 import '../../../../../support/test_api_bundle.dart';
@@ -25,7 +25,7 @@ void main() {
         overrides: bundle.riverpodOverrides(),
         child: MaterialApp(
           theme: sakuraDesktopThemeData,
-          home: const Scaffold(body: DesktopMediaImportPage()),
+          home: const Scaffold(body: MediaImportPage()),
         ),
       ),
     );
