@@ -17,6 +17,7 @@ class DownloadTaskDto {
     required this.updatedAt,
     this.movieTitle,
     this.movieCover,
+    this.movieThinCover,
   });
 
   final int id;
@@ -37,8 +38,12 @@ class DownloadTaskDto {
   /// 后端 JOIN 出的封面图。null 表示影片未入库或该影片无封面；前端用 MaskedImage 自带 placeholder。
   final MovieImageDto? movieCover;
 
+  /// 后端 JOIN 出的竖版封面。旧后端不返回该字段时为 null，移动端回退使用 [movieCover]。
+  final MovieImageDto? movieThinCover;
+
   factory DownloadTaskDto.fromJson(Map<String, dynamic> json) {
     final coverRaw = json['movie_cover'];
+    final thinCoverRaw = json['movie_thin_cover'];
     return DownloadTaskDto(
       id: json['id'] as int? ?? 0,
       clientId: json['client_id'] as int? ?? 0,
@@ -54,6 +59,9 @@ class DownloadTaskDto {
       movieTitle: json['movie_title'] as String?,
       movieCover: coverRaw is Map<String, dynamic>
           ? MovieImageDto.fromJson(coverRaw)
+          : null,
+      movieThinCover: thinCoverRaw is Map<String, dynamic>
+          ? MovieImageDto.fromJson(thinCoverRaw)
           : null,
     );
   }

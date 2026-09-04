@@ -177,8 +177,12 @@ class _DownloadTaskCard extends ConsumerWidget {
     final movieNumber = task.movieNumber;
     final hasMovieNumber = (movieNumber ?? '').isNotEmpty;
     final displayTitle = _resolveDisplayTitle(task);
-    final coverUrl = task.movieCover?.bestAvailableUrl ?? '';
     final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
+    final thinCoverUrl = task.movieThinCover?.bestAvailableUrl.trim() ?? '';
+    final wideCoverUrl = task.movieCover?.bestAvailableUrl.trim() ?? '';
+    final coverUrl = isMobile && thinCoverUrl.isNotEmpty
+        ? thinCoverUrl
+        : wideCoverUrl;
 
     return AppLeftCoverCard(
       key: Key('download-task-${task.id}'),

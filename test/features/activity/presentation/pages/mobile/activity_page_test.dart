@@ -5,6 +5,7 @@ import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/activity/presentation/pages/mobile/activity_page.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 import '../../../../../support/test_api_bundle.dart';
 
@@ -74,13 +75,47 @@ void main() {
             'progress': 0.5,
             'import_status': 'pending',
             'import_status_label': '等待导入',
+            'movie_cover': <String, dynamic>{
+              'id': 501,
+              'origin': '/files/images/wide-401.jpg',
+              'small': '/files/images/wide-401.jpg',
+              'medium': '/files/images/wide-401.jpg',
+              'large': '/files/images/wide-401.jpg',
+            },
+            'movie_thin_cover': <String, dynamic>{
+              'id': 502,
+              'origin': '/files/images/thin-401.jpg',
+              'small': '/files/images/thin-401.jpg',
+              'medium': '/files/images/thin-401.jpg',
+              'large': '/files/images/thin-401.jpg',
+            },
+            'created_at': '2026-08-10T12:00:00Z',
+            'updated_at': '2026-08-10T12:00:00Z',
+          },
+          <String, dynamic>{
+            'id': 402,
+            'client_id': 1,
+            'movie_number': 'ABC-002',
+            'name': 'ABC-002',
+            'remote_id': 'remote-402',
+            'state': 'downloading',
+            'progress': 0.25,
+            'import_status': 'pending',
+            'import_status_label': '等待导入',
+            'movie_cover': <String, dynamic>{
+              'id': 503,
+              'origin': '/files/images/wide-402.jpg',
+              'small': '/files/images/wide-402.jpg',
+              'medium': '/files/images/wide-402.jpg',
+              'large': '/files/images/wide-402.jpg',
+            },
             'created_at': '2026-08-10T12:00:00Z',
             'updated_at': '2026-08-10T12:00:00Z',
           },
         ],
         'page': 1,
         'page_size': 20,
-        'total': 1,
+        'total': 2,
       },
     );
     bundle.adapter.enqueueJson(
@@ -135,6 +170,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('download-task-401')), findsOneWidget);
+    final thinCover = tester.widget<MaskedImage>(
+      find.descendant(
+        of: find.byKey(const Key('download-task-401')),
+        matching: find.byType(MaskedImage),
+      ),
+    );
+    final legacyBackendCover = tester.widget<MaskedImage>(
+      find.descendant(
+        of: find.byKey(const Key('download-task-402')),
+        matching: find.byType(MaskedImage),
+      ),
+    );
+    expect(thinCover.url, '/files/images/thin-401.jpg');
+    expect(legacyBackendCover.url, '/files/images/wide-402.jpg');
     expect(
       find.byKey(const Key('mobile-download-filter-button')),
       findsOneWidget,

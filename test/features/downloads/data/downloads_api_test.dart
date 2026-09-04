@@ -164,6 +164,13 @@ void main() {
                   'medium': '/files/images/medium.jpg',
                   'large': '/files/images/large.jpg',
                 },
+                'movie_thin_cover': {
+                  'id': 6,
+                  'origin': '/files/images/thin-orig.jpg',
+                  'small': '/files/images/thin-small.jpg',
+                  'medium': '/files/images/thin-medium.jpg',
+                  'large': '/files/images/thin-large.jpg',
+                },
                 'created_at': '2026-03-10T08:10:00Z',
                 'updated_at': '2026-03-10T08:11:00Z',
               },
@@ -196,6 +203,10 @@ void main() {
         expect(
           result.items.single.movieCover?.small,
           '/files/images/small.jpg',
+        );
+        expect(
+          result.items.single.movieThinCover?.small,
+          '/files/images/thin-small.jpg',
         );
       },
     );
