@@ -26,11 +26,8 @@ PlayerConfiguration buildMoviePlayerConfiguration({TargetPlatform? platform}) {
   switch (platform ?? defaultTargetPlatform) {
     case TargetPlatform.macOS:
     case TargetPlatform.windows:
-      return const PlayerConfiguration(
-        libass: true,
-        logLevel: MPVLogLevel.trace,
-      );
+      return const PlayerConfiguration(libass: true);
     default:
-      return const PlayerConfiguration(logLevel: MPVLogLevel.trace);
+      return const PlayerConfiguration();
   }
 }

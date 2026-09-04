@@ -10,85 +10,6 @@ import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_i
 typedef MoviePlayerNativePropertyReader =
     Future<String?> Function(String property);
 
-/// 从 FFmpeg 网络日志中跟踪 302 的最终请求主机与 TCP 对端。
-class MoviePlayerFfmpegNetworkTrace {
-  MoviePlayerFfmpegNetworkTrace({required String originalUrl}) {
-    reset(originalUrl);
-  }
-
-  static final RegExp _locationPattern = RegExp(
-    r"http:\s+header='Location:\s*([^']+)'",
-    caseSensitive: false,
-  );
-  static final RegExp _absoluteRequestPattern = RegExp(
-    r'http:\s+request:\s+\S+\s+(https?://\S+)',
-    caseSensitive: false,
-  );
-  static final RegExp _connectedPattern = RegExp(
-    r'tcp:\s+Successfully connected to\s+(\S+)\s+port\s+(\d+)',
-    caseSensitive: false,
-  );
-
-  Uri? _requestUri;
-
-  void reset(String originalUrl) {
-    _requestUri = Uri.tryParse(originalUrl.trim());
-  }
-
-  MoviePlayerNetworkConnection? consume(PlayerLog log) {
-    if (log.prefix.toLowerCase() != 'ffmpeg') {
-      return null;
-    }
-
-    final redirectLocation = _locationPattern.firstMatch(log.text)?.group(1);
-    if (redirectLocation != null) {
-      final redirectedUri = _resolveUri(redirectLocation);
-      if (redirectedUri != null && redirectedUri.host.isNotEmpty) {
-        _requestUri = redirectedUri;
-      }
-    }
-
-    final absoluteRequest = _absoluteRequestPattern
-        .firstMatch(log.text)
-        ?.group(1);
-    if (absoluteRequest != null) {
-      final requestUri = Uri.tryParse(absoluteRequest);
-      if (requestUri != null && requestUri.host.isNotEmpty) {
-        _requestUri = requestUri;
-      }
-    }
-
-    final connected = _connectedPattern.firstMatch(log.text);
-    if (connected == null) {
-      return null;
-    }
-    final peerIp = connected.group(1)?.trim();
-    final requestUri = _requestUri;
-    if (peerIp == null ||
-        peerIp.isEmpty ||
-        requestUri == null ||
-        requestUri.host.isEmpty) {
-      return null;
-    }
-    return MoviePlayerNetworkConnection(
-      host: requestUri.host,
-      ip: peerIp,
-      port: int.tryParse(connected.group(2) ?? ''),
-    );
-  }
-
-  Uri? _resolveUri(String value) {
-    final parsed = Uri.tryParse(value.trim());
-    if (parsed == null) {
-      return null;
-    }
-    if (parsed.hasScheme) {
-      return parsed;
-    }
-    return _requestUri?.resolveUri(parsed);
-  }
-}
-
 MoviePlayerNativePropertyReader createMediaKitNativePropertyReader(
   Player player,
 ) {
@@ -148,13 +69,11 @@ class MoviePlayerNativeStatsSampler {
     required MoviePlayerNativePropertyReader readNativeProperty,
     required String originalUrl,
   }) : _readNativeProperty = readNativeProperty,
-       _originalUrl = originalUrl,
-       _networkTrace = MoviePlayerFfmpegNetworkTrace(originalUrl: originalUrl);
+       _originalUrl = originalUrl;
 
   final MoviePlayerNativePropertyReader _readNativeProperty;
 
   String _originalUrl;
-  final MoviePlayerFfmpegNetworkTrace _networkTrace;
 
   final ValueNotifier<MoviePlayerPlaybackInfoSnapshot> _snapshotNotifier =
       ValueNotifier<MoviePlayerPlaybackInfoSnapshot>(
@@ -194,7 +113,7 @@ class MoviePlayerNativeStatsSampler {
   double? _downloadRateBytesPerSecond;
   int? _previousDemuxerForwardBytes;
   DateTime? _previousDemuxerBytesSampleAt;
-  MoviePlayerNetworkConnection? _networkConnection;
+  String _playbackModeLabel = '确认中';
 
   /// 立即产出一次快照 + 一次原生轮询,并开启每秒定时轮询。
   void start() {
@@ -225,26 +144,17 @@ class MoviePlayerNativeStatsSampler {
     _refreshSnapshot();
   }
 
-  void updateNetworkLog(PlayerLog log) {
-    final connection = _networkTrace.consume(log);
-    if (connection == null) {
+  void updatePlaybackModeLabel(String label) {
+    if (_playbackModeLabel == label) {
       return;
     }
-    final previous = _networkConnection;
-    if (previous?.host == connection.host &&
-        previous?.ip == connection.ip &&
-        previous?.port == connection.port) {
-      return;
-    }
-    _networkConnection = connection;
+    _playbackModeLabel = label;
     _refreshSnapshot();
   }
 
   /// 换片/来源变化时同步快照上下文;不清采样字段,需要清时另调 [reset]。
   void updateContext({required String originalUrl}) {
     _originalUrl = originalUrl;
-    _networkTrace.reset(originalUrl);
-    _networkConnection = null;
     _refreshSnapshot();
   }
 
@@ -272,8 +182,7 @@ class MoviePlayerNativeStatsSampler {
     _downloadRateBytesPerSecond = null;
     _previousDemuxerForwardBytes = null;
     _previousDemuxerBytesSampleAt = null;
-    _networkTrace.reset(_originalUrl);
-    _networkConnection = null;
+    _playbackModeLabel = '确认中';
     _refreshSnapshot();
   }
 
@@ -383,11 +292,11 @@ class MoviePlayerNativeStatsSampler {
       delayedFramePerSecond: _voDelayedFramePerSecond,
       mistimedFramePerSecond: _mistimedFramePerSecond,
       originalUrl: _originalUrl,
+      playbackModeLabel: _playbackModeLabel,
       fileFormat: _fileFormat,
       bufferCacheDurationSeconds: _demuxerCacheDurationSeconds,
       bufferForwardBytes: _demuxerForwardBytes,
       downloadRateBytesPerSecond: _downloadRateBytesPerSecond,
-      networkConnection: _networkConnection,
     );
     if (_snapshotNotifier.value == snapshot) {
       return;

@@ -70,4 +70,14 @@ void main() {
       'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=proxy',
     );
   });
+
+  test('adds a playback attempt id without changing delivery', () {
+    expect(
+      withPlaybackAttemptId(
+        'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=auto',
+        'attempt-id',
+      ),
+      'https://api.example.com/media/1/play/?expires=1&signature=sig&delivery=auto&playback_attempt_id=attempt-id',
+    );
+  });
 }

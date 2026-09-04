@@ -40,3 +40,18 @@ String withProxyMediaDelivery(String url) {
       )
       .toString();
 }
+
+String withPlaybackAttemptId(String url, String attemptId) {
+  final uri = Uri.tryParse(url);
+  if (uri == null || attemptId.isEmpty) {
+    return url;
+  }
+  return uri
+      .replace(
+        queryParameters: <String, String>{
+          ...uri.queryParameters,
+          'playback_attempt_id': attemptId,
+        },
+      )
+      .toString();
+}
