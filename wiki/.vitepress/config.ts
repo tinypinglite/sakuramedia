@@ -25,6 +25,7 @@ export default defineConfig({
             { text: '配置说明', link: '/guide/config' },
             { text: '进阶部署', link: '/guide/docker' },
             { text: '后台任务', link: '/guide/tasks' },
+            { text: '媒体存储迁移', link: '/guide/media-storage-transfer' },
             { text: '普通视频与视频合集', link: '/guide/videos' },
             { text: '常用命令', link: '/guide/commands' },
             { text: '常见问题', link: '/faq' },

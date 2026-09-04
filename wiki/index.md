@@ -36,6 +36,9 @@ features:
     details: 由已启用的排行榜插件提供来源和定时同步能力，可以快速找到最近热门的影片。
   - title: 插件化扩展
     details: 通过插件接入媒体存储与下载平台、排行榜来源、字幕抓取和影片自动化处理，按需扩展 SakuraMedia 能力。
+  - title: 跨存储媒体迁移
+    details: 将已入库媒体批量迁往支持的目标库，保留同一条媒体记录及观影关联；目标确认可用后再清理源文件链接。
+    link: /guide/media-storage-transfer
 ---
 
 <p align="center">
