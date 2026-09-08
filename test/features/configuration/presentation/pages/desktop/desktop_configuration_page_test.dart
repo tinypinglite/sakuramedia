@@ -2125,6 +2125,7 @@ Map<String, dynamic> _buildAdvancedConfigResponseJson() {
     'values': <String, dynamic>{
       'media': <String, dynamic>{'allowed_min_video_file_size': 268435456},
       'scheduler': <String, dynamic>{
+        'worker_default_concurrency': 4,
         for (final key in AdvancedSchedulerConfigDto.cronKeys)
           '${key}_cron': '0 2 * * *',
       },

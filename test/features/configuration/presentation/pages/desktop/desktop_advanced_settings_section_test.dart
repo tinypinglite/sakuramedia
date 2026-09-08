@@ -148,15 +148,32 @@ void main() {
 
       await _pumpSection(tester, bundle, active: true);
       await tester.ensureVisible(
+        find.byKey(
+          const Key(
+            'configuration-advanced-worker-default-concurrency-field',
+          ),
+        ),
+      );
+      await tester.enterText(
+        find.byKey(
+          const Key(
+            'configuration-advanced-worker-default-concurrency-field',
+          ),
+        ),
+        '6',
+      );
+      await tester.ensureVisible(
         find.byKey(const Key('configuration-advanced-cron-movie_heat-field')),
       );
       await tester.enterText(
         find.byKey(const Key('configuration-advanced-cron-movie_heat-field')),
         '30 0 * * *',
       );
-      await tester.ensureVisible(
-        find.byKey(const Key('configuration-advanced-scheduler-save-button')),
+      await tester.drag(
+        find.byKey(const Key('configuration-advanced-settings-scroll-view')),
+        const Offset(0, -800),
       );
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const Key('configuration-advanced-scheduler-save-button')),
       );
@@ -172,6 +189,10 @@ void main() {
       expect(
         schedulerRequest.body['scheduler']['movie_heat_cron'],
         '30 0 * * *',
+      );
+      expect(
+        schedulerRequest.body['scheduler']['worker_default_concurrency'],
+        6,
       );
       await tester.pump(const Duration(seconds: 3));
     });
@@ -271,6 +292,7 @@ Future<void> _pumpSection(
   tester.view.physicalSize = const Size(1280, 900);
   tester.view.devicePixelRatio = 1;
   final section = SingleChildScrollView(
+    key: const Key('configuration-advanced-settings-scroll-view'),
     child: DesktopAdvancedSettingsSection(active: active),
   );
   await tester.pumpWidget(
@@ -327,6 +349,7 @@ Map<String, dynamic> _buildAdvancedConfigJson({
         'allowed_min_video_file_size': 268435456,
       },
       'scheduler': const <String, dynamic>{
+        'worker_default_concurrency': 4,
         'actor_subscription_sync_cron': '0 2 * * *',
         'subscribed_movie_auto_download_cron': '30 2 * * *',
         'download_task_sync_cron': '* * * * *',

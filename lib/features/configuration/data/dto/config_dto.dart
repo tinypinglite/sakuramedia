@@ -71,7 +71,10 @@ class AdvancedMediaConfigDto {
 }
 
 class AdvancedSchedulerConfigDto {
-  const AdvancedSchedulerConfigDto({required this.crons});
+  const AdvancedSchedulerConfigDto({
+    required this.crons,
+    required this.workerDefaultConcurrency,
+  });
 
   static const List<String> cronKeys = <String>[
     'actor_subscription_sync',
@@ -90,17 +93,24 @@ class AdvancedSchedulerConfigDto {
   ];
 
   final Map<String, String> crons;
+  final int workerDefaultConcurrency;
 
   factory AdvancedSchedulerConfigDto.fromJson(Map<String, dynamic> json) {
     return AdvancedSchedulerConfigDto(
       crons: Map<String, String>.unmodifiable(<String, String>{
         for (final key in cronKeys) key: json['${key}_cron'] as String,
       }),
+      workerDefaultConcurrency: _intAt(
+        json,
+        'worker_default_concurrency',
+        fallback: 4,
+      ),
     );
   }
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
+      'worker_default_concurrency': workerDefaultConcurrency,
       for (final entry in crons.entries) '${entry.key}_cron': entry.value,
     };
   }

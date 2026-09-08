@@ -41,6 +41,7 @@ class _DesktopAdvancedSettingsSectionState
   final GlobalKey<FormState> _otherFormKey = GlobalKey<FormState>();
 
   late final TextEditingController _allowedMinVideoFileSizeController;
+  late final TextEditingController _workerDefaultConcurrencyController;
   late final Map<String, TextEditingController> _cronControllers;
 
   final Set<_AdvancedCardKind> _dirtyCards = <_AdvancedCardKind>{};
@@ -58,6 +59,7 @@ class _DesktopAdvancedSettingsSectionState
   void initState() {
     super.initState();
     _allowedMinVideoFileSizeController = TextEditingController();
+    _workerDefaultConcurrencyController = TextEditingController();
     _cronControllers = <String, TextEditingController>{
       for (final key in AdvancedSchedulerConfigDto.cronKeys)
         key: TextEditingController(),
@@ -78,6 +80,7 @@ class _DesktopAdvancedSettingsSectionState
   @override
   void dispose() {
     _allowedMinVideoFileSizeController.dispose();
+    _workerDefaultConcurrencyController.dispose();
     for (final controller in _cronControllers.values) {
       controller.dispose();
     }
@@ -198,7 +201,31 @@ class _DesktopAdvancedSettingsSectionState
           children: [
             const _CardTip(
               icon: Icons.schedule_outlined,
-              message: 'Cron 语法：分 时 日 月 周（*/N 每隔 N，逗号列表，连字符区间）。修改后需要重启容器才生效。',
+              message:
+                  'Cron 语法：分 时 日 月 周（*/N 每隔 N，逗号列表，连字符区间）；普通任务并发数控制同时执行的任务数量。修改后需要重启容器才生效。',
+            ),
+            SizedBox(height: spacing.lg),
+            const _SubsectionTitle(title: '普通任务执行'),
+            SizedBox(height: spacing.md),
+            _buildFieldGrid(
+              context,
+              children: [
+                AppTextField(
+                  fieldKey: const Key(
+                    'configuration-advanced-worker-default-concurrency-field',
+                  ),
+                  controller: _workerDefaultConcurrencyController,
+                  label: '普通任务并发数',
+                  hintText: '4',
+                  helperText: '导入和存储迁移任务使用独立并发，不受此设置影响。',
+                  keyboardType: TextInputType.number,
+                  suffix: const _UnitSuffix(label: '个'),
+                  tightSuffix: true,
+                  validator: _workerConcurrencyError,
+                  onChanged: (_) =>
+                      _markDirty(_AdvancedCardKind.scheduler),
+                ),
+              ],
             ),
             SizedBox(height: spacing.lg),
             for (final group in _cronGroups) ...[
@@ -490,6 +517,9 @@ class _DesktopAdvancedSettingsSectionState
 
   Map<String, dynamic> _buildSchedulerPayload() {
     return <String, dynamic>{
+      'worker_default_concurrency': _parseInt(
+        _workerDefaultConcurrencyController.text,
+      ),
       for (final key in AdvancedSchedulerConfigDto.cronKeys)
         '${key}_cron': _cronControllers[key]!.text.trim(),
     };
@@ -512,6 +542,8 @@ class _DesktopAdvancedSettingsSectionState
   }
 
   void _applyScheduler(AdvancedSchedulerConfigDto scheduler) {
+    _workerDefaultConcurrencyController.text =
+        scheduler.workerDefaultConcurrency.toString();
     for (final key in AdvancedSchedulerConfigDto.cronKeys) {
       _cronControllers[key]!.text = scheduler.crons[key]!;
     }
@@ -550,6 +582,16 @@ class _DesktopAdvancedSettingsSectionState
     final parsed = int.tryParse(value?.trim() ?? '');
     if (parsed == null || parsed <= 0) {
       return '请输入大于 0 的$label';
+    }
+    return null;
+  }
+
+  String? _workerConcurrencyError(String? value) {
+    final parsed = int.tryParse(value?.trim() ?? '');
+    if (parsed == null ||
+        parsed < _workerConcurrencyMin ||
+        parsed > _workerConcurrencyMax) {
+      return '请输入 $_workerConcurrencyMin–$_workerConcurrencyMax 的整数';
     }
     return null;
   }
@@ -686,6 +728,8 @@ class _CronGroup {
 const int _bytesPerMegabyte = 1024 * 1024;
 const int _advancedSkeletonLineCount = 8;
 const int _cronPartCount = 5;
+const int _workerConcurrencyMin = 1;
+const int _workerConcurrencyMax = 32;
 const String _defaultLoggingLevel = 'INFO';
 const List<String> _loggingLevels = <String>[
   'DEBUG',

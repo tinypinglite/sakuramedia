@@ -18,9 +18,26 @@ void main() {
     final result = await bundle.configApi.get();
 
     expect(result.scheduler.crons['download_task_sync'], '* * * * *');
+    expect(result.scheduler.workerDefaultConcurrency, 4);
     expect(result.downloads.subscriptionSearchFreshDays, 7);
     expect(result.downloads.subscriptionSearchStaleAttemptLimit, 3);
     expect(result.logging.level, 'INFO');
+  });
+
+  test('GET /config defaults worker concurrency to 4 when omitted', () async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/config',
+      body: _configJson(includeWorkerDefaultConcurrency: false),
+    );
+
+    final result = await bundle.configApi.get();
+
+    expect(result.scheduler.workerDefaultConcurrency, 4);
   });
 
   test('PATCH /config parses values and restart_required', () async {
@@ -53,12 +70,14 @@ void main() {
 
 Map<String, dynamic> _configJson({
   Map<String, dynamic> extra = const <String, dynamic>{},
+  bool includeWorkerDefaultConcurrency = true,
 }) => <String, dynamic>{
   'values': <String, dynamic>{
     'media': <String, dynamic>{
       'allowed_min_video_file_size': 268435456,
     },
-    'scheduler': const <String, dynamic>{
+    'scheduler': <String, dynamic>{
+      if (includeWorkerDefaultConcurrency) 'worker_default_concurrency': 4,
       'actor_subscription_sync_cron': '0 2 * * *',
       'subscribed_movie_auto_download_cron': '30 2 * * *',
       'download_task_sync_cron': '* * * * *',
