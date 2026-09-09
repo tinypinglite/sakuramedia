@@ -3,6 +3,7 @@ import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_detail_dto.dart';
+import 'package:sakuramedia/features/actors/data/dto/actor_filter_options_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_movie_year_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_search_stream_update.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
@@ -16,6 +17,11 @@ class ActorsApi {
   Future<PaginatedResponseDto<ActorListItemDto>> getActors({
     ActorSubscriptionStatus subscriptionStatus = ActorSubscriptionStatus.all,
     ActorGender gender = ActorGender.all,
+    int? ageMin,
+    int? ageMax,
+    int? heightMin,
+    int? heightMax,
+    List<String> cups = const <String>[],
     String? sort,
     int page = 1,
     int pageSize = 20,
@@ -29,6 +35,21 @@ class ActorsApi {
     if (sort != null && sort.isNotEmpty) {
       queryParameters['sort'] = sort;
     }
+    if (ageMin != null) {
+      queryParameters['age_min'] = ageMin;
+    }
+    if (ageMax != null) {
+      queryParameters['age_max'] = ageMax;
+    }
+    if (heightMin != null) {
+      queryParameters['height_min'] = heightMin;
+    }
+    if (heightMax != null) {
+      queryParameters['height_max'] = heightMax;
+    }
+    if (cups.isNotEmpty) {
+      queryParameters['cups'] = cups.join(',');
+    }
 
     final response = await _apiClient.get(
       '/actors',
@@ -38,6 +59,20 @@ class ActorsApi {
       response,
       ActorListItemDto.fromJson,
     );
+  }
+
+  Future<ActorFilterOptionsDto> getActorFilterOptions({
+    ActorSubscriptionStatus subscriptionStatus = ActorSubscriptionStatus.all,
+    ActorGender gender = ActorGender.all,
+  }) async {
+    final response = await _apiClient.get(
+      '/actors/filter-options',
+      queryParameters: <String, dynamic>{
+        'subscription_status': subscriptionStatus.apiValue,
+        'gender': gender.apiValue,
+      },
+    );
+    return ActorFilterOptionsDto.fromJson(response);
   }
 
   Future<ActorDetailDto> getActorDetail({required int actorId}) async {
@@ -136,10 +171,9 @@ class ActorsApi {
           results: _parseActorResults(payload['actors']),
           success: payload['success'] as bool? ?? false,
           reason: payload['reason'] as String?,
-          stats:
-              payload.containsKey('stats') || payload.containsKey('total')
-                  ? CatalogSearchStreamStats.fromLooseJson(payload)
-                  : null,
+          stats: payload.containsKey('stats') || payload.containsKey('total')
+              ? CatalogSearchStreamStats.fromLooseJson(payload)
+              : null,
         );
       default:
         return ActorSearchStreamUpdate(

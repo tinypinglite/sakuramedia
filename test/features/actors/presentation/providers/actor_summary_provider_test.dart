@@ -98,6 +98,35 @@ void main() {
     expect(request.uri.queryParameters['sort'], 'name:asc');
   });
 
+  test('资料筛选条件透传到演员列表接口', () async {
+    const scope = ActorSummaryScope.desktop();
+    await prime(scope, <Map<String, dynamic>>[_actor(1)]);
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors',
+      body: _page(items: <Map<String, dynamic>>[_actor(2)], total: 1),
+    );
+
+    await container
+        .read(actorSummaryProvider(scope).notifier)
+        .applyFilter(
+          const ActorFilterState(
+            ageMin: 20,
+            ageMax: 30,
+            heightMin: 155,
+            heightMax: 170,
+            cups: ['B', 'C'],
+          ),
+        );
+
+    final query = adapter.requests.last.uri.queryParameters;
+    expect(query['age_min'], '20');
+    expect(query['age_max'], '30');
+    expect(query['height_min'], '155');
+    expect(query['height_max'], '170');
+    expect(query['cups'], 'B,C');
+  });
+
   test('初始失败可显式重试，缓存 link 不随重试累加', () async {
     const scope = ActorSummaryScope.desktop();
     adapter.enqueueJson(method: 'GET', path: '/actors', statusCode: 500);
@@ -109,8 +138,9 @@ void main() {
       container.read(actorSummaryProvider(scope).future),
       throwsA(isA<Object>()),
     );
-    final firstLink =
-        container.read(actorSummaryProvider(scope).notifier).cacheLink;
+    final firstLink = container
+        .read(actorSummaryProvider(scope).notifier)
+        .cacheLink;
     expect(firstLink, isNotNull);
 
     adapter.enqueueJson(
@@ -219,8 +249,9 @@ void main() {
       (_, __) {},
     );
     await container.read(actorSummaryProvider(scope).future);
-    final firstLink =
-        container.read(actorSummaryProvider(scope).notifier).cacheLink;
+    final firstLink = container
+        .read(actorSummaryProvider(scope).notifier)
+        .cacheLink;
     expect(firstLink, isNotNull);
 
     final cache = RiverpodPageCache();
@@ -246,8 +277,9 @@ void main() {
       path: '/actors',
       body: _page(items: <Map<String, dynamic>>[_actor(2)], total: 1),
     );
-    final rebuiltLink =
-        container.read(actorSummaryProvider(scope).notifier).cacheLink;
+    final rebuiltLink = container
+        .read(actorSummaryProvider(scope).notifier)
+        .cacheLink;
     expect(rebuiltLink, isNotNull);
     expect(identical(rebuiltLink, firstLink), isFalse);
     await container.read(actorSummaryProvider(scope).future);

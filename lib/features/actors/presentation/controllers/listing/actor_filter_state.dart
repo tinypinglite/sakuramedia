@@ -32,19 +32,44 @@ extension ActorGenderX on ActorGender {
   };
 }
 
-enum ActorSortField { subscribedAt, name, movieCount }
+enum ActorSortField {
+  subscribedAt,
+  name,
+  movieCount,
+  age,
+  heightCm,
+  bustCm,
+  waistCm,
+  hipsCm,
+  waistHipRatio,
+  cup,
+}
 
 extension ActorSortFieldX on ActorSortField {
   String get apiValue => switch (this) {
     ActorSortField.subscribedAt => 'subscribed_at',
     ActorSortField.name => 'name',
     ActorSortField.movieCount => 'movie_count',
+    ActorSortField.age => 'age',
+    ActorSortField.heightCm => 'height_cm',
+    ActorSortField.bustCm => 'bust_cm',
+    ActorSortField.waistCm => 'waist_cm',
+    ActorSortField.hipsCm => 'hips_cm',
+    ActorSortField.waistHipRatio => 'waist_hip_ratio',
+    ActorSortField.cup => 'cup',
   };
 
   String get label => switch (this) {
     ActorSortField.subscribedAt => '最近订阅',
     ActorSortField.name => '名称',
     ActorSortField.movieCount => '影片数',
+    ActorSortField.age => '年龄',
+    ActorSortField.heightCm => '身高',
+    ActorSortField.bustCm => '胸围',
+    ActorSortField.waistCm => '腰围',
+    ActorSortField.hipsCm => '臀围',
+    ActorSortField.waistHipRatio => '腰臀比',
+    ActorSortField.cup => '罩杯',
   };
 }
 
@@ -69,12 +94,22 @@ class ActorFilterState {
     this.gender = ActorGender.all,
     this.sortField = ActorSortField.subscribedAt,
     this.sortDirection = ActorSortDirection.desc,
+    this.ageMin,
+    this.ageMax,
+    this.heightMin,
+    this.heightMax,
+    this.cups = const <String>[],
   });
 
   final ActorSubscriptionStatus subscriptionStatus;
   final ActorGender gender;
   final ActorSortField sortField;
   final ActorSortDirection sortDirection;
+  final int? ageMin;
+  final int? ageMax;
+  final int? heightMin;
+  final int? heightMax;
+  final List<String> cups;
 
   static const ActorFilterState initial = ActorFilterState();
 
@@ -82,7 +117,12 @@ class ActorFilterState {
       subscriptionStatus == ActorSubscriptionStatus.subscribed &&
       gender == ActorGender.all &&
       sortField == ActorSortField.subscribedAt &&
-      sortDirection == ActorSortDirection.desc;
+      sortDirection == ActorSortDirection.desc &&
+      ageMin == null &&
+      ageMax == null &&
+      heightMin == null &&
+      heightMax == null &&
+      cups.isEmpty;
 
   String get sortExpression =>
       '${sortField.apiValue}:${sortDirection.apiValue}';
@@ -96,12 +136,26 @@ class ActorFilterState {
     ActorGender? gender,
     ActorSortField? sortField,
     ActorSortDirection? sortDirection,
+    Object? ageMin = _unset,
+    Object? ageMax = _unset,
+    Object? heightMin = _unset,
+    Object? heightMax = _unset,
+    List<String>? cups,
   }) {
     return ActorFilterState(
       subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
       gender: gender ?? this.gender,
       sortField: sortField ?? this.sortField,
       sortDirection: sortDirection ?? this.sortDirection,
+      ageMin: identical(ageMin, _unset) ? this.ageMin : ageMin as int?,
+      ageMax: identical(ageMax, _unset) ? this.ageMax : ageMax as int?,
+      heightMin: identical(heightMin, _unset)
+          ? this.heightMin
+          : heightMin as int?,
+      heightMax: identical(heightMax, _unset)
+          ? this.heightMax
+          : heightMax as int?,
+      cups: cups ?? this.cups,
     );
   }
 
@@ -111,10 +165,26 @@ class ActorFilterState {
         other.subscriptionStatus == subscriptionStatus &&
         other.gender == gender &&
         other.sortField == sortField &&
-        other.sortDirection == sortDirection;
+        other.sortDirection == sortDirection &&
+        other.ageMin == ageMin &&
+        other.ageMax == ageMax &&
+        other.heightMin == heightMin &&
+        other.heightMax == heightMax &&
+        listEquals(other.cups, cups);
   }
 
   @override
-  int get hashCode =>
-      Object.hash(subscriptionStatus, gender, sortField, sortDirection);
+  int get hashCode => Object.hash(
+    subscriptionStatus,
+    gender,
+    sortField,
+    sortDirection,
+    ageMin,
+    ageMax,
+    heightMin,
+    heightMax,
+    Object.hashAll(cups),
+  );
 }
+
+const Object _unset = Object();

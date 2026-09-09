@@ -219,7 +219,7 @@ class _ActorsHeader extends StatelessWidget {
       filterButtonKey: const Key('actors-filter-trigger'),
       filterLabel: filterState.triggerLabel,
       filterPanelKey: const Key('actors-filter-panel'),
-      filterPanelExtraWidth: 180,
+      filterPanelExtraWidth: 260,
       filterPanelBuilder: (_) => ActorFilterSectionGroup(
         filterState: filterState,
         onChanged: onFilterChanged,

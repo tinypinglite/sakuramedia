@@ -69,6 +69,11 @@ void main() {
       path: '/actors',
       body: _actorsJson(total: 3),
     );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors/filter-options',
+      body: _filterOptionsJson(),
+    );
 
     await _pumpActorsPage(tester, sessionStore: sessionStore, bundle: bundle);
     await tester.pumpAndSettle();
@@ -108,7 +113,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // 防抖结束后只用新条件拉取并替换结果。
-    final lastRequest = bundle.adapter.requests.last;
+    final lastRequest = bundle.adapter.requests
+        .where((request) => request.path == '/actors')
+        .last;
     expect(lastRequest.path, '/actors');
     expect(
       lastRequest.uri.queryParameters['subscription_status'],
@@ -152,6 +159,20 @@ Map<String, dynamic> _actorsJson({
     'page': page,
     'page_size': pageSize,
     'total': total,
+  };
+}
+
+Map<String, dynamic> _filterOptionsJson() {
+  return <String, dynamic>{
+    'actor_count': 3,
+    'as_of_date': '2026-09-10',
+    'age': <String, dynamic>{'min': 20, 'max': 40, 'populated_count': 3},
+    'height_cm': <String, dynamic>{
+      'min': 150,
+      'max': 170,
+      'populated_count': 3,
+    },
+    'cups': <Map<String, dynamic>>[],
   };
 }
 

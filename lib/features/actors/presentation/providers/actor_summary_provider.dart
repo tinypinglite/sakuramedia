@@ -82,6 +82,11 @@ class ActorSummary extends _$ActorSummary
           pageSize: pageSize,
           subscriptionStatus: filter.subscriptionStatus,
           gender: filter.gender,
+          ageMin: filter.ageMin,
+          ageMax: filter.ageMax,
+          heightMin: filter.heightMin,
+          heightMax: filter.heightMax,
+          cups: filter.cups,
           sort: filter.sortExpression,
         );
   }
@@ -93,8 +98,9 @@ class ActorSummary extends _$ActorSummary
   /// 先将这一行置 busy，服务端成功后才写回订阅态，保留旧控制器的交互时序。
   Future<ActorSubscriptionToggleResult> toggleSubscription(int actorId) async {
     final current = state.value;
-    final actor =
-        current?.paged.items.where((item) => item.id == actorId).firstOrNull;
+    final actor = current?.paged.items
+        .where((item) => item.id == actorId)
+        .firstOrNull;
     if (actor == null || current!.isSubscriptionUpdating(actorId)) {
       return const ActorSubscriptionToggleResult.ignored();
     }

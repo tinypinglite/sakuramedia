@@ -16,12 +16,9 @@ Future<void> showMobileActorFilterDrawer(
   return showAppBottomDrawer<void>(
     context: context,
     drawerKey: const Key('mobile-actors-filter-drawer'),
-    maxHeightFactor: 0.6,
-    builder:
-        (sheetContext) => _MobileActorFilterDrawerContent(
-          current: current,
-          onChanged: onChanged,
-        ),
+    maxHeightFactor: 0.85,
+    builder: (sheetContext) =>
+        _MobileActorFilterDrawerContent(current: current, onChanged: onChanged),
   );
 }
 
