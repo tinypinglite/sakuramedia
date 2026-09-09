@@ -1,24 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 桌面端以图搜图「选择女优」弹窗。
-Future<List<ActorListItemDto>?> showActorSelectorDialog(
+Future<void> showActorSelectorDialog(
   BuildContext context, {
   required List<ActorListItemDto> actors,
   required List<ActorListItemDto> initialSelectedActors,
+  required ValueChanged<List<ActorListItemDto>> onSelectionChanged,
 }) {
-  return showDialog<List<ActorListItemDto>>(
+  return showDialog<void>(
     context: context,
     builder: (dialogContext) => AppDesktopDialog(
-      constraints: const BoxConstraints(maxWidth: 760, maxHeight: 780),
+      dialogKey: const Key('image-search-actor-picker-dialog'),
+      width: context.appComponentTokens.playlistDialogWidth,
+      showCloseButton: false,
       child: ImageSearchActorSelectorBody(
         actors: actors,
         initialSelectedActors: initialSelectedActors,
-        onCancel: () => Navigator.of(dialogContext).pop(),
-        onDone: (selected) => Navigator.of(dialogContext).pop(selected),
+        onClose: () => Navigator.of(dialogContext).pop(),
+        onSelectionChanged: onSelectionChanged,
       ),
     ),
   );
@@ -29,14 +33,16 @@ class ImageSearchActorSelectorBody extends StatefulWidget {
     super.key,
     required this.actors,
     required this.initialSelectedActors,
-    required this.onCancel,
-    required this.onDone,
+    required this.onClose,
+    required this.onSelectionChanged,
+    this.isBottomDrawer = false,
   });
 
   final List<ActorListItemDto> actors;
   final List<ActorListItemDto> initialSelectedActors;
-  final VoidCallback onCancel;
-  final ValueChanged<List<ActorListItemDto>> onDone;
+  final VoidCallback onClose;
+  final ValueChanged<List<ActorListItemDto>> onSelectionChanged;
+  final bool isBottomDrawer;
 
   @override
   State<ImageSearchActorSelectorBody> createState() =>
@@ -45,6 +51,7 @@ class ImageSearchActorSelectorBody extends StatefulWidget {
 
 class _ImageSearchActorSelectorBodyState
     extends State<ImageSearchActorSelectorBody> {
+  final ScrollController _scrollController = ScrollController();
   late final Set<int> _selectedActorIds;
 
   @override
@@ -56,105 +63,155 @@ class _ImageSearchActorSelectorBodyState
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
+    final actorList = Scrollbar(
+      controller: _scrollController,
+      thumbVisibility: !widget.isBottomDrawer,
+      child: ListView.builder(
+        key: const Key('image-search-actor-list'),
+        controller: _scrollController,
+        itemCount: widget.actors.length,
+        itemBuilder: (context, index) {
+          final actor = widget.actors[index];
+          final selected = _selectedActorIds.contains(actor.id);
+          return Material(
+            color: context.appColors.surfaceCard,
+            clipBehavior: Clip.hardEdge,
+            child: InkWell(
+              key: Key('image-search-actor-option-${actor.id}'),
+              hoverColor: context.appColors.surfaceMuted.withValues(
+                alpha: 0.45,
+              ),
+              highlightColor: context.appColors.surfaceMuted.withValues(
+                alpha: 0.6,
+              ),
+              splashFactory: NoSplash.splashFactory,
+              onTap: () => _toggleActor(actor),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: spacing.sm,
+                  vertical: spacing.xs,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        actor.displayName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s14,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: spacing.sm),
+                    Checkbox(
+                      key: Key('image-search-actor-checkbox-${actor.id}'),
+                      value: selected,
+                      onChanged: (_) => _toggleActor(actor),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    final body = widget.actors.isEmpty
+        ? Center(
+            child: Text(
+              '暂无已订阅女优',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                tone: AppTextTone.muted,
+              ),
+            ),
+          )
+        : actorList;
 
     return Column(
+      mainAxisSize: widget.isBottomDrawer ? MainAxisSize.max : MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Expanded(
               child: Text(
-                '已选 ${_selectedActorIds.length} 位',
+                '选择已订阅女优',
                 style: resolveAppTextStyle(
                   context,
-                  size: AppTextSize.s18,
-                  weight: AppTextWeight.semibold,
-                  tone: AppTextTone.primary,
+                  size: AppTextSize.s16,
+                  weight: AppTextWeight.medium,
                 ),
               ),
             ),
-            TextButton(
-              onPressed: () => setState(_selectedActorIds.clear),
-              child: const Text('清空'),
+            AppIconButton(
+              key: const Key('image-search-actor-close-button'),
+              tooltip: '关闭',
+              onPressed: widget.onClose,
+              icon: const Icon(Icons.close_rounded),
             ),
           ],
         ),
-        SizedBox(height: spacing.lg),
-        Expanded(
-          child: ListView.separated(
-            itemCount: widget.actors.length,
-            separatorBuilder: (context, index) => SizedBox(height: spacing.sm),
-            itemBuilder: (context, index) {
-              final actor = widget.actors[index];
-              final selected = _selectedActorIds.contains(actor.id);
-              return InkWell(
-                key: Key('desktop-image-search-actor-option-${actor.id}'),
-                borderRadius: context.appRadius.mdBorder,
-                onTap: () => setState(() {
-                  if (selected) {
-                    _selectedActorIds.remove(actor.id);
-                  } else {
-                    _selectedActorIds.add(actor.id);
-                  }
-                }),
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: spacing.lg,
-                    vertical: spacing.md,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.appColors.surfaceCard,
-                    borderRadius: context.appRadius.mdBorder,
-                    border: Border.all(
-                      color: selected
-                          ? Theme.of(context).colorScheme.primary
-                          : context.appColors.borderSubtle,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          actor.displayName,
-                          style: resolveAppTextStyle(
-                            context,
-                            size: AppTextSize.s14,
-                            weight: AppTextWeight.regular,
-                            tone: AppTextTone.primary,
-                          ),
-                        ),
-                      ),
-                      Checkbox(value: selected, onChanged: (_) {}),
-                    ],
-                  ),
-                ),
-              );
-            },
+        SizedBox(height: spacing.sm),
+        if (widget.isBottomDrawer)
+          Expanded(child: body)
+        else
+          Flexible(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+              ),
+              child: SizedBox(
+                height: widget.actors.isEmpty ? 160 : null,
+                child: body,
+              ),
+            ),
           ),
-        ),
-        SizedBox(height: spacing.lg),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            AppButton(label: '取消', onPressed: widget.onCancel),
-            SizedBox(width: spacing.sm),
-            AppButton(
-              label: '完成',
-              variant: AppButtonVariant.primary,
-              onPressed: () => widget.onDone(
-                widget.actors
-                    .where(
-                      (ActorListItemDto actor) =>
-                          _selectedActorIds.contains(actor.id),
-                    )
-                    .toList(growable: false),
-              ),
-            ),
-          ],
+        Divider(color: context.appColors.divider, height: spacing.lg),
+        AppTextButton(
+          key: const Key('image-search-actor-clear-button'),
+          label: '清空已选',
+          icon: const Icon(Icons.clear_all_rounded),
+          onPressed: _selectedActorIds.isEmpty ? null : _clearSelection,
         ),
       ],
+    );
+  }
+
+  void _toggleActor(ActorListItemDto actor) {
+    setState(() {
+      if (_selectedActorIds.contains(actor.id)) {
+        _selectedActorIds.remove(actor.id);
+      } else {
+        _selectedActorIds.add(actor.id);
+      }
+    });
+    _notifySelectionChanged();
+  }
+
+  void _clearSelection() {
+    setState(_selectedActorIds.clear);
+    _notifySelectionChanged();
+  }
+
+  void _notifySelectionChanged() {
+    widget.onSelectionChanged(
+      widget.actors
+          .where(
+            (ActorListItemDto actor) => _selectedActorIds.contains(actor.id),
+          )
+          .toList(growable: false),
     );
   }
 }

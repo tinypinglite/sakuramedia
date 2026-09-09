@@ -31,7 +31,6 @@ class MoviePlotThumbnail extends StatefulWidget {
 }
 
 class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
-  static const double _decodeDevicePixelRatioCap = 2.0;
   static const int _decodeSizeUpperBound = 1024;
 
   ImageStream? _imageStream;
@@ -110,8 +109,7 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
       return null;
     }
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    final effectiveDpr = dpr.clamp(1.0, _decodeDevicePixelRatioCap);
-    final rawHeight = (widget.maxHeight * effectiveDpr).round();
+    final rawHeight = (widget.maxHeight * dpr).round();
     return rawHeight.clamp(1, _decodeSizeUpperBound);
   }
 

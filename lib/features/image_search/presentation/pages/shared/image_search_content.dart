@@ -826,15 +826,21 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
       return;
     }
     final draft = _desktopFilterDraft ?? _filterState;
-    final selectedActors = await showActorSelectorDialog(
+    await showActorSelectorDialog(
       context,
       actors: actors,
       initialSelectedActors: draft.selectedActors,
+      onSelectionChanged: (selectedActors) {
+        if (!mounted) {
+          return;
+        }
+        _updateDesktopFilterDraft(
+          (_desktopFilterDraft ?? _filterState).copyWith(
+            selectedActors: selectedActors,
+          ),
+        );
+      },
     );
-    if (!mounted || selectedActors == null) {
-      return;
-    }
-    _updateDesktopFilterDraft(draft.copyWith(selectedActors: selectedActors));
   }
 
   Future<void> _pickAndSearchImage() async {

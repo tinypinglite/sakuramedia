@@ -27,7 +27,6 @@ class MaskedImage extends ConsumerStatefulWidget {
     this.memCacheHeight,
   });
 
-  static const double _decodeDevicePixelRatioCap = 2.0;
   static const int _decodeSizeUpperBound = 1024;
 
   final String url;
@@ -154,13 +153,12 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
     BoxConstraints constraints,
   ) {
     final dpr = MediaQuery.devicePixelRatioOf(context);
-    final effectiveDpr = dpr.clamp(1.0, MaskedImage._decodeDevicePixelRatioCap);
 
     int? cacheWidth;
     if (constraints.hasBoundedWidth &&
         constraints.maxWidth.isFinite &&
         constraints.maxWidth > 0) {
-      final rawWidth = (constraints.maxWidth * effectiveDpr).round();
+      final rawWidth = (constraints.maxWidth * dpr).round();
       cacheWidth = rawWidth.clamp(1, MaskedImage._decodeSizeUpperBound);
     }
 
@@ -168,7 +166,7 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
     if (constraints.hasBoundedHeight &&
         constraints.maxHeight.isFinite &&
         constraints.maxHeight > 0) {
-      final rawHeight = (constraints.maxHeight * effectiveDpr).round();
+      final rawHeight = (constraints.maxHeight * dpr).round();
       cacheHeight = rawHeight.clamp(1, MaskedImage._decodeSizeUpperBound);
     }
 

@@ -67,13 +67,11 @@ class _MobileImageSearchFilterDrawerState
       return ImageSearchActorSelectorBody(
         actors: _actors,
         initialSelectedActors: _draft.selectedActors,
-        onCancel: () => setState(() => _isSelectingActors = false),
-        onDone: (selectedActors) {
-          setState(() {
-            _draft = _draft.copyWith(selectedActors: selectedActors);
-            _isSelectingActors = false;
-          });
-        },
+        isBottomDrawer: true,
+        onClose: () => setState(() => _isSelectingActors = false),
+        onSelectionChanged: (selectedActors) => setState(
+          () => _draft = _draft.copyWith(selectedActors: selectedActors),
+        ),
       );
     }
 
