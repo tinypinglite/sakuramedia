@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
@@ -77,6 +80,49 @@ class ActorsApi {
 
   Future<ActorDetailDto> getActorDetail({required int actorId}) async {
     final response = await _apiClient.get('/actors/$actorId');
+    return ActorDetailDto.fromJson(response);
+  }
+
+  Future<ActorDetailDto> updateActor({
+    required int actorId,
+    required int expectedRevision,
+    required Map<String, dynamic> changes,
+  }) async {
+    final response = await _apiClient.patch(
+      '/actors/$actorId',
+      data: <String, dynamic>{
+        'expected_revision': expectedRevision,
+        ...changes,
+      },
+    );
+    return ActorDetailDto.fromJson(response);
+  }
+
+  Future<ActorDetailDto> uploadActorProfileImage({
+    required int actorId,
+    required int expectedRevision,
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    final formData = FormData.fromMap(<String, dynamic>{
+      'file': MultipartFile.fromBytes(bytes, filename: fileName),
+    });
+    final response = await _apiClient.put(
+      '/actors/$actorId/profile-image',
+      queryParameters: <String, dynamic>{'expected_revision': expectedRevision},
+      data: formData,
+    );
+    return ActorDetailDto.fromJson(response);
+  }
+
+  Future<ActorDetailDto> clearActorProfileImage({
+    required int actorId,
+    required int expectedRevision,
+  }) async {
+    final response = await _apiClient.delete(
+      '/actors/$actorId/profile-image',
+      queryParameters: <String, dynamic>{'expected_revision': expectedRevision},
+    );
     return ActorDetailDto.fromJson(response);
   }
 

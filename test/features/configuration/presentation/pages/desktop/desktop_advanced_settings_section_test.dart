@@ -62,6 +62,27 @@ void main() {
       expect(bundle.adapter.hitCount('GET', '/config'), 1);
     });
 
+    testWidgets('renders aligned scheduler cron labels', (
+      WidgetTester tester,
+    ) async {
+      _enqueueAdvancedConfig(bundle);
+      await _pumpSection(tester, bundle, active: true);
+
+      for (final label in <String>[
+        '订阅演员影片同步',
+        '影片热度更新',
+        '媒体缩略图生成',
+        '图像搜索索引构建',
+        '影片相似度重算',
+        '任务记录清理',
+        '媒体文件哈希补算',
+        '媒体文件巡检',
+        'GFriends 缓存刷新',
+      ]) {
+        expect(find.text(label), findsOneWidget, reason: label);
+      }
+    });
+
     testWidgets('confirms before refreshing dirty settings', (
       WidgetTester tester,
     ) async {
@@ -357,12 +378,15 @@ Map<String, dynamic> _buildAdvancedConfigJson({
         'movie_heat_cron': '15 0 * * *',
         'movie_interaction_sync_cron': '0 5 * * *',
         'movie_javdb_backfill_cron': '30 5 * * *',
+        'media_file_hash_backfill_cron': '0 3 * * *',
+        'media_file_scan_cron': '0 4 * * *',
         'media_thumbnail_cron': '*/30 * * * *',
         'image_search_index_cron': '*/5 * * * *',
         'movie_similarity_recompute_cron': '30 3 * * *',
         'moment_recommendation_generate_cron': '0 4 * * *',
         'daily_recommendation_generate_cron': '0 5 * * *',
         'activity_cleanup_cron': '30 5 * * *',
+        'gfriends_filetree_refresh_cron': '0 4 * * 1',
       },
       'downloads': <String, dynamic>{
         'subscription_search_fresh_days': 7,

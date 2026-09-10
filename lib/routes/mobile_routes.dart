@@ -27,6 +27,8 @@ import 'package:sakuramedia/features/plugins/presentation/pages/mobile/mobile_pl
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collection_detail_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collection_play_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collections_page.dart';
+import 'package:sakuramedia/features/moment_collections/presentation/pages/mobile/moment_collection_detail_page.dart';
+import 'package:sakuramedia/features/moment_collections/presentation/pages/mobile/moment_collections_page.dart';
 import 'package:sakuramedia/features/external_player/presentation/pages/mobile/external_player_settings_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_collection_detail_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_collection_play_page.dart';
@@ -663,6 +665,52 @@ class MobileClipCollectionDetailRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobileClipCollectionDetailPage(collectionId: collectionId);
+  }
+}
+
+@TypedGoRoute<MobileMomentCollectionsRouteData>(
+  path: mobileMomentCollectionsPath,
+)
+class MobileMomentCollectionsRouteData extends _MobileSubpageRouteData
+    with $MobileMomentCollectionsRouteData {
+  const MobileMomentCollectionsRouteData();
+
+  @override
+  String get pageName => 'mobile-moment-collections';
+
+  @override
+  String get title => '时刻合集';
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileMomentCollectionsPage();
+  }
+}
+
+@TypedGoRoute<MobileMomentCollectionDetailRouteData>(
+  path: '$mobileMomentCollectionsPath/:collectionId',
+)
+class MobileMomentCollectionDetailRouteData extends _MobileSubpageRouteData
+    with $MobileMomentCollectionDetailRouteData {
+  const MobileMomentCollectionDetailRouteData({required this.collectionId});
+
+  final int collectionId;
+
+  @override
+  String get pageName => 'mobile-moment-collection-detail';
+
+  @override
+  String get title => '时刻合集';
+
+  @override
+  String get defaultLocation => mobileMomentCollectionsPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return MobileMomentCollectionDetailPage(collectionId: collectionId);
   }
 }
 

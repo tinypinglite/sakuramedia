@@ -30,6 +30,8 @@ List<RouteBase> get $appRoutes => [
   $mobileTagMoviesRouteData,
   $mobileClipCollectionsRouteData,
   $mobileClipCollectionDetailRouteData,
+  $mobileMomentCollectionsRouteData,
+  $mobileMomentCollectionDetailRouteData,
   $mobileClipCollectionPlayRouteData,
   $mobileVideoCollectionsRouteData,
   $mobileVideoCollectionDetailRouteData,
@@ -731,6 +733,67 @@ mixin $MobileClipCollectionDetailRouteData on GoRouteData {
   @override
   String get location => GoRouteData.$location(
     '/mobile/library/clip-collections/${Uri.encodeComponent(_self.collectionId.toString())}',
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileMomentCollectionsRouteData => GoRouteData.$route(
+  path: '/mobile/library/moment-collections',
+  factory: $MobileMomentCollectionsRouteData._fromState,
+);
+
+mixin $MobileMomentCollectionsRouteData on GoRouteData {
+  static MobileMomentCollectionsRouteData _fromState(GoRouterState state) =>
+      const MobileMomentCollectionsRouteData();
+
+  @override
+  String get location =>
+      GoRouteData.$location('/mobile/library/moment-collections');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileMomentCollectionDetailRouteData => GoRouteData.$route(
+  path: '/mobile/library/moment-collections/:collectionId',
+  factory: $MobileMomentCollectionDetailRouteData._fromState,
+);
+
+mixin $MobileMomentCollectionDetailRouteData on GoRouteData {
+  static MobileMomentCollectionDetailRouteData _fromState(
+    GoRouterState state,
+  ) => MobileMomentCollectionDetailRouteData(
+    collectionId: int.parse(state.pathParameters['collectionId']!),
+  );
+
+  MobileMomentCollectionDetailRouteData get _self =>
+      this as MobileMomentCollectionDetailRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/mobile/library/moment-collections/${Uri.encodeComponent(_self.collectionId.toString())}',
   );
 
   @override

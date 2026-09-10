@@ -4,6 +4,7 @@ import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
+import 'package:sakuramedia/features/actors/presentation/providers/actor_mutation_events_provider.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actor_summary_scope.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actor_summary_state.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actors_api_provider.dart';
@@ -65,6 +66,12 @@ class ActorSummary extends _$ActorSummary
     // build 时必须复用首个 link，不能每次 retry 新建一个而让 LRU 只持有旧 link。
     _cacheLink ??= ref.keepAlive();
     attachDisposeGuard();
+    ref.listen(actorMutationEventsProvider, (_, next) {
+      final actor = next.value;
+      if (actor != null) {
+        _patchActor(actor);
+      }
+    });
     final paged = await loadInitialPage();
     return ActorSummaryState(paged: paged, filter: activeFilter);
   }
@@ -152,5 +159,24 @@ class ActorSummary extends _$ActorSummary
       return;
     }
     state = AsyncData(current.copyWith(subscriptionUpdatingActorIds: next));
+  }
+
+  void _patchActor(ActorListItemDto updated) {
+    final current = state.value;
+    if (current == null) return;
+    final paged = current.paged.patchWhere(
+      (actor) => actor.id == updated.id,
+      (actor) => ActorListItemDto(
+        id: actor.id,
+        javdbId: actor.javdbId,
+        name: actor.name,
+        aliasName: actor.aliasName,
+        profileImage: updated.profileImage,
+        isSubscribed: actor.isSubscribed,
+        apiDisplayName: updated.displayName,
+      ),
+    );
+    if (identical(paged, current.paged)) return;
+    state = AsyncData(current.copyWith(paged: paged));
   }
 }

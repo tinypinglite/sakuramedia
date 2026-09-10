@@ -19,6 +19,8 @@ import 'package:sakuramedia/features/playlists/presentation/pages/desktop/playli
 import 'package:sakuramedia/features/clip_collections/presentation/pages/desktop/clip_collections_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/desktop/clip_collection_detail_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/desktop/clip_collection_play_page.dart';
+import 'package:sakuramedia/features/moment_collections/presentation/pages/desktop/moment_collections_page.dart';
+import 'package:sakuramedia/features/moment_collections/presentation/pages/desktop/moment_collection_detail_page.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/pages/desktop/follow_page.dart';
 import 'package:sakuramedia/features/activity/presentation/pages/desktop/activity_page.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/pages/desktop/system_diagnostics_page.dart';
@@ -313,6 +315,12 @@ class DesktopVideoCollectionPlayRouteData extends _DesktopNoTransitionRouteData
     ),
     TypedGoRoute<DesktopClipCollectionDetailRouteData>(
       path: '$desktopClipCollectionsPath/:collectionId',
+    ),
+    TypedGoRoute<DesktopMomentCollectionsRouteData>(
+      path: desktopMomentCollectionsPath,
+    ),
+    TypedGoRoute<DesktopMomentCollectionDetailRouteData>(
+      path: '$desktopMomentCollectionsPath/:collectionId',
     ),
     TypedGoRoute<DesktopActorDetailRouteData>(
       path: '/desktop/library/actors/:actorId',
@@ -762,6 +770,34 @@ class DesktopClipCollectionDetailRouteData extends _DesktopShellPageRouteData
   @override
   Widget buildContent(BuildContext context, GoRouterState state) {
     return DesktopClipCollectionDetailPage(collectionId: collectionId);
+  }
+}
+
+class DesktopMomentCollectionsRouteData extends _DesktopShellPageRouteData
+    with $DesktopMomentCollectionsRouteData {
+  const DesktopMomentCollectionsRouteData();
+
+  @override
+  String get pageName => 'desktop-moment-collections';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return const DesktopMomentCollectionsPage();
+  }
+}
+
+class DesktopMomentCollectionDetailRouteData extends _DesktopShellPageRouteData
+    with $DesktopMomentCollectionDetailRouteData {
+  const DesktopMomentCollectionDetailRouteData({required this.collectionId});
+
+  final int collectionId;
+
+  @override
+  String get pageName => 'desktop-moment-collection-detail';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return DesktopMomentCollectionDetailPage(collectionId: collectionId);
   }
 }
 

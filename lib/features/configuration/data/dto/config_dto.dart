@@ -84,12 +84,15 @@ class AdvancedSchedulerConfigDto {
     'movie_heat',
     'movie_interaction_sync',
     'movie_javdb_backfill',
+    'media_file_hash_backfill',
+    'media_file_scan',
     'media_thumbnail',
     'image_search_index',
     'movie_similarity_recompute',
     'moment_recommendation_generate',
     'daily_recommendation_generate',
     'activity_cleanup',
+    'gfriends_filetree_refresh',
   ];
 
   final Map<String, String> crons;

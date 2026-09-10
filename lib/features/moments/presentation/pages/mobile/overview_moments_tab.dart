@@ -29,6 +29,8 @@ class MobileOverviewMomentsTab extends StatelessWidget {
       onOpenVideo: _openVideoForMoment,
       onOpenPlayer: _openPlayerForMoment,
       onOpenMovieDetail: _openMovieDetailForMoment,
+      onOpenCollections: () =>
+          const MobileMomentCollectionsRouteData().push(context),
     );
   }
 

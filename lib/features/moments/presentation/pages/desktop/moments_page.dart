@@ -25,6 +25,7 @@ class DesktopMomentsPage extends StatelessWidget {
       onOpenVideo: _openVideoForMoment,
       onOpenPlayer: _openPlayerForMoment,
       onOpenMovieDetail: _openMovieDetailForMoment,
+      onOpenCollections: () => context.pushDesktopMomentCollections(),
     );
   }
 

@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
+import 'package:sakuramedia/features/actors/data/dto/actor_detail_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actor_detail_state.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actors_api_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/async_notifier_dispose_guard.dart';
@@ -33,6 +34,13 @@ class ActorDetail extends _$ActorDetail {
       return;
     }
     state = AsyncData(current!.copyWith(actor: actor, errorMessage: null));
+  }
+
+  void replaceActor(ActorDetailDto actor) {
+    if (!ref.mounted) {
+      return;
+    }
+    state = AsyncData(ActorDetailState(actor: actor));
   }
 
   Future<ActorDetailState> _fetch() async {

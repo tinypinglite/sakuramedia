@@ -192,6 +192,7 @@ class MovieActorDto {
     required this.gender,
     required this.isSubscribed,
     required this.profileImage,
+    this.apiDisplayName,
   });
 
   static const int femaleGender = 1;
@@ -203,6 +204,15 @@ class MovieActorDto {
   final int gender;
   final bool isSubscribed;
   final MovieImageDto? profileImage;
+  final String? apiDisplayName;
+  String get displayName {
+    final normalized = apiDisplayName?.trim();
+    if (normalized != null && normalized.isNotEmpty) {
+      return normalized;
+    }
+    return aliasName.isEmpty ? name : aliasName;
+  }
+
   bool get isFemale => gender == femaleGender;
 
   factory MovieActorDto.fromJson(Map<String, dynamic> json) {
@@ -214,6 +224,7 @@ class MovieActorDto {
       gender: (json['gender'] as num?)?.toInt() ?? 0,
       isSubscribed: json['is_subscribed'] as bool? ?? false,
       profileImage: _movieImageFromJson(json['profile_image']),
+      apiDisplayName: json['display_name'] as String?,
     );
   }
 }

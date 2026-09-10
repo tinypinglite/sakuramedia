@@ -5,10 +5,16 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 class MomentCard extends StatelessWidget {
-  const MomentCard({super.key, required this.item, this.onTap});
+  const MomentCard({
+    super.key,
+    required this.item,
+    this.onTap,
+    this.onAddToCollection,
+  });
 
   final MomentListItem item;
   final VoidCallback? onTap;
+  final VoidCallback? onAddToCollection;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +80,26 @@ class MomentCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onAddToCollection != null)
+                  Positioned(
+                    top: spacing.xs,
+                    right: spacing.xs,
+                    child: Tooltip(
+                      message: '加入时刻合集',
+                      child: Material(
+                        color: Colors.black.withValues(alpha: 0.48),
+                        borderRadius: context.appRadius.pillBorder,
+                        child: IconButton(
+                          key: Key('moment-add-to-collection-${item.pointId}'),
+                          tooltip: '加入时刻合集',
+                          color: Colors.white,
+                          iconSize: context.appComponentTokens.iconSizeSm,
+                          onPressed: onAddToCollection,
+                          icon: const Icon(Icons.bookmarks_outlined),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

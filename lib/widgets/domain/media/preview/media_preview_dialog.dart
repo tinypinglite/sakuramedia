@@ -706,8 +706,7 @@ class _MovieActorStrip extends StatelessWidget {
           separatorBuilder: (_, __) => SizedBox(width: spacing.sm),
           itemBuilder: (context, index) {
             final actor = actors[index];
-            final tooltip =
-                actor.aliasName.isEmpty ? actor.name : actor.aliasName;
+            final tooltip = actor.displayName;
             final itemKey =
                 actor.id > 0
                     ? Key('image-search-result-preview-actor-${actor.id}')
@@ -736,7 +735,7 @@ class _MovieActorStrip extends StatelessWidget {
                           maxWidth: tokens.movieDetailActorCardWidth,
                         ),
                         child: Text(
-                          actor.name,
+                          actor.displayName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,

@@ -4,7 +4,9 @@ import 'package:sakuramedia/app/riverpod_page_cache.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/api/actors_api.dart';
+import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
+import 'package:sakuramedia/features/actors/presentation/providers/actor_mutation_events_provider.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actor_summary_provider.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actor_summary_scope.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actors_api_provider.dart';
@@ -235,6 +237,34 @@ void main() {
           .id,
       2,
     );
+  });
+
+  test('演员资料变更会就地更新缓存条目的显示名和头像', () async {
+    const scope = ActorSummaryScope.desktop();
+    await prime(scope, <Map<String, dynamic>>[_actor(1)]);
+
+    final updated = ActorListItemDto.fromJson(<String, dynamic>{
+      ..._actor(1),
+      'display_name': '新的显示名',
+      'profile_image': <String, dynamic>{
+        'id': 10,
+        'origin': 'origin.jpg',
+        'small': 'small.jpg',
+        'medium': 'medium.jpg',
+        'large': 'large.jpg',
+      },
+    });
+    container.read(actorMutationEventsProvider.notifier).reportUpdated(updated);
+    await _settle();
+
+    final actor = container
+        .read(actorSummaryProvider(scope))
+        .requireValue
+        .paged
+        .items
+        .single;
+    expect(actor.displayName, '新的显示名');
+    expect(actor.profileImage?.bestAvailableUrl, 'large.jpg');
   });
 
   test('页面缓存 link 保活列表，驱逐后下一次读取重建 provider', () async {

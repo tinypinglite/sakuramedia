@@ -169,6 +169,24 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
     );
   }
 
+  if (currentPath == desktopMomentCollectionsPath) {
+    return const DesktopTopBarConfig(
+      title: '时刻合集',
+      fallbackPath: desktopMomentsPath,
+      isBackEnabled: true,
+    );
+  }
+
+  if (currentPath.startsWith('$desktopMomentCollectionsPath/')) {
+    return DesktopTopBarConfig(
+      title: '时刻合集',
+      fallbackPath:
+          _fallbackPathFromExtra(routeExtra, currentPath: currentPath) ??
+          desktopMomentCollectionsPath,
+      isBackEnabled: true,
+    );
+  }
+
   if (currentPath == desktopImageSearchPath) {
     return DesktopTopBarConfig(
       title: '画面搜索',

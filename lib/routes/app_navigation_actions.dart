@@ -139,6 +139,18 @@ extension AppNavigationActions on BuildContext {
     DesktopClipCollectionDetailRouteData(collectionId: collectionId).push(this);
   }
 
+  Future<void> pushDesktopMomentCollections() {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    return const DesktopMomentCollectionsRouteData().push<void>(this);
+  }
+
+  void pushDesktopMomentCollectionDetail({required int collectionId}) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopMomentCollectionDetailRouteData(
+      collectionId: collectionId,
+    ).push(this);
+  }
+
   void pushDesktopClipCollectionPlay({
     required int collectionId,
     int startIndex = 0,

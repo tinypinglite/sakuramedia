@@ -8,6 +8,7 @@ class ActorListItemDto {
     required this.aliasName,
     required this.profileImage,
     required this.isSubscribed,
+    this.apiDisplayName,
   });
 
   final int id;
@@ -16,8 +17,15 @@ class ActorListItemDto {
   final String aliasName;
   final MovieImageDto? profileImage;
   final bool isSubscribed;
+  final String? apiDisplayName;
 
-  String get displayName => aliasName.trim().isNotEmpty ? aliasName : name;
+  String get displayName {
+    final normalized = apiDisplayName?.trim();
+    if (normalized != null && normalized.isNotEmpty) {
+      return normalized;
+    }
+    return aliasName.trim().isNotEmpty ? aliasName : name;
+  }
 
   ActorListItemDto copyWith({
     int? id,
@@ -26,6 +34,7 @@ class ActorListItemDto {
     String? aliasName,
     MovieImageDto? profileImage,
     bool? isSubscribed,
+    String? apiDisplayName,
   }) {
     return ActorListItemDto(
       id: id ?? this.id,
@@ -34,6 +43,7 @@ class ActorListItemDto {
       aliasName: aliasName ?? this.aliasName,
       profileImage: profileImage ?? this.profileImage,
       isSubscribed: isSubscribed ?? this.isSubscribed,
+      apiDisplayName: apiDisplayName ?? this.apiDisplayName,
     );
   }
 
@@ -45,6 +55,7 @@ class ActorListItemDto {
       aliasName: json['alias_name'] as String? ?? '',
       profileImage: _imageFromJson(json['profile_image']),
       isSubscribed: json['is_subscribed'] as bool? ?? false,
+      apiDisplayName: json['display_name'] as String?,
     );
   }
 

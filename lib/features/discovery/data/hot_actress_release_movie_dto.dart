@@ -22,7 +22,9 @@ class HotActressReleaseMovieDto {
     return HotActressReleaseMovieDto(
       movie: MovieListItemDto.fromJson(json),
       hotActressName: hotActress is Map
-          ? hotActress['name'] as String? ?? ''
+          ? hotActress['display_name'] as String? ??
+                hotActress['name'] as String? ??
+                ''
           : '',
     );
   }

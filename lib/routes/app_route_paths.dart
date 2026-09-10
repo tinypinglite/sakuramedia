@@ -14,6 +14,8 @@ const String desktopMovieSeriesPathPrefix = '$desktopMoviesPath/series';
 const String desktopActorsPath = '/desktop/library/actors';
 const String desktopTagsPath = '/desktop/library/tags';
 const String desktopMomentsPath = '/desktop/library/moments';
+const String desktopMomentCollectionsPath =
+    '/desktop/library/moment-collections';
 const String desktopPlaylistsPath = '/desktop/library/playlists';
 const String desktopClipsPath = '/desktop/library/clips';
 const String desktopClipCollectionsPath = '/desktop/library/clip-collections';
@@ -47,6 +49,7 @@ const String mobileMovieSeriesPathPrefix = '$mobileMoviesPath/series';
 const String mobileActorsPath = '/mobile/library/actors';
 const String mobileTagsPath = '/mobile/library/tags';
 const String mobileClipCollectionsPath = '/mobile/library/clip-collections';
+const String mobileMomentCollectionsPath = '/mobile/library/moment-collections';
 const String mobileVideoCollectionsPath = '/mobile/library/video-collections';
 const String mobileRankingsPath = '/mobile/rankings';
 const String mobilePornboxPath = '/mobile/pornbox';

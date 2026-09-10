@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_prof
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_state.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
@@ -38,11 +39,13 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
             isSubscribed,
             isSubscriptionUpdating,
             onSubscriptionTap,
+            onEditTap,
           ) => _ActorDetailHeader(
             actor: actor,
             isSubscribed: isSubscribed,
             isSubscriptionUpdating: isSubscriptionUpdating,
             onSubscriptionTap: onSubscriptionTap,
+            onEditTap: onEditTap,
           ),
       loadingBuilder: (_) => const _ActorDetailLoadingSkeleton(),
       errorBuilder: (context, message, onRetry) =>
@@ -77,12 +80,14 @@ class _ActorDetailHeader extends StatelessWidget {
     required this.isSubscribed,
     required this.isSubscriptionUpdating,
     required this.onSubscriptionTap,
+    required this.onEditTap,
   });
 
   final ActorDetailDto actor;
   final bool isSubscribed;
   final bool isSubscriptionUpdating;
   final VoidCallback? onSubscriptionTap;
+  final VoidCallback onEditTap;
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +124,15 @@ class _ActorDetailHeader extends StatelessWidget {
           ),
         ),
         SizedBox(width: context.appSpacing.lg),
+        AppIconButton(
+          key: const Key('actor-detail-edit-button'),
+          icon: const Icon(Icons.edit_outlined),
+          size: AppIconButtonSize.compact,
+          tooltip: '编辑女优资料',
+          semanticLabel: '编辑女优资料',
+          onPressed: onEditTap,
+        ),
+        SizedBox(width: context.appSpacing.sm),
         SubscriptionHeartBadge(
           key: Key('actor-detail-subscription-${actor.summary.id}'),
           loadingKey: Key(

@@ -33,7 +33,7 @@ class MovieActorWrap extends StatelessWidget {
           .map((actor) {
             final avatarUrl = actor.profileImage?.bestAvailableUrl;
             return Tooltip(
-              message: actor.aliasName.isEmpty ? actor.name : actor.aliasName,
+              message: actor.displayName,
               child: Builder(
                 builder: (context) {
                   Widget child = Column(
@@ -49,7 +49,7 @@ class MovieActorWrap extends StatelessWidget {
                           maxWidth: tokens.movieDetailActorCardWidth,
                         ),
                         child: Text(
-                          actor.name,
+                          actor.displayName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,

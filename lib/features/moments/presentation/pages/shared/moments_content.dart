@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/moments/presentation/moment_filter_sections
 import 'package:sakuramedia/features/moments/presentation/moment_listing_models.dart';
 import 'package:sakuramedia/features/moments/presentation/providers/moments_provider.dart';
 import 'package:sakuramedia/features/moments/presentation/providers/moments_state.dart';
+import 'package:sakuramedia/features/moment_collections/presentation/widgets/add_to_moment_collection_dialog.dart';
 import 'package:sakuramedia/features/shared/presentation/hooks/paged_scroll_hook.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/theme.dart';
@@ -18,6 +19,7 @@ import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_sc
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_grid.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_image.dart';
@@ -43,6 +45,7 @@ class MomentsContent extends HookConsumerWidget {
     this.onOpenVideo,
     this.onOpenPlayer,
     this.onOpenMovieDetail,
+    this.onOpenCollections,
   });
 
   /// 网格/筛选 Key 前缀：桌面 `moments`，移动 `mobile-moments`。
@@ -74,6 +77,8 @@ class MomentsContent extends HookConsumerWidget {
   /// 影片详情导航回调（壳注入：桌面 push 详情 / 移动 push 移动详情）。
   final void Function(BuildContext context, MomentListItem item)?
   onOpenMovieDetail;
+
+  final VoidCallback? onOpenCollections;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -201,6 +206,15 @@ class MomentsContent extends HookConsumerWidget {
           label: '${paged.total} 个时刻',
         ),
       ],
+      actionSlots: [
+        if (onOpenCollections != null)
+          AppTextButton(
+            key: Key('$keyPrefix-open-collections'),
+            label: '时刻合集',
+            size: AppTextButtonSize.xSmall,
+            onPressed: onOpenCollections,
+          ),
+      ],
     );
   }
 
@@ -268,6 +282,15 @@ class MomentsContent extends HookConsumerWidget {
     return MomentSliver(
       items: paged.items,
       onItemTap: (item) => _openMomentPreview(context, ref, item),
+      onAddToCollection: (item) => _addToCollection(context, item),
+    );
+  }
+
+  Future<void> _addToCollection(BuildContext context, MomentListItem item) {
+    return showAddToMomentCollectionDialog(
+      context,
+      pointId: item.pointId,
+      useBottomDrawer: useMobileFilterDrawer,
     );
   }
 

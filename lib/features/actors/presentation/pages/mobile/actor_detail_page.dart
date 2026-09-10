@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
@@ -38,6 +39,7 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
             isSubscribed,
             isSubscriptionUpdating,
             onSubscriptionTap,
+            onEditTap,
           ) => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -46,6 +48,7 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
                 isSubscribed: isSubscribed,
                 isSubscriptionUpdating: isSubscriptionUpdating,
                 onSubscriptionTap: onSubscriptionTap,
+                onEditTap: onEditTap,
               ),
               ActorProfileDetails(actor: actor, compact: true),
             ],
@@ -95,12 +98,14 @@ class _MobileActorDetailHeader extends StatelessWidget {
     required this.isSubscribed,
     required this.isSubscriptionUpdating,
     required this.onSubscriptionTap,
+    required this.onEditTap,
   });
 
   final ActorListItemDto actor;
   final bool isSubscribed;
   final bool isSubscriptionUpdating;
   final VoidCallback? onSubscriptionTap;
+  final VoidCallback onEditTap;
 
   @override
   Widget build(BuildContext context) {
@@ -131,6 +136,15 @@ class _MobileActorDetailHeader extends StatelessWidget {
           ),
         ),
         SizedBox(width: context.appSpacing.md),
+        AppIconButton(
+          key: const Key('mobile-actor-detail-edit-button'),
+          icon: const Icon(Icons.edit_outlined),
+          size: AppIconButtonSize.mini,
+          tooltip: '编辑女优资料',
+          semanticLabel: '编辑女优资料',
+          onPressed: onEditTap,
+        ),
+        SizedBox(width: context.appSpacing.sm),
         SubscriptionHeartBadge(
           key: Key('mobile-actor-detail-subscription-${actor.id}'),
           loadingKey: Key(

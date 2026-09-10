@@ -380,6 +380,14 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
       factory: $DesktopClipCollectionDetailRouteData._fromState,
     ),
     GoRouteData.$route(
+      path: '/desktop/library/moment-collections',
+      factory: $DesktopMomentCollectionsRouteData._fromState,
+    ),
+    GoRouteData.$route(
+      path: '/desktop/library/moment-collections/:collectionId',
+      factory: $DesktopMomentCollectionDetailRouteData._fromState,
+    ),
+    GoRouteData.$route(
       path: '/desktop/library/actors/:actorId',
       factory: $DesktopActorDetailRouteData._fromState,
     ),
@@ -1116,6 +1124,57 @@ mixin $DesktopClipCollectionDetailRouteData on GoRouteData {
   @override
   String get location => GoRouteData.$location(
     '/desktop/library/clip-collections/${Uri.encodeComponent(_self.collectionId.toString())}',
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $DesktopMomentCollectionsRouteData on GoRouteData {
+  static DesktopMomentCollectionsRouteData _fromState(GoRouterState state) =>
+      const DesktopMomentCollectionsRouteData();
+
+  @override
+  String get location =>
+      GoRouteData.$location('/desktop/library/moment-collections');
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $DesktopMomentCollectionDetailRouteData on GoRouteData {
+  static DesktopMomentCollectionDetailRouteData _fromState(
+    GoRouterState state,
+  ) => DesktopMomentCollectionDetailRouteData(
+    collectionId: int.parse(state.pathParameters['collectionId']!),
+  );
+
+  DesktopMomentCollectionDetailRouteData get _self =>
+      this as DesktopMomentCollectionDetailRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/desktop/library/moment-collections/${Uri.encodeComponent(_self.collectionId.toString())}',
   );
 
   @override

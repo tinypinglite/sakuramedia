@@ -8,6 +8,8 @@ import 'package:sakuramedia/features/actors/data/dto/actor_detail_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_movie_year_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actor_detail_provider.dart';
+import 'package:sakuramedia/features/actors/presentation/providers/actor_mutation_events_provider.dart';
+import 'package:sakuramedia/features/actors/presentation/widgets/actor_profile_editor.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
@@ -47,6 +49,7 @@ typedef ActorDetailHeaderBuilder =
       bool isSubscribed,
       bool isSubscriptionUpdating,
       VoidCallback? onSubscriptionTap,
+      VoidCallback onEditTap,
     );
 
 typedef ActorDetailErrorBuilder =
@@ -295,6 +298,23 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
     showActorSubscriptionFeedback(result);
   }
 
+  Future<void> _openActorEditor(ActorDetailDto actor) async {
+    final updated = await showActorProfileEditor(
+      context,
+      actor: actor,
+      api: ref.read(actorsApiProvider),
+    );
+    if (!mounted || updated == null) {
+      return;
+    }
+    ref
+        .read(actorDetailProvider(widget.actorId).notifier)
+        .replaceActor(updated);
+    ref
+        .read(actorMutationEventsProvider.notifier)
+        .reportUpdated(updated.summary);
+  }
+
   /// 影片区顶栏：与影片 / 女优列表页共用同一条 `AppListHeader`。
   /// 差别只在筛选面板的容器——桌面就地浮层，移动底部抽屉。
   ///
@@ -462,6 +482,7 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
                               : () => _toggleActorSubscription(
                                   isSubscribed: isActorSubscribed,
                                 ),
+                          () => unawaited(_openActorEditor(actor)),
                         ),
                       ),
                     ),

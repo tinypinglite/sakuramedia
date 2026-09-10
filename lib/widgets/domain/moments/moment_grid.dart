@@ -51,12 +51,14 @@ class MomentSliver extends StatelessWidget {
     super.key,
     required this.items,
     required this.onItemTap,
+    this.onAddToCollection,
     this.isLoading = false,
     this.placeholderCount = 8,
   });
 
   final List<MomentListItem> items;
   final ValueChanged<MomentListItem> onItemTap;
+  final ValueChanged<MomentListItem>? onAddToCollection;
   final bool isLoading;
   final int placeholderCount;
 
@@ -72,8 +74,13 @@ class MomentSliver extends StatelessWidget {
       minColumns: 2,
       maxColumns: 4,
       childAspectRatio: 16 / 10,
-      itemBuilder: (context, item, _) =>
-          MomentCard(item: item, onTap: () => onItemTap(item)),
+      itemBuilder: (context, item, _) => MomentCard(
+        item: item,
+        onTap: () => onItemTap(item),
+        onAddToCollection: onAddToCollection == null
+            ? null
+            : () => onAddToCollection!(item),
+      ),
     );
   }
 }
