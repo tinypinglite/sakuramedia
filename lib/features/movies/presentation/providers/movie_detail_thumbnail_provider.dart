@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 
 part 'movie_detail_thumbnail_provider.g.dart';
 
@@ -44,7 +44,8 @@ class MovieDetailThumbnailState {
 
   bool get usesAutoColumns => !hasManualColumnOverride;
 
-  MovieMediaThumbnailDto? get clipStartThumbnail => _thumbnailAt(clipStartIndex);
+  MovieMediaThumbnailDto? get clipStartThumbnail =>
+      _thumbnailAt(clipStartIndex);
   MovieMediaThumbnailDto? get clipEndThumbnail => _thumbnailAt(clipEndIndex);
 
   bool get canCreateClip {
@@ -164,10 +165,7 @@ class MovieDetailThumbnail extends _$MovieDetailThumbnail {
   void setIntervalSeconds(int seconds) {
     if (_isDisposed || state.selectedIntervalSeconds == seconds) return;
     final preservedThumbnailId = _selectedThumbnailId(state);
-    final nextThumbnails = _filterThumbnails(
-      state.allThumbnails,
-      seconds,
-    );
+    final nextThumbnails = _filterThumbnails(state.allThumbnails, seconds);
     state = state.copyWith(
       selectedIntervalSeconds: seconds,
       clipStartIndex: null,
@@ -226,15 +224,14 @@ class MovieDetailThumbnail extends _$MovieDetailThumbnail {
 
     try {
       final all = await ref
-          .read(moviesApiProvider)
+          .read(mediaApiProvider)
           .getMediaThumbnails(mediaId: mediaId!);
       if (_isDisposed) return;
       final filtered = _filterThumbnails(all, state.selectedIntervalSeconds);
       state = state.copyWith(
         allThumbnails: all,
         thumbnails: filtered,
-        activeIndex:
-            _resolveActiveIndex(filtered, preservedThumbnailId: null),
+        activeIndex: _resolveActiveIndex(filtered, preservedThumbnailId: null),
         errorMessage: null,
       );
     } catch (_) {
@@ -292,16 +289,15 @@ class MovieDetailThumbnail extends _$MovieDetailThumbnail {
 
   int _resolveSourceFrameStepSeconds(List<MovieMediaThumbnailDto> thumbnails) {
     if (thumbnails.length < 2) return _defaultIntervalSeconds;
-    final offsets = thumbnails
-        .map((t) => t.offsetSeconds)
-        .toList(growable: false)
-      ..sort();
+    final offsets =
+        thumbnails.map((t) => t.offsetSeconds).toList(growable: false)..sort();
     int? minPositiveDiff;
     for (var i = 1; i < offsets.length; i++) {
       final diff = offsets[i] - offsets[i - 1];
       if (diff <= 0) continue;
-      minPositiveDiff =
-          minPositiveDiff == null ? diff : math.min(minPositiveDiff, diff);
+      minPositiveDiff = minPositiveDiff == null
+          ? diff
+          : math.min(minPositiveDiff, diff);
     }
     return minPositiveDiff ?? _defaultIntervalSeconds;
   }

@@ -221,6 +221,12 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     path: '/media-clips',
     body: const <String, dynamic>{'items': <dynamic>[], 'total': 0},
   );
+  // 时刻首页会隐式加载合集横滑区；默认给空列表，需验证合集展示的用例可显式 enqueue。
+  adapter.setFallbackJson(
+    method: 'GET',
+    path: '/moment-collections',
+    body: const <dynamic>[],
+  );
 
   return TestApiBundle(
     sessionStore: sessionStore,

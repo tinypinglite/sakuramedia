@@ -179,6 +179,7 @@ void main() {
         find.byType(MovieMediaThumbnailGrid),
       );
       expect(grid.thumbnails.map((frame) => frame.mediaId), [2, 3]);
+      expect(grid.onThumbnailMenuRequested, isNotNull);
       Navigator.of(tester.element(find.text('选集 · 2'))).pop();
       await tester.pumpAndSettle();
       await tester

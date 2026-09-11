@@ -1,13 +1,13 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:sakuramedia/core/media/media_playback_progress_controller.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/media/playback_resume_policy.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_player_scope.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_player_state.dart';
@@ -46,11 +46,12 @@ class MoviePlayerDependencies {
 @Riverpod(keepAlive: true)
 MoviePlayerDependencies moviePlayerDependencies(Ref ref) {
   final moviesApi = ref.watch(moviesApiProvider);
+  final mediaApi = ref.watch(mediaApiProvider);
   return MoviePlayerDependencies(
     fetchMovieDetail: moviesApi.getMovieDetail,
-    fetchMediaThumbnails: moviesApi.getMediaThumbnails,
+    fetchMediaThumbnails: mediaApi.getMediaThumbnails,
     fetchMovieSubtitles: moviesApi.getMovieSubtitles,
-    updateMediaProgress: moviesApi.updateMediaProgress,
+    updateMediaProgress: mediaApi.updateMediaProgress,
   );
 }
 
@@ -58,26 +59,34 @@ MoviePlayerDependencies moviePlayerDependencies(Ref ref) {
 @riverpod
 class MoviePlayer extends _$MoviePlayer {
   late MoviePlayerDependencies _dependencies;
+  late final MediaPlaybackProgressController _progressController;
   final ValueNotifier<int?> _activeThumbnailIndexNotifier = ValueNotifier<int?>(
     null,
   );
-  Timer? _progressTimer;
-  bool _isPlaying = false;
   bool _isDisposed = false;
   int _loadVersion = 0;
   int _thumbnailVersion = 0;
   int _subtitleVersion = 0;
-  int _currentPlaybackSeconds = 0;
-  int? _lastReportedPositionSeconds;
 
   @override
   MoviePlayerState build(MoviePlayerScope scope) {
     _dependencies = ref.read(moviePlayerDependenciesProvider);
+    _progressController = MediaPlaybackProgressController(
+      reportProgress: ({required mediaId, required positionSeconds}) async {
+        await _dependencies.updateMediaProgress(
+          mediaId: mediaId,
+          positionSeconds: positionSeconds,
+        );
+      },
+      resolveMediaId: () => state.selectedMedia?.mediaId,
+      shouldDeferReport: () => state.isResumeDecisionPending,
+      reportInterval: scope.progressReportInterval,
+    );
     ref.onDispose(_disposeResources);
     return MoviePlayerState();
   }
 
-  int get currentPlaybackSeconds => _currentPlaybackSeconds;
+  int get currentPlaybackSeconds => _progressController.currentPlaybackSeconds;
   int? get activeThumbnailIndex => _activeThumbnailIndexNotifier.value;
   ValueListenable<int?> get activeThumbnailIndexListenable =>
       _activeThumbnailIndexNotifier;
@@ -86,7 +95,7 @@ class MoviePlayer extends _$MoviePlayer {
     final requestVersion = ++_loadVersion;
     _thumbnailVersion += 1;
     _subtitleVersion += 1;
-    _stopProgressTimer();
+    _progressController.reset();
     state = state.copyWith(
       isLoading: true,
       errorMessage: null,
@@ -123,8 +132,10 @@ class MoviePlayer extends _$MoviePlayer {
           clipEndIndex: null,
         ),
       );
-      _currentPlaybackSeconds = startupPosition?.inSeconds ?? 0;
-      _lastReportedPositionSeconds = startupPosition?.inSeconds;
+      _progressController.reset(
+        currentPlaybackSeconds: startupPosition?.inSeconds ?? 0,
+        lastReportedPositionSeconds: startupPosition?.inSeconds,
+      );
       _setActiveThumbnailIndex(null);
       await Future.wait<void>(<Future<void>>[
         if (selectedMedia != null) loadThumbnails(),
@@ -321,29 +332,23 @@ class MoviePlayer extends _$MoviePlayer {
     if (index < 0 || index >= state.thumbnails.length) {
       return;
     }
-    _currentPlaybackSeconds = state.thumbnails[index].offsetSeconds;
+    _progressController.setCurrentPlaybackSeconds(
+      state.thumbnails[index].offsetSeconds,
+    );
     _setActiveThumbnailIndex(index);
   }
 
   void handlePlaybackPosition(Duration position) {
-    final nextSeconds = position.inSeconds;
-    if (_currentPlaybackSeconds == nextSeconds) {
+    final previousSeconds = _progressController.currentPlaybackSeconds;
+    _progressController.handlePlaybackPosition(position);
+    if (previousSeconds == _progressController.currentPlaybackSeconds) {
       return;
     }
-    _currentPlaybackSeconds = nextSeconds;
     _updateActiveThumbnailIndex();
   }
 
   void handlePlaybackPlayingChanged(bool isPlaying) {
-    if (_isPlaying == isPlaying) {
-      return;
-    }
-    _isPlaying = isPlaying;
-    if (isPlaying) {
-      _startProgressTimer();
-    } else {
-      _stopProgressTimer();
-    }
+    _progressController.handlePlaybackPlayingChanged(isPlaying);
   }
 
   void resolveResumePrompt() {
@@ -356,7 +361,7 @@ class MoviePlayer extends _$MoviePlayer {
     );
   }
 
-  Future<void> flushPlaybackProgress() => _reportProgressIfNeeded();
+  Future<void> flushPlaybackProgress() => _progressController.flush();
 
   MovieMediaItemDto? _resolveInitialMedia(List<MovieMediaItemDto> items) {
     final initialMediaId = scope.initialMediaId;
@@ -425,39 +430,6 @@ class MoviePlayer extends _$MoviePlayer {
     );
   }
 
-  void _startProgressTimer() {
-    _stopProgressTimer();
-    _progressTimer = Timer.periodic(scope.progressReportInterval, (_) {
-      unawaited(_reportProgressIfNeeded());
-    });
-  }
-
-  void _stopProgressTimer() {
-    _progressTimer?.cancel();
-    _progressTimer = null;
-  }
-
-  Future<void> _reportProgressIfNeeded() async {
-    final media = state.selectedMedia;
-    if (media == null || state.isResumeDecisionPending) {
-      return;
-    }
-    final positionSeconds = _currentPlaybackSeconds;
-    if (positionSeconds <= 0 ||
-        _lastReportedPositionSeconds == positionSeconds) {
-      return;
-    }
-    _lastReportedPositionSeconds = positionSeconds;
-    try {
-      await _dependencies.updateMediaProgress(
-        mediaId: media.mediaId,
-        positionSeconds: positionSeconds,
-      );
-    } catch (_) {
-      _lastReportedPositionSeconds = null;
-    }
-  }
-
   void _updateActiveThumbnailIndex() {
     final thumbnails = state.thumbnails;
     if (thumbnails.isEmpty) {
@@ -466,7 +438,8 @@ class MoviePlayer extends _$MoviePlayer {
     }
     var candidate = 0;
     for (var index = 0; index < thumbnails.length; index++) {
-      if (thumbnails[index].offsetSeconds <= _currentPlaybackSeconds) {
+      if (thumbnails[index].offsetSeconds <=
+          _progressController.currentPlaybackSeconds) {
         candidate = index;
         continue;
       }
@@ -507,7 +480,7 @@ class MoviePlayer extends _$MoviePlayer {
     _loadVersion += 1;
     _thumbnailVersion += 1;
     _subtitleVersion += 1;
-    _stopProgressTimer();
+    _progressController.dispose();
     _activeThumbnailIndexNotifier.dispose();
   }
 }

@@ -6,6 +6,10 @@ outline: [2, 4]
 
 这是一份“先把服务跑起来”的快速指引，覆盖 SakuraMedia 的「搜索 → 订阅 → 下载 → 导入」主流程，以及以图搜图功能。
 
+::: warning 部署后的第一件事
+后端镜像不再内置任何插件。部署并登录后，请先安装所需的存储类插件，再按需安装其他插件；全部安装完成后重启 `sakuramedia` 容器，插件才会加载。未安装存储类插件前无法创建媒体库和下载器。
+:::
+
 ## 准备工作
 
 #### 必备
@@ -68,6 +72,7 @@ services:
       POSTGRES_DB: sakuramedia
       POSTGRES_USER: sakuramedia
       POSTGRES_PASSWORD: sakuramedia
+      
     volumes:
       - ./sakuramedia-data/postgres:/var/lib/postgresql/data
     healthcheck:
@@ -96,6 +101,8 @@ services:
       # HTTP_PROXY: "http://192.168.1.1:7890"
       # HTTPS_PROXY: "http://192.168.1.1:7890"
       # NO_PROXY: "localhost,127.0.0.1"
+
+      MALLOC_TRIM_THRESHOLD_: "131072"
     volumes:
       - ./sakuramedia-data:/data
       # 必须替换为宿主机实际的媒体根目录。
@@ -108,7 +115,7 @@ services:
     environment:
       EMBEDDING_BACKEND: "cpu"
       CPU_CONCURRENCY: "1"
-    # 模型和运行时已包含在镜像内；不需要下载模型、挂载模型目录或暴露端口。
+      MALLOC_TRIM_THRESHOLD_: "131072"
 
   qdrant:
     image: qdrant/qdrant:v1.12.4
@@ -152,9 +159,9 @@ http://你的IP:38000
 
 ### 5. 首次登录后的初始化
 
-#### 1. 确认存储 Provider，按需添加插件
+#### 1. 安装存储 Provider 和按需插件
 
-全新部署会自动安装并启用「本地存储与 qBittorrent」和「115 网盘」两个官方存储 Provider，使用它们时可直接创建媒体库。需要排行榜、合集判定或字幕等其他能力时，从[开源插件目录](/guide/plugins)选择插件，再进入「系统设置 → 插件」安装并启用；插件安装后按提示重启容器。
+后端不内置任何插件。请先从[开源插件目录](/guide/plugins)选择并安装所需的存储 Provider，再按需安装排行榜、合集判定、字幕、女优资料补全等插件。进入「系统设置 → 插件」上传并启用插件；全部插件安装完成后，重启 `sakuramedia` 容器。
 
 #### 2. 创建媒体库
 

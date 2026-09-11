@@ -33,6 +33,8 @@ import 'package:sakuramedia/features/external_player/presentation/pages/mobile/e
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_collection_detail_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_collection_play_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_collections_page.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_player_page.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_thumbnail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_player_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/series_movies_page.dart';
@@ -582,6 +584,67 @@ class MobileMoviePlayerRouteData extends _MobileCupertinoRouteData
   }
 }
 
+@TypedGoRoute<MobileVideoPlayerRouteData>(
+  path: '/mobile/library/videos/:videoId/player',
+)
+class MobileVideoPlayerRouteData extends _MobileCupertinoRouteData
+    with $MobileVideoPlayerRouteData {
+  const MobileVideoPlayerRouteData({
+    required this.videoId,
+    this.positionSeconds,
+  });
+
+  final int videoId;
+  final int? positionSeconds;
+
+  @override
+  String get pageName => 'mobile-video-player';
+
+  @override
+  String get location => buildRouteLocation(
+    path: '/mobile/library/videos/$videoId/player',
+    queryParameters: <String, String?>{
+      if (positionSeconds != null) 'positionSeconds': '$positionSeconds',
+    },
+  );
+
+  @override
+  Widget buildCupertino(BuildContext context, GoRouterState state) {
+    return MobileVideoPlayerPage(
+      videoId: videoId,
+      initialPositionSeconds: resolveIntQueryParameter(
+        state,
+        names: const <String>['positionSeconds', 'position-seconds'],
+        fallback: positionSeconds,
+      ),
+    );
+  }
+}
+
+@TypedGoRoute<MobileVideoThumbnailRouteData>(
+  path: '/mobile/library/videos/:videoId/thumbnails',
+)
+class MobileVideoThumbnailRouteData extends _MobileSubpageRouteData
+    with $MobileVideoThumbnailRouteData {
+  const MobileVideoThumbnailRouteData({required this.videoId});
+
+  final int videoId;
+
+  @override
+  String get pageName => 'mobile-video-thumbnails';
+
+  @override
+  String get title => '缩略图';
+
+  @override
+  String get defaultLocation => mobilePornboxPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return MobileVideoThumbnailPage(videoId: videoId);
+  }
+}
+
 @TypedGoRoute<MobileTagsRouteData>(path: mobileTagsPath)
 class MobileTagsRouteData extends _MobileSubpageRouteData
     with $MobileTagsRouteData {
@@ -980,10 +1043,9 @@ class _MobileRootShellScopeState extends ConsumerState<_MobileRootShellScope> {
       currentPath: currentPath,
       navGroups: mobileNavGroups,
       currentIndex: navigationShell.currentIndex,
-      drawer:
-          enableOverviewDrawer
-              ? _MobileOverviewDrawer(hostContext: context)
-              : null,
+      drawer: enableOverviewDrawer
+          ? _MobileOverviewDrawer(hostContext: context)
+          : null,
       drawerEnableOpenDragGesture: enableOverviewDrawerDrag,
       onDestinationSelected: (index) {
         navigationShell.goBranch(
@@ -1154,20 +1216,18 @@ class _MobileOverviewDrawer extends ConsumerWidget {
                             ),
                             icon: Icons.notifications_none_rounded,
                             label: '消息',
-                            trailing:
-                                unreadCount > 0
-                                    ? AppBadge(
-                                      key: const Key(
-                                        'mobile-overview-drawer-notifications-badge',
-                                      ),
-                                      label:
-                                          unreadCount > 99
-                                              ? '99+'
-                                              : '$unreadCount',
-                                      tone: AppBadgeTone.error,
-                                      size: AppBadgeSize.compact,
-                                    )
-                                    : null,
+                            trailing: unreadCount > 0
+                                ? AppBadge(
+                                    key: const Key(
+                                      'mobile-overview-drawer-notifications-badge',
+                                    ),
+                                    label: unreadCount > 99
+                                        ? '99+'
+                                        : '$unreadCount',
+                                    tone: AppBadgeTone.error,
+                                    size: AppBadgeSize.compact,
+                                  )
+                                : null,
                             onTap: () {
                               Navigator.of(context).pop();
                               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1237,10 +1297,7 @@ class _MobileOverviewDrawer extends ConsumerWidget {
                             context: context,
                             item: _systemMaintenanceItem,
                           ),
-                          _buildMenuEntry(
-                            context: context,
-                            item: _pluginsItem,
-                          ),
+                          _buildMenuEntry(context: context, item: _pluginsItem),
                         ],
                       ),
                       SizedBox(height: spacing.md),

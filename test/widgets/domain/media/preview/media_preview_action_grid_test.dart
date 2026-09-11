@@ -155,4 +155,41 @@ void main() {
       expect(tapped, isFalse);
     },
   );
+
+  testWidgets('media preview action grid shows skeletons while loading', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: Scaffold(
+          body: MediaPreviewActionGrid(
+            layout: MediaPreviewActionGridLayout.horizontalScroll,
+            isLoading: true,
+            loadingItemCount: 3,
+            actions: const [
+              MediaPreviewActionItem(
+                label: '影片详情',
+                icon: Icons.info_outline_rounded,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('影片详情'), findsNothing);
+    expect(
+      find.byKey(const Key('media-preview-action-skeleton-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('media-preview-action-skeleton-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('media-preview-action-skeleton-2')),
+      findsOneWidget,
+    );
+  });
 }

@@ -6,6 +6,8 @@ import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/media/data/media_point_list_item_dto.dart';
 import 'package:sakuramedia/features/media/data/media_transfer_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
 
 class MediaApi {
   const MediaApi({required ApiClient apiClient}) : _apiClient = apiClient;
@@ -84,6 +86,26 @@ class MediaApi {
   Future<List<MediaPointDto>> getMediaPoints({required int mediaId}) async {
     final response = await _apiClient.getList('/media/$mediaId/points');
     return response.map(MediaPointDto.fromJson).toList(growable: false);
+  }
+
+  Future<List<MovieMediaThumbnailDto>> getMediaThumbnails({
+    required int mediaId,
+  }) async {
+    final response = await _apiClient.getList('/media/$mediaId/thumbnails');
+    return response
+        .map(MovieMediaThumbnailDto.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<MovieMediaProgressDto> updateMediaProgress({
+    required int mediaId,
+    required int positionSeconds,
+  }) async {
+    final response = await _apiClient.put(
+      '/media/$mediaId/progress',
+      data: <String, dynamic>{'position_seconds': positionSeconds},
+    );
+    return MovieMediaProgressDto.fromJson(response);
   }
 
   Future<PaginatedResponseDto<InvalidMediaDto>> getInvalidMedia({

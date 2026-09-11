@@ -6,9 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
-import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
-import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
-import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/features/clips/presentation/widgets/create_clip_dialog.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
@@ -19,17 +16,15 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_thumbnail_provider.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/layout/keep_alive_page.dart';
-import 'package:sakuramedia/widgets/domain/clips/clip_selection_status_bar.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
-import 'package:sakuramedia/widgets/base/media/images/thumbnail_grid_column_resolver.dart';
+import 'package:sakuramedia/widgets/domain/media/media_thumbnail_action_support.dart';
+import 'package:sakuramedia/widgets/domain/media/media_thumbnail_tab.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_preview_overlay.dart';
-import 'package:sakuramedia/widgets/domain/media/movie_media_thumbnail_grid.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_magnet_search_content.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 
@@ -142,13 +137,21 @@ class _MovieDetailInspectorPanelState
       return;
     }
     final thumbnail = thumbnails[index];
-    final point = await _loadMatchingPoint(thumbnail);
+    final point = await findMediaPointForThumbnail(
+      ref: ref,
+      thumbnail: thumbnail,
+    );
     if (!mounted) {
       return;
     }
     final action = await showAppImageActionMenu(
       context: context,
-      actions: _buildThumbnailActionDescriptors(thumbnail, point),
+      actions: buildMediaThumbnailActionDescriptors(
+        thumbnail: thumbnail,
+        point: point,
+        canSearchSimilar: widget.onSearchSimilar != null,
+        canPlay: widget.onPlay != null,
+      ),
       globalPosition: globalPosition,
     );
     if (!mounted || action == null) {
@@ -180,139 +183,36 @@ class _MovieDetailInspectorPanelState
     _thumbnailController.toggleClipSelectionMode();
   }
 
-  List<AppImageActionDescriptor> _buildThumbnailActionDescriptors(
-    MovieMediaThumbnailDto thumbnail,
-    MediaPointDto? point,
-  ) {
-    final hasMedia = thumbnail.mediaId > 0;
-    return <AppImageActionDescriptor>[
-      AppImageActionDescriptor(
-        type: AppImageActionType.searchSimilar,
-        label: '相似图片',
-        icon: Icons.image_search_outlined,
-        enabled: widget.onSearchSimilar != null,
-      ),
-      const AppImageActionDescriptor(
-        type: AppImageActionType.saveToLocal,
-        label: '保存到本地',
-        icon: Icons.download_outlined,
-      ),
-      AppImageActionDescriptor(
-        type: AppImageActionType.toggleMark,
-        label: point == null ? '添加标记' : '删除标记',
-        icon: point == null
-            ? Icons.bookmark_add_outlined
-            : Icons.bookmark_remove_outlined,
-        enabled: hasMedia,
-      ),
-      AppImageActionDescriptor(
-        type: AppImageActionType.play,
-        label: '播放',
-        icon: Icons.play_circle_outline_rounded,
-        enabled: hasMedia && widget.onPlay != null,
-      ),
-    ];
-  }
-
-  Future<MediaPointDto?> _loadMatchingPoint(
-    MovieMediaThumbnailDto thumbnail,
-  ) async {
-    if (thumbnail.mediaId <= 0 || thumbnail.thumbnailId <= 0) {
-      return null;
-    }
-    final points = await ref
-        .read(mediaApiProvider)
-        .getMediaPoints(mediaId: thumbnail.mediaId);
-    for (final point in points) {
-      if (point.thumbnailId == thumbnail.thumbnailId) {
-        return point;
-      }
-    }
-    return null;
-  }
-
   Future<void> _handleThumbnailAction(
     MovieMediaThumbnailDto thumbnail,
     AppImageActionType action,
     MediaPointDto? point,
   ) async {
-    final imageUrl = thumbnail.image.resolvedUrl;
     final fileName =
         'movie_thumbnail_${widget.movieNumber}_${thumbnail.thumbnailId}.webp';
-
-    switch (action) {
-      case AppImageActionType.searchSimilar:
-        final searchHandler = widget.onSearchSimilar;
-        if (searchHandler == null) {
-          return;
-        }
-        Navigator.of(context).pop();
-        Future<void>.microtask(
-          () => searchHandler(thumbnail, imageUrl, fileName),
-        );
-        break;
-      case AppImageActionType.saveToLocal:
-        final result =
-            await ImageSaveService(
-              fetchBytes: ref.read(apiClientProvider).getBytes,
-            ).saveImageFromUrl(
-              imageUrl: imageUrl,
-              fileName: fileName,
-              dialogTitle: '保存到本地',
-            );
-        if (!mounted) {
-          return;
-        }
-        if (result.status == ImageSaveStatus.success) {
-          showToast(result.message ?? '图片已保存');
-        }
-        if (result.status == ImageSaveStatus.failed) {
-          showToast(result.message ?? '保存失败，请稍后重试');
-        }
-        break;
-      case AppImageActionType.toggleMark:
-        if (thumbnail.mediaId <= 0 || thumbnail.thumbnailId <= 0) {
-          return;
-        }
-        try {
-          if (point == null) {
-            await ref
-                .read(mediaApiProvider)
-                .createMediaPoint(
-                  mediaId: thumbnail.mediaId,
-                  thumbnailId: thumbnail.thumbnailId,
-                );
-            if (mounted) {
-              showToast('已添加标记');
-            }
-          } else {
-            await ref
-                .read(mediaApiProvider)
-                .deleteMediaPoint(
-                  mediaId: thumbnail.mediaId,
-                  pointId: point.pointId,
-                );
-            if (mounted) {
-              showToast('已删除标记');
-            }
-          }
-        } catch (_) {
-          if (mounted) {
-            showToast('更新标记失败');
-          }
-        }
-        break;
-      case AppImageActionType.play:
-        final playHandler = widget.onPlay;
-        if (playHandler == null) {
-          return;
-        }
-        Navigator.of(context).pop();
-        Future<void>.microtask(() => playHandler(thumbnail));
-        break;
-      case AppImageActionType.movieDetail:
-        break;
-    }
+    final imageUrl = thumbnail.image.resolvedUrl;
+    await handleMediaThumbnailAction(
+      context: context,
+      ref: ref,
+      thumbnail: thumbnail,
+      action: action,
+      point: point,
+      fileName: fileName,
+      onSearchSimilar: widget.onSearchSimilar == null
+          ? null
+          : () async {
+              Navigator.of(context).pop();
+              await Future<void>.microtask(
+                () => widget.onSearchSimilar!(thumbnail, imageUrl, fileName),
+              );
+            },
+      onPlay: widget.onPlay == null
+          ? null
+          : () async {
+              Navigator.of(context).pop();
+              await Future<void>.microtask(() => widget.onPlay!(thumbnail));
+            },
+    );
   }
 
   @override
@@ -354,7 +254,7 @@ class _MovieDetailInspectorPanelState
                 ),
               ),
               AppKeepAlive(
-                child: _MovieDetailThumbnailTab(
+                child: MediaThumbnailTab(
                   mediaId: widget.selectedMedia?.mediaId,
                   thumbnailPreviewPresentation:
                       widget.thumbnailPreviewPresentation,
@@ -759,267 +659,6 @@ class _ReviewSkeletonLine extends StatelessWidget {
         color: context.appColors.borderSubtle,
         borderRadius: context.appRadius.smBorder,
       ),
-    );
-  }
-}
-
-class _MovieDetailThumbnailTab extends ConsumerWidget {
-  static const List<int> _intervalOptions = <int>[10, 20, 30, 60];
-  static const List<int> _columnOptions = <int>[2, 3, 4, 5];
-
-  const _MovieDetailThumbnailTab({
-    required this.mediaId,
-    required this.thumbnailPreviewPresentation,
-    this.onThumbnailMenuRequested,
-    this.onCreateClip,
-  });
-
-  final int? mediaId;
-  final MoviePlotPreviewPresentation thumbnailPreviewPresentation;
-  final void Function(int index, Offset globalPosition)?
-  onThumbnailMenuRequested;
-  final VoidCallback? onCreateClip;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(movieDetailThumbnailProvider(mediaId: mediaId));
-    final controller = ref.read(
-      movieDetailThumbnailProvider(mediaId: mediaId).notifier,
-    );
-    final thumbnails = state.thumbnails;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final autoColumns = resolveThumbnailGridColumnCount(
-          width: constraints.maxWidth,
-          spacing: context.appSpacing.sm,
-          targetWidth: context.appComponentTokens.movieThumbnailTargetWidth,
-        );
-        final resolvedColumns = state.usesAutoColumns
-            ? autoColumns
-            : (state.columns ?? autoColumns);
-        if (state.usesAutoColumns && state.columns != autoColumns) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              controller.applyAutoColumns(autoColumns);
-            }
-          });
-        }
-
-        return Padding(
-          padding: EdgeInsets.only(
-            top: context.appSpacing.md,
-            bottom: context.appSpacing.lg,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                key: const Key('movie-detail-thumbnail-toolbar'),
-                spacing: _MovieDetailThumbnailControlGroup.groupSpacing,
-                runSpacing: context.appSpacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _MovieDetailThumbnailIntervalSelector(
-                    keyPrefix: 'movie-detail-thumbnail',
-                    options: _intervalOptions,
-                    selectedIntervalSeconds: state.selectedIntervalSeconds,
-                    onSelect: controller.setIntervalSeconds,
-                  ),
-                  _MovieDetailThumbnailColumnsSelector(
-                    keyPrefix: 'movie-detail-thumbnail',
-                    options: _columnOptions,
-                    selectedColumns: resolvedColumns,
-                    onSelect: controller.setColumns,
-                  ),
-                  if (onCreateClip != null)
-                    AppIconButton(
-                      key: const Key('movie-detail-thumbnail-clip-toggle'),
-                      tooltip: state.clipSelectionMode ? '退出切片圈选' : '圈选切片',
-                      isSelected: state.clipSelectionMode,
-                      size: AppIconButtonSize.mini,
-                      selectedIconColor: Theme.of(context).colorScheme.primary,
-                      onPressed: controller.toggleClipSelectionMode,
-                      icon: const Icon(Icons.content_cut_rounded),
-                    ),
-                ],
-              ),
-              if (state.clipSelectionMode) ...[
-                SizedBox(height: context.appSpacing.sm),
-                ClipSelectionStatusBar(
-                  keyPrefix: 'movie-detail-thumbnail',
-                  startSeconds: state.clipStartThumbnail?.offsetSeconds,
-                  endSeconds: state.clipEndThumbnail?.offsetSeconds,
-                  durationSeconds: state.clipSelectionDurationSeconds,
-                  canCreate: state.canCreateClip,
-                  onCreate: onCreateClip,
-                  onClear: controller.clearClipSelection,
-                ),
-              ],
-              SizedBox(height: context.appSpacing.md),
-              Expanded(
-                child: MovieMediaThumbnailGrid(
-                  thumbnails: thumbnails,
-                  isLoading: state.isLoading,
-                  errorMessage: state.errorMessage,
-                  columns: resolvedColumns,
-                  activeIndex: state.activeIndex,
-                  isScrollLocked: false,
-                  onRetry: controller.retry,
-                  onThumbnailMenuRequested: onThumbnailMenuRequested,
-                  clipStartIndex: state.clipStartIndex,
-                  clipEndIndex: state.clipEndIndex,
-                  onThumbnailTap: (index) {
-                    if (state.clipSelectionMode) {
-                      controller.handleClipSelectionTap(index);
-                      return;
-                    }
-                    controller.selectIndex(index);
-                    showMoviePlotPreviewOverlay(
-                      context: context,
-                      plotImages: thumbnails
-                          .map((item) => item.image)
-                          .toList(growable: false),
-                      initialIndex: index,
-                      onRequestImageMenu: onThumbnailMenuRequested == null
-                          ? null
-                          : (menuContext, previewIndex, globalPosition) async {
-                              onThumbnailMenuRequested!(
-                                previewIndex,
-                                globalPosition,
-                              );
-                            },
-                      presentation: thumbnailPreviewPresentation,
-                      thumbnailStripLayout:
-                          MoviePlotPreviewThumbnailStripLayout.fixed,
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _MovieDetailThumbnailIntervalSelector extends StatelessWidget {
-  const _MovieDetailThumbnailIntervalSelector({
-    required this.keyPrefix,
-    required this.options,
-    required this.selectedIntervalSeconds,
-    required this.onSelect,
-  });
-
-  final String keyPrefix;
-  final List<int> options;
-  final int selectedIntervalSeconds;
-  final ValueChanged<int> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return _MovieDetailThumbnailControlGroup(
-      key: Key('$keyPrefix-interval-group'),
-      iconKey: Key('$keyPrefix-interval-icon'),
-      icon: Icons.schedule_rounded,
-      tooltip: '缩略图时间间隔',
-      children: [
-        for (final seconds in options)
-          AppTextButton(
-            key: Key('$keyPrefix-interval-$seconds'),
-            label: '$seconds',
-            size: AppTextButtonSize.xSmall,
-            isSelected: selectedIntervalSeconds == seconds,
-            onPressed: () => onSelect(seconds),
-          ),
-      ],
-    );
-  }
-}
-
-class _MovieDetailThumbnailColumnsSelector extends StatelessWidget {
-  const _MovieDetailThumbnailColumnsSelector({
-    required this.keyPrefix,
-    required this.options,
-    required this.selectedColumns,
-    required this.onSelect,
-  });
-
-  final String keyPrefix;
-  final List<int> options;
-  final int selectedColumns;
-  final ValueChanged<int> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return _MovieDetailThumbnailControlGroup(
-      key: Key('$keyPrefix-columns-group'),
-      iconKey: Key('$keyPrefix-columns-icon'),
-      icon: Icons.grid_view_rounded,
-      tooltip: '缩略图列数',
-      children: [
-        for (final columns in options)
-          AppTextButton(
-            key: Key('$keyPrefix-columns-$columns'),
-            label: '$columns',
-            size: AppTextButtonSize.xSmall,
-            isSelected: selectedColumns == columns,
-            onPressed: () => onSelect(columns),
-          ),
-      ],
-    );
-  }
-}
-
-class _MovieDetailThumbnailControlGroup extends StatelessWidget {
-  static const double groupSpacing = 12;
-  static const double itemExtent = 28;
-
-  const _MovieDetailThumbnailControlGroup({
-    super.key,
-    required this.icon,
-    required this.iconKey,
-    required this.tooltip,
-    required this.children,
-  });
-
-  final IconData icon;
-  final Key iconKey;
-  final String tooltip;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    return Wrap(
-      spacing: context.appSpacing.xs,
-      runSpacing: context.appSpacing.xs,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Tooltip(
-          message: tooltip,
-          child: SizedBox.square(
-            key: iconKey,
-            dimension: itemExtent,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: colors.surfaceCard,
-                borderRadius: context.appRadius.smBorder,
-                border: Border.all(color: colors.borderStrong),
-              ),
-              child: Center(
-                child: Icon(
-                  icon,
-                  size: context.appComponentTokens.iconSizeXs,
-                  color: context.appTextPalette.primary,
-                ),
-              ),
-            ),
-          ),
-        ),
-        ...children,
-      ],
     );
   }
 }

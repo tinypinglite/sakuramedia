@@ -21,6 +21,7 @@ import 'package:sakuramedia/features/videos/presentation/pages/shared/video_list
 import 'package:sakuramedia/features/videos/presentation/providers/video_summary_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_summary_scope.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_actions_dialog.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
@@ -33,7 +34,6 @@ import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
 
 /// PornBox 主页：顶部「新建合集」，中部「视频合集」横滑区（参照切片页），
 /// 下方「全部视频」网格。导入入口统一收口到「媒体导入」页。
@@ -160,16 +160,25 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
   }
 
   /// 点视频卡：弹桌面版动作弹窗（对齐移动端 sheet）。用户在弹窗里选「播放」
-  /// 再走原来的快速播放弹窗；「加入合集」/「删除」都是本页原有的入口。
+  /// 后进入 PornBox 单视频播放页；「加入合集」/「删除」都是本页原有的入口。
   void _openActionsDialog(VideoItemListItemDto video) {
     showDesktopVideoActionsDialog(
       context,
       video: video,
-      onPlay: () => showVideoQuickPlayDialog(
-        context,
-        videoId: video.id,
-        title: video.preferredTitle,
-      ),
+      onPlay: () async {
+        if (await tryLaunchExternalVideoPlayback(
+          context,
+          videoId: video.id,
+          title: video.preferredTitle,
+        )) {
+          return;
+        }
+        if (!mounted) {
+          return;
+        }
+        context.pushDesktopVideoPlayer(videoId: video.id);
+      },
+      onThumbnails: () => context.pushDesktopVideoThumbnails(videoId: video.id),
       onAddToCollection: () => _addToCollection(video),
       onDelete: () => _deleteVideo(video),
       collections: video.collections,

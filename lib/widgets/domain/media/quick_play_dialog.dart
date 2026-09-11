@@ -14,10 +14,8 @@ import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 「点小图 → 弹小窗立刻播」的桌面轻量播放弹窗。
 ///
-/// 切片、视频列表卡、时刻缩略图都走它——两处原本各有一份逐字相同的
-/// dialog 实现,差别只在如何拿到 stream URL(切片自带 `stream_url`,
-/// 视频列表卡要 `GET /videos/{id}` 取首个可播源)。resolver 参数把
-/// 这个差异吃进来。
+/// 切片、时刻缩略图等轻量入口都走它——不同入口只负责提供各自的播放地址，
+/// 具体播放骨架保持一致。
 ///
 /// 完整观看仍走各自域的独立播放页(自持 seek / subtitle / progress-report)。
 class QuickPlayDialog extends StatefulWidget {
@@ -199,7 +197,7 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
   }
 }
 
-/// 视频列表卡 / 时刻卡「小图快播」入口——先取详情、拿首个可播源。
+/// 时刻卡「小图快播」入口——先取详情、拿首个可播源。
 ///
 /// [subtitle] 是标题下方的可选副内容槽，由调用方组装（例如 videos feature
 /// 页面塞 `VideoCollectionChips` 展示所属合集，并在 chip 点击回调里

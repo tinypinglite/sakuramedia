@@ -459,6 +459,8 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
     switch (action) {
       case MediaPreviewAction.searchSimilar:
         await searchSimilarFromPoint(point);
+      case MediaPreviewAction.addToCollection:
+        return;
       case MediaPreviewAction.play:
         openPlayerForPoint(mediaItem, point);
       case MediaPreviewAction.openMovieDetail:

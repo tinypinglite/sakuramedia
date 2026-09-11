@@ -21,8 +21,9 @@
 - `MediaPreviewDialog` / `showMediaPreviewOverlay`：`lib/widgets/domain/media/preview/media_preview_dialog.dart`，桌面 dialog 和移动 overlay 的统一入口。
 - `PreviewImageStage`：预览主图区域。
 - `MediaCenterPlayButton`：媒体封面中的可点击居中播放入口；只在确实可播放时放入封面 `Stack`。
-- `MediaPreviewActionGrid` / `MediaPreviewActionTile`：预览动作区。
-- 图搜图预览启用 `useInlineNavigation`：封面进入影片详情，演员头像和姓名选择演员后关闭预览，由调用页跳转。底部隐藏重复的播放和详情动作；影片信息尚未加载成功时保留详情入口。中央播放按钮保留，其它预览默认行为不变。
-- `MomentPreviewDialog`：时刻语义的预览入口。
+- `MediaPreviewActionGrid` / `MediaPreviewActionTile`：预览动作区；预览数据请求期间可展示固定数量的动作骨架。影片信息区同时用封面和演员位置骨架占位。
+- 图搜图预览启用 `useInlineNavigation`：封面进入影片详情，演员头像和姓名选择演员后关闭预览，由调用页跳转。底部隐藏重复的播放和详情动作；影片详情请求失败时保留详情入口。中央播放按钮保留，其它预览默认行为不变。
+- `showMomentPreviewOverlay`：`lib/widgets/domain/moments/moment_preview_launcher.dart`，将时刻数据适配到
+  `MediaPreviewDialog`；不另建一套预览 UI。
 
 预览关闭后再执行导航或打开下一级弹层，避免旧弹层的 pop 影响新路由。具体动作由调用页面决定。

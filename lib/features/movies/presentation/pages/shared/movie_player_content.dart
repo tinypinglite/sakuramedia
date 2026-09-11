@@ -5,16 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
-import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
-import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
-import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/features/clips/presentation/widgets/create_clip_dialog.dart';
 import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
-import 'package:sakuramedia/features/media/data/media_point_dto.dart';
-import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_player_layout.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_player_provider.dart';
@@ -23,6 +18,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_player_
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
+import 'package:sakuramedia/widgets/domain/media/media_thumbnail_action_support.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface.dart';
@@ -154,10 +150,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
         content = MoviePlayerSplitLayout(
           controller: _splitController,
           dividerHandleBuffer: widget.dividerHandleBuffer,
-          leftChild: _buildPlayerSurface(
-            context,
-            primaryResolvedUrl,
-          ),
+          leftChild: _buildPlayerSurface(context, primaryResolvedUrl),
           rightChild: playerState.selectedMedia == null
               ? const SizedBox.expand()
               : _buildThumbnailPanel(),
@@ -178,10 +171,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
     );
   }
 
-  Widget _buildPlayerSurface(
-    BuildContext context,
-    String resolvedUrl,
-  ) {
+  Widget _buildPlayerSurface(BuildContext context, String resolvedUrl) {
     if (widget.surfaceBuilder != null) {
       return widget.surfaceBuilder!(
         context,
@@ -321,147 +311,51 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent> {
       return;
     }
     final thumbnail = _playerState.thumbnails[index];
-    final point = await _loadMatchingPoint(thumbnail);
+    final point = await findMediaPointForThumbnail(
+      ref: ref,
+      thumbnail: thumbnail,
+    );
     if (!mounted) {
       return;
     }
     final action = await showAppImageActionMenu(
       context: context,
-      actions: _buildThumbnailActionDescriptors(thumbnail, point),
+      actions: buildMediaThumbnailActionDescriptors(
+        thumbnail: thumbnail,
+        point: point,
+      ),
       globalPosition: globalPosition,
       presentation: AppImageActionMenuPresentation.auto,
     );
     if (!mounted || action == null) {
       return;
     }
-    await _handleThumbnailAction(index, thumbnail, action, point);
-  }
-
-  List<AppImageActionDescriptor> _buildThumbnailActionDescriptors(
-    MovieMediaThumbnailDto thumbnail,
-    MediaPointDto? point,
-  ) {
-    final hasMedia = thumbnail.mediaId > 0;
-    return <AppImageActionDescriptor>[
-      const AppImageActionDescriptor(
-        type: AppImageActionType.searchSimilar,
-        label: '相似图片',
-        icon: Icons.image_search_outlined,
-      ),
-      const AppImageActionDescriptor(
-        type: AppImageActionType.saveToLocal,
-        label: '保存到本地',
-        icon: Icons.download_outlined,
-      ),
-      AppImageActionDescriptor(
-        type: AppImageActionType.toggleMark,
-        label: point == null ? '添加标记' : '删除标记',
-        icon: point == null
-            ? Icons.bookmark_add_outlined
-            : Icons.bookmark_remove_outlined,
-        enabled: hasMedia,
-      ),
-      AppImageActionDescriptor(
-        type: AppImageActionType.play,
-        label: '播放',
-        icon: Icons.play_circle_outline_rounded,
-        enabled: hasMedia,
-      ),
-    ];
-  }
-
-  Future<MediaPointDto?> _loadMatchingPoint(
-    MovieMediaThumbnailDto thumbnail,
-  ) async {
-    if (thumbnail.mediaId <= 0 || thumbnail.thumbnailId <= 0) {
-      return null;
-    }
-    final points = await ref
-        .read(mediaApiProvider)
-        .getMediaPoints(mediaId: thumbnail.mediaId);
-    for (final point in points) {
-      if (point.thumbnailId == thumbnail.thumbnailId) {
-        return point;
-      }
-    }
-    return null;
-  }
-
-  Future<void> _handleThumbnailAction(
-    int index,
-    MovieMediaThumbnailDto thumbnail,
-    AppImageActionType action,
-    MediaPointDto? point,
-  ) async {
-    final imageUrl = thumbnail.image.resolvedUrl;
     final fileName =
         'movie_player_${widget.movieNumber}_${thumbnail.thumbnailId}.webp';
-
-    switch (action) {
-      case AppImageActionType.searchSimilar:
-        await launchImageSearchFromUrl(
-          context,
-          imageUrl: imageUrl,
-          routePath: widget.imageSearchRoutePath,
-          fallbackPath: buildDesktopMoviePlayerRoutePath(
-            widget.movieNumber,
-            mediaId: _playerState.selectedMedia?.mediaId,
-            positionSeconds: _controller.currentPlaybackSeconds,
-          ),
-          fileName: fileName,
-          replaceRouteStack: true,
-        );
-        break;
-      case AppImageActionType.saveToLocal:
-        final result =
-            await ImageSaveService(
-              fetchBytes: ref.read(apiClientProvider).getBytes,
-            ).saveImageFromUrl(
-              imageUrl: imageUrl,
-              fileName: fileName,
-              dialogTitle: '保存到本地',
-            );
-        if (!mounted) {
-          return;
-        }
-        if (result.status == ImageSaveStatus.success) {
-          showToast(result.message ?? '图片已保存');
-        }
-        if (result.status == ImageSaveStatus.failed) {
-          showToast(result.message ?? '保存失败，请稍后重试');
-        }
-        break;
-      case AppImageActionType.toggleMark:
-        if (thumbnail.mediaId <= 0 || thumbnail.thumbnailId <= 0) {
-          return;
-        }
-        try {
-          if (point == null) {
-            await ref
-                .read(mediaApiProvider)
-                .createMediaPoint(
-                  mediaId: thumbnail.mediaId,
-                  thumbnailId: thumbnail.thumbnailId,
-                );
-          } else {
-            await ref
-                .read(mediaApiProvider)
-                .deleteMediaPoint(
-                  mediaId: thumbnail.mediaId,
-                  pointId: point.pointId,
-                );
-          }
-        } catch (_) {
-          showToast('更新标记失败');
-        }
-        break;
-      case AppImageActionType.play:
+    await handleMediaThumbnailAction(
+      context: context,
+      ref: ref,
+      thumbnail: thumbnail,
+      action: action,
+      point: point,
+      fileName: fileName,
+      onSearchSimilar: () => launchImageSearchFromUrl(
+        context,
+        imageUrl: thumbnail.image.resolvedUrl,
+        routePath: widget.imageSearchRoutePath,
+        fallbackPath: buildDesktopMoviePlayerRoutePath(
+          widget.movieNumber,
+          mediaId: _playerState.selectedMedia?.mediaId,
+          positionSeconds: _controller.currentPlaybackSeconds,
+        ),
+        fileName: fileName,
+        replaceRouteStack: true,
+      ),
+      onPlay: () async {
         _controller.handleThumbnailTap(index);
         _surfaceController.seekTo(Duration(seconds: thumbnail.offsetSeconds));
         _surfaceController.play();
-        break;
-      case AppImageActionType.movieDetail:
-        break;
-    }
+      },
+    );
   }
 }

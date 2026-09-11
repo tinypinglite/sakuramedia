@@ -322,6 +322,8 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
     switch (action) {
       case MediaPreviewAction.searchSimilar:
         await _searchSimilarFromMoment(item);
+      case MediaPreviewAction.addToCollection:
+        return;
       case MediaPreviewAction.play:
         _openPlayerForMoment(item);
       case MediaPreviewAction.openMovieDetail:

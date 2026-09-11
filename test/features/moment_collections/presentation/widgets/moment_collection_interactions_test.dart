@@ -11,6 +11,8 @@ import 'package:sakuramedia/features/moment_collections/presentation/pages/share
 import 'package:sakuramedia/features/moment_collections/presentation/providers/moment_collection_mutation_events_provider.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/providers/moment_collections_api_provider.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/widgets/add_to_moment_collection_dialog.dart';
+import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
@@ -75,6 +77,7 @@ void main() {
         overrides: [
           sessionStoreProvider.overrideWithValue(sessionStore),
           momentCollectionsApiProvider.overrideWithValue(api),
+          mediaApiProvider.overrideWithValue(MediaApi(apiClient: apiClient)),
         ],
         retry: (_, _) => null,
         child: OKToast(
@@ -149,7 +152,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(AppDesktopDialog), findsOneWidget);
-    expect(find.text('加入时刻合集'), findsOneWidget);
+    expect(find.text('加入合集'), findsOneWidget);
     expect(find.text('新建时刻合集'), findsNothing);
     final checkbox = tester.widget<Checkbox>(
       find.descendant(
@@ -159,6 +162,56 @@ void main() {
     );
     expect(checkbox.value, isTrue);
     expect(adapter.hitCount('PUT', '/moment-collections/8/points/12'), 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('未标记结果选择合集时才创建时刻并加入', (WidgetTester tester) async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/moment-collections',
+      body: <Map<String, dynamic>>[_collectionJson()],
+    );
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/media/34/points',
+      statusCode: 201,
+      body: _pointJson(),
+    );
+    adapter.enqueueJson(
+      method: 'PUT',
+      path: '/moment-collections/7/points/12',
+      statusCode: 204,
+    );
+
+    await pumpPage(
+      tester,
+      Builder(
+        builder: (context) => Center(
+          child: ElevatedButton(
+            onPressed: () => showAddToMomentCollectionDialog(
+              context,
+              mediaId: 34,
+              thumbnailId: 56,
+              useBottomDrawer: false,
+            ),
+            child: const Text('打开'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('打开'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('add-to-moment-collection-7')),
+        matching: find.byType(Checkbox),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(adapter.hitCount('POST', '/media/34/points'), 1);
+    expect(adapter.hitCount('PUT', '/moment-collections/7/points/12'), 1);
     expect(tester.takeException(), isNull);
   });
 

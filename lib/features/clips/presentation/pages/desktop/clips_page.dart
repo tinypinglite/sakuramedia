@@ -36,7 +36,7 @@ import 'package:sakuramedia/widgets/domain/clips/clip_grid_card.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_player_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 
-/// 切片首页：上方「我的合集」横滑区 + 下方「全部切片」网格（悬停预览、加入合集）。
+/// 切片首页：上方「切片合集」横滑区 + 下方「全部切片」网格（悬停预览、加入合集）。
 ///
 /// 「全部切片」表头右侧的「选择」入口进入多选模式后，网格切换为多选交互；选择栏支持
 /// 「加入合集 / 删除」两个批量动作，逻辑对齐 PornBox 桌面页。
@@ -187,7 +187,7 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
         Row(
           children: [
             Text(
-              '我的合集',
+              '切片合集',
               style: resolveAppTextStyle(
                 context,
                 size: AppTextSize.s14,

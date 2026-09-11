@@ -34,10 +34,9 @@ Future<void> showMoviePlotImageActionMenu({
   final action = await showAppImageActionMenu(
     context: context,
     globalPosition: globalPosition,
-    presentation:
-        isMobileAppPlatform()
-            ? AppImageActionMenuPresentation.bottomDrawer
-            : AppImageActionMenuPresentation.popup,
+    presentation: isMobileAppPlatform()
+        ? AppImageActionMenuPresentation.bottomDrawer
+        : AppImageActionMenuPresentation.popup,
     actions: const <AppImageActionDescriptor>[
       AppImageActionDescriptor(
         type: AppImageActionType.searchSimilar,
@@ -87,7 +86,9 @@ Future<void> showMoviePlotImageActionMenu({
       );
       break;
     case AppImageActionType.toggleMark:
+    case AppImageActionType.addToCollection:
     case AppImageActionType.play:
+    case AppImageActionType.setCover:
     case AppImageActionType.movieDetail:
       break;
   }
@@ -141,14 +142,13 @@ Future<void> _searchSimilar({
   required String movieNumber,
   required bool closeCurrentRouteOnSearch,
 }) async {
-  final launch =
-      () => launchDesktopImageSearchFromUrl(
-        hostContext,
-        imageUrl: imageUrl,
-        fallbackPath: buildDesktopMovieDetailRoutePath(movieNumber),
-        fileName: fileName,
-        currentMovieNumber: movieNumber,
-      );
+  final launch = () => launchDesktopImageSearchFromUrl(
+    hostContext,
+    imageUrl: imageUrl,
+    fallbackPath: buildDesktopMovieDetailRoutePath(movieNumber),
+    fileName: fileName,
+    currentMovieNumber: movieNumber,
+  );
 
   try {
     if (closeCurrentRouteOnSearch) {
@@ -181,17 +181,17 @@ Future<void> _saveToLocal({
   required String imageUrl,
   required String fileName,
 }) async {
-  final result = await ImageSaveService(
-    fetchBytes:
-        ProviderScope.containerOf(
+  final result =
+      await ImageSaveService(
+        fetchBytes: ProviderScope.containerOf(
           context,
           listen: false,
         ).read(apiClientProvider).getBytes,
-  ).saveImageFromUrl(
-    imageUrl: imageUrl,
-    fileName: fileName,
-    dialogTitle: '保存到本地',
-  );
+      ).saveImageFromUrl(
+        imageUrl: imageUrl,
+        fileName: fileName,
+        dialogTitle: '保存到本地',
+      );
   if (!context.mounted) {
     return;
   }

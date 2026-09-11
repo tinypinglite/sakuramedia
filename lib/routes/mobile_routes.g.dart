@@ -26,6 +26,8 @@ List<RouteBase> get $appRoutes => [
   $mobileSettingsUsernameRouteData,
   $mobileSettingsPasswordRouteData,
   $mobileMoviePlayerRouteData,
+  $mobileVideoPlayerRouteData,
+  $mobileVideoThumbnailRouteData,
   $mobileTagsRouteData,
   $mobileTagMoviesRouteData,
   $mobileClipCollectionsRouteData,
@@ -615,6 +617,80 @@ mixin $MobileMoviePlayerRouteData on GoRouteData {
       if (_self.positionSeconds != null)
         'position-seconds': _self.positionSeconds!.toString(),
     },
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileVideoPlayerRouteData => GoRouteData.$route(
+  path: '/mobile/library/videos/:videoId/player',
+  factory: $MobileVideoPlayerRouteData._fromState,
+);
+
+mixin $MobileVideoPlayerRouteData on GoRouteData {
+  static MobileVideoPlayerRouteData _fromState(GoRouterState state) =>
+      MobileVideoPlayerRouteData(
+        videoId: int.parse(state.pathParameters['videoId']!),
+        positionSeconds: _$convertMapValue(
+          'position-seconds',
+          state.uri.queryParameters,
+          int.tryParse,
+        ),
+      );
+
+  MobileVideoPlayerRouteData get _self => this as MobileVideoPlayerRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/mobile/library/videos/${Uri.encodeComponent(_self.videoId.toString())}/player',
+    queryParams: {
+      if (_self.positionSeconds != null)
+        'position-seconds': _self.positionSeconds!.toString(),
+    },
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+RouteBase get $mobileVideoThumbnailRouteData => GoRouteData.$route(
+  path: '/mobile/library/videos/:videoId/thumbnails',
+  factory: $MobileVideoThumbnailRouteData._fromState,
+);
+
+mixin $MobileVideoThumbnailRouteData on GoRouteData {
+  static MobileVideoThumbnailRouteData _fromState(GoRouterState state) =>
+      MobileVideoThumbnailRouteData(
+        videoId: int.parse(state.pathParameters['videoId']!),
+      );
+
+  MobileVideoThumbnailRouteData get _self =>
+      this as MobileVideoThumbnailRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/mobile/library/videos/${Uri.encodeComponent(_self.videoId.toString())}/thumbnails',
   );
 
   @override

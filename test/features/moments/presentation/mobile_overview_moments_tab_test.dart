@@ -58,10 +58,157 @@ void main() {
     expect(find.text('最新'), findsNothing);
     expect(find.byKey(const Key('mobile-moments-page-total')), findsOneWidget);
     expect(find.text('1 个时刻'), findsOneWidget);
+    expect(
+      tester
+          .getCenter(
+            find.byKey(const Key('mobile-moments-enter-selection-button')),
+          )
+          .dy,
+      closeTo(
+        tester
+            .getCenter(find.byKey(const Key('mobile-moments-filter-trigger')))
+            .dy,
+        0.1,
+      ),
+    );
     expect(find.text('ABC-001'), findsOneWidget);
     expect(find.text('02:00'), findsOneWidget);
     expect(_mediaPointsQueryValue(bundle, 0, 'sort'), 'created_at:desc');
     expect(bundle.adapter.hitCount('GET', '/media/456/thumbnails'), 0);
+  });
+
+  testWidgets('mobile moments tab shows collections before all moments', (
+    WidgetTester tester,
+  ) async {
+    _enqueueMomentCollectionsResponse(bundle);
+    _enqueueMomentsPageResponses(bundle, sort: 'created_at:desc');
+
+    await _pumpMomentsApp(tester, bundle: bundle, sessionStore: sessionStore);
+    await tester.pumpAndSettle();
+
+    expect(find.text('时刻合集'), findsOneWidget);
+    expect(find.text('全部时刻'), findsOneWidget);
+    expect(
+      find.byKey(const Key('mobile-moments-create-collection-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('mobile-moments-view-all-collections-button')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('moment-collection-card-7')), findsOneWidget);
+    expect(find.byTooltip('加入合集'), findsNothing);
+    expect(
+      tester.getTopLeft(find.text('时刻合集')).dy,
+      lessThan(tester.getTopLeft(find.text('全部时刻')).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('mobile moments can select and batch add to a collection', (
+    WidgetTester tester,
+  ) async {
+    _enqueueMomentCollectionsResponse(bundle);
+    _enqueueMomentsPageResponses(bundle, sort: 'created_at:desc');
+    _enqueueMomentCollectionsResponse(bundle);
+    _enqueueMomentCollectionsResponse(bundle);
+    bundle.adapter.enqueueJson(
+      method: 'PUT',
+      path: '/moment-collections/7/points/10',
+      statusCode: 204,
+    );
+
+    await _pumpMomentsApp(tester, bundle: bundle, sessionStore: sessionStore);
+    await tester.pumpAndSettle();
+
+    final momentCardTop = tester
+        .getTopLeft(find.byKey(const Key('moment-card-10')))
+        .dy;
+    await tester.tap(
+      find.byKey(const Key('mobile-moments-enter-selection-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.byKey(const Key('moment-card-10'))).dy,
+      closeTo(momentCardTop, 0.1),
+    );
+    await tester.tap(find.byKey(const Key('moment-card-10')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('已选 1 个'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('mobile-moments-batch-add-collection-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('pick-moment-collection-7')));
+    await tester.pumpAndSettle();
+
+    expect(
+      bundle.adapter.hitCount('PUT', '/moment-collections/7/points/10'),
+      1,
+    );
+    expect(find.text('已选 1 个'), findsNothing);
+    await tester.pump(const Duration(seconds: 3));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('mobile moments can batch delete moments', (
+    WidgetTester tester,
+  ) async {
+    _enqueueMomentCollectionsResponse(bundle);
+    _enqueueMomentsPageResponses(bundle, sort: 'created_at:desc');
+    bundle.adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/media/456/points/10',
+      statusCode: 204,
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-points',
+      body: <String, dynamic>{
+        'items': const <dynamic>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/moment-collections',
+      body: const <dynamic>[],
+    );
+
+    await _pumpMomentsApp(tester, bundle: bundle, sessionStore: sessionStore);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('mobile-moments-enter-selection-button')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('moment-card-10')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('mobile-moments-batch-delete-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('mobile-moments-batch-delete-confirm-button')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('只会删除时刻标记'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const Key('mobile-moments-batch-delete-confirm-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(bundle.adapter.hitCount('DELETE', '/media/456/points/10'), 1);
+    expect(find.text('ABC-001'), findsNothing);
+    expect(find.text('0 个时刻'), findsOneWidget);
+    expect(find.text('已选 1 个'), findsNothing);
+    await tester.pump(const Duration(seconds: 3));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('mobile moments tab reloads with earliest sort', (
@@ -98,8 +245,8 @@ void main() {
         routes: [
           GoRoute(
             path: '/',
-            builder:
-                (_, __) => const Scaffold(body: MobileOverviewMomentsTab()),
+            builder: (_, __) =>
+                const Scaffold(body: MobileOverviewMomentsTab()),
           ),
           GoRoute(
             path: '$mobileMoviesPath/:movieNumber',
@@ -146,7 +293,9 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(find.text('影片详情'));
+      await tester.tap(
+        find.byKey(const Key('image-search-result-preview-movie-cover')),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('movie:ABC-001'), findsOneWidget);
@@ -223,9 +372,11 @@ Future<void> _pumpMomentsApp(
       overrides: bundle.riverpodOverrides(),
       child: AppPlatformScope(
         platform: AppPlatform.mobile,
-        child: MaterialApp(
-          theme: sakuraThemeData,
-          home: const Scaffold(body: MobileOverviewMomentsTab()),
+        child: OKToast(
+          child: MaterialApp(
+            theme: sakuraThemeData,
+            home: const Scaffold(body: MobileOverviewMomentsTab()),
+          ),
         ),
       ),
     ),
@@ -286,6 +437,24 @@ void _enqueueMomentsPageResponses(
     },
   );
   expect(sort, isNotEmpty);
+}
+
+void _enqueueMomentCollectionsResponse(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/moment-collections',
+    body: <Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 7,
+        'name': '周末回看',
+        'description': '',
+        'point_count': 3,
+        'cover_image': null,
+        'created_at': '2026-09-10T10:00:00Z',
+        'updated_at': '2026-09-10T11:00:00Z',
+      },
+    ],
+  );
 }
 
 void _enqueuePreviewResponses(TestApiBundle bundle) {

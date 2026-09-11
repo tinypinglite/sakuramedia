@@ -49,7 +49,6 @@ class _ActorProfileEditorState extends State<ActorProfileEditor> {
 
   late ActorDetailDto _currentActor;
   int _gender = 0;
-  bool _removeLocalImage = false;
   bool _isSubmitting = false;
   String? _errorMessage;
 
@@ -325,15 +324,6 @@ class _ActorProfileEditorState extends State<ActorProfileEditor> {
               size: AppButtonSize.small,
               onPressed: _isSubmitting ? null : _pickImage,
             ),
-            if (_currentActor.hasProfileImageOverride) ...[
-              SizedBox(width: spacing.sm),
-              AppButton(
-                key: const Key('actor-profile-image-clear'),
-                label: _removeLocalImage ? '取消恢复' : '恢复来源头像',
-                size: AppButtonSize.small,
-                onPressed: _isSubmitting ? null : _toggleImageReset,
-              ),
-            ],
           ],
         ),
       ],
@@ -353,7 +343,6 @@ class _ActorProfileEditorState extends State<ActorProfileEditor> {
       }
       setState(() {
         _selectedImage = picked;
-        _removeLocalImage = false;
         _errorMessage = null;
       });
     } on FilePickerWithBytesException catch (error) {
@@ -363,20 +352,13 @@ class _ActorProfileEditorState extends State<ActorProfileEditor> {
     }
   }
 
-  void _toggleImageReset() {
-    setState(() {
-      _removeLocalImage = !_removeLocalImage;
-      _selectedImage = null;
-    });
-  }
-
   Future<void> _submit() async {
     if (_isSubmitting || !_formKey.currentState!.validate()) {
       return;
     }
 
     final changes = _collectChanges();
-    if (changes.isEmpty && _selectedImage == null && !_removeLocalImage) {
+    if (changes.isEmpty && _selectedImage == null) {
       Navigator.of(context).pop(_currentActor);
       return;
     }
@@ -401,12 +383,6 @@ class _ActorProfileEditorState extends State<ActorProfileEditor> {
           expectedRevision: current.mutationRevision,
           bytes: _selectedImage!.bytes,
           fileName: _selectedImage!.fileName,
-        );
-      }
-      if (_removeLocalImage) {
-        current = await widget.api.clearActorProfileImage(
-          actorId: current.summary.id,
-          expectedRevision: current.mutationRevision,
         );
       }
       _currentActor = current;

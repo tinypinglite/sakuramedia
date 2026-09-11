@@ -55,7 +55,7 @@ final class VideoMutationEventsProvider
 }
 
 String _$videoMutationEventsHash() =>
-    r'3e04705597113582066f751a2e2a2bbcdde311ca';
+    r'866b01aaef42b36de2173fbed56522cd9aa35f09';
 
 /// videos 域跨页变更广播 —— 与 `clipMutationEventsProvider` 同范式。
 ///

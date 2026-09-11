@@ -13,6 +13,10 @@ class MomentGrid extends StatelessWidget {
     this.placeholderCount = 8,
     this.maxRows,
     this.maxColumns = 4,
+    this.selectionMode = false,
+    this.isSelected,
+    this.onSelectedChanged,
+    this.onLongPress,
   });
 
   final List<MomentListItem> items;
@@ -25,6 +29,10 @@ class MomentGrid extends StatelessWidget {
 
   /// 网格的最大列数；默认保持时刻列表既有的 4 列上限。
   final int maxColumns;
+  final bool selectionMode;
+  final bool Function(MomentListItem item)? isSelected;
+  final ValueChanged<MomentListItem>? onSelectedChanged;
+  final ValueChanged<MomentListItem>? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +47,16 @@ class MomentGrid extends StatelessWidget {
       maxColumns: maxColumns,
       childAspectRatio: 16 / 10,
       maxRows: maxRows,
-      itemBuilder: (context, item, _) =>
-          MomentCard(item: item, onTap: () => onItemTap(item)),
+      itemBuilder: (context, item, _) => MomentCard(
+        item: item,
+        onTap: () => onItemTap(item),
+        selectionMode: selectionMode,
+        isSelected: isSelected?.call(item) ?? false,
+        onSelectedChanged: onSelectedChanged == null
+            ? null
+            : (_) => onSelectedChanged!(item),
+        onLongPress: onLongPress == null ? null : () => onLongPress!(item),
+      ),
     );
   }
 }
@@ -51,16 +67,22 @@ class MomentSliver extends StatelessWidget {
     super.key,
     required this.items,
     required this.onItemTap,
-    this.onAddToCollection,
     this.isLoading = false,
     this.placeholderCount = 8,
+    this.selectionMode = false,
+    this.isSelected,
+    this.onSelectedChanged,
+    this.onLongPress,
   });
 
   final List<MomentListItem> items;
   final ValueChanged<MomentListItem> onItemTap;
-  final ValueChanged<MomentListItem>? onAddToCollection;
   final bool isLoading;
   final int placeholderCount;
+  final bool selectionMode;
+  final bool Function(MomentListItem item)? isSelected;
+  final ValueChanged<MomentListItem>? onSelectedChanged;
+  final ValueChanged<MomentListItem>? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -77,9 +99,12 @@ class MomentSliver extends StatelessWidget {
       itemBuilder: (context, item, _) => MomentCard(
         item: item,
         onTap: () => onItemTap(item),
-        onAddToCollection: onAddToCollection == null
+        selectionMode: selectionMode,
+        isSelected: isSelected?.call(item) ?? false,
+        onSelectedChanged: onSelectedChanged == null
             ? null
-            : () => onAddToCollection!(item),
+            : (_) => onSelectedChanged!(item),
+        onLongPress: onLongPress == null ? null : () => onLongPress!(item),
       ),
     );
   }

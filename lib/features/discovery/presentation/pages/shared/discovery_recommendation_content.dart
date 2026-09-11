@@ -452,6 +452,8 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
     switch (action) {
       case MediaPreviewAction.searchSimilar:
         await _searchSimilarFromMoment(context, item);
+      case MediaPreviewAction.addToCollection:
+        return;
       case MediaPreviewAction.play:
         _openPlayerForMoment(context, item);
       case MediaPreviewAction.openMovieDetail:

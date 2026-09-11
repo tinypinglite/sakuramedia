@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -41,6 +43,12 @@ class VideoCollectionDetail extends _$VideoCollectionDetail
       final change = next.value;
       final current = state.value;
       if (change == null || current == null) return;
+      if (change.kind == VideoMutationKind.coverChanged) {
+        if (current.items.any((item) => item.video.id == change.videoId)) {
+          unawaited(refresh());
+        }
+        return;
+      }
       if (change.kind != VideoMutationKind.deleted &&
           !(change.removedFromCollection &&
               change.collectionId == collectionId)) {
@@ -51,10 +59,12 @@ class VideoCollectionDetail extends _$VideoCollectionDetail
           .toList();
       if (items.length == current.items.length) return;
       _sortRequests.cancel();
-      state = AsyncData(current.copyWith(
-        items: items,
-        filterUpdate: const FilterUpdateState.idle(),
-      ));
+      state = AsyncData(
+        current.copyWith(
+          items: items,
+          filterUpdate: const FilterUpdateState.idle(),
+        ),
+      );
     });
     ref.onDispose(_sortRequests.dispose);
     final api = ref.read(videoCollectionsApiProvider);

@@ -8,6 +8,8 @@ import 'package:sakuramedia/features/moment_collections/data/dto/moment_collecti
 import 'package:sakuramedia/features/moment_collections/presentation/providers/moment_collections_api_provider.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/providers/moment_collection_mutation_events_provider.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/widgets/moment_collection_editor.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
+import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -16,11 +18,15 @@ import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 Future<void> showAddToMomentCollectionDialog(
   BuildContext context, {
-  required int pointId,
+  int? pointId,
+  int? mediaId,
+  int? thumbnailId,
   required bool useBottomDrawer,
 }) {
   final dialog = AddToMomentCollectionDialog(
     pointId: pointId,
+    mediaId: mediaId,
+    thumbnailId: thumbnailId,
     useBottomDrawer: useBottomDrawer,
   );
   return useBottomDrawer
@@ -36,11 +42,20 @@ Future<void> showAddToMomentCollectionDialog(
 class AddToMomentCollectionDialog extends ConsumerStatefulWidget {
   const AddToMomentCollectionDialog({
     super.key,
-    required this.pointId,
+    this.pointId,
+    this.mediaId,
+    this.thumbnailId,
     required this.useBottomDrawer,
-  });
+  }) : assert(
+         pointId != null || (mediaId != null && thumbnailId != null),
+         'pointId or mediaId + thumbnailId is required',
+       );
 
-  final int pointId;
+  /// 已存在的时刻传 pointId；以图搜图尚未添加标记的结果传 mediaId + thumbnailId，
+  /// 在用户第一次选中合集时才创建时刻，取消弹窗不会留下孤立标记。
+  final int? pointId;
+  final int? mediaId;
+  final int? thumbnailId;
   final bool useBottomDrawer;
 
   @override
@@ -56,10 +71,12 @@ class _AddToMomentCollectionDialogState
   bool _isUpdating = false;
   bool _isCreating = false;
   String? _error;
+  int? _pointId;
 
   @override
   void initState() {
     super.initState();
+    _pointId = widget.pointId;
     _load();
   }
 
@@ -68,7 +85,11 @@ class _AddToMomentCollectionDialogState
       final api = ref.read(momentCollectionsApiProvider);
       final results = await Future.wait<Object>([
         api.getCollections(),
-        api.getPointCollections(pointId: widget.pointId),
+        _pointId == null
+            ? Future<List<MomentCollectionSummaryDto>>.value(
+                const <MomentCollectionSummaryDto>[],
+              )
+            : api.getPointCollections(pointId: _pointId!),
       ]);
       if (!mounted) return;
       setState(() {
@@ -120,7 +141,7 @@ class _AddToMomentCollectionDialogState
             children: [
               Expanded(
                 child: Text(
-                  '加入时刻合集',
+                  '加入合集',
                   style: resolveAppTextStyle(
                     context,
                     size: AppTextSize.s16,
@@ -197,24 +218,44 @@ class _AddToMomentCollectionDialogState
         _selectedIds.add(collection.id);
       }
     });
+    MediaPointDto? createdPoint;
     try {
       final api = ref.read(momentCollectionsApiProvider);
       final broadcaster = ref.read(
         momentCollectionMutationEventsProvider.notifier,
       );
+      if (!selected && _pointId == null) {
+        createdPoint = await ref
+            .read(mediaApiProvider)
+            .createMediaPoint(
+              mediaId: widget.mediaId!,
+              thumbnailId: widget.thumbnailId!,
+            );
+        if (!mounted) return;
+        _pointId = createdPoint.pointId;
+      }
+      final pointId = _pointId;
+      if (pointId == null) return;
       if (selected) {
-        await api.removePoint(
-          collectionId: collection.id,
-          pointId: widget.pointId,
-        );
+        await api.removePoint(collectionId: collection.id, pointId: pointId);
       } else {
-        await api.addPoint(
-          collectionId: collection.id,
-          pointId: widget.pointId,
-        );
+        await api.addPoint(collectionId: collection.id, pointId: pointId);
       }
       broadcaster.reportChanged(collection.id);
     } catch (error) {
+      if (createdPoint != null) {
+        try {
+          await ref
+              .read(mediaApiProvider)
+              .deleteMediaPoint(
+                mediaId: widget.mediaId!,
+                pointId: createdPoint.pointId,
+              );
+        } catch (_) {
+          // 加入合集失败时尽量回收刚创建的标记；原始错误仍反馈给用户。
+        }
+        _pointId = null;
+      }
       if (mounted) {
         setState(() {
           if (selected) {

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
@@ -20,6 +21,7 @@ void main() {
   late SessionStore sessionStore;
   late ApiClient apiClient;
   late MoviesApi moviesApi;
+  late MediaApi mediaApi;
   late FakeHttpClientAdapter adapter;
 
   setUp(() async {
@@ -32,6 +34,7 @@ void main() {
     );
     apiClient = ApiClient(sessionStore: sessionStore);
     moviesApi = MoviesApi(apiClient: apiClient);
+    mediaApi = MediaApi(apiClient: apiClient);
     adapter = FakeHttpClientAdapter();
     apiClient.rawDio.httpClientAdapter = adapter;
     apiClient.rawRefreshDio.httpClientAdapter = adapter;
@@ -1549,7 +1552,7 @@ void main() {
       ],
     );
 
-    final thumbnails = await moviesApi.getMediaThumbnails(mediaId: 100);
+    final thumbnails = await mediaApi.getMediaThumbnails(mediaId: 100);
 
     expect(thumbnails, hasLength(1));
     expect(thumbnails.single, isA<MovieMediaThumbnailDto>());
@@ -1585,7 +1588,7 @@ void main() {
         ],
       );
 
-      final thumbnails = await moviesApi.getMediaThumbnails(mediaId: 100);
+      final thumbnails = await mediaApi.getMediaThumbnails(mediaId: 100);
 
       expect(thumbnails.single.width, isNull);
       expect(thumbnails.single.height, isNull);
@@ -1602,7 +1605,7 @@ void main() {
         body: const <Map<String, dynamic>>[],
       );
 
-      final thumbnails = await moviesApi.getMediaThumbnails(mediaId: 100);
+      final thumbnails = await mediaApi.getMediaThumbnails(mediaId: 100);
 
       expect(thumbnails, isEmpty);
     },
@@ -1622,7 +1625,7 @@ void main() {
     );
 
     expect(
-      () => moviesApi.getMediaThumbnails(mediaId: 404),
+      () => mediaApi.getMediaThumbnails(mediaId: 404),
       throwsA(
         isA<ApiException>()
             .having((ApiException error) => error.statusCode, 'statusCode', 404)
@@ -1649,7 +1652,7 @@ void main() {
         },
       );
 
-      final progress = await moviesApi.updateMediaProgress(
+      final progress = await mediaApi.updateMediaProgress(
         mediaId: 100,
         positionSeconds: 615,
       );
@@ -1678,7 +1681,7 @@ void main() {
     );
 
     expect(
-      () => moviesApi.updateMediaProgress(mediaId: 100, positionSeconds: 615),
+      () => mediaApi.updateMediaProgress(mediaId: 100, positionSeconds: 615),
       throwsA(
         isA<ApiException>().having(
           (ApiException error) => error.error?.code,

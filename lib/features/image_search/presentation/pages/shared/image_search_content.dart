@@ -34,6 +34,7 @@ import 'package:sakuramedia/features/image_search/presentation/widgets/actor_sel
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_filter_panel.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_result_grid.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_result_preview_dialog.dart';
+import 'package:sakuramedia/features/moment_collections/presentation/widgets/add_to_moment_collection_dialog.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_thumbnail.dart';
@@ -893,11 +894,13 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
       drawerKey: presentation == MediaPreviewPresentation.bottomDrawer
           ? const Key('image-search-result-preview-bottom-sheet')
           : null,
-      builder: (_) => ImageSearchResultPreviewDialog(
-        item: item,
-        presentation: presentation,
-        onActorSelected: (actorId) => selectedActorId = actorId,
-      ),
+      builder: (_) {
+        return ImageSearchResultPreviewDialog(
+          item: item,
+          presentation: presentation,
+          onActorSelected: (actorId) => selectedActorId = actorId,
+        );
+      },
     );
     if (!mounted) {
       return;
@@ -922,6 +925,8 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
         _openPlayerForResult(item);
       case MediaPreviewAction.openMovieDetail:
         _openMovieDetailForResult(item);
+      case MediaPreviewAction.addToCollection:
+        await _addResultToCollection(item);
     }
   }
 
@@ -1033,6 +1038,12 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
         enabled: hasMedia,
       ),
       AppImageActionDescriptor(
+        type: AppImageActionType.addToCollection,
+        label: '加入合集',
+        icon: Icons.collections_bookmark_outlined,
+        enabled: hasMedia && item.thumbnailId > 0,
+      ),
+      AppImageActionDescriptor(
         type: AppImageActionType.play,
         label: '播放',
         icon: Icons.play_circle_outline_rounded,
@@ -1061,8 +1072,13 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
       case AppImageActionType.toggleMark:
         await _toggleResultPoint(item, point);
         break;
+      case AppImageActionType.addToCollection:
+        await _addResultToCollection(item, point: point);
+        break;
       case AppImageActionType.play:
         _openPlayerForResult(item);
+        break;
+      case AppImageActionType.setCover:
         break;
       case AppImageActionType.movieDetail:
         _openMovieDetailForResult(item);
@@ -1138,5 +1154,25 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
         showToast('更新标记失败');
       }
     }
+  }
+
+  Future<void> _addResultToCollection(
+    ImageSearchResultItemDto item, {
+    MediaPointDto? point,
+  }) async {
+    if (item.mediaId <= 0 || item.thumbnailId <= 0) {
+      return;
+    }
+    final existingPoint = point ?? await _loadMatchingPoint(item);
+    if (!mounted) {
+      return;
+    }
+    await showAddToMomentCollectionDialog(
+      context,
+      pointId: existingPoint?.pointId,
+      mediaId: existingPoint == null ? item.mediaId : null,
+      thumbnailId: existingPoint == null ? item.thumbnailId : null,
+      useBottomDrawer: AppPlatformScope.maybeOf(context) == AppPlatform.mobile,
+    );
   }
 }

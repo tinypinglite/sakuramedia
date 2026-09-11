@@ -718,8 +718,12 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
       case AppImageActionType.toggleMark:
         await toggleMediaPoint(mediaItem, point, currentPoint);
         break;
+      case AppImageActionType.addToCollection:
+        break;
       case AppImageActionType.play:
         openPlayerForPoint(mediaItem, point);
+        break;
+      case AppImageActionType.setCover:
         break;
       case AppImageActionType.movieDetail:
         break;

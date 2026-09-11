@@ -23,6 +23,7 @@ Future<void> showDesktopVideoActionsDialog(
   BuildContext context, {
   required VideoItemListItemDto video,
   required VoidCallback onPlay,
+  VoidCallback? onThumbnails,
   VoidCallback? onAddToCollection,
   VoidCallback? onDelete,
   VoidCallback? onRemoveFromCollection,
@@ -38,6 +39,7 @@ Future<void> showDesktopVideoActionsDialog(
         child: DesktopVideoActionsDialogBody(
           video: video,
           onPlay: onPlay,
+          onThumbnails: onThumbnails,
           onAddToCollection: onAddToCollection,
           onDelete: onDelete,
           onRemoveFromCollection: onRemoveFromCollection,
@@ -54,6 +56,7 @@ class DesktopVideoActionsDialogBody extends StatelessWidget {
     super.key,
     required this.video,
     required this.onPlay,
+    this.onThumbnails,
     this.onAddToCollection,
     this.onDelete,
     this.onRemoveFromCollection,
@@ -63,6 +66,7 @@ class DesktopVideoActionsDialogBody extends StatelessWidget {
 
   final VideoItemListItemDto video;
   final VoidCallback onPlay;
+  final VoidCallback? onThumbnails;
   final VoidCallback? onAddToCollection;
   final VoidCallback? onDelete;
   final VoidCallback? onRemoveFromCollection;
@@ -84,6 +88,13 @@ class DesktopVideoActionsDialogBody extends StatelessWidget {
         icon: Icons.play_circle_outline_rounded,
         onTap: video.canPlay ? () => _run(context, onPlay) : null,
       ),
+      if (onThumbnails != null)
+        MediaPreviewActionItem(
+          key: const Key('desktop-video-action-thumbnails'),
+          label: '缩略图',
+          icon: Icons.photo_library_outlined,
+          onTap: () => _run(context, onThumbnails!),
+        ),
       if (onAddToCollection != null)
         MediaPreviewActionItem(
           key: const Key('desktop-video-action-add-to-collection'),
@@ -131,10 +142,9 @@ class DesktopVideoActionsDialogBody extends StatelessWidget {
               children: [
                 ColoredBox(
                   color: colors.surfaceMuted,
-                  child:
-                      coverUrl != null && coverUrl.isNotEmpty
-                          ? MaskedImage(url: coverUrl, fit: BoxFit.contain)
-                          : null,
+                  child: coverUrl != null && coverUrl.isNotEmpty
+                      ? MaskedImage(url: coverUrl, fit: BoxFit.contain)
+                      : null,
                 ),
                 if (video.durationSeconds > 0)
                   Positioned(
@@ -143,9 +153,7 @@ class DesktopVideoActionsDialogBody extends StatelessWidget {
                     child: MediaDurationBadge(seconds: video.durationSeconds),
                   ),
                 if (video.canPlay)
-                  MediaCenterPlayButton(
-                    onTap: () => _run(context, onPlay),
-                  ),
+                  MediaCenterPlayButton(onTap: () => _run(context, onPlay)),
               ],
             ),
           ),

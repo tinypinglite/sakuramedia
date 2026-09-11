@@ -124,6 +124,15 @@ DesktopTopBarConfig resolveDesktopTopBarConfig({
   }
 
   if (currentPath.startsWith('$desktopVideosPath/')) {
+    if (currentPath.endsWith('/thumbnails')) {
+      return DesktopTopBarConfig(
+        title: '缩略图',
+        fallbackPath:
+            _fallbackPathFromExtra(routeExtra, currentPath: currentPath) ??
+            AppBackDestination.defaultLocationForPath(currentPath),
+        isBackEnabled: true,
+      );
+    }
     return DesktopTopBarConfig(
       title: '视频详情',
       fallbackPath:

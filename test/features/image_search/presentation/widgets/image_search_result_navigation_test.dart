@@ -1,9 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_result_item_dto.dart';
-import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_result_preview_dialog.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
@@ -19,10 +22,44 @@ const resultItem = ImageSearchResultItemDto(
   image: MovieImageDto(id: 1, origin: '', small: '', medium: '', large: ''),
 );
 
+ResponseBody jsonResponse(Object body) {
+  return ResponseBody.fromString(
+    jsonEncode(body),
+    200,
+    headers: const <String, List<String>>{
+      Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+    },
+  );
+}
+
+class PendingPreviewRequests {
+  final Completer<ResponseBody> movieDetail = Completer<ResponseBody>();
+  final Completer<ResponseBody> mediaPoints = Completer<ResponseBody>();
+
+  void completeMovieDetail() {
+    movieDetail.complete(
+      jsonResponse({
+        'movie_number': 'ABC-001',
+        'title': '测试影片',
+        'actors': [
+          {'id': 7, 'name': '测试演员', 'gender': 1},
+          {'id': 0, 'name': '未知演员'},
+        ],
+      }),
+    );
+  }
+
+  void completeMediaPoints() {
+    mediaPoints.complete(ResponseBody.fromString('[]', 200));
+  }
+}
+
 Future<void> pumpResultPreview(
   WidgetTester tester, {
   required MediaPreviewPresentation presentation,
   bool failDetail = false,
+  PendingPreviewRequests? pendingRequests,
+  bool settle = true,
   ValueChanged<int>? onActorSelected,
   ValueChanged<MediaPreviewAction?>? onClosed,
 }) async {
@@ -30,20 +67,37 @@ Future<void> pumpResultPreview(
   await session.saveBaseUrl('https://api.example.com');
   final bundle = await createTestApiBundle(session);
   addTearDown(bundle.dispose);
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/movies/ABC-001',
-    statusCode: failDetail ? 500 : 200,
-    body: {
-      'movie_number': 'ABC-001',
-      'title': '测试影片',
-      'actors': [
-        {'id': 7, 'name': '测试演员', 'gender': 1},
-        {'id': 0, 'name': '未知演员'},
-      ],
-    },
-  );
-  bundle.adapter.enqueueJson(method: 'GET', path: '/media/2/points', body: []);
+  if (pendingRequests == null) {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      statusCode: failDetail ? 500 : 200,
+      body: {
+        'movie_number': 'ABC-001',
+        'title': '测试影片',
+        'actors': [
+          {'id': 7, 'name': '测试演员', 'gender': 1},
+          {'id': 0, 'name': '未知演员'},
+        ],
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/2/points',
+      body: [],
+    );
+  } else {
+    bundle.adapter.enqueueResponder(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      responder: (_, __) => pendingRequests.movieDetail.future,
+    );
+    bundle.adapter.enqueueResponder(
+      method: 'GET',
+      path: '/media/2/points',
+      responder: (_, __) => pendingRequests.mediaPoints.future,
+    );
+  }
   await tester.pumpWidget(
     ProviderScope(
       overrides: bundle.riverpodOverrides(),
@@ -57,9 +111,23 @@ Future<void> pumpResultPreview(
                 final action = await showMediaPreviewOverlay(
                   context: context,
                   presentation: presentation,
-                  builder: (_) => ImageSearchResultPreviewDialog(
-                    item: resultItem,
+                  builder: (_) => MediaPreviewDialog(
+                    item: MediaPreviewItem(
+                      imageUrl: resultItem.image.resolvedUrl,
+                      fileName: 'image-search.webp',
+                      mediaId: resultItem.mediaId,
+                      movieNumber: resultItem.movieNumber,
+                      thumbnailId: resultItem.thumbnailId,
+                      offsetSeconds: resultItem.offsetSeconds,
+                      scoreText: '93%',
+                    ),
+                    availableActions: {
+                      MediaPreviewAction.searchSimilar,
+                      MediaPreviewAction.play,
+                      MediaPreviewAction.openMovieDetail,
+                    },
                     presentation: presentation,
+                    useInlineNavigation: true,
                     onActorSelected: onActorSelected,
                   ),
                 );
@@ -72,7 +140,11 @@ Future<void> pumpResultPreview(
     ),
   );
   await tester.tap(find.text('open'));
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump();
+  }
 }
 
 void main() {
@@ -100,7 +172,7 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(selected, MediaPreviewAction.openMovieDetail);
-        expect(find.byType(ImageSearchResultPreviewDialog), findsNothing);
+        expect(find.byType(MediaPreviewDialog), findsNothing);
         expect(tester.takeException(), isNull);
       },
     );
@@ -123,7 +195,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(selected, 7);
         expect(closed, isTrue);
-        expect(find.byType(ImageSearchResultPreviewDialog), findsNothing);
+        expect(find.byType(MediaPreviewDialog), findsNothing);
       },
     );
     testWidgets('$presentation central play still returns play action', (
@@ -139,6 +211,79 @@ void main() {
       await tester.pumpAndSettle();
       expect(selected, MediaPreviewAction.play);
     });
+    testWidgets(
+      '$presentation keeps actions as skeletons until all data loads',
+      (tester) async {
+        final pendingRequests = PendingPreviewRequests();
+        await pumpResultPreview(
+          tester,
+          presentation: presentation,
+          pendingRequests: pendingRequests,
+          settle: false,
+        );
+
+        expect(find.text('影片详情'), findsNothing);
+        expect(
+          find.byKey(const Key('media-preview-action-skeleton-0')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('media-preview-action-skeleton-1')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('media-preview-action-skeleton-2')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const Key('image-search-result-preview-movie-info-skeleton'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const Key('image-search-result-preview-movie-cover-skeleton'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const Key('image-search-result-preview-actor-skeleton-0'),
+          ),
+          findsOneWidget,
+        );
+
+        pendingRequests.completeMovieDetail();
+        await tester.pump();
+        expect(
+          find.byKey(const Key('media-preview-action-skeleton-0')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const Key('image-search-result-preview-movie-info-skeleton'),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('相似图片'), findsNothing);
+
+        pendingRequests.completeMediaPoints();
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('media-preview-action-skeleton-0')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(
+            const Key('image-search-result-preview-movie-info-skeleton'),
+          ),
+          findsNothing,
+        );
+        expect(find.text('相似图片'), findsOneWidget);
+        expect(find.text('影片详情'), findsNothing);
+      },
+    );
     testWidgets('$presentation detail failure retains detail entry', (
       tester,
     ) async {

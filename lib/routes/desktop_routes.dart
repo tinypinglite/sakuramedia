@@ -15,6 +15,8 @@ import 'package:sakuramedia/features/movies/presentation/pages/desktop/series_mo
 import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_collections_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_collection_detail_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_collection_play_page.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_player_page.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_thumbnail_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/pages/desktop/playlist_detail_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/desktop/clip_collections_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/desktop/clip_collection_detail_page.dart';
@@ -99,6 +101,46 @@ class DesktopMoviePlayerRouteData extends _DesktopNoTransitionRouteData
         names: const <String>['positionSeconds', 'position-seconds'],
         fallback: positionSeconds,
       ),
+    );
+  }
+}
+
+@TypedGoRoute<DesktopVideoPlayerRouteData>(
+  path: '/desktop/library/videos/:videoId/player',
+)
+class DesktopVideoPlayerRouteData extends _DesktopNoTransitionRouteData
+    with $DesktopVideoPlayerRouteData {
+  const DesktopVideoPlayerRouteData({
+    required this.videoId,
+    this.positionSeconds,
+  });
+
+  final int videoId;
+  final int? positionSeconds;
+
+  @override
+  String get pageName => 'desktop-video-player';
+
+  @override
+  String get location => buildRouteLocation(
+    path: '/desktop/library/videos/$videoId/player',
+    queryParameters: <String, String?>{
+      if (positionSeconds != null) 'positionSeconds': '$positionSeconds',
+    },
+  );
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return DesktopVideoPlayerPage(
+      videoId: videoId,
+      initialPositionSeconds: resolveIntQueryParameter(
+        state,
+        names: const <String>['positionSeconds', 'position-seconds'],
+        fallback: positionSeconds,
+      ),
+      fallbackPath:
+          desktopNavigationFallbackPathFromExtra(state.extra) ??
+          desktopVideosPath,
     );
   }
 }
@@ -328,6 +370,9 @@ class DesktopVideoCollectionPlayRouteData extends _DesktopNoTransitionRouteData
     TypedGoRoute<DesktopTagMoviesRouteData>(path: '$desktopTagsPath/:tagId'),
     TypedGoRoute<DesktopVideoCollectionDetailRouteData>(
       path: '$desktopVideoCollectionsPath/:collectionId',
+    ),
+    TypedGoRoute<DesktopVideoThumbnailRouteData>(
+      path: '$desktopVideosPath/:videoId/thumbnails',
     ),
   ],
 )
@@ -861,6 +906,21 @@ class DesktopVideoCollectionDetailRouteData extends _DesktopShellPageRouteData
   @override
   Widget buildContent(BuildContext context, GoRouterState state) {
     return DesktopVideoCollectionDetailPage(collectionId: collectionId);
+  }
+}
+
+class DesktopVideoThumbnailRouteData extends _DesktopShellPageRouteData
+    with $DesktopVideoThumbnailRouteData {
+  const DesktopVideoThumbnailRouteData({required this.videoId});
+
+  final int videoId;
+
+  @override
+  String get pageName => 'desktop-video-thumbnails';
+
+  @override
+  Widget buildContent(BuildContext context, GoRouterState state) {
+    return DesktopVideoThumbnailPage(videoId: videoId);
   }
 }
 

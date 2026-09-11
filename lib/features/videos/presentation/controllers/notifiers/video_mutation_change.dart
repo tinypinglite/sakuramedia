@@ -7,6 +7,9 @@ enum VideoMutationKind {
 
   /// 视频的合集归属发生变化（加入 / 移出合集，影响合集封面与计数）。
   collectionMembershipChanged,
+
+  /// 视频封面发生变化。
+  coverChanged,
 }
 
 /// 一次视频变更事件的载荷。

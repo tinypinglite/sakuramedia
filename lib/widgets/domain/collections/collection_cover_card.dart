@@ -9,7 +9,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_card_context_menu.dart';
 /// `VideoSummaryCard` 等的右键菜单形式对齐），封面右上角不再渲染常显
 /// 的「···」按钮。
 ///
-/// 切片「我的合集」与视频合集结构完全一致，仅在 DTO、计数字段、占位图标、
+/// 切片合集与视频合集结构完全一致，仅在 DTO、计数字段、占位图标、
 /// 封面 `fit` 与 key 前缀上有差异，故由 [CollectionCard] 的 `.clip` / `.video`
 /// 命名构造把各自的差异以参数喂入，避免两份近乎相同的卡片实现重复。
 class CollectionCoverCard extends StatelessWidget {

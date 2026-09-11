@@ -38,7 +38,7 @@ import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.
 import 'package:sakuramedia/widgets/domain/clips/clip_cover_card.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 
-/// 概览页「切片」tab：上方「我的合集」横滑区 + 下方「全部切片」网格。
+/// 概览页「切片」tab：上方「切片合集」横滑区 + 下方「全部切片」网格。
 ///
 /// 数据层与桌面 `DesktopClipsPage` 完全一致（复用同一组 provider 与 mutation
 /// 广播），仅在布局上改为移动端竖屏网格 + 底部抽屉形态的编辑交互；长按切片卡进入
@@ -188,7 +188,7 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
         Row(
           children: [
             Text(
-              '我的合集',
+              '切片合集',
               style: resolveAppTextStyle(
                 context,
                 size: AppTextSize.s14,

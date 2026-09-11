@@ -47,4 +47,14 @@ class VideoMutationEvents extends _$VideoMutationEvents {
       ),
     );
   }
+
+  void reportCoverChanged({required int videoId}) {
+    if (_controller.isClosed) return;
+    _controller.add(
+      VideoMutationChange(
+        kind: VideoMutationKind.coverChanged,
+        videoId: videoId,
+      ),
+    );
+  }
 }

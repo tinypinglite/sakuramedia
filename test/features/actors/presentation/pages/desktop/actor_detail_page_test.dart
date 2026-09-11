@@ -111,7 +111,10 @@ void main() {
     bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/actors/1',
-      body: _actorJson(),
+      body: <String, dynamic>{
+        ..._actorJson(),
+        'has_profile_image_override': true,
+      },
     );
     bundle.adapter.enqueueJson(
       method: 'GET',
@@ -130,13 +133,13 @@ void main() {
     expect(find.text('填写一个别名，会优先展示别名。'), findsOneWidget);
     expect(find.text('基础资料'), findsOneWidget);
     expect(find.byKey(const Key('actor-profile-image-pick')), findsOneWidget);
+    expect(find.byKey(const Key('actor-profile-image-clear')), findsNothing);
     expect(
       tester.getTopLeft(find.byKey(const Key('actor-profile-image-pick'))).dy,
       lessThan(
         tester.getTopLeft(find.byKey(const Key('actor-display-name-field'))).dy,
       ),
     );
-
     final submit = find.byKey(const Key('actor-profile-editor-submit'));
     final initialSubmitY = tester.getTopLeft(submit).dy;
     expect(tester.getBottomRight(submit).dy, lessThanOrEqualTo(760));

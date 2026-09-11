@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
-import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_player_page.dart';
 import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/shared/video_collection_detail_content.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
@@ -54,19 +53,17 @@ class MobileVideoCollectionDetailPage extends StatelessWidget {
         showMobileVideoActionsSheet(
           context,
           video: video,
-          onPlay:
-              () => actions.playSingle(
-                context,
-                video.id,
-                video.preferredTitle,
-              ),
+          onPlay: () =>
+              actions.playSingle(context, video.id, video.preferredTitle),
+          onThumbnails: () => MobileVideoThumbnailRouteData(
+            videoId: video.id,
+          ).push<void>(context),
           onRemoveFromCollection: () => actions.remove(item.itemId),
           onDelete: () => actions.delete(item.itemId),
           collections: otherCollections,
-          onCollectionTap:
-              (ref) => MobileVideoCollectionDetailRouteData(
-                collectionId: ref.id,
-              ).push(context),
+          onCollectionTap: (ref) => MobileVideoCollectionDetailRouteData(
+            collectionId: ref.id,
+          ).push(context),
         );
       },
       playSingle: (context, videoId, title) async {
@@ -80,29 +77,23 @@ class MobileVideoCollectionDetailPage extends StatelessWidget {
         if (!context.mounted) {
           return;
         }
-        // 用根 Navigator 推全屏页，覆盖底部导航。
-        Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute<void>(
-            builder:
-                (_) => MobileVideoPlayerPage(videoId: videoId, title: title),
-          ),
-        );
+        await MobileVideoPlayerRouteData(videoId: videoId).push<void>(context);
       },
       onOpenCollection: (context, targetId) {
         MobileVideoCollectionDetailRouteData(
           collectionId: targetId,
         ).push(context);
       },
-      confirm: (
-        context, {
-        required title,
-        required message,
-        required confirmLabel,
-        required confirmKey,
-        drawerKey,
-        onConfirm,
-      }) =>
-          showAppConfirmDialog(
+      confirm:
+          (
+            context, {
+            required title,
+            required message,
+            required confirmLabel,
+            required confirmKey,
+            drawerKey,
+            onConfirm,
+          }) => showAppConfirmDialog(
             context,
             title: title,
             message: message,

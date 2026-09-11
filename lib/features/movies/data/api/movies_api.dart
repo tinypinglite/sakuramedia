@@ -4,7 +4,6 @@ import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
-import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_review_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/series_import/movie_search_stream_update.dart';
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
@@ -195,26 +194,6 @@ class MoviesApi {
   }) async {
     final response = await _apiClient.get('/movies/$movieNumber/subtitles');
     return MovieSubtitleListDto.fromJson(response);
-  }
-
-  Future<List<MovieMediaThumbnailDto>> getMediaThumbnails({
-    required int mediaId,
-  }) async {
-    final response = await _apiClient.getList('/media/$mediaId/thumbnails');
-    return response
-        .map(MovieMediaThumbnailDto.fromJson)
-        .toList(growable: false);
-  }
-
-  Future<MovieMediaProgressDto> updateMediaProgress({
-    required int mediaId,
-    required int positionSeconds,
-  }) async {
-    final response = await _apiClient.put(
-      '/media/$mediaId/progress',
-      data: <String, dynamic>{'position_seconds': positionSeconds},
-    );
-    return MovieMediaProgressDto.fromJson(response);
   }
 
   Future<ParsedMovieNumberDto> parseMovieNumber({required String query}) async {

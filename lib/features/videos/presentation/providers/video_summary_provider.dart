@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
@@ -66,6 +68,8 @@ class VideoSummary extends _$VideoSummary
       final change = next.value;
       if (change?.kind == VideoMutationKind.deleted) {
         _removeDeletedVideo(change!.videoId);
+      } else if (change?.kind == VideoMutationKind.coverChanged) {
+        unawaited(refresh());
       }
     });
     final paged = await loadInitialPage();

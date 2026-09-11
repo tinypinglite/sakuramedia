@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_review_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_magnet_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_review_provider.dart';
@@ -24,6 +25,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
+import 'package:sakuramedia/widgets/domain/media/media_thumbnail_action_support.dart';
 
 typedef _FetchMovieReviews =
     Future<List<MovieReviewDto>> Function({
@@ -720,6 +722,31 @@ void main() {
       );
     },
   );
+
+  test('thumbnail action descriptors disable unavailable optional actions', () {
+    const thumbnail = MovieMediaThumbnailDto(
+      thumbnailId: 56,
+      mediaId: 34,
+      offsetSeconds: 90,
+      image: MovieImageDto(id: 1, origin: '', small: '', medium: '', large: ''),
+    );
+
+    final actions = buildMediaThumbnailActionDescriptors(
+      thumbnail: thumbnail,
+      point: null,
+      canSearchSimilar: false,
+      canPlay: false,
+    );
+
+    expect(
+      actions.singleWhere((action) => action.label == '相似图片').enabled,
+      isFalse,
+    );
+    expect(
+      actions.singleWhere((action) => action.label == '播放').enabled,
+      isFalse,
+    );
+  });
 }
 
 /// 返回承载面板的 [ProviderContainer]（用 [UncontrolledProviderScope] 注入，

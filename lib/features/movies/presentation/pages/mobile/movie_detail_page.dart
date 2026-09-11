@@ -418,6 +418,8 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
     switch (action) {
       case MediaPreviewAction.searchSimilar:
         await searchSimilarFromPoint(point);
+      case MediaPreviewAction.addToCollection:
+        return;
       case MediaPreviewAction.play:
         _openMoviePlayer(
           mediaId: mediaItem.mediaId,

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_detail_dto.dart';
 import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
 
@@ -12,6 +13,7 @@ void main() {
   late SessionStore sessionStore;
   late ApiClient apiClient;
   late VideosApi videosApi;
+  late MediaApi mediaApi;
   late FakeHttpClientAdapter adapter;
 
   setUp(() async {
@@ -24,6 +26,7 @@ void main() {
     );
     apiClient = ApiClient(sessionStore: sessionStore);
     videosApi = VideosApi(apiClient: apiClient);
+    mediaApi = MediaApi(apiClient: apiClient);
     adapter = FakeHttpClientAdapter();
     apiClient.rawDio.httpClientAdapter = adapter;
     apiClient.rawRefreshDio.httpClientAdapter = adapter;
@@ -145,7 +148,7 @@ void main() {
       },
     );
 
-    final progress = await videosApi.updateMediaProgress(
+    final progress = await mediaApi.updateMediaProgress(
       mediaId: 31,
       positionSeconds: 125,
     );
@@ -155,4 +158,67 @@ void main() {
       'position_seconds': 125,
     });
   });
+
+  test('getMediaThumbnails parses PornBox thumbnail list', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/31/thumbnails',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'thumbnail_id': 51,
+          'media_id': 31,
+          'offset_seconds': 90,
+          'image': <String, dynamic>{
+            'id': 88,
+            'origin': 'thumb-origin.webp',
+            'small': 'thumb-small.webp',
+            'medium': 'thumb-medium.webp',
+            'large': 'thumb-large.webp',
+          },
+          'width': 1280,
+          'height': 720,
+        },
+      ],
+    );
+
+    final thumbnails = await mediaApi.getMediaThumbnails(mediaId: 31);
+
+    expect(thumbnails, hasLength(1));
+    expect(thumbnails.single.thumbnailId, 51);
+    expect(thumbnails.single.offsetSeconds, 90);
+    expect(thumbnails.single.image.bestAvailableUrl, 'thumb-large.webp');
+    expect(adapter.requests.single.path, '/media/31/thumbnails');
+  });
+
+  test(
+    'setVideoCover sends cover thumbnail id and parses updated detail',
+    () async {
+      adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/videos/7',
+        body: <String, dynamic>{
+          'id': 7,
+          'title': '详情视频',
+          'cover_image': <String, dynamic>{
+            'id': 88,
+            'origin': 'cover.webp',
+            'small': 'cover.webp',
+            'medium': 'cover.webp',
+            'large': 'cover.webp',
+          },
+          'media_count': 1,
+          'can_play': true,
+          'media_items': const <dynamic>[],
+        },
+      );
+
+      final detail = await videosApi.setVideoCover(videoId: 7, thumbnailId: 51);
+
+      expect(detail.id, 7);
+      expect(detail.coverImage?.bestAvailableUrl, 'cover.webp');
+      expect(adapter.requests.single.body, <String, dynamic>{
+        'cover_thumbnail_id': 51,
+      });
+    },
+  );
 }

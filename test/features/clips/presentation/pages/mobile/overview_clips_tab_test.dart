@@ -41,6 +41,8 @@ void main() {
       find.byKey(const Key('mobile-clips-collections-skeleton-row')),
       findsOneWidget,
     );
+    expect(find.text('切片合集'), findsOneWidget);
+    expect(find.text('我的合集'), findsNothing);
     expect(find.byKey(const Key('mobile-clips-grid-skeleton')), findsOneWidget);
     expect(find.byKey(const Key('mobile-clips-loading')), findsNothing);
   });

@@ -8,7 +8,9 @@ enum AppImageActionType {
   searchSimilar,
   saveToLocal,
   toggleMark,
+  addToCollection,
   play,
+  setCover,
   movieDetail,
 }
 
@@ -58,18 +60,21 @@ Future<AppImageActionType?> showAppImageActionMenu({
   AppImageActionMenuPresentation presentation =
       AppImageActionMenuPresentation.popup,
 }) {
-  final visibleActions =
-      actions.where((action) => action.visible).toList()..sort(
-        (left, right) =>
-            _actionOrder(left.type).compareTo(_actionOrder(right.type)),
-      );
+  final visibleActions = actions.where((action) => action.visible).toList()
+    ..sort(
+      (left, right) =>
+          _actionOrder(left.type).compareTo(_actionOrder(right.type)),
+    );
   if (visibleActions.isEmpty) {
     return Future<AppImageActionType?>.value(null);
   }
 
   final resolved = resolveAppImageActionMenuPresentation(context, presentation);
   if (resolved == AppImageActionMenuPresentation.bottomDrawer) {
-    return _showBottomImageActionMenu(context: context, actions: visibleActions);
+    return _showBottomImageActionMenu(
+      context: context,
+      actions: visibleActions,
+    );
   }
   return _showPopupImageActionMenu(
     context: context,
@@ -111,25 +116,24 @@ Future<AppImageActionType?> _showPopupImageActionMenu({
                 Icon(
                   action.icon,
                   size: componentTokens.iconSizeSm,
-                  color:
-                      action.enabled
-                          ? (action.destructive ? Colors.red.shade600 : null)
-                          : Colors.grey.shade400,
+                  color: action.enabled
+                      ? (action.destructive ? Colors.red.shade600 : null)
+                      : Colors.grey.shade400,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   action.label,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.secondary,
-                  ).copyWith(
-                    color:
-                        action.enabled
+                  style:
+                      resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s14,
+                        weight: AppTextWeight.regular,
+                        tone: AppTextTone.secondary,
+                      ).copyWith(
+                        color: action.enabled
                             ? (action.destructive ? Colors.red.shade600 : null)
                             : Colors.grey.shade400,
-                  ),
+                      ),
                 ),
               ],
             ),
@@ -152,11 +156,10 @@ Future<AppImageActionType?> _showBottomImageActionMenu({
         drawerKey: const Key('app-image-action-bottom-drawer'),
         heightFactor: heightFactor,
         ignoreTopSafeArea: true,
-        builder:
-            (drawerContext, close) => _AppImageActionBottomDrawerContent(
-              actions: actions,
-              onSelected: close,
-            ),
+        builder: (drawerContext, close) => _AppImageActionBottomDrawerContent(
+          actions: actions,
+          onSelected: close,
+        ),
       );
   if (inlineFullscreenDrawer != null) {
     return inlineFullscreenDrawer;
@@ -167,11 +170,10 @@ Future<AppImageActionType?> _showBottomImageActionMenu({
     drawerKey: const Key('app-image-action-bottom-drawer'),
     heightFactor: heightFactor,
     ignoreTopSafeArea: true,
-    builder:
-        (drawerContext) => _AppImageActionBottomDrawerContent(
-          actions: actions,
-          onSelected: (action) => Navigator.of(drawerContext).pop(action),
-        ),
+    builder: (drawerContext) => _AppImageActionBottomDrawerContent(
+      actions: actions,
+      onSelected: (action) => Navigator.of(drawerContext).pop(action),
+    ),
   );
 }
 
@@ -189,9 +191,8 @@ class _AppImageActionBottomDrawerContent extends StatelessWidget {
     return ListView.separated(
       padding: EdgeInsets.zero,
       itemCount: actions.length,
-      separatorBuilder:
-          (context, index) =>
-              Divider(height: 1, color: context.appColors.borderSubtle),
+      separatorBuilder: (context, index) =>
+          Divider(height: 1, color: context.appColors.borderSubtle),
       itemBuilder: (context, index) {
         final action = actions[index];
         final color = _resolveActionColor(context, action);
@@ -236,9 +237,13 @@ int _actionOrder(AppImageActionType type) {
       return 1;
     case AppImageActionType.toggleMark:
       return 2;
-    case AppImageActionType.play:
+    case AppImageActionType.addToCollection:
       return 3;
-    case AppImageActionType.movieDetail:
+    case AppImageActionType.play:
       return 4;
+    case AppImageActionType.setCover:
+      return 5;
+    case AppImageActionType.movieDetail:
+      return 6;
   }
 }

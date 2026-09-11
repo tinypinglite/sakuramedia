@@ -1,6 +1,5 @@
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_detail_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 
@@ -46,19 +45,18 @@ class VideosApi {
     return VideoItemDetailDto.fromJson(response);
   }
 
-  Future<void> deleteVideo(int videoId) {
-    return _apiClient.deleteNoContent('/videos/$videoId');
+  Future<VideoItemDetailDto> setVideoCover({
+    required int videoId,
+    required int thumbnailId,
+  }) async {
+    final response = await _apiClient.patch(
+      '/videos/$videoId',
+      data: <String, dynamic>{'cover_thumbnail_id': thumbnailId},
+    );
+    return VideoItemDetailDto.fromJson(response);
   }
 
-  /// 媒体播放进度是跨 JAV / 普通视频共用的 `/media` 能力。
-  Future<MovieMediaProgressDto> updateMediaProgress({
-    required int mediaId,
-    required int positionSeconds,
-  }) async {
-    final response = await _apiClient.put(
-      '/media/$mediaId/progress',
-      data: <String, dynamic>{'position_seconds': positionSeconds},
-    );
-    return MovieMediaProgressDto.fromJson(response);
+  Future<void> deleteVideo(int videoId) {
+    return _apiClient.deleteNoContent('/videos/$videoId');
   }
 }

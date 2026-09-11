@@ -309,6 +309,8 @@ class MobileOverviewDiscoverTab extends ConsumerWidget {
     switch (action) {
       case MediaPreviewAction.searchSimilar:
         await _searchSimilarFromMoment(context, item);
+      case MediaPreviewAction.addToCollection:
+        return;
       case MediaPreviewAction.play:
         final movieNumber = item.movieNumber;
         if (movieNumber == null || movieNumber.isEmpty) {

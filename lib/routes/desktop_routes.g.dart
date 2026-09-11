@@ -9,6 +9,7 @@ part of 'desktop_routes.dart';
 List<RouteBase> get $appRoutes => [
   $desktopLoginRouteData,
   $desktopMoviePlayerRouteData,
+  $desktopVideoPlayerRouteData,
   $desktopClipCollectionPlayRouteData,
   $desktopVideoCollectionPlayRouteData,
   $desktopShellRouteData,
@@ -94,6 +95,47 @@ T? _$convertMapValue<T>(
 ) {
   final value = map[key];
   return value == null ? null : converter(value);
+}
+
+RouteBase get $desktopVideoPlayerRouteData => GoRouteData.$route(
+  path: '/desktop/library/videos/:videoId/player',
+  factory: $DesktopVideoPlayerRouteData._fromState,
+);
+
+mixin $DesktopVideoPlayerRouteData on GoRouteData {
+  static DesktopVideoPlayerRouteData _fromState(GoRouterState state) =>
+      DesktopVideoPlayerRouteData(
+        videoId: int.parse(state.pathParameters['videoId']!),
+        positionSeconds: _$convertMapValue(
+          'position-seconds',
+          state.uri.queryParameters,
+          int.tryParse,
+        ),
+      );
+
+  DesktopVideoPlayerRouteData get _self => this as DesktopVideoPlayerRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/desktop/library/videos/${Uri.encodeComponent(_self.videoId.toString())}/player',
+    queryParams: {
+      if (_self.positionSeconds != null)
+        'position-seconds': _self.positionSeconds!.toString(),
+    },
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
 }
 
 RouteBase get $desktopClipCollectionPlayRouteData => GoRouteData.$route(
@@ -398,6 +440,10 @@ RouteBase get $desktopShellRouteData => ShellRouteData.$route(
     GoRouteData.$route(
       path: '/desktop/library/video-collections/:collectionId',
       factory: $DesktopVideoCollectionDetailRouteData._fromState,
+    ),
+    GoRouteData.$route(
+      path: '/desktop/library/videos/:videoId/thumbnails',
+      factory: $DesktopVideoThumbnailRouteData._fromState,
     ),
   ],
 );
@@ -1258,6 +1304,34 @@ mixin $DesktopVideoCollectionDetailRouteData on GoRouteData {
   @override
   String get location => GoRouteData.$location(
     '/desktop/library/video-collections/${Uri.encodeComponent(_self.collectionId.toString())}',
+  );
+
+  @override
+  void go(BuildContext context) => context.go(location);
+
+  @override
+  Future<T?> push<T>(BuildContext context) => context.push<T>(location);
+
+  @override
+  void pushReplacement(BuildContext context) =>
+      context.pushReplacement(location);
+
+  @override
+  void replace(BuildContext context) => context.replace(location);
+}
+
+mixin $DesktopVideoThumbnailRouteData on GoRouteData {
+  static DesktopVideoThumbnailRouteData _fromState(GoRouterState state) =>
+      DesktopVideoThumbnailRouteData(
+        videoId: int.parse(state.pathParameters['videoId']!),
+      );
+
+  DesktopVideoThumbnailRouteData get _self =>
+      this as DesktopVideoThumbnailRouteData;
+
+  @override
+  String get location => GoRouteData.$location(
+    '/desktop/library/videos/${Uri.encodeComponent(_self.videoId.toString())}/thumbnails',
   );
 
   @override

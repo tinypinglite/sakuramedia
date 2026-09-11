@@ -127,6 +127,24 @@ extension AppNavigationActions on BuildContext {
     _pushDesktopRoute(this, route.location, fallbackPath: fallbackPath);
   }
 
+  void pushDesktopVideoPlayer({
+    required int videoId,
+    String? fallbackPath,
+    int? positionSeconds,
+  }) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    final route = DesktopVideoPlayerRouteData(
+      videoId: videoId,
+      positionSeconds: positionSeconds,
+    );
+    _pushDesktopRoute(this, route.location, fallbackPath: fallbackPath);
+  }
+
+  void pushDesktopVideoThumbnails({required int videoId}) {
+    GoRouter.optionURLReflectsImperativeAPIs = true;
+    DesktopVideoThumbnailRouteData(videoId: videoId).push(this);
+  }
+
   /// 返回的 Future 在「全部切片合集」页出栈后完成，调用方可据此刷新首页合集横滑区
   /// （页内可能重命名/删除合集）。
   Future<void> pushDesktopClipCollections() {
