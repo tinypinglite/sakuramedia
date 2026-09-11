@@ -29,7 +29,7 @@ class MovieSubscriptionRow extends StatelessWidget {
   final bool isSelected;
   final bool isPending;
   final VoidCallback onTap;
-  final VoidCallback onOpenDownloads;
+  final VoidCallback? onOpenDownloads;
   final VoidCallback onSearchMagnet;
   final VoidCallback onUnsubscribe;
   final VoidCallback? onDeleteDownloads;
@@ -59,6 +59,15 @@ class MovieSubscriptionRow extends StatelessWidget {
           _HeadingLine(item: item),
           SizedBox(height: spacing.md),
           _SearchProgressLine(item: item),
+          if (item.status == MovieSubscriptionStatus.importFailed &&
+              item.importStatusLabel?.isNotEmpty == true) ...[
+            SizedBox(height: spacing.sm),
+            _LastErrorLine(
+              item: item,
+              message: '提示：${item.importStatusLabel}',
+              keySuffix: 'import-hint',
+            ),
+          ],
           if (item.lastError?.isNotEmpty ?? false) ...[
             SizedBox(height: spacing.sm),
             _LastErrorLine(item: item, message: item.lastError!),
@@ -241,10 +250,15 @@ class _SearchProgressLine extends StatelessWidget {
 }
 
 class _LastErrorLine extends StatelessWidget {
-  const _LastErrorLine({required this.item, required this.message});
+  const _LastErrorLine({
+    required this.item,
+    required this.message,
+    this.keySuffix = 'error',
+  });
 
   final MovieSubscriptionListItemDto item;
   final String message;
+  final String keySuffix;
 
   @override
   Widget build(BuildContext context) {
@@ -261,7 +275,7 @@ class _LastErrorLine extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              key: Key('movie-subscription-row-error-${item.movieNumber}'),
+              key: Key('movie-subscription-row-$keySuffix-${item.movieNumber}'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: resolveAppTextStyle(
@@ -292,7 +306,7 @@ class _FooterLine extends StatelessWidget {
   final MovieSubscriptionListItemDto item;
   final bool selectionMode;
   final bool isPending;
-  final VoidCallback onOpenDownloads;
+  final VoidCallback? onOpenDownloads;
   final VoidCallback onSearchMagnet;
   final VoidCallback onUnsubscribe;
   final VoidCallback? onDeleteDownloads;
@@ -352,7 +366,7 @@ class _RowActions extends StatelessWidget {
     this.onDeleteDownloads,
   });
 
-  final VoidCallback onOpenDownloads;
+  final VoidCallback? onOpenDownloads;
   final VoidCallback onSearchMagnet;
   final VoidCallback onUnsubscribe;
   final VoidCallback? onDeleteDownloads;
@@ -362,14 +376,15 @@ class _RowActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AppIconButton(
-          key: const Key('movie-subscription-row-downloads'),
-          icon: const Icon(Icons.download_outlined),
-          size: AppIconButtonSize.regular,
-          tooltip: '查看下载任务',
-          semanticLabel: '查看下载任务',
-          onPressed: onOpenDownloads,
-        ),
+        if (onOpenDownloads != null)
+          AppIconButton(
+            key: const Key('movie-subscription-row-downloads'),
+            icon: const Icon(Icons.download_outlined),
+            size: AppIconButtonSize.regular,
+            tooltip: '查看下载任务',
+            semanticLabel: '查看下载任务',
+            onPressed: onOpenDownloads,
+          ),
         AppIconButton(
           key: const Key('movie-subscription-row-magnet-search'),
           icon: const Icon(Icons.search_rounded),

@@ -528,8 +528,9 @@ class _RowConsumer extends HookConsumerWidget {
       onTap: selectionMode
           ? () => notifier.toggleSelection(item.movieNumber)
           : () => onOpenMovie(context, item.movieNumber),
-      onOpenDownloads: () =>
-          context.goDesktopDownloadTasks(movieNumber: item.movieNumber),
+      onOpenDownloads: tasks?.isNotEmpty == true
+          ? () => context.goDesktopDownloadTasks(movieNumber: item.movieNumber)
+          : null,
       onSearchMagnet: () => showMovieMagnetSearchDialog(
         context: context,
         movieNumber: item.movieNumber,

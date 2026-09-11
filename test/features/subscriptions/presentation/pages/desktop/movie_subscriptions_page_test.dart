@@ -66,9 +66,27 @@ void main() {
     );
     expect(find.text('缺资源'), findsWidgets);
     expect(
+      find.byKey(const Key('movie-subscription-row-downloads')),
+      findsNothing,
+    );
+    expect(
       find.byKey(const Key('movie-subscription-row-open-import-ABP-123')),
       findsNothing,
     );
+  });
+
+  testWidgets('shows import hint for an unimported subscription', (tester) async {
+    final item = _item('ABP-123')
+      ..['status'] = 'import_failed'
+      ..['import_status_label'] = '已跳过：没有符合条件的媒体文件';
+    _enqueuePage(adapter, [item]);
+    await _pumpPage(tester, sessionStore, apiClient);
+
+    expect(
+      find.byKey(const Key('movie-subscription-row-import-hint-ABP-123')),
+      findsOneWidget,
+    );
+    expect(find.text('提示：已跳过：没有符合条件的媒体文件'), findsOneWidget);
   });
 
   testWidgets(

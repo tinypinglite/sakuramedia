@@ -43,7 +43,7 @@ class MovieDetailNumberBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
+              SelectableText(
                 resolvedMovieNumber,
                 key: const Key('movie-detail-number'),
                 style: resolveAppTextStyle(

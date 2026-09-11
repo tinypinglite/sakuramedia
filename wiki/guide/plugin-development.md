@@ -4,7 +4,7 @@ outline: [2, 3]
 
 # 插件开发
 
-SakuraMedia 插件是运行在后端进程内的 Python 包。本文对应当前后端的 **Host API 6**，宿主接受 API **4–6** 的插件。插件的 `manifest.json` 与 `register()` 返回值中的 `plugin_id`、插件 `version` 必须一致；Host API 的声明规则见[版本兼容](#版本兼容)。
+SakuraMedia 插件是运行在后端进程内的 Python 包。本文对应当前后端的 **Host API 7**，宿主接受 API **4–7** 的插件。插件的 `manifest.json` 与 `register()` 返回值中的 `plugin_id`、插件 `version` 必须一致；Host API 的声明规则见[版本兼容](#版本兼容)。
 
 插件不是前端扩展机制。当前不能注册页面、UI 组件、HTTP 路由、事件钩子或中间件，也不应直接访问宿主数据库。请只使用本文列出的公开契约；绑定 `src.model`、`src.service` 等内部实现会使插件随宿主重构失效。
 
@@ -13,6 +13,7 @@ SakuraMedia 插件是运行在后端进程内的 Python 包。本文对应当前
 | 目标 | 实现方式 |
 |---|---|
 | 定时抓取、手动处理、字幕或影片数据处理 | 注册后台任务 |
+| 按媒体库判断缺片、分辨率或文件大小并自动下载 | 注册后台任务，调用 `context.media` 与 `context.downloads` |
 | JavDB 未收录时提供影片元数据 | 注册 `catalog.metadata_source` 扩展点（需要 Host API 6） |
 | 提供排行榜来源 | 注册 `discovery.ranking_source` 扩展点，并自行注册同步任务 |
 | 接入一种新的媒体存储或下载平台 | 注册 `media.provider` 扩展点 |
@@ -37,7 +38,7 @@ example_plugin/
   "plugin_id": "example_plugin",
   "display_name": "示例插件",
   "version": "1.0.0",
-  "host_api_version": 6,
+  "host_api_version": 7,
   "requires_python": ">=3.10,<3.11",
   "dependencies": []
 }
@@ -97,6 +98,8 @@ def register(context: PluginContext) -> PluginRegistration:
 - `movies`：读取影片及关联演员、标签快照，分页遍历并更新受保护字段。
 - `actors`：读取演员身份与资料快照，分页遍历并更新资料字段。
 - `subtitles`：列出影片已登记的字幕，读取原始字节及 SHA256。
+- `media`：按影片、媒体库读取媒体快照，判断是否存在媒体或可播放媒体。
+- `downloads`：读取下载目标，指定 `download_client_id` 搜索候选并提交到该下载器关联的媒体库。
 - `import_movie_by_number(movie_number, *, force_subscribed=False)`：复用本地影片，或按 JavDB 优先、元数据插件兜底的顺序导入，返回 `MovieSnapshot`。
 - `list_existing_movie_numbers()`：读取全库影片番号的大写集合。
 - `import_subtitle(movie_number, content, filename, language=None)`：交由宿主校验、去重、落盘并登记字幕。
@@ -174,13 +177,47 @@ def update_actor_height(context, actor_id: int, height_cm: int) -> bool:
 
 写入仍使用 `context.import_subtitle()`，返回 `SubtitleImportResult`。应检查 `status`，其值为 `imported`、`duplicate`、`movie_not_found` 或 `invalid_format`；不要把重复或无效格式当成新导入成功。
 
+## 媒体查询与下载
+
+`context.media.list_for_movie(movie_id, library_id=None)` 返回该影片的媒体快照。每项包含 `media_id`、`movie_id`、`movie_number`、`library_id`、`library_name`、`provider_key`、`file_name`、`resolution`、`file_size_bytes`、`duration_seconds`、`valid` 和可选的 `video_info`。不返回 Provider 的 `storage_ref`、真实文件路径或可写句柄。
+
+`context.media.presence_for_movies(movie_ids, library_id=None)` 用一次批量查询返回每部影片的 `PluginMediaPresence`：
+
+- `has_any`：存在任意 Media 记录，包括 `valid=False` 的失效记录；
+- `has_playable`：至少存在一条 `valid=True` 的媒体；
+- `items`：按媒体入库顺序返回媒体快照。
+
+多媒体库场景必须传入目标 `library_id`；不传时表示跨所有媒体库聚合，不能用来判断某个下载目标是否缺片。目标下载器对应的媒体库可通过 `context.downloads.get_target(download_client_id).library_id` 获取。
+
+下载候选必须先绑定目标下载器：
+
+```python
+candidates = context.downloads.search_candidates(
+    movie_number="ABC-001",
+    download_client_id=target_client_id,
+    indexer_kind="pt",
+)
+
+candidate = choose_best(candidates)
+result = context.downloads.submit(
+    movie_number="ABC-001",
+    candidate=candidate,
+)
+```
+
+候选会携带宿主解析出的 `download_client_id`、`library_id`、`library_name` 和 `provider_key`；插件不能把一个候选改投到另一个媒体库。目标下载器被删除、解绑或媒体库提供方发生变化时，提交会失败，不会自动回退到索引器的第一个绑定下载器。
+
+同一影片要提交到多个媒体库时，插件必须针对每个目标下载器分别搜索并提交。下载完成后的导入仍进入该下载器关联的媒体库，不能在普通插件中组合一个下载 Provider 和另一个存储 Provider。
+
+对于批量补缺，建议先读取影片分页，再调用 `presence_for_movies()`，只对目标库中 `has_playable=False` 的影片搜索和提交。当前门面只提供搜索与提交，不提供下载任务状态、重试、删除或导入控制。
+
 ## 影片元数据来源
 
 ### 注册与调用顺序
 
 通过 `PluginExtension(key="catalog.metadata_source", data=PluginMetadataSource(...))` 注册同步回调 `fetch_movie(movie_number) -> PluginMovieMetadata | None`。`PluginMetadataSource`、`PluginMovieMetadata`、`PluginMetadataActor` 和 `METADATA_SOURCE_EXTENSION_KEY` 均可从 `src.plugins` 导入。
 
-下面是可加载的注册骨架；实际插件需将 `fetch_movie()` 的占位返回替换为站点查询、图片下载及结果构造，manifest 的 `host_api_version` 必须声明为 `6`：
+下面是可加载的注册骨架；实际插件需将 `fetch_movie()` 的占位返回替换为站点查询、图片下载及结果构造，manifest 的 `host_api_version` 至少声明为 `6`：
 
 ```python
 from src.plugins import (
@@ -319,11 +356,11 @@ uv run python -m src.start.commands plugins check /path/to/example_plugin
 
 ## 版本兼容
 
-当前宿主常量为 `HOST_API_VERSION = 6`、`MIN_SUPPORTED_HOST_API_VERSION = 4`，加载规则如下：
+当前宿主常量为 `HOST_API_VERSION = 7`、`MIN_SUPPORTED_HOST_API_VERSION = 4`，加载规则如下：
 
-- manifest 的 `host_api_version` 必须在 **4–6** 内。
-- `register()` 的 `host_api_version` 必须等于 manifest 声明的版本，或当前宿主版本 `6`。例如 manifest 为 `4` 时，注册返回 `4` 或导入宿主常量得到的 `6` 均可，返回 `5` 则不兼容。
+- manifest 的 `host_api_version` 必须在 **4–7** 内。
+- `register()` 的 `host_api_version` 必须等于 manifest 声明的版本，或当前宿主版本 `7`。例如 manifest 为 `4` 时，注册返回 `4` 或导入宿主常量得到的 `7` 均可，返回 `5` 则不兼容。
 - `catalog.metadata_source` 额外要求 manifest 声明 **6**；只把 `register()` 改为宿主常量不能绕过这一限制。
-- 使用当前新增接口开发的新插件建议按本文声明 API 6；宿主能加载旧声明，不意味着旧宿主能提供新接口。
+- `context.media` 和 `context.downloads` 需要 Host API **7**；旧宿主能加载旧声明，不意味着旧宿主能提供这两个接口。
 
 升级前应核对实际宿主版本、公开类型与所用能力，再运行插件检查。插件自身的 `version` 与 Host API 版本是两个概念，manifest 与 `register()` 的插件 `version` 仍须严格一致。

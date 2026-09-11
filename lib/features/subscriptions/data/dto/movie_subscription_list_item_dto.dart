@@ -17,6 +17,7 @@ class MovieSubscriptionListItemDto {
     this.attemptLimit = 0,
     this.lastSearchedAt,
     this.lastError,
+    this.importStatusLabel,
     this.deadDownloadTaskCount = 0,
     this.mediaCount = 0,
   });
@@ -33,6 +34,7 @@ class MovieSubscriptionListItemDto {
   final int attemptLimit;
   final DateTime? lastSearchedAt;
   final String? lastError;
+  final String? importStatusLabel;
   final int deadDownloadTaskCount;
   final int mediaCount;
 
@@ -51,6 +53,7 @@ class MovieSubscriptionListItemDto {
       attemptLimit: asInt(json['attempt_limit']),
       lastSearchedAt: asDateTime(json['last_searched_at']),
       lastError: asStringOrNull(json['last_error'], trim: true),
+      importStatusLabel: asStringOrNull(json['import_status_label'], trim: true),
       deadDownloadTaskCount: asInt(json['dead_download_task_count']),
       mediaCount: asInt(json['media_count']),
     );

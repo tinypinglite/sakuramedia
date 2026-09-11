@@ -6,6 +6,7 @@ import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 
 Future<bool> showDownloadTaskDeleteDialog(
   BuildContext context, {
@@ -15,6 +16,12 @@ Future<bool> showDownloadTaskDeleteDialog(
 }) async {
   var deleteFiles = false;
   final remaining = tasks.toList();
+  final blacklistableTaskCount = tasks
+      .where(
+        (task) =>
+            task.importStatus == 'failed' || task.importStatus == 'skipped',
+      )
+      .length;
   final confirmed = await showAppConfirmDialog(
     context,
     dialogKey: const Key('download-task-delete-dialog'),
@@ -23,8 +30,21 @@ Future<bool> showDownloadTaskDeleteDialog(
     danger: true,
     confirmLabel: '删除',
     failureFallback: '删除失败',
-    extraContent: _DeleteFilesCheckbox(
-      onChanged: (value) => deleteFiles = value,
+    extraContent: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (blacklistableTaskCount > 0) ...[
+          AppNoticeCard(
+            leadingIcon: Icons.warning_amber_rounded,
+            description:
+                '其中 $blacklistableTaskCount 个任务删除后，对应资源会加入资源黑名单，之后相同磁力/种子不会再次提交。',
+          ),
+          SizedBox(height: context.appSpacing.sm),
+        ],
+        _DeleteFilesCheckbox(
+          onChanged: (value) => deleteFiles = value,
+        ),
+      ],
     ),
     onConfirm: showProgress ? null : () async {
       final confirmedDeleteFiles = deleteFiles;

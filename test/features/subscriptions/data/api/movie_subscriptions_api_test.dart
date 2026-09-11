@@ -112,6 +112,7 @@ void main() {
             'attempt_limit': 3,
             'last_searched_at': '2026-07-20T02:30:00',
             'last_error': null,
+            'import_status_label': '已跳过：没有符合条件的媒体文件',
             'dead_download_task_count': 1,
             'media_count': 0,
           },
@@ -134,6 +135,7 @@ void main() {
     expect(item.attemptLimit, 3);
     expect(item.lastSearchedAt, DateTime.parse('2026-07-20T02:30:00'));
     expect(item.lastError, isNull);
+    expect(item.importStatusLabel, '已跳过：没有符合条件的媒体文件');
     expect(item.deadDownloadTaskCount, 1);
     expect(item.mediaCount, 0);
     expect(item.canResetSearch, isTrue);

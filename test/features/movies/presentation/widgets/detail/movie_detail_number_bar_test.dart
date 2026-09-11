@@ -54,7 +54,7 @@ void main() {
     expect(numberBottom, lessThan(interactionTop));
     expect(interactionTop, lessThan(summaryTop));
 
-    final numberText = tester.widget<Text>(
+    final numberText = tester.widget<SelectableText>(
       find.byKey(const Key('movie-detail-number')),
     );
     final summaryText = tester.widget<Text>(
@@ -67,6 +67,22 @@ void main() {
     expect(numberText.style?.fontSize, sakuraThemeData.appTextScale.s16);
     expect(wantWatchText.style?.fontSize, sakuraThemeData.appTextScale.s12);
     expect(summaryText.style?.fontSize, sakuraThemeData.appTextScale.s14);
+
+    final editableText = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const Key('movie-detail-number')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    await tester.longPress(find.byKey(const Key('movie-detail-number')));
+    await tester.pump();
+
+    final selection = editableText.controller.selection;
+    expect(selection.isCollapsed, isFalse);
+    expect(
+      editableText.controller.text.substring(selection.start, selection.end),
+      isNotEmpty,
+    );
   });
 
   testWidgets('movie detail number bar keeps zero values visible', (
