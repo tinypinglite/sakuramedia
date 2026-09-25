@@ -16,13 +16,11 @@ import 'package:sakuramedia/features/moment_collections/presentation/widgets/mom
 import 'package:sakuramedia/features/moment_collections/presentation/widgets/pick_moment_collection_dialog.dart';
 import 'package:sakuramedia/features/moments/presentation/actions/moment_preview_flow.dart';
 import 'package:sakuramedia/features/moments/presentation/moment_listing_models.dart';
-import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_view_mode_toggle_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
@@ -36,15 +34,11 @@ import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 
-/// 时刻合集详情排布方式：网格（侧重浏览，默认）或纵向列表（可拖序）。
-enum MomentCollectionDetailLayout { grid, list }
-
 /// 时刻合集详情共享实现：桌面 / 移动双端壳差异收在 [isMobile] 参数里。
 ///
 /// 交互范式对齐切片合集详情：桌面标题块 + [AppListHeader] + 内联批量操作；
-/// 移动端合集名上报返回栏、长按进多选、批量动作走贴底条；双端默认网格，
-/// 桌面列表布局支持拖序。成员点击统一弹时刻预览层；桌面网格卡悬停渐显
-/// 信息与播放键（来源媒体已删除时隐藏播放）。
+/// 移动端合集名上报返回栏、长按进多选、批量动作走贴底条；双端网格，成员点击
+/// 统一弹时刻预览层；桌面网格卡悬停渐显信息与动作行（来源媒体已删除时隐藏播放）。
 class MomentCollectionDetailContent extends ConsumerStatefulWidget {
   const MomentCollectionDetailContent({
     super.key,
@@ -63,9 +57,6 @@ class MomentCollectionDetailContent extends ConsumerStatefulWidget {
 class _MomentCollectionDetailContentState
     extends ConsumerState<MomentCollectionDetailContent>
     with MultiSelectStateMixin<MomentCollectionDetailContent, int> {
-  int? _hoveredPointId;
-  late MomentCollectionDetailLayout _layout;
-
   bool get _isMobile => widget.isMobile;
 
   String get _keyPrefix =>
@@ -80,27 +71,6 @@ class _MomentCollectionDetailContentState
 
   MomentCollectionMutationEvents get _mutationBroadcaster =>
       ref.read(momentCollectionMutationEventsProvider.notifier);
-
-  @override
-  void initState() {
-    super.initState();
-    _layout = MomentCollectionDetailLayout.grid;
-  }
-
-  void _setHovered(int? pointId) {
-    if (_hoveredPointId == pointId) {
-      return;
-    }
-    setState(() => _hoveredPointId = pointId);
-  }
-
-  void _toggleLayout() {
-    setState(() {
-      _layout = _layout == MomentCollectionDetailLayout.list
-          ? MomentCollectionDetailLayout.grid
-          : MomentCollectionDetailLayout.list;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -251,24 +221,11 @@ class _MomentCollectionDetailContentState
             size: AppTextButtonSize.small,
             onPressed: () => _addMoments(context),
           ),
-        if (hasPoints)
-          if (_isMobile)
-            AppViewModeToggleButton(
-              buttonKey: Key('$_keyPrefix-layout-toggle'),
-              isList: _layout == MomentCollectionDetailLayout.list,
-              onPressed: _toggleLayout,
-            )
-          else ...[
-            AppSelectionEntryButton(
-              key: Key('$_keyPrefix-enter-selection-button'),
-              onPressed: enterSelection,
-            ),
-            AppViewModeToggleButton(
-              buttonKey: Key('$_keyPrefix-layout-toggle'),
-              isList: _layout == MomentCollectionDetailLayout.list,
-              onPressed: _toggleLayout,
-            ),
-          ],
+        if (hasPoints && !_isMobile)
+          AppSelectionEntryButton(
+            key: Key('$_keyPrefix-enter-selection-button'),
+            onPressed: enterSelection,
+          ),
         if (_isMobile)
           AppIconButton(
             key: Key('$_keyPrefix-rename-button'),
@@ -375,106 +332,7 @@ class _MomentCollectionDetailContentState
         message: _isMobile ? '合集还没有时刻，点右上角「添加」加入吧' : '合集还没有时刻，去「时刻」里加入吧',
       );
     }
-    return _layout == MomentCollectionDetailLayout.grid
-        ? _buildGrid(context, state)
-        : _buildList(context, state);
-  }
-
-  Widget _buildList(BuildContext context, MomentCollectionDetailState state) {
-    final points = state.points;
-    // 选择模式下禁用拖拽重排，退化为普通列表，避免与多选交互冲突（仅桌面）。
-    final canReorder = !_isMobile && !selectionMode;
-
-    CollectionMemberRow buildRow(int index, {required bool isHovered}) {
-      final point = points[index];
-      final item = point.toMomentListItem();
-      return CollectionMemberRow(
-        key: ValueKey<int>(point.pointId),
-        index: index,
-        coverUrl: item.image?.bestAvailableUrl,
-        coverWidth: 120,
-        coverAspectRatio: 16 / 9,
-        title: item.displayLabel,
-        subtitle:
-            '${item.mediaId <= 0 ? '来源已删除 · ' : ''}'
-            '${formatMediaTimecode(item.offsetSeconds)}',
-        isHovered: _isMobile ? false : isHovered,
-        onTap: selectionMode
-            ? () => toggleSelect(point.pointId)
-            : () => _preview(context, item),
-        menuKey: Key('$_keyPrefix-menu-${point.pointId}'),
-        dragHandleKey: Key('$_keyPrefix-reorder-handle-${point.pointId}'),
-        onOpenSource: _isMobile ? null : _openMovieCallback(item),
-        openSourceLabel: '影片',
-        onRemove: _isMobile ? null : () => _removePoint(point),
-        onDelete: _isMobile ? null : () => _deletePoint(point),
-        deleteLabel: '删除时刻',
-        reorderable: _isMobile ? false : canReorder,
-        selectionMode: selectionMode,
-        isSelected: isSelected(point.pointId),
-      );
-    }
-
-    if (_isMobile) {
-      return ListView.separated(
-        key: Key('$_keyPrefix-detail-list'),
-        // 横向缩进由 shell 提供，此处只补底部留白。
-        padding: EdgeInsets.only(bottom: context.appSpacing.lg),
-        itemCount: points.length,
-        separatorBuilder: (context, index) =>
-            SizedBox(height: context.appSpacing.sm),
-        itemBuilder: (context, index) {
-          final point = points[index];
-          return GestureDetector(
-            onLongPress: selectionMode
-                ? null
-                : () {
-                    enterSelection();
-                    toggleSelect(point.pointId);
-                  },
-            child: buildRow(index, isHovered: false),
-          );
-        },
-      );
-    }
-
-    // 选择模式下退化为普通列表（无拖拽手柄）。
-    if (!canReorder) {
-      return ListView.separated(
-        key: Key('$_keyPrefix-detail-list'),
-        itemCount: points.length,
-        separatorBuilder: (context, _) =>
-            SizedBox(height: context.appSpacing.sm),
-        itemBuilder: (context, index) => buildRow(index, isHovered: false),
-      );
-    }
-
-    return ReorderableListView.builder(
-      key: Key('$_keyPrefix-detail-list'),
-      buildDefaultDragHandles: false,
-      itemCount: points.length,
-      onReorder: _onReorder,
-      // 默认 proxyDecorator 会给拖动项叠加带阴影的 Material（主题色偏粉），
-      // 这里换成无阴影透明包装，去掉拖动时的粉色投影。
-      proxyDecorator: (child, index, animation) =>
-          Material(type: MaterialType.transparency, child: child),
-      itemBuilder: (context, index) {
-        final point = points[index];
-        return Padding(
-          key: ValueKey<int>(point.pointId),
-          padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-          child: MouseRegion(
-            onEnter: (_) => _setHovered(point.pointId),
-            onExit: (_) {
-              if (_hoveredPointId == point.pointId) {
-                _setHovered(null);
-              }
-            },
-            child: buildRow(index, isHovered: _hoveredPointId == point.pointId),
-          ),
-        );
-      },
-    );
+    return _buildGrid(context, state);
   }
 
   Widget _buildGrid(BuildContext context, MomentCollectionDetailState state) {
@@ -482,11 +340,10 @@ class _MomentCollectionDetailContentState
     final spacing = context.appSpacing;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = resolveGridColumnCount(
+        final columns = resolveAppCardGridColumnCount(
+          context,
           width: constraints.maxWidth,
           spacing: spacing.md,
-          targetWidth: 280,
-          maxColumns: 4,
         );
         return GridView.builder(
           key: Key('$_keyPrefix-detail-grid'),
@@ -526,7 +383,7 @@ class _MomentCollectionDetailContentState
     MomentListItem item,
     BuildContext context,
   ) {
-    // 桌面网格走悬停披露：收起态只留封面，悬停渐显信息与播放键；移动端没有
+    // 桌面网格走悬停披露：收起态只留封面，悬停渐显信息与动作行；移动端没有
     // hover，保持标题常显，信息与播放入口走点击后的预览层。
     final canPlay = item.mediaId > 0;
     return CollectionMemberCard(
@@ -557,8 +414,11 @@ class _MomentCollectionDetailContentState
       menuKey: Key('$_keyPrefix-grid-menu-${point.pointId}'),
       onOpenSource: _isMobile ? null : _openMovieCallback(item),
       openSourceLabel: '影片',
+      openSourceButtonKey: Key('$_keyPrefix-grid-movie-${point.pointId}'),
       onRemove: _isMobile ? null : () => _removePoint(point),
+      removeButtonKey: Key('$_keyPrefix-grid-remove-${point.pointId}'),
       onDelete: _isMobile ? null : () => _deletePoint(point),
+      deleteButtonKey: Key('$_keyPrefix-grid-delete-${point.pointId}'),
       deleteLabel: '删除时刻',
       selectionMode: selectionMode,
       isSelected: isSelected(point.pointId),
@@ -567,6 +427,8 @@ class _MomentCollectionDetailContentState
 
   // --------------------------------------------------------- 单条动作
 
+  /// 悬停 / 右键「影片」：打开来源影片详情；起播由同卡的播放键
+  /// （[playMomentItem]）覆盖，这里不再从该时刻起播。
   VoidCallback? _openMovieCallback(MomentListItem item) {
     if (item.isVideo) {
       return null;
@@ -575,11 +437,10 @@ class _MomentCollectionDetailContentState
     if (movieNumber == null || movieNumber.isEmpty) {
       return null;
     }
-    return () => launchMoviePlayback(
-      context,
-      movieNumber: movieNumber,
-      mediaId: item.mediaId > 0 ? item.mediaId : null,
-      positionSeconds: item.offsetSeconds,
+    return () => openMomentSourceMovie(
+      context: context,
+      item: item,
+      fallbackPath: _fallbackPath,
     );
   }
 
@@ -668,19 +529,6 @@ class _MomentCollectionDetailContentState
       return;
     }
     _mutationBroadcaster.reportChanged(widget.collectionId);
-  }
-
-  Future<void> _onReorder(int oldIndex, int newIndex) async {
-    try {
-      await ref.read(_providerRef.notifier).reorder(oldIndex, newIndex);
-      if (!mounted) {
-        return;
-      }
-      // 重排可能换掉合集首图（封面取自第一个时刻）；广播给上层合集列表刷新封面。
-      _mutationBroadcaster.reportChanged(widget.collectionId);
-    } catch (error) {
-      showToast(apiErrorMessage(error, fallback: '排序保存失败，请重试'));
-    }
   }
 
   // --------------------------------------------------------- 选择 / 批量

@@ -17,6 +17,9 @@ class VideoSummarySliver extends StatelessWidget {
     this.errorMessage,
     this.onVideoTap,
     this.onVideoPlay,
+    this.onVideoThumbnails,
+    this.onVideoAddToCollection,
+    this.onVideoDelete,
     this.selectionMode = false,
     this.selectedIds = const <int>{},
     this.onVideoToggleSelect,
@@ -29,6 +32,15 @@ class VideoSummarySliver extends StatelessWidget {
 
   /// 悬停面板播放键的回调；为 `null` 时卡片不显示播放键。
   final ValueChanged<VideoItemListItemDto>? onVideoPlay;
+
+  /// 悬停面板「缩略图」动作；为 `null` 时卡片不显示。
+  final ValueChanged<VideoItemListItemDto>? onVideoThumbnails;
+
+  /// 悬停面板「加入合集」动作；为 `null` 时卡片不显示。
+  final ValueChanged<VideoItemListItemDto>? onVideoAddToCollection;
+
+  /// 悬停面板「删除」动作；为 `null` 时卡片不显示。
+  final ValueChanged<VideoItemListItemDto>? onVideoDelete;
 
   final bool selectionMode;
   final Set<int> selectedIds;
@@ -56,6 +68,15 @@ class VideoSummarySliver extends StatelessWidget {
             video: video,
             onTap: onVideoTap == null ? null : () => onVideoTap!(video),
             onPlay: onVideoPlay == null ? null : () => onVideoPlay!(video),
+            onThumbnails: onVideoThumbnails == null
+                ? null
+                : () => onVideoThumbnails!(video),
+            onAddToCollection: onVideoAddToCollection == null
+                ? null
+                : () => onVideoAddToCollection!(video),
+            onDelete: onVideoDelete == null
+                ? null
+                : () => onVideoDelete!(video),
             selectionMode: selectionMode,
             isSelected: selectedIds.contains(video.id),
             onSelectedChanged:

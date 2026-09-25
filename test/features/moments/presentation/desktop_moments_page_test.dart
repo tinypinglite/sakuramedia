@@ -220,6 +220,58 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('desktop moments card hover delete removes the moment', (
+    WidgetTester tester,
+  ) async {
+    _enqueueMomentCollectionsResponse(bundle);
+    _enqueueMomentsPageResponses(bundle, sort: 'created_at:desc');
+    bundle.adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/media-points/10',
+      statusCode: 204,
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-points',
+      body: <String, dynamic>{
+        'items': const <dynamic>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/moment-collections',
+      body: const <dynamic>[],
+    );
+
+    await _pumpMomentsApp(tester, bundle: bundle, sessionStore: sessionStore);
+    await tester.pumpAndSettle();
+
+    await _hoverMomentCard(tester, 10);
+    await tester.tap(find.byKey(const Key('moment-card-delete-10')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('moments-delete-confirm-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('该时刻标记会被永久删除，不会删除原视频或切片'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('moments-delete-confirm-button')));
+    await tester.pumpAndSettle();
+
+    expect(bundle.adapter.hitCount('DELETE', '/media-points/10'), 1);
+    expect(find.text('ABC-001'), findsNothing);
+    expect(find.text('0 个时刻'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('desktop moments page reloads with earliest sort', (
     WidgetTester tester,
   ) async {
@@ -286,6 +338,21 @@ void main() {
     );
     expect(previewHeroImage.fit, BoxFit.contain);
   });
+
+  testWidgets('desktop moments card hover 影片 opens the source movie detail', (
+    WidgetTester tester,
+  ) async {
+    _enqueueMomentsPageResponses(bundle, sort: 'created_at:desc');
+
+    await _pumpMomentsApp(tester, bundle: bundle, sessionStore: sessionStore);
+    await tester.pumpAndSettle();
+
+    await _hoverMomentCard(tester, 10);
+    await tester.tap(find.byKey(const Key('moment-card-movie-10')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('movie-detail'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpMomentsApp(
@@ -306,6 +373,11 @@ Future<void> _pumpMomentsApp(
       GoRoute(
         path: '/movie',
         builder: (context, state) => const Scaffold(body: Text('movie')),
+      ),
+      GoRoute(
+        path: '/desktop/library/movies/:movieNumber',
+        builder: (context, state) =>
+            const Scaffold(body: Text('movie-detail')),
       ),
     ],
   );

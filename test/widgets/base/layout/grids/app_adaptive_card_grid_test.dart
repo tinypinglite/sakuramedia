@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 
 void main() {
   testWidgets('AppAdaptiveCardGrid limits preview content to configured rows', (
@@ -112,5 +113,65 @@ void main() {
 
     expect(find.byKey(const Key('adaptive-grid-item-199')), findsOneWidget);
     expect(find.byKey(const Key('adaptive-grid-item-0')), findsNothing);
+  });
+
+  testWidgets('AppAdaptiveCardGrid defaults to the unified card grid spec', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(2400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: Scaffold(
+          body: AppAdaptiveCardGrid<int>(
+            gridKey: const Key('unified-spec-grid'),
+            items: List<int>.generate(30, (index) => index),
+            childAspectRatio: 1,
+            itemBuilder: (_, item, __) => const SizedBox.shrink(),
+          ),
+        ),
+      ),
+    );
+
+    final grid = tester.widget<GridView>(
+      find.byKey(const Key('unified-spec-grid')),
+    );
+    final delegate =
+        grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    // 2400 宽按统一目标宽 220 可排 10 列，由统一列数上限收敛到 8。
+    expect(
+      delegate.crossAxisCount,
+      AppComponentTokens.defaults().cardGridMaxColumns,
+    );
+  });
+
+  testWidgets('resolveAppCardGridColumnCount reads the unified token spec', (
+    tester,
+  ) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) {
+              ctx = context;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+
+    // (1200 + 12) / (220 + 12) = 5.2 → 5 列。
+    expect(resolveAppCardGridColumnCount(ctx, width: 1200, spacing: 12), 5);
+    expect(
+      resolveAppCardGridColumnCount(ctx, width: 2400, spacing: 12),
+      AppComponentTokens.defaults().cardGridMaxColumns,
+    );
   });
 }

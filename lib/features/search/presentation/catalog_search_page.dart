@@ -38,6 +38,9 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
   late final TextEditingController _textController;
   late final TabController _tabController;
 
+  MovieCardHoverFeatureActions get _hoverFeatureActions =>
+      movieCardHoverFeatureActions(context);
+
   @override
   void initState() {
     super.initState();
@@ -149,6 +152,8 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
             globalPosition,
             isSubscribed: movie.isSubscribed,
           ),
+      onMovieToggleCollectionType: _hoverFeatureActions.toggleCollectionType,
+      onMovieBlacklist: _hoverFeatureActions.blacklist,
       onActorTap: (actor) => context.pushDesktopActorDetail(actorId: actor.id),
       onMovieSubscriptionTap:
           (movie) => _toggleMovieSubscription(movie.movieNumber),

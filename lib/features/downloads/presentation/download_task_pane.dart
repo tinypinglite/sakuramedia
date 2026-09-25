@@ -8,6 +8,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
+import 'package:sakuramedia/features/downloads/presentation/download_placeholders.dart';
 import 'package:sakuramedia/features/downloads/presentation/download_task_filter_state.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_provider.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_state.dart';
@@ -20,6 +21,7 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/domain/downloads/download_task_delete_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
@@ -33,6 +35,7 @@ import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 /// 构建「下载任务」Tab 的 sliver 列表。
 ///
@@ -227,7 +230,26 @@ List<Widget> buildDownloadTaskSlivers({
   final asyncState = ref.watch(downloadTaskCenterProvider);
 
   if (asyncState.isLoading && !asyncState.hasValue) {
-    return const <Widget>[SliverToBoxAdapter(child: _DownloadInitialLoading())];
+    // loading 用占位任务渲染真实任务卡，由 [AppSkeletonizer] 灰化。
+    final placeholders = downloadTaskPlaceholders();
+    return <Widget>[
+      AppSkeletonizer.sliver(
+        enabled: true,
+        child: SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            final isLast = index == placeholders.length - 1;
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: isLast ? 0 : context.appSpacing.md,
+              ),
+              child: RepaintBoundary(
+                child: _DownloadTaskCard(row: placeholders[index]),
+              ),
+            );
+          }, childCount: placeholders.length),
+        ),
+      ),
+    ];
   }
   if (asyncState.hasError && !asyncState.hasValue) {
     return <Widget>[
@@ -306,26 +328,6 @@ List<Widget> buildDownloadTaskSlivers({
   return slivers;
 }
 
-class _DownloadInitialLoading extends StatelessWidget {
-  const _DownloadInitialLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: context.appSpacing.xxl),
-      child: Center(
-        child: SizedBox(
-          width: 36,
-          height: 36,
-          child: CircularProgressIndicator.adaptive(
-            strokeWidth: context.appComponentTokens.movieCardLoaderStrokeWidth,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _DownloadTaskCard extends ConsumerWidget {
   const _DownloadTaskCard({required this.row});
 
@@ -333,7 +335,10 @@ class _DownloadTaskCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(downloadTaskCenterProvider).requireValue;
+    // 首屏骨架渲染占位行时 provider 还没有 value，退回初始状态取空选择 / 空客户端名。
+    final state =
+        ref.watch(downloadTaskCenterProvider).value ??
+        DownloadTaskCenterState.initial;
     final colors = context.appColors;
     final componentTokens = context.appComponentTokens;
     final task = row.task;
@@ -353,154 +358,158 @@ class _DownloadTaskCard extends ConsumerWidget {
         ? thinCoverUrl
         : wideCoverUrl;
 
-    return AppLeftCoverCard(
-      key: Key('download-task-${task.id}'),
-      coverWidth: componentTokens.downloadTaskCoverWidth,
-      bodyMinHeight: componentTokens.downloadTaskCardMinHeight,
-      selected: selectionMode && isSelected,
-      onTap: selectionMode
-          ? () => ref
-                .read(downloadTaskCenterProvider.notifier)
-                .toggleSelection(task.id)
-          : null,
-      cover: _DownloadTaskCover(
-        coverUrl: coverUrl,
-        movieNumber: hasMovieNumber ? movieNumber : null,
-        selectionMode: selectionMode,
-        isSelected: isSelected,
-        onTap: selectionMode || !hasMovieNumber
-            ? null
-            : () {
-                if (isMobile) {
-                  context.pushMobileMovieDetail(movieNumber: movieNumber!);
-                  return;
-                }
-                context.pushDesktopMovieDetail(
-                  movieNumber: movieNumber!,
-                  fallbackPath: desktopActivityPath,
-                );
-              },
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ① 番号：把用户"扫一眼找番号"的心智放最顶。空番号（predownload）不渲染。
-          if (hasMovieNumber)
-            AppBadge(
-              key: Key('download-task-movie-number-${movieNumber!}'),
-              label: movieNumber,
-              tone: AppBadgeTone.neutral,
-              size: AppBadgeSize.compact,
-            ),
-          if (hasMovieNumber) SizedBox(height: context.appSpacing.xs),
-          // ② 标题：中文标题优先，1 行 ellipsis。
-          Text(
-            displayTitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s14,
-              weight: AppTextWeight.medium,
-              tone: AppTextTone.primary,
-            ),
-          ),
-          SizedBox(height: context.appSpacing.sm),
-          // ③ 进度条：已完成态用中性灰，避免深色进度条抢眼。
-          ClipRRect(
-            borderRadius: context.appRadius.pillBorder,
-            child: LinearProgressIndicator(
-              minHeight: componentTokens.downloadTaskProgressHeight,
-              value: progress,
-              backgroundColor: colors.surfaceMuted,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                _progressBarColor(context, taskState),
-              ),
-            ),
-          ),
-          SizedBox(height: context.appSpacing.sm),
-          // ④ 下载状态一行：状态 badge + 百分比 + 导入短标签
-          Wrap(
-            spacing: context.appSpacing.sm,
-            runSpacing: context.appSpacing.xs,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
+    // 骨架态整卡收敛成一块 shimmer 圆角块：进度条 / 状态角标不再透出自有颜色。
+    return Skeleton.unite(
+      borderRadius: context.appRadius.mdBorder,
+      child: AppLeftCoverCard(
+        key: Key('download-task-${task.id}'),
+        coverWidth: componentTokens.downloadTaskCoverWidth,
+        bodyMinHeight: componentTokens.downloadTaskCardMinHeight,
+        selected: selectionMode && isSelected,
+        onTap: selectionMode
+            ? () => ref
+                  .read(downloadTaskCenterProvider.notifier)
+                  .toggleSelection(task.id)
+            : null,
+        cover: _DownloadTaskCover(
+          coverUrl: coverUrl,
+          movieNumber: hasMovieNumber ? movieNumber : null,
+          selectionMode: selectionMode,
+          isSelected: isSelected,
+          onTap: selectionMode || !hasMovieNumber
+              ? null
+              : () {
+                  if (isMobile) {
+                    context.pushMobileMovieDetail(movieNumber: movieNumber!);
+                    return;
+                  }
+                  context.pushDesktopMovieDetail(
+                    movieNumber: movieNumber!,
+                    fallbackPath: desktopActivityPath,
+                  );
+                },
+        ),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ① 番号：把用户"扫一眼找番号"的心智放最顶。空番号（predownload）不渲染。
+            if (hasMovieNumber)
               AppBadge(
-                label: _labelForDownloadState(taskState),
-                tone: _toneForDownloadState(taskState),
+                key: Key('download-task-movie-number-${movieNumber!}'),
+                label: movieNumber,
+                tone: AppBadgeTone.neutral,
                 size: AppBadgeSize.compact,
               ),
-              Text(
-                '${(progress * 100).toStringAsFixed(1)}%',
-                style: _statTextStyle(context),
+            if (hasMovieNumber) SizedBox(height: context.appSpacing.xs),
+            // ② 标题：中文标题优先，1 行 ellipsis。
+            Text(
+              displayTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.medium,
+                tone: AppTextTone.primary,
               ),
-              // 导入 badge 用短标签，完整文案挂 Tooltip 里
-              if (task.importStatusLabel.isNotEmpty)
-                Tooltip(
-                  message: task.importStatusLabel,
-                  child: AppBadge(
-                    label: _shortImportLabel(
-                      task.importStatus,
-                      fallback: task.importStatusLabel,
-                    ),
-                    tone: _toneForImportStatus(task.importStatus),
-                    size: AppBadgeSize.compact,
-                  ),
+            ),
+            SizedBox(height: context.appSpacing.sm),
+            // ③ 进度条：已完成态用中性灰，避免深色进度条抢眼。
+            ClipRRect(
+              borderRadius: context.appRadius.pillBorder,
+              child: LinearProgressIndicator(
+                minHeight: componentTokens.downloadTaskProgressHeight,
+                value: progress,
+                backgroundColor: colors.surfaceMuted,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  _progressBarColor(context, taskState),
                 ),
-            ],
-          ),
-          SizedBox(height: context.appSpacing.sm),
-          // ⑤ 客户端 + 创建时间（靠左）+ 操作按钮（靠右）
-          Row(
-            children: [
-              Expanded(
-                child: Wrap(
-                  spacing: context.appSpacing.sm,
-                  runSpacing: context.appSpacing.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      state.clientNameOf(task.clientId),
-                      style: _footnoteTextStyle(context),
+              ),
+            ),
+            SizedBox(height: context.appSpacing.sm),
+            // ④ 下载状态一行：状态 badge + 百分比 + 导入短标签
+            Wrap(
+              spacing: context.appSpacing.sm,
+              runSpacing: context.appSpacing.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                AppBadge(
+                  label: _labelForDownloadState(taskState),
+                  tone: _toneForDownloadState(taskState),
+                  size: AppBadgeSize.compact,
+                ),
+                Text(
+                  '${(progress * 100).toStringAsFixed(1)}%',
+                  style: _statTextStyle(context),
+                ),
+                // 导入 badge 用短标签，完整文案挂 Tooltip 里
+                if (task.importStatusLabel.isNotEmpty)
+                  Tooltip(
+                    message: task.importStatusLabel,
+                    child: AppBadge(
+                      label: _shortImportLabel(
+                        task.importStatus,
+                        fallback: task.importStatusLabel,
+                      ),
+                      tone: _toneForImportStatus(task.importStatus),
+                      size: AppBadgeSize.compact,
                     ),
-                    if (formatUpdatedAtLabel(task.createdAt) != null)
+                  ),
+              ],
+            ),
+            SizedBox(height: context.appSpacing.sm),
+            // ⑤ 客户端 + 创建时间（靠左）+ 操作按钮（靠右）
+            Row(
+              children: [
+                Expanded(
+                  child: Wrap(
+                    spacing: context.appSpacing.sm,
+                    runSpacing: context.appSpacing.xs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
                       Text(
-                        '创建 ${formatUpdatedAtLabel(task.createdAt)}',
+                        state.clientNameOf(task.clientId),
                         style: _footnoteTextStyle(context),
                       ),
-                  ],
-                ),
-              ),
-              if (!selectionMode && _canRetriggerImport(task)) ...[
-                AppIconButton(
-                  key: Key('download-task-retrigger-import-${task.id}'),
-                  icon: const Icon(Icons.refresh_rounded),
-                  tooltip: '重新导入',
-                  onPressed: isPending
-                      ? null
-                      : () => unawaited(_triggerImport(context, ref, task.id)),
-                ),
-                SizedBox(width: context.appSpacing.xs),
-              ],
-              if (!selectionMode)
-                AppIconButton(
-                  key: Key('download-task-delete-${task.id}'),
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  tooltip: isImportRunning ? '任务正在导入，无法删除' : '删除',
-                  onPressed: (isPending || isImportRunning)
-                      ? null
-                      : () => showDownloadTaskDeleteDialog(
-                          context,
-                          tasks: [task],
-                          onDelete: (id, deleteFiles) => ref
-                              .read(downloadTaskCenterProvider.notifier)
-                              .deleteTask(id, deleteFiles: deleteFiles),
+                      if (formatUpdatedAtLabel(task.createdAt) != null)
+                        Text(
+                          '创建 ${formatUpdatedAtLabel(task.createdAt)}',
+                          style: _footnoteTextStyle(context),
                         ),
+                    ],
+                  ),
                 ),
-            ],
+                if (!selectionMode && _canRetriggerImport(task)) ...[
+                  AppIconButton(
+                    key: Key('download-task-retrigger-import-${task.id}'),
+                    icon: const Icon(Icons.refresh_rounded),
+                    tooltip: '重新导入',
+                    onPressed: isPending
+                        ? null
+                        : () => unawaited(_triggerImport(context, ref, task.id)),
+                  ),
+                  SizedBox(width: context.appSpacing.xs),
+                ],
+                if (!selectionMode)
+                  AppIconButton(
+                    key: Key('download-task-delete-${task.id}'),
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    tooltip: isImportRunning ? '任务正在导入，无法删除' : '删除',
+                    onPressed: (isPending || isImportRunning)
+                        ? null
+                        : () => showDownloadTaskDeleteDialog(
+                            context,
+                            tasks: [task],
+                            onDelete: (id, deleteFiles) => ref
+                                .read(downloadTaskCenterProvider.notifier)
+                                .deleteTask(id, deleteFiles: deleteFiles),
+                          ),
+                  ),
+              ],
+            ),
+          ],
           ),
-        ],
-      ),
+        ),
     );
   }
 

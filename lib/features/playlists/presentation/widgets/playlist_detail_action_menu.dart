@@ -5,20 +5,24 @@ import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 
 enum PlaylistDetailActionType { edit, delete }
 
-/// 播放列表详情「···」菜单：编辑信息 / 删除播放列表。
+/// 播放列表详情横幅「···」菜单：编辑信息 / 删除播放列表。
 ///
-/// 触发方式均为上下文入口——桌面 hover「···」按钮、桌面右键 / 移动长按横幅，
-/// 统一使用锚定按压点的 [AppMenuPresentation.popup]。
+/// 入口为横幅右上角常显按钮——桌面用锚定按钮的 [AppMenuPresentation.popup]，
+/// 移动端用 [AppMenuPresentation.bottomDrawer]（底部操作表）。
 Future<PlaylistDetailActionType?> showPlaylistDetailActionMenu({
   required BuildContext context,
   required PlaylistDto playlist,
-  required Offset position,
+  AppMenuPresentation presentation = AppMenuPresentation.popup,
+  Offset position = Offset.zero,
 }) {
+  final isDrawer = presentation == AppMenuPresentation.bottomDrawer;
   return showAppActionMenu<PlaylistDetailActionType>(
     context: context,
     globalPosition: position,
-    presentation: AppMenuPresentation.popup,
-    useRootNavigator: true,
+    presentation: presentation,
+    useRootNavigator: !isDrawer,
+    drawerKey: const Key('playlist-detail-actions-drawer'),
+    title: isDrawer ? '播放列表操作' : null,
     items: <AppMenuItem<PlaylistDetailActionType>>[
       if (playlist.isMutable)
         const AppMenuItem(

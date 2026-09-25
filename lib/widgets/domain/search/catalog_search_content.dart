@@ -24,6 +24,8 @@ class CatalogSearchContent extends StatelessWidget {
     required this.onTabSelected,
     required this.onMovieTap,
     this.onMovieMenuRequest,
+    this.onMovieToggleCollectionType,
+    this.onMovieBlacklist,
     required this.onActorTap,
     required this.onMovieSubscriptionTap,
     required this.onActorSubscriptionTap,
@@ -40,6 +42,12 @@ class CatalogSearchContent extends StatelessWidget {
   final ValueChanged<MovieListItemDto> onMovieTap;
   final void Function(MovieListItemDto movie, Offset globalPosition)?
   onMovieMenuRequest;
+
+  /// 悬停动作行「标记为合集 / 单体」回调；为 `null` 时该按钮不显示。
+  final ValueChanged<MovieListItemDto>? onMovieToggleCollectionType;
+
+  /// 悬停动作行「屏蔽影片」回调；为 `null` 或影片已订阅时该按钮不显示。
+  final ValueChanged<MovieListItemDto>? onMovieBlacklist;
   final ValueChanged<ActorListItemDto> onActorTap;
   final ValueChanged<MovieListItemDto> onMovieSubscriptionTap;
   final ValueChanged<ActorListItemDto> onActorSubscriptionTap;
@@ -131,6 +139,8 @@ class CatalogSearchContent extends StatelessWidget {
               : '本地库中没有匹配该关键词的影片。',
           onMovieTap: onMovieTap,
           onMovieMenuRequest: onMovieMenuRequest,
+          onMovieToggleCollectionType: onMovieToggleCollectionType,
+          onMovieBlacklist: onMovieBlacklist,
           onMovieSubscriptionTap: onMovieSubscriptionTap,
           isMovieSubscriptionUpdating: (movie) =>
               state.isMovieSubscriptionUpdating(movie.movieNumber),

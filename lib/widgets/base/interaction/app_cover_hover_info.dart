@@ -157,17 +157,13 @@ class _CoverHoverPanel extends StatelessWidget {
   }
 }
 
-/// 悬停面板的信息行：左侧「主标签 + 副信息」单行，行尾放操作按钮。
+/// 悬停面板的信息行：「主标签 + 副信息」单行。
 ///
 /// 主标签先用 [Flexible] 截断，副信息保持常显——卡片宽度有限时先牺牲标题，
-/// 不牺牲番号 / 时长等识别信息。
+/// 不牺牲番号 / 时长等识别信息。动作按钮不放在这里，统一由
+/// [AppCoverHoverActionBar] 在信息行下方铺满一整行。
 class AppCoverHoverInfoRow extends StatelessWidget {
-  const AppCoverHoverInfoRow({
-    super.key,
-    required this.label,
-    this.meta,
-    this.action,
-  });
+  const AppCoverHoverInfoRow({super.key, required this.label, this.meta});
 
   /// 主标签（切片标题 / 时刻番号）。
   final String label;
@@ -175,100 +171,134 @@ class AppCoverHoverInfoRow extends StatelessWidget {
   /// 副信息（番号 · 时长 · 大小 / 类型 · 位置等），为空时省略。
   final String? meta;
 
-  /// 行尾操作（通常是播放主按钮）。
-  final Widget? action;
-
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final metaText = meta?.trim();
-    final actionWidget = action;
-    return Row(
-      children: [
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveCoverOverlayTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        weight: AppTextWeight.semibold,
-                      ),
-                    ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: resolveCoverOverlayTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.semibold,
+                ),
+              ),
+            ),
+            if (metaText != null && metaText.isNotEmpty) ...[
+              SizedBox(width: spacing.sm),
+              ConstrainedBox(
+                // 副信息最多占信息行的 8 成：保证番号 / 时长尽量常显，
+                // 大字体或宽字形时先截副信息，剩余空间留给主标签。
+                constraints: BoxConstraints(
+                  maxWidth: constraints.maxWidth * 0.8,
+                ),
+                child: Text(
+                  metaText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  style: resolveCoverOverlayTextStyle(
+                    context,
+                    size: AppTextSize.s10,
+                    opacity: 0.72,
                   ),
-                  if (metaText != null && metaText.isNotEmpty) ...[
-                    SizedBox(width: spacing.sm),
-                    ConstrainedBox(
-                      // 副信息最多占信息行的 8 成：保证番号 / 时长尽量常显，
-                      // 大字体或宽字形时先截副信息，剩余空间留给主标签。
-                      constraints: BoxConstraints(
-                        maxWidth: constraints.maxWidth * 0.8,
-                      ),
-                      child: Text(
-                        metaText,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: false,
-                        style: resolveCoverOverlayTextStyle(
-                          context,
-                          size: AppTextSize.s10,
-                          opacity: 0.72,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
-        ),
-        if (actionWidget != null) ...[
-          SizedBox(width: spacing.sm),
-          actionWidget,
-        ],
-      ],
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }
 
-/// 悬停面板行尾的播放主按钮：白底实心圆 + 品牌色播放图标（与影片卡一致）。
-class AppCoverHoverPlayButton extends StatelessWidget {
-  const AppCoverHoverPlayButton({super.key, required this.onTap});
+/// 悬停面板的动作行：信息行下方一整行圆形图标按钮，全站卡片统一。
+///
+/// 调用方按当前上下文把可用动作依次传入；行动作按 [Wrap] 排列，窄卡片自动
+/// 折行。动作调用方负责为每个按钮提供稳定的测试 Key。
+class AppCoverHoverActionBar extends StatelessWidget {
+  const AppCoverHoverActionBar({super.key, required this.actions});
 
-  final VoidCallback onTap;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    if (actions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Wrap(
+      // 间距取 xs/2：窄卡片（约 180 逻辑宽）也能让 5 个动作保持一行。
+      spacing: context.appSpacing.xs / 2,
+      runSpacing: context.appSpacing.xs / 2,
+      children: actions,
+    );
+  }
+}
+
+/// 悬停面板动作行里的圆形图标按钮。
+///
+/// [primary] 为播放等主操作：白底实心圆 + 品牌色图标；其余动作为半透明白底 +
+/// 白图标，保证在压暗渐变上可读。`onTap` 为 `null` 时只作占位（不响应点击）。
+class AppCoverHoverActionButton extends StatelessWidget {
+  const AppCoverHoverActionButton({
+    super.key,
+    required this.icon,
+    this.onTap,
+    this.primary = false,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  /// 主操作用白底实心（当前只有播放），次操作用半透明白底。
+  final bool primary;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.appComponentTokens;
-    return GestureDetector(
+    final tooltipText = tooltip;
+    final button = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: MouseRegion(
-        cursor: SystemMouseCursors.click,
+        cursor: onTap != null
+            ? SystemMouseCursors.click
+            : SystemMouseCursors.basic,
         child: Container(
-          width: tokens.iconSize3xl,
-          height: tokens.iconSize3xl,
+          width: tokens.iconSize2xl,
+          height: tokens.iconSize2xl,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: primary
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.16),
             shape: BoxShape.circle,
           ),
           child: Icon(
-            Icons.play_arrow_rounded,
-            size: tokens.iconSizeLg,
-            color: context.appTextPalette.primary,
+            icon,
+            size: tokens.iconSizeMd,
+            color: primary
+                ? context.appTextPalette.primary
+                : context.appTextPalette.onMedia,
           ),
         ),
       ),
     );
+    if (tooltipText == null || tooltipText.isEmpty) {
+      return button;
+    }
+    return Tooltip(message: tooltipText, child: button);
   }
 }
 

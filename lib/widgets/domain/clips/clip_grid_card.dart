@@ -5,6 +5,7 @@ import 'package:sakuramedia/widgets/base/interaction/app_cover_hover_info.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 enum _ClipCardAction { openMovie, addToCollection, rename, delete }
 
@@ -92,25 +93,28 @@ class ClipGridCard extends StatelessWidget {
             borderRadius: context.appRadius.mdBorder,
             child: AspectRatio(
               aspectRatio: 16 / 9,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  AppCoverHoverInfo(
-                    enabled: !selectionMode,
-                    cover: coverUrl != null && coverUrl.isNotEmpty
-                        ? MaskedImage(url: coverUrl, fit: BoxFit.cover)
-                        : ColoredBox(color: colors.surfaceMuted),
-                    infoBuilder: (context) => _buildHoverInfo(context),
-                  ),
-                  if (selectionMode)
-                    Positioned(
-                      top: context.appSpacing.xs,
-                      left: context.appSpacing.xs,
-                      child: IgnorePointer(
-                        child: SelectionCheckBadge(isSelected: isSelected),
-                      ),
+              // 骨架态整卡收敛成一块 shimmer 圆角块（非骨架态原样渲染）。
+              child: Skeleton.unite(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    AppCoverHoverInfo(
+                      enabled: !selectionMode,
+                      cover: coverUrl != null && coverUrl.isNotEmpty
+                          ? MaskedImage(url: coverUrl, fit: BoxFit.cover)
+                          : ColoredBox(color: colors.surfaceMuted),
+                      infoBuilder: (context) => _buildHoverInfo(context),
                     ),
-                ],
+                    if (selectionMode)
+                      Positioned(
+                        top: context.appSpacing.xs,
+                        left: context.appSpacing.xs,
+                        child: IgnorePointer(
+                          child: SelectionCheckBadge(isSelected: isSelected),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -131,19 +135,67 @@ class ClipGridCard extends StatelessWidget {
     );
   }
 
-  /// 悬停展开内容：单行「标题 + 番号 · 时长 · 大小」，播放主按钮靠右。
+  /// 悬停展开内容：单行「标题 + 番号 · 时长 · 大小」，下方一整行动作按钮
+  /// （播放 / 影片 / 加入合集 / 重命名 / 删除，按回调是否为空显隐）。
   Widget _buildHoverInfo(BuildContext context) {
+    final spacing = context.appSpacing;
     final play = onPlay;
-    return AppCoverHoverInfoRow(
-      key: Key('clip-grid-card-info-${clip.clipId}'),
-      label: clip.displayTitle,
-      meta: clip.metaLine,
-      action: play == null
-          ? null
-          : AppCoverHoverPlayButton(
-              key: Key('clip-grid-card-play-${clip.clipId}'),
-              onTap: play,
-            ),
+    final openMovie = onOpenMovie;
+    final addToCollection = onAddToCollection;
+    final rename = onRename;
+    final delete = onDelete;
+    final actions = <Widget>[
+      if (play != null)
+        AppCoverHoverActionButton(
+          key: Key('clip-grid-card-play-${clip.clipId}'),
+          icon: Icons.play_arrow_rounded,
+          onTap: play,
+          primary: true,
+          tooltip: '播放',
+        ),
+      if (openMovie != null)
+        AppCoverHoverActionButton(
+          key: Key('clip-grid-card-movie-${clip.clipId}'),
+          icon: Icons.movie_outlined,
+          onTap: openMovie,
+          tooltip: '影片',
+        ),
+      if (addToCollection != null)
+        AppCoverHoverActionButton(
+          key: Key('clip-grid-card-add-collection-${clip.clipId}'),
+          icon: Icons.playlist_add_rounded,
+          onTap: addToCollection,
+          tooltip: '加入合集',
+        ),
+      if (rename != null)
+        AppCoverHoverActionButton(
+          key: Key('clip-grid-card-rename-${clip.clipId}'),
+          icon: Icons.edit_outlined,
+          onTap: rename,
+          tooltip: '重命名',
+        ),
+      if (delete != null)
+        AppCoverHoverActionButton(
+          key: Key('clip-grid-card-delete-${clip.clipId}'),
+          icon: Icons.delete_outline_rounded,
+          onTap: delete,
+          tooltip: '删除',
+        ),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AppCoverHoverInfoRow(
+          key: Key('clip-grid-card-info-${clip.clipId}'),
+          label: clip.displayTitle,
+          meta: clip.metaLine,
+        ),
+        if (actions.isNotEmpty) ...[
+          SizedBox(height: spacing.sm),
+          AppCoverHoverActionBar(actions: actions),
+        ],
+      ],
     );
   }
 

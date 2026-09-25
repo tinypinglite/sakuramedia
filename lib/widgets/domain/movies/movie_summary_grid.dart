@@ -16,6 +16,8 @@ class MovieSummaryGrid extends ConsumerWidget {
     this.onMovieTap,
     this.onMovieMenuRequest,
     this.onMovieSubscriptionTap,
+    this.onMovieToggleCollectionType,
+    this.onMovieBlacklist,
     this.isMovieSubscriptionUpdating,
     this.useDefaultSubscriptionActions = false,
     this.secondaryLabelForMovie,
@@ -24,7 +26,6 @@ class MovieSummaryGrid extends ConsumerWidget {
     this.isMovieSelected,
     this.onMovieSelectedChanged,
     this.maxRows,
-    this.maxColumns = 6,
   });
 
   final List<MovieListItemDto> items;
@@ -33,6 +34,12 @@ class MovieSummaryGrid extends ConsumerWidget {
   final void Function(MovieListItemDto movie, Offset globalPosition)?
   onMovieMenuRequest;
   final ValueChanged<MovieListItemDto>? onMovieSubscriptionTap;
+
+  /// 悬停动作行「标记为合集 / 单体」回调；为 `null` 时该按钮不显示。
+  final ValueChanged<MovieListItemDto>? onMovieToggleCollectionType;
+
+  /// 悬停动作行「屏蔽影片」回调；为 `null` 或影片已订阅时该按钮不显示。
+  final ValueChanged<MovieListItemDto>? onMovieBlacklist;
   final bool Function(MovieListItemDto movie)? isMovieSubscriptionUpdating;
 
   /// 未传自定义订阅回调时，接入跨列表复用的默认订阅动作。
@@ -49,9 +56,6 @@ class MovieSummaryGrid extends ConsumerWidget {
   /// 首页等预览区可限制为固定行数；列表页保持不传以展示全部项目。
   final int? maxRows;
 
-  /// 网格的最大列数；默认保持影片列表既有的 6 列上限。
-  final int maxColumns;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final usesDefaultSubscriptionActions =
@@ -65,7 +69,6 @@ class MovieSummaryGrid extends ConsumerWidget {
       errorMessage: errorMessage,
       emptyMessage: emptyMessage,
       maxRows: maxRows,
-      maxColumns: maxColumns,
       itemBuilder: (context, movie, index) => MovieSummaryCard(
         movie: movie,
         onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
@@ -79,6 +82,12 @@ class MovieSummaryGrid extends ConsumerWidget {
                 _toggleDefaultMovieSubscription(ref, context, movie),
               )
             : null,
+        onToggleCollectionType: onMovieToggleCollectionType == null
+            ? null
+            : () => onMovieToggleCollectionType!(movie),
+        onBlacklist: onMovieBlacklist == null
+            ? null
+            : () => onMovieBlacklist!(movie),
         isSubscriptionUpdating:
             isMovieSubscriptionUpdating?.call(movie) ??
             updatingMovieNumbers.contains(movie.movieNumber),
@@ -102,6 +111,8 @@ class MovieSummarySliver extends ConsumerWidget {
     this.onMovieTap,
     this.onMovieMenuRequest,
     this.onMovieSubscriptionTap,
+    this.onMovieToggleCollectionType,
+    this.onMovieBlacklist,
     this.isMovieSubscriptionUpdating,
     this.useDefaultSubscriptionActions = false,
     this.secondaryLabelForMovie,
@@ -117,6 +128,12 @@ class MovieSummarySliver extends ConsumerWidget {
   final void Function(MovieListItemDto movie, Offset globalPosition)?
   onMovieMenuRequest;
   final ValueChanged<MovieListItemDto>? onMovieSubscriptionTap;
+
+  /// 悬停动作行「标记为合集 / 单体」回调；为 `null` 时该按钮不显示。
+  final ValueChanged<MovieListItemDto>? onMovieToggleCollectionType;
+
+  /// 悬停动作行「屏蔽影片」回调；为 `null` 或影片已订阅时该按钮不显示。
+  final ValueChanged<MovieListItemDto>? onMovieBlacklist;
   final bool Function(MovieListItemDto movie)? isMovieSubscriptionUpdating;
 
   /// 未传自定义订阅回调时，接入跨列表复用的默认订阅动作。
@@ -154,6 +171,12 @@ class MovieSummarySliver extends ConsumerWidget {
                 _toggleDefaultMovieSubscription(ref, context, movie),
               )
             : null,
+        onToggleCollectionType: onMovieToggleCollectionType == null
+            ? null
+            : () => onMovieToggleCollectionType!(movie),
+        onBlacklist: onMovieBlacklist == null
+            ? null
+            : () => onMovieBlacklist!(movie),
         isSubscriptionUpdating:
             isMovieSubscriptionUpdating?.call(movie) ??
             updatingMovieNumbers.contains(movie.movieNumber),

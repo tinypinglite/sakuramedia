@@ -12,6 +12,8 @@ import 'package:skeletonizer/skeletonizer.dart';
 ///   [SolidColorEffect]，避免持续动画；
 /// - 加载态默认屏蔽子树指针事件（`ignorePointers`），占位渲染期间的交互回调
 ///   不会触发；品牌底色元素用 `Skeleton.shade` 随骨架灰化；
+/// - 共享卡片内部用 `Skeleton.unite` 把整卡收敛成一块 shimmer 圆角块，卡内角标 /
+///   文字骨块不再单独透出，卡片边框 / 阴影留在 unite 外层；非骨架态原样渲染；
 /// - 加载态对屏幕阅读器隐藏占位内容（占位文案用 `BoneMock`，不是真实数据）。
 ///
 /// [AppSkeletonizer.sliver] 用于把骨架网格直接放进 `CustomScrollView` 的

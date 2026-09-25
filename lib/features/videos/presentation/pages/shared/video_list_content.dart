@@ -30,6 +30,9 @@ class VideoListContent extends StatelessWidget {
     required this.onRetryFilter,
     required this.onVideoTap,
     this.onVideoPlay,
+    this.onVideoThumbnails,
+    this.onVideoAddToCollection,
+    this.onVideoDelete,
     this.selectionMode = false,
     this.selectedIds = const <int>{},
     this.onVideoToggleSelect,
@@ -53,6 +56,15 @@ class VideoListContent extends StatelessWidget {
 
   /// 悬停面板播放键的回调；为 `null` 时卡片不显示播放键。
   final ValueChanged<VideoItemListItemDto>? onVideoPlay;
+
+  /// 悬停面板「缩略图」动作；为 `null` 时卡片不显示。
+  final ValueChanged<VideoItemListItemDto>? onVideoThumbnails;
+
+  /// 悬停面板「加入合集」动作；为 `null` 时卡片不显示。
+  final ValueChanged<VideoItemListItemDto>? onVideoAddToCollection;
+
+  /// 悬停面板「删除」动作；为 `null` 时卡片不显示。
+  final ValueChanged<VideoItemListItemDto>? onVideoDelete;
 
   /// 选择模式：网格切换为多选交互。
   final bool selectionMode;
@@ -140,6 +152,9 @@ class VideoListContent extends StatelessWidget {
               errorMessage: initialErrorMessage,
               onVideoTap: onVideoTap,
               onVideoPlay: onVideoPlay,
+              onVideoThumbnails: onVideoThumbnails,
+              onVideoAddToCollection: onVideoAddToCollection,
+              onVideoDelete: onVideoDelete,
               selectionMode: selectionMode,
               selectedIds: selectedIds,
               onVideoToggleSelect: onVideoToggleSelect,

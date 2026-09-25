@@ -127,6 +127,14 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
   MovieSummaryScope get _scope =>
       MovieSummaryScope.actor(actorId: widget.actorId);
 
+  MovieCardHoverFeatureActions get _hoverFeatureActions =>
+      movieCardHoverFeatureActions(
+        context,
+        onBlacklisted: (movieNumber) => ref
+            .read(movieSummaryProvider(_scope).notifier)
+            .removeMovies(<String>[movieNumber]),
+      );
+
   MovieFilterState get _filterState =>
       ref.read(movieSummaryProvider(_scope)).value?.filter.movie ??
       MovieFilterState.initial;
@@ -538,6 +546,9 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
                           },
                           onMovieSubscriptionTap: (movie) =>
                               _toggleMovieSubscription(movie.movieNumber),
+                          onMovieToggleCollectionType:
+                              _hoverFeatureActions.toggleCollectionType,
+                          onMovieBlacklist: _hoverFeatureActions.blacklist,
                           isMovieSubscriptionUpdating: (movie) =>
                               movies?.isSubscriptionUpdating(
                                 movie.movieNumber,

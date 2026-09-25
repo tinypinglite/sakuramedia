@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -80,6 +81,67 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(movieTapCount, 0);
     expect(bundle.adapter.hitCount('PUT', '/movies/SIM-001/subscription'), 1);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('窄卡悬停整行动作按钮不溢出', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: bundle.riverpodOverrides(),
+        child: OKToast(
+          child: MaterialApp(
+            theme: sakuraThemeData,
+            home: Scaffold(
+              body: MovieSimilarMovieStrip(
+                movies: const <MovieListItemDto>[
+                  MovieListItemDto(
+                    javdbId: 'SimilarA2',
+                    movieNumber: 'SIM-002',
+                    title: 'Similar Movie 2',
+                    coverImage: null,
+                    releaseDate: null,
+                    durationMinutes: 120,
+                    heat: 12,
+                    isSubscribed: false,
+                    canPlay: true,
+                  ),
+                ],
+                isLoading: false,
+                onMovieTap: (_) {},
+                onMovieToggleCollectionType: (_) {},
+                onMovieBlacklist: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(
+      tester.getCenter(find.byKey(const Key('movie-summary-card-SIM-002'))),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('movie-summary-card-play-SIM-002')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-summary-card-subscription-action-SIM-002')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-summary-card-collection-type-SIM-002')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-summary-card-blacklist-SIM-002')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
     await tester.pump(const Duration(seconds: 3));
   });
 }

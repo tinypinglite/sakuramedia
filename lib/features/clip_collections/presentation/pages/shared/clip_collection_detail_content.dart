@@ -21,7 +21,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_view_mode_toggle_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
@@ -35,9 +34,6 @@ import 'package:sakuramedia/widgets/domain/clips/clip_cover_card.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-
-/// 合集详情的切片排布方式：纵向列表（可拖序）或网格（侧重浏览）。
-enum ClipCollectionDetailLayout { list, grid }
 
 typedef ClipPlaySingle = Future<void> Function(
   BuildContext context,
@@ -75,13 +71,13 @@ class ClipCollectionMemberActions {
 
 /// 切片合集详情共享实现（桌面 / 移动双端壳收敛的 content 层）。
 ///
-/// 平台差异收在壳参数与钩子里：`surfaceColor` / `keyPrefix` / `enableReorder` /
-/// `defaultLayout` / `useMobileSelectionLayout` / `hoistTitleToSubpageShell`,
+/// 平台差异收在壳参数与钩子里：`surfaceColor` / `keyPrefix` /
+/// `useMobileSelectionLayout` / `hoistTitleToSubpageShell`,
 ///以及动作抽屉（`onMemberTap`）、单集播放（`playSingle`）、来源影片（`onOpenMovie`）、
 /// 确认弹层（`confirm`）、播放全部（`playAllBuilder`）、改名 / 添加切片（`onEditCollection` /
 /// `onAddClips`）。批量动作 / 删除 / 连播交接 / 列数推导等逐字重复块全部下沉本层。
-/// **桌面切片合集没有「加入其它合集」批量动作**（移动独有），本层按
-/// `useMobileSelectionLayout` 门控、不改变两端行为。
+/// **「加入其它合集」批量动作是移动独有**；桌面单卡悬停动作行同样提供「加入合集」
+/// 单卡入口，本层按 `useMobileSelectionLayout` 门控悬停动作。
 class ClipCollectionDetailContent extends ConsumerStatefulWidget {
   const ClipCollectionDetailContent({
     super.key,
@@ -90,8 +86,6 @@ class ClipCollectionDetailContent extends ConsumerStatefulWidget {
     required this.keyPrefix,
     this.useMobileSelectionLayout = false,
     this.hoistTitleToSubpageShell = false,
-    this.enableReorder = false,
-    this.defaultLayout = ClipCollectionDetailLayout.grid,
     this.playAllBuilder,
     this.onMemberTap,
     this.playSingle,
@@ -111,12 +105,6 @@ class ClipCollectionDetailContent extends ConsumerStatefulWidget {
 
   /// 把合集名报给外层移动子页壳的返回栏；桌面端 `false`——标题块留在页内。
   final bool hoistTitleToSubpageShell;
-
-  /// 允许列表拖拽重排（桌面端 true；移动端不支持拖序）。
-  final bool enableReorder;
-
-  /// 默认成员排布：两端默认都是 grid。
-  final ClipCollectionDetailLayout defaultLayout;
 
   final ClipPlayAllBuilder? playAllBuilder;
 
@@ -156,9 +144,6 @@ class ClipCollectionDetailContent extends ConsumerStatefulWidget {
 class _ClipCollectionDetailContentState
     extends ConsumerState<ClipCollectionDetailContent>
     with MultiSelectStateMixin<ClipCollectionDetailContent, int> {
-  int? _hoveredClipId;
-  late ClipCollectionDetailLayout _layout;
-
   ClipCollectionDetailProvider get _providerRef =>
       clipCollectionDetailProvider(widget.collectionId);
 
@@ -166,31 +151,6 @@ class _ClipCollectionDetailContentState
       ref.read(clipMutationEventsProvider.notifier);
 
   bool get _isMobile => widget.useMobileSelectionLayout;
-
-  String get _reorderHandleKeyPrefix =>
-      _isMobile ? 'mobile-clip-reorder-handle' : 'clip-reorder-handle';
-
-  @override
-  void initState() {
-    super.initState();
-    _layout = widget.defaultLayout;
-  }
-
-  void _setHovered(int? clipId) {
-    if (_hoveredClipId == clipId) {
-      return;
-    }
-    setState(() => _hoveredClipId = clipId);
-  }
-
-  void _toggleLayout() {
-    setState(() {
-      _layout =
-          _layout == ClipCollectionDetailLayout.list
-              ? ClipCollectionDetailLayout.grid
-              : ClipCollectionDetailLayout.list;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -370,24 +330,11 @@ class _ClipCollectionDetailContentState
             size: AppTextButtonSize.small,
             onPressed: () => _addClips(context),
           ),
-        if (hasClips)
-          if (_isMobile)
-            AppViewModeToggleButton(
-              buttonKey: Key('${widget.keyPrefix}-layout-toggle'),
-              isList: _layout == ClipCollectionDetailLayout.list,
-              onPressed: _toggleLayout,
-            )
-          else ...[
-            AppSelectionEntryButton(
-              key: Key('${widget.keyPrefix}-enter-selection-button'),
-              onPressed: enterSelection,
-            ),
-            AppViewModeToggleButton(
-              buttonKey: Key('${widget.keyPrefix}-layout-toggle'),
-              isList: _layout == ClipCollectionDetailLayout.list,
-              onPressed: _toggleLayout,
-            ),
-          ],
+        if (hasClips && !_isMobile)
+          AppSelectionEntryButton(
+            key: Key('${widget.keyPrefix}-enter-selection-button'),
+            onPressed: enterSelection,
+          ),
         if (_isMobile)
           AppIconButton(
             key: Key('${widget.keyPrefix}-rename-button'),
@@ -493,105 +440,7 @@ class _ClipCollectionDetailContentState
         message: _isMobile ? '合集还没有切片，点右上角「添加」加入吧' : '合集还没有切片，去「全部切片」里加入吧',
       );
     }
-    return _layout == ClipCollectionDetailLayout.grid
-        ? _buildGrid(context, state)
-        : _buildList(context, state);
-  }
-
-  Widget _buildList(BuildContext context, ClipCollectionDetailState state) {
-    final clips = state.clips;
-    // 选择模式下禁用拖拽重排，退化为普通列表，避免与多选交互冲突（仅桌面）。
-    final canReorder = widget.enableReorder && !selectionMode;
-
-    CollectionMemberRow buildRow(int index, {required bool isHovered}) {
-      final clip = clips[index];
-      return CollectionMemberRow(
-        key: ValueKey<int>(clip.clipId),
-        index: index,
-        coverUrl: clip.coverImage?.bestAvailableUrl,
-        coverWidth: 120,
-        coverAspectRatio: 16 / 9,
-        title: clip.displayTitle,
-        subtitle: clip.metaLine,
-        isHovered: _isMobile ? false : isHovered,
-        onTap:
-            selectionMode
-                ? () => toggleSelect(clip.clipId)
-                : () => _openMemberActions(context, clip),
-        menuKey: Key('${widget.keyPrefix}-menu-${clip.clipId}'),
-        dragHandleKey: Key('$_reorderHandleKeyPrefix-${clip.clipId}'),
-        onOpenSource: _isMobile ? null : _openMovieCallback(clip),
-        openSourceLabel: '影片',
-        onRemove: _isMobile ? null : () => _removeClip(clip),
-        onDelete: _isMobile ? null : () => _deleteClip(clip),
-        deleteLabel: '删除切片',
-        reorderable: _isMobile ? false : canReorder,
-        selectionMode: selectionMode,
-        isSelected: isSelected(clip.clipId),
-      );
-    }
-
-    if (_isMobile) {
-      return ListView.separated(
-        key: Key('${widget.keyPrefix}-detail-list'),
-        // 横向缩进由 shell 提供，此处只补底部留白。
-        padding: EdgeInsets.only(bottom: context.appSpacing.lg),
-        itemCount: clips.length,
-        separatorBuilder: (context, index) => SizedBox(height: context.appSpacing.sm),
-        itemBuilder: (context, index) {
-          final clip = clips[index];
-          return GestureDetector(
-            onLongPress:
-                selectionMode
-                    ? null
-                    : () {
-                      enterSelection();
-                      toggleSelect(clip.clipId);
-                    },
-            child: buildRow(index, isHovered: false),
-          );
-        },
-      );
-    }
-
-    // 选择模式下退化为普通列表（无拖拽手柄）。
-    if (!canReorder) {
-      return ListView.separated(
-        key: Key('${widget.keyPrefix}-detail-list'),
-        itemCount: clips.length,
-        separatorBuilder:
-            (context, _) => SizedBox(height: context.appSpacing.sm),
-        itemBuilder: (context, index) => buildRow(index, isHovered: false),
-      );
-    }
-
-    return ReorderableListView.builder(
-      key: Key('${widget.keyPrefix}-detail-list'),
-      buildDefaultDragHandles: false,
-      itemCount: clips.length,
-      onReorder: _onReorder,
-      // 默认 proxyDecorator 会给拖动项叠加带阴影的 Material（主题色偏粉），
-      // 这里换成无阴影透明包装，去掉拖动时的粉色投影。
-      proxyDecorator:
-          (child, index, animation) =>
-              Material(type: MaterialType.transparency, child: child),
-      itemBuilder: (context, index) {
-        final clip = clips[index];
-        return Padding(
-          key: ValueKey<int>(clip.clipId),
-          padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-          child: MouseRegion(
-            onEnter: (_) => _setHovered(clip.clipId),
-            onExit: (_) {
-              if (_hoveredClipId == clip.clipId) {
-                _setHovered(null);
-              }
-            },
-            child: buildRow(index, isHovered: _hoveredClipId == clip.clipId),
-          ),
-        );
-      },
-    );
+    return _buildGrid(context, state);
   }
 
   Widget _buildGrid(BuildContext context, ClipCollectionDetailState state) {
@@ -599,11 +448,10 @@ class _ClipCollectionDetailContentState
     final spacing = context.appSpacing;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = resolveGridColumnCount(
+        final columns = resolveAppCardGridColumnCount(
+          context,
           width: constraints.maxWidth,
           spacing: spacing.md,
-          targetWidth: 280,
-          maxColumns: 4,
         );
         final grid = GridView.builder(
           key: Key('${widget.keyPrefix}-detail-grid'),
@@ -642,6 +490,7 @@ class _ClipCollectionDetailContentState
                 clip.movieNumber?.isNotEmpty == true ? clip.movieNumber! : '无番号';
             final duration = formatMediaTimecode(clip.durationSeconds);
             final playSingle = widget.playSingle;
+            final openMovie = _openMovieCallback(clip);
             return CollectionMemberCard(
               key: ValueKey<int>(clip.clipId),
               coverUrl: clip.coverImage?.bestAvailableUrl,
@@ -660,10 +509,23 @@ class _ClipCollectionDetailContentState
                       ? () => toggleSelect(clip.clipId)
                       : () => _openMemberActions(context, clip),
               menuKey: Key('${widget.keyPrefix}-grid-menu-${clip.clipId}'),
-              onOpenSource: _openMovieCallback(clip),
+              onOpenSource: openMovie,
               openSourceLabel: '影片',
+              openSourceButtonKey: Key(
+                '${widget.keyPrefix}-grid-movie-${clip.clipId}',
+              ),
+              onAddToCollection: () => _addToOtherCollection(clip),
+              addToCollectionButtonKey: Key(
+                '${widget.keyPrefix}-grid-add-collection-${clip.clipId}',
+              ),
               onRemove: () => _removeClip(clip),
+              removeButtonKey: Key(
+                '${widget.keyPrefix}-grid-remove-${clip.clipId}',
+              ),
               onDelete: () => _deleteClip(clip),
+              deleteButtonKey: Key(
+                '${widget.keyPrefix}-grid-delete-${clip.clipId}',
+              ),
               deleteLabel: '删除切片',
               selectionMode: selectionMode,
               isSelected: isSelected(clip.clipId),
@@ -787,21 +649,40 @@ class _ClipCollectionDetailContentState
     );
   }
 
-  Future<void> _onReorder(int oldIndex, int newIndex) async {
-    final error = await ref
-        .read(_providerRef.notifier)
-        .reorder(oldIndex, newIndex);
-    if (!mounted) {
-      return;
-    }
-    if (error != null) {
-      showToast(error);
-      return;
-    }
-    // 重排可能换掉合集首图（封面取自首个切片）；广播给上层合集列表刷新封面。
-    _mutationBroadcaster.reportCollectionMembershipChanged(
-      collectionId: widget.collectionId,
+  /// 单卡「加入合集」：把该切片加入其它合集（排除当前合集），成功后广播刷新
+  /// 目标合集的封面 / 计数。
+  Future<void> _addToOtherCollection(MediaClipDto clip) async {
+    final target = await showPickClipCollectionDialog(
+      context,
+      presentation: _isMobile
+          ? PickClipCollectionPresentation.bottomDrawer
+          : PickClipCollectionPresentation.dialog,
+      excludedCollectionId: widget.collectionId,
     );
+    if (!mounted || target == null) {
+      return;
+    }
+    try {
+      await ref
+          .read(clipCollectionsApiProvider)
+          .addClipToCollection(
+            collectionId: target.id,
+            clipId: clip.clipId,
+          );
+      if (!mounted) {
+        return;
+      }
+      _mutationBroadcaster.reportCollectionMembershipChanged(
+        clipId: clip.clipId,
+        collectionId: target.id,
+      );
+      showToast('已加入「${target.name}」');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      showToast(apiErrorMessage(error, fallback: '加入合集失败，请重试'));
+    }
   }
 
   Future<void> _editCollection(BuildContext context) async {

@@ -10,8 +10,10 @@ import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 import '../../../support/logged_in_session_store.dart';
 import '../../../support/test_api_bundle.dart';
@@ -236,6 +238,62 @@ void main() {
       expect(
         find.byKey(const Key('movie-summary-card-heat-ABC-002')),
         findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'movie summary card ignores poster placeholder icon under skeleton',
+    (WidgetTester tester) async {
+      final sessionStore = SessionStore.inMemory();
+      await sessionStore.saveBaseUrl('https://api.example.com');
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sessionStoreProvider.overrideWithValue(sessionStore)],
+          child: MaterialApp(
+            theme: sakuraThemeData,
+            home: Scaffold(
+              body: SizedBox(
+                width: 220,
+                child: AppSkeletonizer(
+                  enabled: true,
+                  child: MovieSummaryCard(
+                    movie: MovieListItemDto(
+                      javdbId: 'MovieA4',
+                      movieNumber: 'ABC-004',
+                      title: 'Movie 4',
+                      coverImage: null,
+                      releaseDate: null,
+                      durationMinutes: 0,
+                      heat: 0,
+                      isSubscribed: false,
+                      canPlay: false,
+                    ),
+                    onSubscriptionTap: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const Key('movie-summary-card-placeholder-ABC-004')),
+        findsOneWidget,
+      );
+      final icon = find.byIcon(Icons.movie_creation_outlined);
+      expect(icon, findsOneWidget);
+      // 图标自身包在 `Skeleton.ignore` 里，外层还有卡级 `Skeleton.unite`
+      // 把整卡收敛成一块 shimmer（避免角标 / 文字骨块单独透出）。
+      expect(
+        find.ancestor(
+          of: icon,
+          matching: find.byWidgetPredicate((widget) => widget is Skeleton),
+        ),
+        findsWidgets,
       );
     },
   );
@@ -1054,6 +1112,168 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'movie summary card hover action row triggers collection type and blacklist',
+    (WidgetTester tester) async {
+      final sessionStore = SessionStore.inMemory();
+      await sessionStore.saveBaseUrl('https://api.example.com');
+
+      var collectionType = 0;
+      var blacklist = 0;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sessionStoreProvider.overrideWithValue(sessionStore)],
+          child: MaterialApp(
+            theme: sakuraThemeData,
+            home: Scaffold(
+              body: SizedBox(
+                width: 220,
+                child: MovieSummaryCard(
+                  movie: const MovieListItemDto(
+                    javdbId: 'MovieA9',
+                    movieNumber: 'ABC-031',
+                    title: 'Movie 9',
+                    coverImage: null,
+                    releaseDate: null,
+                    durationMinutes: 0,
+                    heat: 0,
+                    isSubscribed: false,
+                    canPlay: false,
+                  ),
+                  onToggleCollectionType: () => collectionType++,
+                  onBlacklist: () => blacklist++,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await _hoverCard(tester, 'ABC-031');
+
+      await tester.tap(
+        find.byKey(const Key('movie-summary-card-collection-type-ABC-031')),
+      );
+      await tester.tap(
+        find.byKey(const Key('movie-summary-card-blacklist-ABC-031')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(collectionType, 1);
+      expect(blacklist, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('movie summary card hides blacklist while subscribed', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [sessionStoreProvider.overrideWithValue(sessionStore)],
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: SizedBox(
+              width: 220,
+              child: MovieSummaryCard(
+                movie: const MovieListItemDto(
+                  javdbId: 'MovieA10',
+                  movieNumber: 'ABC-032',
+                  title: 'Movie 10',
+                  coverImage: null,
+                  releaseDate: null,
+                  durationMinutes: 0,
+                  heat: 0,
+                  isSubscribed: true,
+                  canPlay: false,
+                ),
+                onToggleCollectionType: () {},
+                onBlacklist: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await _hoverCard(tester, 'ABC-032');
+
+    expect(
+      find.byKey(const Key('movie-summary-card-collection-type-ABC-032')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-summary-card-blacklist-ABC-032')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('窄卡四个动作加排名徽标不溢出', (WidgetTester tester) async {
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [sessionStoreProvider.overrideWithValue(sessionStore)],
+        child: MaterialApp(
+          theme: sakuraThemeData,
+          home: Scaffold(
+            body: SizedBox(
+              // 相似影片条的实际卡宽：movieCardTargetWidth(220) × 0.75。
+              width: 165,
+              child: MovieSummaryCard(
+                movie: const MovieListItemDto(
+                  javdbId: 'MovieA11',
+                  movieNumber: 'ABC-033',
+                  title: 'Movie 11',
+                  coverImage: null,
+                  releaseDate: null,
+                  durationMinutes: 0,
+                  heat: 0,
+                  isSubscribed: false,
+                  canPlay: true,
+                ),
+                rank: 3,
+                onSubscriptionTap: () {},
+                onToggleCollectionType: () {},
+                onBlacklist: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await _hoverCard(tester, 'ABC-033');
+
+    expect(
+      find.byKey(const Key('movie-summary-card-play-ABC-033')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-summary-card-subscription-action-ABC-033')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-summary-card-collection-type-ABC-033')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-summary-card-blacklist-ABC-033')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-summary-card-rank-ABC-033')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 /// 把鼠标指针移到卡片上：桌面端信息条靠悬停展开，必须用真实指针事件触发。

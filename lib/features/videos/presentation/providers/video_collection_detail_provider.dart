@@ -6,7 +6,6 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/async_notifier_dispose_guard.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/optimistic_patch_mixin.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
-import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collection_detail_state.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collection_sort.dart';
@@ -14,13 +13,12 @@ import 'package:sakuramedia/features/videos/presentation/providers/videos_api_pr
 
 part 'video_collection_detail_provider.g.dart';
 
-/// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序、乐观重排与移除。
+/// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序与移除。
 ///
 /// **本仓库第二个 [OptimisticPatchMixin] 采用者**（首个：clip_collection_detail）：
-/// reorder / removeItem / deleteVideo 三处都用 [withOptimisticPatch]，共用
+/// removeItem / deleteVideo 两处都用 [withOptimisticPatch]，共用
 /// [_mutationKey] 让「同时只允许一个 mutation」（等价原 controller `_isMutating`
-/// bool）。reorder **返回 `Future<void>`**（原 controller 语义）——失败静默回滚，
-/// UI 无 toast；removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
+/// bool）。removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
 /// deleteVideo 则把异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
 ///
 /// [applySort] 走独立的「保留旧列表 → 拉新排序 → 覆盖」路径，不占 [_mutationKey]，
@@ -178,49 +176,6 @@ class VideoCollectionDetail extends _$VideoCollectionDetail
           ),
         ),
       );
-    }
-  }
-
-  /// 乐观重排：本地立即移动 → API → 失败回滚。返回 `Future<void>`（原 controller
-  /// 语义，UI 侧不 toast reorder 错误）。
-  ///
-  /// 视频合集 reorder **必须提交全部成员**（后端 422）；apply 生成完整列表，
-  /// action 传全量 orderedItemIds。
-  Future<void> reorder(int oldIndex, int newIndex) async {
-    final current = state.value;
-    if (current == null) return;
-    if (oldIndex < 0 || oldIndex >= current.items.length) return;
-    var target = newIndex;
-    if (target > oldIndex) target -= 1;
-    if (target < 0) target = 0;
-    if (target >= current.items.length) target = current.items.length - 1;
-    if (target == oldIndex) return;
-
-    try {
-      await withOptimisticPatch<void>(
-        key: _mutationKey,
-        apply: (s) {
-          final next = List<VideoCollectionItemDto>.of(s.items);
-          final moved = next.removeAt(oldIndex);
-          next.insert(target, moved);
-          return s.copyWith(items: next);
-        },
-        action: () async {
-          final applied =
-              state.value?.items ?? const <VideoCollectionItemDto>[];
-          await ref
-              .read(videoCollectionsApiProvider)
-              .reorderCollectionItems(
-                collectionId: collectionId,
-                orderedItemIds: applied
-                    .map((item) => item.itemId)
-                    .toList(growable: false),
-              );
-        },
-      );
-    } catch (_) {
-      // 与原 controller 语义一致：reorder 失败静默回滚（mixin 已回滚 state），
-      // UI 侧不弹 toast。
     }
   }
 

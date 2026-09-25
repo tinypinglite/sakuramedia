@@ -104,6 +104,14 @@ class _MovieSummaryListContentState
         MovieBatchSelectionMixin<MovieSummaryListContent> {
   late final ScrollController _scrollController;
 
+  MovieCardHoverFeatureActions get _hoverFeatureActions =>
+      movieCardHoverFeatureActions(
+        context,
+        onBlacklisted: (movieNumber) => ref
+            .read(movieSummaryProvider(widget.scope).notifier)
+            .removeMovies(<String>[movieNumber]),
+      );
+
   @override
   String get batchKeyPrefix => 'movie-list';
 
@@ -333,6 +341,9 @@ class _MovieSummaryListContentState
                       },
                       onMovieSubscriptionTap: (movie) =>
                           _toggleMovieSubscription(movie.movieNumber),
+                      onMovieToggleCollectionType:
+                          _hoverFeatureActions.toggleCollectionType,
+                      onMovieBlacklist: _hoverFeatureActions.blacklist,
                       isMovieSubscriptionUpdating: (movie) =>
                           summary?.isSubscriptionUpdating(movie.movieNumber) ??
                           false,

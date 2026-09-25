@@ -74,6 +74,10 @@ void main() {
       expect(find.text('近期热度较高'), findsNothing);
       expect(find.text('与你收藏的时刻画面相似'), findsNothing);
 
+      await tester.ensureVisible(
+        find.byKey(const Key('movie-summary-card-subscription-HOT-001')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const Key('movie-summary-card-subscription-HOT-001')),
       );

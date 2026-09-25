@@ -4,6 +4,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_cover_bottom_shade.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/domain/movies/subscription_heart_badge.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class ActorSummaryCard extends StatelessWidget {
   const ActorSummaryCard({
@@ -37,32 +38,35 @@ class ActorSummaryCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: AspectRatio(
         aspectRatio: componentTokens.movieCardAspectRatio,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _ActorPoster(actor: actor),
-            const AppCoverBottomShade(stops: [0.42, 0.7, 1]),
-            Positioned(
-              left: context.appSpacing.md,
-              right: context.appSpacing.md,
-              bottom: context.appSpacing.md,
-              child: Tooltip(
-                message: displayName,
-                waitDuration: const Duration(milliseconds: 300),
-                child: Text(
-                  displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.onMedia,
+        // 骨架态整卡收敛成一块 shimmer 圆角块（非骨架态原样渲染）。
+        child: Skeleton.unite(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _ActorPoster(actor: actor),
+              const AppCoverBottomShade(stops: [0.42, 0.7, 1]),
+              Positioned(
+                left: context.appSpacing.md,
+                right: context.appSpacing.md,
+                bottom: context.appSpacing.md,
+                child: Tooltip(
+                  message: displayName,
+                  waitDuration: const Duration(milliseconds: 300),
+                  child: Text(
+                    displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.onMedia,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

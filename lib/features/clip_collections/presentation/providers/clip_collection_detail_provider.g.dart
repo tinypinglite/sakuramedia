@@ -8,16 +8,15 @@ part of 'clip_collection_detail_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 切片合集详情：加载合集元信息 + 全量有序切片，支持拖序、移除、删除本体。
+/// 切片合集详情：加载合集元信息 + 全量切片，支持移除、删除本体。
 ///
-/// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
-/// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
+/// 合集切片量通常不大，这里一次性把所有分页拉全。
 ///
-/// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-/// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
+/// removeClip / deleteClip 两处都用 [withOptimisticPatch]（本地立即变
+/// → await API → 失败整体回滚）。两处共用 [_mutationKey]，保证同一合集同时只
 /// 执行一个 mutation。
 ///
-/// reorder / removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
+/// removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
 /// deleteClip 则将异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
 ///
 /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
@@ -25,16 +24,15 @@ part of 'clip_collection_detail_provider.dart';
 @ProviderFor(ClipCollectionDetail)
 final clipCollectionDetailProvider = ClipCollectionDetailFamily._();
 
-/// 切片合集详情：加载合集元信息 + 全量有序切片，支持拖序、移除、删除本体。
+/// 切片合集详情：加载合集元信息 + 全量切片，支持移除、删除本体。
 ///
-/// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
-/// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
+/// 合集切片量通常不大，这里一次性把所有分页拉全。
 ///
-/// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-/// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
+/// removeClip / deleteClip 两处都用 [withOptimisticPatch]（本地立即变
+/// → await API → 失败整体回滚）。两处共用 [_mutationKey]，保证同一合集同时只
 /// 执行一个 mutation。
 ///
-/// reorder / removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
+/// removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
 /// deleteClip 则将异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
 ///
 /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
@@ -44,16 +42,15 @@ final class ClipCollectionDetailProvider
           ClipCollectionDetail,
           ClipCollectionDetailState
         > {
-  /// 切片合集详情：加载合集元信息 + 全量有序切片，支持拖序、移除、删除本体。
+  /// 切片合集详情：加载合集元信息 + 全量切片，支持移除、删除本体。
   ///
-  /// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
-  /// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
+  /// 合集切片量通常不大，这里一次性把所有分页拉全。
   ///
-  /// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-  /// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
+  /// removeClip / deleteClip 两处都用 [withOptimisticPatch]（本地立即变
+  /// → await API → 失败整体回滚）。两处共用 [_mutationKey]，保证同一合集同时只
   /// 执行一个 mutation。
   ///
-  /// reorder / removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
+  /// removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
   /// deleteClip 则将异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
   ///
   /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
@@ -94,18 +91,17 @@ final class ClipCollectionDetailProvider
 }
 
 String _$clipCollectionDetailHash() =>
-    r'5837ef813d9ab8b0bb9dfecd55648be278b52959';
+    r'8760162c1bf470e1c88e21dbbdbe780e99ff2d1c';
 
-/// 切片合集详情：加载合集元信息 + 全量有序切片，支持拖序、移除、删除本体。
+/// 切片合集详情：加载合集元信息 + 全量切片，支持移除、删除本体。
 ///
-/// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
-/// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
+/// 合集切片量通常不大，这里一次性把所有分页拉全。
 ///
-/// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-/// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
+/// removeClip / deleteClip 两处都用 [withOptimisticPatch]（本地立即变
+/// → await API → 失败整体回滚）。两处共用 [_mutationKey]，保证同一合集同时只
 /// 执行一个 mutation。
 ///
-/// reorder / removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
+/// removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
 /// deleteClip 则将异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
 ///
 /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
@@ -128,16 +124,15 @@ final class ClipCollectionDetailFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// 切片合集详情：加载合集元信息 + 全量有序切片，支持拖序、移除、删除本体。
+  /// 切片合集详情：加载合集元信息 + 全量切片，支持移除、删除本体。
   ///
-  /// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
-  /// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
+  /// 合集切片量通常不大，这里一次性把所有分页拉全。
   ///
-  /// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-  /// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
+  /// removeClip / deleteClip 两处都用 [withOptimisticPatch]（本地立即变
+  /// → await API → 失败整体回滚）。两处共用 [_mutationKey]，保证同一合集同时只
   /// 执行一个 mutation。
   ///
-  /// reorder / removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
+  /// removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
   /// deleteClip 则将异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
   ///
   /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
@@ -149,16 +144,15 @@ final class ClipCollectionDetailFamily extends $Family
   String toString() => r'clipCollectionDetailProvider';
 }
 
-/// 切片合集详情：加载合集元信息 + 全量有序切片，支持拖序、移除、删除本体。
+/// 切片合集详情：加载合集元信息 + 全量切片，支持移除、删除本体。
 ///
-/// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
-/// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
+/// 合集切片量通常不大，这里一次性把所有分页拉全。
 ///
-/// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-/// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
+/// removeClip / deleteClip 两处都用 [withOptimisticPatch]（本地立即变
+/// → await API → 失败整体回滚）。两处共用 [_mutationKey]，保证同一合集同时只
 /// 执行一个 mutation。
 ///
-/// reorder / removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
+/// removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
 /// deleteClip 则将异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
 ///
 /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。

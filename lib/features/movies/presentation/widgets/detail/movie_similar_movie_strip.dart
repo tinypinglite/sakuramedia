@@ -21,6 +21,8 @@ class MovieSimilarMovieStrip extends ConsumerWidget {
     this.onRetry,
     this.onMovieTap,
     this.onMovieMenuRequest,
+    this.onMovieToggleCollectionType,
+    this.onMovieBlacklist,
   });
 
   final List<MovieListItemDto> movies;
@@ -30,6 +32,12 @@ class MovieSimilarMovieStrip extends ConsumerWidget {
   final ValueChanged<MovieListItemDto>? onMovieTap;
   final void Function(MovieListItemDto movie, Offset globalPosition)?
   onMovieMenuRequest;
+
+  /// 悬停动作行「标记为合集 / 单体」回调；为 `null` 时该按钮不显示。
+  final ValueChanged<MovieListItemDto>? onMovieToggleCollectionType;
+
+  /// 悬停动作行「屏蔽影片」回调；为 `null` 或影片已订阅时该按钮不显示。
+  final ValueChanged<MovieListItemDto>? onMovieBlacklist;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -86,6 +94,12 @@ class MovieSimilarMovieStrip extends ConsumerWidget {
                           onMovieMenuRequest!(movie, globalPosition),
                 onSubscriptionTap: () =>
                     unawaited(_toggleMovieSubscription(ref, context, movie)),
+                onToggleCollectionType: onMovieToggleCollectionType == null
+                    ? null
+                    : () => onMovieToggleCollectionType!(movie),
+                onBlacklist: onMovieBlacklist == null
+                    ? null
+                    : () => onMovieBlacklist!(movie),
                 isSubscriptionUpdating: updatingMovieNumbers.contains(
                   movie.movieNumber,
                 ),

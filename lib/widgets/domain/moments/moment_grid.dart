@@ -9,8 +9,10 @@ class MomentGrid extends StatelessWidget {
     required this.items,
     required this.onItemTap,
     this.onItemPlay,
+    this.onItemOpenMovie,
+    this.onItemAddToCollection,
+    this.onItemDelete,
     this.maxRows,
-    this.maxColumns = 4,
     this.selectionMode = false,
     this.isSelected,
     this.onSelectedChanged,
@@ -23,11 +25,18 @@ class MomentGrid extends StatelessWidget {
   /// 卡片悬停面板里的播放回调（跳播到该时刻）；不传则 hover 不显示播放键。
   final ValueChanged<MomentListItem>? onItemPlay;
 
+  /// 卡片悬停面板里的「影片」回调；不传则不显示。
+  final ValueChanged<MomentListItem>? onItemOpenMovie;
+
+  /// 卡片悬停面板里的「加入合集」回调；不传则不显示。
+  final ValueChanged<MomentListItem>? onItemAddToCollection;
+
+  /// 卡片悬停面板里的「删除」回调；不传则不显示。
+  final ValueChanged<MomentListItem>? onItemDelete;
+
   /// 首页等预览区可限制为固定行数；列表页保持不传以展示全部项目。
   final int? maxRows;
 
-  /// 网格的最大列数；默认保持时刻列表既有的 4 列上限。
-  final int maxColumns;
   final bool selectionMode;
   final bool Function(MomentListItem item)? isSelected;
   final ValueChanged<MomentListItem>? onSelectedChanged;
@@ -38,15 +47,19 @@ class MomentGrid extends StatelessWidget {
     return AppAdaptiveCardGrid<MomentListItem>(
       gridKey: const Key('moment-grid'),
       items: items,
-      targetColumnWidth: 280,
-      minColumns: 2,
-      maxColumns: maxColumns,
       childAspectRatio: 16 / 10,
       maxRows: maxRows,
       itemBuilder: (context, item, _) => MomentCard(
         item: item,
         onTap: () => onItemTap(item),
         onPlay: onItemPlay == null ? null : () => onItemPlay!(item),
+        onOpenMovie: onItemOpenMovie == null
+            ? null
+            : () => onItemOpenMovie!(item),
+        onAddToCollection: onItemAddToCollection == null
+            ? null
+            : () => onItemAddToCollection!(item),
+        onDelete: onItemDelete == null ? null : () => onItemDelete!(item),
         selectionMode: selectionMode,
         isSelected: isSelected?.call(item) ?? false,
         onSelectedChanged: onSelectedChanged == null
@@ -65,6 +78,9 @@ class MomentSliver extends StatelessWidget {
     required this.items,
     required this.onItemTap,
     this.onItemPlay,
+    this.onItemOpenMovie,
+    this.onItemAddToCollection,
+    this.onItemDelete,
     this.selectionMode = false,
     this.isSelected,
     this.onSelectedChanged,
@@ -77,6 +93,15 @@ class MomentSliver extends StatelessWidget {
   /// 卡片悬停面板里的播放回调（跳播到该时刻）；不传则 hover 不显示播放键。
   final ValueChanged<MomentListItem>? onItemPlay;
 
+  /// 卡片悬停面板里的「影片」回调；不传则不显示。
+  final ValueChanged<MomentListItem>? onItemOpenMovie;
+
+  /// 卡片悬停面板里的「加入合集」回调；不传则不显示。
+  final ValueChanged<MomentListItem>? onItemAddToCollection;
+
+  /// 卡片悬停面板里的「删除」回调；不传则不显示。
+  final ValueChanged<MomentListItem>? onItemDelete;
+
   final bool selectionMode;
   final bool Function(MomentListItem item)? isSelected;
   final ValueChanged<MomentListItem>? onSelectedChanged;
@@ -87,14 +112,18 @@ class MomentSliver extends StatelessWidget {
     return AppAdaptiveCardSliver<MomentListItem>(
       gridKey: const Key('moment-grid'),
       items: items,
-      targetColumnWidth: 280,
-      minColumns: 2,
-      maxColumns: 4,
       childAspectRatio: 16 / 10,
       itemBuilder: (context, item, _) => MomentCard(
         item: item,
         onTap: () => onItemTap(item),
         onPlay: onItemPlay == null ? null : () => onItemPlay!(item),
+        onOpenMovie: onItemOpenMovie == null
+            ? null
+            : () => onItemOpenMovie!(item),
+        onAddToCollection: onItemAddToCollection == null
+            ? null
+            : () => onItemAddToCollection!(item),
+        onDelete: onItemDelete == null ? null : () => onItemDelete!(item),
         selectionMode: selectionMode,
         isSelected: isSelected?.call(item) ?? false,
         onSelectedChanged: onSelectedChanged == null

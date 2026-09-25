@@ -114,55 +114,6 @@ void main() {
     );
   }
 
-  test('reorder 乐观更新本地顺序并以新顺序 POST', () async {
-    enqueueLoad();
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/video-collections/3/items/reorder',
-      body: <dynamic>[],
-    );
-
-    keepAlive();
-    final state = await container.read(videoCollectionDetailProvider(3).future);
-    expect(state.items.map((item) => item.video.id).toList(), <int>[1, 2]);
-
-    // 把第二个成员拖到最前。
-    await container
-        .read(videoCollectionDetailProvider(3).notifier)
-        .reorder(1, 0);
-
-    final next = container.read(videoCollectionDetailProvider(3)).requireValue;
-    expect(next.items.map((item) => item.video.id).toList(), <int>[2, 1]);
-    final reorderRequest = adapter.requests.last;
-    expect(reorderRequest.path, '/video-collections/3/items/reorder');
-    final body = reorderRequest.body as Map<String, dynamic>;
-    expect(body['ordered_item_ids'], <int>[101, 100]);
-  });
-
-  test('reorder 失败时回滚为提交前的本地顺序', () async {
-    enqueueLoad();
-    // reorder 失败（500）。
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/video-collections/3/items/reorder',
-      statusCode: 500,
-      body: <String, dynamic>{
-        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
-      },
-    );
-
-    keepAlive();
-    await container.read(videoCollectionDetailProvider(3).future);
-
-    await container
-        .read(videoCollectionDetailProvider(3).notifier)
-        .reorder(1, 0);
-
-    // 失败回滚到提交前顺序 [1, 2]，不再触发重载。
-    final state = container.read(videoCollectionDetailProvider(3)).requireValue;
-    expect(state.items.map((item) => item.video.id).toList(), <int>[1, 2]);
-  });
-
   test('removeItem 成功：乐观移除并返回 null', () async {
     enqueueLoad();
     adapter.enqueueJson(

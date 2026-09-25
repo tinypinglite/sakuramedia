@@ -5,7 +5,7 @@
 - `MaskedImage`：`lib/widgets/base/media/images/masked_image.dart`，带统一裁切、占位和远端 URL 处理的图片；首帧到达后淡入（内存缓存命中时直接显示），`borderRadius` 可为完整显示的图片添加贴合图片边缘的圆角。
 - `AppImageFullscreenHost` / `AppPinchToFullscreenImage`：`app_image_fullscreen.dart`，全屏查看和缩放手势。
 - `AppCoverBottomShade`：封面底部渐变遮罩。
-- `AppCoverHoverInfo` / `AppCoverHoverInfoRow` / `AppCoverHoverPlayButton`：`lib/widgets/base/interaction/app_cover_hover_info.dart`，封面卡的桌面悬停披露层——收起态纯封面，指针悬停时底部渐显压暗层与信息（180ms，减弱动效时瞬时）；信息行是单行「主标签 + 副信息 + 行尾操作」，主标签先截断、副信息限宽后截断，避免大字体溢出。选择模式传 `enabled: false`，触摸端没有 hover 停在收起态。层内白字用同文件的 `resolveCoverOverlayTextStyle`。
+- `AppCoverHoverInfo` / `AppCoverHoverInfoRow` / `AppCoverHoverActionBar` / `AppCoverHoverActionButton`：`lib/widgets/base/interaction/app_cover_hover_info.dart`，封面卡的桌面悬停披露层——收起态纯封面，指针悬停时底部渐显压暗层与信息（180ms，减弱动效时瞬时）；信息行是单行「主标签 + 副信息」，主标签先截断、副信息限宽后截断，避免大字体溢出；信息行下方是整行动作按钮（查看/播放/加入合集/移出/删除等按回调显隐），全站列表页与合集网格共用同一套。选择模式传 `enabled: false`，触摸端没有 hover 停在收起态。层内白字用同文件的 `resolveCoverOverlayTextStyle`。
 
 影片详情专用的 `MoviePlotThumbnail` 位于 `features/movies/presentation/widgets/detail/`，不要因为它是图片就移动到 base。
 
@@ -14,7 +14,7 @@
 - `AppImageActionTrigger`：图片右键/长按操作入口。
 - `AppImageActionDescriptor` / `buildImageActionMenuItems`：图片动作的领域描述符与统一菜单项构造；渲染走 `showAppActionMenu`（见 sheets-dialogs.md）。
 - `AppImageActionType`：跨页面共用的图片动作枚举。
-- `resolveThumbnailGridColumns`：根据可用宽度解析缩略图列数。
+- `resolveGridColumnCount` / `resolveAppCardGridColumnCount`：根据可用宽度解析网格列数；后者读全站卡片网格统一规格（见 data-loading.md）。
 
 实现图片保存、复制、外部打开等动作时，使用 core 的平台能力和现有 action menu，不在页面直接拼 URL 或写平台分支。
 

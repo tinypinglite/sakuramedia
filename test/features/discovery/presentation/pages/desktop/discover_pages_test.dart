@@ -102,6 +102,10 @@ void main() {
       expect(find.text('近期热度较高'), findsNothing);
       expect(find.text('与你收藏的时刻画面相似'), findsNothing);
 
+      await tester.ensureVisible(
+        find.byKey(const Key('movie-summary-card-subscription-HOT-001')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const Key('movie-summary-card-subscription-HOT-001')),
       );
@@ -143,9 +147,9 @@ void main() {
     );
     expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
 
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -5000));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -20000));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -1000));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -20000));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('movie-summary-card-ABC-025')), findsOneWidget);
@@ -191,9 +195,9 @@ void main() {
     );
     await tester.pump(const Duration(seconds: 3));
 
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -5000));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -20000));
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -1000));
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -20000));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('movie-summary-card-HOT-025')), findsOneWidget);
@@ -251,7 +255,7 @@ void main() {
         child: const DesktopDiscoverMoviesPage(),
       );
       await tester.pumpAndSettle();
-      await tester.drag(find.byType(CustomScrollView), const Offset(0, -5000));
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -20000));
       await tester.pumpAndSettle();
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
       await tester.pumpAndSettle();

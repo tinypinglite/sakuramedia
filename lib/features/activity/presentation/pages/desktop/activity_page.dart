@@ -39,6 +39,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/domain/media_import/import_failed_items_dialog.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class DesktopActivityPage extends ConsumerStatefulWidget {
   const DesktopActivityPage({super.key, this.initialDownloadMovieNumber});
@@ -799,19 +800,22 @@ class _ExecutableJobCard extends StatelessWidget {
         tone: AppTextTone.secondary,
       ),
       headerBottomSpacing: context.appSpacing.sm,
-      headerTrailing: AppButton(
-        key: Key('activity-job-trigger-${job.taskKey}'),
-        label: job.disabledReason != null ? '未启用' : job.manualTriggerAllowed
-            ? (isTriggering
-                  ? '提交中'
-                  : job.paramsSchema == null
-                  ? '立即执行'
-                  : '填写参数')
-            : '不可手动执行',
-        size: AppButtonSize.small,
-        variant: AppButtonVariant.primary,
-        isLoading: isTriggering,
-        onPressed: canTrigger ? onTrigger : null,
+      // 骨架态下品牌底主行动随整块灰化，避免看起来「加载中也可用」。
+      headerTrailing: Skeleton.shade(
+        child: AppButton(
+          key: Key('activity-job-trigger-${job.taskKey}'),
+          label: job.disabledReason != null ? '未启用' : job.manualTriggerAllowed
+              ? (isTriggering
+                    ? '提交中'
+                    : job.paramsSchema == null
+                    ? '立即执行'
+                    : '填写参数')
+              : '不可手动执行',
+          size: AppButtonSize.small,
+          variant: AppButtonVariant.primary,
+          isLoading: isTriggering,
+          onPressed: canTrigger ? onTrigger : null,
+        ),
       ),
       child: Wrap(
         spacing: context.appSpacing.sm,
@@ -856,7 +860,23 @@ class _ExecutableJobsDialog extends ConsumerWidget {
     final activity = ref.watch(activityCenterProvider);
     final controller = ref.read(activityCenterProvider.notifier);
     final body = activity.when(
-      loading: () => const _ExecutableJobsDialogLoadingBody(),
+      // loading 用占位任务渲染真实任务卡，由 [AppSkeletonizer] 灰化。
+      loading: () => AppSkeletonizer(
+        enabled: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final job in jobMetadataPlaceholders()) ...[
+              _ExecutableJobCard(
+                job: job,
+                isTriggering: false,
+                onTrigger: () {},
+              ),
+              SizedBox(height: context.appSpacing.md),
+            ],
+          ],
+        ),
+      ),
       error: (error, _) => AppEmptyState(
         key: const Key('activity-jobs-error'),
         message: apiErrorMessage(error, fallback: '可执行任务加载失败，请重试'),
@@ -908,6 +928,7 @@ class _ExecutableJobsDialogContentState
     final spacing = context.appSpacing;
     final state = widget.state;
     final jobs = state.jobs;
+    final jobPlaceholders = jobMetadataPlaceholders();
     final pluginIds = <String>{};
     var hasSystemJobs = false;
     for (final job in jobs) {
@@ -950,7 +971,26 @@ class _ExecutableJobsDialogContentState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (state.isLoadingJobs && jobs.isEmpty)
-          const _ExecutableJobsDialogLoadingBody()
+          // loading 用占位任务渲染真实任务卡，由 [AppSkeletonizer] 灰化。
+          AppSkeletonizer(
+            enabled: true,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.68,
+              ),
+              child: ListView.separated(
+                key: const Key('activity-executable-jobs-loading-list'),
+                shrinkWrap: true,
+                itemCount: jobPlaceholders.length,
+                separatorBuilder: (_, __) => SizedBox(height: spacing.md),
+                itemBuilder: (_, index) => _ExecutableJobCard(
+                  job: jobPlaceholders[index],
+                  isTriggering: false,
+                  onTrigger: () {},
+                ),
+              ),
+            ),
+          )
         else if (state.jobErrorMessage != null && jobs.isEmpty)
           AppEmptyState(
             key: const Key('activity-jobs-error'),
@@ -1059,18 +1099,6 @@ class _ExecutableJobsDialogHeader extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ExecutableJobsDialogLoadingBody extends StatelessWidget {
-  const _ExecutableJobsDialogLoadingBody();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: context.appSpacing.xxl),
-      child: const Center(child: AppInlineSpinner()),
     );
   }
 }

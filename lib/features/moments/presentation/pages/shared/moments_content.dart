@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/moment_collections/presentation/moment_coll
 import 'package:sakuramedia/features/moment_collections/presentation/providers/moment_collections_api_provider.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/providers/moment_collection_mutation_events_provider.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/providers/moment_collections_overview_provider.dart';
+import 'package:sakuramedia/features/moment_collections/presentation/widgets/add_to_moment_collection_dialog.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/widgets/moment_collection_editor.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/widgets/pick_moment_collection_dialog.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
@@ -695,6 +696,15 @@ class MomentsContent extends HookConsumerWidget {
             fallbackPath: previewFallbackPath,
           ),
         ),
+        onItemOpenMovie: (item) => openMomentSourceMovie(
+          context: context,
+          item: item,
+          fallbackPath: previewFallbackPath,
+        ),
+        onItemAddToCollection: (item) => unawaited(
+          showAddToMomentCollectionDialog(context, pointId: item.pointId),
+        ),
+        onItemDelete: (item) => unawaited(_deleteItem(context, ref, item)),
         selectionMode: selectionMode,
         isSelected: isSelected,
         onSelectedChanged: onSelectedChanged,
@@ -703,6 +713,41 @@ class MomentsContent extends HookConsumerWidget {
             : null,
       ),
     );
+  }
+
+  /// 卡片悬停「删除」：删除时刻标记本体（确认后硬删并刷新列表）。
+  Future<void> _deleteItem(
+    BuildContext context,
+    WidgetRef ref,
+    MomentListItem item,
+  ) async {
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: '删除时刻',
+      message: '确认删除“${item.displayLabel}”？该时刻标记会被永久删除，不会删除原视频或切片。',
+      confirmLabel: '删除',
+      danger: true,
+      dialogKey: Key('$keyPrefix-delete-dialog'),
+      confirmKey: Key('$keyPrefix-delete-confirm-button'),
+    );
+    if (!context.mounted || !confirmed) {
+      return;
+    }
+    try {
+      await ref
+          .read(mediaApiProvider)
+          .deleteMediaPointById(pointId: item.pointId);
+      if (!context.mounted) {
+        return;
+      }
+      unawaited(_refreshAfterPointDelete(ref));
+      showToast('已删除时刻');
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      showToast(apiErrorMessage(error, fallback: '删除失败，请重试'));
+    }
   }
 
   Future<void> _openMomentPreview(
@@ -770,7 +815,7 @@ class MomentsContent extends HookConsumerWidget {
     final confirmed = await showAppConfirmDialog(
       context,
       title: '删除时刻',
-      message: '确认删除选中的 ${selected.length} 个时刻？不会删除原视频或切片。',
+      message: '确认删除选中的 ${selected.length} 个时刻？这些时刻标记会被永久删除，不会删除原视频或切片。',
       confirmLabel: '删除',
       danger: true,
       dialogKey: Key('$keyPrefix-batch-delete-dialog'),

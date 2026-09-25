@@ -226,18 +226,4 @@ void main() {
       expect(adapter.hitCount('DELETE', '/clip-collections/7/clips/12'), 1);
     },
   );
-
-  test('setCollectionClips puts ordered clip_ids', () async {
-    adapter.enqueueJson(
-      method: 'PUT',
-      path: '/clip-collections/7/clips',
-      statusCode: 204,
-    );
-
-    await api.setCollectionClips(collectionId: 7, clipIds: <int>[13, 12, 14]);
-
-    expect(adapter.requests.single.body, <String, dynamic>{
-      'clip_ids': <int>[13, 12, 14],
-    });
-  });
 }

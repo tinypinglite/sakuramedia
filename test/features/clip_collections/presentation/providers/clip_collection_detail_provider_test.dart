@@ -115,55 +115,6 @@ void main() {
     expect(state.clips.map((clip) => clip.clipId).toList(), <int>[10, 11, 12]);
   });
 
-  test('reorder moves item and PUTs full ordered ids', () async {
-    enqueueLoad();
-
-    keepAlive();
-    await container.read(clipCollectionDetailProvider(7).future);
-
-    adapter.enqueueJson(
-      method: 'PUT',
-      path: '/clip-collections/7/clips',
-      statusCode: 204,
-    );
-
-    // 把首个片段拖到末尾之前：ReorderableListView 语义 (0 -> 2) => [11, 10, 12]
-    final error = await container
-        .read(clipCollectionDetailProvider(7).notifier)
-        .reorder(0, 2);
-
-    expect(error, isNull);
-    final state = container.read(clipCollectionDetailProvider(7)).requireValue;
-    expect(state.clips.map((clip) => clip.clipId).toList(), <int>[11, 10, 12]);
-    expect(adapter.requests.last.body, <String, dynamic>{
-      'clip_ids': <int>[11, 10, 12],
-    });
-  });
-
-  test('reorder rolls back on failure', () async {
-    enqueueLoad();
-
-    keepAlive();
-    await container.read(clipCollectionDetailProvider(7).future);
-
-    adapter.enqueueJson(
-      method: 'PUT',
-      path: '/clip-collections/7/clips',
-      statusCode: 500,
-      body: <String, dynamic>{
-        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
-      },
-    );
-
-    final error = await container
-        .read(clipCollectionDetailProvider(7).notifier)
-        .reorder(0, 2);
-
-    expect(error, isNotNull);
-    final state = container.read(clipCollectionDetailProvider(7)).requireValue;
-    expect(state.clips.map((clip) => clip.clipId).toList(), <int>[10, 11, 12]);
-  });
-
   test('removeClip optimistically drops then confirms', () async {
     enqueueLoad();
 

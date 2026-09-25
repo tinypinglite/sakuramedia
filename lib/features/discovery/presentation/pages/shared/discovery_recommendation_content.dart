@@ -252,6 +252,7 @@ class _DiscoveryMovieListContent<T> extends HookConsumerWidget {
       }
     }
     final isLoading = async.isLoading && async.value == null;
+    final hoverActions = movieCardHoverFeatureActions(context);
     return AppSkeletonizer.sliver(
       enabled: isLoading,
       child: MovieSummarySliver(
@@ -271,6 +272,8 @@ class _DiscoveryMovieListContent<T> extends HookConsumerWidget {
               globalPosition,
               isSubscribed: movie.isSubscribed,
             ),
+        onMovieToggleCollectionType: hoverActions.toggleCollectionType,
+        onMovieBlacklist: hoverActions.blacklist,
       ),
     );
   }

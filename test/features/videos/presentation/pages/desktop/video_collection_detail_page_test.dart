@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
@@ -143,11 +144,11 @@ void main() {
 
     expect(find.byType(AppSkeletonizer), findsOneWidget);
     expect(
-      find.byKey(const Key('video-collection-detail-list')),
+      find.byKey(const Key('video-collection-detail-grid')),
       findsOneWidget,
     );
-    // 加载态渲染的是真实成员行（占位数据），骨架即真实布局。
-    expect(find.byType(CollectionMemberRow), findsWidgets);
+    // 加载态渲染的是真实成员卡片（占位数据），骨架即真实布局。
+    expect(find.byType(CollectionMemberCard), findsWidgets);
     expect(find.byType(CircularProgressIndicator), findsNothing);
 
     pendingCollection.complete(
@@ -179,9 +180,9 @@ void main() {
       find.byKey(const Key('video-collection-enter-selection-button')),
       findsOneWidget,
     );
-    // 默认列表排布，行物料挂可测试的 menu key。
+    // 网格排布，卡片挂可测试的 menu key。
     expect(
-      find.byKey(const Key('video-collection-menu-1')),
+      find.byKey(const Key('video-collection-grid-menu-1')),
       findsOneWidget,
     );
   });
@@ -211,5 +212,38 @@ void main() {
       find.byKey(const Key('video-collection-exit-selection-button')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('桌面网格悬停展示整行动作按钮', (WidgetTester tester) async {
+    enqueueInitialLoad();
+    await pumpPage(tester);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(tester.getCenter(find.byKey(const ValueKey<int>(1))));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('video-collection-grid-play-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('video-collection-grid-thumbnails-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('video-collection-grid-add-collection-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('video-collection-grid-remove-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('video-collection-grid-delete-1')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 }

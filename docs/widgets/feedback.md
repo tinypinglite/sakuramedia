@@ -20,6 +20,11 @@
 - 占位数据约定：用真实 DTO 构造、文案取 `BoneMock`、封面 / 图片 URL 传 `null`
   不触发网络请求；每个 feature 的占位工厂放在 `presentation/<feature>_placeholders.dart`。
   加载态渲染真实组件后，`ignorePointers` 会屏蔽交互，回调不会被触发。
+- 卡片级整卡收敛：共享卡片内部用 `Skeleton.unite` 包住封面 / 内容区，骨架态下整张卡
+  被画成一块 shimmer 圆角块，订阅心、热度、排名、信息按钮、标题行等细碎骨块不再单独
+  透出；卡片的边框 / 圆角 / 阴影留在 unite 外层保持可见，非骨架态下 `Skeleton.unite`
+  原样渲染。当前用于影片、女优、切片、视频、时刻、合集封面、播放列表横幅和下载任务卡。
+  下载任务卡这类自带品牌色进度条的卡片在 unite 外层补 `borderRadius`，避免块变直角。
 - 首屏骨架不再使用手写骨架组件；`SliverPagedAsyncSection.skeletonBuilder` 传
   「占位数据 + 真实卡片」并用 `AppSkeletonizer` 灰化。`AppSkeletonBlock` 仅作为
   无真实对应物的小面积占位原子（如加载态工具条的两条灰线）保留，必须包在

@@ -38,6 +38,9 @@ class _MobileCatalogSearchPageState
   late final TextEditingController _textController;
   late final TabController _tabController;
 
+  MovieCardHoverFeatureActions get _hoverFeatureActions =>
+      movieCardHoverFeatureActions(context);
+
   @override
   void initState() {
     super.initState();
@@ -150,6 +153,8 @@ class _MobileCatalogSearchPageState
             globalPosition,
             isSubscribed: movie.isSubscribed,
           ),
+      onMovieToggleCollectionType: _hoverFeatureActions.toggleCollectionType,
+      onMovieBlacklist: _hoverFeatureActions.blacklist,
       onActorTap:
           (actor) =>
               MobileActorDetailRouteData(actorId: actor.id).push(context),

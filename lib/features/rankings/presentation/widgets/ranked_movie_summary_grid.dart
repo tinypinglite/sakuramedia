@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
@@ -12,6 +13,8 @@ class RankedMovieSummarySliver extends StatelessWidget {
     this.onMovieTap,
     this.onMovieMenuRequest,
     this.onMovieSubscriptionTap,
+    this.onMovieToggleCollectionType,
+    this.onMovieBlacklist,
     this.isMovieSubscriptionUpdating,
     this.emptyMessage = '暂无榜单数据',
     this.selectionMode = false,
@@ -25,6 +28,15 @@ class RankedMovieSummarySliver extends StatelessWidget {
   final void Function(RankedMovieListItemDto movie, Offset globalPosition)?
   onMovieMenuRequest;
   final ValueChanged<RankedMovieListItemDto>? onMovieSubscriptionTap;
+
+  /// 悬停动作行「标记为合集 / 单体」回调；为 `null` 时该按钮不显示。
+  ///
+  /// 悬停动作行回调统一收 [MovieListItemDto]（榜单条目内部转成通用 DTO 再回调），
+  /// 与 `MovieSummaryGrid` 的悬停回调保持一致，页面可直接复用同一组接线。
+  final ValueChanged<MovieListItemDto>? onMovieToggleCollectionType;
+
+  /// 悬停动作行「屏蔽影片」回调；为 `null` 或影片已订阅时该按钮不显示。
+  final ValueChanged<MovieListItemDto>? onMovieBlacklist;
   final bool Function(RankedMovieListItemDto movie)?
   isMovieSubscriptionUpdating;
   final String emptyMessage;
@@ -55,6 +67,14 @@ class RankedMovieSummarySliver extends StatelessWidget {
                 onMovieSubscriptionTap == null
                     ? null
                     : () => onMovieSubscriptionTap!(item),
+            onToggleCollectionType:
+                onMovieToggleCollectionType == null
+                    ? null
+                    : () => onMovieToggleCollectionType!(item.toMovieListItem()),
+            onBlacklist:
+                onMovieBlacklist == null
+                    ? null
+                    : () => onMovieBlacklist!(item.toMovieListItem()),
             isSubscriptionUpdating:
                 isMovieSubscriptionUpdating?.call(item) ?? false,
             selectionMode: selectionMode,

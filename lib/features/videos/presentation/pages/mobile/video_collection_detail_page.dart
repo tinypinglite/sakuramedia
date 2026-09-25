@@ -7,10 +7,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
-export 'package:sakuramedia/features/videos/presentation/pages/shared/video_collection_detail_content.dart'
-    show CollectionDetailLayout;
-
-/// 移动视频合集详情壳：移动语义（网格默认 / 长按进多选 / 底部批量条 /
+/// 移动视频合集详情壳：移动语义（网格 / 长按进多选 / 底部批量条 /
 /// 底部抽屉筛选 / 动作抽屉与确认抽屉 / 标题报返回栏）收在壳里，实现在
 /// [VideoCollectionDetailContent]。
 class MobileVideoCollectionDetailPage extends StatelessWidget {
@@ -30,8 +27,6 @@ class MobileVideoCollectionDetailPage extends StatelessWidget {
       useMobileSelectionLayout: true,
       hoistTitleToSubpageShell: true,
       useMobileFilterDrawer: true,
-      enableReorder: false,
-      defaultLayout: CollectionDetailLayout.grid,
       playAllBuilder: (context, {required enabled, required onPlayFrom}) {
         return AppTextButton(
           key: const Key('mobile-video-collection-play-all-button'),

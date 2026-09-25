@@ -38,6 +38,7 @@ import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_stat
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
@@ -70,10 +71,12 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
         MovieBatchSelectionMixin<PlaylistDetailContent> {
   late final ScrollController _scrollController;
   final _listHeaderKey = GlobalKey();
-  bool _isBannerHovered = false;
 
   MovieSummaryScope get _scope =>
       MovieSummaryScope.playlist(playlistId: widget.playlistId);
+
+  MovieCardHoverFeatureActions get _hoverFeatureActions =>
+      movieCardHoverFeatureActions(context);
 
   PlaylistFilterState get _filterState =>
       ref.read(movieSummaryProvider(_scope)).value?.filter.playlist ??
@@ -154,44 +157,27 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
           final footer = _buildLoadMoreFooter(context, movies);
           final slivers = <Widget>[
             SliverToBoxAdapter(
-              child: MouseRegion(
-                onEnter: (_) => _setBannerHovered(true),
-                onExit: (_) => _setBannerHovered(false),
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onLongPressStart: canManage
-                      ? (details) => unawaited(
-                          _openActionMenu(playlist, details.globalPosition),
-                        )
-                      : null,
-                  onSecondaryTapDown: canManage
-                      ? (details) => unawaited(
-                          _openActionMenu(playlist, details.globalPosition),
-                        )
-                      : null,
-                  child: Stack(
-                    children: [
-                      PlaylistBannerCard(
-                        key: Key('playlist-banner-card-${playlist.id}'),
-                        title: playlist.name,
-                        coverImageUrl: paged
-                            ?.items
-                            .firstOrNull
-                            ?.coverImage
-                            ?.bestAvailableUrl,
-                      ),
-                      if (canManage && !_isMobile && _isBannerHovered)
-                        Positioned(
-                          top: context.appSpacing.sm,
-                          right: context.appSpacing.sm,
-                          child: _PlaylistDetailMoreButton(
-                            onTap: (position) =>
-                                unawaited(_openActionMenu(playlist, position)),
-                          ),
-                        ),
-                    ],
+              child: Stack(
+                children: [
+                  PlaylistBannerCard(
+                    key: Key('playlist-banner-card-${playlist.id}'),
+                    title: playlist.name,
+                    coverImageUrl: paged
+                        ?.items
+                        .firstOrNull
+                        ?.coverImage
+                        ?.bestAvailableUrl,
                   ),
-                ),
+                  if (canManage)
+                    Positioned(
+                      top: context.appSpacing.sm,
+                      right: context.appSpacing.sm,
+                      child: _PlaylistDetailMoreButton(
+                        onTap: (position) =>
+                            unawaited(_openActionMenu(playlist, position)),
+                      ),
+                    ),
+                ],
               ),
             ),
             AppPinnedListHeader(
@@ -225,6 +211,9 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                       ),
                   onMovieSubscriptionTap: (movie) =>
                       _toggleMovieSubscription(movie.movieNumber),
+                  onMovieToggleCollectionType:
+                      _hoverFeatureActions.toggleCollectionType,
+                  onMovieBlacklist: _hoverFeatureActions.blacklist,
                   isMovieSubscriptionUpdating: (movie) =>
                       movies?.isSubscriptionUpdating(movie.movieNumber) ??
                       false,
@@ -297,17 +286,13 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
 
   bool get _isMobile => AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
 
-  void _setBannerHovered(bool hovered) {
-    if (_isBannerHovered == hovered) {
-      return;
-    }
-    setState(() => _isBannerHovered = hovered);
-  }
-
   Future<void> _openActionMenu(PlaylistDto playlist, Offset position) async {
     final action = await showPlaylistDetailActionMenu(
       context: context,
       playlist: playlist,
+      presentation: _isMobile
+          ? AppMenuPresentation.bottomDrawer
+          : AppMenuPresentation.popup,
       position: position,
     );
     if (!mounted || action == null) {
@@ -520,7 +505,7 @@ class _PlaylistDetailLoadingContent extends StatelessWidget {
 
 void _ignoreMovieTap(MovieListItemDto _) {}
 
-/// 横幅右上角「···」：桌面 hover 横幅时显示，点击弹锚点菜单。
+/// 横幅右上角常显「···」：桌面点击弹锚点菜单，移动端弹底部操作表。
 class _PlaylistDetailMoreButton extends StatelessWidget {
   const _PlaylistDetailMoreButton({required this.onTap});
 

@@ -22,9 +22,6 @@ class ImageSearchResultSliver extends StatelessWidget {
     return AppAdaptiveCardSliver<ImageSearchResultItemDto>(
       gridKey: const Key('desktop-image-search-result-grid'),
       items: items,
-      targetColumnWidth: 220,
-      minColumns: 2,
-      maxColumns: 5,
       childAspectRatio: 16 / 10,
       itemBuilder:
           (context, item, index) => ImageSearchResultCard(

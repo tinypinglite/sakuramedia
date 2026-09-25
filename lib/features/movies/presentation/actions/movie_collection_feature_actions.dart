@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/mutation_even
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
@@ -109,6 +110,7 @@ Future<void> showMovieCollectionFeatureActionMenu({
       );
       return;
     case _MovieCollectionFeatureMenuAction.toggleCollectionType:
+      // 菜单打开时已预查过状态（长按场景除外），这里复用，避免重复请求。
       final resolved =
           statusResult ??
           await _lookupCollectionStatus(
@@ -126,24 +128,100 @@ Future<void> showMovieCollectionFeatureActionMenu({
       );
       return;
     case _MovieCollectionFeatureMenuAction.blacklist:
-      final confirmed = await showAppConfirmDialog(
-        context,
-        title: '屏蔽影片',
-        message: '已订阅影片无法屏蔽，请先取消订阅。屏蔽后将从正常列表和推荐中隐藏。',
-        confirmLabel: '屏蔽',
-        danger: true,
-        failureFallback: '屏蔽影片失败',
-        onConfirm: () => moviesApi.setMoviesBlacklisted(
-          movieNumbers: <String>[movieNumber],
-          isBlacklisted: true,
-        ),
+      await blacklistMovie(
+        context: context,
+        movieNumber: movieNumber,
+        onBlacklisted: onBlacklisted,
       );
-      if (confirmed && context.mounted) {
-        onBlacklisted?.call();
-        showToast('已屏蔽影片');
-      }
       return;
   }
+}
+
+/// 切换影片「合集 / 单体」标记：先查当前状态再切换，成功后广播并 toast。
+/// 右键菜单与卡片悬停动作行共用这一入口。
+Future<void> toggleMovieCollectionType({
+  required BuildContext context,
+  required String movieNumber,
+}) async {
+  final moviesApi = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(moviesApiProvider);
+  final statusResult = await _lookupCollectionStatus(
+    moviesApi: moviesApi,
+    movieNumber: movieNumber,
+  );
+  if (!context.mounted) {
+    return;
+  }
+  await _handleCollectionTypeToggleAction(
+    context: context,
+    movieNumber: movieNumber,
+    statusResult: statusResult,
+    moviesApi: moviesApi,
+  );
+}
+
+/// 屏蔽影片（确认后隐藏出正常列表与推荐）。右键菜单与卡片悬停动作行共用。
+Future<void> blacklistMovie({
+  required BuildContext context,
+  required String movieNumber,
+  VoidCallback? onBlacklisted,
+}) async {
+  final moviesApi = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(moviesApiProvider);
+  final confirmed = await showAppConfirmDialog(
+    context,
+    title: '屏蔽影片',
+    message: '已订阅影片无法屏蔽，请先取消订阅。屏蔽后将从正常列表和推荐中隐藏。',
+    confirmLabel: '屏蔽',
+    danger: true,
+    failureFallback: '屏蔽影片失败',
+    onConfirm: () => moviesApi.setMoviesBlacklisted(
+      movieNumbers: <String>[movieNumber],
+      isBlacklisted: true,
+    ),
+  );
+  if (confirmed && context.mounted) {
+    onBlacklisted?.call();
+    showToast('已屏蔽影片');
+  }
+}
+
+/// 影片卡悬停动作行里「标记合集/单体 + 屏蔽」两个回调的默认接线。
+///
+/// 各列表页把它直接传给 `MovieSummaryGrid` / `MovieSummarySliver` /
+/// `RankedMovieSummarySliver` / `CatalogSearchContent` 的悬停回调；
+/// [onBlacklisted] 由页面提供（通常把该影片从当前列表移除）。
+typedef MovieCardHoverFeatureActions = ({
+  ValueChanged<MovieListItemDto> toggleCollectionType,
+  ValueChanged<MovieListItemDto> blacklist,
+});
+
+/// 组装 [MovieCardHoverFeatureActions]；其余悬停动作（播放 / 订阅）由各页自己接线。
+MovieCardHoverFeatureActions movieCardHoverFeatureActions(
+  BuildContext context, {
+  void Function(String movieNumber)? onBlacklisted,
+}) {
+  return (
+    toggleCollectionType: (movie) => unawaited(
+      toggleMovieCollectionType(
+        context: context,
+        movieNumber: movie.movieNumber,
+      ),
+    ),
+    blacklist: (movie) => unawaited(
+      blacklistMovie(
+        context: context,
+        movieNumber: movie.movieNumber,
+        onBlacklisted: onBlacklisted == null
+            ? null
+            : () => onBlacklisted(movie.movieNumber),
+      ),
+    ),
+  );
 }
 
 Future<void> _handleToggleSubscriptionAction({

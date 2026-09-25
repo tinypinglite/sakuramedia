@@ -17,6 +17,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 
 /// 切片合集列表页：全部合集网格 + 新建 / 编辑 / 删除。
@@ -123,27 +124,35 @@ class _DesktopClipCollectionsPageState
     final spacing = context.appSpacing;
     return AppSkeletonizer(
       enabled: isLoading,
-      child: GridView.builder(
-        key: const Key('clip-collections-grid'),
-        padding: EdgeInsets.only(bottom: spacing.lg),
-        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 240,
-          mainAxisSpacing: spacing.md,
-          crossAxisSpacing: spacing.md,
-          childAspectRatio: 1.2,
-        ),
-        itemCount: collections.length,
-        itemBuilder: (context, index) {
-          final collection = collections[index];
-          return CollectionCard.clip(
-            key: Key('clip-collection-card-${collection.id}'),
-            collection: collection,
-            onTap:
-                () => context.pushDesktopClipCollectionDetail(
-                  collectionId: collection.id,
-                ),
-            onEdit: () => _editCollection(collection),
-            onDelete: () => _deleteCollection(collection),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return GridView.builder(
+            key: const Key('clip-collections-grid'),
+            padding: EdgeInsets.only(bottom: spacing.lg),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: resolveAppCardGridColumnCount(
+                context,
+                width: constraints.maxWidth,
+                spacing: spacing.md,
+              ),
+              mainAxisSpacing: spacing.md,
+              crossAxisSpacing: spacing.md,
+              childAspectRatio: 1.2,
+            ),
+            itemCount: collections.length,
+            itemBuilder: (context, index) {
+              final collection = collections[index];
+              return CollectionCard.clip(
+                key: Key('clip-collection-card-${collection.id}'),
+                collection: collection,
+                onTap:
+                    () => context.pushDesktopClipCollectionDetail(
+                      collectionId: collection.id,
+                    ),
+                onEdit: () => _editCollection(collection),
+                onDelete: () => _deleteCollection(collection),
+              );
+            },
           );
         },
       ),

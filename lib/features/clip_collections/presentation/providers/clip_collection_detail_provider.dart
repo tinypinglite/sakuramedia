@@ -3,23 +3,21 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/providers/clip_collection_detail_state.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/providers/clip_collections_api_provider.dart';
-import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/providers/clips_api_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/async_notifier_dispose_guard.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/optimistic_patch_mixin.dart';
 
 part 'clip_collection_detail_provider.g.dart';
 
-/// 切片合集详情：加载合集元信息 + 全量有序切片，支持拖序、移除、删除本体。
+/// 切片合集详情：加载合集元信息 + 全量切片，支持移除、删除本体。
 ///
-/// 合集切片量通常不大，这里一次性把所有分页拉全，便于本地重排后用
-/// `setCollectionClips` 提交完整有序列表（后端按列表重新编号 position）。
+/// 合集切片量通常不大，这里一次性把所有分页拉全。
 ///
-/// reorder / removeClip / deleteClip 三处都用 [withOptimisticPatch]（本地立即变
-/// → await API → 失败整体回滚）。三处共用 [_mutationKey]，保证同一合集同时只
+/// removeClip / deleteClip 两处都用 [withOptimisticPatch]（本地立即变
+/// → await API → 失败整体回滚）。两处共用 [_mutationKey]，保证同一合集同时只
 /// 执行一个 mutation。
 ///
-/// reorder / removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
+/// removeClip 返回 `Future<String?>`（成功 null / 失败错误文案）；
 /// deleteClip 则将异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
 ///
 /// family(collectionId) + autoDispose：每合集独立实例，离开页面即释放。
@@ -58,39 +56,6 @@ class ClipCollectionDetail extends _$ClipCollectionDetail
     } catch (error, stack) {
       if (isDisposed) return;
       state = AsyncError(error, stack);
-    }
-  }
-
-  /// 本地重排并提交完整有序列表；失败时回滚并返回错误消息。
-  Future<String?> reorder(int oldIndex, int newIndex) async {
-    try {
-      return await withOptimisticPatch<String?>(
-        key: _mutationKey,
-        apply: (current) {
-          final updated = List<MediaClipDto>.from(current.clips);
-          var targetIndex = newIndex;
-          if (targetIndex > oldIndex) {
-            targetIndex -= 1;
-          }
-          final moved = updated.removeAt(oldIndex);
-          updated.insert(targetIndex, moved);
-          return current.copyWith(clips: updated);
-        },
-        action: () async {
-          final applied = state.value?.clips ?? const <MediaClipDto>[];
-          await ref
-              .read(clipCollectionsApiProvider)
-              .setCollectionClips(
-                collectionId: collectionId,
-                clipIds: applied
-                    .map((clip) => clip.clipId)
-                    .toList(growable: false),
-              );
-          return null;
-        },
-      );
-    } catch (error) {
-      return apiErrorMessage(error, fallback: '排序失败，请重试');
     }
   }
 

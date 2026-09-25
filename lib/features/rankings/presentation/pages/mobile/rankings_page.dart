@@ -45,6 +45,9 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
   late final RiverpodPageHandle _pageCacheHandle;
   late final ScrollController _scrollController;
 
+  MovieCardHoverFeatureActions get _hoverFeatureActions =>
+      movieCardHoverFeatureActions(context);
+
   @override
   String get batchKeyPrefix => 'mobile-rankings';
 
@@ -204,6 +207,9 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
                       ),
                   onMovieSubscriptionTap: (movie) =>
                       _toggleMovieSubscription(movie.movieNumber),
+                  onMovieToggleCollectionType:
+                      _hoverFeatureActions.toggleCollectionType,
+                  onMovieBlacklist: _hoverFeatureActions.blacklist,
                   isMovieSubscriptionUpdating: (movie) =>
                       summary.isSubscriptionUpdating(movie.movieNumber),
                   emptyMessage: '暂无榜单数据',

@@ -39,6 +39,9 @@ void main() {
     WidgetTester tester, {
     required VoidCallback onTap,
     VoidCallback? onPlay,
+    VoidCallback? onThumbnails,
+    VoidCallback? onAddToCollection,
+    VoidCallback? onDelete,
     VideoItemListItemDto? video,
     bool selectionMode = false,
     ValueChanged<bool>? onSelectedChanged,
@@ -59,6 +62,9 @@ void main() {
                     video: video ?? buildVideo(),
                     onTap: onTap,
                     onPlay: onPlay,
+                    onThumbnails: onThumbnails,
+                    onAddToCollection: onAddToCollection,
+                    onDelete: onDelete,
                     selectionMode: selectionMode,
                     onSelectedChanged: onSelectedChanged,
                   ),
@@ -214,6 +220,57 @@ void main() {
     await hoverCard(tester);
 
     expect(find.byKey(const Key('video-summary-card-play-1')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('video card hover action row triggers each callback', (
+    WidgetTester tester,
+  ) async {
+    var thumbnails = 0;
+    var addToCollection = 0;
+    var delete = 0;
+    await pumpCard(
+      tester,
+      onTap: () {},
+      onThumbnails: () => thumbnails++,
+      onAddToCollection: () => addToCollection++,
+      onDelete: () => delete++,
+    );
+
+    await hoverCard(tester);
+
+    await tester.tap(
+      find.byKey(const Key('video-summary-card-thumbnails-1')),
+    );
+    await tester.tap(
+      find.byKey(const Key('video-summary-card-add-collection-1')),
+    );
+    await tester.tap(find.byKey(const Key('video-summary-card-delete-1')));
+    await tester.pumpAndSettle();
+
+    expect(thumbnails, 1);
+    expect(addToCollection, 1);
+    expect(delete, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('video card hover action row hides unavailable actions', (
+    WidgetTester tester,
+  ) async {
+    await pumpCard(tester, onTap: () {}, onPlay: () {});
+
+    await hoverCard(tester);
+
+    expect(find.byKey(const Key('video-summary-card-play-1')), findsOneWidget);
+    expect(
+      find.byKey(const Key('video-summary-card-thumbnails-1')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('video-summary-card-add-collection-1')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('video-summary-card-delete-1')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

@@ -70,31 +70,55 @@ void main() {
     );
   });
 
-  testWidgets(
-    'movie summary grid allows desktop previews to raise column cap',
-    (WidgetTester tester) async {
-      tester.view.physicalSize = const Size(2400, 800);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets('movie summary grid caps columns at the unified card grid spec', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(2400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: sakuraThemeData,
-          home: const Scaffold(
-            body: MovieSummaryGrid(items: [_movie], maxColumns: 10),
-          ),
-        ),
-      );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const Scaffold(body: MovieSummaryGrid(items: [_movie])),
+      ),
+    );
 
-      final gridView = tester.widget<GridView>(
-        find.byKey(const Key('movie-summary-grid')),
-      );
-      final delegate =
-          gridView.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-      expect(delegate.crossAxisCount, 10);
-    },
-  );
+    final gridView = tester.widget<GridView>(
+      find.byKey(const Key('movie-summary-grid')),
+    );
+    final delegate =
+        gridView.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    expect(
+      delegate.crossAxisCount,
+      AppComponentTokens.defaults().cardGridMaxColumns,
+    );
+  });
+
+  testWidgets('movie summary grid derives columns from the unified target width', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const Scaffold(body: MovieSummaryGrid(items: [_movie])),
+      ),
+    );
+
+    final gridView = tester.widget<GridView>(
+      find.byKey(const Key('movie-summary-grid')),
+    );
+    final delegate =
+        gridView.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
+    // (1200 + 12) / (220 + 12) = 5.2 → 5 列。
+    expect(delegate.crossAxisCount, 5);
+  });
 
   testWidgets('movie summary card uses component token aspect ratio', (
     WidgetTester tester,

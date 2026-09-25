@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 
 /// 布局模式：等宽 tile(固定 aspect ratio) vs 瀑布流(逐 tile aspect)。
 enum AppAdaptiveCardGridLayout { fixedAspect, masonry }
@@ -12,7 +13,8 @@ enum AppAdaptiveCardGridLayout { fixedAspect, masonry }
 ///
 /// 消除 movies / actors / rankings / videos 四份网格的 copy-paste:
 /// - 列数按 `((width + spacing) / (targetWidth + spacing)).floor()` 计算,
-///   钳位到 [minColumns, maxColumns]；
+///   钳位到 [minColumns, maxColumns]；目标列宽与列数上限默认取全站统一规格
+///   [AppComponentTokens.cardGridTargetWidth] / [AppComponentTokens.cardGridMaxColumns]；
 /// - `layout: fixedAspect` 走 [GridView] + [childAspectRatio]；
 /// - `layout: masonry` 走 [MasonryGridView] + [tileAspect]（每 tile 自算高度）。
 ///
@@ -31,7 +33,7 @@ class AppAdaptiveCardGrid<T> extends StatelessWidget {
     this.emptyMessage = '当前没有可展示的数据。',
     this.targetColumnWidth,
     this.minColumns = 2,
-    this.maxColumns = 6,
+    this.maxColumns,
     this.layout = AppAdaptiveCardGridLayout.fixedAspect,
     this.childAspectRatio,
     this.mainAxisExtent,
@@ -52,11 +54,13 @@ class AppAdaptiveCardGrid<T> extends StatelessWidget {
   final String? errorMessage;
   final String emptyMessage;
 
-  /// 目标列宽,列公式的 target。null → `context.appComponentTokens.movieCardTargetWidth`。
+  /// 目标列宽,列公式的 target。null → [AppComponentTokens.cardGridTargetWidth]。
   final double? targetColumnWidth;
 
   final int minColumns;
-  final int maxColumns;
+
+  /// 列数上限。null → [AppComponentTokens.cardGridMaxColumns]。
+  final int? maxColumns;
 
   final AppAdaptiveCardGridLayout layout;
 
@@ -101,13 +105,13 @@ class AppAdaptiveCardGrid<T> extends StatelessWidget {
         final spacing = context.appSpacing.md;
         final componentTokens = context.appComponentTokens;
         final target =
-            targetColumnWidth ?? componentTokens.movieCardTargetWidth;
-        final columns = _resolveAppAdaptiveColumnCount(
+            targetColumnWidth ?? componentTokens.cardGridTargetWidth;
+        final columns = resolveGridColumnCount(
           width: constraints.maxWidth,
           spacing: spacing,
           targetWidth: target,
           minColumns: minColumns,
-          maxColumns: maxColumns,
+          maxColumns: maxColumns ?? componentTokens.cardGridMaxColumns,
         );
         final visibleItemCount =
             maxRows == null ? itemCount : math.min(itemCount, columns * maxRows!);
@@ -165,7 +169,7 @@ class AppAdaptiveCardSliver<T> extends StatelessWidget {
     this.emptyMessage = '当前没有可展示的数据。',
     this.targetColumnWidth,
     this.minColumns = 2,
-    this.maxColumns = 6,
+    this.maxColumns,
     this.layout = AppAdaptiveCardGridLayout.fixedAspect,
     this.childAspectRatio,
     this.mainAxisExtent,
@@ -182,7 +186,7 @@ class AppAdaptiveCardSliver<T> extends StatelessWidget {
   final String emptyMessage;
   final double? targetColumnWidth;
   final int minColumns;
-  final int maxColumns;
+  final int? maxColumns;
   final AppAdaptiveCardGridLayout layout;
   final double? childAspectRatio;
   final double? mainAxisExtent;
@@ -203,13 +207,13 @@ class AppAdaptiveCardSliver<T> extends StatelessWidget {
         final spacing = context.appSpacing.md;
         final componentTokens = context.appComponentTokens;
         final target =
-            targetColumnWidth ?? componentTokens.movieCardTargetWidth;
-        final columns = _resolveAppAdaptiveColumnCount(
+            targetColumnWidth ?? componentTokens.cardGridTargetWidth;
+        final columns = resolveGridColumnCount(
           width: constraints.crossAxisExtent,
           spacing: spacing,
           targetWidth: target,
           minColumns: minColumns,
-          maxColumns: maxColumns,
+          maxColumns: maxColumns ?? componentTokens.cardGridMaxColumns,
         );
         Widget buildTile(BuildContext context, int index) {
           return itemBuilder(context, items[index], index);
@@ -249,15 +253,4 @@ class AppAdaptiveCardSliver<T> extends StatelessWidget {
       },
     );
   }
-}
-
-int _resolveAppAdaptiveColumnCount({
-  required double width,
-  required double spacing,
-  required double targetWidth,
-  required int minColumns,
-  required int maxColumns,
-}) {
-  final columns = ((width + spacing) / (targetWidth + spacing)).floor();
-  return math.max(minColumns, math.min(maxColumns, columns));
 }

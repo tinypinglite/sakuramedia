@@ -4,9 +4,7 @@ import 'package:sakuramedia/theme.dart';
 
 /// 媒体封面右下角的时长胶囊：半透明黑底 + 白色 mm:ss 文本。
 ///
-/// 跨切片 / 视频 / 合集等所有「有时长的媒体缩略图」共用，语义等价于
-/// 「这个封面代表的媒体时长」。跟 `ClipPlayOverlay`（播放遮罩）配套但独立
-/// 使用——不是所有带时长徽标的地方都有播放遮罩。
+/// 跨切片 / 视频 / 合集等所有「有时长的媒体缩略图」共用。
 class MediaDurationBadge extends StatelessWidget {
   const MediaDurationBadge({super.key, required this.seconds});
 

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
@@ -32,6 +31,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_over
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
@@ -398,50 +398,32 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
     }
     // loading 用占位切片渲染同一份真实网格，由 [AppSkeletonizer] 灰化。
     final display = isLoading ? clipPlaceholders(count: 6) : clips;
-    final spacing = context.appSpacing;
     return AppSkeletonizer.sliver(
       enabled: isLoading,
-      child: SliverLayoutBuilder(
-        builder: (context, constraints) {
-          final columns = _resolveColumnCount(
-            constraints.crossAxisExtent,
-            spacing.md,
-          );
-          return SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              mainAxisSpacing: spacing.md,
-              crossAxisSpacing: spacing.md,
-              childAspectRatio: 16 / 9,
+      child: AppAdaptiveCardSliver<MediaClipDto>(
+        gridKey: const Key('mobile-clips-grid'),
+        items: display,
+        childAspectRatio: 16 / 9,
+        itemBuilder: (context, clip, index) {
+          return GestureDetector(
+            onLongPress: selectionMode
+                ? null
+                : () {
+                    enterSelection();
+                    toggleSelect(clip.clipId);
+                  },
+            child: ClipCoverCard(
+              key: Key('mobile-clip-grid-card-${clip.clipId}'),
+              clip: clip,
+              onTap: () => _openClipSheet(clip),
+              selectionMode: selectionMode,
+              isSelected: isSelected(clip.clipId),
+              onSelectedChanged: (_) => toggleSelect(clip.clipId),
             ),
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final clip = display[index];
-              return GestureDetector(
-                onLongPress: selectionMode
-                    ? null
-                    : () {
-                        enterSelection();
-                        toggleSelect(clip.clipId);
-                      },
-                child: ClipCoverCard(
-                  key: Key('mobile-clip-grid-card-${clip.clipId}'),
-                  clip: clip,
-                  onTap: () => _openClipSheet(clip),
-                  selectionMode: selectionMode,
-                  isSelected: isSelected(clip.clipId),
-                  onSelectedChanged: (_) => toggleSelect(clip.clipId),
-                ),
-              );
-            }, childCount: display.length),
           );
         },
       ),
     );
-  }
-
-  int _resolveColumnCount(double width, double spacing) {
-    final columns = ((width + spacing) / (280 + spacing)).floor();
-    return math.max(2, math.min(4, columns));
   }
 
   Widget _buildFooter(

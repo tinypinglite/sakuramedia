@@ -7,6 +7,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_cover_hover_info.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 /// 非 JAV 视频列表卡片：整卡即封面，收起态不铺任何文字。
 ///
@@ -28,6 +29,9 @@ class VideoSummaryCard extends StatelessWidget {
     required this.video,
     this.onTap,
     this.onPlay,
+    this.onThumbnails,
+    this.onAddToCollection,
+    this.onDelete,
     this.selectionMode = false,
     this.isSelected = false,
     this.onSelectedChanged,
@@ -41,6 +45,15 @@ class VideoSummaryCard extends StatelessWidget {
   /// 悬停面板里的播放主按钮回调；为 `null` 或 [VideoItemListItemDto.canPlay]
   /// 为 false 时不显示按钮。
   final VoidCallback? onPlay;
+
+  /// 悬停面板里的「缩略图」动作；为 `null` 时不显示按钮。
+  final VoidCallback? onThumbnails;
+
+  /// 悬停面板里的「加入合集」动作；为 `null` 时不显示按钮。
+  final VoidCallback? onAddToCollection;
+
+  /// 悬停面板里的「删除」动作；为 `null` 时不显示按钮。
+  final VoidCallback? onDelete;
 
   /// 选择模式:整卡点击改为切换选中,不展开悬停面板,叠加勾选标记。
   final bool selectionMode;
@@ -85,26 +98,29 @@ class VideoSummaryCard extends StatelessWidget {
           ),
           child: ClipRRect(
             borderRadius: context.appRadius.lgBorder,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                AppCoverHoverInfo(
-                  enabled: !selectionMode,
-                  cover: _VideoCover(
-                    videoId: video.id,
-                    coverImage: video.coverImage,
-                  ),
-                  infoBuilder: (context) => _buildHoverInfo(context),
-                ),
-                if (selectionMode)
-                  Positioned(
-                    top: context.appSpacing.xs,
-                    left: context.appSpacing.xs,
-                    child: IgnorePointer(
-                      child: SelectionCheckBadge(isSelected: isSelected),
+            // 骨架态整卡收敛成一块 shimmer 圆角块（非骨架态原样渲染）。
+            child: Skeleton.unite(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  AppCoverHoverInfo(
+                    enabled: !selectionMode,
+                    cover: _VideoCover(
+                      videoId: video.id,
+                      coverImage: video.coverImage,
                     ),
+                    infoBuilder: (context) => _buildHoverInfo(context),
                   ),
-              ],
+                  if (selectionMode)
+                    Positioned(
+                      top: context.appSpacing.xs,
+                      left: context.appSpacing.xs,
+                      child: IgnorePointer(
+                        child: SelectionCheckBadge(isSelected: isSelected),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -112,46 +128,55 @@ class VideoSummaryCard extends StatelessWidget {
     );
   }
 
-  /// 悬停展开内容（JAV 影片卡同款多行）：标题、时长/大小与播放主按钮。
+  /// 悬停展开内容：单行「标题 + 时长 · 大小」，下方一整行动作按钮
+  /// （播放 / 缩略图 / 加入合集 / 删除，按回调是否为空显隐）。
   Widget _buildHoverInfo(BuildContext context) {
     final spacing = context.appSpacing;
     final play = onPlay;
     final canPlay = play != null && video.canPlay;
-    final meta = _metaLine();
+    final thumbnails = onThumbnails;
+    final addToCollection = onAddToCollection;
+    final delete = onDelete;
+    final actions = <Widget>[
+      if (canPlay)
+        AppCoverHoverActionButton(
+          key: Key('video-summary-card-play-${video.id}'),
+          icon: Icons.play_arrow_rounded,
+          onTap: play,
+          primary: true,
+          tooltip: '播放',
+        ),
+      if (thumbnails != null)
+        AppCoverHoverActionButton(
+          key: Key('video-summary-card-thumbnails-${video.id}'),
+          icon: Icons.photo_library_outlined,
+          onTap: thumbnails,
+          tooltip: '缩略图',
+        ),
+      if (addToCollection != null)
+        AppCoverHoverActionButton(
+          key: Key('video-summary-card-add-collection-${video.id}'),
+          icon: Icons.playlist_add_rounded,
+          onTap: addToCollection,
+          tooltip: '加入合集',
+        ),
+      if (delete != null)
+        AppCoverHoverActionButton(
+          key: Key('video-summary-card-delete-${video.id}'),
+          icon: Icons.delete_outline_rounded,
+          onTap: delete,
+          tooltip: '删除',
+        ),
+    ];
     return Column(
       key: Key('video-summary-card-info-${video.id}'),
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          video.preferredTitle,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: resolveCoverOverlayTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.semibold,
-          ),
-        ),
-        if (meta != null) ...[
-          SizedBox(height: spacing.xs / 2),
-          Text(
-            meta,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: resolveCoverOverlayTextStyle(
-              context,
-              size: AppTextSize.s10,
-              opacity: 0.72,
-            ),
-          ),
-        ],
-        if (canPlay) ...[
+        AppCoverHoverInfoRow(label: video.preferredTitle, meta: _metaLine()),
+        if (actions.isNotEmpty) ...[
           SizedBox(height: spacing.sm),
-          AppCoverHoverPlayButton(
-            key: Key('video-summary-card-play-${video.id}'),
-            onTap: play,
-          ),
+          AppCoverHoverActionBar(actions: actions),
         ],
       ],
     );

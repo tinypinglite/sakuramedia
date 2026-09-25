@@ -203,7 +203,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('桌面默认网格，可切换列表并显示拖拽把手', (WidgetTester tester) async {
+  testWidgets('桌面固定网格且不再提供列表切换', (WidgetTester tester) async {
     enqueueInitialLoad();
     await pumpDesktop(tester);
 
@@ -219,22 +219,18 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('2 个时刻'), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('moment-collection-layout-toggle')));
-    await tester.pumpAndSettle();
-
     expect(
       find.byKey(const Key('moment-collection-detail-list')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
-      find.byKey(const Key('moment-collection-reorder-handle-10')),
-      findsOneWidget,
+      find.byKey(const Key('moment-collection-layout-toggle')),
+      findsNothing,
     );
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('桌面网格收起态不铺文字，悬停渐显信息与播放键', (WidgetTester tester) async {
+  testWidgets('桌面网格收起态不铺文字，悬停渐显信息与动作行', (WidgetTester tester) async {
     enqueueInitialLoad(total: 1);
     await pumpDesktop(tester);
 
@@ -250,6 +246,18 @@ void main() {
     );
     expect(
       find.byKey(const Key('moment-collection-grid-play-10')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('moment-collection-grid-movie-10')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('moment-collection-grid-remove-10')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('moment-collection-grid-delete-10')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -349,14 +357,9 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  testWidgets('移动端长按进入多选且不显示拖拽把手', (WidgetTester tester) async {
+  testWidgets('移动端长按进入多选', (WidgetTester tester) async {
     enqueueInitialLoad();
     await pumpMobile(tester);
-
-    expect(
-      find.byKey(const Key('mobile-moment-collection-reorder-handle-10')),
-      findsNothing,
-    );
 
     await tester.longPress(find.byKey(const ValueKey<int>(10)));
     await tester.pumpAndSettle();

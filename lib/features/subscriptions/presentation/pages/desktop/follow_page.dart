@@ -26,6 +26,14 @@ class _DesktopFollowPageState extends ConsumerState<DesktopFollowPage> {
   static const _scope = MovieSummaryScope.subscribedActorsLatest();
   late final ScrollController _scrollController;
 
+  MovieCardHoverFeatureActions get _hoverFeatureActions =>
+      movieCardHoverFeatureActions(
+        context,
+        onBlacklisted: (movieNumber) => ref
+            .read(movieSummaryProvider(_scope).notifier)
+            .removeMovies(<String>[movieNumber]),
+      );
+
   @override
   void initState() {
     super.initState();
@@ -118,6 +126,9 @@ class _DesktopFollowPageState extends ConsumerState<DesktopFollowPage> {
                     },
                     onMovieSubscriptionTap: (movie) =>
                         _toggleMovieSubscription(movie.movieNumber),
+                    onMovieToggleCollectionType:
+                        _hoverFeatureActions.toggleCollectionType,
+                    onMovieBlacklist: _hoverFeatureActions.blacklist,
                     isMovieSubscriptionUpdating: (movie) =>
                         summary?.isSubscriptionUpdating(movie.movieNumber) ??
                         false,

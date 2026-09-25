@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
@@ -224,6 +225,39 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('clip-action-delete')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('桌面网格悬停展示整行动作按钮', (WidgetTester tester) async {
+    enqueueInitialLoad();
+    await pumpPage(tester);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: Offset.zero);
+    addTearDown(mouse.removePointer);
+    await mouse.moveTo(tester.getCenter(find.byKey(const ValueKey<int>(1))));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('clip-collection-grid-play-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('clip-collection-grid-movie-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('clip-collection-grid-add-collection-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('clip-collection-grid-remove-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('clip-collection-grid-delete-1')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

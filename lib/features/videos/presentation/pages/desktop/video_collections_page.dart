@@ -17,6 +17,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 
 class DesktopVideoCollectionsPage extends ConsumerWidget {
@@ -134,24 +135,37 @@ class DesktopVideoCollectionsPage extends ConsumerWidget {
     }
     return AppSkeletonizer(
       enabled: isLoading,
-      child: Wrap(
-        spacing: context.appSpacing.md,
-        runSpacing: context.appSpacing.md,
-        children: [
-          for (final collection in collections)
-            SizedBox(
-              width: 280,
-              child: CollectionCard.video(
-                collection: collection,
-                onTap:
-                    () => context.go(
-                      '$desktopVideoCollectionsPath/${collection.id}',
-                    ),
-                onEdit: () => _edit(context, ref, collection),
-                onDelete: () => _delete(context, ref, collection),
-              ),
-            ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final spacing = context.appSpacing.md;
+          final columns = resolveAppCardGridColumnCount(
+            context,
+            width: constraints.maxWidth,
+            spacing: spacing,
+          );
+          // 卡片保持自身内容高度，只按统一列数切宽度，不用固定比例网格。
+          final cardWidth =
+              (constraints.maxWidth - spacing * (columns - 1)) / columns;
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: [
+              for (final collection in collections)
+                SizedBox(
+                  width: cardWidth,
+                  child: CollectionCard.video(
+                    collection: collection,
+                    onTap:
+                        () => context.go(
+                          '$desktopVideoCollectionsPath/${collection.id}',
+                        ),
+                    onEdit: () => _edit(context, ref, collection),
+                    onDelete: () => _delete(context, ref, collection),
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
   }

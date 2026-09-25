@@ -16,7 +16,7 @@
 - `AppAdaptiveCardGrid<T>` / `AppAdaptiveCardSliver<T>`：自适应列数、固定比例或 masonry 布局，并可接入骨架、错误、空态和内容 builder。
 - `StaggeredTilePlacement` / `StaggeredLayoutResult`：`staggered_layout.dart`，只在需要自定义交错布局时使用。
 
-普通影片、女优、视频等封面网格优先使用 `AppAdaptiveCardGrid` 及其业务薄壳。缩略图网格、图搜结果等有不同视觉/交互语义的网格保留各自实现。
+全站卡片网格（影片 / 女优 / 视频 / 切片 / 时刻 / 图搜列表、合集列表与合集详情）统一走同一套列数规格：目标列宽和列数上限取 `AppComponentTokens.cardGridTargetWidth`（当前 220）与 `cardGridMaxColumns`（当前 8）。`AppAdaptiveCardGrid` / `AppAdaptiveCardSliver` 默认读取该 token，手写 `GridView` / `SliverGrid` 的页面用 `resolveAppCardGridColumnCount(context, width:, spacing:)`；调整卡片密度只改 token，一处生效。播放器缩略图面板有自己的目标列宽和用户手动列数，不在这套规格内。
 
 ## 多选
 

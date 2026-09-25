@@ -18,12 +18,6 @@
 
 图标操作按钮，支持 `mini`、`compact`、`regular` 尺寸。必须提供可理解的 tooltip 或等价语义。
 
-## `AppViewModeToggleButton`
-
-路径：`lib/widgets/base/actions/app_view_mode_toggle_button.dart`
-
-合集详情顶栏的「网格 / 列表」切换按钮：按当前布局 `isList` 自动切换 tooltip 与图标。测试锚点通过 `buttonKey` 透传到内部 `AppIconButton`。
-
 ## `AppInteractiveSurface`
 
 路径：`lib/widgets/base/interaction/app_interactive_surface.dart`

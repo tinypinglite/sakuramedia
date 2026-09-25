@@ -112,15 +112,4 @@ class ClipCollectionsApi {
       '/clip-collections/$collectionId/clips/$clipId',
     );
   }
-
-  /// 全量有序设置合集成员：既覆盖重排也覆盖批量设置成员（后端按此列表重新编号 position）。
-  Future<void> setCollectionClips({
-    required int collectionId,
-    required List<int> clipIds,
-  }) {
-    return _apiClient.putNoContent(
-      '/clip-collections/$collectionId/clips',
-      data: <String, dynamic>{'clip_ids': clipIds},
-    );
-  }
 }

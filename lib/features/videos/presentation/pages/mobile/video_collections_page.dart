@@ -16,6 +16,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 
@@ -132,18 +133,14 @@ class _MobileVideoCollectionsPageState
             SliverPadding(
               // 横向缩进由 shell 8px body padding 统一提供，此处只补上下留白。
               padding: EdgeInsets.symmetric(vertical: spacing.md),
-              sliver: SliverGrid(
-                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 180,
-                  mainAxisSpacing: spacing.md,
-                  crossAxisSpacing: spacing.sm,
-                  // [CollectionCoverCard] = 16:9 封面 + 标题(s14, 单行) + sm 内边距,
-                  // 实际内容高度约 (0.5625×W + 34)px。aspectRatio 1.25 让 cell 高度刚好
-                  // 贴合内容，对齐桌面合集卡的紧凑观感（此前 0.78 会留 ~80px 底部空白）。
-                  childAspectRatio: 1.25,
-                ),
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final collection = collections[index];
+              sliver: AppAdaptiveCardSliver<VideoCollectionDto>(
+                gridKey: const Key('mobile-video-collections-grid'),
+                items: collections,
+                // [CollectionCoverCard] = 16:9 封面 + 标题(s14, 单行) + sm 内边距,
+                // 实际内容高度约 (0.5625×W + 34)px。aspectRatio 1.25 让 cell 高度刚好
+                // 贴合内容，对齐桌面合集卡的紧凑观感（此前 0.78 会留 ~80px 底部空白）。
+                childAspectRatio: 1.25,
+                itemBuilder: (context, collection, index) {
                   return CollectionCard.video(
                     key: Key('mobile-video-collection-card-${collection.id}'),
                     collection: collection,
@@ -154,7 +151,7 @@ class _MobileVideoCollectionsPageState
                     onEdit: () => _editCollection(collection),
                     onDelete: () => _deleteCollection(collection),
                   );
-                }, childCount: collections.length),
+                },
               ),
             ),
         ],

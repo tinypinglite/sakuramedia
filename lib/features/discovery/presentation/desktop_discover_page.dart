@@ -51,6 +51,9 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
     initialLoadErrorText: '女优上新加载失败，请稍后重试',
   );
 
+  MovieCardHoverFeatureActions get _hoverFeatureActions =>
+      movieCardHoverFeatureActions(context);
+
   /// 三个预览独立刷新，单侧失败不影响其余区块。
   Future<void> _refreshDiscovery() async {
     await Future.wait(<Future<void>>[
@@ -154,11 +157,13 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
                 ),
             onMovieSubscriptionTap: (movie) =>
                 _toggleFollowSubscription(movie.movieNumber),
+            onMovieToggleCollectionType:
+                _hoverFeatureActions.toggleCollectionType,
+            onMovieBlacklist: _hoverFeatureActions.blacklist,
             isMovieSubscriptionUpdating: (movie) =>
                 follow?.isSubscriptionUpdating(movie.movieNumber) ?? false,
             emptyMessage: '暂无女优上新，先订阅感兴趣的女优，等定时任务同步后展示',
             maxRows: 2,
-            maxColumns: 10,
           ),
         ),
       ],
@@ -202,11 +207,13 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
                   globalPosition,
                   isSubscribed: movie.isSubscribed,
                 ),
+            onMovieToggleCollectionType:
+                _hoverFeatureActions.toggleCollectionType,
+            onMovieBlacklist: _hoverFeatureActions.blacklist,
             secondaryLabelForMovie: (movie) => actressNames[movie.movieNumber],
             useDefaultSubscriptionActions: true,
             emptyMessage: '暂无热门新片，待更多影片积累热度后展示',
             maxRows: 2,
-            maxColumns: 10,
           ),
         ),
       ],
@@ -252,7 +259,6 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
             : daily.items.map((item) => item.movie).toList(growable: false),
         emptyMessage: '暂无每日推荐，去搜索看看吧',
         maxRows: 2,
-        maxColumns: 10,
         onMovieTap: (movie) => _openMovieDetail(movie.movieNumber),
         onMovieMenuRequest: (movie, globalPosition) =>
             requestMovieCollectionMenu(
@@ -261,6 +267,9 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
               globalPosition,
               isSubscribed: movie.isSubscribed,
             ),
+        onMovieToggleCollectionType:
+            _hoverFeatureActions.toggleCollectionType,
+        onMovieBlacklist: _hoverFeatureActions.blacklist,
       ),
     );
   }
@@ -296,7 +305,6 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
         child: MomentGrid(
           items: momentListPlaceholders(count: _previewPageSize),
           maxRows: 2,
-          maxColumns: 6,
           onItemTap: _ignoreMomentTap,
         ),
       );
@@ -317,7 +325,6 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
       onItemTap: _openMomentPreview,
       onItemPlay: _openPlayerForMoment,
       maxRows: 2,
-      maxColumns: 6,
     );
   }
 

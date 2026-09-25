@@ -7,6 +7,7 @@ import 'package:sakuramedia/core/network/api_error_dto.dart';
 import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/network/auth_interceptor.dart';
+import 'package:sakuramedia/core/network/debug_latency_interceptor.dart';
 import 'package:sakuramedia/core/network/sse_decoder.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/core/session/session_token_payload.dart';
@@ -43,6 +44,10 @@ class ApiClient {
         onUnauthorized: onUnauthorized,
       ),
     );
+    final debugLatency = DebugLatencyInterceptor.fromEnvironment();
+    if (debugLatency != null) {
+      _dio.interceptors.add(debugLatency);
+    }
   }
 
   final SessionStore _sessionStore;

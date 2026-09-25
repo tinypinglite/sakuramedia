@@ -89,14 +89,6 @@ class MomentCollectionsApi {
         '/moment-collections/$collectionId/points/$pointId',
       );
 
-  Future<void> setPoints({
-    required int collectionId,
-    required List<int> pointIds,
-  }) => _apiClient.putNoContent(
-    '/moment-collections/$collectionId/points',
-    data: <String, dynamic>{'point_ids': pointIds},
-  );
-
   Future<List<MomentCollectionSummaryDto>> getPointCollections({
     required int pointId,
   }) async {

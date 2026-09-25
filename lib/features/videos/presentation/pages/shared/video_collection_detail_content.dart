@@ -5,11 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:intl/intl.dart';
 import 'package:oktoast/oktoast.dart';
-import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/collection_playback_handoff_provider.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
-import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collection_detail_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collection_detail_state.dart';
@@ -23,7 +21,6 @@ import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_view_mode_toggle_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
@@ -37,9 +34,6 @@ import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-
-/// 合集详情的成员排布方式：纵向列表（可拖序）或网格（侧重浏览）。
-enum CollectionDetailLayout { list, grid }
 
 typedef VideoCollectionPlaySingle =
     Future<void> Function(BuildContext context, int videoId, String title);
@@ -78,8 +72,8 @@ class VideoCollectionMemberActions {
 /// 视频合集详情共享实现（桌面 / 移动双端壳收敛的 content 层）。
 ///
 /// 平台差异收在壳参数与钩子里：
-/// - `surfaceColor` / `keyPrefix` / `enableReorder` / `defaultLayout` /
-///   `useMobileSelectionLayout` / `hoistTitleToSubpageShell` 表达渲染差异；
+/// - `surfaceColor` / `keyPrefix` / `useMobileSelectionLayout` /
+///   `hoistTitleToSubpageShell` 表达渲染差异；
 /// - `onMemberTap` / `playSingle` / `onOpenCollection` / `confirm` / `playAllBuilder`
 ///   收掉动作壳、确认弹层与主行动按钮的平台呈现；
 /// - 批量动作 / 删除 / 连播 / 封面比例等逐字重复块全部下沉本层。
@@ -92,8 +86,6 @@ class VideoCollectionDetailContent extends ConsumerStatefulWidget {
     this.useMobileSelectionLayout = false,
     this.hoistTitleToSubpageShell = false,
     this.useMobileFilterDrawer = false,
-    this.enableReorder = false,
-    this.defaultLayout = CollectionDetailLayout.list,
     this.playAllBuilder,
     this.onMemberTap,
     this.playSingle,
@@ -115,12 +107,6 @@ class VideoCollectionDetailContent extends ConsumerStatefulWidget {
 
   /// 顶栏筛选入口容器：`true` 弹底部抽屉（移动端），`false` 就地展开浮层（桌面端）。
   final bool useMobileFilterDrawer;
-
-  /// 允许列表拖拽重排（桌面端 true；移动端不支持拖序）。
-  final bool enableReorder;
-
-  /// 默认成员排布：桌面 list，移动 grid。
-  final CollectionDetailLayout defaultLayout;
 
   final VideoCollectionPlayAllBuilder? playAllBuilder;
 
@@ -149,8 +135,6 @@ class VideoCollectionDetailContent extends ConsumerStatefulWidget {
 class _VideoCollectionDetailContentState
     extends ConsumerState<VideoCollectionDetailContent>
     with MultiSelectStateMixin<VideoCollectionDetailContent, int> {
-  int? _hoveredItemId;
-  late CollectionDetailLayout _layout;
   late final ScrollController _itemsScrollController;
 
   VideoCollectionDetailProvider get _providerRef =>
@@ -161,13 +145,9 @@ class _VideoCollectionDetailContentState
 
   bool get _isMobile => widget.useMobileSelectionLayout;
 
-  String get _reorderHandleKeyPrefix =>
-      _isMobile ? 'mobile-video-reorder-handle' : 'video-reorder-handle';
-
   @override
   void initState() {
     super.initState();
-    _layout = widget.defaultLayout;
     _itemsScrollController = ScrollController();
   }
 
@@ -175,21 +155,6 @@ class _VideoCollectionDetailContentState
   void dispose() {
     _itemsScrollController.dispose();
     super.dispose();
-  }
-
-  void _setHovered(int? itemId) {
-    if (_hoveredItemId == itemId) {
-      return;
-    }
-    setState(() => _hoveredItemId = itemId);
-  }
-
-  void _toggleLayout() {
-    setState(() {
-      _layout = _layout == CollectionDetailLayout.list
-          ? CollectionDetailLayout.grid
-          : CollectionDetailLayout.list;
-    });
   }
 
   @override
@@ -421,11 +386,6 @@ class _VideoCollectionDetailContentState
             key: Key('${widget.keyPrefix}-enter-selection-button'),
             onPressed: enterSelection,
           ),
-        AppViewModeToggleButton(
-          buttonKey: Key('${widget.keyPrefix}-layout-toggle'),
-          isList: _layout == CollectionDetailLayout.list,
-          onPressed: _toggleLayout,
-        ),
       ],
     );
   }
@@ -552,123 +512,18 @@ class _VideoCollectionDetailContentState
     if (state.items.isEmpty) {
       return const AppEmptyState(message: '合集还没有视频，去视频列表用「加入合集」添加吧');
     }
-    return _layout == CollectionDetailLayout.grid
-        ? _buildGrid(context, state)
-        : _buildList(context, state);
-  }
-
-  Widget _buildList(BuildContext context, VideoCollectionDetailState state) {
-    final items = state.items;
-    // 仅手动顺序且非选择模式下允许拖拽重排（仅桌面）：其它排序下拖拽会与排序冲突。
-    final canReorder =
-        widget.enableReorder && !selectionMode && state.sort.isManual;
-
-    CollectionMemberRow buildRow(int index, {required bool isHovered}) {
-      final item = items[index];
-      return CollectionMemberRow(
-        key: ValueKey<int>(item.itemId),
-        index: index,
-        coverUrl: item.video.coverImage?.bestAvailableUrl,
-        coverWidth: _isMobile ? 64 : 56,
-        coverAspectRatio: context.appComponentTokens.movieCardAspectRatio,
-        coverFit: _isMobile ? BoxFit.contain : BoxFit.cover,
-        title: item.video.preferredTitle,
-        subtitle: _isMobile
-            ? _subtitleFor(item.video)
-            : _formatReleaseDate(item.video.releaseDate),
-        isHovered: _isMobile ? false : isHovered,
-        onTap: selectionMode
-            ? () => toggleSelect(item.itemId)
-            : () => _openMemberActions(context, item),
-        menuKey: Key('${widget.keyPrefix}-menu-${item.itemId}'),
-        dragHandleKey: Key('$_reorderHandleKeyPrefix-${item.itemId}'),
-        onRemove: _isMobile ? null : () => _removeItem(item.itemId),
-        onDelete: _isMobile ? null : () => _deleteVideo(item.itemId),
-        placeholderIcon: Icons.video_library_outlined,
-        titleMaxLines: 2,
-        reorderable: _isMobile ? false : canReorder,
-        selectionMode: selectionMode,
-        isSelected: isSelected(item.itemId),
-      );
-    }
-
-    if (_isMobile) {
-      return ListView.separated(
-        controller: _itemsScrollController,
-        key: Key('${widget.keyPrefix}-detail-list'),
-        // 横向缩进由 shell 提供，此处只补底部留白。
-        padding: EdgeInsets.only(bottom: context.appSpacing.lg),
-        itemCount: items.length,
-        separatorBuilder: (context, _) =>
-            SizedBox(height: context.appSpacing.sm),
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return GestureDetector(
-            onLongPress: selectionMode
-                ? null
-                : () {
-                    enterSelection();
-                    toggleSelect(item.itemId);
-                  },
-            child: buildRow(index, isHovered: false),
-          );
-        },
-      );
-    }
-
-    // 选择模式或非手动排序下禁用拖拽重排，退化为普通列表。
-    if (!canReorder) {
-      return ListView.separated(
-        controller: _itemsScrollController,
-        key: Key('${widget.keyPrefix}-detail-list'),
-        itemCount: items.length,
-        separatorBuilder: (context, _) =>
-            SizedBox(height: context.appSpacing.sm),
-        itemBuilder: (context, index) => buildRow(index, isHovered: false),
-      );
-    }
-
-    return ReorderableListView.builder(
-      scrollController: _itemsScrollController,
-      key: Key('${widget.keyPrefix}-detail-list'),
-      buildDefaultDragHandles: false,
-      itemCount: items.length,
-      onReorder: (oldIndex, newIndex) =>
-          ref.read(_providerRef.notifier).reorder(oldIndex, newIndex),
-      // 默认 proxyDecorator 会给拖动项叠加带阴影的 Material，这里换成无阴影透明包装。
-      proxyDecorator: (child, index, animation) =>
-          Material(type: MaterialType.transparency, child: child),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return Padding(
-          key: ValueKey<int>(item.itemId),
-          padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-          child: MouseRegion(
-            onEnter: (_) => _setHovered(item.itemId),
-            onExit: (_) {
-              if (_hoveredItemId == item.itemId) {
-                _setHovered(null);
-              }
-            },
-            child: buildRow(index, isHovered: _hoveredItemId == item.itemId),
-          ),
-        );
-      },
-    );
+    return _buildGrid(context, state);
   }
 
   Widget _buildGrid(BuildContext context, VideoCollectionDetailState state) {
     final items = state.items;
     final spacing = context.appSpacing.md;
-    final columnCap = _isMobile ? 6 : 8;
     return LayoutBuilder(
       builder: (context, constraints) {
-        // 列数按目标宽 180 自动算，与原 maxCrossAxisExtent 一致。
-        final columns = resolveGridColumnCount(
+        final columns = resolveAppCardGridColumnCount(
+          context,
           width: constraints.maxWidth,
           spacing: spacing,
-          targetWidth: 180,
-          maxColumns: columnCap,
         );
         return MasonryGridView.count(
           controller: _itemsScrollController,
@@ -687,6 +542,7 @@ class _VideoCollectionDetailContentState
               item.video.coverWidth,
               item.video.coverHeight,
             );
+            final playSingle = widget.playSingle;
             return AspectRatio(
               aspectRatio: aspect,
               child: GestureDetector(
@@ -703,18 +559,45 @@ class _VideoCollectionDetailContentState
                   // 影响占位比例；瀑布流 tile 已按真实比例分配高度，传 16:9 兜底即可。
                   coverAspectRatio: 16 / 9,
                   title: item.video.preferredTitle,
-                  subtitle: _isMobile
-                      ? _subtitleFor(item.video)
-                      : _formatReleaseDate(item.video.releaseDate),
+                  // 副信息只在桌面悬停面板渲染；移动端无 hover，收起态不铺文字。
+                  subtitle: _formatReleaseDate(item.video.releaseDate),
                   onTap: selectionMode
                       ? () => toggleSelect(item.itemId)
                       : () => _openMemberActions(context, item),
                   menuKey: Key('${widget.keyPrefix}-grid-menu-${item.itemId}'),
+                  clipOverlay: true,
+                  onPlay: _isMobile || playSingle == null
+                      ? null
+                      : () => playSingle(
+                          context,
+                          item.video.id,
+                          item.video.preferredTitle,
+                        ),
+                  playButtonKey: Key(
+                    '${widget.keyPrefix}-grid-play-${item.itemId}',
+                  ),
+                  onThumbnails: _isMobile
+                      ? null
+                      : () => _openThumbnails(item),
+                  thumbnailsButtonKey: Key(
+                    '${widget.keyPrefix}-grid-thumbnails-${item.itemId}',
+                  ),
+                  onAddToCollection: _isMobile
+                      ? null
+                      : () => _addToOtherCollection(item),
+                  addToCollectionButtonKey: Key(
+                    '${widget.keyPrefix}-grid-add-collection-${item.itemId}',
+                  ),
                   onRemove: _isMobile ? null : () => _removeItem(item.itemId),
+                  removeButtonKey: Key(
+                    '${widget.keyPrefix}-grid-remove-${item.itemId}',
+                  ),
                   onDelete: _isMobile ? null : () => _deleteVideo(item.itemId),
+                  deleteButtonKey: Key(
+                    '${widget.keyPrefix}-grid-delete-${item.itemId}',
+                  ),
                   placeholderIcon: Icons.video_library_outlined,
                   titleMaxLines: 2,
-                  overlayCaption: true,
                   expandToParent: true,
                   selectionMode: selectionMode,
                   isSelected: isSelected(item.itemId),
@@ -802,6 +685,47 @@ class _VideoCollectionDetailContentState
     }
     _mutationBroadcaster.reportDeleted(targetVideoId);
     showToast('已删除视频');
+  }
+
+  /// 跳转到该视频的缩略图页（桌面悬停动作）。
+  void _openThumbnails(VideoCollectionItemDto item) {
+    context.pushDesktopVideoThumbnails(videoId: item.video.id);
+  }
+
+  /// 单卡「加入合集」：把该视频加入其它合集（排除当前合集），成功后广播刷新
+  /// 目标合集的封面 / 计数。
+  Future<void> _addToOtherCollection(VideoCollectionItemDto item) async {
+    final target = await showPickVideoCollectionDialog(
+      context,
+      presentation: _isMobile
+          ? PickVideoCollectionPresentation.bottomDrawer
+          : PickVideoCollectionPresentation.dialog,
+      excludedCollectionId: widget.collectionId,
+    );
+    if (!mounted || target == null) {
+      return;
+    }
+    try {
+      await ref
+          .read(videoCollectionsApiProvider)
+          .addCollectionItem(
+            collectionId: target.id,
+            videoItemId: item.video.id,
+          );
+      if (!mounted) {
+        return;
+      }
+      _mutationBroadcaster.reportCollectionMembershipChanged(
+        videoId: item.video.id,
+        collectionId: target.id,
+      );
+      showToast('已加入「${target.name}」');
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      showToast(apiErrorMessage(error, fallback: '加入合集失败，请重试'));
+    }
   }
 
   Future<bool> _confirm({
@@ -1029,10 +953,4 @@ String? _formatReleaseDate(DateTime? value) {
   return DateFormat('yyyy-MM-dd').format(value.toLocal());
 }
 
-/// 移动端副标题：时长。
-String? _subtitleFor(VideoItemListItemDto video) {
-  if (video.durationSeconds <= 0) {
-    return null;
-  }
-  return formatMediaTimecode(video.durationSeconds);
-}
+

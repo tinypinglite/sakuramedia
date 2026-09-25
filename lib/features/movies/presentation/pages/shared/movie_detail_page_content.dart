@@ -302,6 +302,7 @@ class MovieDetailPageContent extends StatelessWidget {
     required BuildContext context,
     required double heroHeight,
   }) {
+    final hoverActions = movieCardHoverFeatureActions(context);
     final progress = _latestProgress;
     final watchLabel = progress == null
         ? null
@@ -514,6 +515,9 @@ class MovieDetailPageContent extends StatelessWidget {
                     globalPosition,
                     isSubscribed: movie.isSubscribed,
                   ),
+              onMovieToggleCollectionType:
+                  hoverActions.toggleCollectionType,
+              onMovieBlacklist: hoverActions.blacklist,
             ),
           ),
       ],

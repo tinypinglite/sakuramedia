@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 /// 合集封面卡的共享实现：16:9 封面 + 底部标题 + 封面右下角计数角标。
 ///
@@ -76,55 +77,58 @@ class CollectionCoverCard extends StatelessWidget {
             borderRadius: context.appRadius.mdBorder,
             border: Border.all(color: colors.borderSubtle),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(context.appRadius.md),
-                ),
-                child: AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // muted 底色：cover 时被封面盖满，contain 时填充留白。
-                      ColoredBox(color: colors.surfaceMuted),
-                      if (cover != null && cover.isNotEmpty)
-                        MaskedImage(url: cover, fit: coverFit)
-                      else
-                        Center(
-                          child: Icon(
-                            placeholderIcon,
-                            color: colors.borderStrong,
-                            size: context.appComponentTokens.iconSizeLg,
+          // 骨架态整卡收敛成一块 shimmer 圆角块：计数角标 / 标题骨块不再单独透出。
+          child: Skeleton.unite(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(context.appRadius.md),
+                  ),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // muted 底色：cover 时被封面盖满，contain 时填充留白。
+                        ColoredBox(color: colors.surfaceMuted),
+                        if (cover != null && cover.isNotEmpty)
+                          MaskedImage(url: cover, fit: coverFit)
+                        else
+                          Center(
+                            child: Icon(
+                              placeholderIcon,
+                              color: colors.borderStrong,
+                              size: context.appComponentTokens.iconSizeLg,
+                            ),
                           ),
+                        Positioned(
+                          right: spacing.xs,
+                          bottom: spacing.xs,
+                          child: _CountBadge(count: count),
                         ),
-                      Positioned(
-                        right: spacing.xs,
-                        bottom: spacing.xs,
-                        child: _CountBadge(count: count),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(spacing.sm),
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
+                Padding(
+                  padding: EdgeInsets.all(spacing.sm),
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s14,
+                      weight: AppTextWeight.semibold,
+                      tone: AppTextTone.primary,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

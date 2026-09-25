@@ -106,29 +106,6 @@ void main() {
     expect(state.points.map((point) => point.pointId), <int>[10, 11, 12]);
   });
 
-  test('拖动排序会提交完整 point_ids 并更新本地顺序', () async {
-    enqueueLoad();
-    keepAlive();
-    await container.read(momentCollectionDetailProvider(7).future);
-    adapter.enqueueJson(
-      method: 'PUT',
-      path: '/moment-collections/7/points',
-      statusCode: 204,
-    );
-
-    await container
-        .read(momentCollectionDetailProvider(7).notifier)
-        .reorder(0, 2);
-
-    final state = container
-        .read(momentCollectionDetailProvider(7))
-        .requireValue;
-    expect(state.points.map((point) => point.pointId), <int>[11, 10, 12]);
-    expect(adapter.requests.last.body, <String, dynamic>{
-      'point_ids': <int>[11, 10, 12],
-    });
-  });
-
   test('移出成员会保留时刻本体并更新本地计数', () async {
     enqueueLoad();
     keepAlive();

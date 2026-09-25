@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
@@ -34,6 +33,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/base/operations/batch/batch_progress_dialog.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_grid_card.dart';
@@ -442,51 +442,33 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
     }
     // loading 用占位切片渲染同一份真实网格，由 [AppSkeletonizer] 灰化。
     final display = isInitialLoading ? clipPlaceholders(count: 8) : clips;
-    final spacing = context.appSpacing;
     return AppSkeletonizer.sliver(
       enabled: isInitialLoading,
-      child: SliverLayoutBuilder(
-        builder: (context, constraints) {
-          final columns = _resolveColumnCount(
-            constraints.crossAxisExtent,
-            spacing.md,
-          );
-          return SliverGrid(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              mainAxisSpacing: spacing.md,
-              crossAxisSpacing: spacing.md,
-              childAspectRatio: 16 / 9,
-            ),
-            delegate: SliverChildBuilderDelegate((context, index) {
-              final clip = display[index];
-              final movieNumber = clip.movieNumber;
-              return ClipGridCard(
-                key: Key('clip-grid-card-${clip.clipId}'),
-                clip: clip,
-                tapKey: Key('clip-grid-card-tap-${clip.clipId}'),
-                onTap: () => _openClipActions(clip),
-                onPlay: () => _playClip(clip),
-                onRename: () => _renameClip(clip),
-                onDelete: () => _deleteClip(clip),
-                onAddToCollection: () => _addToCollection(clip),
-                onOpenMovie: movieNumber != null && movieNumber.isNotEmpty
-                    ? () => _openMovie(movieNumber)
-                    : null,
-                selectionMode: selectionMode,
-                isSelected: isSelected(clip.clipId),
-                onSelectedChanged: (_) => toggleSelect(clip.clipId),
-              );
-            }, childCount: display.length),
+      child: AppAdaptiveCardSliver<MediaClipDto>(
+        gridKey: const Key('clips-grid'),
+        items: display,
+        childAspectRatio: 16 / 9,
+        itemBuilder: (context, clip, index) {
+          final movieNumber = clip.movieNumber;
+          return ClipGridCard(
+            key: Key('clip-grid-card-${clip.clipId}'),
+            clip: clip,
+            tapKey: Key('clip-grid-card-tap-${clip.clipId}'),
+            onTap: () => _openClipActions(clip),
+            onPlay: () => _playClip(clip),
+            onRename: () => _renameClip(clip),
+            onDelete: () => _deleteClip(clip),
+            onAddToCollection: () => _addToCollection(clip),
+            onOpenMovie: movieNumber != null && movieNumber.isNotEmpty
+                ? () => _openMovie(movieNumber)
+                : null,
+            selectionMode: selectionMode,
+            isSelected: isSelected(clip.clipId),
+            onSelectedChanged: (_) => toggleSelect(clip.clipId),
           );
         },
       ),
     );
-  }
-
-  int _resolveColumnCount(double width, double spacing) {
-    final columns = ((width + spacing) / (280 + spacing)).floor();
-    return math.max(2, math.min(4, columns));
   }
 
   Widget _buildFooter(

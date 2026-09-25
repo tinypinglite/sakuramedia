@@ -10,9 +10,6 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
 
-export 'package:sakuramedia/features/clip_collections/presentation/pages/shared/clip_collection_detail_content.dart'
-    show ClipCollectionDetailLayout;
-
 /// 移动切片合集详情壳：移动语义（长按进多选 / 底部批量条 / 动作抽屉与确认抽屉 /
 /// 标题报返回栏）收在壳里，实现在 [ClipCollectionDetailContent]。
 class MobileClipCollectionDetailPage extends StatelessWidget {
@@ -31,8 +28,6 @@ class MobileClipCollectionDetailPage extends StatelessWidget {
       keyPrefix: 'mobile-clip-collection',
       useMobileSelectionLayout: true,
       hoistTitleToSubpageShell: true,
-      enableReorder: false,
-      defaultLayout: ClipCollectionDetailLayout.grid,
       playAllBuilder: (context, {required enabled, required onPlayFrom}) {
         return AppTextButton(
           key: const Key('mobile-clip-collection-play-all-button'),

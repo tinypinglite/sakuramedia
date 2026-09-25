@@ -35,6 +35,9 @@ void main() {
     required MomentListItem item,
     VoidCallback? onTap,
     VoidCallback? onPlay,
+    VoidCallback? onMovie,
+    VoidCallback? onAddToCollection,
+    VoidCallback? onDelete,
     bool selectionMode = false,
     ValueChanged<bool>? onSelectedChanged,
     double width = 280,
@@ -53,6 +56,9 @@ void main() {
                   item: item,
                   onTap: onTap,
                   onPlay: onPlay,
+                  onOpenMovie: onMovie,
+                  onAddToCollection: onAddToCollection,
+                  onDelete: onDelete,
                   selectionMode: selectionMode,
                   onSelectedChanged: onSelectedChanged,
                 ),
@@ -186,6 +192,57 @@ void main() {
     await tester.tap(find.byType(MomentCard));
     await tester.pumpAndSettle();
     expect(selected, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('moment card hover action row triggers each callback', (
+    WidgetTester tester,
+  ) async {
+    var movie = 0;
+    var addToCollection = 0;
+    var delete = 0;
+    await pumpCard(
+      tester,
+      item: buildMoment(),
+      onTap: () {},
+      onPlay: () {},
+      onMovie: () => movie++,
+      onAddToCollection: () => addToCollection++,
+      onDelete: () => delete++,
+      width: 560,
+    );
+
+    await hoverCard(tester, 10);
+    await tester.tap(find.byKey(const Key('moment-card-movie-10')));
+    await tester.tap(find.byKey(const Key('moment-card-add-collection-10')));
+    await tester.tap(find.byKey(const Key('moment-card-delete-10')));
+    await tester.pumpAndSettle();
+
+    expect(movie, 1);
+    expect(addToCollection, 1);
+    expect(delete, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('moment card hover action row hides unavailable actions', (
+    WidgetTester tester,
+  ) async {
+    await pumpCard(
+      tester,
+      item: buildMoment(),
+      onTap: () {},
+      onPlay: () {},
+      width: 560,
+    );
+
+    await hoverCard(tester, 10);
+
+    expect(find.byKey(const Key('moment-card-movie-10')), findsNothing);
+    expect(
+      find.byKey(const Key('moment-card-add-collection-10')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('moment-card-delete-10')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

@@ -1,4 +1,5 @@
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
+import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -25,6 +26,26 @@ List<ActivityNotificationDto> activityNotificationPlaceholders({int count = 5}) 
       relatedTaskRunId: null,
       relatedResourceType: null,
       relatedResourceId: null,
+    ),
+    growable: false,
+  );
+}
+
+/// 可执行任务弹窗加载态占位任务：真实 [JobMetadataDto] + [BoneMock] 文案，
+/// 无参数 Schema / 运行记录，供 `AppSkeletonizer` 渲染与真实任务卡同形的骨架。
+List<JobMetadataDto> jobMetadataPlaceholders({int count = 3}) {
+  return List<JobMetadataDto>.generate(
+    count,
+    (index) => JobMetadataDto(
+      taskKey: 'job-placeholder-${index + 1}',
+      logName: BoneMock.words(2),
+      cliName: 'placeholder-${index + 1}',
+      cliHelp: BoneMock.words(3),
+      cronSetting: '',
+      cronExpr: '',
+      manualTriggerAllowed: true,
+      paramsSchema: null,
+      lastTaskRun: null,
     ),
     growable: false,
   );

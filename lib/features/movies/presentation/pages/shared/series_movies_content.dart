@@ -84,6 +84,14 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
   MovieSummaryScope get _scope =>
       MovieSummaryScope.series(seriesId: widget.seriesId);
 
+  MovieCardHoverFeatureActions get _hoverFeatureActions =>
+      movieCardHoverFeatureActions(
+        context,
+        onBlacklisted: (movieNumber) => ref
+            .read(movieSummaryProvider(_scope).notifier)
+            .removeMovies(<String>[movieNumber]),
+      );
+
   @override
   String get batchKeyPrefix => 'series-movies';
 
@@ -360,6 +368,9 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
         },
         onMovieSubscriptionTap: (movie) =>
             _toggleMovieSubscription(movie.movieNumber),
+        onMovieToggleCollectionType:
+            _hoverFeatureActions.toggleCollectionType,
+        onMovieBlacklist: _hoverFeatureActions.blacklist,
         isMovieSubscriptionUpdating: (movie) =>
             summary?.isSubscriptionUpdating(movie.movieNumber) ?? false,
         emptyMessage: '该系列暂无影片',

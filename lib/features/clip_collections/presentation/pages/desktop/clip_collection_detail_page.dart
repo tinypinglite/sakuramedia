@@ -10,10 +10,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
 
-export 'package:sakuramedia/features/clip_collections/presentation/pages/shared/clip_collection_detail_content.dart'
-    show ClipCollectionDetailLayout;
-
-/// 桌面切片合集详情壳：桌面语义（网格默认 / 拖序 + hover / 顶栏内联批量 /
+/// 桌面切片合集详情壳：桌面语义（网格 / hover / 顶栏内联批量 /
 /// 桌面对话框 / 直接播放切片）收在壳里，实现在 [ClipCollectionDetailContent]。
 class DesktopClipCollectionDetailPage extends StatelessWidget {
   const DesktopClipCollectionDetailPage({
@@ -31,8 +28,6 @@ class DesktopClipCollectionDetailPage extends StatelessWidget {
       keyPrefix: 'clip-collection',
       useMobileSelectionLayout: false,
       hoistTitleToSubpageShell: false,
-      enableReorder: true,
-      defaultLayout: ClipCollectionDetailLayout.grid,
       playAllBuilder: (context, {required enabled, required onPlayFrom}) {
         return AppButton(
           key: const Key('clip-collection-play-all-button'),

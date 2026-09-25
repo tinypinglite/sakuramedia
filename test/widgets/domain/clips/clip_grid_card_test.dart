@@ -38,6 +38,10 @@ void main() {
     WidgetTester tester, {
     required VoidCallback onTap,
     VoidCallback? onPlay,
+    VoidCallback? onMovie,
+    VoidCallback? onAddToCollection,
+    VoidCallback? onRename,
+    VoidCallback? onDelete,
     bool selectionMode = false,
     ValueChanged<bool>? onSelectedChanged,
     double width = 280,
@@ -55,6 +59,10 @@ void main() {
                   clip: buildClip(),
                   onTap: onTap,
                   onPlay: onPlay,
+                  onOpenMovie: onMovie,
+                  onAddToCollection: onAddToCollection,
+                  onRename: onRename,
+                  onDelete: onDelete,
                   selectionMode: selectionMode,
                   onSelectedChanged: onSelectedChanged,
                 ),
@@ -133,6 +141,56 @@ void main() {
     await hoverCard(tester);
 
     expect(find.byKey(const Key('clip-grid-card-play-1')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('clip card hover action row triggers each callback', (
+    WidgetTester tester,
+  ) async {
+    var movie = 0;
+    var addToCollection = 0;
+    var rename = 0;
+    var delete = 0;
+    await pumpCard(
+      tester,
+      onTap: () {},
+      onMovie: () => movie++,
+      onAddToCollection: () => addToCollection++,
+      onRename: () => rename++,
+      onDelete: () => delete++,
+      width: 560,
+    );
+
+    await hoverCard(tester);
+
+    await tester.tap(find.byKey(const Key('clip-grid-card-movie-1')));
+    await tester.tap(find.byKey(const Key('clip-grid-card-add-collection-1')));
+    await tester.tap(find.byKey(const Key('clip-grid-card-rename-1')));
+    await tester.tap(find.byKey(const Key('clip-grid-card-delete-1')));
+    await tester.pumpAndSettle();
+
+    expect(movie, 1);
+    expect(addToCollection, 1);
+    expect(rename, 1);
+    expect(delete, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('clip card hover action row hides unavailable actions', (
+    WidgetTester tester,
+  ) async {
+    await pumpCard(tester, onTap: () {}, onPlay: () {}, width: 560);
+
+    await hoverCard(tester);
+
+    expect(find.byKey(const Key('clip-grid-card-play-1')), findsOneWidget);
+    expect(find.byKey(const Key('clip-grid-card-movie-1')), findsNothing);
+    expect(
+      find.byKey(const Key('clip-grid-card-add-collection-1')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('clip-grid-card-rename-1')), findsNothing);
+    expect(find.byKey(const Key('clip-grid-card-delete-1')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
 class PlaylistBannerCard extends StatelessWidget {
   const PlaylistBannerCard({
@@ -48,45 +49,48 @@ class PlaylistBannerCard extends StatelessWidget {
         boxShadow: context.appShadows.card,
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-              child: blurredBackground,
+      // 骨架态整条横幅收敛成一块 shimmer 圆角块（非骨架态原样渲染）。
+      child: Skeleton.unite(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned.fill(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                child: blurredBackground,
+              ),
             ),
-          ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    colors.mediaOverlaySoft.withValues(alpha: 0.18),
-                    colors.mediaOverlayStrong.withValues(alpha: 0.78),
-                  ],
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      colors.mediaOverlaySoft.withValues(alpha: 0.18),
+                      colors.mediaOverlayStrong.withValues(alpha: 0.78),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: spacing.xl),
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s20,
-                  weight: AppTextWeight.semibold,
-                  tone: AppTextTone.onMedia,
+            Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: spacing.xl),
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s20,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.onMedia,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
 

@@ -361,6 +361,11 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
                 sectionSpacing: context.appSpacing.lg,
                 onVideoTap: _openActionsDialog,
                 onVideoPlay: (video) => unawaited(_playVideo(video)),
+                onVideoThumbnails: (video) =>
+                    context.pushDesktopVideoThumbnails(videoId: video.id),
+                onVideoAddToCollection: (video) =>
+                    unawaited(_addToCollection(video)),
+                onVideoDelete: (video) => unawaited(_deleteVideo(video)),
                 selectionMode: selectionMode,
                 selectedIds: selectedIds,
                 onVideoToggleSelect: (video) => toggleSelect(video.id),

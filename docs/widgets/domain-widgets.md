@@ -16,7 +16,7 @@
 
 `SubscriptionHeartBadge` 点击时经 `core/platform/haptic_feedback.dart` 播放一次选择触感（iOS / Android），桌面端无副作用。
 
-`MovieSummaryCard` 的底部信息层收起时不铺底色（番号直接压在封面上）；指针悬停时以 180ms ease-out 渐显压暗层，标题/时长/日期与播放、订阅、检查器按钮上滑淡入，系统开启「减弱动态效果」时退化为瞬时切换。信息行右端的 ⓘ 打开详情检查器（评论 / 磁力 / 缩略图；桌面弹对话框、移动弹底部抽屉），点击后先取一次影片详情以带出默认媒体；右键与长按仍打开影片操作菜单（原「更多」按钮已移除）。
+`MovieSummaryCard` 的底部信息层收起时不铺底色（番号直接压在封面上）；指针悬停时以 180ms ease-out 渐显压暗层，标题/时长/日期与整行动作按钮（播放 / 订阅 / 标记合集-单体 / 屏蔽影片，按回调与订阅状态显隐）上滑淡入，动作行放不下时自动折行；排名徽标与 ⓘ 独立成行、贴面板右下角。系统开启「减弱动态效果」时退化为瞬时切换。右端的 ⓘ 打开详情检查器（评论 / 磁力 / 缩略图；桌面弹对话框、移动弹底部抽屉），点击后先取一次影片详情以带出默认媒体；右键与长按仍打开影片操作菜单（原「更多」按钮已移除）。
 
 `MovieSummaryCard` 在左上可播放图标后显示有效媒体的最高分辨率角标：宽度 ≥7680 为 8K，3840 ≤宽度 <7680 为 4K 档；低于 4K、缺失或无效媒体不显示。选择模式及隐藏状态角标时一并隐藏。清晰度角标使用与热度一致的半透明灰色底并局部模糊，文字固定白色，圆角、边框粗细与颜色复用热度标签；一行空间不足时热度标签换到下一行左侧，按实际文字宽度判断以避免遮挡。
 
@@ -26,13 +26,13 @@
 
 路径：`lib/widgets/domain/clips/`
 
-包含 `ClipGridCard`、`ClipCoverCard`、`ClipCoverOverlays`、`ClipSelectionStatusBar` 和 `ClipActionsPanel`。`ClipGridCard` / `ClipCoverCard` 整卡即封面、收起态不铺文字；桌面悬停时底部渐显单行「标题 + 番号 · 时长 · 大小」与靠右的播放键（传 `onPlay` 时显示），移动端信息走点击后的 `ClipActionsPanel`。`ClipActionsPanel` 提供切片操作面板（封面 + 标题 + 横向操作格），移动端走底部抽屉、桌面端走居中弹窗；切片创建、删除和重命名动作由 clips feature 负责，切片播放统一走 clips feature 的 `launchClipPlayback`（桌面轻量弹窗 / 移动全屏页）。
+包含 `ClipGridCard`、`ClipCoverCard`、`ClipCoverOverlays`、`ClipSelectionStatusBar` 和 `ClipActionsPanel`。`ClipGridCard` / `ClipCoverCard` 整卡即封面、收起态不铺文字；桌面悬停时底部渐显单行「标题 + 番号 · 时长 · 大小」与下方整行动作按钮（播放 / 影片 / 加入合集 / 重命名 / 删除，按回调显隐），移动端信息走点击后的 `ClipActionsPanel`。`ClipActionsPanel` 提供切片操作面板（封面 + 标题 + 横向操作格），移动端走底部抽屉、桌面端走居中弹窗；切片创建、删除和重命名动作由 clips feature 负责，切片播放统一走 clips feature 的 `launchClipPlayback`（桌面轻量弹窗 / 移动全屏页）。
 
 ## collections
 
 路径：`lib/widgets/domain/collections/`
 
-包含 `CollectionCard`（`.clip` / `.video` / `.moment` 命名构造）、`CollectionCoverCard`、`CollectionHintBox`、`CollectionMemberViews` 以及 `playback/` 下的合集连播组件。影片合集、视频合集和切片合集的数据适配由各自 feature 完成；`CollectionHintBox` 是合集横滑区空态/加载失败的共用提示条。`CollectionMemberCard` 的 `clipOverlay` 桌面悬停披露由切片合集详情与时刻合集详情成员网格共用：收起态只留封面，悬停渐显标题/副信息与播放键；时刻来源媒体已删除时隐藏播放键。
+包含 `CollectionCard`（`.clip` / `.video` / `.moment` 命名构造）、`CollectionCoverCard`、`CollectionHintBox`、`CollectionMemberViews` 以及 `playback/` 下的合集连播组件。影片合集、视频合集和切片合集的数据适配由各自 feature 完成；`CollectionHintBox` 是合集横滑区空态/加载失败的共用提示条。`CollectionMemberCard` 的 `clipOverlay` 桌面悬停披露由三个合集详情的成员网格共用：收起态只留封面，悬停渐显标题/副信息与整行动作按钮（播放 / 影片 / 缩略图 / 加入合集 / 移出合集 / 删除，按回调显隐）；时刻来源媒体已删除时隐藏播放键。
 
 ## media and preview
 

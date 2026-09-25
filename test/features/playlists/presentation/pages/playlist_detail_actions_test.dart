@@ -37,14 +37,9 @@ void main() {
     expect(find.text('我的收藏'), findsOneWidget);
     expect(
       find.byKey(const Key('playlist-detail-more-actions-button')),
-      findsNothing,
-    );
-
-    await _hoverBanner(tester);
-    expect(
-      find.byKey(const Key('playlist-detail-more-actions-button')),
       findsOneWidget,
     );
+
     await tester.tap(
       find.byKey(const Key('playlist-detail-more-actions-button')),
     );
@@ -75,7 +70,7 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  testWidgets('桌面详情页右键横幅删除播放列表并返回列表', (WidgetTester tester) async {
+  testWidgets('桌面详情页「···」删除播放列表并返回列表', (WidgetTester tester) async {
     _enqueueDetail(bundle);
     bundle.adapter.enqueueJson(
       method: 'DELETE',
@@ -85,7 +80,9 @@ void main() {
 
     await _pumpDetail(tester, bundle: bundle, mobile: false);
 
-    await _rightClickBanner(tester);
+    await tester.tap(
+      find.byKey(const Key('playlist-detail-more-actions-button')),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('playlist-detail-action-delete')));
     await tester.pumpAndSettle();
@@ -104,7 +101,7 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  testWidgets('系统播放列表 hover 与右键都不出管理入口', (WidgetTester tester) async {
+  testWidgets('系统播放列表不显示管理入口', (WidgetTester tester) async {
     bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/playlists/7',
@@ -118,7 +115,6 @@ void main() {
 
     await _pumpDetail(tester, bundle: bundle, mobile: false);
 
-    await _hoverBanner(tester);
     expect(
       find.byKey(const Key('playlist-detail-more-actions-button')),
       findsNothing,
@@ -126,6 +122,46 @@ void main() {
 
     await _rightClickBanner(tester);
     await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('playlist-detail-action-edit')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('playlist-detail-action-delete')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('桌面右键横幅不再弹菜单', (WidgetTester tester) async {
+    _enqueueDetail(bundle);
+
+    await _pumpDetail(tester, bundle: bundle, mobile: false);
+
+    await _rightClickBanner(tester);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('playlist-detail-action-edit')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('playlist-detail-action-delete')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('移动长按横幅不再弹菜单', (WidgetTester tester) async {
+    _enqueueDetail(bundle);
+
+    await _pumpDetail(tester, bundle: bundle, mobile: true);
+
+    await tester.longPress(find.byKey(const Key('playlist-banner-card-7')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('playlist-detail-actions-drawer')),
+      findsNothing,
+    );
     expect(
       find.byKey(const Key('playlist-detail-action-edit')),
       findsNothing,
@@ -146,7 +182,6 @@ void main() {
 
     await _pumpDetail(tester, bundle: bundle, mobile: false, deepLink: true);
 
-    await _hoverBanner(tester);
     await tester.tap(
       find.byKey(const Key('playlist-detail-more-actions-button')),
     );
@@ -163,7 +198,7 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  testWidgets('移动详情页长按横幅出菜单，编辑走底部抽屉', (WidgetTester tester) async {
+  testWidgets('移动详情页「···」弹底部操作表，编辑走底部抽屉', (WidgetTester tester) async {
     _enqueueDetail(bundle);
     bundle.adapter.enqueueJson(
       method: 'PATCH',
@@ -180,13 +215,18 @@ void main() {
 
     expect(
       find.byKey(const Key('playlist-detail-more-actions-button')),
-      findsNothing,
+      findsOneWidget,
     );
 
-    await tester.longPress(
-      find.byKey(const Key('playlist-banner-card-7')),
+    await tester.tap(
+      find.byKey(const Key('playlist-detail-more-actions-button')),
     );
     await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('playlist-detail-actions-drawer')),
+      findsOneWidget,
+    );
+    expect(find.text('播放列表操作'), findsOneWidget);
     expect(
       find.byKey(const Key('playlist-detail-action-edit')),
       findsOneWidget,
@@ -203,8 +243,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('收藏补完'), findsOneWidget);
 
-    await tester.longPress(
-      find.byKey(const Key('playlist-banner-card-7')),
+    await tester.tap(
+      find.byKey(const Key('playlist-detail-more-actions-button')),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('playlist-detail-action-delete')));
@@ -296,17 +336,7 @@ void _enqueueDetail(TestApiBundle bundle) {
 Finder get _bannerFinder =>
     find.byKey(const Key('playlist-banner-card-7'));
 
-/// 鼠标指针移入横幅：桌面端 hover 才显示「···」。
-Future<void> _hoverBanner(WidgetTester tester) async {
-  final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-  await mouse.addPointer(location: Offset.zero);
-  addTearDown(mouse.removePointer);
-  await tester.pump();
-  await mouse.moveTo(tester.getCenter(_bannerFinder));
-  await tester.pump();
-}
-
-/// 右键横幅：与长按同一条上下文菜单入口。
+/// 右键横幅：验证右键不再是管理入口。
 Future<void> _rightClickBanner(WidgetTester tester) async {
   final mouse = await tester.createGesture(
     kind: PointerDeviceKind.mouse,

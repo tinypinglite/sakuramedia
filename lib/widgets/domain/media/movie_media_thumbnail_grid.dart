@@ -9,7 +9,7 @@ import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/staggered_layout.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_clickable.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
@@ -1031,20 +1031,34 @@ class _MovieMediaThumbnailGridSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      key: Key('$keyPrefix-thumbnail-grid-skeleton'),
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columns,
-        crossAxisSpacing: context.appSpacing.sm,
-        mainAxisSpacing: context.appSpacing.sm,
-        childAspectRatio:
-            context.appComponentTokens.moviePlayerThumbnailAspectRatio,
+    // loading 用真实 tile 外形（边框 / 圆角 / 占位封面）渲染，由 [AppSkeletonizer] 灰化。
+    return AppSkeletonizer(
+      enabled: true,
+      child: GridView.builder(
+        key: Key('$keyPrefix-thumbnail-grid-skeleton'),
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          crossAxisSpacing: context.appSpacing.sm,
+          mainAxisSpacing: context.appSpacing.sm,
+          childAspectRatio:
+              context.appComponentTokens.moviePlayerThumbnailAspectRatio,
+        ),
+        itemCount: columns * 4,
+        itemBuilder: (context, index) {
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: context.appColors.surfaceCard,
+              borderRadius: context.appRadius.xsBorder,
+              border: Border.all(color: context.appColors.borderSubtle),
+            ),
+            child: ClipRRect(
+              borderRadius: context.appRadius.xsBorder,
+              child: const _MovieMediaThumbnailImagePlaceholder(),
+            ),
+          );
+        },
       ),
-      itemCount: columns * 4,
-      itemBuilder: (context, index) {
-        return AppSkeletonBlock(radius: context.appRadius.mdBorder);
-      },
     );
   }
 }

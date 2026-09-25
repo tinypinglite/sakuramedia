@@ -94,27 +94,6 @@ class MomentCollectionDetail extends _$MomentCollectionDetail
     );
   }
 
-  Future<void> reorder(int oldIndex, int newIndex) async {
-    final current = state.value;
-    if (current == null || oldIndex == newIndex) return;
-    await withOptimisticPatch<void>(
-      key: _mutationKey,
-      apply: (current) => _reorderPoints(current, oldIndex, newIndex),
-      action: () async {
-        final points =
-            state.value?.points ?? const <MomentCollectionPointDto>[];
-        await ref
-            .read(momentCollectionsApiProvider)
-            .setPoints(
-              collectionId: collectionId,
-              pointIds: points
-                  .map((point) => point.pointId)
-                  .toList(growable: false),
-            );
-      },
-    );
-  }
-
   void replaceCollection(MomentCollectionDto collection) {
     final current = state.value;
     if (current != null) {
@@ -142,18 +121,5 @@ class MomentCollectionDetail extends _$MomentCollectionDetail
       ),
       points: points,
     );
-  }
-
-  MomentCollectionDetailState _reorderPoints(
-    MomentCollectionDetailState current,
-    int oldIndex,
-    int newIndex,
-  ) {
-    final points = List<MomentCollectionPointDto>.from(current.points);
-    var targetIndex = newIndex;
-    if (targetIndex > oldIndex) targetIndex -= 1;
-    final moved = points.removeAt(oldIndex);
-    points.insert(targetIndex, moved);
-    return current.copyWith(points: points);
   }
 }

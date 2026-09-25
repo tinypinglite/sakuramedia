@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
@@ -40,6 +39,7 @@ import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_hint_box.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
@@ -582,52 +582,37 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
         child: SizedBox(height: 200, child: AppEmptyState(message: '暂无视频数据')),
       );
     }
-    final spacing = context.appSpacing.md;
-    // 网格横向缩进由 shell 提供；用 SliverMasonryGrid 直接消费外层 CustomScrollView，
+    // 网格横向缩进由 shell 提供；用 Sliver 瀑布流直接消费外层 CustomScrollView，
     // 自带懒构建（按视口构建 tile），避免 SliverToBoxAdapter+Stack 一次性 build N 张卡。
     return AppSkeletonizer.sliver(
       enabled: isLoading,
-      child: SliverLayoutBuilder(
-        builder: (context, constraints) {
-          final width = constraints.crossAxisExtent;
-          final rawColumns = ((width + spacing) / (180 + spacing)).floor();
-          final columns = rawColumns < 2
-              ? 2
-              : (rawColumns > 6 ? 6 : rawColumns);
-          return SliverMasonryGrid.count(
-            crossAxisCount: columns,
-            mainAxisSpacing: spacing,
-            crossAxisSpacing: spacing,
-            childCount: videos.length,
-            itemBuilder: (context, i) {
-              final video = videos[i];
-              final aspect = _resolveCoverAspect(
-                video.coverWidth,
-                video.coverHeight,
-              );
-              return AspectRatio(
-                aspectRatio: aspect,
-                // Builder 是为了拿到**这一张卡自己**的 RenderBox，长按浮层要盖住它。
-                child: Builder(
-                  builder: (cardContext) => GestureDetector(
-                    onLongPressStart: selectionMode
-                        ? null
-                        : (details) => _openCardMenu(
-                            cardContext,
-                            video,
-                            details.globalPosition,
-                          ),
-                    child: VideoSummaryCard(
-                      video: video,
-                      onTap: selectionMode ? null : () => _openSheet(video),
-                      selectionMode: selectionMode,
-                      isSelected: isSelected(video.id),
-                      onSelectedChanged: (_) => toggleSelect(video.id),
+      child: AppAdaptiveCardSliver<VideoItemListItemDto>(
+        gridKey: const Key('mobile-pornbox-grid'),
+        items: videos,
+        layout: AppAdaptiveCardGridLayout.masonry,
+        tileAspect: (index) => _resolveCoverAspect(
+          videos[index].coverWidth,
+          videos[index].coverHeight,
+        ),
+        itemBuilder: (context, video, index) {
+          // Builder 是为了拿到**这一张卡自己**的 RenderBox，长按浮层要盖住它。
+          return Builder(
+            builder: (cardContext) => GestureDetector(
+              onLongPressStart: selectionMode
+                  ? null
+                  : (details) => _openCardMenu(
+                      cardContext,
+                      video,
+                      details.globalPosition,
                     ),
-                  ),
-                ),
-              );
-            },
+              child: VideoSummaryCard(
+                video: video,
+                onTap: selectionMode ? null : () => _openSheet(video),
+                selectionMode: selectionMode,
+                isSelected: isSelected(video.id),
+                onSelectedChanged: (_) => toggleSelect(video.id),
+              ),
+            ),
           );
         },
       ),

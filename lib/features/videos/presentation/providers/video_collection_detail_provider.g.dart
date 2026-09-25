@@ -8,13 +8,12 @@ part of 'video_collection_detail_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序、乐观重排与移除。
+/// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序与移除。
 ///
 /// **本仓库第二个 [OptimisticPatchMixin] 采用者**（首个：clip_collection_detail）：
-/// reorder / removeItem / deleteVideo 三处都用 [withOptimisticPatch]，共用
+/// removeItem / deleteVideo 两处都用 [withOptimisticPatch]，共用
 /// [_mutationKey] 让「同时只允许一个 mutation」（等价原 controller `_isMutating`
-/// bool）。reorder **返回 `Future<void>`**（原 controller 语义）——失败静默回滚，
-/// UI 无 toast；removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
+/// bool）。removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
 /// deleteVideo 则把异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
 ///
 /// [applySort] 走独立的「保留旧列表 → 拉新排序 → 覆盖」路径，不占 [_mutationKey]，
@@ -26,13 +25,12 @@ part of 'video_collection_detail_provider.dart';
 @ProviderFor(VideoCollectionDetail)
 final videoCollectionDetailProvider = VideoCollectionDetailFamily._();
 
-/// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序、乐观重排与移除。
+/// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序与移除。
 ///
 /// **本仓库第二个 [OptimisticPatchMixin] 采用者**（首个：clip_collection_detail）：
-/// reorder / removeItem / deleteVideo 三处都用 [withOptimisticPatch]，共用
+/// removeItem / deleteVideo 两处都用 [withOptimisticPatch]，共用
 /// [_mutationKey] 让「同时只允许一个 mutation」（等价原 controller `_isMutating`
-/// bool）。reorder **返回 `Future<void>`**（原 controller 语义）——失败静默回滚，
-/// UI 无 toast；removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
+/// bool）。removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
 /// deleteVideo 则把异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
 ///
 /// [applySort] 走独立的「保留旧列表 → 拉新排序 → 覆盖」路径，不占 [_mutationKey]，
@@ -46,13 +44,12 @@ final class VideoCollectionDetailProvider
           VideoCollectionDetail,
           VideoCollectionDetailState
         > {
-  /// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序、乐观重排与移除。
+  /// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序与移除。
   ///
   /// **本仓库第二个 [OptimisticPatchMixin] 采用者**（首个：clip_collection_detail）：
-  /// reorder / removeItem / deleteVideo 三处都用 [withOptimisticPatch]，共用
+  /// removeItem / deleteVideo 两处都用 [withOptimisticPatch]，共用
   /// [_mutationKey] 让「同时只允许一个 mutation」（等价原 controller `_isMutating`
-  /// bool）。reorder **返回 `Future<void>`**（原 controller 语义）——失败静默回滚，
-  /// UI 无 toast；removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
+  /// bool）。removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
   /// deleteVideo 则把异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
   ///
   /// [applySort] 走独立的「保留旧列表 → 拉新排序 → 覆盖」路径，不占 [_mutationKey]，
@@ -97,15 +94,14 @@ final class VideoCollectionDetailProvider
 }
 
 String _$videoCollectionDetailHash() =>
-    r'6a9e3f7c614e660446aaa0cc2ea06a863a937df2';
+    r'3df59023e74b1be936d1fc1f268ce7b27d8a97ac';
 
-/// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序、乐观重排与移除。
+/// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序与移除。
 ///
 /// **本仓库第二个 [OptimisticPatchMixin] 采用者**（首个：clip_collection_detail）：
-/// reorder / removeItem / deleteVideo 三处都用 [withOptimisticPatch]，共用
+/// removeItem / deleteVideo 两处都用 [withOptimisticPatch]，共用
 /// [_mutationKey] 让「同时只允许一个 mutation」（等价原 controller `_isMutating`
-/// bool）。reorder **返回 `Future<void>`**（原 controller 语义）——失败静默回滚，
-/// UI 无 toast；removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
+/// bool）。removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
 /// deleteVideo 则把异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
 ///
 /// [applySort] 走独立的「保留旧列表 → 拉新排序 → 覆盖」路径，不占 [_mutationKey]，
@@ -132,13 +128,12 @@ final class VideoCollectionDetailFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序、乐观重排与移除。
+  /// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序与移除。
   ///
   /// **本仓库第二个 [OptimisticPatchMixin] 采用者**（首个：clip_collection_detail）：
-  /// reorder / removeItem / deleteVideo 三处都用 [withOptimisticPatch]，共用
+  /// removeItem / deleteVideo 两处都用 [withOptimisticPatch]，共用
   /// [_mutationKey] 让「同时只允许一个 mutation」（等价原 controller `_isMutating`
-  /// bool）。reorder **返回 `Future<void>`**（原 controller 语义）——失败静默回滚，
-  /// UI 无 toast；removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
+  /// bool）。removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
   /// deleteVideo 则把异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
   ///
   /// [applySort] 走独立的「保留旧列表 → 拉新排序 → 覆盖」路径，不占 [_mutationKey]，
@@ -154,13 +149,12 @@ final class VideoCollectionDetailFamily extends $Family
   String toString() => r'videoCollectionDetailProvider';
 }
 
-/// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序、乐观重排与移除。
+/// 视频合集详情：加载合集元信息 + 全量有序成员，支持排序与移除。
 ///
 /// **本仓库第二个 [OptimisticPatchMixin] 采用者**（首个：clip_collection_detail）：
-/// reorder / removeItem / deleteVideo 三处都用 [withOptimisticPatch]，共用
+/// removeItem / deleteVideo 两处都用 [withOptimisticPatch]，共用
 /// [_mutationKey] 让「同时只允许一个 mutation」（等价原 controller `_isMutating`
-/// bool）。reorder **返回 `Future<void>`**（原 controller 语义）——失败静默回滚，
-/// UI 无 toast；removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
+/// bool）。removeItem 返回 `Future<String?>` 供调用点直接展示失败文案；
 /// deleteVideo 则把异常交给确认弹层处理，以便请求中保持确认按钮的 loading 状态。
 ///
 /// [applySort] 走独立的「保留旧列表 → 拉新排序 → 覆盖」路径，不占 [_mutationKey]，

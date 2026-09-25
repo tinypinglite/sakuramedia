@@ -67,19 +67,40 @@ Future<void> showMomentPreviewFlow({
         fallbackPath: fallbackPath,
       );
     case MediaPreviewAction.openMovieDetail:
-      final movieNumber = item.movieNumber;
-      if (item.isVideo || movieNumber == null || movieNumber.isEmpty) {
-        return;
-      }
-      isMobile
-          ? MobileMovieDetailRouteData(movieNumber: movieNumber).push(context)
-          : context.pushDesktopMovieDetail(
-              movieNumber: movieNumber,
-              fallbackPath: fallbackPath,
-            );
+      openMomentSourceMovie(
+        context: context,
+        item: item,
+        fallbackPath: fallbackPath,
+      );
     case null:
       return;
   }
+}
+
+/// 打开时刻来源影片详情：预览回执、时刻列表与合集详情的悬停「影片」都走这里。
+///
+/// 视频时刻没有影片详情（`movieNumber` 为空），直接忽略；平台按
+/// `AppPlatformScope` 自行判定（查不到按桌面）。
+void openMomentSourceMovie({
+  required BuildContext context,
+  required MomentListItem item,
+  required String fallbackPath,
+}) {
+  if (item.isVideo) {
+    return;
+  }
+  final movieNumber = item.movieNumber;
+  if (movieNumber == null || movieNumber.isEmpty) {
+    return;
+  }
+  if (AppPlatformScope.maybeOf(context) == AppPlatform.mobile) {
+    MobileMovieDetailRouteData(movieNumber: movieNumber).push(context);
+    return;
+  }
+  context.pushDesktopMovieDetail(
+    movieNumber: movieNumber,
+    fallbackPath: fallbackPath,
+  );
 }
 
 Future<void> _searchSimilar(

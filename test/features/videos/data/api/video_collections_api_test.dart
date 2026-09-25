@@ -145,21 +145,4 @@ void main() {
     // 翻了两页直至取满 total。
     expect(adapter.hitCount('GET', '/video-collections/7/items'), 2);
   });
-
-  test('reorderCollectionItems 以有序 item_id 列表 POST', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/video-collections/3/items/reorder',
-      // 端点返回成员列表，但前端走乐观重排、不消费返回体。
-      body: <dynamic>[],
-    );
-
-    await collectionsApi.reorderCollectionItems(
-      collectionId: 3,
-      orderedItemIds: <int>[101, 100],
-    );
-
-    final body = adapter.requests.single.body as Map<String, dynamic>;
-    expect(body['ordered_item_ids'], <int>[101, 100]);
-  });
 }

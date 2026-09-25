@@ -127,18 +127,4 @@ class VideoCollectionsApi {
       '/video-collections/$collectionId/items/$itemId',
     );
   }
-
-  /// 按 [orderedItemIds] 重写成员 `position`。须恰好覆盖全部成员，否则后端返回 422。
-  ///
-  /// 端点返回重排后的成员列表，但前端走乐观重排、不消费返回体，故用
-  /// `postNoContent`；调用方在成功后保留本地顺序、失败时回滚到提交前的本地顺序。
-  Future<void> reorderCollectionItems({
-    required int collectionId,
-    required List<int> orderedItemIds,
-  }) {
-    return _apiClient.postNoContent(
-      '/video-collections/$collectionId/items/reorder',
-      data: <String, dynamic>{'ordered_item_ids': orderedItemIds},
-    );
-  }
 }

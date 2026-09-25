@@ -96,7 +96,7 @@ void main() {
     });
   });
 
-  test('成员列表读取 position，并在重排时提交 point_ids', () async {
+  test('成员列表读取 position', () async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/moment-collections/7/points',
@@ -110,19 +110,10 @@ void main() {
         'total': 2,
       },
     );
-    adapter.enqueueJson(
-      method: 'PUT',
-      path: '/moment-collections/7/points',
-      statusCode: 204,
-    );
 
     final page = await api.getCollectionPoints(collectionId: 7);
-    await api.setPoints(collectionId: 7, pointIds: <int>[13, 12]);
 
     expect(page.items.map((item) => item.position), <int>[0, 1]);
-    expect(adapter.requests.last.body, <String, dynamic>{
-      'point_ids': <int>[13, 12],
-    });
   });
 
   test('时刻归属和单个收藏关系映射到专属端点', () async {

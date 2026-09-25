@@ -7,10 +7,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
-export 'package:sakuramedia/features/videos/presentation/pages/shared/video_collection_detail_content.dart'
-    show CollectionDetailLayout;
-
-/// 桌面视频合集详情壳：桌面语义（列表默认 / 拖序 + hover / 顶栏内联批量 /
+/// 桌面视频合集详情壳：桌面语义（网格 / hover / 顶栏内联批量 /
 /// 就地筛选浮层 / 桌面动作弹窗与确认对话框）收在壳里，实现在
 /// [VideoCollectionDetailContent]。
 class DesktopVideoCollectionDetailPage extends StatelessWidget {
@@ -30,8 +27,6 @@ class DesktopVideoCollectionDetailPage extends StatelessWidget {
       useMobileSelectionLayout: false,
       hoistTitleToSubpageShell: false,
       useMobileFilterDrawer: false,
-      enableReorder: true,
-      defaultLayout: CollectionDetailLayout.list,
       playAllBuilder: (context, {required enabled, required onPlayFrom}) {
         return AppButton(
           key: const Key('video-collection-play-all-button'),
