@@ -2507,8 +2507,6 @@
   "activityFilterAllStates": "All states",
   "activityFilterAllTaskTypes": "All task types",
   "activityFilterAllTriggers": "All triggers",
-  "activityFilterApplied": "Filtered",
-  "activityFilterAction": "Filter",
   "activityTaskFilterTitle": "Filter task history",
   "activityTaskStateLabel": "Task status",
   "activityTaskTypeLabel": "Task type",

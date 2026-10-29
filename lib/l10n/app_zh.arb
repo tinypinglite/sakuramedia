@@ -2507,8 +2507,6 @@
   "activityFilterAllStates": "全部状态",
   "activityFilterAllTaskTypes": "全部任务类型",
   "activityFilterAllTriggers": "全部触发来源",
-  "activityFilterApplied": "已筛选",
-  "activityFilterAction": "筛选",
   "activityTaskFilterTitle": "筛选任务历史",
   "activityTaskStateLabel": "任务状态",
   "activityTaskTypeLabel": "任务类型",
