@@ -14,8 +14,6 @@ class JobMetadataDto {
     this.disabledReason,
     required this.paramsSchema,
     required this.lastTaskRun,
-    this.recentRunCount = 0,
-    this.recentFailureCount = 0,
   });
 
   final String taskKey;
@@ -30,16 +28,11 @@ class JobMetadataDto {
   final Map<String, dynamic>? paramsSchema;
   final TaskRunDto? lastTaskRun;
 
-  /// 近 24 小时运行次数 / 失败次数；旧后端不下发时为 0。
-  final int recentRunCount;
-  final int recentFailureCount;
-
   /// 配置了定时表达式即为自动任务（会被调度器按计划触发）。
   bool get isScheduled => cronExpr.trim().isNotEmpty;
 
-  /// 近 24 小时有失败，或最近一次运行失败 / 完成带警告。
-  bool get needsAttention =>
-      recentFailureCount > 0 || (lastTaskRun?.needsAttention ?? false);
+  /// 最近一次运行失败，或完成带警告。
+  bool get needsAttention => lastTaskRun?.needsAttention ?? false;
 
   factory JobMetadataDto.fromJson(Map<String, dynamic> json) {
     final lastTaskRunJson = asMapOrNull(json['last_task_run']);
@@ -57,8 +50,6 @@ class JobMetadataDto {
       lastTaskRun: lastTaskRunJson == null
           ? null
           : TaskRunDto.fromJson(lastTaskRunJson),
-      recentRunCount: asIntOrNull(json['recent_run_count']) ?? 0,
-      recentFailureCount: asIntOrNull(json['recent_failure_count']) ?? 0,
     );
   }
 }

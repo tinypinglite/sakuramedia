@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
-import 'package:sakuramedia/features/activity/data/task_attention_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
@@ -20,15 +19,12 @@ class ActivityCenterState {
     List<TaskRunDto> activeTaskRuns = const <TaskRunDto>[],
     List<TaskRunDto> taskRuns = const <TaskRunDto>[],
     List<JobMetadataDto> jobs = const <JobMetadataDto>[],
-    List<TaskAttentionDto> attentionItems = const <TaskAttentionDto>[],
     this.hasMoreTasks = true,
     this.isLoadingMoreTasks = false,
     this.isLoadingJobs = false,
-    this.isLoadingAttention = false,
     this.isRefreshingTaskHistory = false,
     this.taskLoadMoreErrorMessage,
     this.jobErrorMessage,
-    this.attentionErrorMessage,
     this.taskRefreshErrorMessage,
     Set<String> triggeringTaskKeys = const <String>{},
     this.highlightedTaskRunId,
@@ -36,7 +32,6 @@ class ActivityCenterState {
   }) : activeTaskRuns = List<TaskRunDto>.unmodifiable(activeTaskRuns),
        taskRuns = List<TaskRunDto>.unmodifiable(taskRuns),
        jobs = List<JobMetadataDto>.unmodifiable(jobs),
-       attentionItems = List<TaskAttentionDto>.unmodifiable(attentionItems),
        triggeringTaskKeys = Set<String>.unmodifiable(triggeringTaskKeys);
 
   static final ActivityCenterState initial = ActivityCenterState();
@@ -52,16 +47,12 @@ class ActivityCenterState {
   final List<TaskRunDto> taskRuns;
   final List<JobMetadataDto> jobs;
 
-  /// 需要关注的任务（最新运行失败或带警告），按后端顺序（最近出问题在前）。
-  final List<TaskAttentionDto> attentionItems;
   final bool hasMoreTasks;
   final bool isLoadingMoreTasks;
   final bool isLoadingJobs;
-  final bool isLoadingAttention;
   final bool isRefreshingTaskHistory;
   final String? taskLoadMoreErrorMessage;
   final String? jobErrorMessage;
-  final String? attentionErrorMessage;
   final String? taskRefreshErrorMessage;
   final Set<String> triggeringTaskKeys;
   final int? highlightedTaskRunId;
@@ -106,9 +97,6 @@ class ActivityCenterState {
     for (final item in jobs) {
       register(item.taskKey, item.lastTaskRun?.taskName ?? item.cliHelp);
     }
-    for (final item in attentionItems) {
-      register(item.taskKey, item.displayName);
-    }
     final sortedKeys = keys.toList()..sort();
     return <String, String>{
       for (final key in sortedKeys) key: names[key] ?? key,
@@ -129,15 +117,12 @@ class ActivityCenterState {
     List<TaskRunDto>? activeTaskRuns,
     List<TaskRunDto>? taskRuns,
     List<JobMetadataDto>? jobs,
-    List<TaskAttentionDto>? attentionItems,
     bool? hasMoreTasks,
     bool? isLoadingMoreTasks,
     bool? isLoadingJobs,
-    bool? isLoadingAttention,
     bool? isRefreshingTaskHistory,
     Object? taskLoadMoreErrorMessage = _unset,
     Object? jobErrorMessage = _unset,
-    Object? attentionErrorMessage = _unset,
     Object? taskRefreshErrorMessage = _unset,
     Set<String>? triggeringTaskKeys,
     Object? highlightedTaskRunId = _unset,
@@ -158,11 +143,9 @@ class ActivityCenterState {
       activeTaskRuns: activeTaskRuns ?? this.activeTaskRuns,
       taskRuns: taskRuns ?? this.taskRuns,
       jobs: jobs ?? this.jobs,
-      attentionItems: attentionItems ?? this.attentionItems,
       hasMoreTasks: hasMoreTasks ?? this.hasMoreTasks,
       isLoadingMoreTasks: isLoadingMoreTasks ?? this.isLoadingMoreTasks,
       isLoadingJobs: isLoadingJobs ?? this.isLoadingJobs,
-      isLoadingAttention: isLoadingAttention ?? this.isLoadingAttention,
       isRefreshingTaskHistory:
           isRefreshingTaskHistory ?? this.isRefreshingTaskHistory,
       taskLoadMoreErrorMessage: identical(taskLoadMoreErrorMessage, _unset)
@@ -171,9 +154,6 @@ class ActivityCenterState {
       jobErrorMessage: identical(jobErrorMessage, _unset)
           ? this.jobErrorMessage
           : jobErrorMessage as String?,
-      attentionErrorMessage: identical(attentionErrorMessage, _unset)
-          ? this.attentionErrorMessage
-          : attentionErrorMessage as String?,
       taskRefreshErrorMessage: identical(taskRefreshErrorMessage, _unset)
           ? this.taskRefreshErrorMessage
           : taskRefreshErrorMessage as String?,
@@ -202,15 +182,12 @@ class ActivityCenterState {
         listEquals(other.activeTaskRuns, activeTaskRuns) &&
         listEquals(other.taskRuns, taskRuns) &&
         listEquals(other.jobs, jobs) &&
-        listEquals(other.attentionItems, attentionItems) &&
         other.hasMoreTasks == hasMoreTasks &&
         other.isLoadingMoreTasks == isLoadingMoreTasks &&
         other.isLoadingJobs == isLoadingJobs &&
-        other.isLoadingAttention == isLoadingAttention &&
         other.isRefreshingTaskHistory == isRefreshingTaskHistory &&
         other.taskLoadMoreErrorMessage == taskLoadMoreErrorMessage &&
         other.jobErrorMessage == jobErrorMessage &&
-        other.attentionErrorMessage == attentionErrorMessage &&
         other.taskRefreshErrorMessage == taskRefreshErrorMessage &&
         setEquals(other.triggeringTaskKeys, triggeringTaskKeys) &&
         other.highlightedTaskRunId == highlightedTaskRunId &&
@@ -229,15 +206,12 @@ class ActivityCenterState {
     Object.hashAll(activeTaskRuns),
     Object.hashAll(taskRuns),
     Object.hashAll(jobs),
-    Object.hashAll(attentionItems),
     hasMoreTasks,
     isLoadingMoreTasks,
     isLoadingJobs,
-    isLoadingAttention,
     isRefreshingTaskHistory,
     taskLoadMoreErrorMessage,
     jobErrorMessage,
-    attentionErrorMessage,
     taskRefreshErrorMessage,
     Object.hashAllUnordered(triggeringTaskKeys),
     highlightedTaskRunId,

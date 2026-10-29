@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/features/activity/data/activity_bootstrap_dto.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
-import 'package:sakuramedia/features/activity/data/task_attention_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_api_provider.dart';
@@ -18,10 +17,9 @@ part 'activity_center_provider.g.dart';
 class ActivityCenter extends _$ActivityCenter
     with AsyncNotifierDisposeGuardMixin<ActivityCenterState> {
   static const int _pageSize = 20;
-  static const int _attentionLimit = 50;
   static const Duration _pollingInterval = Duration(seconds: 3);
 
-  /// 重点任务与任务定义变化慢：独立走 30 秒慢轮询，不跟随 3 秒任务进度 tick。
+  /// 任务定义变化慢：独立走 30 秒慢轮询，不跟随 3 秒任务进度 tick。
   static const Duration _slowPollingInterval = Duration(seconds: 30);
 
   Timer? _pollTimer;
@@ -32,7 +30,6 @@ class ActivityCenter extends _$ActivityCenter
   late final DebouncedLatestRequest _taskFilterRequests =
       DebouncedLatestRequest();
   int _taskFilterGeneration = 0;
-  int _attentionGeneration = 0;
 
   ActivityCenterState get current => state.value ?? ActivityCenterState.initial;
 
@@ -59,17 +56,13 @@ class ActivityCenter extends _$ActivityCenter
   Future<ActivityCenterState> _loadInitialState() async {
     try {
       final jobsFuture = _fetchJobs();
-      final attentionFuture = _fetchAttention();
       final bootstrap = await _fetchBootstrap(ActivityTaskFilterState.initial);
       final jobsResult = await jobsFuture;
-      final attentionResult = await attentionFuture;
       if (isDisposed) return ActivityCenterState.initial;
       return _applyBootstrap(ActivityCenterState.initial, bootstrap).copyWith(
         initialized: true,
         jobs: jobsResult.jobs,
         jobErrorMessage: jobsResult.errorMessage,
-        attentionItems: attentionResult.items,
-        attentionErrorMessage: attentionResult.errorMessage,
       );
     } catch (error) {
       return ActivityCenterState.initial.copyWith(
@@ -117,16 +110,13 @@ class ActivityCenter extends _$ActivityCenter
     _slowPollTimer?.cancel();
     _taskFilterRequests.cancel();
     _taskFilterGeneration++;
-    _attentionGeneration++;
     state = AsyncData(
       current.copyWith(
         isInitialLoading: true,
         isLoadingJobs: true,
-        isLoadingAttention: true,
         isRefreshingTaskHistory: false,
         initialErrorMessage: null,
         jobErrorMessage: null,
-        attentionErrorMessage: null,
         taskRefreshErrorMessage: null,
         taskFilterUpdate: const FilterUpdateState.idle(),
         connectionState: ActivityConnectionState.connecting,
@@ -138,22 +128,17 @@ class ActivityCenter extends _$ActivityCenter
     try {
       final filter = current.taskFilter;
       final jobsFuture = _fetchJobs();
-      final attentionFuture = _fetchAttention();
       final bootstrap = await _fetchBootstrap(filter);
       final jobsResult = await jobsFuture;
-      final attentionResult = await attentionFuture;
       if (isDisposed) return;
       state = AsyncData(
         _applyBootstrap(current, bootstrap).copyWith(
           initialized: true,
           isInitialLoading: false,
           isLoadingJobs: false,
-          isLoadingAttention: false,
           initialErrorMessage: null,
           jobs: jobsResult.jobs,
           jobErrorMessage: jobsResult.errorMessage,
-          attentionItems: attentionResult.items,
-          attentionErrorMessage: attentionResult.errorMessage,
           connectionState: ActivityConnectionState.polling,
           connectionMessage: ref
               .read(appLocalizationsProvider)
@@ -167,7 +152,6 @@ class ActivityCenter extends _$ActivityCenter
         current.copyWith(
           isInitialLoading: false,
           isLoadingJobs: false,
-          isLoadingAttention: false,
           initialErrorMessage: ref.apiErrorMessage(
             error,
             fallback: ref
@@ -280,31 +264,10 @@ class ActivityCenter extends _$ActivityCenter
     }
   }
 
-  /// 刷新重点任务区，失败时保留上一次成功的条目。
-  Future<void> refreshAttention() async {
-    if (current.isLoadingAttention) return;
-    final generation = ++_attentionGeneration;
-    state = AsyncData(
-      current.copyWith(isLoadingAttention: true, attentionErrorMessage: null),
-    );
-    final result = await _fetchAttention();
-    if (isDisposed || generation != _attentionGeneration) return;
-    state = AsyncData(
-      current.copyWith(
-        attentionItems: result.errorMessage == null
-            ? result.items
-            : current.attentionItems,
-        attentionErrorMessage: result.errorMessage,
-        isLoadingAttention: false,
-      ),
-    );
-  }
-
-  /// 下拉刷新 / 显式刷新入口：运行记录、重点任务与任务定义一起刷新。
+  /// 下拉刷新 / 显式刷新入口：运行记录与任务定义一起刷新。
   Future<void> refreshAll() async {
     await Future.wait<void>(<Future<void>>[
       refreshTaskHistory(),
-      refreshAttention(),
       refreshJobs(),
     ]);
   }
@@ -438,37 +401,14 @@ class ActivityCenter extends _$ActivityCenter
     );
   }
 
-  Future<_AttentionResult> _fetchAttention() async {
-    try {
-      final items = await ref
-          .read(activityApiProvider)
-          .getTaskAttention(limit: _attentionLimit);
-      return _AttentionResult(items: items);
-    } catch (error) {
-      // 旧后端没有该接口时同样落到这里：条目保持为空，重点区整体隐藏。
-      return _AttentionResult(
-        items: const <TaskAttentionDto>[],
-        errorMessage: ref.apiErrorMessage(
-          error,
-          fallback: ref
-              .read(appLocalizationsProvider)
-              .errorTaskAttentionLoadFailed,
-        ),
-      );
-    }
-  }
-
-  /// 30 秒慢轮询：重点任务与任务定义。与 3 秒快轮询互不阻塞，
+  /// 30 秒慢轮询：任务定义。与 3 秒快轮询互不阻塞，
   /// 刷新失败时保留上一次成功的数据，只在有内容时静默更新。
   Future<void> _refreshSlowData() async {
     if (isDisposed || !_pollingEnabled || state.value == null) return;
     if (_isSlowPolling) return;
     _isSlowPolling = true;
     try {
-      final (jobsResult, attentionResult) = await (
-        _fetchJobs(),
-        _fetchAttention(),
-      ).wait;
+      final jobsResult = await _fetchJobs();
       if (isDisposed || !_pollingEnabled) return;
       final now = current;
       state = AsyncData(
@@ -477,10 +417,6 @@ class ActivityCenter extends _$ActivityCenter
               ? now.jobs
               : jobsResult.jobs,
           jobErrorMessage: jobsResult.errorMessage,
-          attentionItems: attentionResult.errorMessage == null
-              ? attentionResult.items
-              : now.attentionItems,
-          attentionErrorMessage: attentionResult.errorMessage,
         ),
       );
     } finally {
@@ -630,9 +566,6 @@ class ActivityCenter extends _$ActivityCenter
   List<TaskRunDto> get activeTaskRuns => current.activeTaskRuns;
   List<TaskRunDto> get taskRuns => current.taskRuns;
   List<JobMetadataDto> get jobs => current.jobs;
-  List<TaskAttentionDto> get attentionItems => current.attentionItems;
-  bool get isLoadingAttention => current.isLoadingAttention;
-  String? get attentionErrorMessage => current.attentionErrorMessage;
   bool get hasMoreTasks => current.hasMoreTasks;
   bool get isLoadingMoreTasks => current.isLoadingMoreTasks;
   bool get isLoadingJobs => current.isLoadingJobs;
@@ -652,12 +585,5 @@ class _JobsResult {
   const _JobsResult({required this.jobs, this.errorMessage});
 
   final List<JobMetadataDto> jobs;
-  final String? errorMessage;
-}
-
-class _AttentionResult {
-  const _AttentionResult({required this.items, this.errorMessage});
-
-  final List<TaskAttentionDto> items;
   final String? errorMessage;
 }

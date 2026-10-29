@@ -73,7 +73,6 @@
   "errorTaskFilterRefreshFailed": "任务筛选刷新失败，请重试",
   "errorLoadMoreTasksFailed": "加载更多任务失败，请点击重试",
   "errorExecutableTaskLoadFailed": "可执行任务加载失败，请重试",
-  "errorTaskAttentionLoadFailed": "需要关注的任务加载失败，请重试",
   "errorRecommendedMovieLoadFailed": "推荐影片加载失败，请稍后重试",
   "errorLoadMoreRecommendedMoviesFailed": "加载更多推荐影片失败，请点击重试",
   "errorHotNewMovieLoadFailed": "热门新片加载失败，请稍后重试",
@@ -2428,71 +2427,6 @@
   "activityTaskRunHistoryTitle": "运行记录",
   "activityHistoryEmpty": "该任务还没有运行记录",
   "activityRunCompletedWithWarning": "有警告",
-  "activityAttentionTitle": "需要关注",
-  "activityAttentionCount": "{count} 个任务",
-  "@activityAttentionCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityAttentionFailedCount": "近 7 天失败 {count} 次",
-  "@activityAttentionFailedCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityLastIssueAt": "最近异常：{time}",
-  "@activityLastIssueAt": {
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
-  "activityViewRunRecords": "查看记录",
-  "activityAutoTasksTitle": "自动任务",
-  "activityAutoTasksDescription": "按定时计划自动执行的任务；点开可查看计划、最近状态与手动执行入口。",
-  "activityAutoTasksCount": "{count} 个自动任务",
-  "@activityAutoTasksCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityAutoTasksNeedAttention": "{count} 个需关注",
-  "@activityAutoTasksNeedAttention": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityJobTabAuto": "自动任务",
-  "activityJobTabManual": "手动任务",
-  "activityJobStatusAll": "全部状态",
-  "activityJobStatusAttention": "仅异常",
-  "activityJobRecentRuns": "近 24 小时运行 {count} 次",
-  "@activityJobRecentRuns": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityJobRecentFailures": "近 24 小时失败 {count} 次",
-  "@activityJobRecentFailures": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityJobsFilteredEmpty": "当前筛选下没有任务",
   "activityActiveTasks": "活动任务",
   "activityEmptyTasksFiltered": "当前筛选下暂无任务记录",
   "activityJobSubmitted": "任务已提交",
@@ -2501,8 +2435,17 @@
   "activityJobsLoading": "加载中",
   "activityJobsLoadFailed": "加载失败",
   "activityJobsEmpty": "暂无任务",
+  "activityJobsCount": "{count} 个任务",
+  "@activityJobsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "activityExecutableJobsTitle": "可执行任务",
   "activityViewJobs": "查看任务",
+  "activityExecutableJobsDescription": "手动触发已注册的后台任务，执行状态会在任务中心实时更新。",
   "activityJobDisabled": "未启用",
   "activityJobSubmitting": "提交中",
   "activityJobRunNow": "立即执行",
@@ -5356,6 +5299,11 @@
   "shellNavAppearance": "外观",
   "shellNavAccountSecurity": "账号安全",
   "shellNavNotifications": "消息",
+  "shellDrawerGroupHome": "首页",
+  "shellDrawerGroupMyContent": "我的内容",
+  "shellDrawerGroupDownloadsTasks": "下载与任务",
+  "shellDrawerGroupMediaConnections": "媒体与连接",
+  "shellDrawerGroupSystemAccount": "系统与账户",
   "shellWindowClose": "关闭",
   "shellWindowMinimize": "最小化",
   "shellWindowFullscreen": "全屏",
@@ -5420,6 +5368,187 @@
   "movieReviewSortHotly": "最热",
   "movieReviewSortRecently": "最新",
   "movieMagnetSortSeeders": "做种人数",
+  "movieMagnetSortPolicy": "策略推荐",
+  "commonMoveUp": "上移",
+  "commonMoveDown": "下移",
+  "configTabDownloadSelection": "选种策略",
+  "downloadSelectionOverviewTitle": "自动下载按选种策略筛选并排序资源",
+  "downloadSelectionOverviewDescription": "自动下载只会尝试符合策略的前 5 个资源；手动搜索会标出策略结果，但仍允许手动提交任意候选。",
+  "downloadSelectionScopeSection": "筛选范围",
+  "downloadSelectionIndexerKindsLabel": "索引器类型",
+  "downloadSelectionAny": "不限",
+  "downloadSelectionIndexerNamesLabel": "允许的索引器",
+  "downloadSelectionIndexerNamesPickerHint": "不选择任何索引器表示不限制；已失效的索引器会保留为警示项，便于移除。",
+  "downloadSelectionAllIndexers": "全部索引器",
+  "downloadSelectionIndexerUnavailable": "{name}（已失效）",
+  "@downloadSelectionIndexerUnavailable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionIndexerUnavailableWarning": "以下索引器已失效，请重新选择后再保存：{names}",
+  "@downloadSelectionIndexerUnavailableWarning": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionNoIndexers": "还没有可用索引器",
+  "downloadSelectionClearSelection": "清空选择",
+  "downloadSelectionMinSizeLabel": "最小体积",
+  "downloadSelectionMaxSizeLabel": "最大体积",
+  "downloadSelectionNoLimitHint": "留空表示不限制",
+  "downloadSelectionSizeInvalid": "请输入有效体积",
+  "downloadSelectionMaxSizeTooSmall": "最大体积不能小于最小体积",
+  "downloadSelectionMinSeedersLabel": "最低做种数",
+  "downloadSelectionSeedersInvalid": "做种数必须是大于等于 0 的整数",
+  "downloadSelectionMaxAgeLabel": "最大发布天数",
+  "downloadSelectionMaxAgeInvalid": "发布天数必须是 1–36500 的整数",
+  "downloadSelectionKeywordSection": "关键词规则",
+  "downloadSelectionMatchTitle": "匹配资源标题",
+  "downloadSelectionMatchTitleHint": "使用原始发布标题匹配关键词",
+  "downloadSelectionMatchDescription": "匹配资源简介",
+  "downloadSelectionMatchDescriptionHint": "同时检查索引器返回的简介文本",
+  "downloadSelectionMatchFieldRequired": "标题和简介至少要启用一项",
+  "downloadSelectionRequiredGroups": "必选关键词组",
+  "downloadSelectionRequiredGroupsHint": "每个组都要命中；组内任一关键词命中即可。",
+  "downloadSelectionPreferredGroups": "偏好关键词组",
+  "downloadSelectionPreferredGroupsHint": "优先匹配靠前的组；匹配结果相同时再按排序规则比较。",
+  "downloadSelectionAddRequiredGroup": "添加必选组",
+  "downloadSelectionAddPreferredGroup": "添加偏好组",
+  "downloadSelectionEditKeywordGroup": "编辑关键词组",
+  "downloadSelectionExcludedTerms": "排除词",
+  "downloadSelectionExcludedTermsHint": "标题或简介命中任一排除词时，该资源不符合策略。",
+  "downloadSelectionNoExcludedTerms": "未设置排除词",
+  "downloadSelectionKeywordGroupEditorHint": "组内任一关键词命中即可；多个必选组之间需要全部命中。",
+  "downloadSelectionKeywordGroupLabel": "组名（可选）",
+  "downloadSelectionKeywordGroupLabelHint": "例如：清晰度",
+  "downloadSelectionTermsLabel": "关键词",
+  "downloadSelectionTermsHint": "每行一个关键词",
+  "downloadSelectionTermsHelper": "空行和重复词会被忽略。",
+  "downloadSelectionTermsRequired": "请至少填写一个关键词",
+  "downloadSelectionUnnamedGroup": "未命名组",
+  "downloadSelectionGroupNumber": "组 {number}",
+  "@downloadSelectionGroupNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionRankingSection": "排序规则",
+  "downloadSelectionRankingHint": "偏好组优先；此后按下方顺序依次比较。",
+  "downloadSelectionRankingSize": "体积从大到小",
+  "downloadSelectionRankingSeeders": "做种数从多到少",
+  "downloadSelectionRankingPublishedAt": "发布时间从新到旧",
+  "downloadSelectionRankingIndexerPriority": "索引器优先级",
+  "downloadSelectionRankingRequired": "至少保留一个排序规则",
+  "downloadSelectionPriorityIndexers": "索引器优先级",
+  "downloadSelectionPriorityIndexersHint": "选择索引器后返回页面，可用上下按钮调整顺序。",
+  "downloadSelectionNoPriorityIndexers": "尚未选择索引器",
+  "downloadSelectionIndexerPriorityRequired": "排序包含索引器优先级时，至少选择一个索引器",
+  "downloadSelectionPreviewSection": "策略预览",
+  "downloadSelectionPreviewHint": "预览使用当前未保存草稿，不会保存策略或创建下载任务。",
+  "downloadSelectionMovieNumber": "影片番号",
+  "downloadSelectionMovieNumberHint": "例如 ABC-001",
+  "downloadSelectionMovieNumberRequired": "请输入影片番号",
+  "downloadSelectionMovieNumberRecognized": "已识别为 {number}",
+  "@downloadSelectionMovieNumberRecognized": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionRunPreview": "开始预览",
+  "downloadSelectionPreviewing": "预览中",
+  "downloadSelectionPreviewEmpty": "输入番号后使用当前草稿预览",
+  "downloadSelectionPreviewFailed": "策略预览失败，请稍后重试",
+  "downloadSelectionPreviewNoCandidates": "没有返回候选资源",
+  "downloadSelectionPreviewRaw": "原始候选 {count}",
+  "@downloadSelectionPreviewRaw": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewSystem": "系统可用 {count}",
+  "@downloadSelectionPreviewSystem": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewEligible": "符合策略 {count}",
+  "@downloadSelectionPreviewEligible": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewFiltered": "策略过滤 {count}",
+  "@downloadSelectionPreviewFiltered": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewSelected": "将自动选择此资源",
+  "downloadSelectionSeedersValue": "做种 {count}",
+  "@downloadSelectionSeedersValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionCandidateRecommended": "策略推荐 #{rank}",
+  "@downloadSelectionCandidateRecommended": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionCandidateOutsideAttemptLimit": "符合策略 #{rank}，但超出自动尝试范围",
+  "@downloadSelectionCandidateOutsideAttemptLimit": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionCandidateEligible": "符合选种策略",
+  "downloadSelectionCandidateFiltered": "不符合选种策略",
+  "downloadSelectionCandidatePreferred": "偏好：{label}",
+  "@downloadSelectionCandidatePreferred": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionCandidateManualHint": "自动下载会跳过此资源，但你仍可手动提交。",
+  "downloadSelectionSave": "保存策略",
+  "downloadSelectionSaved": "选种策略已保存",
+  "downloadSelectionSaveFailed": "保存选种策略失败",
+  "downloadSelectionLoadFailed": "选种策略加载失败",
+  "downloadSelectionLoadFailedFallback": "选种策略加载失败，请稍后重试。",
+  "downloadSelectionVersionConflict": "选种策略已在其他页面或设备更新，当前草稿尚未覆盖线上配置。",
+  "downloadSelectionReloadLatest": "加载最新配置",
+  "downloadSelectionReloadTitle": "加载最新选种策略",
+  "downloadSelectionReloadMessage": "加载最新配置会丢弃当前未保存的修改，是否继续？",
+  "downloadSelectionReloadConfirm": "丢弃并加载",
+  "downloadSelectionDiscardTitle": "放弃未保存的修改",
+  "downloadSelectionDiscardMessage": "选种策略还有未保存的修改，离开后会丢失。",
+  "downloadSelectionDiscardConfirm": "放弃修改",
   "movieSubtitleFallbackName": "字幕 {id}",
   "@movieSubtitleFallbackName": {
     "placeholders": {

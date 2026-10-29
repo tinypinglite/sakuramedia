@@ -634,7 +634,7 @@ void main() {
   });
 
   testWidgets(
-    'movie detail magnet dialog shows sort controls and updates direction semantics',
+    'movie detail magnet dialog only shows direction for sortable fields',
     (WidgetTester tester) async {
       await _pumpInspectorPanel(
         tester,
@@ -679,9 +679,8 @@ void main() {
       );
       expect(
         find.byKey(const Key('movie-detail-magnet-sort-direction')),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(find.byTooltip('当前降序，点击切换为升序'), findsOneWidget);
       final sortFieldRect = tester.getRect(
         find.byKey(const Key('movie-detail-magnet-sort-field')),
       );
@@ -689,6 +688,17 @@ void main() {
         find.byKey(const Key('movie-detail-magnet-search-button')),
       );
       expect(sortFieldRect.left, lessThan(searchButtonRect.left));
+
+      await tester.tap(find.byKey(const Key('movie-detail-magnet-sort-field')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('做种人数').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('movie-detail-magnet-sort-direction')),
+        findsOneWidget,
+      );
+      expect(find.byTooltip('当前降序，点击切换为升序'), findsOneWidget);
 
       await tester.tap(
         find.byKey(const Key('movie-detail-magnet-sort-direction')),
@@ -829,6 +839,76 @@ void main() {
 
     expect(clipboardArguments, <String, dynamic>{'text': sourceUri});
     expect(find.text('资源地址已复制'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('filtered magnet candidate still allows manual submission', (
+    WidgetTester tester,
+  ) async {
+    const candidate = DownloadCandidateDto(
+      sourceUri: 'provider://dmhy/filtered',
+      indexerName: 'dmhy',
+      indexerKind: 'bt',
+      resolvedClientId: 2,
+      resolvedClientName: 'qb-main',
+      movieNumber: 'ABC-001',
+      title: 'ABC-001 sample',
+      sizeBytes: 1024,
+      seeders: 8,
+      selectionEvaluation: DownloadCandidateSelectionEvaluationDto(
+        eligible: false,
+        rejectionReasons: <DownloadSelectionRejectionDto>[
+          DownloadSelectionRejectionDto(
+            code: 'excluded_term',
+            message: '命中排除词 sample',
+            term: 'sample',
+          ),
+        ],
+      ),
+    );
+    var submitted = false;
+
+    await _pumpInspectorPanel(
+      tester,
+      panelHeight: 700,
+      pane: MovieDetailInspectorPane.magnetSearch,
+      fetchMovieReviews:
+          ({
+            required String movieNumber,
+            required int page,
+            required int pageSize,
+            required MovieReviewSort sort,
+          }) async => const <MovieReviewDto>[],
+      searchCandidates:
+          ({required String movieNumber, String? indexerKind}) async =>
+              const <DownloadCandidateDto>[candidate],
+      createDownloadRequest:
+          ({
+            required String movieNumber,
+            required int clientId,
+            required DownloadCandidateDto candidate,
+          }) async {
+            submitted = true;
+            return DownloadRequestResponseDto(
+              task: _emptyDownloadTask(clientId: clientId),
+              created: true,
+            );
+          },
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('movie-detail-magnet-search-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('不符合选种策略'), findsOneWidget);
+    expect(find.textContaining('命中排除词 sample'), findsOneWidget);
+    final submit = find.byKey(const Key('movie-detail-magnet-submit-0'));
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+
+    expect(submitted, isTrue);
     await tester.pump(const Duration(seconds: 3));
   });
 

@@ -21,9 +21,11 @@ import 'package:sakuramedia/features/clips/data/api/clips_api.dart';
 import 'package:sakuramedia/features/clips/presentation/providers/clips_api_provider.dart';
 import 'package:sakuramedia/features/configuration/data/api/config_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/download_clients_api.dart';
+import 'package:sakuramedia/features/configuration/data/api/download_selection_policy_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/config_api_provider.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/download_selection_policy_api_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/indexer_settings_api_provider.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/discovery_api_provider.dart';
@@ -83,6 +85,7 @@ class TestApiBundle {
     required this.clipsApi,
     required this.configApi,
     required this.downloadClientsApi,
+    required this.downloadSelectionPolicyApi,
     required this.discoveryApi,
     required this.downloadsApi,
     required this.indexerSettingsApi,
@@ -112,6 +115,7 @@ class TestApiBundle {
   final ClipsApi clipsApi;
   final ConfigApi configApi;
   final DownloadClientsApi downloadClientsApi;
+  final DownloadSelectionPolicyApi downloadSelectionPolicyApi;
   final DiscoveryApi discoveryApi;
   final DownloadsApi downloadsApi;
   final IndexerSettingsApi indexerSettingsApi;
@@ -168,6 +172,7 @@ class TestApiBundle {
     // 允许单测换成 fake 子类（如刷新必败的 API），默认用 bundle 实例。
     MediaLibrariesApi? mediaLibrariesApi,
     DownloadClientsApi? downloadClientsApi,
+    DownloadSelectionPolicyApi? downloadSelectionPolicyApi,
     IndexerSettingsApi? indexerSettingsApi,
     ActivityApi? activityApi,
     // 传 null 可让真实 provider 走 fake adapter，专门测加载/失败分支。
@@ -189,6 +194,9 @@ class TestApiBundle {
       downloadsApiProvider.overrideWithValue(downloadsApi),
       downloadClientsApiProvider.overrideWithValue(
         downloadClientsApi ?? this.downloadClientsApi,
+      ),
+      downloadSelectionPolicyApiProvider.overrideWithValue(
+        downloadSelectionPolicyApi ?? this.downloadSelectionPolicyApi,
       ),
       imageSearchApiProvider.overrideWithValue(imageSearchApi),
       indexerSettingsApiProvider.overrideWithValue(
@@ -232,8 +240,11 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
   final apiClient = ApiClient(sessionStore: sessionStore);
   final adapter = FakeHttpClientAdapter();
   // 默认模拟升级前服务器；能力测试通过显式响应覆盖。
-  adapter.setFallbackJson(method: 'GET', path: '/status/capabilities',
-    body: const {'movie_similarity': true, 'image_search': true});
+  adapter.setFallbackJson(
+    method: 'GET',
+    path: '/status/capabilities',
+    body: const {'movie_similarity': true, 'image_search': true},
+  );
   apiClient.rawDio.httpClientAdapter = adapter;
   apiClient.rawRefreshDio.httpClientAdapter = adapter;
 
@@ -266,6 +277,9 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     clipsApi: ClipsApi(apiClient: apiClient),
     configApi: ConfigApi(apiClient: apiClient),
     downloadClientsApi: DownloadClientsApi(apiClient: apiClient),
+    downloadSelectionPolicyApi: DownloadSelectionPolicyApi(
+      apiClient: apiClient,
+    ),
     discoveryApi: DiscoveryApi(apiClient: apiClient),
     downloadsApi: DownloadsApi(apiClient: apiClient),
     indexerSettingsApi: IndexerSettingsApi(apiClient: apiClient),

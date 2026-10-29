@@ -1,6 +1,5 @@
-import 'dart:typed_data';
-
 import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
@@ -77,6 +76,11 @@ const List<_MobileSettingsRouteCase> _mobileSettingsRouteCases =
         path: mobileSettingsIndexersPath,
         title: '索引器',
         pageKey: Key('mobile-settings-indexers'),
+      ),
+      _MobileSettingsRouteCase(
+        path: mobileSettingsDownloadSelectionPath,
+        title: '选种策略',
+        pageKey: Key('mobile-settings-download-selection'),
       ),
       _MobileSettingsRouteCase(
         path: mobileSettingsPluginsPath,
@@ -191,10 +195,9 @@ void main() {
       <String>['Overview', 'Discover', 'Movies'],
     );
     expect(
-      desktopNavGroups(_enL10n)
-          .map((group) => group.sectionLabel)
-          .whereType<String>()
-          .toSet(),
+      desktopNavGroups(
+        _enL10n,
+      ).map((group) => group.sectionLabel).whereType<String>().toSet(),
       <String>{'Browse', 'Manage'},
     );
     expect(mobileNavGroups(_enL10n).map((group) => group.label), <String>[
@@ -2164,8 +2167,8 @@ void main() {
     expect(find.text('系统版本'), findsOneWidget);
   });
 
-  // 抽屉「我的」分区：收藏/播放/浏览都是可返回概览的移动子页，不进底栏。
-  testWidgets('mobile drawer collection section opens favorites page', (
+  // 抽屉「我的内容」分区：收藏/播放/浏览/评分/标签都是可返回概览的移动子页。
+  testWidgets('mobile drawer content section opens favorites page', (
     WidgetTester tester,
   ) async {
     final sessionStore = await _buildLoggedInSessionStore(
@@ -2194,7 +2197,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const Key('mobile-overview-drawer-collection-section')),
+      find.byKey(const Key('mobile-overview-drawer-content-section')),
       findsOneWidget,
     );
     expect(
@@ -2254,7 +2257,7 @@ void main() {
   });
 
   // 抽屉「管理」分区：点媒体管理 → 打开移动子页（非底栏页面，可返回概览）。
-  testWidgets('mobile drawer management section opens media management page', (
+  testWidgets('mobile drawer media section opens media management page', (
     WidgetTester tester,
   ) async {
     final sessionStore = await _buildLoggedInSessionStore(
@@ -2292,11 +2295,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const Key('mobile-overview-drawer-management-section')),
+      find.byKey(const Key('mobile-overview-drawer-media-connections-section')),
       findsOneWidget,
     );
 
-    // 抽屉内容可滚动，「管理」分区可能落在首屏之外，先滚到可见再点。
+    // 抽屉内容可滚动，「媒体与连接」分区可能落在首屏之外，先滚到可见再点。
     final mediaManagementItem = find.byKey(
       const Key('mobile-overview-drawer-media-management'),
     );
@@ -2316,7 +2319,7 @@ void main() {
     expect(router.routeInformationProvider.value.uri.path, mobileOverviewPath);
   });
 
-  testWidgets('mobile drawer management section opens media import page', (
+  testWidgets('mobile drawer media section opens media import page', (
     WidgetTester tester,
   ) async {
     final sessionStore = await _buildLoggedInSessionStore(
@@ -2367,11 +2370,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const Key('mobile-overview-drawer-management-section')),
+      find.byKey(const Key('mobile-overview-drawer-media-connections-section')),
       findsOneWidget,
     );
 
-    // 抽屉内容可滚动，「管理」分区可能落在首屏之外，先滚到可见再点。
+    // 抽屉内容可滚动，「媒体与连接」分区可能落在首屏之外，先滚到可见再点。
     final mediaImportItem = find.byKey(
       const Key('mobile-overview-drawer-media-import'),
     );
@@ -2448,59 +2451,140 @@ void main() {
     expect(router.routeInformationProvider.value.uri.path, mobileActivityPath);
   });
 
-  testWidgets('mobile drawer management section opens plugins page', (
+  testWidgets('mobile drawer groups settings destinations and opens plugins', (
     WidgetTester tester,
   ) async {
-    final sessionStore = await _buildLoggedInSessionStore(
-      platform: AppPlatform.mobile,
-    );
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    final router = buildMobileRouter(sessionStore: sessionStore);
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/movies/latest',
-      body: <String, dynamic>{
-        'items': const <Map<String, dynamic>>[],
-        'page': 1,
-        'page_size': 12,
-        'total': 0,
-      },
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/playlists',
-      body: const <Map<String, dynamic>>[],
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/plugins',
-      body: const <Map<String, dynamic>>[],
-    );
+    final previousPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    try {
+      final sessionStore = await _buildLoggedInSessionStore(
+        platform: AppPlatform.mobile,
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      final router = buildMobileRouter(sessionStore: sessionStore);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/latest',
+        body: <String, dynamic>{
+          'items': const <Map<String, dynamic>>[],
+          'page': 1,
+          'page_size': 12,
+          'total': 0,
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/playlists',
+        body: const <Map<String, dynamic>>[],
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/plugins',
+        body: const <Map<String, dynamic>>[],
+      );
 
-    await _pumpRouterApp(
-      tester,
-      router: router,
-      sessionStore: sessionStore,
-      bundle: bundle,
-    );
-    await tester.pumpAndSettle();
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
-    await tester.pumpAndSettle();
-    final pluginsItem = find.byKey(const Key('mobile-overview-drawer-plugins'));
-    await tester.ensureVisible(pluginsItem);
-    await tester.tap(pluginsItem);
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+      await tester.pumpAndSettle();
+      for (final sectionKey in <Key>[
+        const Key('mobile-overview-drawer-home-section'),
+        const Key('mobile-overview-drawer-content-section'),
+        const Key('mobile-overview-drawer-downloads-tasks-section'),
+        const Key('mobile-overview-drawer-media-connections-section'),
+        const Key('mobile-overview-drawer-system-account-section'),
+      ]) {
+        expect(find.byKey(sectionKey), findsOneWidget);
+      }
+      for (final itemKey in <Key>[
+        const Key('mobile-overview-drawer-media-libraries'),
+        const Key('mobile-overview-drawer-downloaders'),
+        const Key('mobile-overview-drawer-indexers'),
+        const Key('mobile-overview-drawer-download-selection'),
+        const Key('mobile-overview-drawer-plugins'),
+        const Key('mobile-overview-drawer-system-maintenance'),
+        const Key('mobile-overview-drawer-external-player'),
+        const Key('mobile-overview-drawer-appearance'),
+        const Key('mobile-overview-drawer-account-security'),
+      ]) {
+        expect(find.byKey(itemKey), findsOneWidget);
+      }
+      expect(
+        find.byKey(const Key('mobile-overview-drawer-settings')),
+        findsNothing,
+      );
+      for (final label in <String>['首页', '我的内容', '下载与任务', '媒体与连接', '系统与账户']) {
+        expect(find.text(label), findsOneWidget);
+      }
 
-    expect(
-      router.routeInformationProvider.value.uri.path,
-      mobileSettingsPluginsPath,
-    );
-    expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
-    expect(find.text('插件'), findsOneWidget);
-    expect(find.byKey(const Key('mobile-settings-plugins')), findsOneWidget);
-    expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+      final pluginsItem = find.byKey(
+        const Key('mobile-overview-drawer-plugins'),
+      );
+      await tester.ensureVisible(pluginsItem);
+      await tester.tap(pluginsItem);
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        mobileSettingsPluginsPath,
+      );
+      expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
+      expect(find.text('插件'), findsOneWidget);
+      expect(find.byKey(const Key('mobile-settings-plugins')), findsOneWidget);
+      expect(find.byKey(const Key('mobile-bottom-navigation')), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = previousPlatform;
+    }
+  });
+
+  testWidgets('mobile drawer hides the external player outside Android', (
+    WidgetTester tester,
+  ) async {
+    final previousPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      final sessionStore = await _buildLoggedInSessionStore(
+        platform: AppPlatform.mobile,
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      final router = buildMobileRouter(sessionStore: sessionStore);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/latest',
+        body: _emptyPagedMovies(),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/playlists',
+        body: const <Map<String, dynamic>>[],
+      );
+
+      await _pumpRouterApp(
+        tester,
+        router: router,
+        sessionStore: sessionStore,
+        bundle: bundle,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('mobile-overview-menu-button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('mobile-overview-drawer-external-player')),
+        findsNothing,
+      );
+    } finally {
+      debugDefaultTargetPlatformOverride = previousPlatform;
+    }
   });
 
   testWidgets('mobile plugins page opens the plugin market', (
@@ -2919,6 +3003,8 @@ void main() {
         _enqueueMobileDownloadersResponses(bundle);
       } else if (routeCase.path == mobileSettingsIndexersPath) {
         _enqueueMobileIndexersResponses(bundle);
+      } else if (routeCase.path == mobileSettingsDownloadSelectionPath) {
+        _enqueueDownloadSelectionResponses(bundle);
       } else if (routeCase.path == mobileSettingsPluginsPath) {
         bundle.adapter.enqueueJson(
           method: 'GET',
@@ -3001,6 +3087,54 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(router.routeInformationProvider.value.uri.path, mobileMoviesPath);
+  });
+
+  testWidgets('dirty download selection policy confirms before leaving', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore(
+      platform: AppPlatform.mobile,
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildMobileRouter(sessionStore: sessionStore);
+    _enqueueDownloadSelectionResponses(bundle);
+
+    await _pumpRouterApp(
+      tester,
+      router: router,
+      sessionStore: sessionStore,
+      bundle: bundle,
+    );
+    await tester.pumpAndSettle();
+
+    router.go(mobileSettingsDownloadSelectionPath);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<PopScope<void>>(find.byType(PopScope<void>)).canPop,
+      isTrue,
+    );
+    await tester.enterText(
+      find.byKey(const Key('download-selection-min-seeders')),
+      '8',
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<PopScope<void>>(find.byType(PopScope<void>)).canPop,
+      isFalse,
+    );
+    await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('download-selection-discard-dialog')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const Key('download-selection-discard-confirm')),
+    );
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, mobileOverviewPath);
   });
 
   testWidgets('mobile actor detail deep link back falls back to actor list', (
@@ -5168,6 +5302,43 @@ void _enqueueMobileIndexersResponses(TestApiBundle bundle) {
     path: '/indexer-settings',
     body: const <String, dynamic>{'indexers': <Map<String, dynamic>>[]},
   );
+}
+
+void _enqueueDownloadSelectionResponses(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/indexer-settings',
+    body: const <String, dynamic>{'indexers': <Map<String, dynamic>>[]},
+  );
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/download-selection-policy',
+    body: _downloadSelectionPolicyJson(),
+  );
+}
+
+Map<String, dynamic> _downloadSelectionPolicyJson({int version = 1}) {
+  return <String, dynamic>{
+    'version': version,
+    'created_at': '2026-10-29T12:00:00Z',
+    'updated_at': '2026-10-29T12:00:00Z',
+    'rules': <String, dynamic>{
+      'schema_version': 1,
+      'indexer_kinds': <String>[],
+      'indexer_names': <String>[],
+      'min_size_bytes': 1024 * 1024 * 1024,
+      'max_size_bytes': 40 * 1024 * 1024 * 1024,
+      'min_seeders': 1,
+      'max_age_days': null,
+      'match_title': true,
+      'match_description': true,
+      'required_groups': <Map<String, dynamic>>[],
+      'excluded_terms': <String>[],
+      'preferred_groups': <Map<String, dynamic>>[],
+      'ranking': <String>['size_desc'],
+      'indexer_priority_names': <String>[],
+    },
+  };
 }
 
 void _enqueueDesktopFollowResponses(TestApiBundle bundle) {

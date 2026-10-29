@@ -83,6 +83,7 @@ void main() {
     expect(find.byKey(const Key('desktop-activity-page')), findsOneWidget);
     expect(find.byKey(const Key('activity-tasks-tab')), findsOneWidget);
     expect(find.byKey(const Key('activity-tab-download-tasks')), findsNothing);
+    expect(find.byKey(const Key('activity-attention-section')), findsNothing);
     expect(
       find.byKey(const Key('download-tasks-selection-entry')),
       findsNothing,
@@ -695,173 +696,7 @@ void main() {
     },
   );
 
-  testWidgets('attention section opens the full run history for one task', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1400, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final sessionStore = SessionStore.inMemory();
-    await sessionStore.saveBaseUrl('https://api.example.com');
-    await sessionStore.saveTokens(
-      accessToken: 'access-token',
-      refreshToken: 'refresh-token',
-      expiresAt: DateTime.parse('2026-08-10T12:00:00Z'),
-    );
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    addTearDown(sessionStore.dispose);
-
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/jobs',
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'task_key': 'media_import',
-          'cli_help': '执行一次媒体库导入',
-          'cron_expr': '0 3 * * *',
-          'manual_trigger_allowed': true,
-          'recent_run_count': 5,
-          'recent_failure_count': 2,
-        },
-        <String, dynamic>{
-          'task_key': 'download_task_sync',
-          'cli_help': '下载任务状态同步',
-          'cron_expr': '*/10 * * * *',
-          'manual_trigger_allowed': true,
-          'recent_run_count': 144,
-          'recent_failure_count': 0,
-        },
-        <String, dynamic>{
-          'task_key': 'manual_reindex',
-          'cli_help': '手动重建索引',
-          'manual_trigger_allowed': true,
-        },
-      ],
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/task-runs/attention',
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'task_key': 'media_import',
-          'task_name': '媒体导入',
-          'latest_run': <String, dynamic>{
-            'id': 501,
-            'task_key': 'media_import',
-            'task_name': '媒体导入',
-            'trigger_type': 'scheduled',
-            'state': 'failed',
-            'error_message': '导入失败：目录不可读',
-            'finished_at': '2026-08-10T11:00:00Z',
-          },
-          'failed_count_7d': 4,
-          'last_issue_at': '2026-08-10T11:00:00Z',
-        },
-      ],
-    );
-    _enqueueActivityBootstrap(bundle, withJobs: false);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: bundle.riverpodOverrides(),
-        child: MaterialApp(
-          locale: const Locale('zh'),
-          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-            AppLocalizations.delegate,
-            ...GlobalMaterialLocalizations.delegates,
-          ],
-          supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
-          theme: sakuraDesktopThemeData,
-          home: const Scaffold(body: DesktopActivityPage()),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('activity-attention-section')), findsOneWidget);
-    expect(
-      find.byKey(const Key('activity-attention-media_import')),
-      findsOneWidget,
-    );
-    expect(find.text('媒体导入'), findsOneWidget);
-    expect(find.text('近 7 天失败 4 次'), findsOneWidget);
-    expect(find.text('导入失败：目录不可读'), findsOneWidget);
-
-    // 自动任务摘要：只统计定时任务，并标出需要关注的数量。
-    expect(find.byKey(const Key('activity-auto-tasks-card')), findsOneWidget);
-    expect(find.text('2 个自动任务'), findsOneWidget);
-    expect(find.text('1 个需关注'), findsOneWidget);
-
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/task-runs',
-      body: <String, dynamic>{
-        'items': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 501,
-            'task_key': 'media_import',
-            'task_name': '媒体导入',
-            'trigger_type': 'scheduled',
-            'state': 'failed',
-            'error_message': '导入失败：目录不可读',
-            'finished_at': '2026-08-10T11:00:00Z',
-          },
-        ],
-        'page': 1,
-        'page_size': 20,
-        'total': 1,
-      },
-    );
-    await tester.tap(
-      find.byKey(const Key('activity-attention-history-media_import')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('activity-history-sheet')), findsOneWidget);
-    expect(find.byKey(const Key('activity-history-list')), findsOneWidget);
-    expect(find.byKey(const Key('activity-task-501')), findsOneWidget);
-
-    final historyRequest = bundle.adapter.requests.lastWhere(
-      (request) => request.path == '/system/task-runs',
-    );
-    expect(historyRequest.uri.queryParameters['task_key'], 'media_import');
-    expect(historyRequest.uri.queryParameters['scope'], 'all');
-    expect(historyRequest.uri.queryParameters['page_size'], '20');
-
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/task-runs',
-      body: <String, dynamic>{
-        'items': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 502,
-            'task_key': 'media_import',
-            'task_name': '媒体导入',
-            'trigger_type': 'manual',
-            'state': 'completed',
-            'finished_at': '2026-08-10T12:00:00Z',
-          },
-        ],
-        'page': 1,
-        'page_size': 20,
-        'total': 1,
-      },
-    );
-    await tester.tap(find.byKey(const Key('activity-history-refresh')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('activity-task-502')), findsOneWidget);
-    expect(
-      bundle.adapter.requests
-          .where((request) => request.path == '/system/task-runs')
-          .length,
-      2,
-    );
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('auto task modal splits scheduled and manual tasks', (
+  testWidgets('executable jobs dialog keeps the previous simple layout', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1400, 900);
@@ -884,23 +719,34 @@ void main() {
         'cli_help': '正常定时任务',
         'cron_expr': '0 2 * * *',
         'manual_trigger_allowed': true,
-        'recent_run_count': 6,
-        'recent_failure_count': 0,
+        'last_task_run': <String, dynamic>{
+          'id': 601,
+          'task_key': 'auto_ok',
+          'task_name': '正常定时任务',
+          'trigger_type': 'scheduled',
+          'state': 'completed',
+          'finished_at': '2026-08-10T11:00:00Z',
+        },
       },
       <String, dynamic>{
         'task_key': 'auto_bad',
         'cli_help': '异常定时任务',
         'cron_expr': '0 3 * * *',
         'manual_trigger_allowed': true,
-        'recent_run_count': 5,
-        'recent_failure_count': 1,
+        'last_task_run': <String, dynamic>{
+          'id': 602,
+          'task_key': 'auto_bad',
+          'task_name': '异常定时任务',
+          'trigger_type': 'scheduled',
+          'state': 'failed',
+          'error_message': '执行失败',
+          'finished_at': '2026-08-10T11:00:00Z',
+        },
       },
       <String, dynamic>{
         'task_key': 'manual_only',
         'cli_help': '手动任务',
         'manual_trigger_allowed': true,
-        'recent_run_count': 1,
-        'recent_failure_count': 0,
       },
     ];
     bundle.adapter.enqueueJson(method: 'GET', path: '/system/jobs', body: jobs);
@@ -923,8 +769,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('2 个自动任务'), findsOneWidget);
-    expect(find.text('1 个需关注'), findsOneWidget);
+    expect(
+      find.byKey(const Key('activity-executable-jobs-card')),
+      findsOneWidget,
+    );
+    expect(find.text('可执行任务'), findsOneWidget);
+    expect(find.text('3 个任务'), findsOneWidget);
+    expect(find.text('自动任务'), findsNothing);
+    expect(find.textContaining('需关注'), findsNothing);
 
     // 打开弹层会顺带刷新任务定义。
     bundle.adapter.enqueueJson(method: 'GET', path: '/system/jobs', body: jobs);
@@ -933,23 +785,48 @@ void main() {
 
     expect(find.byKey(const Key('activity-job-auto_ok')), findsOneWidget);
     expect(find.byKey(const Key('activity-job-auto_bad')), findsOneWidget);
-    expect(find.byKey(const Key('activity-job-manual_only')), findsNothing);
-    expect(find.text('近 24 小时运行 5 次'), findsOneWidget);
-    expect(find.text('近 24 小时失败 1 次'), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('activity-job-tab-manual')));
-    await tester.pumpAndSettle();
-
     expect(find.byKey(const Key('activity-job-manual_only')), findsOneWidget);
-    expect(find.byKey(const Key('activity-job-auto_ok')), findsNothing);
+    expect(find.byKey(const Key('activity-job-plugin-filter')), findsOneWidget);
+    expect(find.byKey(const Key('activity-job-tab-auto')), findsNothing);
+    expect(find.byKey(const Key('activity-job-tab-manual')), findsNothing);
+    expect(find.byKey(const Key('activity-job-status-all')), findsNothing);
+    expect(
+      find.byKey(const Key('activity-job-status-attention')),
+      findsNothing,
+    );
+    final historyButton = find.byKey(const Key('activity-job-history-auto_ok'));
+    expect(historyButton, findsOneWidget);
+    expect(find.textContaining('近 24 小时'), findsNothing);
 
-    await tester.tap(find.byKey(const Key('activity-job-tab-auto')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('activity-job-status-attention')));
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs',
+      body: <String, dynamic>{
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 701,
+            'task_key': 'auto_ok',
+            'task_name': '正常定时任务',
+            'trigger_type': 'scheduled',
+            'state': 'completed',
+            'finished_at': '2026-08-10T11:00:00Z',
+          },
+        ],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
+    );
+    await tester.tap(historyButton);
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('activity-job-auto_bad')), findsOneWidget);
-    expect(find.byKey(const Key('activity-job-auto_ok')), findsNothing);
+    expect(find.byKey(const Key('activity-history-sheet')), findsOneWidget);
+    expect(find.byKey(const Key('activity-task-701')), findsOneWidget);
+    final historyRequest = bundle.adapter.requests.lastWhere(
+      (request) => request.path == '/system/task-runs',
+    );
+    expect(historyRequest.uri.queryParameters['task_key'], 'auto_ok');
+    expect(historyRequest.uri.queryParameters['scope'], 'all');
     expect(tester.takeException(), isNull);
   });
 
@@ -988,7 +865,6 @@ void main() {
 
     expect(find.text('最近操作'), findsOneWidget);
     expect(find.text('运行记录'), findsNothing);
-    expect(find.byKey(const Key('activity-attention-section')), findsNothing);
     expect(
       bundle.adapter.requests
           .firstWhere((request) => request.path == '/system/activity/bootstrap')

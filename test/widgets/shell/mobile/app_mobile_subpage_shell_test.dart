@@ -14,6 +14,25 @@ const List<LocalizationsDelegate<dynamic>> _testLocalizationsDelegates =
     ];
 
 void main() {
+  test(
+    'back interceptor only blocks while a handler declares a veto',
+    () async {
+      final controller = AppMobileSubpageBackInterceptorController();
+      addTearDown(controller.dispose);
+      Future<bool> handler() async => false;
+
+      controller.setCanPop(false);
+      expect(controller.canPop.value, isTrue);
+
+      controller.attach(handler);
+      controller.setCanPop(false);
+      expect(controller.canPop.value, isFalse);
+
+      controller.detach(handler);
+      expect(controller.canPop.value, isTrue);
+    },
+  );
+
   testWidgets('mobile subpage shell renders app bar title and no bottom nav', (
     tester,
   ) async {
@@ -36,12 +55,11 @@ void main() {
     final rootSurface = tester.widget<ColoredBox>(
       find.byKey(const Key('mobile-subpage-root-surface')),
     );
-    final overlayStyle =
-        tester
-            .widget<AnnotatedRegion<SystemUiOverlayStyle>>(
-              find.byKey(const Key('mobile-subpage-system-overlay')),
-            )
-            .value;
+    final overlayStyle = tester
+        .widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+          find.byKey(const Key('mobile-subpage-system-overlay')),
+        )
+        .value;
 
     expect(find.byKey(const Key('mobile-subpage-safe-area')), findsOneWidget);
     expect(find.byKey(const Key('mobile-subpage-topbar')), findsOneWidget);
@@ -51,6 +69,10 @@ void main() {
     expect(rootSurface.color, sakuraThemeData.appColors.surfaceCard);
     expect(scaffold.backgroundColor, sakuraThemeData.appColors.surfaceCard);
     expect(appBar.backgroundColor, sakuraThemeData.appColors.surfaceCard);
+    expect(
+      tester.widget<PopScope<void>>(find.byType(PopScope<void>)).canPop,
+      isTrue,
+    );
     expect(overlayStyle.statusBarColor, sakuraThemeData.appColors.surfaceCard);
     expect(overlayStyle.statusBarIconBrightness, Brightness.dark);
     expect(overlayStyle.statusBarBrightness, Brightness.light);
@@ -74,30 +96,27 @@ void main() {
       routes: [
         GoRoute(
           path: '/home',
-          builder:
-              (context, state) => Scaffold(
-                body: Center(
-                  child: TextButton(
-                    onPressed: () => context.push('/sub'),
-                    child: const Text('open-sub'),
-                  ),
-                ),
+          builder: (context, state) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => context.push('/sub'),
+                child: const Text('open-sub'),
               ),
+            ),
+          ),
         ),
         ShellRoute(
-          builder:
-              (context, state, child) => AppMobileSubpageShell(
-                title: '子页面',
-                defaultLocation: '/home',
-                child: child,
-              ),
+          builder: (context, state, child) => AppMobileSubpageShell(
+            title: '子页面',
+            defaultLocation: '/home',
+            child: child,
+          ),
           routes: [
             GoRoute(
               path: '/sub',
-              builder:
-                  (_, __) => const Scaffold(
-                    body: Text('sub-page', textDirection: TextDirection.ltr),
-                  ),
+              builder: (_, __) => const Scaffold(
+                body: Text('sub-page', textDirection: TextDirection.ltr),
+              ),
             ),
           ],
         ),
@@ -134,30 +153,27 @@ void main() {
       routes: [
         GoRoute(
           path: '/home',
-          builder:
-              (context, state) => Scaffold(
-                body: Center(
-                  child: TextButton(
-                    onPressed: () => context.push('/sub'),
-                    child: const Text('open-sub'),
-                  ),
-                ),
+          builder: (context, state) => Scaffold(
+            body: Center(
+              child: TextButton(
+                onPressed: () => context.push('/sub'),
+                child: const Text('open-sub'),
               ),
+            ),
+          ),
         ),
         ShellRoute(
-          builder:
-              (context, state, child) => AppMobileSubpageShell(
-                title: '子页面',
-                defaultLocation: '/home',
-                child: child,
-              ),
+          builder: (context, state, child) => AppMobileSubpageShell(
+            title: '子页面',
+            defaultLocation: '/home',
+            child: child,
+          ),
           routes: [
             GoRoute(
               path: '/sub',
-              builder:
-                  (_, __) => const Scaffold(
-                    body: Text('sub-page', textDirection: TextDirection.ltr),
-                  ),
+              builder: (_, __) => const Scaffold(
+                body: Text('sub-page', textDirection: TextDirection.ltr),
+              ),
             ),
           ],
         ),
@@ -186,6 +202,85 @@ void main() {
     expect(router.routeInformationProvider.value.uri.path, '/home');
   });
 
+  testWidgets('mobile subpage shell honors the page back interceptor', (
+    tester,
+  ) async {
+    final allowPop = ValueNotifier<bool>(false);
+    final attachCalls = ValueNotifier<int>(0);
+    addTearDown(allowPop.dispose);
+    addTearDown(attachCalls.dispose);
+    final router = GoRouter(
+      initialLocation: '/home',
+      routes: [
+        GoRoute(
+          path: '/home',
+          builder: (context, state) => Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('home-page'),
+                  TextButton(
+                    onPressed: () => context.push('/sub'),
+                    child: const Text('open-guarded'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        ShellRoute(
+          builder: (context, state, child) => AppMobileSubpageShell(
+            title: '子页面',
+            defaultLocation: '/home',
+            child: child,
+          ),
+          routes: [
+            GoRoute(
+              path: '/sub',
+              builder: (_, __) =>
+                  _GuardedSubpage(allowPop: allowPop, attachCalls: attachCalls),
+            ),
+          ],
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp.router(
+        locale: const Locale('zh'),
+        localizationsDelegates: _testLocalizationsDelegates,
+        supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+        theme: sakuraThemeData,
+        routerConfig: router,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('open-guarded'));
+    await tester.pumpAndSettle();
+    expect(attachCalls.value, 1);
+    expect(find.text('guarded-page'), findsOneWidget);
+    expect(
+      tester.widget<PopScope<void>>(find.byType(PopScope<void>)).canPop,
+      isFalse,
+    );
+    await tester.tap(find.byKey(const Key('mobile-subpage-back-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('guarded-page'), findsOneWidget);
+
+    allowPop.value = true;
+    await tester.pump();
+    expect(
+      tester.widget<PopScope<void>>(find.byType(PopScope<void>)).canPop,
+      isTrue,
+    );
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('home-page'), findsOneWidget);
+  });
+
   testWidgets('mobile subpage shell back uses fallback on deep link', (
     tester,
   ) async {
@@ -194,25 +289,22 @@ void main() {
       routes: [
         GoRoute(
           path: '/home',
-          builder:
-              (_, __) => const Scaffold(
-                body: Text('home-page', textDirection: TextDirection.ltr),
-              ),
+          builder: (_, __) => const Scaffold(
+            body: Text('home-page', textDirection: TextDirection.ltr),
+          ),
         ),
         ShellRoute(
-          builder:
-              (context, state, child) => AppMobileSubpageShell(
-                title: '子页面',
-                defaultLocation: '/home',
-                child: child,
-              ),
+          builder: (context, state, child) => AppMobileSubpageShell(
+            title: '子页面',
+            defaultLocation: '/home',
+            child: child,
+          ),
           routes: [
             GoRoute(
               path: '/sub',
-              builder:
-                  (_, __) => const Scaffold(
-                    body: Text('sub-page', textDirection: TextDirection.ltr),
-                  ),
+              builder: (_, __) => const Scaffold(
+                body: Text('sub-page', textDirection: TextDirection.ltr),
+              ),
             ),
           ],
         ),
@@ -247,25 +339,22 @@ void main() {
       routes: [
         GoRoute(
           path: '/home',
-          builder:
-              (_, __) => const Scaffold(
-                body: Text('home-page', textDirection: TextDirection.ltr),
-              ),
+          builder: (_, __) => const Scaffold(
+            body: Text('home-page', textDirection: TextDirection.ltr),
+          ),
         ),
         ShellRoute(
-          builder:
-              (context, state, child) => AppMobileSubpageShell(
-                title: '子页面',
-                defaultLocation: '/home',
-                child: child,
-              ),
+          builder: (context, state, child) => AppMobileSubpageShell(
+            title: '子页面',
+            defaultLocation: '/home',
+            child: child,
+          ),
           routes: [
             GoRoute(
               path: '/sub',
-              builder:
-                  (_, __) => const Scaffold(
-                    body: Text('sub-page', textDirection: TextDirection.ltr),
-                  ),
+              builder: (_, __) => const Scaffold(
+                body: Text('sub-page', textDirection: TextDirection.ltr),
+              ),
             ),
           ],
         ),
@@ -285,6 +374,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('sub-page'), findsOneWidget);
+    expect(
+      tester.widget<PopScope<void>>(find.byType(PopScope<void>)).canPop,
+      isTrue,
+    );
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
@@ -320,26 +413,27 @@ void main() {
     );
   });
 
-  testWidgets('mobile subpage shell keeps title and bleeds to the bottom edge', (
-    tester,
-  ) async {
-    // 底部安全区不再由外壳留：内容铺到屏幕物理底边，由滚动层/贴底条自己补留白。
-    // 修前这里 body 底边停在「屏幕高 - 34」，底部会露出未绘制的黑带。
-    await _pumpShellWithBottomInset(
-      tester,
-      const AppMobileSubpageShell(
-        title: '播放列表详情',
-        defaultLocation: '/mobile/overview',
-        child: SizedBox.shrink(),
-      ),
-    );
+  testWidgets(
+    'mobile subpage shell keeps title and bleeds to the bottom edge',
+    (tester) async {
+      // 底部安全区不再由外壳留：内容铺到屏幕物理底边，由滚动层/贴底条自己补留白。
+      // 修前这里 body 底边停在「屏幕高 - 34」，底部会露出未绘制的黑带。
+      await _pumpShellWithBottomInset(
+        tester,
+        const AppMobileSubpageShell(
+          title: '播放列表详情',
+          defaultLocation: '/mobile/overview',
+          child: SizedBox.shrink(),
+        ),
+      );
 
-    expect(find.text('播放列表详情'), findsOneWidget);
-    expect(
-      tester.getRect(find.byType(Scaffold)).bottom,
-      moreOrLessEquals(_kTestScreenHeight),
-    );
-  });
+      expect(find.text('播放列表详情'), findsOneWidget);
+      expect(
+        tester.getRect(find.byType(Scaffold)).bottom,
+        moreOrLessEquals(_kTestScreenHeight),
+      );
+    },
+  );
 
   testWidgets('immersive mobile subpage shell drops the title bar text', (
     tester,
@@ -356,10 +450,7 @@ void main() {
 
     // 沉浸详情不占标题位：只留返回键和顶栏渐变。
     expect(find.byKey(const Key('mobile-subpage-title')), findsNothing);
-    expect(
-      find.byKey(const Key('mobile-subpage-back-button')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('mobile-subpage-back-button')), findsOneWidget);
     expect(
       tester.getRect(find.byType(Scaffold)).bottom,
       moreOrLessEquals(_kTestScreenHeight),
@@ -377,7 +468,8 @@ void main() {
         child: ListView.builder(
           key: const Key('subpage-immersive-list'),
           itemCount: 60,
-          itemBuilder: (_, index) => SizedBox(height: 40, child: Text('$index')),
+          itemBuilder: (_, index) =>
+              SizedBox(height: 40, child: Text('$index')),
         ),
       ),
     );
@@ -415,7 +507,8 @@ void main() {
         child: ListView.builder(
           key: const Key('subpage-auto-hide-list'),
           itemCount: 60,
-          itemBuilder: (_, index) => SizedBox(height: 40, child: Text('$index')),
+          itemBuilder: (_, index) =>
+              SizedBox(height: 40, child: Text('$index')),
         ),
       ),
     );
@@ -461,8 +554,8 @@ void main() {
             ListView.builder(
               key: const Key('subpage-tab-list'),
               itemCount: 60,
-              itemBuilder:
-                  (_, index) => SizedBox(height: 40, child: Text('$index')),
+              itemBuilder: (_, index) =>
+                  SizedBox(height: 40, child: Text('$index')),
             ),
           ],
         ),
@@ -504,16 +597,20 @@ void main() {
             length: 2,
             child: Column(
               children: [
-                const TabBar(tabs: [Tab(text: 'A'), Tab(text: 'B')]),
+                const TabBar(
+                  tabs: [
+                    Tab(text: 'A'),
+                    Tab(text: 'B'),
+                  ],
+                ),
                 Expanded(
                   child: TabBarView(
                     children: [
                       ListView.builder(
                         key: const Key('subpage-tab-a-list'),
                         itemCount: 60,
-                        itemBuilder:
-                            (_, index) =>
-                                SizedBox(height: 40, child: Text('a$index')),
+                        itemBuilder: (_, index) =>
+                            SizedBox(height: 40, child: Text('a$index')),
                       ),
                       const Center(child: Text('empty-b')),
                     ],
@@ -547,9 +644,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('裸 ListView 子页靠 Flutter 自动补齐底部安全区', (
-    tester,
-  ) async {
+  testWidgets('裸 ListView 子页靠 Flutter 自动补齐底部安全区', (tester) async {
     // `ListView` / `GridView`（BoxScrollView）在没显式传 padding 时会把
     // MediaQuery 的垂直 padding 当 SliverPadding 用——外观设置、外部播放器
     // 这类页面因此不用逐个改。这里锁住这条依赖，显式传了 padding 就会破。
@@ -561,7 +656,8 @@ void main() {
         child: ListView.builder(
           key: const Key('subpage-plain-list'),
           itemCount: 60,
-          itemBuilder: (_, index) => SizedBox(height: 40, child: Text('$index')),
+          itemBuilder: (_, index) =>
+              SizedBox(height: 40, child: Text('$index')),
         ),
       ),
     );
@@ -581,6 +677,69 @@ void main() {
       moreOrLessEquals(34),
     );
   });
+}
+
+class _GuardedSubpage extends StatefulWidget {
+  const _GuardedSubpage({required this.allowPop, required this.attachCalls});
+
+  final ValueNotifier<bool> allowPop;
+  final ValueNotifier<int> attachCalls;
+
+  @override
+  State<_GuardedSubpage> createState() => _GuardedSubpageState();
+}
+
+class _GuardedSubpageState extends State<_GuardedSubpage> {
+  AppMobileSubpageBackInterceptorController? _interceptor;
+  late final AppMobileSubpageBackHandler _handler = _canPop;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.allowPop.addListener(_syncCanPop);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final interceptor = AppMobileSubpageBackInterceptor.maybeOf(context);
+    if (identical(interceptor, _interceptor)) return;
+    _interceptor?.detach(_handler);
+    _interceptor = interceptor;
+    interceptor?.attach(_handler);
+    if (interceptor != null) widget.attachCalls.value++;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncCanPop();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _GuardedSubpage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.allowPop == widget.allowPop) return;
+    oldWidget.allowPop.removeListener(_syncCanPop);
+    widget.allowPop.addListener(_syncCanPop);
+    _syncCanPop();
+  }
+
+  @override
+  void dispose() {
+    widget.allowPop.removeListener(_syncCanPop);
+    _interceptor?.detach(_handler);
+    super.dispose();
+  }
+
+  void _syncCanPop() {
+    if (!mounted) return;
+    _interceptor?.setCanPop(widget.allowPop.value);
+  }
+
+  Future<bool> _canPop() async => widget.allowPop.value;
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(body: Text('guarded-page'));
+  }
 }
 
 const double _kTestScreenHeight = 844;

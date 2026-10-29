@@ -7,20 +7,17 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
-import 'package:sakuramedia/features/activity/data/task_attention_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_placeholders.dart';
 import 'package:sakuramedia/features/activity/presentation/job_params_dialog.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_provider.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_state.dart';
-import 'package:sakuramedia/features/activity/presentation/widgets/activity_attention_section.dart';
-import 'package:sakuramedia/features/activity/presentation/widgets/activity_auto_tasks_card.dart';
+import 'package:sakuramedia/features/activity/presentation/widgets/activity_executable_jobs_card.dart';
 import 'package:sakuramedia/features/activity/presentation/widgets/activity_jobs_dialog.dart';
 import 'package:sakuramedia/features/activity/presentation/widgets/activity_section.dart';
 import 'package:sakuramedia/features/activity/presentation/widgets/activity_task_filter_bar.dart';
 import 'package:sakuramedia/features/activity/presentation/widgets/activity_task_run_card.dart';
-import 'package:sakuramedia/features/activity/presentation/widgets/task_run_history_sheet.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -42,11 +39,10 @@ class DesktopActivityPage extends ConsumerStatefulWidget {
       _DesktopActivityPageState();
 }
 
-/// 任务中心：活动任务、需要关注、自动任务摘要与最近操作。
+/// 任务中心：活动任务、可执行任务摘要与最近操作。
 ///
 /// 默认「最近操作」只列操作类记录（排除定时触发的例行成功）；按任务或触发
-/// 来源筛选时切到全量运行记录。完整的单任务历史在历史弹层里，见
-/// [showTaskRunHistorySheet]。
+/// 来源筛选时切到全量运行记录。
 class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage> {
   late final ScrollController _pageScrollController;
   bool? _isPageVisible;
@@ -120,20 +116,7 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage> {
 
   Future<void> _openExecutableJobsDialog(BuildContext context) async {
     unawaited(_controller.refreshJobs());
-    await showActivityJobsDialog(
-      context,
-      onTriggerJob: _triggerJob,
-      onViewHistory: (job) => _openTaskHistory(
-        taskKey: job.taskKey,
-        taskName: job.cliHelp.isEmpty ? job.taskKey : job.cliHelp,
-      ),
-    );
-  }
-
-  void _openTaskHistory({required String taskKey, required String taskName}) {
-    unawaited(
-      showTaskRunHistorySheet(context, taskKey: taskKey, taskName: taskName),
-    );
+    await showActivityJobsDialog(context, onTriggerJob: _triggerJob);
   }
 
   List<Widget> _buildTaskSlivers(
@@ -192,14 +175,10 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage> {
     }
     // 各段独立订阅：活动进度 tick 只重建活动区，翻页只重建页脚，
     // 历史列表不受两者牵连（见 _ActiveRunsSliver / _HistoryRunsSliver /
-    // PagedLoadMoreFooterSliver）。静态头（自动任务卡 + 标题 + 筛选）跟随父级重建。
+    // PagedLoadMoreFooterSliver）。静态头（可执行任务卡 + 标题 + 筛选）跟随父级重建。
     return <Widget>[
       _ActiveRunsSliver(),
-      _AttentionSliver(
-        onViewHistory: (item) =>
-            _openTaskHistory(taskKey: item.taskKey, taskName: item.displayName),
-      ),
-      _AutoTasksSliver(
+      _ExecutableJobsSliver(
         onOpen: () => unawaited(_openExecutableJobsDialog(context)),
       ),
       _buildOperationsHeader(
@@ -237,7 +216,7 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage> {
 
   /// 「最近操作 / 运行记录」静态头：标题 + 筛选条 + 筛选同步条。
   ///
-  /// 只读低频字段，跟随父级重建；活动区 / 关注区 / 任务卡 / 历史 / 页脚独立订阅。
+  /// 只读低频字段，跟随父级重建；活动区 / 任务卡 / 历史 / 页脚独立订阅。
   Widget _buildOperationsHeader(
     BuildContext context, {
     required ActivityTaskFilterState filter,
@@ -439,87 +418,9 @@ class _ActiveRunsSection extends StatelessWidget {
   }
 }
 
-/// 需要关注区：只展示最新运行失败 / 完成带警告的任务；为空时整段隐藏。
-class _AttentionSliver extends ConsumerWidget {
-  const _AttentionSliver({required this.onViewHistory});
-
-  final void Function(TaskAttentionDto item) onViewHistory;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final view = ref.watch(
-      activityCenterProvider.select(
-        (asyncValue) => (
-          items: asyncValue.value?.attentionItems ?? const <TaskAttentionDto>[],
-          errorMessage: asyncValue.value?.attentionErrorMessage,
-        ),
-      ),
-    );
-    if (view.items.isEmpty) {
-      return const SliverToBoxAdapter(child: SizedBox.shrink());
-    }
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: EdgeInsets.only(bottom: context.appSpacing.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ActivityAttentionSection(
-              items: view.items,
-              onViewHistory: onViewHistory,
-            ),
-            if (view.errorMessage != null) ...[
-              SizedBox(height: context.appSpacing.sm),
-              _AttentionRefreshError(
-                message: view.errorMessage!,
-                onRetry: ref
-                    .read(activityCenterProvider.notifier)
-                    .refreshAttention,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _AttentionRefreshError extends StatelessWidget {
-  const _AttentionRefreshError({required this.message, required this.onRetry});
-
-  final String message;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            message,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.error,
-            ),
-          ),
-        ),
-        SizedBox(width: context.appSpacing.sm),
-        AppButton(
-          key: const Key('activity-attention-retry'),
-          label: AppLocalizations.of(context).commonRetry,
-          size: AppButtonSize.xSmall,
-          onPressed: () => onRetry(),
-        ),
-      ],
-    );
-  }
-}
-
-/// 自动任务摘要卡：只统计定时任务，点开才看任务明细。
-class _AutoTasksSliver extends ConsumerWidget {
-  const _AutoTasksSliver({required this.onOpen});
+/// 可执行任务摘要卡：点开后再查看任务明细。
+class _ExecutableJobsSliver extends ConsumerWidget {
+  const _ExecutableJobsSliver({required this.onOpen});
 
   final VoidCallback onOpen;
 
@@ -537,7 +438,7 @@ class _AutoTasksSliver extends ConsumerWidget {
     return SliverToBoxAdapter(
       child: Padding(
         padding: EdgeInsets.only(bottom: context.appSpacing.xl),
-        child: ActivityAutoTasksCard(
+        child: ActivityExecutableJobsCard(
           jobs: view.jobs,
           isLoading: view.isLoading,
           errorMessage: view.errorMessage,

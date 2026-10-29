@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/activity/presentation/activity_placeholders
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_provider.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_state.dart';
 import 'package:sakuramedia/features/activity/presentation/widgets/activity_task_run_card.dart';
+import 'package:sakuramedia/features/activity/presentation/widgets/task_run_history_sheet.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
@@ -21,32 +22,23 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-/// 打开任务中心的任务弹层：自动 / 手动切换、来源与状态筛选、运行与查看记录。
+/// 打开任务中心的可执行任务弹层：按来源筛选、查看运行历史并手动触发任务。
 Future<void> showActivityJobsDialog(
   BuildContext context, {
   required Future<void> Function(JobMetadataDto job) onTriggerJob,
-  required void Function(JobMetadataDto job) onViewHistory,
 }) {
   return showAppAdaptiveModal<void>(
     context: context,
     modalKey: const Key('activity-executable-jobs-dialog'),
     desktopWidth: context.appLayoutTokens.dialogWidthMd,
-    builder: (_) => ActivityJobsDialog(
-      onTriggerJob: onTriggerJob,
-      onViewHistory: onViewHistory,
-    ),
+    builder: (_) => ActivityJobsDialog(onTriggerJob: onTriggerJob),
   );
 }
 
 class ActivityJobsDialog extends ConsumerWidget {
-  const ActivityJobsDialog({
-    super.key,
-    required this.onTriggerJob,
-    required this.onViewHistory,
-  });
+  const ActivityJobsDialog({super.key, required this.onTriggerJob});
 
   final Future<void> Function(JobMetadataDto job) onTriggerJob;
-  final void Function(JobMetadataDto job) onViewHistory;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,12 +54,7 @@ class ActivityJobsDialog extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             for (final job in jobMetadataPlaceholders()) ...[
-              ActivityJobCard(
-                job: job,
-                isTriggering: false,
-                onTrigger: () {},
-                onViewHistory: () {},
-              ),
+              ActivityJobCard(job: job, isTriggering: false, onTrigger: () {}),
               SizedBox(height: context.appSpacing.md),
             ],
           ],
@@ -87,7 +74,6 @@ class ActivityJobsDialog extends ConsumerWidget {
         state: state,
         controller: controller,
         onTriggerJob: onTriggerJob,
-        onViewHistory: onViewHistory,
       ),
     );
     return Column(
@@ -109,13 +95,11 @@ class _ActivityJobsDialogContent extends StatefulWidget {
     required this.state,
     required this.controller,
     required this.onTriggerJob,
-    required this.onViewHistory,
   });
 
   final ActivityCenterState state;
   final ActivityCenter controller;
   final Future<void> Function(JobMetadataDto job) onTriggerJob;
-  final void Function(JobMetadataDto job) onViewHistory;
 
   @override
   State<_ActivityJobsDialogContent> createState() =>
@@ -126,9 +110,6 @@ class _ActivityJobsDialogContentState
     extends State<_ActivityJobsDialogContent> {
   static const String _systemFilterValue = '__system__';
 
-  /// 弹层默认看自动任务：摘要卡入口就在自动任务区。
-  bool _onlyScheduled = true;
-  bool _onlyAttention = false;
   String? _selectedFilter;
 
   @override
@@ -168,18 +149,17 @@ class _ActivityJobsDialogContentState
         filterItems.any((item) => item.value == _selectedFilter)
         ? _selectedFilter
         : null;
-    final visibleJobs = jobs
-        .where((job) {
-          if (job.isScheduled != _onlyScheduled) return false;
-          if (_onlyAttention && !job.needsAttention) return false;
-          if (selectedFilter == null) return true;
-          final pluginId = job.pluginId?.trim();
-          if (selectedFilter == _systemFilterValue) {
-            return pluginId == null || pluginId.isEmpty;
-          }
-          return pluginId == selectedFilter;
-        })
-        .toList(growable: false);
+    final visibleJobs = selectedFilter == null
+        ? jobs
+        : jobs
+              .where((job) {
+                final pluginId = job.pluginId?.trim();
+                if (selectedFilter == _systemFilterValue) {
+                  return pluginId == null || pluginId.isEmpty;
+                }
+                return pluginId == selectedFilter;
+              })
+              .toList(growable: false);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -199,7 +179,6 @@ class _ActivityJobsDialogContentState
                   job: jobPlaceholders[index],
                   isTriggering: false,
                   onTrigger: () {},
-                  onViewHistory: () {},
                 ),
               ),
             ),
@@ -211,6 +190,8 @@ class _ActivityJobsDialogContentState
             onRetry: widget.controller.refreshJobs,
             retryKey: const Key('activity-jobs-retry-button'),
           )
+        else if (jobs.isEmpty)
+          AppEmptyState(message: l10n.activityExecutableJobsEmpty)
         else ...[
           if (state.isLoadingJobs) ...[
             Row(
@@ -230,43 +211,6 @@ class _ActivityJobsDialogContentState
             ),
             SizedBox(height: spacing.md),
           ],
-          Wrap(
-            spacing: spacing.sm,
-            runSpacing: spacing.sm,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              AppTextButton(
-                key: const Key('activity-job-tab-auto'),
-                label: l10n.activityJobTabAuto,
-                size: AppTextButtonSize.xSmall,
-                isSelected: _onlyScheduled,
-                onPressed: () => setState(() => _onlyScheduled = true),
-              ),
-              AppTextButton(
-                key: const Key('activity-job-tab-manual'),
-                label: l10n.activityJobTabManual,
-                size: AppTextButtonSize.xSmall,
-                isSelected: !_onlyScheduled,
-                onPressed: () => setState(() => _onlyScheduled = false),
-              ),
-              SizedBox(width: spacing.md),
-              AppTextButton(
-                key: const Key('activity-job-status-all'),
-                label: l10n.activityJobStatusAll,
-                size: AppTextButtonSize.xSmall,
-                isSelected: !_onlyAttention,
-                onPressed: () => setState(() => _onlyAttention = false),
-              ),
-              AppTextButton(
-                key: const Key('activity-job-status-attention'),
-                label: l10n.activityJobStatusAttention,
-                size: AppTextButtonSize.xSmall,
-                isSelected: _onlyAttention,
-                onPressed: () => setState(() => _onlyAttention = true),
-              ),
-            ],
-          ),
-          SizedBox(height: spacing.md),
           SizedBox(
             width: double.infinity,
             child: AppSelectField<String?>(
@@ -281,30 +225,22 @@ class _ActivityJobsDialogContentState
             ),
           ),
           SizedBox(height: spacing.md),
-          if (jobs.isEmpty)
-            AppEmptyState(message: l10n.activityExecutableJobsEmpty)
-          else if (visibleJobs.isEmpty)
-            AppEmptyState(message: l10n.activityJobsFilteredEmpty)
-          else
-            Flexible(
-              child: ListView.separated(
-                key: const Key('activity-executable-jobs-list'),
-                shrinkWrap: true,
-                itemCount: visibleJobs.length,
-                separatorBuilder: (_, _) => SizedBox(height: spacing.md),
-                itemBuilder: (_, index) {
-                  final job = visibleJobs[index];
-                  return ActivityJobCard(
-                    job: job,
-                    isTriggering: widget.controller.isTriggeringJob(
-                      job.taskKey,
-                    ),
-                    onTrigger: () => unawaited(widget.onTriggerJob(job)),
-                    onViewHistory: () => widget.onViewHistory(job),
-                  );
-                },
-              ),
+          Flexible(
+            child: ListView.separated(
+              key: const Key('activity-executable-jobs-list'),
+              shrinkWrap: true,
+              itemCount: visibleJobs.length,
+              separatorBuilder: (_, _) => SizedBox(height: spacing.md),
+              itemBuilder: (_, index) {
+                final job = visibleJobs[index];
+                return ActivityJobCard(
+                  job: job,
+                  isTriggering: widget.controller.isTriggeringJob(job.taskKey),
+                  onTrigger: () => unawaited(widget.onTriggerJob(job)),
+                );
+              },
             ),
+          ),
           if (state.jobErrorMessage != null) ...[
             SizedBox(height: spacing.md),
             _ActivityJobsRefreshError(
@@ -318,32 +254,31 @@ class _ActivityJobsDialogContentState
   }
 }
 
-/// 任务定义卡：定时计划、最近状态与时间、近 24 小时运行 / 失败次数、手动执行与历史入口。
+/// 任务定义卡：定时计划、最近状态与时间、运行历史入口与手动执行。
 class ActivityJobCard extends StatelessWidget {
   const ActivityJobCard({
     super.key,
     required this.job,
     required this.isTriggering,
     required this.onTrigger,
-    required this.onViewHistory,
   });
 
   final JobMetadataDto job;
   final bool isTriggering;
   final VoidCallback onTrigger;
-  final VoidCallback onViewHistory;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final lastTaskRun = job.lastTaskRun;
+    final taskName = job.cliHelp.isEmpty ? job.taskKey : job.cliHelp;
     final canTrigger =
         job.disabledReason == null && job.manualTriggerAllowed && !isTriggering;
 
     return AppContentCard(
       key: Key('activity-job-${job.taskKey}'),
       padding: EdgeInsets.all(context.appSpacing.lg),
-      title: job.cliHelp.isEmpty ? job.taskKey : job.cliHelp,
+      title: taskName,
       titleStyle: resolveAppTextStyle(
         context,
         size: AppTextSize.s14,
@@ -389,15 +324,10 @@ class ActivityJobCard extends StatelessWidget {
                   label: activityTaskStateLabel(lastTaskRun.state, l10n),
                   tone: activityTaskStateTone(lastTaskRun.state),
                 ),
-              if (job.recentFailureCount > 0)
-                AppBadge(
-                  label: l10n.activityJobRecentFailures(job.recentFailureCount),
-                  tone: AppBadgeTone.warning,
-                ),
               if (job.paramsSchema != null)
                 AppBadge(
                   label: l10n.activityJobNeedsParams,
-                  tone: AppBadgeTone.info,
+                  tone: AppBadgeTone.neutral,
                 ),
             ],
           ),
@@ -416,25 +346,20 @@ class ActivityJobCard extends StatelessWidget {
             ),
           ),
           SizedBox(height: context.appSpacing.xs),
-          Text(
-            l10n.activityJobRecentRuns(job.recentRunCount),
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.muted,
-            ),
-          ),
-          SizedBox(height: context.appSpacing.xs),
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: AppTextButton(
               key: Key('activity-job-history-${job.taskKey}'),
-              label: l10n.activityViewRunRecords,
+              label: l10n.activityTaskRunHistoryTitle,
               icon: const Icon(Icons.history_rounded),
               size: AppTextButtonSize.xSmall,
-              emphasis: AppTextButtonEmphasis.accent,
-              onPressed: onViewHistory,
+              onPressed: () => unawaited(
+                showTaskRunHistorySheet(
+                  context,
+                  taskKey: job.taskKey,
+                  taskName: taskName,
+                ),
+              ),
             ),
           ),
         ],

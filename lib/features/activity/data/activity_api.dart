@@ -4,7 +4,6 @@ import 'package:sakuramedia/features/activity/data/activity_bootstrap_dto.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/notification_read_result_dto.dart';
-import 'package:sakuramedia/features/activity/data/task_attention_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 
 /// 任务运行记录的范围值：默认只看「操作」类记录（排除定时触发的例行成功），
@@ -106,15 +105,6 @@ class ActivityApi {
   Future<List<TaskRunDto>> getActiveTaskRuns() async {
     final response = await _apiClient.getList('/system/task-runs/active');
     return response.map(TaskRunDto.fromJson).toList(growable: false);
-  }
-
-  /// 需要关注的任务（最新运行失败或带警告），按最近出问题时间倒序。
-  Future<List<TaskAttentionDto>> getTaskAttention({int limit = 50}) async {
-    final response = await _apiClient.getList(
-      '/system/task-runs/attention',
-      queryParameters: <String, dynamic>{'limit': limit},
-    );
-    return response.map(TaskAttentionDto.fromJson).toList(growable: false);
   }
 
   Future<PaginatedResponseDto<TaskRunDto>> getTaskRuns({

@@ -77,6 +77,8 @@ const String mobileSettingsPluginsPath = '/mobile/settings/plugins';
 const String mobileSettingsPluginMarketPath = '/mobile/settings/plugins/market';
 const String mobileSettingsDownloadersPath = '/mobile/settings/downloaders';
 const String mobileSettingsIndexersPath = '/mobile/settings/indexers';
+const String mobileSettingsDownloadSelectionPath =
+    '/mobile/settings/download-selection';
 const String mobileSettingsSystemMaintenancePath =
     '/mobile/settings/system-maintenance';
 const String mobileSettingsExternalPlayerPath =

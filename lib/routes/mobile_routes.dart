@@ -21,6 +21,7 @@ import 'package:sakuramedia/features/media/presentation/pages/mobile/media_manag
 import 'package:sakuramedia/features/media_import/presentation/pages/shared/media_import_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/appearance_settings_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_downloaders_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_download_selection_policy_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_indexers_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_media_libraries_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_system_maintenance_page.dart';
@@ -623,6 +624,34 @@ class MobileSettingsIndexersRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return const MobileIndexersPage();
+  }
+}
+
+@TypedGoRoute<MobileSettingsDownloadSelectionRouteData>(
+  path: mobileSettingsDownloadSelectionPath,
+)
+class MobileSettingsDownloadSelectionRouteData extends _MobileSubpageRouteData
+    with $MobileSettingsDownloadSelectionRouteData {
+  const MobileSettingsDownloadSelectionRouteData();
+
+  @override
+  String get pageName => 'mobile-settings-download-selection';
+
+  @override
+  String title(AppLocalizations l10n) => l10n.configTabDownloadSelection;
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  EdgeInsetsGeometry get bodyPadding => AppPageInsets.zero;
+
+  @override
+  bool get autoHideAppBar => false;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileDownloadSelectionPolicyPage();
   }
 }
 
@@ -1306,6 +1335,9 @@ void _handleOverviewDrawerSelection(BuildContext hostContext, String key) {
       return;
     case 'indexers':
       const MobileSettingsIndexersRouteData().push(hostContext);
+      return;
+    case 'download-selection':
+      const MobileSettingsDownloadSelectionRouteData().push(hostContext);
       return;
     case 'media-management':
       const MobileMediaManagementRouteData().push(hostContext);

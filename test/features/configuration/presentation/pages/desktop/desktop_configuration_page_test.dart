@@ -57,6 +57,7 @@ void main() {
           'configuration-tab-media-libraries',
           'configuration-tab-downloads',
           'configuration-tab-indexers',
+          'configuration-tab-download-selection',
           'configuration-tab-blacklisted-movies',
           'configuration-tab-advanced',
           'configuration-tab-plugins',
@@ -671,6 +672,74 @@ void main() {
 
       expect(bundle.adapter.hitCount('GET', '/movies'), 1);
       expect(find.text('还没有屏蔽任何影片'), findsOneWidget);
+    });
+
+    testWidgets('confirms before leaving dirty download selection policy', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle);
+      _enqueueIndexerSettings(bundle, indexers: const []);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/download-selection-policy',
+        body: <String, dynamic>{
+          'version': 1,
+          'created_at': '2026-10-29T12:00:00Z',
+          'updated_at': '2026-10-29T12:00:00Z',
+          'rules': <String, dynamic>{
+            'schema_version': 1,
+            'indexer_kinds': <String>[],
+            'indexer_names': <String>[],
+            'min_size_bytes': 1024 * 1024 * 1024,
+            'max_size_bytes': 40 * 1024 * 1024 * 1024,
+            'min_seeders': 1,
+            'max_age_days': null,
+            'match_title': true,
+            'match_description': true,
+            'required_groups': <Map<String, dynamic>>[],
+            'excluded_terms': <String>[],
+            'preferred_groups': <Map<String, dynamic>>[],
+            'ranking': <String>['size_desc'],
+            'indexer_priority_names': <String>[],
+          },
+        },
+      );
+
+      await _pumpPage(tester, bundle, sessionStore: sessionStore);
+      await _openConfigurationTab(
+        tester,
+        const Key('configuration-tab-download-selection'),
+      );
+      await tester.enterText(
+        find.byKey(const Key('download-selection-min-seeders')),
+        '8',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('configuration-advanced-leave-confirm-dialog')),
+        findsOneWidget,
+      );
+      expect(find.text('选种策略'), findsWidgets);
+
+      await tester.tap(
+        find.byKey(const Key('configuration-advanced-leave-cancel-button')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('选种策略'), findsWidgets);
+
+      await tester.tap(find.byKey(const Key('configuration-tab-downloads')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('configuration-advanced-leave-confirm-button')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('configuration-tab-downloads')),
+        findsOneWidget,
+      );
     });
 
     testWidgets(

@@ -9,16 +9,19 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 
 part 'movie_detail_magnet_provider.g.dart';
 
-enum MovieDetailMagnetSortField { sizeBytes, seeders }
+enum MovieDetailMagnetSortField { policyRank, sizeBytes, seeders }
 
 enum MovieDetailMagnetSortDirection { asc, desc }
 
 extension MovieDetailMagnetSortFieldValue on MovieDetailMagnetSortField {
   /// 当前语言的排序字段名；展示层用这个取当前语言的文案。
   String labelWith(AppLocalizations l10n) => switch (this) {
+    MovieDetailMagnetSortField.policyRank => l10n.movieMagnetSortPolicy,
     MovieDetailMagnetSortField.sizeBytes => l10n.mediaListSortFileSize,
     MovieDetailMagnetSortField.seeders => l10n.movieMagnetSortSeeders,
   };
+
+  bool get supportsDirection => this != MovieDetailMagnetSortField.policyRank;
 }
 
 extension MovieDetailMagnetSortDirectionValue
@@ -30,7 +33,7 @@ extension MovieDetailMagnetSortDirectionValue
 class MovieDetailMagnetState {
   const MovieDetailMagnetState({
     this.items = const <DownloadCandidateDto>[],
-    this.selectedSortField = MovieDetailMagnetSortField.sizeBytes,
+    this.selectedSortField = MovieDetailMagnetSortField.policyRank,
     this.selectedSortDirection = MovieDetailMagnetSortDirection.desc,
     this.isLoading = false,
     this.hasSearched = false,
@@ -49,13 +52,22 @@ class MovieDetailMagnetState {
   final String? submittingCandidateKey;
 
   List<DownloadCandidateDto> get sortedItems {
+    final positions = Map<DownloadCandidateDto, int>.identity();
+    for (var index = 0; index < items.length; index++) {
+      positions[items[index]] = index;
+    }
     final sorted = List<DownloadCandidateDto>.from(items);
-    sorted.sort(_compare);
+    sorted.sort((left, right) {
+      final primary = _compare(left, right);
+      if (primary != 0) return primary;
+      return (positions[left] ?? 0).compareTo(positions[right] ?? 0);
+    });
     return List<DownloadCandidateDto>.unmodifiable(sorted);
   }
 
   int _compare(DownloadCandidateDto left, DownloadCandidateDto right) {
     final primary = switch (selectedSortField) {
+      MovieDetailMagnetSortField.policyRank => _comparePolicy(left, right),
       MovieDetailMagnetSortField.sizeBytes => left.sizeBytes.compareTo(
         right.sizeBytes,
       ),
@@ -63,10 +75,22 @@ class MovieDetailMagnetState {
         right.seeders,
       ),
     };
-    final directional =
-        selectedSortDirection.isAscending ? primary : -primary;
-    if (directional != 0) return directional;
-    return left.title.compareTo(right.title);
+    if (!selectedSortField.supportsDirection) return primary;
+    return selectedSortDirection.isAscending ? primary : -primary;
+  }
+
+  int _comparePolicy(DownloadCandidateDto left, DownloadCandidateDto right) {
+    final leftEvaluation = left.selectionEvaluation;
+    final rightEvaluation = right.selectionEvaluation;
+    if (leftEvaluation == null && rightEvaluation == null) return 0;
+    if (leftEvaluation == null) return 1;
+    if (rightEvaluation == null) return -1;
+    if (leftEvaluation.eligible != rightEvaluation.eligible) {
+      return leftEvaluation.eligible ? -1 : 1;
+    }
+    final leftRank = leftEvaluation.selectionRank ?? 1 << 30;
+    final rightRank = rightEvaluation.selectionRank ?? 1 << 30;
+    return leftRank.compareTo(rightRank);
   }
 
   MovieDetailMagnetState copyWith({
@@ -121,12 +145,12 @@ class MovieDetailMagnet extends _$MovieDetailMagnet {
   }
 
   void toggleSortDirection() {
-    if (_isDisposed) return;
+    if (_isDisposed || !state.selectedSortField.supportsDirection) return;
     state = state.copyWith(
       selectedSortDirection:
           state.selectedSortDirection == MovieDetailMagnetSortDirection.desc
-              ? MovieDetailMagnetSortDirection.asc
-              : MovieDetailMagnetSortDirection.desc,
+          ? MovieDetailMagnetSortDirection.asc
+          : MovieDetailMagnetSortDirection.desc,
     );
   }
 

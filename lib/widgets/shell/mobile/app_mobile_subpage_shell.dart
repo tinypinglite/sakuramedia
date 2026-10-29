@@ -1,9 +1,77 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/shell/mobile/mobile_system_overlay.dart';
+
+typedef AppMobileSubpageBackHandler = Future<bool> Function();
+
+/// 页面注册到子页壳的返回拦截器。默认没有处理函数时直接放行。
+class AppMobileSubpageBackInterceptorController {
+  final ValueNotifier<bool> _canPop = ValueNotifier<bool>(true);
+  AppMobileSubpageBackHandler? _handler;
+
+  /// 页面同步声明的路由返回资格。
+  ///
+  /// `false` 会让 [PopScope] 保留拦截能力并关闭 iOS 侧滑等平台返回手势；
+  /// 没有页面注册 handler 时始终为 `true`。
+  ValueListenable<bool> get canPop => _canPop;
+
+  void attach(AppMobileSubpageBackHandler handler) {
+    _handler = handler;
+    _setCanPop(true);
+  }
+
+  void detach(AppMobileSubpageBackHandler handler) {
+    if (_handler != handler) return;
+    _handler = null;
+    _setCanPop(true);
+  }
+
+  /// 由页面在脏状态变化时同步调用。
+  void setCanPop(bool canPop) {
+    _setCanPop(_handler == null || canPop);
+  }
+
+  Future<bool> shouldPop() async {
+    final handler = _handler;
+    return handler == null || await handler();
+  }
+
+  void _setCanPop(bool canPop) {
+    if (_canPop.value == canPop) return;
+    _canPop.value = canPop;
+  }
+
+  void dispose() {
+    _handler = null;
+    _canPop.dispose();
+  }
+}
+
+class AppMobileSubpageBackInterceptor extends InheritedWidget {
+  const AppMobileSubpageBackInterceptor({
+    super.key,
+    required this.controller,
+    required super.child,
+  });
+
+  final AppMobileSubpageBackInterceptorController controller;
+
+  static AppMobileSubpageBackInterceptorController? maybeOf(
+    BuildContext context,
+  ) {
+    return context
+        .dependOnInheritedWidgetOfExactType<AppMobileSubpageBackInterceptor>()
+        ?.controller;
+  }
+
+  @override
+  bool updateShouldNotify(AppMobileSubpageBackInterceptor oldWidget) =>
+      controller != oldWidget.controller;
+}
 
 /// 让子页面把「真实标题」报给外层返回栏的信箱。
 ///
@@ -72,6 +140,10 @@ class AppMobileSubpageShell extends StatefulWidget {
 class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
   /// 子页面报上来的真实标题；为 null 时用路由给的静态标题。
   final ValueNotifier<String?> _titleOverride = ValueNotifier<String?>(null);
+  final AppMobileSubpageBackInterceptorController _backInterceptor =
+      AppMobileSubpageBackInterceptorController();
+  late final ValueGetter<Future<bool>> _backButtonHandler =
+      _handleBackButtonPressed;
 
   /// autoHideAppBar 子页是否已滚离顶部。
   bool _appBarHidden = false;
@@ -81,6 +153,7 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
   @override
   void dispose() {
     _titleOverride.dispose();
+    _backInterceptor.dispose();
     super.dispose();
   }
 
@@ -109,17 +182,20 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
 
   @override
   Widget build(BuildContext context) {
-    final router = GoRouter.maybeOf(context);
-    final navigator = Navigator.maybeOf(context);
     final immersive = widget.immersive;
     final autoHideAppBar = widget.autoHideAppBar;
+    final router = GoRouter.maybeOf(context);
     final appBar = _buildAppBar(context, immersive: immersive);
+    final interceptedChild = AppMobileSubpageBackInterceptor(
+      controller: _backInterceptor,
+      child: widget.child,
+    );
     final pageChild = autoHideAppBar
         ? NotificationListener<ScrollNotification>(
             onNotification: _handleScrollNotification,
-            child: widget.child,
+            child: interceptedChild,
           )
-        : widget.child;
+        : interceptedChild;
     final body = Padding(
       key: const Key('mobile-subpage-body-padding'),
       padding: widget.bodyPadding,
@@ -159,13 +235,17 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
         body: body,
       );
     }
-    final content = PopScope<void>(
-      canPop: _canPop(router, navigator),
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) {
-          return;
-        }
-        _goToDefault(router, widget.defaultLocation);
+    final content = ValueListenableBuilder<bool>(
+      valueListenable: _backInterceptor.canPop,
+      builder: (context, canPop, child) {
+        return PopScope<void>(
+          canPop: canPop,
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) return;
+            _handleBack(context);
+          },
+          child: child!,
+        );
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         key: const Key('mobile-subpage-system-overlay'),
@@ -196,7 +276,13 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
         ),
       ),
     );
-    return content;
+    if (router == null) return content;
+    // GoRouter 对无历史可退的深链首屏会直接返回 false；这里补一次回退处理，
+    // 同时让 PopScope 保持 true，避免无拦截时禁用 iOS 侧滑返回。
+    return BackButtonListener(
+      onBackButtonPressed: _backButtonHandler,
+      child: content,
+    );
   }
 
   AppBar _buildAppBar(BuildContext context, {required bool immersive}) {
@@ -264,9 +350,14 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
     );
   }
 
-  void _handleBack(BuildContext context) {
+  Future<void> _handleBack(BuildContext context) async {
     final router = GoRouter.maybeOf(context);
     final navigator = Navigator.maybeOf(context);
+    final activePath =
+        widget.currentPath ??
+        (router != null ? GoRouterState.of(context).uri.path : null);
+    if (!await _backInterceptor.shouldPop()) return;
+    if (!mounted) return;
     if (_canPop(router, navigator)) {
       if (router != null && router.canPop()) {
         router.pop();
@@ -275,12 +366,24 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
       navigator?.pop();
       return;
     }
-    final activePath =
-        widget.currentPath ??
-        (router != null ? GoRouterState.of(context).uri.path : null);
     if (activePath != widget.defaultLocation) {
       _goToDefault(router, widget.defaultLocation);
     }
+  }
+
+  Future<bool> _handleBackButtonPressed() async {
+    if (!mounted) return false;
+    final router = GoRouter.maybeOf(context);
+    final navigator = Navigator.maybeOf(context);
+    if (_canPop(router, navigator)) return false;
+    final activePath =
+        widget.currentPath ??
+        (router != null ? GoRouterState.of(context).uri.path : null);
+    if (activePath == null || activePath == widget.defaultLocation) {
+      return false;
+    }
+    await _handleBack(context);
+    return true;
   }
 
   bool _canPop(GoRouter? router, NavigatorState? navigator) {

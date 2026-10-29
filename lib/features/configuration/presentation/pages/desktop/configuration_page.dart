@@ -5,9 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/account_security_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/advanced_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/download_clients_section.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/desktop/download_selection_policy_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/indexer_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/media_libraries_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/configuration_tab_request_provider.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/download_selection_policy_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/system_maintenance_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/appearance_settings_content.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
@@ -32,12 +34,14 @@ class _DesktopConfigurationPageState
   static const Key _defaultCategoryKey = Key(
     'configuration-tab-media-libraries',
   );
+  static const Key _downloadSelectionCategoryKey = Key(
+    'configuration-tab-download-selection',
+  );
   static const Key _advancedCategoryKey = Key('configuration-tab-advanced');
 
-  List<_ConfigurationTab> get _tabs =>
-      _buildTabs(AppLocalizations.of(context));
+  List<_ConfigurationTab> get _tabs => _buildTabs(AppLocalizations.of(context));
   int _selectedIndex = 2;
-  bool _advancedSettingsDirty = false;
+  final Set<Key> _dirtyTabs = <Key>{};
 
   // 顺序即右侧 IndexedStack 的索引；itemKey 沿用原 tab key，保持深链/测试兼容。
   List<_ConfigurationTab> _buildTabs(AppLocalizations l10n) {
@@ -82,6 +86,19 @@ class _DesktopConfigurationPageState
         ),
         builder: (active) => IndexerSettingsSection(active: active),
       ),
+      _ConfigurationTab(
+        category: _ConfigurationCategory(
+          itemKey: _downloadSelectionCategoryKey,
+          label: l10n.configTabDownloadSelection,
+          icon: Icons.filter_alt_outlined,
+        ),
+        selfScrolling: true,
+        builder: (active) => DownloadSelectionPolicySection(
+          active: active,
+          onDirtyChanged: (dirty) =>
+              _handleTabDirtyChanged(_downloadSelectionCategoryKey, dirty),
+        ),
+      ),
       if (const ExternalPlayerChannel().isSupported)
         _ConfigurationTab(
           category: _ConfigurationCategory(
@@ -109,7 +126,8 @@ class _DesktopConfigurationPageState
         ),
         builder: (active) => DesktopAdvancedSettingsSection(
           active: active,
-          onDirtyChanged: _handleAdvancedDirtyChanged,
+          onDirtyChanged: (dirty) =>
+              _handleTabDirtyChanged(_advancedCategoryKey, dirty),
         ),
       ),
       _ConfigurationTab(
@@ -136,9 +154,8 @@ class _DesktopConfigurationPageState
     if (_selectedIndex == index) {
       return;
     }
-    final leavingAdvanced =
-        _tabs[_selectedIndex].category.itemKey == _advancedCategoryKey;
-    if (leavingAdvanced && _advancedSettingsDirty) {
+    final leavingKey = _tabs[_selectedIndex].category.itemKey;
+    if (_dirtyTabs.contains(leavingKey)) {
       final l10n = AppLocalizations.of(context);
       final confirmed = await showAppConfirmDialog(
         context,
@@ -152,18 +169,24 @@ class _DesktopConfigurationPageState
       if (!confirmed || !mounted) {
         return;
       }
+      if (leavingKey == _downloadSelectionCategoryKey) {
+        ref.read(downloadSelectionPolicyProvider.notifier).discardDraft();
+      }
     }
     setState(() {
+      _dirtyTabs.remove(leavingKey);
       _selectedIndex = index;
     });
   }
 
-  void _handleAdvancedDirtyChanged(bool dirty) {
-    if (_advancedSettingsDirty == dirty) {
-      return;
-    }
+  void _handleTabDirtyChanged(Key tabKey, bool dirty) {
+    if (dirty == _dirtyTabs.contains(tabKey)) return;
     setState(() {
-      _advancedSettingsDirty = dirty;
+      if (dirty) {
+        _dirtyTabs.add(tabKey);
+      } else {
+        _dirtyTabs.remove(tabKey);
+      }
     });
   }
 

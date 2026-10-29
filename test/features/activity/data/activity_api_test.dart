@@ -163,51 +163,6 @@ void main() {
   );
 
   test(
-    'getTaskAttention reads the attention array with a bounded limit',
-    () async {
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/task-runs/attention',
-        body: <Map<String, dynamic>>[
-          <String, dynamic>{
-            'task_key': 'media_import',
-            'task_name': '媒体导入',
-            'latest_run': <String, dynamic>{
-              ..._taskRunJson(id: 77, state: 'completed'),
-              'has_warning': true,
-              'error_message': '跳过 2 个文件',
-            },
-            'failed_count_7d': 3,
-            'last_issue_at': '2026-03-26T09:12:00Z',
-          },
-          <String, dynamic>{'task_key': 'library_import', 'task_name': '媒体库导入'},
-        ],
-      );
-
-      final response = await bundle.activityApi.getTaskAttention();
-
-      expect(response, hasLength(2));
-      expect(response.first.taskKey, 'media_import');
-      expect(response.first.latestRun?.hasWarning, isTrue);
-      expect(response.first.latestRun?.needsAttention, isTrue);
-      expect(response.first.failedCount7d, 3);
-      expect(
-        response.first.lastIssueAt,
-        DateTime.parse('2026-03-26T09:12:00Z'),
-      );
-      // 旧后端 / 缺字段时安全降级。
-      expect(response.last.latestRun, isNull);
-      expect(response.last.failedCount7d, 0);
-      expect(response.last.lastIssueAt, isNull);
-      expect(response.last.displayName, '媒体库导入');
-
-      final request = bundle.adapter.requests.single;
-      expect(request.path, '/system/task-runs/attention');
-      expect(request.uri.queryParameters['limit'], '50');
-    },
-  );
-
-  test(
     'task run warnings parse defensively and drive attention flags',
     () async {
       bundle.adapter.enqueueJson(
@@ -244,7 +199,7 @@ void main() {
     },
   );
 
-  test('jobs expose recent 24h counts with safe defaults', () async {
+  test('jobs expose schedule flags and ignore legacy stats', () async {
     bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/system/jobs',
@@ -268,11 +223,7 @@ void main() {
     final jobs = await bundle.activityApi.getJobs();
 
     expect(jobs.first.isScheduled, isTrue);
-    expect(jobs.first.recentRunCount, 24);
-    expect(jobs.first.recentFailureCount, 2);
     expect(jobs.last.isScheduled, isFalse);
-    expect(jobs.last.recentRunCount, 0);
-    expect(jobs.last.recentFailureCount, 0);
   });
 
   test('getActiveTaskRuns maps the complete active task snapshot', () async {

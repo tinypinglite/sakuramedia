@@ -13,6 +13,7 @@ import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_selectable_text_scroll_configuration.dart';
+import 'package:sakuramedia/widgets/domain/downloads/download_candidate_selection_summary.dart';
 
 /// 可嵌入影片详情功能弹窗或独立弹窗的影片磁力搜索内容。
 ///
@@ -157,18 +158,20 @@ class MovieMagnetSearchContent extends ConsumerWidget {
             },
           ),
         ),
-        SizedBox(width: context.appSpacing.sm),
-        AppIconButton(
-          key: const Key('movie-detail-magnet-sort-direction'),
-          tooltip: nextDirectionLabel,
-          semanticLabel: nextDirectionLabel,
-          isSelected: true,
-          size: AppIconButtonSize.mini,
-          icon: state.selectedSortDirection.isAscending
-              ? const Icon(Icons.arrow_upward_rounded)
-              : const Icon(Icons.arrow_downward_rounded),
-          onPressed: controller.toggleSortDirection,
-        ),
+        if (state.selectedSortField.supportsDirection) ...[
+          SizedBox(width: context.appSpacing.sm),
+          AppIconButton(
+            key: const Key('movie-detail-magnet-sort-direction'),
+            tooltip: nextDirectionLabel,
+            semanticLabel: nextDirectionLabel,
+            isSelected: true,
+            size: AppIconButtonSize.mini,
+            icon: state.selectedSortDirection.isAscending
+                ? const Icon(Icons.arrow_upward_rounded)
+                : const Icon(Icons.arrow_downward_rounded),
+            onPressed: controller.toggleSortDirection,
+          ),
+        ],
       ],
     );
   }
@@ -381,6 +384,12 @@ class _MovieMagnetCandidateCardState extends State<_MovieMagnetCandidateCard> {
               ),
             ],
           ),
+          if (candidate.selectionEvaluation != null) ...[
+            SizedBox(height: context.appSpacing.sm),
+            DownloadCandidateSelectionSummary(
+              evaluation: candidate.selectionEvaluation!,
+            ),
+          ],
           if (sourceUri.isNotEmpty) ...[
             SizedBox(height: context.appSpacing.md),
             Container(
@@ -472,10 +481,9 @@ class _MovieMagnetCandidateCardState extends State<_MovieMagnetCandidateCard> {
               AppButton(
                 key: widget.submitButtonKey,
                 size: AppButtonSize.xSmall,
-                label:
-                    candidate.hasDownloadSource
-                        ? l10n.widgetMovieMagnetSubmitDownload
-                        : l10n.widgetMovieMagnetUriMissing,
+                label: candidate.hasDownloadSource
+                    ? l10n.widgetMovieMagnetSubmitDownload
+                    : l10n.widgetMovieMagnetUriMissing,
                 variant: AppButtonVariant.primary,
                 isLoading: widget.isSubmitting,
                 onPressed: widget.onSubmit == null

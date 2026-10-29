@@ -51,6 +51,12 @@ void main() {
       ),
       isEmpty,
     );
+    expect(
+      bundle.adapter.requests.where(
+        (request) => request.path == '/system/task-runs/attention',
+      ),
+      isEmpty,
+    );
   });
 
   test(
@@ -392,61 +398,7 @@ void main() {
     );
   });
 
-  test(
-    'build loads attention items and tolerates a missing endpoint',
-    () async {
-      final subscription = container.listen(activityCenterProvider, (_, __) {});
-      addTearDown(subscription.close);
-      _enqueueJobs(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/task-runs/attention',
-        body: <Map<String, dynamic>>[
-          <String, dynamic>{
-            'task_key': 'media_import',
-            'task_name': '媒体导入',
-            'latest_run': <String, dynamic>{
-              ..._taskRunJson(id: 31, state: 'failed'),
-              'error_message': '导入失败',
-            },
-            'failed_count_7d': 2,
-            'last_issue_at': '2026-03-26T09:12:00Z',
-          },
-        ],
-      );
-      _enqueueBootstrapRaw(bundle, activeTaskId: 8, historyTaskId: 9);
-      final state = await container.read(activityCenterProvider.future);
-
-      expect(state.attentionItems.single.taskKey, 'media_import');
-      expect(state.attentionItems.single.failedCount7d, 2);
-      expect(state.attentionErrorMessage, isNull);
-      expect(state.knownTaskKeyLabels['media_import'], '媒体导入');
-    },
-  );
-
-  test(
-    'attention failures degrade to an empty section without blocking',
-    () async {
-      final subscription = container.listen(activityCenterProvider, (_, __) {});
-      addTearDown(subscription.close);
-      _enqueueJobs(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/task-runs/attention',
-        statusCode: 404,
-        body: const <String, dynamic>{'detail': 'not found'},
-      );
-      _enqueueBootstrapRaw(bundle, activeTaskId: 8, historyTaskId: 9);
-      final state = await container.read(activityCenterProvider.future);
-
-      expect(state.attentionItems, isEmpty);
-      expect(state.attentionErrorMessage, isNotNull);
-      expect(state.initialized, isTrue);
-      expect(state.taskRuns.single.id, 9);
-    },
-  );
-
-  test('refreshAll refreshes runs, attention and jobs together', () async {
+  test('refreshAll refreshes runs and jobs together', () async {
     final subscription = container.listen(activityCenterProvider, (_, __) {});
     addTearDown(subscription.close);
     _enqueueJobs(bundle);
@@ -467,19 +419,6 @@ void main() {
     );
     bundle.adapter.enqueueJson(
       method: 'GET',
-      path: '/system/task-runs/attention',
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'task_key': 'library_import',
-          'task_name': '媒体库导入',
-          'latest_run': _taskRunJson(id: 45, state: 'failed'),
-          'failed_count_7d': 1,
-          'last_issue_at': '2026-03-26T09:12:00Z',
-        },
-      ],
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
       path: '/system/jobs',
       body: <Map<String, dynamic>>[
         <String, dynamic>{
@@ -487,8 +426,6 @@ void main() {
           'cli_help': '执行一次媒体库导入',
           'cron_expr': '0 3 * * *',
           'manual_trigger_allowed': true,
-          'recent_run_count': 4,
-          'recent_failure_count': 1,
         },
       ],
     );
@@ -498,20 +435,13 @@ void main() {
 
     final state = container.read(activityCenterProvider).requireValue;
     expect(state.taskRuns.single.id, 44);
-    expect(state.attentionItems.single.taskKey, 'library_import');
-    expect(state.jobs.single.recentFailureCount, 1);
+    expect(state.jobs.single.taskKey, 'media_import');
     final paths = bundle.adapter.requests
         .skip(before)
         .map((request) => request.path)
         .toSet();
-    expect(
-      paths,
-      containsAll(<String>[
-        '/system/task-runs',
-        '/system/task-runs/attention',
-        '/system/jobs',
-      ]),
-    );
+    expect(paths, containsAll(<String>['/system/task-runs', '/system/jobs']));
+    expect(paths, isNot(contains('/system/task-runs/attention')));
   });
 
   test('polling with changed progress notifies listeners once', () async {
@@ -586,28 +516,7 @@ void _enqueueJobs(TestApiBundle bundle) {
   );
 }
 
-void _enqueueAttention(TestApiBundle bundle) {
-  bundle.adapter.enqueueJson(
-    method: 'GET',
-    path: '/system/task-runs/attention',
-    body: const <dynamic>[],
-  );
-}
-
 void _enqueueBootstrap(
-  TestApiBundle bundle, {
-  required int activeTaskId,
-  required int historyTaskId,
-}) {
-  _enqueueAttention(bundle);
-  _enqueueBootstrapRaw(
-    bundle,
-    activeTaskId: activeTaskId,
-    historyTaskId: historyTaskId,
-  );
-}
-
-void _enqueueBootstrapRaw(
   TestApiBundle bundle, {
   required int activeTaskId,
   required int historyTaskId,
@@ -643,7 +552,6 @@ void _enqueueBootstrapPage(
   required List<Map<String, dynamic>> items,
   required int total,
 }) {
-  _enqueueAttention(bundle);
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/system/activity/bootstrap',

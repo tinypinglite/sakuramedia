@@ -76,6 +76,66 @@ void main() {
     });
 
     test(
+      'searchCandidates parses selection evaluation and release fields',
+      () async {
+        final sessionStore = await _buildLoggedInSessionStore();
+        final bundle = await createTestApiBundle(sessionStore);
+        addTearDown(bundle.dispose);
+
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/download-candidates',
+          body: <Map<String, dynamic>>[
+            <String, dynamic>{
+              'source_uri': 'magnet:?xt=abc',
+              'indexer_name': 'mteam',
+              'indexer_kind': 'pt',
+              'resolved_client_id': 2,
+              'resolved_client_name': 'qb-main',
+              'download_clients': <Map<String, dynamic>>[],
+              'movie_number': 'ABC-001',
+              'title': 'ABC-001 1080p',
+              'release_title': 'ABC-001 1080p',
+              'description': '中文字幕',
+              'published_at': '2026-10-29T12:00:00Z',
+              'size_bytes': 5368709120,
+              'seeders': 18,
+              'selection_evaluation': <String, dynamic>{
+                'eligible': false,
+                'rejection_reasons': <Map<String, dynamic>>[
+                  <String, dynamic>{
+                    'code': 'excluded_term',
+                    'message': '命中排除词 sample',
+                    'term': 'sample',
+                  },
+                ],
+                'matched_required_group_labels': <String>['清晰度'],
+                'matched_preferred_group_label': '字幕',
+                'preference_rank': 0,
+                'selection_rank': null,
+                'within_attempt_limit': false,
+              },
+            },
+          ],
+        );
+
+        final candidate = (await bundle.downloadsApi.searchCandidates(
+          movieNumber: 'ABC-001',
+        )).single;
+
+        expect(candidate.releaseTitle, 'ABC-001 1080p');
+        expect(candidate.description, '中文字幕');
+        expect(candidate.publishedAt, DateTime.parse('2026-10-29T12:00:00Z'));
+        final evaluation = candidate.selectionEvaluation;
+        expect(evaluation?.eligible, isFalse);
+        expect(evaluation?.matchedRequiredGroupLabels, <String>['清晰度']);
+        expect(evaluation?.matchedPreferredGroupLabel, '字幕');
+        expect(evaluation?.rejectionReasons.single.code, 'excluded_term');
+        expect(evaluation?.rejectionReasons.single.term, 'sample');
+      },
+    );
+
+    test(
       'createDownloadRequest sends client id and candidate payload and parses response',
       () async {
         final sessionStore = await _buildLoggedInSessionStore();

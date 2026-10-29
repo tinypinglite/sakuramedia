@@ -84,8 +84,12 @@ void main() {
     expect(find.byKey(const Key('activity-tasks-tab')), findsOneWidget);
     expect(find.byKey(const Key('activity-tab-download-tasks')), findsNothing);
     expect(find.byKey(const Key('activity-task-201')), findsOneWidget);
+    final filterButton = find.byKey(
+      const Key('mobile-activity-task-filter-button'),
+    );
+    expect(filterButton, findsOneWidget);
     expect(
-      find.byKey(const Key('mobile-activity-task-filter-button')),
+      find.descendant(of: filterButton, matching: find.text('全部任务')),
       findsOneWidget,
     );
 
@@ -114,9 +118,7 @@ void main() {
     await tester.tapAt(const Offset(8, 8));
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.byKey(const Key('mobile-activity-task-filter-button')),
-    );
+    await tester.tap(filterButton);
     await tester.pumpAndSettle();
 
     expect(
@@ -125,6 +127,56 @@ void main() {
     );
     expect(
       find.byKey(const Key('mobile-activity-task-state-filter')),
+      findsOneWidget,
+    );
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs',
+      body: <String, dynamic>{
+        'items': const <dynamic>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+    );
+    await tester.tap(
+      find.byKey(const Key('mobile-activity-task-state-filter')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('失败').last);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    final filteredRequest = bundle.adapter.requests.lastWhere(
+      (request) => request.path == '/system/task-runs',
+    );
+    expect(filteredRequest.uri.queryParameters['state'], 'failed');
+    expect(
+      find.descendant(of: filterButton, matching: find.text('失败')),
+      findsOneWidget,
+    );
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs',
+      body: <String, dynamic>{
+        'items': const <dynamic>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+    );
+    await tester.tap(find.text('重置'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    final resetRequest = bundle.adapter.requests.lastWhere(
+      (request) => request.path == '/system/task-runs',
+    );
+    expect(resetRequest.uri.queryParameters.containsKey('state'), isFalse);
+    expect(
+      find.descendant(of: filterButton, matching: find.text('全部任务')),
       findsOneWidget,
     );
 

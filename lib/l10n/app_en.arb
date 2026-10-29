@@ -73,7 +73,6 @@
   "errorTaskFilterRefreshFailed": "Failed to refresh task filters. Please try again.",
   "errorLoadMoreTasksFailed": "Failed to load more tasks. Tap to retry.",
   "errorExecutableTaskLoadFailed": "Failed to load available tasks. Please try again.",
-  "errorTaskAttentionLoadFailed": "Failed to load tasks that need attention. Please try again.",
   "errorRecommendedMovieLoadFailed": "Failed to load recommended movies. Please try again later.",
   "errorLoadMoreRecommendedMoviesFailed": "Failed to load more recommended movies. Tap to retry.",
   "errorHotNewMovieLoadFailed": "Failed to load hot new releases. Please try again later.",
@@ -2428,71 +2427,6 @@
   "activityTaskRunHistoryTitle": "Run history",
   "activityHistoryEmpty": "This task has no run records yet",
   "activityRunCompletedWithWarning": "Warning",
-  "activityAttentionTitle": "Needs attention",
-  "activityAttentionCount": "{count, plural, =1{1 task} other{{count} tasks}}",
-  "@activityAttentionCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityAttentionFailedCount": "{count, plural, =1{1 failure in 7 days} other{{count} failures in 7 days}}",
-  "@activityAttentionFailedCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityLastIssueAt": "Last issue: {time}",
-  "@activityLastIssueAt": {
-    "placeholders": {
-      "time": {
-        "type": "String"
-      }
-    }
-  },
-  "activityViewRunRecords": "View records",
-  "activityAutoTasksTitle": "Scheduled tasks",
-  "activityAutoTasksDescription": "Tasks that run on a schedule; open to see the schedule, latest state and a manual run entry.",
-  "activityAutoTasksCount": "{count, plural, =1{1 scheduled task} other{{count} scheduled tasks}}",
-  "@activityAutoTasksCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityAutoTasksNeedAttention": "{count, plural, =1{1 needs attention} other{{count} need attention}}",
-  "@activityAutoTasksNeedAttention": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityJobTabAuto": "Scheduled",
-  "activityJobTabManual": "Manual",
-  "activityJobStatusAll": "All states",
-  "activityJobStatusAttention": "Abnormal only",
-  "activityJobRecentRuns": "{count, plural, =1{1 run in 24h} other{{count} runs in 24h}}",
-  "@activityJobRecentRuns": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityJobRecentFailures": "{count, plural, =1{1 failure in 24h} other{{count} failures in 24h}}",
-  "@activityJobRecentFailures": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "activityJobsFilteredEmpty": "No tasks match the current filters",
   "activityActiveTasks": "Active tasks",
   "activityEmptyTasksFiltered": "No task records match the current filters",
   "activityJobSubmitted": "Task submitted",
@@ -2501,8 +2435,17 @@
   "activityJobsLoading": "Loading",
   "activityJobsLoadFailed": "Load failed",
   "activityJobsEmpty": "No tasks",
+  "activityJobsCount": "{count, plural, =1{1 task} other{{count} tasks}}",
+  "@activityJobsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "activityExecutableJobsTitle": "Executable tasks",
   "activityViewJobs": "View tasks",
+  "activityExecutableJobsDescription": "Run registered background tasks manually; execution status updates in the task center in real time.",
   "activityJobDisabled": "Disabled",
   "activityJobSubmitting": "Submitting",
   "activityJobRunNow": "Run now",
@@ -5203,6 +5146,11 @@
   "shellNavAppearance": "Appearance",
   "shellNavAccountSecurity": "Account security",
   "shellNavNotifications": "Notifications",
+  "shellDrawerGroupHome": "Home",
+  "shellDrawerGroupMyContent": "My content",
+  "shellDrawerGroupDownloadsTasks": "Downloads & tasks",
+  "shellDrawerGroupMediaConnections": "Media & connections",
+  "shellDrawerGroupSystemAccount": "System & account",
   "shellWindowClose": "Close",
   "shellWindowMinimize": "Minimize",
   "shellWindowFullscreen": "Full screen",
@@ -5267,6 +5215,187 @@
   "movieReviewSortHotly": "Hottest",
   "movieReviewSortRecently": "Newest",
   "movieMagnetSortSeeders": "Seeders",
+  "movieMagnetSortPolicy": "Policy rank",
+  "commonMoveUp": "Move up",
+  "commonMoveDown": "Move down",
+  "configTabDownloadSelection": "Selection policy",
+  "downloadSelectionOverviewTitle": "Automatic downloads filter and rank resources by policy",
+  "downloadSelectionOverviewDescription": "Automatic downloads try only the first five eligible resources. Manual search marks policy results but still lets you submit any candidate.",
+  "downloadSelectionScopeSection": "Scope",
+  "downloadSelectionIndexerKindsLabel": "Indexer kinds",
+  "downloadSelectionAny": "Any",
+  "downloadSelectionIndexerNamesLabel": "Allowed indexers",
+  "downloadSelectionIndexerNamesPickerHint": "Select no indexers to allow all. Removed indexers stay visible as warnings so you can deselect them.",
+  "downloadSelectionAllIndexers": "All indexers",
+  "downloadSelectionIndexerUnavailable": "{name} (unavailable)",
+  "@downloadSelectionIndexerUnavailable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionIndexerUnavailableWarning": "Remove unavailable indexers before saving: {names}",
+  "@downloadSelectionIndexerUnavailableWarning": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionNoIndexers": "No indexers are available",
+  "downloadSelectionClearSelection": "Clear selection",
+  "downloadSelectionMinSizeLabel": "Minimum size",
+  "downloadSelectionMaxSizeLabel": "Maximum size",
+  "downloadSelectionNoLimitHint": "Leave blank for no limit",
+  "downloadSelectionSizeInvalid": "Enter a valid size",
+  "downloadSelectionMaxSizeTooSmall": "Maximum size cannot be smaller than the minimum",
+  "downloadSelectionMinSeedersLabel": "Minimum seeders",
+  "downloadSelectionSeedersInvalid": "Seeders must be an integer greater than or equal to 0",
+  "downloadSelectionMaxAgeLabel": "Maximum age in days",
+  "downloadSelectionMaxAgeInvalid": "Age must be an integer from 1 to 36500 days",
+  "downloadSelectionKeywordSection": "Keyword rules",
+  "downloadSelectionMatchTitle": "Match release title",
+  "downloadSelectionMatchTitleHint": "Match keywords against the original release title",
+  "downloadSelectionMatchDescription": "Match description",
+  "downloadSelectionMatchDescriptionHint": "Also inspect description text returned by indexers",
+  "downloadSelectionMatchFieldRequired": "Enable at least one of title and description",
+  "downloadSelectionRequiredGroups": "Required keyword groups",
+  "downloadSelectionRequiredGroupsHint": "Every group must match; any term inside a group can match.",
+  "downloadSelectionPreferredGroups": "Preferred keyword groups",
+  "downloadSelectionPreferredGroupsHint": "Earlier groups win. Ranking rules break ties between the same preference.",
+  "downloadSelectionAddRequiredGroup": "Add required group",
+  "downloadSelectionAddPreferredGroup": "Add preferred group",
+  "downloadSelectionEditKeywordGroup": "Edit keyword group",
+  "downloadSelectionExcludedTerms": "Excluded terms",
+  "downloadSelectionExcludedTermsHint": "Any matching excluded term makes a resource ineligible.",
+  "downloadSelectionNoExcludedTerms": "No excluded terms",
+  "downloadSelectionKeywordGroupEditorHint": "Any term can match inside the group; all required groups must match.",
+  "downloadSelectionKeywordGroupLabel": "Group name (optional)",
+  "downloadSelectionKeywordGroupLabelHint": "For example: Resolution",
+  "downloadSelectionTermsLabel": "Keywords",
+  "downloadSelectionTermsHint": "One keyword per line",
+  "downloadSelectionTermsHelper": "Blank lines and duplicate terms are ignored.",
+  "downloadSelectionTermsRequired": "Enter at least one keyword",
+  "downloadSelectionUnnamedGroup": "Unnamed group",
+  "downloadSelectionGroupNumber": "Group {number}",
+  "@downloadSelectionGroupNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionRankingSection": "Ranking rules",
+  "downloadSelectionRankingHint": "Preferred groups are checked first, then these rules in order.",
+  "downloadSelectionRankingSize": "Largest size first",
+  "downloadSelectionRankingSeeders": "Most seeders first",
+  "downloadSelectionRankingPublishedAt": "Newest release first",
+  "downloadSelectionRankingIndexerPriority": "Indexer priority",
+  "downloadSelectionRankingRequired": "Keep at least one ranking rule",
+  "downloadSelectionPriorityIndexers": "Indexer priority",
+  "downloadSelectionPriorityIndexersHint": "Select indexers, then reorder them on the policy page.",
+  "downloadSelectionNoPriorityIndexers": "No indexers selected",
+  "downloadSelectionIndexerPriorityRequired": "Select at least one indexer when ranking by indexer priority",
+  "downloadSelectionPreviewSection": "Policy preview",
+  "downloadSelectionPreviewHint": "Preview uses the current unsaved draft. It does not save the policy or create a download task.",
+  "downloadSelectionMovieNumber": "Movie number",
+  "downloadSelectionMovieNumberHint": "For example ABC-001",
+  "downloadSelectionMovieNumberRequired": "Enter a movie number",
+  "downloadSelectionMovieNumberRecognized": "Recognized as {number}",
+  "@downloadSelectionMovieNumberRecognized": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionRunPreview": "Run preview",
+  "downloadSelectionPreviewing": "Previewing",
+  "downloadSelectionPreviewEmpty": "Enter a movie number to preview the current draft",
+  "downloadSelectionPreviewFailed": "Policy preview failed. Please try again later.",
+  "downloadSelectionPreviewNoCandidates": "No candidate resources returned",
+  "downloadSelectionPreviewRaw": "Raw candidates {count}",
+  "@downloadSelectionPreviewRaw": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewSystem": "System candidates {count}",
+  "@downloadSelectionPreviewSystem": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewEligible": "Eligible {count}",
+  "@downloadSelectionPreviewEligible": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewFiltered": "Policy filtered {count}",
+  "@downloadSelectionPreviewFiltered": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewSelected": "This resource would be selected",
+  "downloadSelectionSeedersValue": "Seeders {count}",
+  "@downloadSelectionSeedersValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionCandidateRecommended": "Policy pick #{rank}",
+  "@downloadSelectionCandidateRecommended": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionCandidateOutsideAttemptLimit": "Policy eligible #{rank}, outside automatic attempt range",
+  "@downloadSelectionCandidateOutsideAttemptLimit": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionCandidateEligible": "Matches selection policy",
+  "downloadSelectionCandidateFiltered": "Filtered by selection policy",
+  "downloadSelectionCandidatePreferred": "Preference: {label}",
+  "@downloadSelectionCandidatePreferred": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionCandidateManualHint": "Automatic downloads skip this resource, but you can still submit it manually.",
+  "downloadSelectionSave": "Save policy",
+  "downloadSelectionSaved": "Selection policy saved",
+  "downloadSelectionSaveFailed": "Failed to save selection policy",
+  "downloadSelectionLoadFailed": "Failed to load selection policy",
+  "downloadSelectionLoadFailedFallback": "Failed to load the selection policy. Please try again later.",
+  "downloadSelectionVersionConflict": "The policy changed in another page or device. Your draft has not overwritten the server version.",
+  "downloadSelectionReloadLatest": "Load latest",
+  "downloadSelectionReloadTitle": "Load latest selection policy",
+  "downloadSelectionReloadMessage": "Loading the latest policy discards your unsaved changes. Continue?",
+  "downloadSelectionReloadConfirm": "Discard and load",
+  "downloadSelectionDiscardTitle": "Discard unsaved changes?",
+  "downloadSelectionDiscardMessage": "Your unsaved selection policy changes will be lost.",
+  "downloadSelectionDiscardConfirm": "Discard changes",
   "movieSubtitleFallbackName": "Subtitle {id}",
   "@movieSubtitleFallbackName": {
     "placeholders": {

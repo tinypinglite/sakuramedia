@@ -58,7 +58,7 @@ final class MovieDetailMagnetProvider
   }
 }
 
-String _$movieDetailMagnetHash() => r'a6a946a66c91859cad4f153f97c6639d4ffed3cd';
+String _$movieDetailMagnetHash() => r'd6c416b4ce32fb0c69d49cca1488c70a6b90ad2a';
 
 final class MovieDetailMagnetFamily extends $Family
     with

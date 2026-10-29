@@ -7,11 +7,10 @@ import 'package:sakuramedia/features/activity/presentation/providers/activity_ce
 import 'package:sakuramedia/features/activity/presentation/widgets/activity_task_run_card.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/activity/activity_task_sort_menu_button.dart';
 
 /// 「最近操作 / 运行记录」的筛选条：状态、任务、触发来源与排序。
@@ -146,49 +145,26 @@ class _MobileTaskFilterEntry extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final filter = controller.taskFilter;
     final taskKeyLabels = controller.knownTaskKeyLabels;
-    final isSelected = filter.hasActiveFilters;
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            _taskFilterSummary(filter, taskKeyLabels, l10n),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.muted,
-            ),
-          ),
+    return AppListHeader(
+      filterButtonKey: const Key('mobile-activity-task-filter-button'),
+      filterLabel: _taskFilterSummary(filter, taskKeyLabels, l10n),
+      filterTooltip: l10n.activityTaskFilterTitle,
+      onFilterTap: () => unawaited(
+        _showMobileActivityTaskFilterDrawer(
+          context,
+          current: filter,
+          taskKeyLabels: taskKeyLabels,
+          onChanged: (next) => unawaited(controller.applyTaskFilter(next)),
         ),
-        SizedBox(width: context.appSpacing.md),
-        SizedBox(
-          height: context.appComponentTokens.mobileTopTabHeight,
-          child: ActivityTaskSortMenuButton(
-            triggerKey: const Key('mobile-activity-task-sort-trigger'),
-            drawerKey: const Key('mobile-activity-task-sort-drawer'),
-            keyPrefix: 'mobile-activity-task',
-            filterState: filter,
-            onChanged: (next) => unawaited(controller.applyTaskFilter(next)),
-            useDrawer: true,
-          ),
-        ),
-        SizedBox(width: context.appSpacing.sm),
-        AppButton(
-          key: const Key('mobile-activity-task-filter-button'),
-          label: isSelected
-              ? l10n.activityFilterApplied
-              : l10n.activityFilterAction,
-          icon: const Icon(Icons.tune_rounded),
-          size: AppButtonSize.small,
-          isSelected: isSelected,
-          onPressed: () => _showMobileActivityTaskFilterDrawer(
-            context,
-            current: filter,
-            taskKeyLabels: taskKeyLabels,
-            onChanged: (next) => unawaited(controller.applyTaskFilter(next)),
-          ),
+      ),
+      actionSlots: [
+        ActivityTaskSortMenuButton(
+          triggerKey: const Key('mobile-activity-task-sort-trigger'),
+          drawerKey: const Key('mobile-activity-task-sort-drawer'),
+          keyPrefix: 'mobile-activity-task',
+          filterState: filter,
+          onChanged: (next) => unawaited(controller.applyTaskFilter(next)),
+          useDrawer: true,
         ),
       ],
     );
@@ -205,125 +181,105 @@ Future<void> _showMobileActivityTaskFilterDrawer(
     context: context,
     drawerKey: const Key('mobile-activity-task-filter-drawer'),
     maxHeightFactor: 0.68,
-    builder: (_) => _MobileTaskFilterDrawerContent(
+    builder: (_) => AppMobileFilterDrawer<ActivityTaskFilterState>(
       current: current,
-      taskKeyLabels: taskKeyLabels,
+      initial: current.resetFilters(),
       onChanged: onChanged,
+      isDefault: (value) => !value.hasActiveFilters,
+      scrollViewKey: const Key('mobile-activity-task-filter-scroll-view'),
+      contentBuilder: (context, local, onApply) => _MobileTaskFilterSections(
+        filter: local,
+        taskKeyLabels: taskKeyLabels,
+        onChanged: onApply,
+      ),
     ),
   );
 }
 
-class _MobileTaskFilterDrawerContent extends StatefulWidget {
-  const _MobileTaskFilterDrawerContent({
-    required this.current,
+class _MobileTaskFilterSections extends StatelessWidget {
+  const _MobileTaskFilterSections({
+    required this.filter,
     required this.taskKeyLabels,
     required this.onChanged,
   });
 
-  final ActivityTaskFilterState current;
+  final ActivityTaskFilterState filter;
   final Map<String, String> taskKeyLabels;
   final ValueChanged<ActivityTaskFilterState> onChanged;
 
   @override
-  State<_MobileTaskFilterDrawerContent> createState() =>
-      _MobileTaskFilterDrawerContentState();
-}
-
-class _MobileTaskFilterDrawerContentState
-    extends State<_MobileTaskFilterDrawerContent> {
-  late ActivityTaskFilterState _local;
-
-  @override
-  void initState() {
-    super.initState();
-    _local = widget.current;
-  }
-
-  void _apply(ActivityTaskFilterState next) {
-    setState(() => _local = next);
-    widget.onChanged(next);
-  }
-
-  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AppMobileFilterDrawerScaffold(
-      scrollViewKey: const Key('mobile-activity-task-filter-scroll-view'),
-      footer: AppFilterPanelFooter(
-        isDefault: !_local.hasActiveFilters,
-        onReset: () => _apply(_local.resetFilters()),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            l10n.activityTaskFilterTitle,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s18,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l10n.activityTaskFilterTitle,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s18,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ),
+        ),
+        SizedBox(height: context.appSpacing.lg),
+        AppSelectField<String?>(
+          key: const Key('mobile-activity-task-state-filter'),
+          label: l10n.activityTaskStateLabel,
+          value: filter.state,
+          items: <DropdownMenuItem<String?>>[
+            DropdownMenuItem<String?>(
+              value: null,
+              child: Text(l10n.activityFilterAllStates),
             ),
-          ),
-          SizedBox(height: context.appSpacing.lg),
-          AppSelectField<String?>(
-            key: const Key('mobile-activity-task-state-filter'),
-            label: l10n.activityTaskStateLabel,
-            value: _local.state,
-            items: <DropdownMenuItem<String?>>[
-              DropdownMenuItem<String?>(
-                value: null,
-                child: Text(l10n.activityFilterAllStates),
+            ...ActivityTaskFilterBar.states.map(
+              (value) => DropdownMenuItem<String?>(
+                value: value,
+                child: Text(activityTaskStateLabel(value, l10n)),
               ),
-              ...ActivityTaskFilterBar.states.map(
-                (value) => DropdownMenuItem<String?>(
-                  value: value,
-                  child: Text(activityTaskStateLabel(value, l10n)),
-                ),
+            ),
+          ],
+          onChanged: (value) => onChanged(filter.copyWith(state: value)),
+        ),
+        SizedBox(height: context.appSpacing.md),
+        AppSelectField<String?>(
+          key: const Key('mobile-activity-task-key-filter'),
+          label: l10n.activityTaskTypeLabel,
+          value: filter.taskKey,
+          items: <DropdownMenuItem<String?>>[
+            DropdownMenuItem<String?>(
+              value: null,
+              child: Text(l10n.activityFilterAllTaskTypes),
+            ),
+            ...taskKeyLabels.entries.map(
+              (entry) => DropdownMenuItem<String?>(
+                value: entry.key,
+                child: Text(entry.value),
               ),
-            ],
-            onChanged: (value) => _apply(_local.copyWith(state: value)),
-          ),
-          SizedBox(height: context.appSpacing.md),
-          AppSelectField<String?>(
-            key: const Key('mobile-activity-task-key-filter'),
-            label: l10n.activityTaskTypeLabel,
-            value: _local.taskKey,
-            items: <DropdownMenuItem<String?>>[
-              DropdownMenuItem<String?>(
-                value: null,
-                child: Text(l10n.activityFilterAllTaskTypes),
+            ),
+          ],
+          onChanged: (value) => onChanged(filter.copyWith(taskKey: value)),
+        ),
+        SizedBox(height: context.appSpacing.md),
+        AppSelectField<String?>(
+          key: const Key('mobile-activity-task-trigger-filter'),
+          label: l10n.activityTaskTriggerLabel,
+          value: filter.triggerType,
+          items: <DropdownMenuItem<String?>>[
+            DropdownMenuItem<String?>(
+              value: null,
+              child: Text(l10n.activityFilterAllTriggers),
+            ),
+            ...ActivityTaskFilterBar.triggerTypes.map(
+              (value) => DropdownMenuItem<String?>(
+                value: value,
+                child: Text(activityTriggerTypeLabel(value, l10n)),
               ),
-              ...widget.taskKeyLabels.entries.map(
-                (entry) => DropdownMenuItem<String?>(
-                  value: entry.key,
-                  child: Text(entry.value),
-                ),
-              ),
-            ],
-            onChanged: (value) => _apply(_local.copyWith(taskKey: value)),
-          ),
-          SizedBox(height: context.appSpacing.md),
-          AppSelectField<String?>(
-            key: const Key('mobile-activity-task-trigger-filter'),
-            label: l10n.activityTaskTriggerLabel,
-            value: _local.triggerType,
-            items: <DropdownMenuItem<String?>>[
-              DropdownMenuItem<String?>(
-                value: null,
-                child: Text(l10n.activityFilterAllTriggers),
-              ),
-              ...ActivityTaskFilterBar.triggerTypes.map(
-                (value) => DropdownMenuItem<String?>(
-                  value: value,
-                  child: Text(activityTriggerTypeLabel(value, l10n)),
-                ),
-              ),
-            ],
-            onChanged: (value) => _apply(_local.copyWith(triggerType: value)),
-          ),
-        ],
-      ),
+            ),
+          ],
+          onChanged: (value) => onChanged(filter.copyWith(triggerType: value)),
+        ),
+      ],
     );
   }
 }

@@ -67,9 +67,49 @@ class MobileOverviewDrawer extends ConsumerWidget {
         label: l10n.shellNavTags,
       );
 
-  static List<_MobileOverviewDrawerMenuItem> _libraryItems(
+  static List<_MobileOverviewDrawerMenuItem> _contentItems(
     AppLocalizations l10n,
   ) => <_MobileOverviewDrawerMenuItem>[
+    _favoritesItem(l10n),
+    _recentlyPlayedItem(l10n),
+    _recentViewsItem(l10n),
+    _ratingsItem(l10n),
+    _tagsItem(l10n),
+  ];
+
+  static List<_MobileOverviewDrawerMenuItem> _downloadTaskItems(
+    AppLocalizations l10n,
+  ) => <_MobileOverviewDrawerMenuItem>[
+    _MobileOverviewDrawerMenuItem(
+      key: 'download-tasks',
+      icon: Icons.download_for_offline_outlined,
+      label: l10n.shellNavDownloadTasks,
+    ),
+    _MobileOverviewDrawerMenuItem(
+      key: 'activity',
+      icon: Icons.bolt_outlined,
+      label: l10n.shellNavTaskCenter,
+    ),
+    _MobileOverviewDrawerMenuItem(
+      key: 'movie-subscriptions',
+      icon: Icons.bookmark_added_outlined,
+      label: l10n.shellNavSubscriptions,
+    ),
+  ];
+
+  static List<_MobileOverviewDrawerMenuItem> _mediaConnectionItems(
+    AppLocalizations l10n,
+  ) => <_MobileOverviewDrawerMenuItem>[
+    _MobileOverviewDrawerMenuItem(
+      key: 'media-management',
+      icon: Icons.video_settings_outlined,
+      label: l10n.shellNavMediaManagement,
+    ),
+    _MobileOverviewDrawerMenuItem(
+      key: 'media-import',
+      icon: Icons.drive_folder_upload_outlined,
+      label: l10n.shellNavMediaImport,
+    ),
     _MobileOverviewDrawerMenuItem(
       key: 'media-libraries',
       icon: Icons.video_library_outlined,
@@ -85,88 +125,46 @@ class MobileOverviewDrawer extends ConsumerWidget {
       icon: Icons.travel_explore_outlined,
       label: l10n.shellNavIndexers,
     ),
+    _MobileOverviewDrawerMenuItem(
+      key: 'download-selection',
+      icon: Icons.filter_alt_outlined,
+      label: l10n.configTabDownloadSelection,
+    ),
   ];
 
-  static _MobileOverviewDrawerMenuItem _mediaManagementItem(
+  static List<_MobileOverviewDrawerMenuItem> _systemAccountItems(
     AppLocalizations l10n,
-  ) => _MobileOverviewDrawerMenuItem(
-    key: 'media-management',
-    icon: Icons.video_settings_outlined,
-    label: l10n.shellNavMediaManagement,
-  );
-
-  static _MobileOverviewDrawerMenuItem _mediaImportItem(
-    AppLocalizations l10n,
-  ) => _MobileOverviewDrawerMenuItem(
-    key: 'media-import',
-    icon: Icons.drive_folder_upload_outlined,
-    label: l10n.shellNavMediaImport,
-  );
-
-  static _MobileOverviewDrawerMenuItem _downloadTasksItem(
-    AppLocalizations l10n,
-  ) => _MobileOverviewDrawerMenuItem(
-    key: 'download-tasks',
-    icon: Icons.download_for_offline_outlined,
-    label: l10n.shellNavDownloadTasks,
-  );
-
-  static _MobileOverviewDrawerMenuItem _activityItem(AppLocalizations l10n) =>
+  ) => <_MobileOverviewDrawerMenuItem>[
+    _MobileOverviewDrawerMenuItem(
+      key: 'plugins',
+      icon: Icons.extension_outlined,
+      label: l10n.shellNavPlugins,
+    ),
+    _MobileOverviewDrawerMenuItem(
+      key: 'system-maintenance',
+      icon: Icons.build_outlined,
+      label: l10n.shellNavSystemMaintenance,
+    ),
+    if (_supportsExternalPlayer)
       _MobileOverviewDrawerMenuItem(
-        key: 'activity',
-        icon: Icons.bolt_outlined,
-        label: l10n.shellNavTaskCenter,
-      );
+        key: 'external-player',
+        icon: Icons.open_in_new_rounded,
+        label: l10n.shellNavExternalPlayer,
+      ),
+    _MobileOverviewDrawerMenuItem(
+      key: 'appearance',
+      icon: Icons.palette_outlined,
+      label: l10n.shellNavAppearance,
+    ),
+    _MobileOverviewDrawerMenuItem(
+      key: 'account-security',
+      icon: Icons.security_rounded,
+      label: l10n.shellNavAccountSecurity,
+    ),
+  ];
 
-  static _MobileOverviewDrawerMenuItem _movieSubscriptionsItem(
-    AppLocalizations l10n,
-  ) => _MobileOverviewDrawerMenuItem(
-    key: 'movie-subscriptions',
-    icon: Icons.bookmark_added_outlined,
-    label: l10n.shellNavSubscriptions,
-  );
-
-  static _MobileOverviewDrawerMenuItem _systemMaintenanceItem(
-    AppLocalizations l10n,
-  ) => _MobileOverviewDrawerMenuItem(
-    key: 'system-maintenance',
-    icon: Icons.build_outlined,
-    label: l10n.shellNavSystemMaintenance,
-  );
-
-  static _MobileOverviewDrawerMenuItem _pluginsItem(AppLocalizations l10n) =>
-      _MobileOverviewDrawerMenuItem(
-        key: 'plugins',
-        icon: Icons.extension_outlined,
-        label: l10n.shellNavPlugins,
-      );
-
-  static _MobileOverviewDrawerMenuItem _externalPlayerItem(
-    AppLocalizations l10n,
-  ) => _MobileOverviewDrawerMenuItem(
-    key: 'external-player',
-    icon: Icons.open_in_new_rounded,
-    label: l10n.shellNavExternalPlayer,
-  );
-
-  static _MobileOverviewDrawerMenuItem _appearanceItem(AppLocalizations l10n) =>
-      _MobileOverviewDrawerMenuItem(
-        key: 'appearance',
-        icon: Icons.palette_outlined,
-        label: l10n.shellNavAppearance,
-      );
-
-  // 调用外部播放器仅在 Android 原生实现，其它平台不展示该入口。
   static bool get _supportsExternalPlayer =>
       defaultTargetPlatform == TargetPlatform.android;
-
-  static _MobileOverviewDrawerMenuItem _accountSecurityItem(
-    AppLocalizations l10n,
-  ) => _MobileOverviewDrawerMenuItem(
-    key: 'account-security',
-    icon: Icons.security_rounded,
-    label: l10n.shellNavAccountSecurity,
-  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -200,46 +198,13 @@ class MobileOverviewDrawer extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _MobileOverviewDrawerSection(
-                        key: const Key(
-                          'mobile-overview-drawer-overview-section',
-                        ),
+                        key: const Key('mobile-overview-drawer-home-section'),
+                        header: l10n.shellDrawerGroupHome,
                         items: <Widget>[
                           _buildMenuEntry(
                             context: context,
                             item: _overviewItem(l10n),
                           ),
-                        ],
-                      ),
-                      SizedBox(height: spacing.md),
-                      _MobileOverviewDrawerSection(
-                        key: const Key(
-                          'mobile-overview-drawer-collection-section',
-                        ),
-                        items: <Widget>[
-                          _buildMenuEntry(
-                            context: context,
-                            item: _favoritesItem(l10n),
-                          ),
-                          _buildMenuEntry(
-                            context: context,
-                            item: _recentlyPlayedItem(l10n),
-                          ),
-                          _buildMenuEntry(
-                            context: context,
-                            item: _recentViewsItem(l10n),
-                          ),
-                          _buildMenuEntry(
-                            context: context,
-                            item: _ratingsItem(l10n),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: spacing.md),
-                      _MobileOverviewDrawerSection(
-                        key: const Key(
-                          'mobile-overview-drawer-notifications-section',
-                        ),
-                        items: <Widget>[
                           _MobileOverviewDrawerItem(
                             key: const Key(
                               'mobile-overview-drawer-notifications',
@@ -264,99 +229,44 @@ class MobileOverviewDrawer extends ConsumerWidget {
                       ),
                       SizedBox(height: spacing.md),
                       _MobileOverviewDrawerSection(
-                        key: const Key('mobile-overview-drawer-tags-section'),
-                        items: <Widget>[
-                          _buildMenuEntry(
-                            context: context,
-                            item: _tagsItem(l10n),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: spacing.md),
-                      if (_supportsExternalPlayer) ...[
-                        _MobileOverviewDrawerSection(
-                          key: const Key(
-                            'mobile-overview-drawer-external-player-section',
-                          ),
-                          items: <Widget>[
-                            _buildMenuEntry(
-                              context: context,
-                              item: _externalPlayerItem(l10n),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: spacing.md),
-                      ],
-                      _MobileOverviewDrawerSection(
                         key: const Key(
-                          'mobile-overview-drawer-library-section',
+                          'mobile-overview-drawer-content-section',
                         ),
-                        items: _libraryItems(l10n)
-                            .map(
-                              (item) =>
-                                  _buildMenuEntry(context: context, item: item),
-                            )
-                            .toList(growable: false),
+                        header: l10n.shellDrawerGroupMyContent,
+                        items: _buildMenuEntries(context, _contentItems(l10n)),
                       ),
                       SizedBox(height: spacing.md),
                       _MobileOverviewDrawerSection(
                         key: const Key(
-                          'mobile-overview-drawer-management-section',
+                          'mobile-overview-drawer-downloads-tasks-section',
                         ),
-                        items: <Widget>[
-                          _buildMenuEntry(
-                            context: context,
-                            item: _mediaManagementItem(l10n),
-                          ),
-                          _buildMenuEntry(
-                            context: context,
-                            item: _mediaImportItem(l10n),
-                          ),
-                          _buildMenuEntry(
-                            context: context,
-                            item: _downloadTasksItem(l10n),
-                          ),
-                          _buildMenuEntry(
-                            context: context,
-                            item: _activityItem(l10n),
-                          ),
-                          _buildMenuEntry(
-                            context: context,
-                            item: _movieSubscriptionsItem(l10n),
-                          ),
-                          _buildMenuEntry(
-                            context: context,
-                            item: _systemMaintenanceItem(l10n),
-                          ),
-                          _buildMenuEntry(
-                            context: context,
-                            item: _pluginsItem(l10n),
-                          ),
-                        ],
+                        header: l10n.shellDrawerGroupDownloadsTasks,
+                        items: _buildMenuEntries(
+                          context,
+                          _downloadTaskItems(l10n),
+                        ),
                       ),
                       SizedBox(height: spacing.md),
                       _MobileOverviewDrawerSection(
                         key: const Key(
-                          'mobile-overview-drawer-appearance-section',
+                          'mobile-overview-drawer-media-connections-section',
                         ),
-                        items: <Widget>[
-                          _buildMenuEntry(
-                            context: context,
-                            item: _appearanceItem(l10n),
-                          ),
-                        ],
+                        header: l10n.shellDrawerGroupMediaConnections,
+                        items: _buildMenuEntries(
+                          context,
+                          _mediaConnectionItems(l10n),
+                        ),
                       ),
                       SizedBox(height: spacing.md),
                       _MobileOverviewDrawerSection(
                         key: const Key(
-                          'mobile-overview-drawer-account-section',
+                          'mobile-overview-drawer-system-account-section',
                         ),
-                        items: <Widget>[
-                          _buildMenuEntry(
-                            context: context,
-                            item: _accountSecurityItem(l10n),
-                          ),
-                        ],
+                        header: l10n.shellDrawerGroupSystemAccount,
+                        items: _buildMenuEntries(
+                          context,
+                          _systemAccountItems(l10n),
+                        ),
                       ),
                       SizedBox(height: spacing.md),
                       const AppVersionInfoCard(
@@ -385,6 +295,15 @@ class MobileOverviewDrawer extends ConsumerWidget {
     );
   }
 
+  List<Widget> _buildMenuEntries(
+    BuildContext context,
+    List<_MobileOverviewDrawerMenuItem> items,
+  ) {
+    return items
+        .map((item) => _buildMenuEntry(context: context, item: item))
+        .toList(growable: false);
+  }
+
   Widget _buildMenuEntry({
     required BuildContext context,
     required _MobileOverviewDrawerMenuItem item,
@@ -410,9 +329,14 @@ class MobileOverviewDrawer extends ConsumerWidget {
 }
 
 class _MobileOverviewDrawerSection extends StatelessWidget {
-  const _MobileOverviewDrawerSection({super.key, required this.items});
+  const _MobileOverviewDrawerSection({
+    super.key,
+    required this.items,
+    this.header,
+  });
 
   final List<Widget> items;
+  final String? header;
 
   @override
   Widget build(BuildContext context) {
@@ -420,40 +344,58 @@ class _MobileOverviewDrawerSection extends StatelessWidget {
     final spacing = context.appSpacing;
     final componentTokens = context.appComponentTokens;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: spacing.xs),
-        child: Column(
-          children: items
-              .expand((item) {
-                final itemIndex = items.indexOf(item);
-                return <Widget>[
-                  item,
-                  if (itemIndex < items.length - 1)
-                    Padding(
-                      padding: EdgeInsetsDirectional.only(
-                        start:
-                            spacing.md +
-                            componentTokens.iconSizeXl +
-                            spacing.sm +
-                            spacing.md,
-                        end: spacing.md,
-                      ),
-                      child: Divider(
-                        height: spacing.xs,
-                        thickness: 1,
-                        color: colors.borderSubtle.fadedBy(0.56),
-                      ),
-                    ),
-                ];
-              })
-              .toList(growable: false),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (header != null) ...[
+          Padding(
+            padding: EdgeInsets.only(left: spacing.xs, bottom: spacing.sm),
+            child: Text(
+              header!,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                tone: AppTextTone.muted,
+              ),
+            ),
+          ),
+        ],
+        Container(
+          decoration: BoxDecoration(
+            color: colors.surfaceCard,
+            borderRadius: context.appRadius.lgBorder,
+          ),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: spacing.xs),
+            child: Column(
+              children: items
+                  .expand((item) {
+                    final itemIndex = items.indexOf(item);
+                    return <Widget>[
+                      item,
+                      if (itemIndex < items.length - 1)
+                        Padding(
+                          padding: EdgeInsetsDirectional.only(
+                            start:
+                                spacing.md +
+                                componentTokens.iconSizeXl +
+                                spacing.sm +
+                                spacing.md,
+                            end: spacing.md,
+                          ),
+                          child: Divider(
+                            height: spacing.xs,
+                            thickness: 1,
+                            color: colors.borderSubtle.fadedBy(0.56),
+                          ),
+                        ),
+                    ];
+                  })
+                  .toList(growable: false),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

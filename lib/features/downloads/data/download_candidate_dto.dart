@@ -13,6 +13,89 @@ class DownloadCandidateClientDto {
   }
 }
 
+class DownloadSelectionRejectionDto {
+  const DownloadSelectionRejectionDto({
+    required this.code,
+    required this.message,
+    this.groupLabel,
+    this.term,
+    this.field,
+    this.limit,
+    this.actual,
+  });
+
+  final String code;
+  final String message;
+  final String? groupLabel;
+  final String? term;
+  final String? field;
+  final int? limit;
+  final Object? actual;
+
+  factory DownloadSelectionRejectionDto.fromJson(Map<String, dynamic> json) {
+    return DownloadSelectionRejectionDto(
+      code: json['code'] as String? ?? '',
+      message: json['message'] as String? ?? '',
+      groupLabel: json['group_label'] as String?,
+      term: json['term'] as String?,
+      field: json['field'] as String?,
+      limit: json['limit'] as int?,
+      actual: json['actual'],
+    );
+  }
+}
+
+class DownloadCandidateSelectionEvaluationDto {
+  const DownloadCandidateSelectionEvaluationDto({
+    required this.eligible,
+    this.rejectionReasons = const <DownloadSelectionRejectionDto>[],
+    this.matchedRequiredGroupLabels = const <String>[],
+    this.matchedPreferredGroupLabel,
+    this.preferenceRank,
+    this.selectionRank,
+    this.withinAttemptLimit = false,
+  });
+
+  final bool eligible;
+  final List<DownloadSelectionRejectionDto> rejectionReasons;
+  final List<String> matchedRequiredGroupLabels;
+  final String? matchedPreferredGroupLabel;
+  final int? preferenceRank;
+  final int? selectionRank;
+  final bool withinAttemptLimit;
+
+  factory DownloadCandidateSelectionEvaluationDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    final rawReasons = json['rejection_reasons'];
+    final rawLabels = json['matched_required_group_labels'];
+    return DownloadCandidateSelectionEvaluationDto(
+      eligible: json['eligible'] as bool? ?? false,
+      rejectionReasons: rawReasons is List
+          ? rawReasons
+                .whereType<Map>()
+                .map(
+                  (item) => DownloadSelectionRejectionDto.fromJson(
+                    item.map(
+                      (dynamic key, dynamic value) =>
+                          MapEntry(key.toString(), value),
+                    ),
+                  ),
+                )
+                .toList(growable: false)
+          : const <DownloadSelectionRejectionDto>[],
+      matchedRequiredGroupLabels: rawLabels is List
+          ? rawLabels.whereType<String>().toList(growable: false)
+          : const <String>[],
+      matchedPreferredGroupLabel:
+          json['matched_preferred_group_label'] as String?,
+      preferenceRank: json['preference_rank'] as int?,
+      selectionRank: json['selection_rank'] as int?,
+      withinAttemptLimit: json['within_attempt_limit'] as bool? ?? false,
+    );
+  }
+}
+
 class DownloadCandidateDto {
   const DownloadCandidateDto({
     required this.sourceUri,
@@ -23,8 +106,12 @@ class DownloadCandidateDto {
     this.downloadClients = const <DownloadCandidateClientDto>[],
     required this.movieNumber,
     required this.title,
+    this.releaseTitle = '',
+    this.description = '',
+    this.publishedAt,
     required this.sizeBytes,
     required this.seeders,
+    this.selectionEvaluation,
   });
 
   final String sourceUri;
@@ -35,8 +122,12 @@ class DownloadCandidateDto {
   final List<DownloadCandidateClientDto> downloadClients;
   final String movieNumber;
   final String title;
+  final String releaseTitle;
+  final String description;
+  final DateTime? publishedAt;
   final int sizeBytes;
   final int seeders;
+  final DownloadCandidateSelectionEvaluationDto? selectionEvaluation;
 
   /// 后端通常返回候选可选下载器列表；列表为空时仍保留后端解析出的默认下载器。
   List<DownloadCandidateClientDto> get selectableDownloadClients {
@@ -76,8 +167,14 @@ class DownloadCandidateDto {
             ],
       movieNumber: json['movie_number'] as String? ?? '',
       title: json['title'] as String? ?? '',
+      releaseTitle: json['release_title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      publishedAt: DateTime.tryParse(json['published_at'] as String? ?? ''),
       sizeBytes: json['size_bytes'] as int? ?? 0,
       seeders: json['seeders'] as int? ?? 0,
+      selectionEvaluation: _parseSelectionEvaluation(
+        json['selection_evaluation'],
+      ),
     );
   }
 
@@ -103,5 +200,14 @@ class DownloadCandidateDto {
           ),
         )
         .toList(growable: false);
+  }
+
+  static DownloadCandidateSelectionEvaluationDto? _parseSelectionEvaluation(
+    dynamic value,
+  ) {
+    if (value is! Map) return null;
+    return DownloadCandidateSelectionEvaluationDto.fromJson(
+      value.map((dynamic key, dynamic item) => MapEntry(key.toString(), item)),
+    );
   }
 }
