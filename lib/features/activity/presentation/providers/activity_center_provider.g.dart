@@ -33,7 +33,7 @@ final class ActivityCenterProvider
   ActivityCenter create() => ActivityCenter();
 }
 
-String _$activityCenterHash() => r'b229f9784662ab5c7ac775a3e652847e20cefd4f';
+String _$activityCenterHash() => r'9db7d686db7e6dafd4ee105560817a335f690313';
 
 abstract class _$ActivityCenter extends $AsyncNotifier<ActivityCenterState> {
   FutureOr<ActivityCenterState> build();

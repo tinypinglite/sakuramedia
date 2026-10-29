@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/activity/presentation/pages/mobile/activity_page.dart';
@@ -98,6 +97,7 @@ void main() {
           'task_key': 'new_plugin_job',
           'plugin_id': 'new_plugin',
           'cli_help': '新插件任务',
+          'cron_expr': '0 4 * * *',
           'manual_trigger_allowed': true,
         },
       ],

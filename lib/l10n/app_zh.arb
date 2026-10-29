@@ -73,6 +73,7 @@
   "errorTaskFilterRefreshFailed": "任务筛选刷新失败，请重试",
   "errorLoadMoreTasksFailed": "加载更多任务失败，请点击重试",
   "errorExecutableTaskLoadFailed": "可执行任务加载失败，请重试",
+  "errorTaskAttentionLoadFailed": "需要关注的任务加载失败，请重试",
   "errorRecommendedMovieLoadFailed": "推荐影片加载失败，请稍后重试",
   "errorLoadMoreRecommendedMoviesFailed": "加载更多推荐影片失败，请点击重试",
   "errorHotNewMovieLoadFailed": "热门新片加载失败，请稍后重试",
@@ -2422,7 +2423,76 @@
   "activityNoNotifications": "暂无消息",
   "activityRefreshFailed": "刷新失败，请稍后重试",
   "activityCenterTitle": "任务中心",
-  "activityTaskHistory": "任务历史",
+  "activityRecentOperations": "最近操作",
+  "activityRunRecords": "运行记录",
+  "activityTaskRunHistoryTitle": "运行记录",
+  "activityHistoryEmpty": "该任务还没有运行记录",
+  "activityRunCompletedWithWarning": "有警告",
+  "activityAttentionTitle": "需要关注",
+  "activityAttentionCount": "{count} 个任务",
+  "@activityAttentionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityAttentionFailedCount": "近 7 天失败 {count} 次",
+  "@activityAttentionFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityLastIssueAt": "最近异常：{time}",
+  "@activityLastIssueAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "activityViewRunRecords": "查看记录",
+  "activityAutoTasksTitle": "自动任务",
+  "activityAutoTasksDescription": "按定时计划自动执行的任务；点开可查看计划、最近状态与手动执行入口。",
+  "activityAutoTasksCount": "{count} 个自动任务",
+  "@activityAutoTasksCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityAutoTasksNeedAttention": "{count} 个需关注",
+  "@activityAutoTasksNeedAttention": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityJobTabAuto": "自动任务",
+  "activityJobTabManual": "手动任务",
+  "activityJobStatusAll": "全部状态",
+  "activityJobStatusAttention": "仅异常",
+  "activityJobRecentRuns": "近 24 小时运行 {count} 次",
+  "@activityJobRecentRuns": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityJobRecentFailures": "近 24 小时失败 {count} 次",
+  "@activityJobRecentFailures": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityJobsFilteredEmpty": "当前筛选下没有任务",
   "activityActiveTasks": "活动任务",
   "activityEmptyTasksFiltered": "当前筛选下暂无任务记录",
   "activityJobSubmitted": "任务已提交",
@@ -2431,17 +2501,8 @@
   "activityJobsLoading": "加载中",
   "activityJobsLoadFailed": "加载失败",
   "activityJobsEmpty": "暂无任务",
-  "activityJobsCount": "{count} 个任务",
-  "@activityJobsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "activityExecutableJobsTitle": "可执行任务",
   "activityViewJobs": "查看任务",
-  "activityExecutableJobsDescription": "手动触发已注册的后台任务，执行状态会在任务中心实时更新。",
   "activityJobDisabled": "未启用",
   "activityJobSubmitting": "提交中",
   "activityJobRunNow": "立即执行",

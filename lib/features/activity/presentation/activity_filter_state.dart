@@ -1,3 +1,4 @@
+import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/shared/data/sort_direction.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
@@ -111,6 +112,12 @@ class ActivityTaskFilterState {
   /// 是否存在生效的筛选条件。**不含排序**。
   bool get hasActiveFilters =>
       state != null || taskKey != null || triggerType != null;
+
+  /// 运行记录的查询范围：默认只看「操作」记录（排除定时触发的例行成功），
+  /// 一旦按任务 key 或触发来源筛选就切到全量，保证筛选结果完整。
+  String get taskRunScope => taskKey == null && triggerType == null
+      ? ActivityTaskRunScope.operations
+      : ActivityTaskRunScope.all;
 
   ActivityTaskFilterState withSortField(ActivityTaskSortField field) =>
       copyWith(sort: field.withDirection(sortDirection));

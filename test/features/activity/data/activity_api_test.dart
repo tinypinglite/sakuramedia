@@ -68,6 +68,7 @@ void main() {
       taskKey: 'download_task_import',
       taskTriggerType: 'manual',
       taskSort: 'started_at:desc',
+      taskScope: 'operations',
     );
 
     final notification = response.notifications.items.single;
@@ -82,6 +83,7 @@ void main() {
     expect(request.uri.queryParameters['task_key'], 'download_task_import');
     expect(request.uri.queryParameters['task_trigger_type'], 'manual');
     expect(request.uri.queryParameters['task_sort'], 'started_at:desc');
+    expect(request.uri.queryParameters['task_scope'], 'operations');
   });
 
   test('getNotifications maps read filter and pagination', () async {
@@ -146,6 +148,7 @@ void main() {
         taskKey: 'media_import',
         triggerType: 'manual',
         sort: 'updated_at:desc',
+        scope: 'all',
       );
 
       expect(response.items.single.resultSummary?['imported'], 2);
@@ -155,8 +158,122 @@ void main() {
       expect(request.uri.queryParameters['task_key'], 'media_import');
       expect(request.uri.queryParameters['trigger_type'], 'manual');
       expect(request.uri.queryParameters['sort'], 'updated_at:desc');
+      expect(request.uri.queryParameters['scope'], 'all');
     },
   );
+
+  test(
+    'getTaskAttention reads the attention array with a bounded limit',
+    () async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/task-runs/attention',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'task_key': 'media_import',
+            'task_name': '媒体导入',
+            'latest_run': <String, dynamic>{
+              ..._taskRunJson(id: 77, state: 'completed'),
+              'has_warning': true,
+              'error_message': '跳过 2 个文件',
+            },
+            'failed_count_7d': 3,
+            'last_issue_at': '2026-03-26T09:12:00Z',
+          },
+          <String, dynamic>{'task_key': 'library_import', 'task_name': '媒体库导入'},
+        ],
+      );
+
+      final response = await bundle.activityApi.getTaskAttention();
+
+      expect(response, hasLength(2));
+      expect(response.first.taskKey, 'media_import');
+      expect(response.first.latestRun?.hasWarning, isTrue);
+      expect(response.first.latestRun?.needsAttention, isTrue);
+      expect(response.first.failedCount7d, 3);
+      expect(
+        response.first.lastIssueAt,
+        DateTime.parse('2026-03-26T09:12:00Z'),
+      );
+      // 旧后端 / 缺字段时安全降级。
+      expect(response.last.latestRun, isNull);
+      expect(response.last.failedCount7d, 0);
+      expect(response.last.lastIssueAt, isNull);
+      expect(response.last.displayName, '媒体库导入');
+
+      final request = bundle.adapter.requests.single;
+      expect(request.path, '/system/task-runs/attention');
+      expect(request.uri.queryParameters['limit'], '50');
+    },
+  );
+
+  test(
+    'task run warnings parse defensively and drive attention flags',
+    () async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/task-runs',
+        body: <String, dynamic>{
+          'items': <Map<String, dynamic>>[
+            <String, dynamic>{
+              ..._taskRunJson(id: 51, state: 'completed'),
+              'has_warning': true,
+            },
+            _taskRunJson(id: 52, state: 'completed'),
+            _taskRunJson(id: 53, state: 'failed'),
+          ],
+          'page': 1,
+          'page_size': 20,
+          'total': 3,
+        },
+      );
+
+      final response = await bundle.activityApi.getTaskRuns(
+        scope: 'operations',
+      );
+
+      expect(response.items[0].hasWarning, isTrue);
+      expect(response.items[0].needsAttention, isTrue);
+      expect(response.items[1].hasWarning, isFalse);
+      expect(response.items[1].needsAttention, isFalse);
+      expect(response.items[2].needsAttention, isTrue);
+      expect(
+        bundle.adapter.requests.single.uri.queryParameters['scope'],
+        'operations',
+      );
+    },
+  );
+
+  test('jobs expose recent 24h counts with safe defaults', () async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'task_key': 'media_import',
+          'cli_help': '执行一次媒体库导入',
+          'cron_expr': '0 3 * * *',
+          'manual_trigger_allowed': true,
+          'recent_run_count': 24,
+          'recent_failure_count': 2,
+        },
+        <String, dynamic>{
+          'task_key': 'manual_only',
+          'cli_help': '手动任务',
+          'manual_trigger_allowed': true,
+        },
+      ],
+    );
+
+    final jobs = await bundle.activityApi.getJobs();
+
+    expect(jobs.first.isScheduled, isTrue);
+    expect(jobs.first.recentRunCount, 24);
+    expect(jobs.first.recentFailureCount, 2);
+    expect(jobs.last.isScheduled, isFalse);
+    expect(jobs.last.recentRunCount, 0);
+    expect(jobs.last.recentFailureCount, 0);
+  });
 
   test('getActiveTaskRuns maps the complete active task snapshot', () async {
     bundle.adapter.enqueueJson(
@@ -242,33 +359,36 @@ void main() {
     },
   );
 
-  test('batch operation task without failures only shows the succeeded count', () async {
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/task-runs',
-      body: <String, dynamic>{
-        'items': <Map<String, dynamic>>[
-          <String, dynamic>{
-            ..._taskRunJson(id: 45, state: 'completed'),
-            'task_key': 'batch_operation',
-            'result_summary': <String, dynamic>{
-              'operation': 'media_delete',
-              'total': 2,
-              'succeeded_count': 2,
-              'failed_count': 0,
+  test(
+    'batch operation task without failures only shows the succeeded count',
+    () async {
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/task-runs',
+        body: <String, dynamic>{
+          'items': <Map<String, dynamic>>[
+            <String, dynamic>{
+              ..._taskRunJson(id: 45, state: 'completed'),
+              'task_key': 'batch_operation',
+              'result_summary': <String, dynamic>{
+                'operation': 'media_delete',
+                'total': 2,
+                'succeeded_count': 2,
+                'failed_count': 0,
+              },
             },
-          },
-        ],
-        'page': 1,
-        'page_size': 20,
-        'total': 1,
-      },
-    );
+          ],
+          'page': 1,
+          'page_size': 20,
+          'total': 1,
+        },
+      );
 
-    final response = await bundle.activityApi.getTaskRuns();
+      final response = await bundle.activityApi.getTaskRuns();
 
-    expect(response.items.single.displaySummary(_zh), '成功 2 项');
-  });
+      expect(response.items.single.displaySummary(_zh), '成功 2 项');
+    },
+  );
 
   test('notification mutations use the current response contract', () async {
     bundle.adapter.enqueueJson(

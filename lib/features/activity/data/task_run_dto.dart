@@ -20,6 +20,7 @@ class TaskRunDto {
     required this.finishedAt,
     required this.createdAt,
     required this.updatedAt,
+    this.hasWarning = false,
   });
 
   final int id;
@@ -38,7 +39,15 @@ class TaskRunDto {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
+  /// 后端在 `completed` 结果里带警告（如部分文件失败 / 跳过超阈值）时置位。
+  /// 旧后端不下发该字段，解析为 `false`。
+  final bool hasWarning;
+
   bool get isActive => state == 'pending' || state == 'running';
+
+  /// 需要用户关注：失败，或完成但带警告。
+  bool get needsAttention => state == 'failed' || hasWarning;
+
   bool get hasDeterminateProgress =>
       progressCurrent != null && progressTotal != null && progressTotal! > 0;
   double? get progressValue {
@@ -147,6 +156,7 @@ class TaskRunDto {
     Object? finishedAt = _sentinel,
     Object? createdAt = _sentinel,
     Object? updatedAt = _sentinel,
+    bool? hasWarning,
   }) {
     return TaskRunDto(
       id: id,
@@ -184,6 +194,7 @@ class TaskRunDto {
       updatedAt: identical(updatedAt, _sentinel)
           ? this.updatedAt
           : updatedAt as DateTime?,
+      hasWarning: hasWarning ?? this.hasWarning,
     );
   }
 
@@ -203,6 +214,7 @@ class TaskRunDto {
       finishedAt: next.finishedAt,
       createdAt: next.createdAt,
       updatedAt: next.updatedAt,
+      hasWarning: next.hasWarning,
     );
   }
 
@@ -223,6 +235,7 @@ class TaskRunDto {
       finishedAt: asDateTime(json['finished_at']),
       createdAt: asDateTime(json['created_at']),
       updatedAt: asDateTime(json['updated_at']),
+      hasWarning: json['has_warning'] as bool? ?? false,
     );
   }
 
@@ -248,7 +261,8 @@ class TaskRunDto {
         other.startedAt == startedAt &&
         other.finishedAt == finishedAt &&
         other.createdAt == createdAt &&
-        other.updatedAt == updatedAt;
+        other.updatedAt == updatedAt &&
+        other.hasWarning == hasWarning;
   }
 
   @override
@@ -265,6 +279,7 @@ class TaskRunDto {
     finishedAt,
     createdAt,
     updatedAt,
+    hasWarning,
   );
 }
 

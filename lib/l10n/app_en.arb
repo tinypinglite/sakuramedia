@@ -73,6 +73,7 @@
   "errorTaskFilterRefreshFailed": "Failed to refresh task filters. Please try again.",
   "errorLoadMoreTasksFailed": "Failed to load more tasks. Tap to retry.",
   "errorExecutableTaskLoadFailed": "Failed to load available tasks. Please try again.",
+  "errorTaskAttentionLoadFailed": "Failed to load tasks that need attention. Please try again.",
   "errorRecommendedMovieLoadFailed": "Failed to load recommended movies. Please try again later.",
   "errorLoadMoreRecommendedMoviesFailed": "Failed to load more recommended movies. Tap to retry.",
   "errorHotNewMovieLoadFailed": "Failed to load hot new releases. Please try again later.",
@@ -2422,7 +2423,76 @@
   "activityNoNotifications": "No notifications",
   "activityRefreshFailed": "Refresh failed. Please try again later.",
   "activityCenterTitle": "Task center",
-  "activityTaskHistory": "Task history",
+  "activityRecentOperations": "Recent operations",
+  "activityRunRecords": "Run records",
+  "activityTaskRunHistoryTitle": "Run history",
+  "activityHistoryEmpty": "This task has no run records yet",
+  "activityRunCompletedWithWarning": "Warning",
+  "activityAttentionTitle": "Needs attention",
+  "activityAttentionCount": "{count, plural, =1{1 task} other{{count} tasks}}",
+  "@activityAttentionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityAttentionFailedCount": "{count, plural, =1{1 failure in 7 days} other{{count} failures in 7 days}}",
+  "@activityAttentionFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityLastIssueAt": "Last issue: {time}",
+  "@activityLastIssueAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "activityViewRunRecords": "View records",
+  "activityAutoTasksTitle": "Scheduled tasks",
+  "activityAutoTasksDescription": "Tasks that run on a schedule; open to see the schedule, latest state and a manual run entry.",
+  "activityAutoTasksCount": "{count, plural, =1{1 scheduled task} other{{count} scheduled tasks}}",
+  "@activityAutoTasksCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityAutoTasksNeedAttention": "{count, plural, =1{1 needs attention} other{{count} need attention}}",
+  "@activityAutoTasksNeedAttention": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityJobTabAuto": "Scheduled",
+  "activityJobTabManual": "Manual",
+  "activityJobStatusAll": "All states",
+  "activityJobStatusAttention": "Abnormal only",
+  "activityJobRecentRuns": "{count, plural, =1{1 run in 24h} other{{count} runs in 24h}}",
+  "@activityJobRecentRuns": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityJobRecentFailures": "{count, plural, =1{1 failure in 24h} other{{count} failures in 24h}}",
+  "@activityJobRecentFailures": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityJobsFilteredEmpty": "No tasks match the current filters",
   "activityActiveTasks": "Active tasks",
   "activityEmptyTasksFiltered": "No task records match the current filters",
   "activityJobSubmitted": "Task submitted",
@@ -2431,17 +2501,8 @@
   "activityJobsLoading": "Loading",
   "activityJobsLoadFailed": "Load failed",
   "activityJobsEmpty": "No tasks",
-  "activityJobsCount": "{count, plural, =1{1 task} other{{count} tasks}}",
-  "@activityJobsCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "activityExecutableJobsTitle": "Executable tasks",
   "activityViewJobs": "View tasks",
-  "activityExecutableJobsDescription": "Manually trigger registered background tasks; progress updates in the task center.",
   "activityJobDisabled": "Disabled",
   "activityJobSubmitting": "Submitting",
   "activityJobRunNow": "Run now",

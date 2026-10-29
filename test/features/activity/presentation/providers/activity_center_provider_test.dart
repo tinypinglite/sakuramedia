@@ -53,34 +53,37 @@ void main() {
     );
   });
 
-  test('knownTaskKeyLabels prefers run names and falls back to job help', () async {
-    final subscription = container.listen(activityCenterProvider, (_, __) {});
-    addTearDown(subscription.close);
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/jobs',
-      body: <Map<String, dynamic>>[
-        <String, dynamic>{
-          'task_key': 'gfriends_filetree_refresh',
-          'cli_help': '拉取一次 GFriends Filetree 并写入本地缓存',
-          'manual_trigger_allowed': true,
-        },
-        <String, dynamic>{
-          'task_key': 'media_import',
-          'cli_help': '执行一次媒体库导入',
-          'manual_trigger_allowed': true,
-        },
-      ],
-    );
-    _enqueueBootstrap(bundle, activeTaskId: 8, historyTaskId: 9);
+  test(
+    'knownTaskKeyLabels prefers run names and falls back to job help',
+    () async {
+      final subscription = container.listen(activityCenterProvider, (_, __) {});
+      addTearDown(subscription.close);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/jobs',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'task_key': 'gfriends_filetree_refresh',
+            'cli_help': '拉取一次 GFriends Filetree 并写入本地缓存',
+            'manual_trigger_allowed': true,
+          },
+          <String, dynamic>{
+            'task_key': 'media_import',
+            'cli_help': '执行一次媒体库导入',
+            'manual_trigger_allowed': true,
+          },
+        ],
+      );
+      _enqueueBootstrap(bundle, activeTaskId: 8, historyTaskId: 9);
 
-    final state = await container.read(activityCenterProvider.future);
+      final state = await container.read(activityCenterProvider.future);
 
-    expect(state.knownTaskKeyLabels, <String, String>{
-      'gfriends_filetree_refresh': '拉取一次 GFriends Filetree 并写入本地缓存',
-      'media_import': '媒体导入',
-    });
-  });
+      expect(state.knownTaskKeyLabels, <String, String>{
+        'gfriends_filetree_refresh': '拉取一次 GFriends Filetree 并写入本地缓存',
+        'media_import': '媒体导入',
+      });
+    },
+  );
 
   test('refreshTaskHistory reads /system/task-runs', () async {
     final subscription = container.listen(activityCenterProvider, (_, __) {});
@@ -188,10 +191,9 @@ void main() {
 
     state = container.read(activityCenterProvider).requireValue;
     expect(state.taskRuns, hasLength(40));
-    expect(
-      state.taskRuns.map((task) => task.id).toSet(),
-      <int>{for (var id = 1; id <= 40; id++) id},
-    );
+    expect(state.taskRuns.map((task) => task.id).toSet(), <int>{
+      for (var id = 1; id <= 40; id++) id,
+    });
     expect(state.taskNextPage, 3);
     expect(state.hasMoreTasks, isFalse);
     expect(
@@ -282,6 +284,236 @@ void main() {
     expect(state.taskRuns.single.id, 9);
   });
 
+  test('default run scope is operations and filters switch to all', () async {
+    final subscription = container.listen(activityCenterProvider, (_, __) {});
+    addTearDown(subscription.close);
+    _enqueueJobs(bundle);
+    _enqueueBootstrap(bundle, activeTaskId: 8, historyTaskId: 9);
+    await container.read(activityCenterProvider.future);
+
+    expect(
+      bundle.adapter.requests
+          .lastWhere((request) => request.path == '/system/activity/bootstrap')
+          .uri
+          .queryParameters['task_scope'],
+      'operations',
+    );
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs',
+      body: <String, dynamic>{
+        'items': <Map<String, dynamic>>[
+          _taskRunJson(id: 9, state: 'completed'),
+        ],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
+    );
+    final controller = container.read(activityCenterProvider.notifier);
+    await controller.applyTaskFilter(
+      controller.taskFilter.copyWith(taskKey: 'media_import'),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+
+    final filtered = bundle.adapter.requests.lastWhere(
+      (request) => request.path == '/system/task-runs',
+    );
+    expect(filtered.uri.queryParameters['task_key'], 'media_import');
+    expect(filtered.uri.queryParameters['scope'], 'all');
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs',
+      body: <String, dynamic>{
+        'items': <Map<String, dynamic>>[
+          _taskRunJson(id: 9, state: 'completed'),
+        ],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
+    );
+    await controller.applyTaskFilter(controller.taskFilter.resetFilters());
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+
+    expect(
+      bundle.adapter.requests
+          .lastWhere((request) => request.path == '/system/task-runs')
+          .uri
+          .queryParameters['scope'],
+      'operations',
+    );
+  });
+
+  test('polling keeps the filter-driven run scope', () async {
+    final subscription = container.listen(activityCenterProvider, (_, __) {});
+    addTearDown(subscription.close);
+    _enqueueJobs(bundle);
+    _enqueueBootstrap(bundle, activeTaskId: 8, historyTaskId: 9);
+    await container.read(activityCenterProvider.future);
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs',
+      body: <String, dynamic>{
+        'items': <Map<String, dynamic>>[
+          _taskRunJson(id: 9, state: 'completed'),
+        ],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
+    );
+    final controller = container.read(activityCenterProvider.notifier);
+    await controller.applyTaskFilter(
+      controller.taskFilter.copyWith(triggerType: 'scheduled'),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+
+    _enqueueTaskHistory(bundle, id: 9);
+    _enqueueActiveTasks(bundle, id: 8);
+    await controller.resumePolling();
+
+    expect(
+      bundle.adapter.requests
+          .lastWhere((request) => request.path == '/system/task-runs')
+          .uri
+          .queryParameters['scope'],
+      'all',
+    );
+    expect(
+      bundle.adapter.requests
+          .lastWhere((request) => request.path == '/system/task-runs')
+          .uri
+          .queryParameters['trigger_type'],
+      'scheduled',
+    );
+  });
+
+  test(
+    'build loads attention items and tolerates a missing endpoint',
+    () async {
+      final subscription = container.listen(activityCenterProvider, (_, __) {});
+      addTearDown(subscription.close);
+      _enqueueJobs(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/task-runs/attention',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'task_key': 'media_import',
+            'task_name': '媒体导入',
+            'latest_run': <String, dynamic>{
+              ..._taskRunJson(id: 31, state: 'failed'),
+              'error_message': '导入失败',
+            },
+            'failed_count_7d': 2,
+            'last_issue_at': '2026-03-26T09:12:00Z',
+          },
+        ],
+      );
+      _enqueueBootstrapRaw(bundle, activeTaskId: 8, historyTaskId: 9);
+      final state = await container.read(activityCenterProvider.future);
+
+      expect(state.attentionItems.single.taskKey, 'media_import');
+      expect(state.attentionItems.single.failedCount7d, 2);
+      expect(state.attentionErrorMessage, isNull);
+      expect(state.knownTaskKeyLabels['media_import'], '媒体导入');
+    },
+  );
+
+  test(
+    'attention failures degrade to an empty section without blocking',
+    () async {
+      final subscription = container.listen(activityCenterProvider, (_, __) {});
+      addTearDown(subscription.close);
+      _enqueueJobs(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/task-runs/attention',
+        statusCode: 404,
+        body: const <String, dynamic>{'detail': 'not found'},
+      );
+      _enqueueBootstrapRaw(bundle, activeTaskId: 8, historyTaskId: 9);
+      final state = await container.read(activityCenterProvider.future);
+
+      expect(state.attentionItems, isEmpty);
+      expect(state.attentionErrorMessage, isNotNull);
+      expect(state.initialized, isTrue);
+      expect(state.taskRuns.single.id, 9);
+    },
+  );
+
+  test('refreshAll refreshes runs, attention and jobs together', () async {
+    final subscription = container.listen(activityCenterProvider, (_, __) {});
+    addTearDown(subscription.close);
+    _enqueueJobs(bundle);
+    _enqueueBootstrap(bundle, activeTaskId: 8, historyTaskId: 9);
+    await container.read(activityCenterProvider.future);
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs',
+      body: <String, dynamic>{
+        'items': <Map<String, dynamic>>[
+          _taskRunJson(id: 44, state: 'completed'),
+        ],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs/attention',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'task_key': 'library_import',
+          'task_name': '媒体库导入',
+          'latest_run': _taskRunJson(id: 45, state: 'failed'),
+          'failed_count_7d': 1,
+          'last_issue_at': '2026-03-26T09:12:00Z',
+        },
+      ],
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'task_key': 'media_import',
+          'cli_help': '执行一次媒体库导入',
+          'cron_expr': '0 3 * * *',
+          'manual_trigger_allowed': true,
+          'recent_run_count': 4,
+          'recent_failure_count': 1,
+        },
+      ],
+    );
+
+    final before = bundle.adapter.requests.length;
+    await container.read(activityCenterProvider.notifier).refreshAll();
+
+    final state = container.read(activityCenterProvider).requireValue;
+    expect(state.taskRuns.single.id, 44);
+    expect(state.attentionItems.single.taskKey, 'library_import');
+    expect(state.jobs.single.recentFailureCount, 1);
+    final paths = bundle.adapter.requests
+        .skip(before)
+        .map((request) => request.path)
+        .toSet();
+    expect(
+      paths,
+      containsAll(<String>[
+        '/system/task-runs',
+        '/system/task-runs/attention',
+        '/system/jobs',
+      ]),
+    );
+  });
+
   test('polling with changed progress notifies listeners once', () async {
     var notifications = 0;
     final subscription = container.listen(activityCenterProvider, (_, __) {
@@ -354,7 +586,28 @@ void _enqueueJobs(TestApiBundle bundle) {
   );
 }
 
+void _enqueueAttention(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/system/task-runs/attention',
+    body: const <dynamic>[],
+  );
+}
+
 void _enqueueBootstrap(
+  TestApiBundle bundle, {
+  required int activeTaskId,
+  required int historyTaskId,
+}) {
+  _enqueueAttention(bundle);
+  _enqueueBootstrapRaw(
+    bundle,
+    activeTaskId: activeTaskId,
+    historyTaskId: historyTaskId,
+  );
+}
+
+void _enqueueBootstrapRaw(
   TestApiBundle bundle, {
   required int activeTaskId,
   required int historyTaskId,
@@ -390,6 +643,7 @@ void _enqueueBootstrapPage(
   required List<Map<String, dynamic>> items,
   required int total,
 }) {
+  _enqueueAttention(bundle);
   bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/system/activity/bootstrap',

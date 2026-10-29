@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/activity_bootstrap_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
@@ -391,9 +391,14 @@ class NotificationCenter extends _$NotificationCenter {
     state = NotificationCenterState.initial;
   }
 
+  /// 通知中心不按任务筛选，bootstrap 里的任务快照固定走 `operations` 范围，
+  /// 不把定时成功的例行记录带进通知页的响应。
   Future<ActivityBootstrapDto> _loadBootstrapState() => ref
       .read(activityApiProvider)
-      .getBootstrap(notificationCategory: state.filter.category);
+      .getBootstrap(
+        notificationCategory: state.filter.category,
+        taskScope: ActivityTaskRunScope.operations,
+      );
 
   void _applyBootstrapState(ActivityBootstrapDto response) {
     final notifications = _withInFlightReadOverrides(
