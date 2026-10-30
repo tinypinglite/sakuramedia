@@ -116,6 +116,11 @@ class MobileOverviewDrawer extends ConsumerWidget {
       label: l10n.shellNavMediaLibraries,
     ),
     _MobileOverviewDrawerMenuItem(
+      key: 'media-tags',
+      icon: Icons.sell_outlined,
+      label: l10n.shellNavMediaTags,
+    ),
+    _MobileOverviewDrawerMenuItem(
       key: 'downloaders',
       icon: Icons.download_outlined,
       label: l10n.shellNavDownloaders,

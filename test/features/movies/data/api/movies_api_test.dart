@@ -344,6 +344,57 @@ void main() {
     expect(request.uri.queryParameters.containsKey('tag_match'), isFalse);
   });
 
+  test('getMovies sends media file tag filters and match mode', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(
+      mediaTagIds: const <int>[4, 9],
+      mediaTagMatch: TagMatchMode.and,
+      page: 1,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters['media_tag_ids'], '4,9');
+    expect(request.uri.queryParameters['media_tag_match'], 'and');
+    expect(request.uri.queryParameters.containsKey('tag_ids'), isFalse);
+  });
+
+  test('getMovies omits media tag filters when selection is empty', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(
+      mediaTagIds: const <int>[],
+      mediaTagMatch: TagMatchMode.and,
+      page: 1,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters.containsKey('media_tag_ids'), isFalse);
+    expect(request.uri.queryParameters.containsKey('media_tag_match'), isFalse);
+  });
+
   test('getMovies omits optional filters when not provided', () async {
     adapter.enqueueJson(
       method: 'GET',

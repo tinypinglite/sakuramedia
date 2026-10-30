@@ -1,4 +1,5 @@
 import 'package:sakuramedia/core/json/json_parse.dart';
+import 'package:sakuramedia/features/media/data/media_tag_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -63,6 +64,8 @@ class MediaListItemDto with MovieCoverSelection {
     this.thumbnailGenerationState = MediaThumbnailGenerationState.unknown,
     this.thumbnailLastErrorCode,
     this.collections = const <VideoCollectionRef>[],
+    this.tags = const <MediaTagRefDto>[],
+    this.isMediaTagsManuallyManaged = false,
   });
 
   final int id;
@@ -87,6 +90,8 @@ class MediaListItemDto with MovieCoverSelection {
   final MediaThumbnailGenerationState thumbnailGenerationState;
   final String? thumbnailLastErrorCode;
   final List<VideoCollectionRef> collections;
+  final List<MediaTagRefDto> tags;
+  final bool isMediaTagsManuallyManaged;
 
   bool get isJav => kind == MediaListItemKind.jav;
   bool get isVideo => kind == MediaListItemKind.video;
@@ -143,6 +148,9 @@ class MediaListItemDto with MovieCoverSelection {
         trim: true,
       ),
       collections: videoCollectionRefsFromJson(json['collections']),
+      tags: mediaTagRefsFromJson(json['tags']),
+      isMediaTagsManuallyManaged:
+          json['is_media_tags_manually_managed'] as bool? ?? false,
     );
   }
 

@@ -26,15 +26,23 @@ void main() {
       expect(state.hasActiveFilters, isTrue);
     });
 
+    test('文件名搜索去除首尾空白并计入筛选', () {
+      const state = MediaBrowseFilterState(search: '  abc-001  ');
+      expect(state.trimmedSearch, 'abc-001');
+      expect(state.hasActiveFilters, isTrue);
+    });
+
     test('resetFilters 保留排序', () {
       const state = MediaBrowseFilterState(
         kind: MediaListItemKind.video,
         libraryId: 3,
+        search: 'abc',
         sortField: MediaBrowseSortField.fileSize,
         sortDirection: SortDirection.asc,
       );
       final reset = state.resetFilters();
       expect(reset.hasActiveFilters, isFalse);
+      expect(reset.search, isEmpty);
       expect(reset.sortField, MediaBrowseSortField.fileSize);
       expect(reset.sortDirection, SortDirection.asc);
     });

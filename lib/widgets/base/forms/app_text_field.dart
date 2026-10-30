@@ -28,6 +28,7 @@ class AppTextField extends StatelessWidget {
     this.fillColor,
     this.borderRadius,
     this.style,
+    this.height,
   });
 
   final Key? fieldKey;
@@ -67,6 +68,9 @@ class AppTextField extends StatelessWidget {
   /// 用于 JSON / 代码等需要等宽字体的编辑区。
   final TextStyle? style;
 
+  /// 固定输入框填充面的高度；为空时沿用内容自适应高度。
+  final double? height;
+
   @override
   Widget build(BuildContext context) {
     final formTokens = context.appFormTokens;
@@ -101,8 +105,8 @@ class AppTextField extends StatelessWidget {
           autovalidateMode: autovalidateMode,
           maxLines: obscureText ? 1 : maxLines,
           minLines: obscureText ? 1 : minLines,
-          style:
-              style ?? resolveAppTextStyle(context, size: AppTextSize.s14),
+          textAlignVertical: height == null ? null : TextAlignVertical.center,
+          style: style ?? resolveAppTextStyle(context, size: AppTextSize.s14),
           decoration: _buildDecoration(context),
         ),
       ],
@@ -141,6 +145,9 @@ class AppTextField extends StatelessWidget {
         size: AppTextSize.s12,
         tone: AppTextTone.error,
       ),
+      constraints: height == null
+          ? null
+          : BoxConstraints.tightFor(height: height),
       isDense: isDense,
       filled: true,
       fillColor: fillColor ?? colors.surfaceMuted,
@@ -150,24 +157,31 @@ class AppTextField extends StatelessWidget {
             horizontal: formTokens.fieldHorizontalPadding,
             vertical: formTokens.fieldVerticalPadding,
           ),
-      prefixIcon:
-          prefix == null
-              ? null
-              : Padding(
-                padding: EdgeInsets.only(
-                  left: context.appSpacing.md,
-                  right: context.appSpacing.sm,
-                ),
-                child: prefix,
+      prefixIcon: prefix == null
+          ? null
+          : Padding(
+              padding: EdgeInsets.only(
+                left: context.appSpacing.md,
+                right: context.appSpacing.sm,
               ),
+              child: height == null
+                  ? prefix
+                  : SizedBox(
+                      height: height,
+                      child: Align(
+                        alignment: Alignment.center,
+                        widthFactor: 1,
+                        child: prefix,
+                      ),
+                    ),
+            ),
       prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
       suffixIcon: suffix,
       // 默认沿用 Flutter 的 48×48 min（保证 AppIconButton 等 icon 型 suffix 的触控热区）；
       // 只有 tightSuffix=true 的文本型 suffix（例如单位「MB」「分钟」）才收紧到 0×0，让文本贴边。
-      suffixIconConstraints:
-          suffix != null && tightSuffix
-              ? const BoxConstraints(minWidth: 0, minHeight: 0)
-              : null,
+      suffixIconConstraints: suffix != null && tightSuffix
+          ? const BoxConstraints(minWidth: 0, minHeight: 0)
+          : null,
       border: border(colors.borderSubtle),
       enabledBorder: border(colors.borderSubtle),
       focusedBorder: border(colors.borderSubtle),

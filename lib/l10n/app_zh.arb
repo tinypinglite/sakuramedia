@@ -901,6 +901,7 @@
   "configTabAccountSecurity": "账号安全",
   "configTabAppearance": "外观",
   "configTabMediaLibraries": "媒体库",
+  "configTabMediaTags": "媒体文件标签",
   "configTabDownloadClients": "下载器",
   "configTabIndexers": "索引器",
   "configTabExternalPlayer": "外部播放器",
@@ -908,6 +909,126 @@
   "configTabAdvanced": "高级设置",
   "configTabPlugins": "插件",
   "configTabSystemMaintenance": "系统维护",
+  "errorMediaTagsLoadFailed": "媒体文件标签加载失败，请稍后重试。",
+  "mediaTagsManagementNoticeTitle": "按规则自动标记媒体文件",
+  "mediaTagsManagementNoticeDescription": "规则会匹配文件名、发布标题和简介，排除词优先于命中词。修改规则只影响后续导入和重新应用；手工接管的媒体不会被覆盖。",
+  "mediaTagsEmpty": "还没有媒体文件标签",
+  "mediaTagsLoadFailedTitle": "媒体文件标签加载失败",
+  "mediaTagsLoadFailedFallback": "媒体文件标签加载失败，请稍后重试。",
+  "mediaTagsAdd": "新增媒体文件标签",
+  "mediaTagsEditTitle": "编辑媒体文件标签",
+  "mediaTagsNameLabel": "标签名称",
+  "mediaTagsNameHint": "例如：高画质",
+  "mediaTagsIncludeTermsLabel": "命中词",
+  "mediaTagsIncludeTermsHint": "每行一个，命中任意一项即可",
+  "mediaTagsExcludeTermsLabel": "排除词",
+  "mediaTagsExcludeTermsHint": "每行一个，可留空",
+  "mediaTagsEnabledLabel": "启用自动匹配",
+  "mediaTagsEnabledDescription": "关闭后不再参与自动规则；已手工分配的标签仍会保留。",
+  "mediaTagsMoreActions": "更多操作",
+  "mediaTagsDeleteTitle": "删除媒体文件标签",
+  "mediaTagsDeleteMessage": "删除「{name}」后，所有媒体上的该标签关联也会移除。此操作不可恢复。",
+  "@mediaTagsDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaTagsDeleted": "媒体文件标签已删除",
+  "mediaTagsDeleteFailed": "删除媒体文件标签失败",
+  "mediaTagsCreated": "媒体文件标签已创建",
+  "mediaTagsCreateFailed": "创建媒体文件标签失败",
+  "mediaTagsSaved": "媒体文件标签已保存",
+  "mediaTagsSaveFailed": "保存媒体文件标签失败",
+  "mediaTagsMediaCount": "{count} 个媒体",
+  "@mediaTagsMediaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaTagsExcludeSummary": "排除 {count} 项",
+  "@mediaTagsExcludeSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaTagsRuleTestTitle": "规则测试",
+  "mediaTagsRuleTestDescription": "使用已保存且启用的规则测试一个文件名或发布信息。",
+  "mediaTagsPreviewFileNameLabel": "文件名",
+  "mediaTagsPreviewFileNameHint": "例如：ABC-001.2160p.mkv",
+  "mediaTagsPreviewReleaseTitleLabel": "发布标题（可选）",
+  "mediaTagsPreviewReleaseDescriptionLabel": "发布简介（可选）",
+  "mediaTagsPreviewAction": "测试匹配",
+  "mediaTagsPreviewNoMatch": "没有命中任何媒体文件标签",
+  "mediaTagsPreviewMatchedTerm": "命中词：{term}",
+  "@mediaTagsPreviewMatchedTerm": {
+    "placeholders": {
+      "term": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaTagsPreviewFailed": "规则测试失败，请稍后重试。",
+  "mediaTagsRetagTitle": "重新应用自动标签",
+  "mediaTagsRetagDescription": "按当前已启用规则重算所有 JAV 媒体文件。手工接管的媒体会跳过，任务进度可在任务中心查看。",
+  "mediaTagsRetagAction": "重新应用",
+  "mediaTagsRetagConfirmTitle": "重新应用自动标签",
+  "mediaTagsRetagConfirmMessage": "将扫描全部 JAV 媒体并按当前规则更新标签。手工接管的媒体不会被修改。",
+  "mediaTagsRetagSubmitted": "媒体文件标签重算任务已提交",
+  "mediaTagsRetagFailed": "提交媒体文件标签重算任务失败",
+  "mediaTagsNameRequired": "请输入标签名称",
+  "mediaTagsIncludeTermsRequired": "至少需要一个命中词",
+  "mediaTagsDisabledBadge": "已停用",
+  "mediaTagsAssignmentTitle": "媒体文件标签",
+  "mediaTagsAssignmentDescription": "保存后，该文件将由手工标签接管，自动规则和全量重算不会再覆盖它。",
+  "mediaTagsAssignmentManualBadge": "手工管理",
+  "mediaTagsAssignmentAutoBadge": "自动匹配",
+  "mediaTagsAssignmentEmpty": "暂无可选择的媒体文件标签",
+  "mediaTagsAssignmentSave": "保存标签",
+  "mediaTagsAssignmentSaved": "媒体文件标签已更新",
+  "mediaTagsAssignmentSavedRefreshFailed": "媒体文件标签已保存，但详情刷新失败，请稍后重试",
+  "mediaTagsAssignmentSaveFailed": "更新媒体文件标签失败",
+  "mediaTagsAssignmentLoadFailed": "加载媒体文件标签失败",
+  "mediaTagsAssignmentResetAuto": "恢复自动标签",
+  "mediaTagsAssignmentResetTitle": "恢复自动标签",
+  "mediaTagsAssignmentResetMessage": "将解除手工接管，并按当前启用的规则重新计算该文件的标签。",
+  "mediaTagsAssignmentResetFailed": "恢复自动标签失败",
+  "mediaTagsAssignmentDisabledHint": "该标签的自动匹配已关闭，仍可手工分配。",
+  "movieMediaTagFilterTitle": "媒体文件标签",
+  "movieMediaTagFilterClear": "清空",
+  "movieMediaTagFilterSelectedCount": "已选 {count} 个",
+  "@movieMediaTagFilterSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageMediaTagCount": "文件标签 {count}",
+  "@moviePageMediaTagCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "movieMediaTagsEdit": "编辑文件标签",
+  "mediaListTagsEdit": "编辑文件标签",
+  "mediaListTagsManualBadge": "手工",
+  "mediaListTagsOverflow": "+{count}",
+  "@mediaListTagsOverflow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shellNavMediaTags": "媒体文件标签",
   "appearanceDescription": "调整界面明暗与主题色，设置保存在本机。",
   "appearanceThemeMode": "主题模式",
   "appearanceSystem": "跟随系统",
@@ -3368,6 +3489,9 @@
   "mediaListFilterSectionThumbnail": "缩略图状态",
   "mediaListFilterAllLibraries": "全部媒体库",
   "mediaListFilterAllMedia": "全部媒体",
+  "mediaListSearchFileNameHint": "搜索文件名",
+  "mediaListSearchFileNameTooltip": "搜索文件名",
+  "mediaListCollapseSearchTooltip": "收起搜索",
   "mediaListInvalidBadge": "失效",
   "mediaListUpdatedAt": "更新 {value}",
   "@mediaListUpdatedAt": {

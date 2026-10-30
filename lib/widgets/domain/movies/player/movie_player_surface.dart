@@ -291,6 +291,10 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       '[player-debug] surface_state_open_media requestId=$requestId url=${widget.resolvedUrl} initialPositionSeconds=${widget.initialPosition?.inSeconds} startupTargetSeconds=${_startupSeek.target?.inSeconds}',
     );
     _readiness.reset();
+    await _configureSeekFramedrop();
+    if (!mounted || requestId != _openRequestId) {
+      return;
+    }
     try {
       await _openCoordinator.open(
         open: (url, {required startPosition, required play}) => _player.open(
@@ -364,6 +368,17 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       return;
     }
     _statsSampler.updatePlaybackModeLabel(modeLabel);
+  }
+
+  Future<void> _configureSeekFramedrop() async {
+    final platformPlayer = _player.platform;
+    if (platformPlayer == null) {
+      return;
+    }
+    try {
+      final dynamic nativePlayer = platformPlayer;
+      await nativePlayer.setProperty('hr-seek-framedrop', 'yes');
+    } catch (_) {}
   }
 
   bool get _guardsInitialSeek => true;

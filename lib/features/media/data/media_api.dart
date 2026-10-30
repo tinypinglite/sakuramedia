@@ -21,6 +21,7 @@ class MediaApi {
   /// - [kind] 传 `all` / `jav` / `video`，`null` 走后端默认（`all`）。
   /// - [libraryId] 指定媒体库过滤，null 时不加参数。
   /// - [actorIds] 订阅女优 OR 筛选，会拼成逗号分隔字符串下发。
+  /// - [search] 按文件名做大小写不敏感的子串过滤，空串不搜索。
   /// - [sort] 例如 `heat:desc`、`file_size_bytes:desc`，`null` 时后端默认 `created_at:desc`。
   Future<PaginatedResponseDto<MediaListItemDto>> getMediaList({
     int page = 1,
@@ -28,6 +29,7 @@ class MediaApi {
     String? kind,
     int? libraryId,
     List<int>? actorIds,
+    String? search,
     String? thumbnailGenerationState,
     String? sort,
   }) async {
@@ -43,6 +45,10 @@ class MediaApi {
     }
     if (actorIds != null && actorIds.isNotEmpty) {
       queryParameters['actor_ids'] = actorIds.join(',');
+    }
+    final normalizedSearch = search?.trim() ?? '';
+    if (normalizedSearch.isNotEmpty) {
+      queryParameters['search'] = normalizedSearch;
     }
     if (thumbnailGenerationState != null &&
         thumbnailGenerationState.isNotEmpty) {

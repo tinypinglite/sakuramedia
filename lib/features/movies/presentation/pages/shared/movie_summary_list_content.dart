@@ -33,6 +33,7 @@ import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_sort_menu_button.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/domain/tags/tag_filter_section.dart';
+import 'package:sakuramedia/features/movies/presentation/widgets/media_tag_filter_section.dart';
 
 typedef MovieSummaryListBodyBuilder =
     Widget Function(
@@ -44,6 +45,24 @@ typedef MovieSummaryListBodyBuilder =
 
 typedef MovieSummaryListHeaderBuilder =
     Widget Function(BuildContext context, MovieSummaryListHeaderArgs args);
+
+/// 顶栏筛选摘要：目录标签计数 + 媒体文件标签计数。
+///
+/// 两项都没选时退回筛选维度摘要（状态/分辨率等）。桌面筛选面板与移动顶栏
+/// 共用这一份拼接，避免两端文案格式漂移。
+String movieFilterSummaryLabel({
+  required AppLocalizations l10n,
+  required MovieFilterState filter,
+  required TagSelectionState? tagSelection,
+}) {
+  final hasTagSelection = tagSelection?.hasSelection ?? false;
+  if (!hasTagSelection) return filter.triggerLabel(l10n);
+  final tagLabel = l10n.moviePageTagFilterCount(tagSelection!.selectedCount);
+  final mediaTagCount = filter.mediaTagIds.length;
+  return mediaTagCount == 0
+      ? tagLabel
+      : '$tagLabel · ${l10n.moviePageMediaTagCount(mediaTagCount)}';
+}
 
 class MovieSummaryListHeaderArgs {
   const MovieSummaryListHeaderArgs({
@@ -85,6 +104,7 @@ class MovieSummaryListContent extends ConsumerStatefulWidget {
     this.showHeader = true,
     this.useMobileSelectionLayout = false,
     this.tagSelectionScope,
+    this.enableMediaTagFilter = false,
     this.trailingLabelForMovie,
   });
 
@@ -110,6 +130,7 @@ class MovieSummaryListContent extends ConsumerStatefulWidget {
   /// 到列表筛选，顶栏摘要与重置也纳入标签条件。生命周期由调用页面管理
   /// （缓存页需把它的 cacheLink 一并注册进页面缓存）。
   final TagSelectionScope? tagSelectionScope;
+  final bool enableMediaTagFilter;
 
   /// 卡片收起态番号行右侧文案（如「总分 4.0」）；为 null 时不显示。
   final String? Function(MovieListItemDto movie)? trailingLabelForMovie;
@@ -336,12 +357,14 @@ class _MovieSummaryListContentState
         ),
       );
     } else {
-      final hasTagSelection = tagSelection?.hasSelection ?? false;
+      final filterLabel = movieFilterSummaryLabel(
+        l10n: l10n,
+        filter: filter,
+        tagSelection: tagSelection,
+      );
       header = AppListHeader(
         filterButtonKey: const Key('movies-filter-trigger'),
-        filterLabel: hasTagSelection
-            ? l10n.moviePageTagFilterCount(tagSelection!.selectedCount)
-            : filter.triggerLabel(l10n),
+        filterLabel: filterLabel,
         filterPanelKey: const Key('movies-filter-panel'),
         filterPanelBuilder: (_) => MovieFilterSectionGroup(
           filterState: filter,
@@ -349,9 +372,23 @@ class _MovieSummaryListContentState
           tagSection: tagSelectionScope == null
               ? null
               : TagFilterSection(scope: tagSelectionScope),
+          mediaTagSection: widget.enableMediaTagFilter
+              ? MediaTagFilterSection(
+                  selectedTagIds: filter.mediaTagIds,
+                  matchMode: filter.mediaTagMatch,
+                  onChanged: (tagIds, matchMode) => _applyFilter(
+                    filter.copyWith(
+                      mediaTagIds: tagIds,
+                      mediaTagMatch: matchMode,
+                    ),
+                  ),
+                )
+              : null,
         ),
         filterPanelFooter: AppFilterPanelFooter(
-          isDefault: !filter.hasActiveFilters && !hasTagSelection,
+          isDefault:
+              !filter.hasActiveFilters &&
+              !(tagSelection?.hasSelection ?? false),
           onReset: _resetFilters,
         ),
         informationSlots: [

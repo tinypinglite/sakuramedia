@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/cast/presentation/actions/cast_movie_playba
 import 'package:sakuramedia/features/cast/presentation/providers/cast_session_provider.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_tag_assignment_editor.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_copy.dart';
@@ -288,6 +289,33 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     }
     resetDetailOverridesAfterRefresh(deletedMediaId: deletedMediaId);
     await loadMovieCollectionStatus();
+  }
+
+  Future<void> editMediaTags(
+    MovieMediaItemDto mediaItem, {
+    required bool mobile,
+  }) async {
+    final assignment = await showMediaTagAssignmentEditor(
+      context,
+      mediaId: mediaItem.mediaId,
+      mobile: mobile,
+    );
+    if (assignment == null || !mounted) return;
+    try {
+      await ref.read(movieDetailProvider(movieNumber).notifier).refresh();
+    } catch (_) {
+      // 标签已经存到后端，只是详情刷新失败：页面保留旧标签，下一次进入会
+      // 重新拉取。这种情况不能报「已更新」，否则界面没变却提示成功。
+      if (mounted) {
+        showToast(
+          AppLocalizations.of(context).mediaTagsAssignmentSavedRefreshFailed,
+        );
+      }
+      return;
+    }
+    if (mounted) {
+      showToast(AppLocalizations.of(context).mediaTagsAssignmentSaved);
+    }
   }
 
   /// 详情 refresh 完成后：清 point overrides + subscription/collection override，

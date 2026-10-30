@@ -226,6 +226,9 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
       isDeletingSelectedMedia:
           selectedMedia != null && deletingMediaId == selectedMedia.mediaId,
       onDeleteSelectedMedia: selectedMedia == null ? null : deleteSelectedMedia,
+      onEditMediaTags: selectedMedia == null
+          ? null
+          : (mediaItem) => editMediaTags(mediaItem, mobile: false),
       onOpenMediaPointPreview: openMediaPointPreview,
       onRequestMediaPointMenu: showMediaPointActions,
       onActorTap: (actor) => context.pushDesktopActorDetail(

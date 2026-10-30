@@ -21,6 +21,7 @@ Future<bool> showAppConfigDeleteConfirm({
   String? confirmLabel,
   Key? dialogKey,
   Key? confirmKey,
+  Key? cancelKey,
 }) async {
   final confirmed = await showAppConfirmDialog(
     context,
@@ -30,6 +31,7 @@ Future<bool> showAppConfigDeleteConfirm({
     confirmLabel: confirmLabel ?? AppLocalizations.of(context).commonDelete,
     dialogKey: dialogKey,
     confirmKey: confirmKey,
+    cancelKey: cancelKey,
     failureFallback: failureFallback,
     onConfirm: onDelete,
   );

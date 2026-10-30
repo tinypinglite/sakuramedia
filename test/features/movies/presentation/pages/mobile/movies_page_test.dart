@@ -231,6 +231,11 @@ void main() {
         <String, dynamic>{'tag_id': 3, 'name': '巨乳', 'movie_count': 100},
       ],
     );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-tags',
+      body: const <Map<String, dynamic>>[],
+    );
     await tester.tap(find.byKey(const Key('mobile-movies-filter-button')));
     await tester.pumpAndSettle();
     expect(
@@ -238,6 +243,7 @@ void main() {
       findsOneWidget,
     );
     expect(bundle.adapter.hitCount('GET', '/tags'), 1);
+    expect(bundle.adapter.hitCount('GET', '/media-tags'), 1);
     // 标签分节在抽屉最末，先滚到它再操作。
     expect(find.byKey(const Key('tags-option-3')), findsOneWidget);
 
@@ -278,6 +284,67 @@ void main() {
     );
     expect(cleared.uri.queryParameters.containsKey('tag_ids'), isFalse);
     expect(find.byKey(const Key('tags-selected-3')), findsNothing);
+    expect(tester.takeException(), isNull);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('筛选抽屉内选媒体文件标签会叠加在其它筛选条件上', (tester) async {
+    await pumpPage(tester, TargetPlatform.android);
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-tags',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 7,
+          'name': '4K',
+          'include_terms': ['4k'],
+          'exclude_terms': <dynamic>[],
+          'enabled': true,
+          'media_count': 3,
+        },
+      ],
+    );
+    await tester.tap(find.byKey(const Key('mobile-movies-filter-button')));
+    await tester.pumpAndSettle();
+    expect(bundle.adapter.hitCount('GET', '/media-tags'), 1);
+
+    // 先改「状态」：写进抽屉自己的本地筛选状态。
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page('ABC-002'),
+    );
+    final subscribedChip = find.text('已订阅');
+    expect(subscribedChip, findsOneWidget);
+    await tester.tap(subscribedChip);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    final afterStatus = bundle.adapter.requests.lastWhere(
+      (request) => request.path == '/movies',
+    );
+    expect(afterStatus.uri.queryParameters['status'], 'subscribed');
+
+    // 再选媒体文件标签：必须叠加在当前筛选条件上，不能把刚改的状态回滚。
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page('ABC-003'),
+    );
+    await tester.ensureVisible(find.byKey(const Key('movie-media-tag-filter-7')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('movie-media-tag-filter-7')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    final afterMediaTag = bundle.adapter.requests.lastWhere(
+      (request) => request.path == '/movies',
+    );
+    expect(afterMediaTag.uri.queryParameters['media_tag_ids'], '7');
+    expect(afterMediaTag.uri.queryParameters['status'], 'subscribed');
     expect(tester.takeException(), isNull);
     debugDefaultTargetPlatformOverride = null;
   });

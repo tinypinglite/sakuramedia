@@ -55,6 +55,7 @@ void main() {
           'configuration-tab-account-security',
           'configuration-tab-appearance',
           'configuration-tab-media-libraries',
+          'configuration-tab-media-tags',
           'configuration-tab-downloads',
           'configuration-tab-indexers',
           'configuration-tab-download-selection',
@@ -848,10 +849,7 @@ void main() {
           path: '/media-libraries',
           statusCode: 409,
           body: {
-            'error': {
-              'code': 'media_library_invalid',
-              'message': '媒体库目录不可写',
-            },
+            'error': {'code': 'media_library_invalid', 'message': '媒体库目录不可写'},
           },
         );
 
@@ -871,11 +869,13 @@ void main() {
 
         expect(bundle.adapter.hitCount('POST', '/media-libraries'), 1);
         expect(
-          bundle.adapter.requests.firstWhere(
-            (request) =>
-                request.method == 'POST' &&
-                request.path == '/media-libraries',
-          ).body,
+          bundle.adapter.requests
+              .firstWhere(
+                (request) =>
+                    request.method == 'POST' &&
+                    request.path == '/media-libraries',
+              )
+              .body,
           <String, dynamic>{
             'name': 'Archive',
             'provider_key': 'demo',
@@ -904,10 +904,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(bundle.adapter.hitCount('POST', '/media-libraries'), 2);
-        expect(
-          find.byKey(const Key('media-library-name-field')),
-          findsNothing,
-        );
+        expect(find.byKey(const Key('media-library-name-field')), findsNothing);
         expect(find.byKey(const Key('media-library-card-2')), findsOneWidget);
         expect(find.text('媒体库已创建'), findsOneWidget);
         await tester.pump(const Duration(seconds: 3));
@@ -954,12 +951,9 @@ void main() {
 
         final patchRequest = bundle.adapter.requests.firstWhere(
           (request) =>
-              request.method == 'PATCH' &&
-              request.path == '/media-libraries/1',
+              request.method == 'PATCH' && request.path == '/media-libraries/1',
         );
-        expect(patchRequest.body, <String, dynamic>{
-          'name': 'Renamed Missing',
-        });
+        expect(patchRequest.body, <String, dynamic>{'name': 'Renamed Missing'});
         expect(find.text('Renamed Missing'), findsOneWidget);
         expect(find.text('媒体库已更新'), findsOneWidget);
         await tester.pump(const Duration(seconds: 3));
@@ -1118,9 +1112,7 @@ void main() {
       await tester.ensureVisible(
         find.byKey(const Key('configuration-api-key-delete-7')),
       );
-      await tester.tap(
-        find.byKey(const Key('configuration-api-key-delete-7')),
-      );
+      await tester.tap(find.byKey(const Key('configuration-api-key-delete-7')));
       await tester.pumpAndSettle();
 
       expect(find.text('删除 API 密钥'), findsOneWidget);

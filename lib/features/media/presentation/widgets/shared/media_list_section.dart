@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
@@ -25,6 +26,7 @@ import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
@@ -51,7 +53,7 @@ import 'package:sakuramedia/widgets/domain/media/media_sort_menu_button.dart';
 /// 视觉参考「下载任务」卡片（[_DownloadTaskCard]）：页面灰底 + 每张 media card 直接浮起
 /// 为独立白卡（不再套 `AppContentCard`）。多选操作全部收敛到顶部 [AppFilterTotalHeader]
 /// 的 trailing，跟筛选、总数、刷新同一条行。
-class MediaListSection extends StatelessWidget {
+class MediaListSection extends HookConsumerWidget {
   const MediaListSection({
     super.key,
     required this.scrollController,
@@ -75,6 +77,7 @@ class MediaListSection extends StatelessWidget {
     this.onRetryThumbnails,
     this.retryingThumbnailMediaId,
     this.onOpenRowActions,
+    this.onEditTags,
   });
 
   final ScrollController scrollController;
@@ -136,9 +139,11 @@ class MediaListSection extends StatelessWidget {
 
   /// 移动端单项「更多」入口：桌面端不用（行内平铺图标，hover 有 tooltip）。
   final Future<void> Function(MediaListItemDto item)? onOpenRowActions;
+  final Future<void> Function(MediaListItemDto item)? onEditTags;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final searchExpanded = useState(false);
     final scrollView = CustomScrollView(
       key: Key('$keyPrefix-list-scroll-view'),
       controller: scrollController,
@@ -160,6 +165,7 @@ class MediaListSection extends StatelessWidget {
           onRetryThumbnails: onRetryThumbnails,
           retryingThumbnailMediaId: retryingThumbnailMediaId,
           onOpenRowActions: onOpenRowActions,
+          onEditTags: onEditTags,
         ),
         // loadMore 的 loading / 失败提示独立订阅：翻页状态翻转只重建这个
         // footer，不重建上面的列表本体。
@@ -195,6 +201,9 @@ class MediaListSection extends StatelessWidget {
             onRefresh: onRefresh,
             onEnterSelection: onEnterSelection,
             onExitSelection: onExitSelection,
+            searchExpanded: searchExpanded.value,
+            onToggleSearchExpanded: () =>
+                searchExpanded.value = !searchExpanded.value,
           ),
           child: AppFilterResultLoadingOverlay(
             surfaceColor: mobile
@@ -243,6 +252,8 @@ class _MediaListHeader extends ConsumerWidget {
     required this.onRefresh,
     required this.onEnterSelection,
     required this.onExitSelection,
+    required this.searchExpanded,
+    required this.onToggleSearchExpanded,
   });
 
   final String keyPrefix;
@@ -257,6 +268,8 @@ class _MediaListHeader extends ConsumerWidget {
   final Future<void> Function()? onRefresh;
   final VoidCallback? onEnterSelection;
   final VoidCallback? onExitSelection;
+  final bool searchExpanded;
+  final VoidCallback onToggleSearchExpanded;
 
   Future<void> _defaultRefresh(WidgetRef ref) async {
     await Future.wait<void>([_refreshBrowse(ref), _refreshLibraries(ref)]);
@@ -323,6 +336,30 @@ class _MediaListHeader extends ConsumerWidget {
     final isInitialLoading = asyncState.isLoading && !asyncState.hasValue;
     final busy = isDeleting || isTransferring || isResettingThumbnails;
     final allLoadedSelected = currentState?.allLoadedSelected ?? false;
+    final searchToggle = AppIconButton(
+      key: Key('$keyPrefix-search-toggle'),
+      tooltip: searchExpanded
+          ? l10n.mediaListCollapseSearchTooltip
+          : l10n.mediaListSearchFileNameTooltip,
+      semanticLabel: searchExpanded
+          ? l10n.mediaListCollapseSearchTooltip
+          : l10n.mediaListSearchFileNameTooltip,
+      icon: Icon(
+        searchExpanded ? Icons.close_rounded : Icons.search_rounded,
+      ),
+      isSelected: searchExpanded || filter.hasSearch,
+      backgroundColor: Colors.transparent,
+      selectedBackgroundColor: Colors.transparent,
+      borderColor: Colors.transparent,
+      selectedBorderColor: Colors.transparent,
+      onPressed: onToggleSearchExpanded,
+    );
+    final searchField = _MediaFileNameSearchField(
+      fieldKey: Key('$keyPrefix-search-field'),
+      clearButtonKey: Key('$keyPrefix-search-clear'),
+      search: filter.search,
+      onSubmitted: (value) => _applyFilter(ref, filter.copyWith(search: value)),
+    );
 
     // 移动端多选态：顶栏换 `AppListHeader.selection`（退出 / 计数 / 全选），
     // 与 PornBox / 订阅列表的多选顶栏同一套组件；高度与常规顶栏严格一致。
@@ -352,9 +389,36 @@ class _MediaListHeader extends ConsumerWidget {
       );
     }
 
-    // 移动端非多选态：筛选入口（开底部抽屉）+ 总数 + 刷新，用双端共用的
-    // AppListHeader（常规态与多选态由同一个组件原地切换）。
+    // 移动端非多选态：默认只显示搜索图标；展开后只保留筛选、输入框和图标。
     if (mobile) {
+      if (searchExpanded) {
+        return AppListHeader(
+          key: Key('$keyPrefix-header'),
+          onFilterTap: () => _openMobileFilterDrawer(
+            context,
+            filter: filter,
+            libraries: librariesState.libraries,
+            ref: ref,
+          ),
+          filterLabel: null,
+          filterButtonKey: Key('$keyPrefix-filter-trigger'),
+          filterTooltip: l10n.mediaListFilterTooltip,
+          leadingGap: context.appSpacing.sm,
+          filterUpdate:
+              currentState?.paged.filterUpdate ??
+              const FilterUpdateState.idle(),
+          hasPreviousFilterItems: hasItems,
+          onRetryFilter: () =>
+              unawaited(ref.read(mediaBrowseProvider.notifier).retryFilter()),
+          center: Row(
+            children: [
+              Expanded(child: searchField),
+              SizedBox(width: context.appSpacing.sm),
+              searchToggle,
+            ],
+          ),
+        );
+      }
       return AppListHeader(
         key: Key('$keyPrefix-header'),
         onFilterTap: () => _openMobileFilterDrawer(
@@ -363,49 +427,97 @@ class _MediaListHeader extends ConsumerWidget {
           libraries: librariesState.libraries,
           ref: ref,
         ),
-        filterLabel: filter.triggerLabel(l10n),
+        // 移动端空间有限，筛选摘要收进 Tooltip，和排序入口一样只留图标。
+        filterLabel: null,
         filterButtonKey: Key('$keyPrefix-filter-trigger'),
         filterTooltip: l10n.mediaListFilterTooltip,
+        leadingGap: context.appSpacing.xs,
         filterUpdate:
             currentState?.paged.filterUpdate ?? const FilterUpdateState.idle(),
         hasPreviousFilterItems: hasItems,
         onRetryFilter: () =>
             unawaited(ref.read(mediaBrowseProvider.notifier).retryFilter()),
-        informationSlots: [
-          AppListHeaderInfo(
-            key: Key('$keyPrefix-total-text'),
-            label: l10n.mediaListTotalItems(total),
+        center: Row(
+          children: [
+            MediaSortMenuButton(
+              triggerKey: Key('$keyPrefix-sort-trigger'),
+              drawerKey: Key('$keyPrefix-sort-drawer'),
+              keyPrefix: keyPrefix,
+              filterState: filter,
+              onChanged: (next) => _applyFilter(ref, next),
+              useDrawer: true,
+            ),
+            const Spacer(),
+            AppListHeaderInfo(
+              key: Key('$keyPrefix-total-text'),
+              label: l10n.mediaListTotalItems(total),
+            ),
+            SizedBox(width: context.appSpacing.xs),
+            AppTextButton(
+              key: Key('$keyPrefix-enter-selection-button'),
+              label: l10n.mediaListEnterSelection,
+              size: AppTextButtonSize.xSmall,
+              icon: const Icon(Icons.check_circle_outline, size: 14),
+              onPressed: hasItems && !busy ? onEnterSelection : null,
+            ),
+            SizedBox(width: context.appSpacing.xs),
+            AppIconButton(
+              key: Key('$keyPrefix-refresh-button'),
+              tooltip: isInitialLoading
+                  ? l10n.mediaListRefreshing
+                  : l10n.commonRefresh,
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: isInitialLoading
+                  ? null
+                  : () {
+                      unawaited((onRefresh ?? () => _defaultRefresh(ref))());
+                    },
+            ),
+            SizedBox(width: context.appSpacing.xs),
+            searchToggle,
+          ],
+        ),
+      );
+    }
+
+    if (searchExpanded && !selectionMode) {
+      return AppListHeader(
+        key: Key('$keyPrefix-header'),
+        filterButtonKey: Key('$keyPrefix-filter-trigger'),
+        filterLabel: null,
+        filterTooltip: l10n.mediaListFilterTooltip,
+        filterPanelKey: const Key('media-management-filter-panel'),
+        filterPanelExtraWidth: 240,
+        leadingGap: context.appSpacing.sm,
+        filterPanelBuilder: (_) => MediaBrowseFilterSectionGroup(
+          filterState: filter,
+          libraries: librariesState.libraries,
+          onChanged: (next) => _applyFilter(ref, next),
+        ),
+        filterPanelFooter: AppFilterPanelFooter(
+          isDefault: !filter.hasActiveFilters,
+          onReset: () => _resetFilter(ref),
+        ),
+        filterUpdate:
+            currentState?.paged.filterUpdate ?? const FilterUpdateState.idle(),
+        hasPreviousFilterItems: hasItems,
+        onRetryFilter: () =>
+            unawaited(ref.read(mediaBrowseProvider.notifier).retryFilter()),
+        center: LayoutBuilder(
+          builder: (context, constraints) => Align(
+            alignment: Alignment.centerRight,
+            child: SizedBox(
+              width: constraints.maxWidth.clamp(0.0, 360.0).toDouble(),
+              child: Row(
+                children: [
+                  Expanded(child: searchField),
+                  SizedBox(width: context.appSpacing.sm),
+                  searchToggle,
+                ],
+              ),
+            ),
           ),
-        ],
-        actionSlots: [
-          MediaSortMenuButton(
-            triggerKey: Key('$keyPrefix-sort-trigger'),
-            drawerKey: Key('$keyPrefix-sort-drawer'),
-            keyPrefix: keyPrefix,
-            filterState: filter,
-            onChanged: (next) => _applyFilter(ref, next),
-            useDrawer: true,
-          ),
-          AppTextButton(
-            key: Key('$keyPrefix-enter-selection-button'),
-            label: l10n.mediaListEnterSelection,
-            size: AppTextButtonSize.xSmall,
-            icon: const Icon(Icons.check_circle_outline, size: 14),
-            onPressed: hasItems && !busy ? onEnterSelection : null,
-          ),
-          AppIconButton(
-            key: Key('$keyPrefix-refresh-button'),
-            tooltip: isInitialLoading
-                ? l10n.mediaListRefreshing
-                : l10n.commonRefresh,
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: isInitialLoading
-                ? null
-                : () {
-                    unawaited((onRefresh ?? () => _defaultRefresh(ref))());
-                  },
-          ),
-        ],
+        ),
       );
     }
 
@@ -452,6 +564,7 @@ class _MediaListHeader extends ConsumerWidget {
             : l10n.mediaListActionRetryThumbnails,
         onBatchResetThumbnails: onBatchResetThumbnails,
         onRefresh: () => unawaited((onRefresh ?? () => _defaultRefresh(ref))()),
+        searchToggle: selectionMode ? null : searchToggle,
       ),
     );
   }
@@ -527,6 +640,7 @@ class _MediaListBodySliver extends ConsumerWidget {
     required this.onRetryThumbnails,
     required this.retryingThumbnailMediaId,
     required this.onOpenRowActions,
+    required this.onEditTags,
   });
 
   final String keyPrefix;
@@ -545,6 +659,7 @@ class _MediaListBodySliver extends ConsumerWidget {
   final Future<void> Function(MediaListItemDto item)? onRetryThumbnails;
   final ValueListenable<int?>? retryingThumbnailMediaId;
   final Future<void> Function(MediaListItemDto item)? onOpenRowActions;
+  final Future<void> Function(MediaListItemDto item)? onEditTags;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -577,6 +692,7 @@ class _MediaListBodySliver extends ConsumerWidget {
             onRetryThumbnails: onRetryThumbnails,
             retryingThumbnailMediaId: retryingThumbnailMediaId,
             onOpenRowActions: onOpenRowActions,
+            onEditTags: onEditTags,
           )
         : _MediaRowConsumer(
             keyPrefix: keyPrefix,
@@ -592,6 +708,7 @@ class _MediaListBodySliver extends ConsumerWidget {
             transferringItemId: transferringItemId,
             onRetryThumbnails: onRetryThumbnails,
             retryingThumbnailMediaId: retryingThumbnailMediaId,
+            onEditTags: onEditTags,
           );
 
     return SliverPagedAsyncSection<
@@ -648,6 +765,7 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
     required this.onRetryThumbnails,
     required this.retryingThumbnailMediaId,
     required this.onOpenRowActions,
+    required this.onEditTags,
   });
 
   final String keyPrefix;
@@ -666,6 +784,7 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
   final Future<void> Function(MediaListItemDto item)? onRetryThumbnails;
   final ValueListenable<int?>? retryingThumbnailMediaId;
   final Future<void> Function(MediaListItemDto item)? onOpenRowActions;
+  final Future<void> Function(MediaListItemDto item)? onEditTags;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -730,6 +849,9 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
         onDelete: selectionMode || onDeleteItem == null
             ? null
             : () => unawaited(onDeleteItem!(item)),
+        onEditTags: selectionMode || busy || !item.isJav || onEditTags == null
+            ? null
+            : () => unawaited(onEditTags!(item)),
         isDeleting: deletingId == item.id,
         canDelete: !busy,
         onTransfer: selectionMode || onTransferItem == null
@@ -874,6 +996,7 @@ class _MediaRowConsumer extends ConsumerWidget {
     required this.transferringItemId,
     required this.onRetryThumbnails,
     required this.retryingThumbnailMediaId,
+    required this.onEditTags,
   });
 
   final String keyPrefix;
@@ -890,6 +1013,7 @@ class _MediaRowConsumer extends ConsumerWidget {
   final ValueListenable<int?>? transferringItemId;
   final Future<void> Function(MediaListItemDto item)? onRetryThumbnails;
   final ValueListenable<int?>? retryingThumbnailMediaId;
+  final Future<void> Function(MediaListItemDto item)? onEditTags;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -948,6 +1072,9 @@ class _MediaRowConsumer extends ConsumerWidget {
         onDelete: selectionMode || onDeleteItem == null
             ? null
             : () => unawaited(onDeleteItem!(item)),
+        onEditTags: selectionMode || busy || !item.isJav || onEditTags == null
+            ? null
+            : () => unawaited(onEditTags!(item)),
         isDeleting: deletingId == item.id,
         canDelete: !busy,
         onTransfer: selectionMode || onTransferItem == null
@@ -984,8 +1111,8 @@ class _MediaRowConsumer extends ConsumerWidget {
   }
 }
 
-/// 顶栏右侧操作条：普通态 =「选择」入口 + 刷新；选择态 = 全选 / 迁移 / 重试 /
-/// 批量删除 / 退出选择，危险色只用于删除。
+/// 顶栏右侧操作条：普通态 =「选择」入口 + 刷新 + 搜索；选择态 = 全选 /
+/// 迁移 / 重试 / 批量删除 / 退出选择，危险色只用于删除。
 ///
 /// 「选择」是进入多选的唯一显式入口（移动端另有长按）；选择态下点行才是勾选。
 /// 退出选择与移动端多选顶栏同一语义：清空已选并结束选择模式。
@@ -1009,6 +1136,7 @@ class _MediaListActionBar extends ConsumerWidget {
     required this.resetThumbnailsLabel,
     required this.onBatchResetThumbnails,
     required this.onRefresh,
+    required this.searchToggle,
   });
 
   final bool hasItems;
@@ -1029,6 +1157,7 @@ class _MediaListActionBar extends ConsumerWidget {
   final String resetThumbnailsLabel;
   final Future<void> Function()? onBatchResetThumbnails;
   final VoidCallback onRefresh;
+  final Widget? searchToggle;
 
   void _exitSelection(WidgetRef ref) {
     ref.read(mediaBrowseProvider.notifier).clearSelection();
@@ -1041,7 +1170,7 @@ class _MediaListActionBar extends ConsumerWidget {
     final spacing = context.appSpacing;
     if (!selectionMode) {
       return Wrap(
-        spacing: spacing.sm,
+        spacing: spacing.xs,
         runSpacing: spacing.xs,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
@@ -1057,11 +1186,12 @@ class _MediaListActionBar extends ConsumerWidget {
             icon: const Icon(Icons.refresh_rounded),
             onPressed: isInitialLoading ? null : onRefresh,
           ),
+          ?searchToggle,
         ],
       );
     }
     return Wrap(
-      spacing: spacing.sm,
+      spacing: spacing.xs,
       runSpacing: spacing.xs,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
@@ -1118,6 +1248,113 @@ class _MediaListActionBar extends ConsumerWidget {
           onPressed: busy ? null : () => _exitSelection(ref),
         ),
       ],
+    );
+  }
+}
+
+/// 文件名搜索固定回车提交，避免每次输入都触发带前导通配符的分页计数查询。
+class _MediaFileNameSearchField extends StatefulWidget {
+  const _MediaFileNameSearchField({
+    required this.fieldKey,
+    required this.clearButtonKey,
+    required this.search,
+    required this.onSubmitted,
+  });
+
+  final Key fieldKey;
+  final Key clearButtonKey;
+  final String search;
+  final ValueChanged<String> onSubmitted;
+
+  @override
+  State<_MediaFileNameSearchField> createState() =>
+      _MediaFileNameSearchFieldState();
+}
+
+class _MediaFileNameSearchFieldState extends State<_MediaFileNameSearchField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.search);
+    _focusNode = FocusNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _MediaFileNameSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.search != widget.search &&
+        _controller.text != widget.search) {
+      _controller.value = TextEditingValue(
+        text: widget.search,
+        selection: TextSelection.collapsed(offset: widget.search.length),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _submit(String value) {
+    final normalized = value.trim();
+    if (_controller.text != normalized) {
+      _controller.value = TextEditingValue(
+        text: normalized,
+        selection: TextSelection.collapsed(offset: normalized.length),
+      );
+    }
+    widget.onSubmitted(normalized);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final formTokens = context.appFormTokens;
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _controller,
+      builder: (context, value, _) => AppTextField(
+        fieldKey: widget.fieldKey,
+        controller: _controller,
+        focusNode: _focusNode,
+        hintText: l10n.mediaListSearchFileNameHint,
+        textInputAction: TextInputAction.search,
+        height: formTokens.compactFieldHeight,
+        borderRadius: context.appRadius.smBorder,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: formTokens.fieldHorizontalPadding,
+        ),
+        prefix: Icon(
+          Icons.search_rounded,
+          size: context.appComponentTokens.iconSizeSm,
+          color: context.appTextPalette.muted,
+        ),
+        suffix: value.text.isEmpty
+            ? null
+            : AppIconButton(
+                key: widget.clearButtonKey,
+                tooltip: l10n.baseClearSearch,
+                semanticLabel: l10n.baseClearSearch,
+                icon: const Icon(Icons.close_rounded),
+                size: AppIconButtonSize.mini,
+                onPressed: () {
+                  _controller.clear();
+                  widget.onSubmitted('');
+                },
+              ),
+        tightSuffix: true,
+        onFieldSubmitted: _submit,
+      ),
     );
   }
 }

@@ -15,6 +15,12 @@ Future<void> showMobileMovieFilterDrawer(
   required MovieFilterState current,
   required ValueChanged<MovieFilterState> onChanged,
   Widget? tagSection,
+  Widget Function(
+    BuildContext context,
+    MovieFilterState local,
+    ValueChanged<MovieFilterState> onApply,
+  )?
+  mediaTagSectionBuilder,
   bool showActorAgeSection = true,
   ValueListenable<bool>? extraActive,
   VoidCallback? onResetExtra,
@@ -40,6 +46,7 @@ Future<void> showMobileMovieFilterDrawer(
         filterState: local,
         onChanged: onApply,
         tagSection: tagSection,
+        mediaTagSection: mediaTagSectionBuilder?.call(context, local, onApply),
         showActorAgeSection: showActorAgeSection,
         yearOptions: yearOptions,
         isYearOptionsLoading: isYearOptionsLoading,

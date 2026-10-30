@@ -512,6 +512,7 @@ void main() {
         kind: 'jav',
         libraryId: 5,
         actorIds: const <int>[12, 34],
+        search: '  mixed.case  ',
         thumbnailGenerationState: 'terminal',
         sort: 'heat:desc',
       );
@@ -522,6 +523,7 @@ void main() {
         'kind': 'jav',
         'library_id': '5',
         'actor_ids': '12,34',
+        'search': 'mixed.case',
         'thumbnail_generation_state': 'terminal',
         'sort': 'heat:desc',
       });

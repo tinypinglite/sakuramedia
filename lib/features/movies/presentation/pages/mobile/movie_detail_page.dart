@@ -240,6 +240,9 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
             onDeleteSelectedMedia: selectedMedia == null
                 ? null
                 : deleteSelectedMedia,
+            onEditMediaTags: selectedMedia == null
+                ? null
+                : (mediaItem) => editMediaTags(mediaItem, mobile: true),
             onOpenMediaPointPreview: openMediaPointPreview,
             onRequestMediaPointMenu: showMediaPointActions,
             onActorTap: (actor) =>

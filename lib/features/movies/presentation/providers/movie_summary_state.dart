@@ -56,6 +56,8 @@ class MovieSummaryFilter {
     movie.dimensionSortId,
     Object.hashAllUnordered(movie.years),
     movie.resolution,
+    Object.hashAll(movie.mediaTagIds),
+    movie.mediaTagMatch,
     playlist.sortField,
     playlist.sortDirection,
     playlist.resolution,

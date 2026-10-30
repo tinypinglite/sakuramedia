@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_state.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_tag_assignment_events_provider.dart';
 import 'package:sakuramedia/features/playlists/presentation/controllers/playlist_filter_state.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_api_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/optimistic_patch_mixin.dart';
@@ -92,6 +93,8 @@ class MovieSummary extends _$MovieSummary
       MovieSummarySource.movies => moviesApi.getMovies(
         tagIds: filter.tagIds,
         tagMatch: filter.tagMatch,
+        mediaTagIds: filter.movie.mediaTagIds,
+        mediaTagMatch: filter.movie.mediaTagMatch,
         page: page,
         pageSize: pageSize,
         status: filter.movie.status,
@@ -212,6 +215,11 @@ class MovieSummary extends _$MovieSummary
       final change = next.value;
       if (change != null) {
         _applyMediaChange(change);
+      }
+    });
+    ref.listen(mediaTagAssignmentEventsProvider, (_, next) {
+      if (next.value != null && activeFilter.movie.mediaTagIds.isNotEmpty) {
+        _scheduleBroadcastRefresh();
       }
     });
     if (scope.source == MovieSummarySource.tags &&

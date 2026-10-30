@@ -7,6 +7,7 @@ import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_pill_wrap.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_media_point_gallery.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 
 class MovieMediaItemList extends StatelessWidget {
   const MovieMediaItemList({
@@ -16,6 +17,7 @@ class MovieMediaItemList extends StatelessWidget {
     required this.onSelect,
     this.isDeletingSelectedMedia = false,
     this.onDeleteSelectedMedia,
+    this.onEditMediaTags,
     this.onOpenPointPreview,
     this.onRequestPointMenu,
   });
@@ -25,6 +27,7 @@ class MovieMediaItemList extends StatelessWidget {
   final ValueChanged<MovieMediaItemDto> onSelect;
   final bool isDeletingSelectedMedia;
   final ValueChanged<MovieMediaItemDto>? onDeleteSelectedMedia;
+  final ValueChanged<MovieMediaItemDto>? onEditMediaTags;
   final void Function(MovieMediaItemDto mediaItem, MovieMediaPointDto point)?
   onOpenPointPreview;
   final Future<void> Function(
@@ -49,6 +52,7 @@ class MovieMediaItemList extends StatelessWidget {
         : _buildTechnicalSummary(selectedItem);
     final showDeleteAction =
         selectedItem != null && onDeleteSelectedMedia != null;
+    final showTagAction = selectedItem != null && onEditMediaTags != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,7 +70,7 @@ class MovieMediaItemList extends StatelessWidget {
               })
               .toList(growable: false),
         ),
-        if (technicalSummary != null || showDeleteAction) ...[
+        if (technicalSummary != null || showDeleteAction || showTagAction) ...[
           SizedBox(height: contentGap),
           Row(
             key: const Key('movie-media-summary-row'),
@@ -89,6 +93,19 @@ class MovieMediaItemList extends StatelessWidget {
                         ),
                       ),
               ),
+              if (showTagAction) ...[
+                SizedBox(width: context.appSpacing.sm),
+                AppIconButton(
+                  key: const Key('movie-media-tags-edit-button'),
+                  icon: const Icon(Icons.sell_outlined),
+                  tooltip: AppLocalizations.of(context).movieMediaTagsEdit,
+                  semanticLabel: AppLocalizations.of(
+                    context,
+                  ).movieMediaTagsEdit,
+                  size: AppIconButtonSize.mini,
+                  onPressed: () => onEditMediaTags?.call(selectedItem),
+                ),
+              ],
               if (showDeleteAction) ...[
                 SizedBox(width: context.appSpacing.md),
                 AppIconButton(
@@ -98,8 +115,11 @@ class MovieMediaItemList extends StatelessWidget {
                           width: context.appComponentTokens.iconSizeSm,
                           height: context.appComponentTokens.iconSizeSm,
                           child: CircularProgressIndicator.adaptive(
-                            backgroundColor: switch (Theme.of(context).platform) {
-                              TargetPlatform.iOS || TargetPlatform.macOS => context.appTextPalette.error,
+                            backgroundColor: switch (Theme.of(
+                              context,
+                            ).platform) {
+                              TargetPlatform.iOS || TargetPlatform.macOS =>
+                                context.appTextPalette.error,
                               _ => null,
                             },
                             strokeWidth: 2,
@@ -120,6 +140,33 @@ class MovieMediaItemList extends StatelessWidget {
                       : () => onDeleteSelectedMedia?.call(selectedItem),
                 ),
               ],
+            ],
+          ),
+        ],
+        if (selectedItem != null &&
+            (selectedItem.tags.isNotEmpty ||
+                selectedItem.isMediaTagsManuallyManaged)) ...[
+          SizedBox(height: contentGap),
+          Wrap(
+            key: const Key('movie-media-tags'),
+            spacing: context.appSpacing.sm,
+            runSpacing: context.appSpacing.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (selectedItem.isMediaTagsManuallyManaged)
+                AppBadge(
+                  key: const Key('movie-media-tags-manual-badge'),
+                  label: AppLocalizations.of(context).mediaTagsAssignmentManualBadge,
+                  tone: AppBadgeTone.primary,
+                  size: AppBadgeSize.compact,
+                ),
+              for (final tag in selectedItem.tags)
+                AppBadge(
+                  key: Key('movie-media-tag-${selectedItem.mediaId}-${tag.id}'),
+                  label: tag.name,
+                  tone: AppBadgeTone.neutral,
+                  size: AppBadgeSize.compact,
+                ),
             ],
           ),
         ],

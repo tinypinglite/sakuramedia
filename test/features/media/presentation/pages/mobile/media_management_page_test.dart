@@ -81,6 +81,263 @@ void main() {
       find.byKey(const Key('mobile-media-management-tab-batches')),
       findsNothing,
     );
+    expect(
+      find.byKey(const Key('mobile-media-management-search-toggle')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('mobile-media-management-search-field')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('expands and searches file name in the compact mobile header', (
+    tester,
+  ) async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: [_mediaItemJson(1)]),
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: const []),
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: [_mediaItemJson(1)]),
+    );
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      theme: sakuraMobileThemeData,
+    );
+
+    final searchToggleRect = tester.getRect(
+      find.byKey(const Key('mobile-media-management-search-toggle')),
+    );
+    final filterRect = tester.getRect(
+      find.byKey(const Key('mobile-media-management-filter-trigger')),
+    );
+    final sortRect = tester.getRect(
+      find.byKey(const Key('mobile-media-management-sort-trigger')),
+    );
+    final totalRect = tester.getRect(
+      find.byKey(const Key('mobile-media-management-total-text')),
+    );
+    final selectRect = tester.getRect(
+      find.byKey(const Key('mobile-media-management-enter-selection-button')),
+    );
+    final refreshRect = tester.getRect(
+      find.byKey(const Key('mobile-media-management-refresh-button')),
+    );
+    expect(sortRect.left - filterRect.right, closeTo(4, 0.5));
+    expect(totalRect.left, greaterThan(sortRect.right));
+    expect(selectRect.left, greaterThan(totalRect.right));
+    expect(refreshRect.left - selectRect.right, closeTo(4, 0.5));
+    expect(searchToggleRect.left - refreshRect.right, closeTo(4, 0.5));
+    expect(searchToggleRect.left, greaterThan(refreshRect.right));
+    expect(searchToggleRect.center.dy, closeTo(sortRect.center.dy, 0.5));
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(
+      find.byKey(const Key('mobile-media-management-search-toggle')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('mobile-media-management-search-field')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('mobile-media-management-filter-trigger')),
+      findsOneWidget,
+    );
+    expect(find.byTooltip('收起搜索'), findsOneWidget);
+    expect(
+      find.byKey(const Key('mobile-media-management-total-text')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('mobile-media-management-sort-trigger')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('mobile-media-management-enter-selection-button')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('mobile-media-management-refresh-button')),
+      findsNothing,
+    );
+    final fieldRect = tester.getRect(
+      find.byKey(const Key('mobile-media-management-search-field')),
+    );
+    expect(fieldRect.height, 40);
+    final editableRect = tester.getRect(
+      find.descendant(
+        of: find.byKey(const Key('mobile-media-management-search-field')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    final searchIconRect = tester.getRect(
+      find.descendant(
+        of: find.byKey(const Key('mobile-media-management-search-field')),
+        matching: find.byIcon(Icons.search_rounded),
+      ),
+    );
+    final expandedSearchToggleRect = tester.getRect(
+      find.byKey(const Key('mobile-media-management-search-toggle')),
+    );
+    expect(
+      tester
+          .getRect(
+            find.byKey(const Key('mobile-media-management-filter-trigger')),
+          )
+          .center
+          .dy,
+      closeTo(fieldRect.center.dy, 0.5),
+    );
+    expect(
+      expandedSearchToggleRect.center.dy,
+      closeTo(fieldRect.center.dy, 0.5),
+    );
+    expect(editableRect.center.dy, closeTo(fieldRect.center.dy, 0.5));
+    expect(searchIconRect.center.dy, closeTo(fieldRect.center.dy, 0.5));
+    expect(
+      expandedSearchToggleRect.center.dx,
+      closeTo(searchToggleRect.center.dx, 0.5),
+    );
+    expect(expandedSearchToggleRect.left - fieldRect.right, closeTo(8, 0.5));
+    final fieldContext = tester.element(
+      find.byKey(const Key('mobile-media-management-search-field')),
+    );
+    final textField = tester.widget<TextField>(
+      find.descendant(
+        of: find.byKey(const Key('mobile-media-management-search-field')),
+        matching: find.byType(TextField),
+      ),
+    );
+    final decoration = textField.decoration!;
+    expect(textField.textAlignVertical, TextAlignVertical.center);
+    expect(
+      (decoration.border! as OutlineInputBorder).borderRadius,
+      Theme.of(fieldContext).appRadius.smBorder,
+    );
+    expect(decoration.prefixIcon, isNotNull);
+    expect(tester.takeException(), isNull);
+
+    await tester.enterText(
+      find.byKey(const Key('mobile-media-management-search-field')),
+      'abc-1',
+    );
+    await _submitSearch(
+      tester,
+      const Key('mobile-media-management-search-field'),
+    );
+    expect(adapter.requests.last.uri.queryParameters['search'], 'abc-1');
+
+    await tester.tap(
+      find.byKey(const Key('mobile-media-management-search-toggle')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('mobile-media-management-search-field')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('mobile-media-management-sort-trigger')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const Key('mobile-media-management-search-toggle')),
+    );
+    await tester.pumpAndSettle();
+    final editableText = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const Key('mobile-media-management-search-field')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(editableText.controller.text, 'abc-1');
+
+    await tester.tap(
+      find.byKey(const Key('mobile-media-management-search-clear')),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    expect(
+      adapter.requests.last.uri.queryParameters.containsKey('search'),
+      isFalse,
+    );
+  });
+
+  testWidgets('hides file name search while selecting media', (tester) async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: [_mediaItemJson(1)]),
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: [_mediaItemJson(1)]),
+    );
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('mobile-media-management-search-toggle')),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('mobile-media-management-search-field')),
+      'abc',
+    );
+    await _submitSearch(
+      tester,
+      const Key('mobile-media-management-search-field'),
+    );
+
+    await tester.longPress(
+      find.byKey(const Key('mobile-media-management-row-1')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('mobile-media-management-search-field')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('mobile-media-management-search-toggle')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('mobile-media-management-exit-selection-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('mobile-media-management-search-field')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('mobile-media-management-search-toggle')),
+      findsOneWidget,
+    );
+    final editableText = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const Key('mobile-media-management-search-field')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(editableText.controller.text, 'abc');
   });
 
   testWidgets('swiping the content switches tabs', (tester) async {
@@ -823,6 +1080,7 @@ Future<void> _pumpPage(
   required SessionStore sessionStore,
   required MediaApi mediaApi,
   required ApiClient apiClient,
+  ThemeData? theme,
 }) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
@@ -841,7 +1099,7 @@ Future<void> _pumpPage(
         ),
       ],
       child: MaterialApp(
-        theme: sakuraThemeData,
+        theme: theme ?? sakuraThemeData,
         locale: const Locale('zh'),
         localizationsDelegates: <LocalizationsDelegate<dynamic>>[
           AppLocalizations.delegate,
@@ -852,6 +1110,14 @@ Future<void> _pumpPage(
       ),
     ),
   );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _submitSearch(WidgetTester tester, Key fieldKey) async {
+  final field = find.byKey(fieldKey);
+  await tester.showKeyboard(field);
+  await tester.testTextInput.receiveAction(TextInputAction.search);
+  await tester.pump(const Duration(milliseconds: 300));
   await tester.pumpAndSettle();
 }
 

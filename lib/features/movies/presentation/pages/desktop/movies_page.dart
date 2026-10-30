@@ -67,19 +67,18 @@ class _DesktopMoviesPageState extends ConsumerState<DesktopMoviesPage> {
       contentKey: const Key('movies-page'),
       totalKey: const Key('movies-page-total'),
       tagSelectionScope: _tagSelectionScope,
+      enableMediaTagFilter: true,
       sectionSpacing: context.appSpacing.lg,
       registerPageRefresh: true,
-      onMovieTap:
-          (context, movieNumber) => context.pushDesktopMovieDetail(
-            movieNumber: movieNumber,
-            fallbackPath: desktopMoviesPath,
-          ),
-      bodyBuilder:
-          (context, scrollController, sliver, _) => CustomScrollView(
-            key: const PageStorageKey<String>('desktop:movies:list'),
-            controller: scrollController,
-            slivers: [sliver],
-          ),
+      onMovieTap: (context, movieNumber) => context.pushDesktopMovieDetail(
+        movieNumber: movieNumber,
+        fallbackPath: desktopMoviesPath,
+      ),
+      bodyBuilder: (context, scrollController, sliver, _) => CustomScrollView(
+        key: const PageStorageKey<String>('desktop:movies:list'),
+        controller: scrollController,
+        slivers: [sliver],
+      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -33,6 +34,8 @@ void main() {
   Future<void> pumpPlayer(
     WidgetTester tester, {
     required bool useTouchOptimizedControls,
+    bool displaySeekBar = true,
+    List<Widget> bottomControls = const <Widget>[],
   }) async {
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('com.alexmercerind/media_kit_video'),
@@ -56,6 +59,8 @@ void main() {
         home: ThemedVideoPlayer(
           videoController: controller,
           useTouchOptimizedControls: useTouchOptimizedControls,
+          displaySeekBar: displaySeekBar,
+          bottomControls: bottomControls,
         ),
       ),
     );
@@ -75,5 +80,54 @@ void main() {
     final video = tester.widget<Video>(find.byType(Video));
     expect(video.onEnterFullscreen, defaultEnterNativeFullscreen);
     expect(video.onExitFullscreen, defaultExitNativeFullscreen);
+  });
+
+  testWidgets('桌面端按住进度条时控件不会自动卸载', (tester) async {
+    await pumpPlayer(
+      tester,
+      useTouchOptimizedControls: false,
+      displaySeekBar: false,
+      bottomControls: const <Widget>[Expanded(child: MaterialDesktopSeekBar())],
+    );
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: const Offset(1, 1));
+    await mouse.moveTo(tester.getCenter(find.byType(Video)));
+    await tester.pump();
+
+    final seekBar = find.byType(MaterialDesktopSeekBar);
+    expect(seekBar, findsOneWidget);
+
+    await mouse.moveTo(tester.getCenter(seekBar));
+    await mouse.down(tester.getCenter(seekBar));
+    await tester.pump(const Duration(seconds: 4));
+
+    expect(seekBar, findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await mouse.up();
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(milliseconds: 200));
+
+    expect(seekBar, findsNothing);
+    expect(tester.takeException(), isNull);
+
+    await mouse.removePointer();
+  });
+
+  testWidgets('桌面端控件卸载时取消自动隐藏 timer', (tester) async {
+    await pumpPlayer(tester, useTouchOptimizedControls: false);
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: const Offset(1, 1));
+    await mouse.moveTo(tester.getCenter(find.byType(Video)));
+    await tester.pump();
+    expect(find.byType(MaterialDesktopSeekBar), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(seconds: 4));
+
+    expect(tester.takeException(), isNull);
+    await mouse.removePointer();
   });
 }

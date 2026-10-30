@@ -375,6 +375,44 @@ void main() {
     expect(cleared['actor_age_min'], '20');
   });
 
+  test('媒体文件标签筛选写入请求参数并随重置清空', () async {
+    const scope = MovieSummaryScope.movies(cacheKey: 'desktop:movies:list');
+    await prime(scope, <Map<String, dynamic>>[_movie('ABC-001')]);
+
+    final notifier = container.read(movieSummaryProvider(scope).notifier);
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page(items: <Map<String, dynamic>>[_movie('ABC-002')], total: 1),
+    );
+    await notifier.applyMovieFilter(
+      const MovieFilterState(
+        mediaTagIds: <int>[4, 9],
+        mediaTagMatch: TagMatchMode.and,
+      ),
+    );
+
+    final tagged = adapter.requests.last.uri.queryParameters;
+    expect(tagged['media_tag_ids'], '4,9');
+    expect(tagged['media_tag_match'], 'and');
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page(items: <Map<String, dynamic>>[_movie('ABC-003')], total: 1),
+    );
+    await notifier.applyMovieFilter(
+      const MovieFilterState(
+        mediaTagIds: <int>[4, 9],
+        mediaTagMatch: TagMatchMode.and,
+      ).resetFilters(),
+    );
+
+    final cleared = adapter.requests.last.uri.queryParameters;
+    expect(cleared.containsKey('media_tag_ids'), isFalse);
+    expect(cleared.containsKey('media_tag_match'), isFalse);
+  });
+
   test('标签列表 scope 出演年龄与标签条件组合，未设置时不发送', () async {
     const scope = MovieSummaryScope.tags(instanceKey: 'desktop:tags:list');
     container.listen(movieSummaryProvider(scope), (_, __) {});
@@ -814,7 +852,8 @@ void main() {
           container
               .read(movieSummaryProvider(scope))
               .value
-              ?.paged.items
+              ?.paged
+              .items
               .any((item) => item.movieNumber == 'ABC-005') ??
           false,
     );
@@ -853,7 +892,12 @@ void main() {
         .reportChange(actorId: 3, isSubscribed: false);
     await _waitFor(
       () =>
-          container.read(movieSummaryProvider(scope)).value?.paged.items.isEmpty ??
+          container
+              .read(movieSummaryProvider(scope))
+              .value
+              ?.paged
+              .items
+              .isEmpty ??
           false,
     );
     await _settleEvents();

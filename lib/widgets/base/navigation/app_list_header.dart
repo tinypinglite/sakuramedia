@@ -44,6 +44,7 @@ class AppListHeader extends StatelessWidget {
     this.informationSlots = const <Widget>[],
     this.actionSlots = const <Widget>[],
     this.center,
+    this.leadingGap,
   }) : assert(
          onFilterTap == null || filterPanelBuilder == null,
          'onFilterTap（移动：底部抽屉）与 filterPanelBuilder（桌面：就地浮层）'
@@ -61,6 +62,7 @@ class AppListHeader extends StatelessWidget {
     this.selectionExitButtonKey,
     this.selectionExitTooltip,
     this.actionSlots = const <Widget>[],
+    this.leadingGap,
   }) : onFilterTap = null,
        filterPanelBuilder = null,
        filterPanelFooter = null,
@@ -126,6 +128,9 @@ class AppListHeader extends StatelessWidget {
   /// 非空时 [informationSlots] / [actionSlots] 不显示，由调用方自行组织内容；
   /// 左侧筛选入口与下方 [AppFilterUpdateBar] 保持不变。
   final Widget? center;
+
+  /// 筛选入口与右侧内容之间的距离；为空时使用标准 sm 间距。
+  final double? leadingGap;
 
   /// 多选态的计数文案，例如「已选 3 部」。
   final String? selectionLabel;
@@ -208,7 +213,10 @@ class AppListHeader extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                if (leading != null) ...[leading, SizedBox(width: spacing.sm)],
+                if (leading != null) ...[
+                  leading,
+                  SizedBox(width: leadingGap ?? spacing.sm),
+                ],
                 Expanded(
                   child:
                       center ??

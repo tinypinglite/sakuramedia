@@ -68,6 +68,11 @@ const List<_MobileSettingsRouteCase> _mobileSettingsRouteCases =
         pageKey: Key('mobile-settings-media-libraries'),
       ),
       _MobileSettingsRouteCase(
+        path: mobileSettingsMediaTagsPath,
+        title: '媒体文件标签',
+        pageKey: Key('mobile-settings-media-tags'),
+      ),
+      _MobileSettingsRouteCase(
         path: mobileSettingsDownloadersPath,
         title: '下载器',
         pageKey: Key('mobile-settings-downloaders'),
@@ -1640,6 +1645,12 @@ void main() {
           path: '/media-libraries',
           body: const <Map<String, dynamic>>[],
         );
+      } else if (routeCase.path == mobileSettingsMediaTagsPath) {
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/media-tags',
+          body: const <Map<String, dynamic>>[],
+        );
       } else if (routeCase.path == mobileSettingsDownloadersPath) {
         _enqueueMobileDownloadersResponses(bundle);
       } else if (routeCase.path == mobileSettingsIndexersPath) {
@@ -2505,6 +2516,7 @@ void main() {
       }
       for (final itemKey in <Key>[
         const Key('mobile-overview-drawer-media-libraries'),
+        const Key('mobile-overview-drawer-media-tags'),
         const Key('mobile-overview-drawer-downloaders'),
         const Key('mobile-overview-drawer-indexers'),
         const Key('mobile-overview-drawer-download-selection'),
@@ -2997,6 +3009,12 @@ void main() {
         bundle.adapter.enqueueJson(
           method: 'GET',
           path: '/media-libraries',
+          body: const <Map<String, dynamic>>[],
+        );
+      } else if (routeCase.path == mobileSettingsMediaTagsPath) {
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/media-tags',
           body: const <Map<String, dynamic>>[],
         );
       } else if (routeCase.path == mobileSettingsDownloadersPath) {

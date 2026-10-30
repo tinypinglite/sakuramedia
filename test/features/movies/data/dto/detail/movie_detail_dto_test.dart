@@ -53,4 +53,24 @@ void main() {
     expect(managed.isActorsManuallyManaged, isTrue);
     expect(automatic.isActorsManuallyManaged, isFalse);
   });
+
+  test('movie detail parses media file tags and manual lock', () {
+    final detail = MovieDetailDto.fromJson(<String, dynamic>{
+      'media_items': <dynamic>[
+        <String, dynamic>{
+          'media_id': 12,
+          'play_url': '/media/12',
+          'file_name': 'ABC-001.mkv',
+          'tags': [
+            {'id': 1, 'name': '4K'},
+          ],
+          'is_media_tags_manually_managed': true,
+        },
+      ],
+    });
+
+    final media = detail.mediaItems.single;
+    expect(media.tags.single.name, '4K');
+    expect(media.isMediaTagsManuallyManaged, isTrue);
+  });
 }

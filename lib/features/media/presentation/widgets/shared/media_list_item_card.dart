@@ -41,6 +41,7 @@ class MediaListItemCard extends StatelessWidget {
     this.canRetryThumbnails = true,
     this.retryThumbnailsLabel,
     this.onOpenActions,
+    this.onEditTags,
     this.showUpdatedAt = false,
   });
 
@@ -66,6 +67,7 @@ class MediaListItemCard extends StatelessWidget {
 
   /// 移动端「更多」入口：为 null 时不显示（选择态、无可用动作）。
   final VoidCallback? onOpenActions;
+  final VoidCallback? onEditTags;
   final bool showUpdatedAt;
 
   @override
@@ -109,6 +111,7 @@ class MediaListItemCard extends StatelessWidget {
         canRetryThumbnails: canRetryThumbnails,
         retryThumbnailsLabel: retryThumbnailsLabel,
         onOpenActions: onOpenActions,
+        onEditTags: onEditTags,
         showUpdatedAt: showUpdatedAt,
       ),
     );
@@ -134,6 +137,7 @@ class _MediaListItemBody extends StatelessWidget {
     required this.canRetryThumbnails,
     required this.retryThumbnailsLabel,
     required this.onOpenActions,
+    required this.onEditTags,
     required this.showUpdatedAt,
   });
 
@@ -152,6 +156,7 @@ class _MediaListItemBody extends StatelessWidget {
   final bool canRetryThumbnails;
   final String? retryThumbnailsLabel;
   final VoidCallback? onOpenActions;
+  final VoidCallback? onEditTags;
   final bool showUpdatedAt;
 
   /// 缩略图重试 / 重新生成：平铺图标动作；执行中换成小转圈。
@@ -177,6 +182,17 @@ class _MediaListItemBody extends StatelessWidget {
   Widget? _actions(BuildContext context, Widget? retry, AppLocalizations l10n) {
     final spacing = context.appSpacing;
     final widgets = <Widget>[];
+    if (onEditTags != null) {
+      widgets.add(
+        AppIconButton(
+          key: Key('$keyPrefix-edit-tags-${item.id}'),
+          icon: const Icon(Icons.sell_outlined),
+          tooltip: l10n.mediaListTagsEdit,
+          semanticLabel: l10n.mediaListTagsEdit,
+          onPressed: onEditTags,
+        ),
+      );
+    }
     if (retry != null) {
       widgets.add(retry);
     }
@@ -234,6 +250,7 @@ class _MediaListItemBody extends StatelessWidget {
     }
     final hasAvailableAction =
         (onRetryThumbnails != null && canRetryThumbnails) ||
+        onEditTags != null ||
         canDelete ||
         canTransfer;
     return AppIconButton(
@@ -294,6 +311,11 @@ class _MediaListItemBody extends StatelessWidget {
             tone: AppTextTone.muted,
           ),
         ),
+        if (item.isJav &&
+            (item.tags.isNotEmpty || item.isMediaTagsManuallyManaged)) ...[
+          SizedBox(height: spacing.xs),
+          _MediaTagsLine(item: item),
+        ],
         SizedBox(height: spacing.xs),
         pathLine,
         if (mobile && actions != null) ...[
@@ -390,6 +412,51 @@ class _MediaListItemHeading extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _MediaTagsLine extends StatelessWidget {
+  const _MediaTagsLine({required this.item});
+
+  final MediaListItemDto item;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final visibleTags = item.tags.take(3).toList(growable: false);
+    final overflow = item.tags.length - visibleTags.length;
+    return SingleChildScrollView(
+      key: Key('${item.id}-media-tags'),
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          if (item.isMediaTagsManuallyManaged)
+            Padding(
+              padding: EdgeInsetsDirectional.only(end: context.appSpacing.xs),
+              child: AppBadge(
+                label: l10n.mediaListTagsManualBadge,
+                tone: AppBadgeTone.primary,
+                size: AppBadgeSize.compact,
+              ),
+            ),
+          for (final tag in visibleTags)
+            Padding(
+              padding: EdgeInsetsDirectional.only(end: context.appSpacing.xs),
+              child: AppBadge(
+                label: tag.name,
+                tone: AppBadgeTone.neutral,
+                size: AppBadgeSize.compact,
+              ),
+            ),
+          if (overflow > 0)
+            AppBadge(
+              label: l10n.mediaListTagsOverflow(overflow),
+              tone: AppBadgeTone.neutral,
+              size: AppBadgeSize.compact,
+            ),
+        ],
+      ),
     );
   }
 }

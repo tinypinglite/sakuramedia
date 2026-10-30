@@ -39,6 +39,8 @@ class MoviesApi {
     List<int>? years,
     List<int>? tagIds,
     TagMatchMode? tagMatch,
+    List<int>? mediaTagIds,
+    TagMatchMode? mediaTagMatch,
     MovieInteractionFilter? interaction,
     int? actorAgeMin,
     int? actorAgeMax,
@@ -97,6 +99,12 @@ class MoviesApi {
       // tag_match 仅在传 tag_ids 时生效：or 命中任一标签，and 须同时命中全部。
       if (tagMatch != null) {
         queryParameters['tag_match'] = tagMatch.apiValue;
+      }
+    }
+    if (mediaTagIds != null && mediaTagIds.isNotEmpty) {
+      queryParameters['media_tag_ids'] = mediaTagIds.join(',');
+      if (mediaTagMatch != null) {
+        queryParameters['media_tag_match'] = mediaTagMatch.apiValue;
       }
     }
 

@@ -62,7 +62,6 @@ void main() {
   });
 
   group('movieInteractionRangeLabel', () {
-
     test('双边 / 单边 / 不限的文案', () {
       final both = movieInteractionRangeLabel(
         MovieInteractionMetric.heat,
@@ -98,7 +97,12 @@ void main() {
       // 英文界面不得出现中文。
       expect(
         _cjk.hasMatch(
-          movieInteractionRangeLabel(MovieInteractionMetric.heat, 1000, 5000, en),
+          movieInteractionRangeLabel(
+            MovieInteractionMetric.heat,
+            1000,
+            5000,
+            en,
+          ),
         ),
         isFalse,
       );
@@ -316,6 +320,41 @@ void main() {
         ).matches(const MovieFilterState(actorAgeMin: 20, actorAgeMax: 25)),
         isTrue,
       );
+    });
+
+    test('媒体文件标签影响摘要、匹配、重置与保持排序', () {
+      const filter = MovieFilterState(
+        mediaTagIds: <int>[3, 8],
+        mediaTagMatch: TagMatchMode.and,
+        sortField: MovieSortField.heat,
+      );
+      expect(filter.hasActiveFilters, isTrue);
+      expect(filter.triggerLabel(zh), '全部 · 文件标签 2');
+      expect(
+        filter.matches(
+          const MovieFilterState(
+            mediaTagIds: <int>[3, 8],
+            mediaTagMatch: TagMatchMode.and,
+            sortField: MovieSortField.heat,
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        filter.matches(
+          const MovieFilterState(
+            mediaTagIds: <int>[3, 8],
+            mediaTagMatch: TagMatchMode.or,
+          ),
+        ),
+        isFalse,
+      );
+
+      final reset = filter.resetFilters();
+      expect(reset.mediaTagIds, isEmpty);
+      expect(reset.mediaTagMatch, TagMatchMode.or);
+      expect(reset.sortField, MovieSortField.heat);
+      expect(reset.hasActiveFilters, isFalse);
     });
   });
 

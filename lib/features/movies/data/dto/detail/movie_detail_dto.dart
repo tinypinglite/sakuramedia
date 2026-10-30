@@ -1,4 +1,5 @@
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/media/data/media_tag_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
@@ -314,6 +315,8 @@ class MovieMediaItemDto {
     required this.progress,
     required this.points,
     this.videoInfo,
+    this.tags = const <MediaTagRefDto>[],
+    this.isMediaTagsManuallyManaged = false,
   });
 
   final int mediaId;
@@ -328,6 +331,8 @@ class MovieMediaItemDto {
   final MovieMediaProgressDto? progress;
   final List<MovieMediaPointDto> points;
   final MovieMediaVideoInfoDto? videoInfo;
+  final List<MediaTagRefDto> tags;
+  final bool isMediaTagsManuallyManaged;
 
   bool get hasPlayableUrl => playUrl.trim().isNotEmpty;
 
@@ -348,6 +353,9 @@ class MovieMediaItemDto {
         (item) => MovieMediaPointDto.fromJson(item),
       ),
       videoInfo: _videoInfoFromJson(json['video_info']),
+      tags: mediaTagRefsFromJson(json['tags']),
+      isMediaTagsManuallyManaged:
+          json['is_media_tags_manually_managed'] as bool? ?? false,
     );
   }
 
@@ -365,6 +373,8 @@ class MovieMediaItemDto {
     Object? progress = _sentinel,
     List<MovieMediaPointDto>? points,
     Object? videoInfo = _sentinel,
+    List<MediaTagRefDto>? tags,
+    bool? isMediaTagsManuallyManaged,
   }) {
     return MovieMediaItemDto(
       mediaId: mediaId ?? this.mediaId,
@@ -389,6 +399,9 @@ class MovieMediaItemDto {
       videoInfo: identical(videoInfo, _sentinel)
           ? this.videoInfo
           : videoInfo as MovieMediaVideoInfoDto?,
+      tags: tags ?? this.tags,
+      isMediaTagsManuallyManaged:
+          isMediaTagsManuallyManaged ?? this.isMediaTagsManuallyManaged,
     );
   }
 }

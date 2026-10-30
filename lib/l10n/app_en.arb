@@ -901,6 +901,7 @@
   "configTabAccountSecurity": "Account security",
   "configTabAppearance": "Appearance",
   "configTabMediaLibraries": "Media libraries",
+  "configTabMediaTags": "Media file tags",
   "configTabDownloadClients": "Download clients",
   "configTabIndexers": "Indexers",
   "configTabExternalPlayer": "External player",
@@ -908,6 +909,126 @@
   "configTabAdvanced": "Advanced settings",
   "configTabPlugins": "Plugins",
   "configTabSystemMaintenance": "System maintenance",
+  "errorMediaTagsLoadFailed": "Failed to load media file tags. Try again later.",
+  "mediaTagsManagementNoticeTitle": "Tag media files with rules",
+  "mediaTagsManagementNoticeDescription": "Rules match the file name, release title and description; exclusions take precedence over include terms. Rule changes affect future imports and manual retag runs, while manually managed media is never overwritten.",
+  "mediaTagsEmpty": "No media file tags yet",
+  "mediaTagsLoadFailedTitle": "Failed to load media file tags",
+  "mediaTagsLoadFailedFallback": "Failed to load media file tags. Try again later.",
+  "mediaTagsAdd": "Add media file tag",
+  "mediaTagsEditTitle": "Edit media file tag",
+  "mediaTagsNameLabel": "Tag name",
+  "mediaTagsNameHint": "For example: High quality",
+  "mediaTagsIncludeTermsLabel": "Include terms",
+  "mediaTagsIncludeTermsHint": "One per line; any match is enough",
+  "mediaTagsExcludeTermsLabel": "Exclude terms",
+  "mediaTagsExcludeTermsHint": "One per line; optional",
+  "mediaTagsEnabledLabel": "Enable automatic matching",
+  "mediaTagsEnabledDescription": "When disabled, the rule stops matching automatically. Tags already assigned manually remain unchanged.",
+  "mediaTagsMoreActions": "More actions",
+  "mediaTagsDeleteTitle": "Delete media file tag",
+  "mediaTagsDeleteMessage": "Deleting \"{name}\" also removes it from every media file. This cannot be undone.",
+  "@mediaTagsDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaTagsDeleted": "Media file tag deleted",
+  "mediaTagsDeleteFailed": "Failed to delete media file tag",
+  "mediaTagsCreated": "Media file tag created",
+  "mediaTagsCreateFailed": "Failed to create media file tag",
+  "mediaTagsSaved": "Media file tag saved",
+  "mediaTagsSaveFailed": "Failed to save media file tag",
+  "mediaTagsMediaCount": "{count, plural, =1{1 media file} other{{count} media files}}",
+  "@mediaTagsMediaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaTagsExcludeSummary": "{count} exclusions",
+  "@mediaTagsExcludeSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaTagsRuleTestTitle": "Rule tester",
+  "mediaTagsRuleTestDescription": "Test a file name or release metadata against saved, enabled rules.",
+  "mediaTagsPreviewFileNameLabel": "File name",
+  "mediaTagsPreviewFileNameHint": "For example: ABC-001.2160p.mkv",
+  "mediaTagsPreviewReleaseTitleLabel": "Release title (optional)",
+  "mediaTagsPreviewReleaseDescriptionLabel": "Release description (optional)",
+  "mediaTagsPreviewAction": "Test match",
+  "mediaTagsPreviewNoMatch": "No media file tags matched",
+  "mediaTagsPreviewMatchedTerm": "Matched term: {term}",
+  "@mediaTagsPreviewMatchedTerm": {
+    "placeholders": {
+      "term": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaTagsPreviewFailed": "Rule test failed. Try again later.",
+  "mediaTagsRetagTitle": "Reapply automatic tags",
+  "mediaTagsRetagDescription": "Recompute all JAV media files with the currently enabled rules. Manually managed media is skipped; progress is available in the task center.",
+  "mediaTagsRetagAction": "Reapply",
+  "mediaTagsRetagConfirmTitle": "Reapply automatic tags",
+  "mediaTagsRetagConfirmMessage": "This scans every JAV media file and updates tags with the current rules. Manually managed media is not changed.",
+  "mediaTagsRetagSubmitted": "Media file tag retag task submitted",
+  "mediaTagsRetagFailed": "Failed to submit media file tag retag task",
+  "mediaTagsNameRequired": "Enter a tag name",
+  "mediaTagsIncludeTermsRequired": "Add at least one include term",
+  "mediaTagsDisabledBadge": "Disabled",
+  "mediaTagsAssignmentTitle": "Media file tags",
+  "mediaTagsAssignmentDescription": "After saving, this file switches to manual management and will not be overwritten by automatic rules or a full retag.",
+  "mediaTagsAssignmentManualBadge": "Manual",
+  "mediaTagsAssignmentAutoBadge": "Automatic",
+  "mediaTagsAssignmentEmpty": "No media file tags are available",
+  "mediaTagsAssignmentSave": "Save tags",
+  "mediaTagsAssignmentSaved": "Media file tags updated",
+  "mediaTagsAssignmentSavedRefreshFailed": "Media file tags saved, but the details could not be refreshed. Please try again later.",
+  "mediaTagsAssignmentSaveFailed": "Failed to update media file tags",
+  "mediaTagsAssignmentLoadFailed": "Failed to load media file tags",
+  "mediaTagsAssignmentResetAuto": "Restore automatic tags",
+  "mediaTagsAssignmentResetTitle": "Restore automatic tags",
+  "mediaTagsAssignmentResetMessage": "This removes manual management and recomputes tags for this file with the currently enabled rules.",
+  "mediaTagsAssignmentResetFailed": "Failed to restore automatic tags",
+  "mediaTagsAssignmentDisabledHint": "Automatic matching is disabled for this tag, but it can still be assigned manually.",
+  "movieMediaTagFilterTitle": "Media file tags",
+  "movieMediaTagFilterClear": "Clear",
+  "movieMediaTagFilterSelectedCount": "{count} selected",
+  "@movieMediaTagFilterSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageMediaTagCount": "File tags {count}",
+  "@moviePageMediaTagCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "movieMediaTagsEdit": "Edit file tags",
+  "mediaListTagsEdit": "Edit file tags",
+  "mediaListTagsManualBadge": "Manual",
+  "mediaListTagsOverflow": "+{count}",
+  "@mediaListTagsOverflow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shellNavMediaTags": "Media file tags",
   "appearanceDescription": "Adjust the interface brightness and accent color; settings are saved on this device.",
   "appearanceThemeMode": "Theme mode",
   "appearanceSystem": "Follow system",
@@ -3368,6 +3489,9 @@
   "mediaListFilterSectionThumbnail": "Thumbnail status",
   "mediaListFilterAllLibraries": "All media libraries",
   "mediaListFilterAllMedia": "All media",
+  "mediaListSearchFileNameHint": "Search file names",
+  "mediaListSearchFileNameTooltip": "Search file names",
+  "mediaListCollapseSearchTooltip": "Collapse search",
   "mediaListInvalidBadge": "Invalid",
   "mediaListUpdatedAt": "Updated {value}",
   "@mediaListUpdatedAt": {

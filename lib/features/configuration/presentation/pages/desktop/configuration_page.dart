@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/configuration/presentation/pages/desktop/do
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/download_selection_policy_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/indexer_settings_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/media_libraries_section.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/desktop/media_tags_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/configuration_tab_request_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/download_selection_policy_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/system_maintenance_section.dart';
@@ -69,6 +70,14 @@ class _DesktopConfigurationPageState
           icon: Icons.folder_open_outlined,
         ),
         builder: (active) => MediaLibrariesSection(active: active),
+      ),
+      _ConfigurationTab(
+        category: _ConfigurationCategory(
+          itemKey: const Key('configuration-tab-media-tags'),
+          label: l10n.configTabMediaTags,
+          icon: Icons.sell_outlined,
+        ),
+        builder: (active) => DesktopMediaTagsSection(active: active),
       ),
       _ConfigurationTab(
         category: _ConfigurationCategory(

@@ -32,13 +32,8 @@ class MediaBrowseFilterToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    // 外层 Wrap 与 `MovieFilterToolbar` 对齐：`AppFilterTotalHeader` 把 leading
-    // 放进 Expanded，直接返回 AppFilterPopover 会把 trigger 被拉满一整行、
-    // 面板宽度跟着 `trigger + panelExtraWidth` 撑到全宽、位置也就跑偏。
-    // Wrap 允许子件按内在宽度排布，trigger 保持内容大小，面板自然对齐它。
-    return Wrap(
-      spacing: context.appSpacing.sm,
-      runSpacing: context.appSpacing.sm,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         SizedBox(
           height: context.appComponentTokens.mobileTopTabHeight,
@@ -47,8 +42,8 @@ class MediaBrowseFilterToolbar extends StatelessWidget {
             panelKey: const Key('media-management-filter-panel'),
             scrollViewKey: const Key('media-management-filter-scroll-view'),
             panelExtraWidth: 240,
-            // 面板 trigger 位于 leading 最左端，向右延伸自然填入内容区、不会
-            // 反过来遮挡左侧配置分类栏（默认的 right-aligned 会往左溢出）。
+            // 面板 trigger 位于 leading 最左端，向右延伸自然填入内容区、
+            // 不会反过来遮挡左侧配置分类栏。
             alignment: AppFilterPopoverAlignment.leftAlignedToTrigger,
             triggerBuilder: (context, isOpen, toggle) => AppFilterEntryButton(
               key: const Key('media-management-filter-trigger'),
@@ -71,6 +66,7 @@ class MediaBrowseFilterToolbar extends StatelessWidget {
             ),
           ),
         ),
+        SizedBox(width: context.appSpacing.xs),
         SizedBox(
           height: context.appComponentTokens.mobileTopTabHeight,
           child: MediaSortMenuButton(
@@ -192,8 +188,7 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
                 key: Key(
                   'media-thumbnail-generation-filter-${filter?.name ?? 'all'}',
                 ),
-                label:
-                    filter?.labelWith(l10n: l10n) ?? l10n.mediaListFilterAll,
+                label: filter?.labelWith(l10n: l10n) ?? l10n.mediaListFilterAll,
                 size: AppTextButtonSize.xSmall,
                 isSelected: filterState.thumbnailGenerationState == filter,
                 onPressed: () => onChanged(

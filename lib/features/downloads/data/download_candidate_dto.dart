@@ -183,6 +183,8 @@ class DownloadCandidateDto {
       'source_uri': sourceUri,
       'indexer_name': indexerName,
       'title': title,
+      'release_title': releaseTitle,
+      'description': description,
       'size_bytes': sizeBytes,
       'seeders': seeders,
     };

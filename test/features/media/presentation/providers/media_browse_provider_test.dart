@@ -92,6 +92,7 @@ void main() {
             const MediaBrowseFilterState().copyWith(
               kind: MediaListItemKind.jav,
               libraryId: 8,
+              search: '  abc  ',
               sortField: MediaBrowseSortField.heat,
               sortDirection: SortDirection.desc,
             ),
@@ -107,6 +108,10 @@ void main() {
       expect(
         adapter.requests.last.uri.queryParameters,
         containsPair('library_id', '8'),
+      );
+      expect(
+        adapter.requests.last.uri.queryParameters,
+        containsPair('search', 'abc'),
       );
       expect(
         adapter.requests.last.uri.queryParameters,

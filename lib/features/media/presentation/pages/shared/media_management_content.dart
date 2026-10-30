@@ -19,6 +19,7 @@ import 'package:sakuramedia/features/media/presentation/widgets/shared/media_lis
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_management_row_actions.dart';
 import 'package:sakuramedia/features/media/presentation/actions/media_video_mutation_report.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_transfer_target_dialog.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_tag_assignment_editor.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/multi_version_movies_section.dart';
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
@@ -134,10 +135,7 @@ class MediaManagementContent extends HookConsumerWidget {
           AppTabBar(
             controller: tabController,
             tabs: [
-              Tab(
-                key: Key('$keyPrefix-tab-list'),
-                text: l10n.mediaListTabList,
-              ),
+              Tab(key: Key('$keyPrefix-tab-list'), text: l10n.mediaListTabList),
               Tab(
                 key: Key('$keyPrefix-tab-duplicates'),
                 text: l10n.mediaListTabDuplicates,
@@ -241,6 +239,8 @@ class MediaManagementContent extends HookConsumerWidget {
                         transferringMediaId: transferringMediaId,
                         deletingMediaId: deletingMediaId,
                       ),
+                      onEditTags: (item) =>
+                          _editMediaTags(context, ref, item, mobile: mobile),
                     ),
                   ),
                 ),
@@ -278,8 +278,7 @@ class MediaManagementContent extends HookConsumerWidget {
                         versionsProvider: versionsProvider,
                       ),
                       onOpenMovieDetail: onOpenMovieDetail,
-                      onOpenVideoCollectionDetail:
-                          onOpenVideoCollectionDetail,
+                      onOpenVideoCollectionDetail: onOpenVideoCollectionDetail,
                     ),
                   ),
                 ),
@@ -638,9 +637,12 @@ class MediaManagementContent extends HookConsumerWidget {
           l10n.mediaListRowActionRegenerateSubtitle,
         _ => null,
       },
+      showEditTags: item.isJav,
     );
     if (!context.mounted || action == null) return;
     switch (action) {
+      case MediaManagementRowAction.editTags:
+        await _editMediaTags(context, ref, item, mobile: true);
       case MediaManagementRowAction.retryThumbnails:
         await _handleItemThumbnailAction(
           context,
@@ -660,6 +662,29 @@ class MediaManagementContent extends HookConsumerWidget {
       case MediaManagementRowAction.delete:
         await _openSingleDeleteDialog(context, ref, item, deletingMediaId);
     }
+  }
+
+  Future<void> _editMediaTags(
+    BuildContext context,
+    WidgetRef ref,
+    MediaListItemDto item, {
+    required bool mobile,
+  }) async {
+    if (!item.isJav) return;
+    final assignment = await showMediaTagAssignmentEditor(
+      context,
+      mediaId: item.id,
+      mobile: mobile,
+    );
+    if (assignment == null || !context.mounted) return;
+    ref
+        .read(mediaBrowseProvider.notifier)
+        .applyTagAssignment(
+          mediaId: item.id,
+          tags: assignment.tags,
+          isManuallyManaged: assignment.isManuallyManaged,
+        );
+    showToast(AppLocalizations.of(context).mediaTagsAssignmentSaved);
   }
 
   /// 批量与单项共用的缩略图重置：置忙、重置、清选、刷新，并按结果提示。
@@ -692,10 +717,7 @@ class MediaManagementContent extends HookConsumerWidget {
       if (!context.mounted) return;
       if (refreshMessage != null) {
         showToast(
-          l10n.mediaListThumbnailResetRefreshFailed(
-            resetCount,
-            refreshMessage,
-          ),
+          l10n.mediaListThumbnailResetRefreshFailed(resetCount, refreshMessage),
         );
       } else if (resetCount == 0) {
         showToast(

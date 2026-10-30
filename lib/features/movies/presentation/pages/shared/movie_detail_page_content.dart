@@ -55,6 +55,7 @@ class MovieDetailPageContent extends StatelessWidget {
     required this.onMediaSelect,
     this.isDeletingSelectedMedia = false,
     this.onDeleteSelectedMedia,
+    this.onEditMediaTags,
     this.mediaItemsOverride,
     this.onOpenMediaPointPreview,
     this.onRequestMediaPointMenu,
@@ -115,6 +116,7 @@ class MovieDetailPageContent extends StatelessWidget {
   final ValueChanged<MovieMediaItemDto> onMediaSelect;
   final bool isDeletingSelectedMedia;
   final ValueChanged<MovieMediaItemDto>? onDeleteSelectedMedia;
+  final ValueChanged<MovieMediaItemDto>? onEditMediaTags;
   final void Function(MovieMediaItemDto mediaItem, MovieMediaPointDto point)?
   onOpenMediaPointPreview;
   final Future<void> Function(
@@ -469,6 +471,7 @@ class MovieDetailPageContent extends StatelessWidget {
                 onSelect: onMediaSelect,
                 isDeletingSelectedMedia: isDeletingSelectedMedia,
                 onDeleteSelectedMedia: onDeleteSelectedMedia,
+                onEditMediaTags: onEditMediaTags,
                 onOpenPointPreview: onOpenMediaPointPreview,
                 onRequestPointMenu: onRequestMediaPointMenu,
               ),

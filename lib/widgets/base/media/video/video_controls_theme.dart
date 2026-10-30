@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/media/video/sakura_desktop_video_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 
 /// 「层级二」轻量播放器的控制主题 / 控件 builder 构建函数。
@@ -18,7 +19,8 @@ Widget buildMoviePlayerMobileVideoControls(VideoState state) {
 
 @visibleForTesting
 Widget buildMoviePlayerDesktopVideoControls(VideoState state) {
-  return MaterialDesktopVideoControls(state);
+  // media_kit 2.0.1 不会暂停外部 bottomSeekBar 的自动隐藏 timer。
+  return SakuraDesktopVideoControls(state: state);
 }
 
 Widget Function(VideoState state) resolveMoviePlayerVideoControlsBuilder({

@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/app/language/providers/app_localizations_provider.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
+import 'package:sakuramedia/features/media/data/media_tag_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_browse_filter_state.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_browse_state.dart';
@@ -61,6 +62,7 @@ class MediaBrowse extends _$MediaBrowse
           pageSize: pageSize,
           kind: mediaBrowseKindWire(filter.kind),
           libraryId: filter.libraryId,
+          search: filter.trimmedSearch,
           thumbnailGenerationState: filter.thumbnailGenerationState?.apiValue,
           sort: filter.sortWire,
         );
@@ -158,6 +160,50 @@ class MediaBrowse extends _$MediaBrowse
     );
     state = AsyncData(
       current.copyWith(paged: nextPaged, selectedIds: nextSelected),
+    );
+  }
+
+  void applyTagAssignment({
+    required int mediaId,
+    required List<MediaTagRefDto> tags,
+    required bool isManuallyManaged,
+  }) {
+    final current = state.value;
+    if (current == null) return;
+    final index = current.paged.items.indexWhere((item) => item.id == mediaId);
+    if (index < 0) return;
+    final items = List<MediaListItemDto>.from(current.paged.items);
+    final item = items[index];
+    items[index] = MediaListItemDto(
+      id: item.id,
+      kind: item.kind,
+      movieNumber: item.movieNumber,
+      videoItemId: item.videoItemId,
+      title: item.title,
+      coverImage: item.coverImage,
+      thinCoverImage: item.thinCoverImage,
+      libraryId: item.libraryId,
+      libraryName: item.libraryName,
+      fileName: item.fileName,
+      fileSizeBytes: item.fileSizeBytes,
+      durationSeconds: item.durationSeconds,
+      resolution: item.resolution,
+      valid: item.valid,
+      heat: item.heat,
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+      thumbnailGenerationState: item.thumbnailGenerationState,
+      thumbnailLastErrorCode: item.thumbnailLastErrorCode,
+      collections: item.collections,
+      tags: List<MediaTagRefDto>.unmodifiable(tags),
+      isMediaTagsManuallyManaged: isManuallyManaged,
+    );
+    state = AsyncData(
+      current.copyWith(
+        paged: current.paged.copyWith(
+          items: List<MediaListItemDto>.unmodifiable(items),
+        ),
+      ),
     );
   }
 }

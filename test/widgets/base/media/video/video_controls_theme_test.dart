@@ -17,7 +17,7 @@ const List<LocalizationsDelegate<dynamic>> _testLocalizationsDelegates =
 void main() {
   group('Movie player controls theme', () {
     test(
-      'controls builder resolves to mobile or desktop media_kit controls',
+      'controls builder resolves to the expected mobile or desktop controls',
       () {
         expect(
           resolveMoviePlayerVideoControlsBuilder(

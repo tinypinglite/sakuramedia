@@ -17,6 +17,7 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_s
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_sort_menu_button.dart';
 import 'package:sakuramedia/widgets/domain/tags/tag_filter_section.dart';
+import 'package:sakuramedia/features/movies/presentation/widgets/media_tag_filter_section.dart';
 
 class MobileMoviesPage extends ConsumerStatefulWidget {
   const MobileMoviesPage({super.key});
@@ -104,13 +105,10 @@ class _MobileMoviesPageState extends ConsumerState<MobileMoviesPage> {
     MovieSummaryListHeaderArgs args,
   ) {
     final l10n = AppLocalizations.of(context);
-    final tagSelection = args.tagSelection;
     return AppListHeader(
       filterButtonKey: const Key('mobile-movies-filter-button'),
       filterTooltip: l10n.moviePageFilterTooltip,
-      filterLabel: tagSelection?.hasSelection == true
-          ? l10n.moviePageTagFilterCount(tagSelection!.selectedCount)
-          : args.filterState.triggerLabel(l10n),
+      filterLabel: _filterLabel(l10n, args),
       onFilterTap: () => _openFilterDrawer(context, args),
       informationSlots: [
         AppListHeaderInfo(
@@ -144,10 +142,31 @@ class _MobileMoviesPageState extends ConsumerState<MobileMoviesPage> {
       current: args.filterState,
       onChanged: args.onApply,
       tagSection: TagFilterSection(scope: _tagSelectionScope),
+      // 分节必须挂在抽屉自己的本地筛选状态上：抽屉其它分节改状态时基于
+      // `local.copyWith(...)` 重建，若媒体标签仍用打开抽屉时的快照，
+      // 两边的条件会互相覆盖。
+      mediaTagSectionBuilder: (context, local, onApply) => MediaTagFilterSection(
+        selectedTagIds: local.mediaTagIds,
+        matchMode: local.mediaTagMatch,
+        onChanged: (tagIds, matchMode) => onApply(
+          local.copyWith(
+            mediaTagIds: tagIds,
+            mediaTagMatch: matchMode,
+          ),
+        ),
+      ),
       extraActive: _tagSelectionActive,
       onResetExtra: () {
         ref.read(tagSelectionProvider(_tagSelectionScope).notifier).clear();
       },
+    );
+  }
+
+  String _filterLabel(AppLocalizations l10n, MovieSummaryListHeaderArgs args) {
+    return movieFilterSummaryLabel(
+      l10n: l10n,
+      filter: args.filterState,
+      tagSelection: args.tagSelection,
     );
   }
 }

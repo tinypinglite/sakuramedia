@@ -21,6 +21,7 @@ class MovieFilterSectionGroup extends StatelessWidget {
     required this.filterState,
     required this.onChanged,
     this.tagSection,
+    this.mediaTagSection,
     this.showActorAgeSection = true,
     this.yearOptions,
     this.isYearOptionsLoading = false,
@@ -34,6 +35,7 @@ class MovieFilterSectionGroup extends StatelessWidget {
   /// 可选的「标签」分节（女优详情传入）。标签云占用空间大，放在面板最末，
   /// 不前置挤压其它筛选维度；为空时不渲染。
   final Widget? tagSection;
+  final Widget? mediaTagSection;
 
   /// 女优详情页的影片全部属于同一位女优，再按出演年龄筛选没有意义，
   /// 显式关闭该分节；普通影片列表保持默认展示。
@@ -130,6 +132,10 @@ class MovieFilterSectionGroup extends StatelessWidget {
         if (tagSection != null) ...[
           SizedBox(height: context.appSpacing.lg),
           tagSection!,
+        ],
+        if (mediaTagSection != null) ...[
+          SizedBox(height: context.appSpacing.lg),
+          mediaTagSection!,
         ],
       ],
     );

@@ -73,6 +73,7 @@ const String mobileRankingsPath = '/mobile/rankings';
 const String mobilePornboxPath = '/mobile/pornbox';
 const String mobileSettingsMediaLibrariesPath =
     '/mobile/settings/media-libraries';
+const String mobileSettingsMediaTagsPath = '/mobile/settings/media-tags';
 const String mobileSettingsPluginsPath = '/mobile/settings/plugins';
 const String mobileSettingsPluginMarketPath = '/mobile/settings/plugins/market';
 const String mobileSettingsDownloadersPath = '/mobile/settings/downloaders';

@@ -59,12 +59,14 @@ class MediaBrowseFilterState {
     this.kind,
     this.libraryId,
     this.thumbnailGenerationState,
+    this.search = '',
     this.sortField,
     this.sortDirection = SortDirection.desc,
   });
 
   final MediaBrowseKindFilter kind;
   final int? libraryId;
+  final String search;
 
   final MediaBrowseThumbnailGenerationFilter? thumbnailGenerationState;
 
@@ -74,9 +76,16 @@ class MediaBrowseFilterState {
 
   static const MediaBrowseFilterState initial = MediaBrowseFilterState();
 
+  String get trimmedSearch => search.trim();
+
+  bool get hasSearch => trimmedSearch.isNotEmpty;
+
   /// 是否存在生效的筛选条件。**不含排序**。
   bool get hasActiveFilters =>
-      kind != null || libraryId != null || thumbnailGenerationState != null;
+      kind != null ||
+      libraryId != null ||
+      thumbnailGenerationState != null ||
+      hasSearch;
 
   /// 重置筛选条件但保留当前排序。
   MediaBrowseFilterState resetFilters() => MediaBrowseFilterState.initial
@@ -107,6 +116,7 @@ class MediaBrowseFilterState {
     MediaBrowseKindFilter? kind,
     Object? libraryId = _sentinel,
     Object? thumbnailGenerationState = _sentinel,
+    String? search,
     Object? sortField = _sentinel,
     SortDirection? sortDirection,
     bool resetKind = false,
@@ -119,6 +129,7 @@ class MediaBrowseFilterState {
       thumbnailGenerationState: identical(thumbnailGenerationState, _sentinel)
           ? this.thumbnailGenerationState
           : thumbnailGenerationState as MediaBrowseThumbnailGenerationFilter?,
+      search: search ?? this.search,
       sortField: identical(sortField, _sentinel)
           ? this.sortField
           : sortField as MediaBrowseSortField?,
@@ -133,6 +144,7 @@ class MediaBrowseFilterState {
           other.kind == kind &&
           other.libraryId == libraryId &&
           other.thumbnailGenerationState == thumbnailGenerationState &&
+          other.search == search &&
           other.sortField == sortField &&
           other.sortDirection == sortDirection;
 
@@ -141,6 +153,7 @@ class MediaBrowseFilterState {
     kind,
     libraryId,
     thumbnailGenerationState,
+    search,
     sortField,
     sortDirection,
   );

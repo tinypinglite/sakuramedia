@@ -3,7 +3,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 
-enum MediaManagementRowAction { retryThumbnails, transfer, delete }
+enum MediaManagementRowAction { editTags, retryThumbnails, transfer, delete }
 
 /// 移动端媒体卡片的「更多」底部操作表。
 ///
@@ -16,6 +16,7 @@ Future<MediaManagementRowAction?> showMediaManagementRowActions({
   String? titleSubtitle,
   required String? retryThumbnailsLabel,
   String? retryThumbnailsSubtitle,
+  bool showEditTags = false,
 }) {
   final l10n = AppLocalizations.of(context);
   return showAppActionMenu<MediaManagementRowAction>(
@@ -25,6 +26,13 @@ Future<MediaManagementRowAction?> showMediaManagementRowActions({
     title: title,
     titleSubtitle: titleSubtitle,
     items: <AppMenuItem<MediaManagementRowAction>>[
+      AppMenuItem(
+        key: const Key('media-management-row-action-edit-tags'),
+        value: MediaManagementRowAction.editTags,
+        label: l10n.mediaListTagsEdit,
+        icon: Icons.sell_outlined,
+        visible: showEditTags,
+      ),
       AppMenuItem(
         key: const Key('media-management-row-action-retry-thumbnails'),
         value: MediaManagementRowAction.retryThumbnails,

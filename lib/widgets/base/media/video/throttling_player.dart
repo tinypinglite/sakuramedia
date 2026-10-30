@@ -30,10 +30,30 @@ import 'package:media_kit/media_kit.dart';
 /// 调用），少数需要"seek 完再干下一步"的路径（resume 播放）本身不会与拖动
 /// 并发，见不到 coalescing。
 class ThrottlingPlayer extends Player {
-  ThrottlingPlayer({super.configuration});
+  ThrottlingPlayer({super.configuration, super.platformPlayer});
 
   Duration? _pendingSeek;
   bool _seekInFlight = false;
+
+  @override
+  Future<void> open(Playable playable, {bool play = true}) async {
+    await _configureHttpConnectionReuse();
+    await super.open(playable, play: play);
+  }
+
+  /// FFmpeg 的 HTTP 协议默认不复用连接；打开媒体前开启 Keep-Alive。
+  Future<void> _configureHttpConnectionReuse() async {
+    final platformPlayer = platform;
+    if (platformPlayer == null) {
+      return;
+    }
+    try {
+      final dynamic nativePlayer = platformPlayer;
+      await nativePlayer.setProperty('stream-lavf-o', 'multiple_requests=1');
+    } on NoSuchMethodError {
+      // Web 或不支持原生属性的测试替身保持原有行为。
+    }
+  }
 
   @override
   Future<void> seek(Duration duration) async {

@@ -10,6 +10,7 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/domain/tags/app_tag_match_mode_toggle.dart';
 
 /// 标签多选区：已选标签 chips + 热门/搜索结果标签云（可选可收起搜索框）。
 ///
@@ -293,20 +294,10 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
           ),
         ),
         SizedBox(width: spacing.sm),
-        AppTextButton(
-          key: const Key('tags-match-or'),
-          label: TagMatchMode.or.labelWith(l10n),
-          size: AppTextButtonSize.xSmall,
-          isSelected: selection.matchMode == TagMatchMode.or,
-          onPressed: () => widget.onMatchModeChanged(TagMatchMode.or),
-        ),
-        SizedBox(width: spacing.sm),
-        AppTextButton(
-          key: const Key('tags-match-and'),
-          label: TagMatchMode.and.labelWith(l10n),
-          size: AppTextButtonSize.xSmall,
-          isSelected: selection.matchMode == TagMatchMode.and,
-          onPressed: () => widget.onMatchModeChanged(TagMatchMode.and),
+        AppTagMatchModeToggle(
+          matchMode: selection.matchMode,
+          buttonKeyPrefix: 'tags-match',
+          onChanged: widget.onMatchModeChanged,
         ),
       ],
     );

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show setEquals;
+import 'package:flutter/foundation.dart' show listEquals, setEquals;
 import 'package:sakuramedia/features/playlists/data/playlist_resolution_filter.dart';
 import 'package:sakuramedia/features/shared/data/movie_interaction_filter.dart';
 import 'package:sakuramedia/features/shared/data/sort_direction.dart';
@@ -208,6 +208,8 @@ class MovieFilterState {
     this.actorAgeMin,
     this.actorAgeMax,
     this.resolution,
+    this.mediaTagIds = const <int>[],
+    this.mediaTagMatch = TagMatchMode.or,
   });
 
   final MovieStatusFilter status;
@@ -231,6 +233,8 @@ class MovieFilterState {
   /// 出演年龄上限（接口 `actor_age_max` 语义）：null 表示不限。
   final int? actorAgeMax;
   final PlaylistResolutionFilter? resolution;
+  final List<int> mediaTagIds;
+  final TagMatchMode mediaTagMatch;
 
   static const MovieFilterState initial = MovieFilterState();
 
@@ -246,7 +250,8 @@ class MovieFilterState {
       !interaction.isDefault ||
       actorAgeMin != null ||
       actorAgeMax != null ||
-      resolution != null;
+      resolution != null ||
+      mediaTagIds.isNotEmpty;
 
   /// 重置筛选条件但保留当前排序。
   MovieFilterState resetFilters() => MovieFilterState.initial.copyWith(
@@ -274,7 +279,12 @@ class MovieFilterState {
       (_, _, true) => movieActorAgeRangeLabel(actorAgeMin, actorAgeMax, l10n),
       _ => status.labelWith(l10n),
     };
-    return resolution == null ? label : '$label · ${resolution!.label}';
+    final withResolution = resolution == null
+        ? label
+        : '$label · ${resolution!.label}';
+    return mediaTagIds.isEmpty
+        ? withResolution
+        : '$withResolution · ${l10n.moviePageMediaTagCount(mediaTagIds.length)}';
   }
 
   bool matches(MovieFilterState other) =>
@@ -288,7 +298,9 @@ class MovieFilterState {
       interaction.matches(other.interaction) &&
       actorAgeMin == other.actorAgeMin &&
       actorAgeMax == other.actorAgeMax &&
-      resolution == other.resolution;
+      resolution == other.resolution &&
+      listEquals(mediaTagIds, other.mediaTagIds) &&
+      mediaTagMatch == other.mediaTagMatch;
 
   MovieFilterState copyWith({
     MovieStatusFilter? status,
@@ -302,6 +314,8 @@ class MovieFilterState {
     Object? actorAgeMin = _movieFilterUnset,
     Object? actorAgeMax = _movieFilterUnset,
     Object? resolution = _movieFilterUnset,
+    List<int>? mediaTagIds,
+    TagMatchMode? mediaTagMatch,
   }) {
     return MovieFilterState(
       status: status ?? this.status,
@@ -327,6 +341,8 @@ class MovieFilterState {
       actorAgeMax: identical(actorAgeMax, _movieFilterUnset)
           ? this.actorAgeMax
           : actorAgeMax as int?,
+      mediaTagIds: List<int>.unmodifiable(mediaTagIds ?? this.mediaTagIds),
+      mediaTagMatch: mediaTagMatch ?? this.mediaTagMatch,
     );
   }
 }

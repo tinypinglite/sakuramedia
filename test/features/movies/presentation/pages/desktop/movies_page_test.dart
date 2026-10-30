@@ -77,9 +77,15 @@ void main() {
         <String, dynamic>{'tag_id': 3, 'name': '巨乳', 'movie_count': 100},
       ],
     );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-tags',
+      body: const <Map<String, dynamic>>[],
+    );
     await tester.tap(find.byKey(const Key('movies-filter-trigger')));
     await tester.pumpAndSettle();
     expect(bundle.adapter.hitCount('GET', '/tags'), 1);
+    expect(bundle.adapter.hitCount('GET', '/media-tags'), 1);
     expect(find.byKey(const Key('movies-filter-panel')), findsOneWidget);
     // 标签分节在面板最末，先滚到它再操作。
     expect(find.byKey(const Key('tags-option-3')), findsOneWidget);
@@ -126,6 +132,63 @@ void main() {
     );
     expect(cleared.uri.queryParameters.containsKey('tag_ids'), isFalse);
     expect(find.byKey(const Key('tags-selected-3')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('筛选浮层内按媒体文件标签过滤影片', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1600);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(),
+    );
+    await tester.pumpWidget(wrap(const DesktopMoviesPage()));
+    await tester.pumpAndSettle();
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-tags',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 9,
+          'name': '4K',
+          'include_terms': ['4k'],
+          'exclude_terms': <dynamic>[],
+          'enabled': true,
+          'media_count': 5,
+          'created_at': '2026-10-30T01:02:03Z',
+          'updated_at': '2026-10-30T01:02:03Z',
+        },
+      ],
+    );
+    await tester.tap(find.byKey(const Key('movies-filter-trigger')));
+    await tester.pumpAndSettle();
+    final tagButton = find.byKey(const Key('movie-media-tag-filter-9'));
+    await tester.ensureVisible(tagButton);
+    await tester.pumpAndSettle();
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _moviesJson(total: 1),
+    );
+    await tester.tap(tagButton);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    final filtered = bundle.adapter.requests.lastWhere(
+      (request) => request.path == '/movies',
+    );
+    expect(filtered.uri.queryParameters['media_tag_ids'], '9');
+    expect(filtered.uri.queryParameters['media_tag_match'], 'or');
+    expect(find.textContaining('文件标签 1'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 

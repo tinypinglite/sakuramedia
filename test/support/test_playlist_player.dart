@@ -3,6 +3,17 @@ import 'package:media_kit/media_kit.dart';
 class TestPlaylistPlayer extends PlatformPlayer {
   TestPlaylistPlayer() : super(configuration: const PlayerConfiguration());
   final calls = <String>[];
+  final properties = <String, String>{};
+
+  Future<void> setProperty(
+    String property,
+    String value, {
+    bool waitForInitialization = true,
+  }) async {
+    properties[property] = value;
+    calls.add('property:$property=$value');
+  }
+
   void select(int index, Duration position, {bool playing = true}) {
     state = state.copyWith(
       playlist: state.playlist.copyWith(index: index),

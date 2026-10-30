@@ -24,6 +24,7 @@ import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mob
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_download_selection_policy_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_indexers_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_media_libraries_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_media_tags_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_system_maintenance_page.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/mobile/mobile_plugin_market_page.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/mobile/mobile_plugins_page.dart';
@@ -270,6 +271,28 @@ class MobileSettingsMediaLibrariesRouteData extends _MobileSubpageRouteData
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return const MobileMediaLibrariesPage();
+  }
+}
+
+@TypedGoRoute<MobileSettingsMediaTagsRouteData>(
+  path: mobileSettingsMediaTagsPath,
+)
+class MobileSettingsMediaTagsRouteData extends _MobileSubpageRouteData
+    with $MobileSettingsMediaTagsRouteData {
+  const MobileSettingsMediaTagsRouteData();
+
+  @override
+  String get pageName => 'mobile-settings-media-tags';
+
+  @override
+  String title(AppLocalizations l10n) => l10n.configTabMediaTags;
+
+  @override
+  String get defaultLocation => mobileOverviewPath;
+
+  @override
+  Widget buildSubpage(BuildContext context, GoRouterState state) {
+    return const MobileMediaTagsPage();
   }
 }
 
@@ -1329,6 +1352,9 @@ void _handleOverviewDrawerSelection(BuildContext hostContext, String key) {
       return;
     case 'media-libraries':
       const MobileSettingsMediaLibrariesRouteData().push(hostContext);
+      return;
+    case 'media-tags':
+      const MobileSettingsMediaTagsRouteData().push(hostContext);
       return;
     case 'downloaders':
       const MobileSettingsDownloadersRouteData().push(hostContext);
