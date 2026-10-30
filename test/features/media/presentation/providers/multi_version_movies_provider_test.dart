@@ -39,6 +39,7 @@ void main() {
       final provider = multiVersionMoviesProvider(
         includeVr: true,
         includeFc2: true,
+        includeProcessed: true,
       );
       bundle.adapter.enqueueJson(
         method: 'GET',
@@ -113,56 +114,69 @@ void main() {
         requests.every(
           (r) =>
               r.uri.queryParameters['include_vr'] == 'true' &&
-              r.uri.queryParameters['include_fc2'] == 'true',
+              r.uri.queryParameters['include_fc2'] == 'true' &&
+              r.uri.queryParameters['include_processed'] == 'true',
         ),
         isTrue,
       );
     },
   );
 
-  test('keeps a movie with two versions after deletion', () async {
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/media/multi-version-movies',
-      body: page([
-        group('A', [1, 2, 3]),
-      ]),
-    );
-    container.listen(multiVersionMoviesProvider(), (_, __) {});
-    await container.read(multiVersionMoviesProvider().future);
-    bundle.adapter.enqueueJson(
-      method: 'DELETE',
-      path: '/media/1',
-      statusCode: 204,
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/media/multi-version-movies',
-      body: page([
-        group('A', [2, 3]),
-      ]),
-    );
-    await container
-        .read(multiVersionMoviesProvider().notifier)
-        .deleteVersion(
-          container
-              .read(multiVersionMoviesProvider())
-              .requireValue
-              .items
-              .first
-              .mediaItems
-              .first,
-        );
-    expect(
-      container
-          .read(multiVersionMoviesProvider())
+  test(
+    'deleting one version updates the group before silent refresh',
+    () async {
+      final provider = multiVersionMoviesProvider(includeProcessed: true);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/multi-version-movies',
+        body: page([
+          group('A', [1, 2, 3], isProcessed: true),
+        ]),
+      );
+      container.listen(provider, (_, __) {});
+      await container.read(provider.future);
+      final item = container
+          .read(provider)
           .requireValue
           .items
           .single
-          .mediaCount,
-      2,
-    );
-  });
+          .mediaItems
+          .first;
+      bundle.adapter.enqueueJson(
+        method: 'DELETE',
+        path: '/media/1',
+        statusCode: 204,
+      );
+      final pendingRefresh = Completer<ResponseBody>();
+      final refreshStarted = Completer<void>();
+      bundle.adapter.enqueueResponder(
+        method: 'GET',
+        path: '/media/multi-version-movies',
+        responder: (_, __) {
+          refreshStarted.complete();
+          return pendingRefresh.future;
+        },
+      );
+      final deletion = container.read(provider.notifier).deleteVersion(item);
+      await refreshStarted.future;
+      final state = container.read(provider);
+      expect(state.hasValue, isTrue);
+      expect(state.isLoading, isFalse);
+      final groupState = state.requireValue.items.single;
+      expect(groupState.mediaCount, 2);
+      expect(groupState.mediaItems.map((item) => item.id), [2, 3]);
+      expect(groupState.isProcessed, isFalse);
+      pendingRefresh.complete(
+        _responseBody(
+          page([
+            group('A', [2, 3]),
+          ]),
+        ),
+      );
+      await deletion;
+      expect(container.read(provider).requireValue.items.single.mediaCount, 2);
+    },
+  );
 
   test(
     'failed deletion keeps the existing versions and does not reload',
@@ -260,7 +274,7 @@ void main() {
   });
 
   test(
-    'successful deletion with failed reload exposes retry without claiming deletion failed',
+    'successful deletion with failed refresh keeps the local group removal',
     () async {
       bundle.adapter.enqueueJson(
         method: 'GET',
@@ -294,7 +308,135 @@ void main() {
       await container
           .read(multiVersionMoviesProvider().notifier)
           .deleteVersion(item);
-      expect(container.read(multiVersionMoviesProvider()).hasError, isTrue);
+      final state = container.read(multiVersionMoviesProvider());
+      expect(state.hasError, isFalse);
+      expect(state.requireValue.items, isEmpty);
+      expect(state.requireValue.total, 0);
+    },
+  );
+
+  test('mark removes a group without collapsing loaded pages', () async {
+    final provider = multiVersionMoviesProvider();
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/multi-version-movies',
+      body: page([
+        group('A', [1, 2]),
+        group('B', [3, 4]),
+      ], total: 3),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/multi-version-movies',
+      body: page(
+        [
+          group('C', [5, 6]),
+        ],
+        total: 3,
+        number: 2,
+      ),
+    );
+    container.listen(provider, (_, __) {});
+    await container.read(provider.future);
+    final notifier = container.read(provider.notifier);
+    await notifier.loadMore();
+    final pending = container.read(provider).requireValue.items.first;
+    final getCount = bundle.adapter.hitCount(
+      'GET',
+      '/media/multi-version-movies',
+    );
+
+    bundle.adapter.enqueueJson(
+      method: 'PUT',
+      path: '/media/multi-version-movies/A/processed',
+      statusCode: 204,
+      body: null,
+    );
+    await notifier.markProcessed(pending);
+
+    final state = container.read(provider).requireValue;
+    expect(
+      bundle.adapter.hitCount('GET', '/media/multi-version-movies'),
+      getCount,
+    );
+    expect(state.currentPage, 2);
+    expect(state.items.map((group) => group.movieNumber), ['B', 'C']);
+    expect(state.total, 2);
+    expect(
+      bundle.adapter.requests
+          .firstWhere((request) => request.method == 'PUT')
+          .body,
+      {
+        'media_ids': [1, 2],
+      },
+    );
+  });
+
+  test(
+    'mark and clear patch a loaded group without replacing later pages',
+    () async {
+      final provider = multiVersionMoviesProvider(includeProcessed: true);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/multi-version-movies',
+        body: page([
+          group('B', [3, 4]),
+          group('C', [5, 6]),
+        ], total: 3),
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/multi-version-movies',
+        body: page(
+          [
+            group('D', [7, 8]),
+          ],
+          total: 3,
+          number: 2,
+        ),
+      );
+      container.listen(provider, (_, __) {});
+      await container.read(provider.future);
+      final notifier = container.read(provider.notifier);
+      await notifier.loadMore();
+      final pendingGroup = container.read(provider).requireValue.items.first;
+
+      bundle.adapter.enqueueJson(
+        method: 'PUT',
+        path: '/media/multi-version-movies/B/processed',
+        statusCode: 204,
+        body: null,
+      );
+      final getCount = bundle.adapter.hitCount(
+        'GET',
+        '/media/multi-version-movies',
+      );
+      await notifier.markProcessed(pendingGroup);
+      final marked = container.read(provider).requireValue;
+      expect(marked.items.map((group) => group.movieNumber), ['B', 'C', 'D']);
+      expect(marked.currentPage, 2);
+      expect(marked.items.first.isProcessed, isTrue);
+      expect(
+        bundle.adapter.hitCount('GET', '/media/multi-version-movies'),
+        getCount,
+      );
+      final processedGroup = marked.items.first;
+
+      bundle.adapter.enqueueJson(
+        method: 'DELETE',
+        path: '/media/multi-version-movies/B/processed',
+        statusCode: 204,
+        body: null,
+      );
+      await notifier.clearProcessed(processedGroup);
+      final cleared = container.read(provider).requireValue;
+      expect(cleared.items.map((group) => group.movieNumber), ['B', 'C', 'D']);
+      expect(cleared.currentPage, 2);
+      expect(cleared.items.first.isProcessed, isFalse);
+      expect(
+        bundle.adapter.hitCount('GET', '/media/multi-version-movies'),
+        getCount,
+      );
     },
   );
 }
@@ -306,9 +448,14 @@ Map<String, dynamic> page(List<dynamic> items, {int? total, int number = 1}) =>
       'page': number,
       'page_size': 20,
     };
-Map<String, dynamic> group(String number, List<int> ids) => {
+Map<String, dynamic> group(
+  String number,
+  List<int> ids, {
+  bool isProcessed = false,
+}) => {
   'movie_number': number,
   'media_count': ids.length,
+  'is_processed': isProcessed,
   'media_items': ids
       .map(
         (id) => {
@@ -321,3 +468,12 @@ Map<String, dynamic> group(String number, List<int> ids) => {
       )
       .toList(),
 };
+
+ResponseBody _responseBody(Map<String, dynamic> body) =>
+    ResponseBody.fromString(
+      jsonEncode(body),
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );

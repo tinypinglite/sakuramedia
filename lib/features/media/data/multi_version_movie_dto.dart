@@ -6,11 +6,24 @@ class MultiVersionMovieDto {
     required this.movieNumber,
     required this.mediaCount,
     required this.mediaItems,
+    this.isProcessed = false,
   });
 
   final String movieNumber;
   final int mediaCount;
   final List<MediaListItemDto> mediaItems;
+  final bool isProcessed;
+
+  MultiVersionMovieDto copyWith({
+    int? mediaCount,
+    List<MediaListItemDto>? mediaItems,
+    bool? isProcessed,
+  }) => MultiVersionMovieDto(
+    movieNumber: movieNumber,
+    mediaCount: mediaCount ?? this.mediaCount,
+    mediaItems: mediaItems ?? this.mediaItems,
+    isProcessed: isProcessed ?? this.isProcessed,
+  );
 
   factory MultiVersionMovieDto.fromJson(
     Map<String, dynamic> json,
@@ -23,5 +36,6 @@ class MultiVersionMovieDto {
               MediaListItemDto.fromJson(Map<String, dynamic>.from(item as Map)),
         )
         .toList(growable: false),
+    isProcessed: json['is_processed'] as bool? ?? false,
   );
 }

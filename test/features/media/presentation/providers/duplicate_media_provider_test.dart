@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
@@ -94,21 +98,60 @@ void main() {
         ),
       );
       adapter.enqueueJson(method: 'DELETE', path: '/media/2', statusCode: 204);
-      adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
 
       final provider = duplicateMediaProvider(MediaListItemKind.jav);
       await container.read(provider.future);
       final notifier = container.read(provider.notifier);
 
-      await notifier.deleteDuplicateMedia(mediaId: 2);
+      final shrinkRefresh = Completer<ResponseBody>();
+      final shrinkStarted = Completer<void>();
+      adapter.enqueueResponder(
+        method: 'GET',
+        path: '/media/duplicates',
+        responder: (_, __) {
+          shrinkStarted.complete();
+          return shrinkRefresh.future;
+        },
+      );
+      final shrink = notifier.deleteDuplicateMedia(mediaId: 2);
+      await shrinkStarted.future;
       var state = container.read(provider).requireValue;
+      expect(container.read(provider).isLoading, isFalse);
       expect(state.items.single.mediaCount, 2);
       expect(state.items.single.mediaItems.map((item) => item.id), [1, 3]);
+      shrinkRefresh.complete(
+        _responseBody(
+          _duplicatePage(
+            page: 1,
+            total: 1,
+            groups: [
+              _duplicateGroup(1, [1, 3]),
+            ],
+          ),
+        ),
+      );
+      await shrink;
 
-      await notifier.deleteDuplicateMedia(mediaId: 1);
+      adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
+      final removeRefresh = Completer<ResponseBody>();
+      final removeStarted = Completer<void>();
+      adapter.enqueueResponder(
+        method: 'GET',
+        path: '/media/duplicates',
+        responder: (_, __) {
+          removeStarted.complete();
+          return removeRefresh.future;
+        },
+      );
+      final remove = notifier.deleteDuplicateMedia(mediaId: 1);
+      await removeStarted.future;
       state = container.read(provider).requireValue;
       expect(state.items, isEmpty);
       expect(state.total, 0);
+      removeRefresh.complete(
+        _responseBody(_duplicatePage(page: 1, total: 0, groups: const [])),
+      );
+      await remove;
       expect(adapter.hitCount('DELETE', '/media/2'), 1);
       expect(adapter.hitCount('DELETE', '/media/1'), 1);
     },
@@ -127,6 +170,11 @@ void main() {
       ),
     );
     adapter.enqueueJson(method: 'DELETE', path: '/media/11', statusCode: 204);
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/duplicates',
+      body: _duplicatePage(page: 1, total: 0, groups: const []),
+    );
 
     final events = <VideoMutationChange>[];
     container.listen(videoMutationEventsProvider, (_, next) {
@@ -143,6 +191,15 @@ void main() {
     expect(events.single.videoId, 101);
   });
 }
+
+ResponseBody _responseBody(Map<String, dynamic> body) =>
+    ResponseBody.fromString(
+      jsonEncode(body),
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
 
 Map<String, dynamic> _duplicatePage({
   required int page,

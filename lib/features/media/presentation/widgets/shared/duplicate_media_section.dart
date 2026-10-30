@@ -8,7 +8,6 @@ import 'package:sakuramedia/features/media/data/duplicate_media_group_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_placeholders.dart';
 import 'package:sakuramedia/features/media/presentation/providers/duplicate_media_provider.dart';
-import 'package:sakuramedia/features/media/presentation/providers/media_browse_provider.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_file_group_card.dart';
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
@@ -153,7 +152,6 @@ class DuplicateMediaSection extends HookConsumerWidget {
           await ref
               .read(duplicateMediaProvider(kind).notifier)
               .deleteDuplicateMedia(mediaId: item.id);
-          ref.read(mediaBrowseProvider.notifier).removeItemsByIds([item.id]);
         },
         failureFallback: l10n.mediaListDuplicateDeleteFailed,
       );

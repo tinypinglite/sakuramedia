@@ -3774,6 +3774,13 @@
   "mediaListVersionsDeleted": "Movie version deleted",
   "mediaListVersionsIncludeVr": "Include VR",
   "mediaListVersionsIncludeFc2": "Include FC2",
+  "mediaListVersionsIncludeProcessed": "Include processed",
+  "mediaListVersionsProcessedBadge": "Processed",
+  "mediaListVersionsMarkProcessed": "Mark as processed",
+  "mediaListVersionsMarkPending": "Restore as pending",
+  "mediaListVersionsMarkedProcessed": "Marked as processed",
+  "mediaListVersionsMarkedPending": "Restored as pending",
+  "mediaListVersionsProcessFailed": "Failed to update processed status",
   "mediaListVersionsCount": "{count} versions",
   "@mediaListVersionsCount": {
     "placeholders": {

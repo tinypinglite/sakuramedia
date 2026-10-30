@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
@@ -165,6 +169,55 @@ void main() {
     },
   );
 
+  test(
+    'deleteMediaFile removes the item before silent refresh completes',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media',
+        body: _mediaPage(
+          items: [_javItemJson(id: 1), _javItemJson(id: 2)],
+          total: 2,
+          page: 1,
+        ),
+      );
+      adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
+      final pendingRefresh = Completer<ResponseBody>();
+      final refreshStarted = Completer<void>();
+      adapter.enqueueResponder(
+        method: 'GET',
+        path: '/media',
+        responder: (_, __) {
+          refreshStarted.complete();
+          return pendingRefresh.future;
+        },
+      );
+
+      await container.read(mediaBrowseProvider.future);
+      final item = container
+          .read(mediaBrowseProvider)
+          .requireValue
+          .paged
+          .items
+          .first;
+      final deletion = container
+          .read(mediaBrowseProvider.notifier)
+          .deleteMediaFile(item);
+      await refreshStarted.future;
+
+      final asyncState = container.read(mediaBrowseProvider);
+      expect(asyncState.isLoading, isFalse);
+      expect(asyncState.requireValue.paged.items.map((item) => item.id), [2]);
+      expect(asyncState.requireValue.paged.total, 1);
+      pendingRefresh.complete(
+        _responseBody(
+          _mediaPage(items: [_javItemJson(id: 2)], total: 1, page: 1),
+        ),
+      );
+      await deletion;
+    },
+  );
+
   test('toggleSelectAllLoaded / setSelected / clearSelection', () async {
     adapter.enqueueJson(
       method: 'GET',
@@ -222,6 +275,15 @@ void main() {
     expect(container.read(mediaBrowseProvider).requireValue.selectionCount, 0);
   });
 }
+
+ResponseBody _responseBody(Map<String, dynamic> body) =>
+    ResponseBody.fromString(
+      jsonEncode(body),
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
 
 Map<String, dynamic> _javItemJson({required int id}) {
   return <String, dynamic>{

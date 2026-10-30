@@ -3774,6 +3774,13 @@
   "mediaListVersionsDeleted": "影片版本已删除",
   "mediaListVersionsIncludeVr": "包含 VR",
   "mediaListVersionsIncludeFc2": "包含 FC2",
+  "mediaListVersionsIncludeProcessed": "包含已处理",
+  "mediaListVersionsProcessedBadge": "已处理",
+  "mediaListVersionsMarkProcessed": "标记已处理",
+  "mediaListVersionsMarkPending": "恢复待处理",
+  "mediaListVersionsMarkedProcessed": "已标记为处理",
+  "mediaListVersionsMarkedPending": "已恢复为待处理",
+  "mediaListVersionsProcessFailed": "更新处理状态失败",
   "mediaListVersionsCount": "{count} 个版本",
   "@mediaListVersionsCount": {
     "placeholders": {

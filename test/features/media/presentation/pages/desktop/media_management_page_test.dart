@@ -476,6 +476,11 @@ void main() {
       body: _page(total: 1, items: [_duplicateGroupJson()]),
     );
     adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/duplicates',
+      body: _page(total: 0, items: const []),
+    );
     await _pumpPage(
       tester,
       sessionStore: sessionStore,
@@ -560,6 +565,11 @@ void main() {
       body: _page(total: 1, items: [_invalidMediaJson(1)]),
     );
     adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/invalid',
+      body: _page(total: 0, items: const []),
+    );
     await _pumpPage(
       tester,
       sessionStore: sessionStore,
@@ -651,6 +661,11 @@ void main() {
       body: _page(total: 1, items: [_duplicateMediaItemJson(1)]),
     );
     adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _page(total: 0, items: const []),
+    );
     await _pumpPage(
       tester,
       sessionStore: sessionStore,
@@ -690,6 +705,11 @@ void main() {
       ),
     );
     adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _page(total: 0, items: const []),
+    );
     await _pumpPage(
       tester,
       sessionStore: sessionStore,

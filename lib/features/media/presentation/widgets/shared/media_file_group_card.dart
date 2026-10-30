@@ -33,6 +33,8 @@ class MediaFileGroupCard extends ConsumerWidget {
     required this.onDelete,
     required this.selectedIds,
     required this.onToggle,
+    this.statusLabel,
+    this.footer,
   });
 
   final List<MediaListItemDto> items;
@@ -49,6 +51,8 @@ class MediaFileGroupCard extends ConsumerWidget {
   final ValueChanged<MediaListItemDto> onDelete;
   final Set<int>? selectedIds;
   final ValueChanged<MediaListItemDto> onToggle;
+  final String? statusLabel;
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -76,6 +80,7 @@ class MediaFileGroupCard extends ConsumerWidget {
             keyPrefix: keyPrefix,
             mobile: mobile,
             onOpen: onOpen,
+            statusLabel: statusLabel,
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(spacing.lg, 0, spacing.lg, spacing.md),
@@ -96,6 +101,13 @@ class MediaFileGroupCard extends ConsumerWidget {
                     itemSupplement: itemSupplement?.call(items[index]),
                   ),
                 ],
+                if (footer != null) ...[
+                  SizedBox(height: spacing.sm),
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: footer!,
+                  ),
+                ],
               ],
             ),
           ),
@@ -113,6 +125,7 @@ class _GroupHeader extends StatelessWidget {
     required this.keyPrefix,
     required this.mobile,
     required this.onOpen,
+    required this.statusLabel,
   });
 
   final MediaListItemDto movie;
@@ -121,6 +134,7 @@ class _GroupHeader extends StatelessWidget {
   final String keyPrefix;
   final bool mobile;
   final VoidCallback? onOpen;
+  final String? statusLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +194,15 @@ class _GroupHeader extends StatelessWidget {
                   ),
                 ],
                 SizedBox(height: spacing.sm),
-                AppBadge(label: countLabel, tone: AppBadgeTone.neutral),
+                Wrap(
+                  spacing: spacing.xs,
+                  runSpacing: spacing.xs,
+                  children: [
+                    AppBadge(label: countLabel, tone: AppBadgeTone.neutral),
+                    if (statusLabel != null)
+                      AppBadge(label: statusLabel!, tone: AppBadgeTone.primary),
+                  ],
+                ),
               ],
             ),
           ),

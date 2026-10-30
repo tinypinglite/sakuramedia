@@ -77,6 +77,7 @@ class InvalidMedia extends _$InvalidMedia
       final now = state.value;
       if (now == null) return;
       state = AsyncData(_withMediaRemoved(now, mediaId));
+      await refresh();
     } catch (error) {
       if (!isDisposed) {
         final now = state.value;
@@ -94,15 +95,20 @@ class InvalidMedia extends _$InvalidMedia
   }
 
   InvalidMediaState _withMediaRemoved(InvalidMediaState current, int mediaId) {
-    final beforeLength = current.paged.items.length;
-    final nextItems = current.paged.items
+    invalidateInFlightLoadMore();
+    var paged = current.paged;
+    if (paged.isLoadingMore || paged.loadMoreErrorMessage != null) {
+      paged = paged.copyWith(isLoadingMore: false, loadMoreErrorMessage: null);
+    }
+    final beforeLength = paged.items.length;
+    final nextItems = paged.items
         .where((item) => item.id != mediaId)
         .toList(growable: false);
     final removed = beforeLength - nextItems.length;
-    final nextTotal = removed > 0 && current.paged.total > 0
-        ? (current.paged.total - removed).clamp(0, 1 << 30).toInt()
-        : current.paged.total;
-    final nextPaged = current.paged.copyWith(
+    final nextTotal = removed > 0 && paged.total > 0
+        ? (paged.total - removed).clamp(0, 1 << 30).toInt()
+        : paged.total;
+    final nextPaged = paged.copyWith(
       items: List<InvalidMediaDto>.unmodifiable(nextItems),
       total: nextTotal,
       hasMore: nextItems.length < nextTotal,

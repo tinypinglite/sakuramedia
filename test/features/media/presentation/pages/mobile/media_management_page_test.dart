@@ -538,6 +538,11 @@ void main() {
       body: _mediaPage(items: [_mediaItemJson(1)]),
     );
     adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: const []),
+    );
     await _pumpPage(
       tester,
       sessionStore: sessionStore,
@@ -603,6 +608,11 @@ void main() {
           headers: const <String, List<String>>{},
         );
       },
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: [_mediaItemJson(2)]),
     );
     await _pumpPage(
       tester,

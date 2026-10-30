@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
@@ -74,16 +78,32 @@ void main() {
       body: _invalidMediaPage(total: 1, items: [_invalidMediaJson(1)]),
     );
     adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
+    final pendingRefresh = Completer<ResponseBody>();
+    final refreshStarted = Completer<void>();
+    adapter.enqueueResponder(
+      method: 'GET',
+      path: '/media/invalid',
+      responder: (_, __) {
+        refreshStarted.complete();
+        return pendingRefresh.future;
+      },
+    );
 
     await container.read(invalidMediaProvider.future);
-    await container
+    final deletion = container
         .read(invalidMediaProvider.notifier)
         .deleteInvalidMedia(mediaId: 1);
+    await refreshStarted.future;
 
     final state = container.read(invalidMediaProvider).requireValue;
+    expect(container.read(invalidMediaProvider).isLoading, isFalse);
     expect(state.paged.items, isEmpty);
     expect(state.paged.total, 0);
     expect(state.deletingMediaId, isNull);
+    pendingRefresh.complete(
+      _responseBody(_invalidMediaPage(total: 0, items: const [])),
+    );
+    await deletion;
     expect(adapter.hitCount('DELETE', '/media/1'), 1);
   });
 
@@ -97,6 +117,11 @@ void main() {
       ),
     );
     adapter.enqueueJson(method: 'DELETE', path: '/media/1', statusCode: 204);
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/invalid',
+      body: _invalidMediaPage(total: 0, items: const []),
+    );
 
     final events = <VideoMutationChange>[];
     container.listen(videoMutationEventsProvider, (_, next) {
@@ -114,6 +139,15 @@ void main() {
     expect(events.single.videoId, 101);
   });
 }
+
+ResponseBody _responseBody(Map<String, dynamic> body) =>
+    ResponseBody.fromString(
+      jsonEncode(body),
+      200,
+      headers: {
+        Headers.contentTypeHeader: [Headers.jsonContentType],
+      },
+    );
 
 Map<String, dynamic> _invalidMediaPage({
   int page = 1,

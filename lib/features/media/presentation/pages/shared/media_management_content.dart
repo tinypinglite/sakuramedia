@@ -82,9 +82,11 @@ class MediaManagementContent extends HookConsumerWidget {
     final duplicateKind = useState(MediaListItemKind.jav);
     final includeVr = useState(false);
     final includeFc2 = useState(false);
+    final includeProcessed = useState(false);
     final versionsProvider = multiVersionMoviesProvider(
       includeVr: includeVr.value,
       includeFc2: includeFc2.value,
+      includeProcessed: includeProcessed.value,
     );
     final versionsVisited = useRef(false);
     if (currentTab == _versionsTabIndex) versionsVisited.value = true;
@@ -293,6 +295,7 @@ class MediaManagementContent extends HookConsumerWidget {
                     child: MultiVersionMoviesSection(
                       includeVr: includeVr,
                       includeFc2: includeFc2,
+                      includeProcessed: includeProcessed,
                       scrollController: versionsScrollController,
                       keyPrefix: keyPrefix,
                       mobile: mobile,
@@ -416,8 +419,7 @@ class MediaManagementContent extends HookConsumerWidget {
 
     deletingMediaId.value = item.id;
     try {
-      await ref.read(mediaApiProvider).deleteMedia(mediaId: item.id);
-      ref.read(mediaBrowseProvider.notifier).removeItemsByIds([item.id]);
+      await ref.read(mediaBrowseProvider.notifier).deleteMediaFile(item);
       _reportDeletedPornboxVideos(ref, [item]);
       if (context.mounted) showToast(l10n.mediaListDeleteSuccess);
     } catch (error) {

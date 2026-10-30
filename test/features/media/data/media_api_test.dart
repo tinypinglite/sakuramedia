@@ -550,6 +550,64 @@ void main() {
     });
   });
 
+  test(
+    'multi-version filters and processed mutations use the public API',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/multi-version-movies',
+        body: {
+          'items': [
+            {
+              'movie_number': 'ABC-001',
+              'media_count': 2,
+              'media_items': <dynamic>[],
+              'is_processed': true,
+            },
+          ],
+          'page': 1,
+          'page_size': 20,
+          'total': 1,
+        },
+      );
+      final page = await mediaApi.getMultiVersionMovies(includeProcessed: true);
+      expect(page.items.single.isProcessed, isTrue);
+      expect(
+        adapter.requests.last.uri.queryParameters['include_processed'],
+        'true',
+      );
+
+      adapter.enqueueJson(
+        method: 'PUT',
+        path: '/media/multi-version-movies/ABC-001/processed',
+        statusCode: 204,
+        body: null,
+      );
+      await mediaApi.markMultiVersionProcessed(
+        movieNumber: 'ABC-001',
+        mediaIds: [11, 12],
+      );
+      expect(adapter.requests.last.body, {
+        'media_ids': [11, 12],
+      });
+
+      adapter.enqueueJson(
+        method: 'DELETE',
+        path: '/media/multi-version-movies/ABC-001/processed',
+        statusCode: 204,
+        body: null,
+      );
+      await mediaApi.clearMultiVersionProcessed(movieNumber: 'ABC-001');
+      expect(
+        adapter.hitCount(
+          'DELETE',
+          '/media/multi-version-movies/ABC-001/processed',
+        ),
+        1,
+      );
+    },
+  );
+
   test('resetMediaThumbnails posts selected media IDs without force', () async {
     adapter.enqueueJson(
       method: 'POST',

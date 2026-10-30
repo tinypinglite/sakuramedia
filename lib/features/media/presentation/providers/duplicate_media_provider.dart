@@ -69,11 +69,19 @@ class DuplicateMedia extends _$DuplicateMedia
     await ref.read(mediaApiProvider).deleteMedia(mediaId: mediaId);
     if (isDisposed) return;
 
-    final now = state.value ?? current;
+    var now = state.value ?? current;
+    invalidateInFlightLoadMore();
+    if (now.isLoadingMore || now.loadMoreErrorMessage != null) {
+      now = now.copyWith(isLoadingMore: false, loadMoreErrorMessage: null);
+      state = AsyncData(now);
+    }
     final groupIndex = now.items.indexWhere(
       (group) => group.mediaItems.any((item) => item.id == mediaId),
     );
-    if (groupIndex < 0) return;
+    if (groupIndex < 0) {
+      await refresh();
+      return;
+    }
 
     // 非 JAV 媒体删除会同步删除视频条目并级联清理合集成员，通知 videos 域就地补丁。
     reportDeletedVideoItems([
@@ -95,6 +103,7 @@ class DuplicateMedia extends _$DuplicateMedia
           hasMore: nextItems.length < nextTotal,
         ),
       );
+      await refresh();
       return;
     }
 
@@ -105,5 +114,6 @@ class DuplicateMedia extends _$DuplicateMedia
     state = AsyncData(
       now.copyWith(items: List<DuplicateMediaGroupDto>.unmodifiable(nextItems)),
     );
+    await refresh();
   }
 }

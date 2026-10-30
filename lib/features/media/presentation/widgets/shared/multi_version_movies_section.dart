@@ -10,6 +10,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/data/multi_version_movie_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_placeholders.dart';
@@ -40,10 +41,12 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
     required this.onOpenMovieDetail,
     required this.includeVr,
     required this.includeFc2,
+    required this.includeProcessed,
   });
 
   final ValueNotifier<bool> includeVr;
   final ValueNotifier<bool> includeFc2;
+  final ValueNotifier<bool> includeProcessed;
   final ScrollController scrollController;
   final String keyPrefix;
   final bool mobile;
@@ -55,6 +58,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
     final provider = multiVersionMoviesProvider(
       includeVr: includeVr.value,
       includeFc2: includeFc2.value,
+      includeProcessed: includeProcessed.value,
     );
     // 列表本体忽略 loadMore 状态：翻页 loading/失败只重建独立页脚。
     final asyncState = ref.watch(
@@ -66,6 +70,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
     final selectionMode = useState(false);
     final selectedIds = useState(<int>{});
     final deleting = useState(false);
+    final updatingMovieNumber = useState<String?>(null);
     final groups = asyncState.value?.items ?? const <MultiVersionMovieDto>[];
     final selected = [
       for (final group in groups)
@@ -146,24 +151,74 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
         cancelKey: Key('$keyPrefix-version-delete-cancel-${item.id}'),
         onConfirm: () async {
           await ref.read(provider.notifier).deleteVersion(item);
-          if (scrollController.hasClients) scrollController.jumpTo(0);
         },
         failureFallback: l10n.mediaListVersionsDeleteFailed,
       );
-      if (confirmed && context.mounted) showToast(l10n.mediaListVersionsDeleted);
+      if (confirmed && context.mounted) {
+        showToast(l10n.mediaListVersionsDeleted);
+      }
+    }
+
+    Future<void> setProcessed(
+      MultiVersionMovieDto group,
+      bool processed,
+    ) async {
+      if (updatingMovieNumber.value != null) return;
+      updatingMovieNumber.value = group.movieNumber;
+      try {
+        final notifier = ref.read(provider.notifier);
+        if (processed) {
+          await notifier.markProcessed(group);
+        } else {
+          await notifier.clearProcessed(group);
+        }
+        if (context.mounted) {
+          showToast(
+            processed
+                ? l10n.mediaListVersionsMarkedProcessed
+                : l10n.mediaListVersionsMarkedPending,
+          );
+        }
+      } catch (error) {
+        if (context.mounted) {
+          showToast(
+            apiErrorMessage(
+              error,
+              fallback: l10n.mediaListVersionsProcessFailed,
+              l10n: l10n,
+            ),
+          );
+        }
+      } finally {
+        updatingMovieNumber.value = null;
+      }
     }
 
     Widget filterOptions(BuildContext context) => HookBuilder(
       builder: (context) {
         useListenable(includeVr);
         useListenable(includeFc2);
+        useListenable(includeProcessed);
         return Wrap(
           spacing: spacing.sm,
           runSpacing: spacing.sm,
           children: [
             for (final filter in [
-              (label: l10n.mediaListVersionsIncludeVr, state: includeVr, key: 'vr'),
-              (label: l10n.mediaListVersionsIncludeFc2, state: includeFc2, key: 'fc2'),
+              (
+                label: l10n.mediaListVersionsIncludeVr,
+                state: includeVr,
+                key: 'vr',
+              ),
+              (
+                label: l10n.mediaListVersionsIncludeFc2,
+                state: includeFc2,
+                key: 'fc2',
+              ),
+              (
+                label: l10n.mediaListVersionsIncludeProcessed,
+                state: includeProcessed,
+                key: 'processed',
+              ),
             ])
               AppTextButton(
                 key: Key('$keyPrefix-versions-include-${filter.key}'),
@@ -185,11 +240,14 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
       builder: (context) {
         useListenable(includeVr);
         useListenable(includeFc2);
+        useListenable(includeProcessed);
         return AppFilterPanelFooter(
-          isDefault: !includeVr.value && !includeFc2.value,
+          isDefault:
+              !includeVr.value && !includeFc2.value && !includeProcessed.value,
           onReset: () {
             includeVr.value = false;
             includeFc2.value = false;
+            includeProcessed.value = false;
             if (scrollController.hasClients) scrollController.jumpTo(0);
           },
         );
@@ -197,6 +255,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
     );
 
     Widget buildGroup(BuildContext context, MultiVersionMovieDto group) {
+      final updating = updatingMovieNumber.value == group.movieNumber;
       return MediaFileGroupCard(
         key: Key('$keyPrefix-version-group-${group.movieNumber}'),
         items: group.mediaItems,
@@ -208,6 +267,25 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
         onOpen: () => onOpenMovieDetail(context, group.movieNumber),
         onDelete: (item) => unawaited(deleteVersion(group, item)),
         selectedIds: selectionMode.value ? selectedIds.value : null,
+        statusLabel: group.isProcessed
+            ? l10n.mediaListVersionsProcessedBadge
+            : null,
+        footer: AppTextButton(
+          key: Key('$keyPrefix-version-processed-${group.movieNumber}'),
+          label: group.isProcessed
+              ? l10n.mediaListVersionsMarkPending
+              : l10n.mediaListVersionsMarkProcessed,
+          icon: Icon(
+            group.isProcessed
+                ? Icons.undo_rounded
+                : Icons.check_circle_outline_rounded,
+          ),
+          size: AppTextButtonSize.xSmall,
+          isLoading: updating,
+          onPressed: updatingMovieNumber.value != null || deleting.value
+              ? null
+              : () => unawaited(setProcessed(group, !group.isProcessed)),
+        ),
         onToggle: (item) {
           final next = {...selectedIds.value};
           if (!next.remove(item.id)) next.add(item.id);
@@ -232,11 +310,16 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
             )
           : AppListHeader(
               filterButtonKey: Key('$keyPrefix-versions-filter'),
-              filterLabel: !includeVr.value && !includeFc2.value
+              filterLabel:
+                  !includeVr.value &&
+                      !includeFc2.value &&
+                      !includeProcessed.value
                   ? l10n.mediaListFilterTooltip
                   : [
                       if (includeVr.value) 'VR',
                       if (includeFc2.value) 'FC2',
+                      if (includeProcessed.value)
+                        l10n.mediaListVersionsIncludeProcessed,
                     ].join(' / '),
               filterPanelKey: Key('$keyPrefix-versions-filter-panel'),
               filterPanelBuilder: mobile ? null : filterOptions,
@@ -310,9 +393,11 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
                 enabled: true,
                 child: Column(
                   children: [
-                    for (var index = 0;
-                        index < placeholders.length;
-                        index++) ...[
+                    for (
+                      var index = 0;
+                      index < placeholders.length;
+                      index++
+                    ) ...[
                       if (index > 0) SizedBox(height: spacing.lg),
                       buildGroup(context, placeholders[index]),
                     ],
@@ -323,8 +408,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
             initialRetryKey: Key('$keyPrefix-versions-retry'),
             onReload: () => unawaited(ref.read(provider.notifier).reload()),
             onLoadMore: () => unawaited(ref.read(provider.notifier).loadMore()),
-            itemBuilder: (context, group, index) =>
-                buildGroup(context, group),
+            itemBuilder: (context, group, index) => buildGroup(context, group),
             // 页脚由 PagedLoadMoreFooterSliver 独立渲染。
             showLoadMoreFooter: false,
           ),

@@ -178,6 +178,7 @@ class MediaApi {
     int pageSize = 20,
     bool includeVr = false,
     bool includeFc2 = false,
+    bool includeProcessed = false,
   }) async {
     final response = await _apiClient.get(
       '/media/multi-version-movies',
@@ -186,11 +187,28 @@ class MediaApi {
         'page_size': pageSize,
         'include_vr': includeVr,
         'include_fc2': includeFc2,
+        'include_processed': includeProcessed,
       },
     );
     return PaginatedResponseDto<MultiVersionMovieDto>.fromJson(
       response,
       MultiVersionMovieDto.fromJson,
+    );
+  }
+
+  Future<void> markMultiVersionProcessed({
+    required String movieNumber,
+    required List<int> mediaIds,
+  }) {
+    return _apiClient.putNoContent(
+      '/media/multi-version-movies/$movieNumber/processed',
+      data: <String, dynamic>{'media_ids': mediaIds},
+    );
+  }
+
+  Future<void> clearMultiVersionProcessed({required String movieNumber}) {
+    return _apiClient.deleteNoContent(
+      '/media/multi-version-movies/$movieNumber/processed',
     );
   }
 

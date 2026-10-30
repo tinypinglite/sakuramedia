@@ -131,10 +131,21 @@ class MediaBrowse extends _$MediaBrowse
   /// - 已在列表中的：移除条目 + 同步扣减 total + `hasMore` 重算；
   /// - 只在多选集合里的（当前列表看不到）：仅剔除多选。
   void removeItemsByIds(Iterable<int> ids) {
-    final current = state.value;
+    var current = state.value;
     if (current == null) return;
     final targets = ids.toSet();
     if (targets.isEmpty) return;
+    invalidateInFlightLoadMore();
+    if (current.paged.isLoadingMore ||
+        current.paged.loadMoreErrorMessage != null) {
+      current = current.copyWith(
+        paged: current.paged.copyWith(
+          isLoadingMore: false,
+          loadMoreErrorMessage: null,
+        ),
+      );
+      state = AsyncData(current);
+    }
 
     final beforeLength = current.paged.items.length;
     final nextItems = current.paged.items
@@ -161,6 +172,13 @@ class MediaBrowse extends _$MediaBrowse
     state = AsyncData(
       current.copyWith(paged: nextPaged, selectedIds: nextSelected),
     );
+  }
+
+  Future<void> deleteMediaFile(MediaListItemDto item) async {
+    await ref.read(mediaApiProvider).deleteMedia(mediaId: item.id);
+    if (isDisposed) return;
+    removeItemsByIds([item.id]);
+    await refresh();
   }
 
   void applyTagAssignment({

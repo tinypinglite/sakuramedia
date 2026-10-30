@@ -20,7 +20,8 @@ final class MultiVersionMoviesProvider
         > {
   MultiVersionMoviesProvider._({
     required MultiVersionMoviesFamily super.from,
-    required ({bool includeVr, bool includeFc2}) super.argument,
+    required ({bool includeVr, bool includeFc2, bool includeProcessed})
+    super.argument,
   }) : super(
          retry: kNoAsyncNotifierRetry,
          name: r'multiVersionMoviesProvider',
@@ -55,7 +56,7 @@ final class MultiVersionMoviesProvider
 }
 
 String _$multiVersionMoviesHash() =>
-    r'5787246432a0700b62ca73ebf6dde688d2b3ad8a';
+    r'7a704dd5fd82639ce72996107f00f9c75e55fc4e';
 
 final class MultiVersionMoviesFamily extends $Family
     with
@@ -64,7 +65,7 @@ final class MultiVersionMoviesFamily extends $Family
           AsyncValue<PagedListState<MultiVersionMovieDto>>,
           PagedListState<MultiVersionMovieDto>,
           FutureOr<PagedListState<MultiVersionMovieDto>>,
-          ({bool includeVr, bool includeFc2})
+          ({bool includeVr, bool includeFc2, bool includeProcessed})
         > {
   MultiVersionMoviesFamily._()
     : super(
@@ -78,8 +79,13 @@ final class MultiVersionMoviesFamily extends $Family
   MultiVersionMoviesProvider call({
     bool includeVr = false,
     bool includeFc2 = false,
+    bool includeProcessed = false,
   }) => MultiVersionMoviesProvider._(
-    argument: (includeVr: includeVr, includeFc2: includeFc2),
+    argument: (
+      includeVr: includeVr,
+      includeFc2: includeFc2,
+      includeProcessed: includeProcessed,
+    ),
     from: this,
   );
 
@@ -89,13 +95,16 @@ final class MultiVersionMoviesFamily extends $Family
 
 abstract class _$MultiVersionMovies
     extends $AsyncNotifier<PagedListState<MultiVersionMovieDto>> {
-  late final _$args = ref.$arg as ({bool includeVr, bool includeFc2});
+  late final _$args =
+      ref.$arg as ({bool includeVr, bool includeFc2, bool includeProcessed});
   bool get includeVr => _$args.includeVr;
   bool get includeFc2 => _$args.includeFc2;
+  bool get includeProcessed => _$args.includeProcessed;
 
   FutureOr<PagedListState<MultiVersionMovieDto>> build({
     bool includeVr = false,
     bool includeFc2 = false,
+    bool includeProcessed = false,
   });
   @$mustCallSuper
   @override
@@ -119,7 +128,11 @@ abstract class _$MultiVersionMovies
             >;
     return element.handleCreate(
       ref,
-      () => build(includeVr: _$args.includeVr, includeFc2: _$args.includeFc2),
+      () => build(
+        includeVr: _$args.includeVr,
+        includeFc2: _$args.includeFc2,
+        includeProcessed: _$args.includeProcessed,
+      ),
     );
   }
 }
