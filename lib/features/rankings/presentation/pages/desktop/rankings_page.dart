@@ -9,10 +9,13 @@ import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
 import 'package:sakuramedia/core/format/synced_at_label.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_provider.dart';
 import 'package:sakuramedia/features/rankings/presentation/rankings_placeholders.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_scope.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_state.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/stable_set_selection.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -112,15 +115,20 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
 
   /// 与移动榜单页共用同一条顶栏：筛选入口（当前榜单）+ 总数 / 更新时间信息槽。
   /// 差别只在筛选面板的容器——桌面就地浮层，移动底部抽屉。
-  Widget _buildHeader(BuildContext context, RankingSummaryState summary) {
+  Widget _buildHeader(
+    BuildContext context,
+    PagedViewSnapshot<RankedMovieListItemDto> paged,
+    RankingFilterState filters,
+    DateTime? syncedAt,
+  ) {
     final l10n = AppLocalizations.of(context);
     // 与移动端同一套单值语义：只报「榜单」这一主维度。
     final boardLabel =
-        summary.filters.selectedBoard?.name ??
-        summary.filters.selectedSource?.name ??
+        filters.selectedBoard?.name ??
+        filters.selectedSource?.name ??
         l10n.rankingAllBoards;
     final syncedAtLabel = formatSyncedAtLabel(
-      summary.paged.syncedAt,
+      syncedAt,
       l10n: AppLocalizations.of(context),
       withPrefix: false,
     );
@@ -129,21 +137,21 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
       filterButtonKey: const Key('desktop-rankings-filter-trigger'),
       filterIcon: Icons.leaderboard_outlined,
       filterLabel: boardLabel,
-      filterEnabled: summary.filters.sources.isNotEmpty,
-      filterUpdate: summary.paged.filterUpdate,
-      hasPreviousFilterItems: summary.paged.items.isNotEmpty,
+      filterEnabled: filters.sources.isNotEmpty,
+      filterUpdate: paged.filterUpdate,
+      hasPreviousFilterItems: paged.items.isNotEmpty,
       onRetryFilter: () => unawaited(
         ref.read(rankingSummaryProvider(_scope).notifier).retryFilter(),
       ),
       filterPanelKey: const Key('rankings-filter-panel'),
       filterPanelExtraWidth: 520,
       filterPanelBuilder: (_) => RankingFilterSectionGroup(
-        sources: summary.filters.sources,
-        selectedSource: summary.filters.selectedSource,
-        boards: summary.filters.boards,
-        selectedBoard: summary.filters.selectedBoard,
-        selectedPeriod: summary.filters.selectedPeriod,
-        isBoardLoading: summary.filters.isLoading,
+        sources: filters.sources,
+        selectedSource: filters.selectedSource,
+        boards: filters.boards,
+        selectedBoard: filters.selectedBoard,
+        selectedPeriod: filters.selectedPeriod,
+        isBoardLoading: filters.isLoading,
         onSourceChanged: (value) => _applyFilterChange(
           () => ref
               .read(rankingSummaryProvider(_scope).notifier)
@@ -159,7 +167,7 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
               .read(rankingSummaryProvider(_scope).notifier)
               .selectPeriod(value),
         ),
-        interaction: summary.filters.interaction,
+        interaction: filters.interaction,
         onInteractionChanged: (value) => _applyFilterChange(
           () => ref
               .read(rankingSummaryProvider(_scope).notifier)
@@ -169,7 +177,7 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
       informationSlots: [
         AppListHeaderInfo(
           key: const Key('desktop-rankings-page-total'),
-          label: l10n.sharedMovieCount(summary.paged.total),
+          label: l10n.sharedMovieCount(paged.total),
         ),
         if (syncedAtLabel != null)
           AppListHeaderInfo(
@@ -182,7 +190,7 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
         RankingSortMenuButton(
           triggerKey: const Key('rankings-sort-trigger'),
           panelKey: const Key('rankings-sort-panel'),
-          filterState: summary.filters,
+          filterState: filters,
           onSortChanged: (field, direction) => _applyFilterChange(
             () => ref
                 .read(rankingSummaryProvider(_scope).notifier)
@@ -197,10 +205,36 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final summary =
-        ref.watch(rankingSummaryProvider(_scope)).value ??
-        RankingSummaryState.initial;
-    final hasNoSources = summary.filters.hasNoSources;
+    final paged = ref.watch(
+      rankingSummaryProvider(
+        _scope,
+      ).select((async) => pagedViewSnapshot(async, (state) => state.paged)),
+    );
+    final filters =
+        ref.watch(
+          rankingSummaryProvider(
+            _scope,
+          ).select((async) => async.value?.filters),
+        ) ??
+        RankingFilterState.initial;
+    final syncedAt = ref.watch(
+      rankingSummaryProvider(
+        _scope,
+      ).select((async) => async.value?.paged.syncedAt),
+    );
+    final initialErrorMessage = ref.watch(
+      rankingSummaryProvider(
+        _scope,
+      ).select((async) => async.value?.initialErrorMessage),
+    );
+    final subscriptionUpdating = ref.watch(
+      rankingSummaryProvider(_scope).select(
+        (async) => StableSetSelection<String>(
+          async.value?.subscriptionUpdatingMovieNumbers ?? const <String>{},
+        ),
+      ),
+    );
+    final hasNoSources = filters.hasNoSources;
 
     return AppPageRefreshScope(
       onRefresh: () =>
@@ -214,12 +248,12 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
               if (selectionMode)
                 buildBatchSelectionToolbar()
               else
-                _buildHeader(context, summary),
+                _buildHeader(context, paged, filters, syncedAt),
               SizedBox(height: context.appSpacing.md),
-              if (summary.filters.errorMessage != null &&
-                  summary.paged.filterUpdate.isIdle) ...[
+              if (filters.errorMessage != null &&
+                  paged.filterUpdate.isIdle) ...[
                 AppInlineErrorBanner(
-                  message: summary.filters.errorMessage!,
+                  message: filters.errorMessage!,
                   onRetry: () => ref
                       .read(rankingSummaryProvider(_scope).notifier)
                       .reloadFiltersAndData(),
@@ -230,8 +264,8 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
             ],
           ),
           child: AppFilterResultLoadingOverlay(
-            isLoading: summary.paged.filterUpdate.isLoading,
-            hasPreviousItems: summary.paged.items.isNotEmpty,
+            isLoading: paged.filterUpdate.isLoading,
+            hasPreviousItems: paged.items.isNotEmpty,
             child: AppPagedLoadMoreScope(
               canLoadMore: () =>
                   ref
@@ -250,26 +284,24 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
                     key: const Key('desktop-rankings-page'),
                     slivers: [
                       if (hasNoSources &&
-                          !(summary.paged.filterUpdate.hasFailed &&
-                              summary.paged.items.isEmpty))
+                          !(paged.filterUpdate.hasFailed &&
+                              paged.items.isEmpty))
                         SliverToBoxAdapter(
-                          child: AppEmptyState(
-                            message: l10n.rankingNoBoards,
-                          ),
+                          child: AppEmptyState(message: l10n.rankingNoBoards),
                         )
-                      else if (!summary.paged.filterUpdate.hasFailed ||
-                          summary.paged.items.isNotEmpty)
+                      else if (!paged.filterUpdate.hasFailed ||
+                          paged.items.isNotEmpty)
                         AppSkeletonizer.sliver(
                           enabled:
-                              summary.filters.isLoading &&
-                              summary.paged.items.isEmpty,
+                              (paged.isInitialLoading || filters.isLoading) &&
+                              paged.items.isEmpty,
                           child: RankedMovieSummarySliver(
                             items:
-                                summary.filters.isLoading &&
-                                    summary.paged.items.isEmpty
+                                (paged.isInitialLoading || filters.isLoading) &&
+                                    paged.items.isEmpty
                                 ? rankedMoviePlaceholders(count: 24)
-                                : summary.paged.items,
-                            errorMessage: summary.initialErrorMessage,
+                                : paged.items,
+                            errorMessage: initialErrorMessage,
                             onMovieTap: (movie) =>
                                 context.pushDesktopMovieDetail(
                                   movieNumber: movie.movieNumber,
@@ -287,8 +319,10 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
                             onMovieToggleCollectionType:
                                 _hoverFeatureActions.toggleCollectionType,
                             onMovieBlacklist: _hoverFeatureActions.blacklist,
-                            isMovieSubscriptionUpdating: (movie) => summary
-                                .isSubscriptionUpdating(movie.movieNumber),
+                            isMovieSubscriptionUpdating: (movie) =>
+                                subscriptionUpdating.contains(
+                                  movie.movieNumber,
+                                ),
                             emptyMessage: l10n.rankingEmptyData,
                             selectionMode: selectionMode,
                             isMovieSelected: (movie) =>

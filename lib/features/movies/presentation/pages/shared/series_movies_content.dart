@@ -5,12 +5,14 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layou
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
-import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_state.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/series_import/series_import_dialog.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/stable_set_selection.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -130,14 +132,14 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
   }
 
   String _displaySeriesName(
-    MovieSummaryState? summary, {
+    Iterable<MovieListItemDto> movies, {
     required AppLocalizations l10n,
   }) {
     final initialSeriesName = _initialSeriesName;
     if (initialSeriesName != null) {
       return initialSeriesName;
     }
-    for (final movie in summary?.paged.items ?? const []) {
+    for (final movie in movies) {
       final seriesName = movie.seriesName.trim();
       if (seriesName.isNotEmpty) {
         return seriesName;
@@ -186,10 +188,20 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
 
   @override
   Widget build(BuildContext context) {
-    final moviesAsync = ref.watch(movieSummaryProvider(_scope));
-    final summary = moviesAsync.value;
+    final view = ref.watch(
+      movieSummaryProvider(
+        _scope,
+      ).select((async) => pagedViewSnapshot(async, (state) => state.paged)),
+    );
+    final subscriptionUpdating = ref.watch(
+      movieSummaryProvider(_scope).select(
+        (async) => StableSetSelection<String>(
+          async.value?.subscriptionUpdatingMovieNumbers ?? const <String>{},
+        ),
+      ),
+    );
     if (widget.hoistTitleToSubpageShell) {
-      _reportTitleToShell(summary);
+      _reportTitleToShell(view.items);
     }
     // AnimatedBuilder 只包住 sliver body——bodyBuilder 产出的
     // CustomScrollView / AppAdaptiveRefreshScrollView 不需要跟着分页 tick 重建。
@@ -207,7 +219,7 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
                     ? buildMobileBatchSelectionHeader()
                     : buildBatchSelectionToolbar())
               else
-                _buildHeader(context, summary),
+                _buildHeader(context, view.items, view.total),
               SizedBox(height: widget.sectionSpacing),
             ],
           ),
@@ -221,31 +233,35 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
                 false,
             onLoadMore: () =>
                 ref.read(movieSummaryProvider(_scope).notifier).loadMore(),
-          child: widget.bodyBuilder(
-            context,
-            _scrollController,
-            SliverMainAxisGroup(
-              slivers: [
-                _buildMoviesArea(context, moviesAsync),
-                // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
-                PagedLoadMoreFooterSliver(
-                  watchFooter: (ref) => ref.watch(
+            child: widget.bodyBuilder(
+              context,
+              _scrollController,
+              SliverMainAxisGroup(
+                slivers: [
+                  _buildMoviesArea(
+                    context,
+                    view,
+                    subscriptionUpdatingMovieNumbers: subscriptionUpdating,
+                  ),
+                  // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
+                  PagedLoadMoreFooterSliver(
+                    watchFooter: (ref) => ref.watch(
                       movieSummaryProvider(_scope).select(
                         (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
                       ),
-                  ),
-                  onLoadMore: (ref) => unawaited(
+                    ),
+                    onLoadMore: (ref) => unawaited(
                       ref
                           .read(movieSummaryProvider(_scope).notifier)
                           .loadMore(),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              widget.enableRefresh ? _handleRefresh : null,
             ),
-            widget.enableRefresh ? _handleRefresh : null,
           ),
         ),
-      ),
       ),
     );
 
@@ -263,9 +279,9 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
 
   /// 把系列名报给外层返回栏。数据是异步来的，所以用 post-frame 回调写——直接在
   /// build 里改 notifier 会触发 build-during-build。
-  void _reportTitleToShell(MovieSummaryState? summary) {
+  void _reportTitleToShell(Iterable<MovieListItemDto> movies) {
     final name = _displaySeriesName(
-      summary,
+      movies,
       l10n: AppLocalizations.of(context),
     ).trim();
     if (name.isEmpty) {
@@ -287,7 +303,11 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
   /// **本页没有筛选维度**——后端 `/movies/by-series` 只吃 seriesId + 分页，所以
   /// 不接筛选入口，左侧留给信息槽。系列名与总数都是只读信息，「同步系列影片」
   /// 与「选择」是操作。
-  Widget _buildHeader(BuildContext context, MovieSummaryState? summary) {
+  Widget _buildHeader(
+    BuildContext context,
+    Iterable<MovieListItemDto> movies,
+    int total,
+  ) {
     final l10n = AppLocalizations.of(context);
     return AppListHeader(
       informationSlots: [
@@ -295,11 +315,11 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
         if (!widget.hoistTitleToSubpageShell)
           AppListHeaderInfo(
             key: const Key('series-movies-title'),
-            label: _displaySeriesName(summary, l10n: l10n),
+            label: _displaySeriesName(movies, l10n: l10n),
           ),
         AppListHeaderInfo(
           key: widget.totalKey,
-          label: l10n.moviePageSeriesTotalCount(summary?.paged.total ?? 0),
+          label: l10n.moviePageSeriesTotalCount(total),
         ),
       ],
       actionSlots: [
@@ -317,10 +337,10 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
 
   Widget _buildMoviesArea(
     BuildContext context,
-    AsyncValue<MovieSummaryState> moviesAsync,
-  ) {
-    final summary = moviesAsync.value;
-    if (moviesAsync.hasError && summary == null) {
+    PagedViewSnapshot<MovieListItemDto> view, {
+    required StableSetSelection<String> subscriptionUpdatingMovieNumbers,
+  }) {
+    if (view.initialError != null) {
       return SliverToBoxAdapter(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -341,13 +361,13 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
       );
     }
 
-    final isInitialLoading = moviesAsync.isLoading && summary == null;
+    final isInitialLoading = view.isInitialLoading;
     return AppSkeletonizer.sliver(
       enabled: isInitialLoading,
       child: MovieSummarySliver(
         items: isInitialLoading
             ? movieListItemPlaceholders(count: 24)
-            : summary?.paged.items ?? const [],
+            : view.items,
         onMovieTap: (movie) => widget.onMovieTap(context, movie.movieNumber),
         onMovieMenuRequest: (movie, globalPosition) {
           unawaited(
@@ -374,7 +394,7 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
         onMovieToggleCollectionType: _hoverFeatureActions.toggleCollectionType,
         onMovieBlacklist: _hoverFeatureActions.blacklist,
         isMovieSubscriptionUpdating: (movie) =>
-            summary?.isSubscriptionUpdating(movie.movieNumber) ?? false,
+            subscriptionUpdatingMovieNumbers.contains(movie.movieNumber),
         emptyMessage: AppLocalizations.of(context).moviePageSeriesEmpty,
         selectionMode: selectionMode,
         isMovieSelected: (movie) => isSelected(movie.movieNumber),

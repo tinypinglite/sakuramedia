@@ -4,14 +4,12 @@ import 'package:sakuramedia/features/actors/presentation/actor_placeholders.dart
 import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_detail_content.dart';
 import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_profile_details.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
-import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/domain/movies/subscription_heart_badge.dart';
@@ -80,26 +78,10 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
       ),
       errorBuilder: (context, message, onRetry) =>
           _ActorDetailErrorState(message: message, onRetry: onRetry),
-      footerBuilder: _buildLoadMoreFooter,
       bodyBuilder: (context, scrollController, child, _) => CustomScrollView(
         controller: scrollController,
         slivers: <Widget>[child],
       ),
-    );
-  }
-
-  Widget? _buildLoadMoreFooter(
-    BuildContext context,
-    MovieSummaryState movies,
-    VoidCallback onRetry,
-  ) {
-    if (movies.paged.items.isEmpty) {
-      return null;
-    }
-    return AppPagedLoadMoreFooter(
-      isLoading: movies.paged.isLoadingMore,
-      errorMessage: movies.paged.loadMoreErrorMessage,
-      onRetry: onRetry,
     );
   }
 }

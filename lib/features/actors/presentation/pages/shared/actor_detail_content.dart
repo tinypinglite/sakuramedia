@@ -21,14 +21,14 @@ import 'package:sakuramedia/features/movies/presentation/controllers/listing/mov
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_filter_drawer.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
-import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_state.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/stable_set_selection.dart';
+import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_provider.dart';
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_scope.dart';
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
@@ -69,13 +69,6 @@ typedef ActorDetailHeaderBuilder =
 typedef ActorDetailErrorBuilder =
     Widget Function(BuildContext context, String message, VoidCallback onRetry);
 
-typedef ActorDetailFooterBuilder =
-    Widget? Function(
-      BuildContext context,
-      MovieSummaryState movies,
-      VoidCallback onRetry,
-    );
-
 class ActorDetailContent extends ConsumerStatefulWidget {
   const ActorDetailContent({
     super.key,
@@ -87,7 +80,6 @@ class ActorDetailContent extends ConsumerStatefulWidget {
     required this.headerBuilder,
     required this.loadingBuilder,
     required this.errorBuilder,
-    required this.footerBuilder,
     required this.bodyBuilder,
     this.enableRefresh = false,
     this.onRefreshFailure,
@@ -103,7 +95,6 @@ class ActorDetailContent extends ConsumerStatefulWidget {
   final ActorDetailHeaderBuilder headerBuilder;
   final WidgetBuilder loadingBuilder;
   final ActorDetailErrorBuilder errorBuilder;
-  final ActorDetailFooterBuilder footerBuilder;
   final ActorDetailBodyBuilder bodyBuilder;
   final bool enableRefresh;
   final void Function(BuildContext context)? onRefreshFailure;
@@ -409,7 +400,8 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
   /// 数量属于当前作品筛选结果，随作品列表一起展示。
   Widget _buildFilterHeader(
     BuildContext context,
-    PagedListState<MovieListItemDto>? paged,
+    MovieFilterState filterState,
+    PagedViewSnapshot<MovieListItemDto> movies,
   ) {
     final tagSelection = ref.watch(tagSelectionProvider(_tagSelectionScope));
     final l10n = AppLocalizations.of(context);
@@ -417,10 +409,10 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
       filterButtonKey: const Key('actor-detail-filter-trigger'),
       filterLabel: tagSelection.hasSelection
           ? l10n.actorTagFilterLabel(tagSelection.selectedCount)
-          : _filterState.triggerLabel(l10n),
+          : filterState.triggerLabel(l10n),
       filterPanelKey: const Key('actor-detail-filter-panel'),
-      filterUpdate: paged?.filterUpdate ?? const FilterUpdateState.idle(),
-      hasPreviousFilterItems: paged?.items.isNotEmpty ?? false,
+      filterUpdate: movies.filterUpdate,
+      hasPreviousFilterItems: movies.items.isNotEmpty,
       onRetryFilter: () => unawaited(
         ref.read(movieSummaryProvider(_scope).notifier).retryFilter(),
       ),
@@ -433,7 +425,7 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
       filterPanelBuilder: widget.useMobileFilterDrawer
           ? null
           : (_) => MovieFilterSectionGroup(
-              filterState: _filterState,
+              filterState: filterState,
               onChanged: _applyFilter,
               showActorAgeSection: false,
               tagSection: TagFilterSection(scope: _tagSelectionScope),
@@ -443,22 +435,18 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
               onYearOptionsRetry: () => unawaited(_loadMovieYears(force: true)),
             ),
       filterPanelFooter: AppFilterPanelFooter(
-        isDefault: !_filterState.hasActiveFilters && !tagSelection.hasSelection,
+        isDefault: !filterState.hasActiveFilters && !tagSelection.hasSelection,
         onReset: _resetFilters,
       ),
       informationSlots: [
-        if (paged != null)
-          AppListHeaderInfo(
-            label: AppLocalizations.of(
-              context,
-            ).actorMovieCountLabel(paged.total),
-          ),
+        if (!movies.isInitialLoading && movies.initialError == null)
+          AppListHeaderInfo(label: l10n.actorMovieCountLabel(movies.total)),
       ],
       actionSlots: [
         MovieSortMenuButton(
           triggerKey: const Key('actor-detail-sort-trigger'),
           drawerKey: const Key('mobile-actor-detail-sort-drawer'),
-          filterState: _filterState,
+          filterState: filterState,
           onChanged: _applyFilter,
           useDrawer: widget.useMobileFilterDrawer,
         ),
@@ -525,8 +513,23 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
   Widget build(BuildContext context) {
     final actorAsync = ref.watch(actorDetailProvider(widget.actorId));
     final actorState = actorAsync.value;
-    final moviesAsync = ref.watch(movieSummaryProvider(_scope));
-    final movies = moviesAsync.value;
+    final movies = ref.watch(
+      movieSummaryProvider(
+        _scope,
+      ).select((state) => pagedViewSnapshot(state, (summary) => summary.paged)),
+    );
+    final movieFilter = ref.watch(
+      movieSummaryProvider(_scope).select(
+        (state) => state.value?.filter.movie ?? MovieFilterState.initial,
+      ),
+    );
+    final subscriptionUpdating = ref.watch(
+      movieSummaryProvider(_scope).select(
+        (state) => StableSetSelection<String>(
+          state.value?.subscriptionUpdatingMovieNumbers ?? const <String>{},
+        ),
+      ),
+    );
     ref.listen(tagSelectionProvider(_tagSelectionScope), (previous, next) {
       if (previous == null) {
         return;
@@ -576,22 +579,13 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
             final actor = actorState!.actor!;
             final isActorSubscribed =
                 _isActorSubscribedOverride ?? actor.summary.isSubscribed;
-            final footer = movies == null
-                ? null
-                : widget.footerBuilder(
-                    context,
-                    movies,
-                    () => ref
-                        .read(movieSummaryProvider(_scope).notifier)
-                        .loadMore(),
-                  );
 
             return AppFilterResultLoadingOverlay(
               surfaceColor: widget.surfaceColor,
               protectedHeaderKey: _listHeaderKey,
               scrollController: _scrollController,
-              isLoading: movies?.paged.filterUpdate.isLoading ?? false,
-              hasPreviousItems: movies?.paged.items.isNotEmpty ?? false,
+              isLoading: movies.filterUpdate.isLoading,
+              hasPreviousItems: movies.items.isNotEmpty,
               child: AppPagedLoadMoreScope(
                 canLoadMore: () =>
                     ref
@@ -635,23 +629,21 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
                             ? (widget.useMobileSelectionLayout
                                   ? buildMobileBatchSelectionHeader()
                                   : buildBatchSelectionToolbar())
-                            : _buildFilterHeader(context, movies?.paged),
+                            : _buildFilterHeader(context, movieFilter, movies),
                       ),
                       SliverToBoxAdapter(
                         child: SizedBox(height: widget.sectionSpacing),
                       ),
-                      if (!(movies?.paged.filterUpdate.hasFailed ?? false) ||
-                          (movies?.paged.items.isNotEmpty ?? false))
+                      if (!movies.filterUpdate.hasFailed ||
+                          movies.items.isNotEmpty)
                         AppSkeletonizer.sliver(
-                          enabled: moviesAsync.isLoading && movies == null,
+                          enabled: movies.isInitialLoading,
                           child: MovieSummarySliver(
-                            items: moviesAsync.isLoading && movies == null
+                            items: movies.isInitialLoading
                                 ? movieListItemPlaceholders(count: 24)
-                                : movies?.paged.items ?? const [],
-                            errorMessage: moviesAsync.hasError && movies == null
-                                ? _scope.errorText(
-                                    AppLocalizations.of(context),
-                                  )
+                                : movies.items,
+                            errorMessage: movies.initialError != null
+                                ? _scope.errorText(AppLocalizations.of(context))
                                 : null,
                             onMovieTap: (movie) =>
                                 widget.onMovieTap(context, movie.movieNumber),
@@ -685,10 +677,9 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
                                 _hoverFeatureActions.toggleCollectionType,
                             onMovieBlacklist: _hoverFeatureActions.blacklist,
                             isMovieSubscriptionUpdating: (movie) =>
-                                movies?.isSubscriptionUpdating(
+                                subscriptionUpdating.contains(
                                   movie.movieNumber,
-                                ) ??
-                                false,
+                                ),
                             emptyMessage: AppLocalizations.of(
                               context,
                             ).actorMoviesEmpty,
@@ -699,15 +690,21 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
                                 toggleSelect(movie.movieNumber),
                           ),
                         ),
-                      if (footer != null)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              top: context.appSpacing.md,
-                            ),
-                            child: footer,
+                      PagedLoadMoreFooterSliver(
+                        watchFooter: (ref) => ref.watch(
+                          movieSummaryProvider(_scope).select(
+                            (state) =>
+                                pagedLoadMoreFooterSnapshot(state.value?.paged),
                           ),
                         ),
+                        onLoadMore: (ref) => unawaited(
+                          ref
+                              .read(movieSummaryProvider(_scope).notifier)
+                              .loadMore(),
+                        ),
+                        topSpacing: PagedFooterSpacing.md,
+                        padWhenIdle: true,
+                      ),
                     ],
                   ),
                   widget.enableRefresh ? _handleRefresh : null,

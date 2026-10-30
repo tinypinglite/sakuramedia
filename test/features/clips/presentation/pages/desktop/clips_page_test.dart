@@ -21,7 +21,6 @@ import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 
 import '../../../../../support/logged_in_session_store.dart';
 import '../../../../../support/test_api_bundle.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
 
 void main() {
   testWidgets('initial loading keeps the desktop clips layout as skeletons', (

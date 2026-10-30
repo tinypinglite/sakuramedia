@@ -23,6 +23,7 @@ import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/batch_operation_submission_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
@@ -108,10 +109,13 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
       }
     });
 
-    final clipsAsync = ref.watch(clipsOverviewProvider);
+    final clipsView = ref.watch(
+      clipsOverviewProvider.select(
+        (async) => pagedViewSnapshot(async, (state) => state.paged),
+      ),
+    );
     final collectionsAsync = ref.watch(clipCollectionsOverviewProvider);
-    final clipsState = clipsAsync.value;
-    final clips = clipsState?.paged.items ?? const <MediaClipDto>[];
+    final clips = clipsView.items;
 
     return AppPageRefreshScope(
       onRefresh: _handleRefresh,
@@ -120,10 +124,10 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
         child: Builder(
           builder: (context) {
             final l10n = AppLocalizations.of(context);
-            if (clipsAsync.hasError && clips.isEmpty) {
+            if (clipsView.initialError case final error?) {
               return AppEmptyState(
                 message: apiErrorMessage(
-                  clipsAsync.error!,
+                  error,
                   fallback: l10n.errorClipLoadFailed,
                   l10n: l10n,
                 ),
@@ -132,7 +136,7 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
             return AppFilterResultLoadingOverlay(
               protectedHeaderKey: _listHeaderKey,
               scrollController: _scrollController,
-              isLoading: clipsState?.paged.filterUpdate.isLoading ?? false,
+              isLoading: clipsView.filterUpdate.isLoading,
               hasPreviousItems: clips.isNotEmpty,
               child: AppPagedLoadMoreScope(
                 canLoadMore: () =>
@@ -144,40 +148,36 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
                     false,
                 onLoadMore: () =>
                     ref.read(clipsOverviewProvider.notifier).loadMore(),
-              child: CustomScrollView(
-                controller: _scrollController,
-                slivers: <Widget>[
-                  SliverToBoxAdapter(
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  slivers: <Widget>[
+                    SliverToBoxAdapter(
                       child: _buildCollectionsSection(
                         context,
                         collectionsAsync,
                       ),
-                  ),
-                  AppPinnedListHeader(
-                    key: _listHeaderKey,
-                    color: context.appColors.surfaceElevated,
-                    child: _buildClipsHeader(context, clips),
-                  ),
-                  _buildClipsSliver(
-                    context,
-                    clips,
-                    isInitialLoading: clipsAsync.isLoading && clips.isEmpty,
-                  ),
-                  // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
-                  // 隐藏时保留 lg 底部边距（原语义）。
-                  PagedLoadMoreFooterSliver(
-                    hiddenSpacing: PagedFooterSpacing.lg,
-                    watchFooter: (ref) => ref.watch(
-                      clipsOverviewProvider.select(
-                        (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                    ),
+                    AppPinnedListHeader(
+                      key: _listHeaderKey,
+                      color: context.appColors.surfaceElevated,
+                      child: _buildClipsHeader(context, clips),
+                    ),
+                    _buildClipsSliver(context, clipsView),
+                    // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
+                    // 隐藏时保留 lg 底部边距（原语义）。
+                    PagedLoadMoreFooterSliver(
+                      hiddenSpacing: PagedFooterSpacing.lg,
+                      watchFooter: (ref) => ref.watch(
+                        clipsOverviewProvider.select(
+                          (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                        ),
+                      ),
+                      onLoadMore: (ref) => unawaited(
+                        ref.read(clipsOverviewProvider.notifier).loadMore(),
                       ),
                     ),
-                    onLoadMore: (ref) => unawaited(
-                      ref.read(clipsOverviewProvider.notifier).loadMore(),
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
               ),
             );
           },
@@ -409,17 +409,11 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
 
   Widget _buildClipsSliver(
     BuildContext context,
-    List<MediaClipDto> clips, {
-    required bool isInitialLoading,
-  }) {
-    final filterUpdate = ref
-        .read(clipsOverviewProvider)
-        .value
-        ?.paged
-        .filterUpdate;
-    if (!isInitialLoading &&
-        clips.isEmpty &&
-        (filterUpdate?.hasFailed ?? false)) {
+    PagedViewSnapshot<MediaClipDto> view,
+  ) {
+    final clips = view.items;
+    final isInitialLoading = view.isInitialLoading;
+    if (!isInitialLoading && clips.isEmpty && view.filterUpdate.hasFailed) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
     if (!isInitialLoading && clips.isEmpty) {

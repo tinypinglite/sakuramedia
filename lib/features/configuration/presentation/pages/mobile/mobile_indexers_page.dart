@@ -83,12 +83,7 @@ class _MobileIndexersPageState extends ConsumerState<MobileIndexersPage> {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: <Widget>[
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    spacing.md,
-                    spacing.md,
-                    spacing.md,
-                    spacing.lg,
-                  ),
+                  padding: EdgeInsets.only(top: spacing.md, bottom: spacing.lg),
                   sliver: SliverToBoxAdapter(child: _buildBody(context)),
                 ),
               ],
@@ -97,12 +92,7 @@ class _MobileIndexersPageState extends ConsumerState<MobileIndexersPage> {
           AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOut,
-            padding: EdgeInsets.fromLTRB(
-              spacing.md,
-              spacing.md,
-              spacing.md,
-              spacing.md,
-            ),
+            padding: EdgeInsets.only(top: spacing.md, bottom: spacing.md),
             decoration: BoxDecoration(
               color: colors.surfaceCard,
               border: Border(top: BorderSide(color: colors.divider)),

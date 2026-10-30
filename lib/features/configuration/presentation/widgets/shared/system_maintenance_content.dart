@@ -120,11 +120,9 @@ class _SystemMaintenanceContentState
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: <Widget>[
             SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                context.appSpacing.md,
-                context.appSpacing.md,
-                context.appSpacing.md,
-                context.appSpacing.lg,
+              padding: EdgeInsets.only(
+                top: context.appSpacing.md,
+                bottom: context.appSpacing.lg,
               ),
               sliver: SliverToBoxAdapter(child: _buildContent(context)),
             ),

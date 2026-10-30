@@ -1,9 +1,10 @@
-import 'dart:ui';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+
+/// 小图放大到整条横幅即可得到柔和模糊，避免运行时 ImageFilter。
+const int _playlistBannerBackgroundDecodeWidth = 32;
 
 class PlaylistBannerCard extends StatelessWidget {
   const PlaylistBannerCard({
@@ -22,11 +23,17 @@ class PlaylistBannerCard extends StatelessWidget {
     final colors = context.appColors;
     final spacing = context.appSpacing;
     final radius = context.appRadius.lgBorder;
-    final Widget blurredBackground;
+    final Widget background;
     if (coverImageUrl != null && coverImageUrl!.trim().isNotEmpty) {
-      blurredBackground = MaskedImage(url: coverImageUrl!, fit: BoxFit.cover);
+      background = MaskedImage(
+        url: coverImageUrl!,
+        fit: BoxFit.cover,
+        memCacheWidth: _playlistBannerBackgroundDecodeWidth,
+        filterQuality: FilterQuality.high,
+        animateReveal: false,
+      );
     } else {
-      blurredBackground = DecoratedBox(
+      background = DecoratedBox(
         key: const Key('playlist-banner-placeholder'),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -55,12 +62,7 @@ class PlaylistBannerCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Positioned.fill(
-              child: ImageFiltered(
-                imageFilter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                child: blurredBackground,
-              ),
-            ),
+            Positioned.fill(child: background),
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(

@@ -17,11 +17,10 @@ import 'package:sakuramedia/features/moments/presentation/moment_filter_sections
 import 'package:sakuramedia/features/moments/presentation/moment_listing_models.dart';
 import 'package:sakuramedia/features/moments/presentation/moment_placeholders.dart';
 import 'package:sakuramedia/features/moments/presentation/providers/moments_provider.dart';
-import 'package:sakuramedia/features/moments/presentation/providers/moments_state.dart';
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/batch_operation_submission_provider.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
@@ -99,12 +98,17 @@ class MomentsContent extends HookConsumerWidget {
         );
       }
     });
-    final async = ref.watch(momentsProvider);
+    final paged = ref.watch(
+      momentsProvider.select(
+        (async) => pagedViewSnapshot(async, (state) => state.paged),
+      ),
+    );
     final collectionsAsync = ref.watch(momentCollectionsOverviewProvider);
-    final state = async.value;
-    final paged = state?.paged ?? const PagedListState<MomentListItem>();
+    // 筛选变化频率低，与分页快照分开订阅。
     // 首次加载尚无 state 时，从 notifier 读默认筛选。
-    final filter = state?.filter ?? ref.read(momentsProvider.notifier).filter;
+    final filter =
+        ref.watch(momentsProvider.select((async) => async.value?.filter)) ??
+        ref.read(momentsProvider.notifier).filter;
     final selectionMode = useState(false);
     final selectedPointIds = useState<Set<int>>(<int>{});
     final selectedCount = selectedPointIds.value.length;
@@ -206,7 +210,6 @@ class MomentsContent extends HookConsumerWidget {
         _buildBody(
           context,
           ref,
-          async,
           paged,
           selectionMode: selectionMode.value,
           isSelected: (item) => selectedPointIds.value.contains(item.pointId),
@@ -436,7 +439,9 @@ class MomentsContent extends HookConsumerWidget {
     ref
         .read(momentCollectionsOverviewProvider.notifier)
         .insertCollection(created);
-    showToast(AppLocalizations.of(context).momentCollectionCreatedFromMomentsToast);
+    showToast(
+      AppLocalizations.of(context).momentCollectionCreatedFromMomentsToast,
+    );
   }
 
   Widget _buildMomentsHeader(
@@ -444,7 +449,7 @@ class MomentsContent extends HookConsumerWidget {
     WidgetRef ref,
     ScrollController scrollController,
     GlobalKey listHeaderKey,
-    PagedListState<MomentListItem> paged,
+    PagedViewSnapshot<MomentListItem> paged,
     MomentsFilter filter, {
     required bool selectionMode,
     required int selectedCount,
@@ -554,7 +559,7 @@ class MomentsContent extends HookConsumerWidget {
     WidgetRef ref,
     ScrollController scrollController,
     GlobalKey listHeaderKey,
-    PagedListState<MomentListItem> paged,
+    PagedViewSnapshot<MomentListItem> paged,
     MomentsFilter filter,
     VoidCallback onEnterSelection,
   ) {
@@ -672,25 +677,26 @@ class MomentsContent extends HookConsumerWidget {
   Widget _buildBody(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<MomentsState> async,
-    PagedListState<MomentListItem> paged, {
+    PagedViewSnapshot<MomentListItem> paged, {
     required bool selectionMode,
     required bool Function(MomentListItem item) isSelected,
     required ValueChanged<MomentListItem> onSelectedChanged,
     required ValueChanged<MomentListItem> onLongPress,
   }) {
-    final isLoading = async.isLoading && async.value == null;
+    final isLoading = paged.isInitialLoading;
     final l10n = AppLocalizations.of(context);
-    if (!isLoading && async.hasError && paged.isEmpty) {
+    if (!isLoading && paged.initialError != null && paged.items.isEmpty) {
       return SliverToBoxAdapter(
         child: AppEmptyState(message: l10n.errorMomentListLoadFailed),
       );
     }
-    if (!isLoading && paged.isEmpty && paged.filterUpdate.hasFailed) {
+    if (!isLoading && paged.items.isEmpty && paged.filterUpdate.hasFailed) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
-    if (!isLoading && paged.isEmpty) {
-      return SliverToBoxAdapter(child: AppEmptyState(message: l10n.momentEmptyList));
+    if (!isLoading && paged.items.isEmpty) {
+      return SliverToBoxAdapter(
+        child: AppEmptyState(message: l10n.momentEmptyList),
+      );
     }
     // loading 用占位时刻渲染真实卡片，由 [AppSkeletonizer] 灰化。
     final items = isLoading ? momentListPlaceholders() : paged.items;

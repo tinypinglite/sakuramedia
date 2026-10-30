@@ -28,7 +28,7 @@ import 'package:sakuramedia/features/videos/presentation/video_display_title.dar
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/batch_operation_submission_provider.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
@@ -295,13 +295,18 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
 
   @override
   Widget build(BuildContext context) {
-    // 中立化 loadMore 状态：翻页 loading/失败只重建独立页脚，
-    // 不重建合集区、顶栏与网格（见 PagedLoadMoreFooterSliver）。
-    final videosAsync = ref.watch(videoSummaryProvider(_scope));
-    final summary = videosAsync.value;
-    final paged =
-        summary?.paged ?? const PagedListState<VideoItemListItemDto>();
-    final filter = summary?.filter ?? VideoFilterState.initial;
+    // 分页快照不包含 loadMore 状态，翻页 loading/失败只重建独立页脚，
+    // 不重建合集区、顶栏与网格。
+    final paged = ref.watch(
+      videoSummaryProvider(_scope).select(
+        (asyncState) => pagedViewSnapshot(asyncState, (state) => state.paged),
+      ),
+    );
+    final filter = ref.watch(
+      videoSummaryProvider(_scope).select(
+        (asyncState) => asyncState.value?.filter ?? VideoFilterState.initial,
+      ),
+    );
     final l10n = AppLocalizations.of(context);
 
     ref.listen(videoMutationEventsProvider, (_, next) {
@@ -345,18 +350,13 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
                       child: _buildVideosHeader(
                         context,
                         paged: paged,
-                        videos: paged.items,
                         filter: filter,
-                        total: paged.total,
                       ),
                     ),
                     _buildVideosSliver(
                       context,
                       paged: paged,
-                      isInitialLoading:
-                          videosAsync.isLoading && summary == null,
-                      initialErrorMessage:
-                          videosAsync.hasError && summary == null
+                      initialErrorMessage: paged.initialError != null
                           ? l10n.errorVideoListLoadFailed
                           : null,
                     ),
@@ -510,11 +510,10 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
 
   Widget _buildVideosHeader(
     BuildContext context, {
-    required PagedListState<VideoItemListItemDto> paged,
-    required List<VideoItemListItemDto> videos,
+    required PagedViewSnapshot<VideoItemListItemDto> paged,
     required VideoFilterState filter,
-    required int total,
   }) {
+    final videos = paged.items;
     if (selectionMode) {
       final l10n = AppLocalizations.of(context);
       final videoIds = videos.map((video) => video.id);
@@ -528,10 +527,9 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
         actionSlots: [
           AppButton(
             key: const Key('mobile-pornbox-select-all-button'),
-            label:
-                allSelected
-                    ? l10n.videoDeselectAll
-                    : l10n.videoSelectAllCount(videos.length),
+            label: allSelected
+                ? l10n.videoDeselectAll
+                : l10n.videoSelectAllCount(videos.length),
             variant: AppButtonVariant.ghost,
             size: AppButtonSize.xSmall,
             isSelected: allSelected,
@@ -555,7 +553,7 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
       informationSlots: [
         AppListHeaderInfo(
           key: const Key('mobile-pornbox-total'),
-          label: l10n.videoTotalCount(total),
+          label: l10n.videoTotalCount(paged.total),
         ),
       ],
       actionSlots: [
@@ -583,14 +581,13 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
 
   Widget _buildVideosSliver(
     BuildContext context, {
-    required PagedListState<VideoItemListItemDto> paged,
-    required bool isInitialLoading,
+    required PagedViewSnapshot<VideoItemListItemDto> paged,
     required String? initialErrorMessage,
   }) {
     if (paged.filterUpdate.hasFailed && paged.items.isEmpty) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
-    final isLoading = isInitialLoading && paged.items.isEmpty;
+    final isLoading = paged.isInitialLoading && paged.items.isEmpty;
     if (!isLoading && initialErrorMessage != null && paged.items.isEmpty) {
       return SliverToBoxAdapter(
         child: SizedBox(
@@ -604,7 +601,9 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
       return SliverToBoxAdapter(
         child: SizedBox(
           height: 200,
-          child: AppEmptyState(message: AppLocalizations.of(context).videoEmptyList),
+          child: AppEmptyState(
+            message: AppLocalizations.of(context).videoEmptyList,
+          ),
         ),
       );
     }

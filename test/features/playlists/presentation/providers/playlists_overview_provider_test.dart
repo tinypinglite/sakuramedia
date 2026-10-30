@@ -145,7 +145,7 @@ void main() {
 
     container
         .read(playlistsOverviewProvider(_scopeWithOrder).notifier)
-        .reorderPlaylists(0, 2);
+        .reorderPlaylists(0, 1);
     // 让 fire-and-forget 的 _savePlaylistOrder 有机会跑完。
     await Future<void>.delayed(Duration.zero);
 
@@ -247,7 +247,7 @@ void main() {
 
     container
         .read(playlistsOverviewProvider(_scopeNoOrder).notifier)
-        .reorderPlaylists(0, 2);
+        .reorderPlaylists(0, 1);
     await Future<void>.delayed(Duration.zero);
 
     // 未持久化任何 scope 的顺序。

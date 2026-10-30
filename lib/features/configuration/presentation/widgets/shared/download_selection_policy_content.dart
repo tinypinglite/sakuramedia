@@ -130,11 +130,10 @@ class _DownloadSelectionPolicyContentState
           Expanded(
             child: SingleChildScrollView(
               key: const Key('download-selection-policy-scroll'),
-              padding: EdgeInsets.fromLTRB(
-                widget.mobile ? spacing.md : 0,
-                widget.mobile ? spacing.md : 0,
-                widget.mobile ? spacing.md : spacing.lg,
-                spacing.xxl,
+              padding: EdgeInsets.only(
+                top: widget.mobile ? spacing.md : 0,
+                right: widget.mobile ? 0 : spacing.lg,
+                bottom: spacing.xxl,
               ),
               child: Form(
                 key: _formKey,
@@ -773,12 +772,7 @@ class _DownloadSelectionPolicyContentState
     return SafeArea(
       top: false,
       child: Container(
-        padding: EdgeInsets.fromLTRB(
-          spacing.md,
-          spacing.sm,
-          spacing.md,
-          spacing.sm,
-        ),
+        padding: EdgeInsets.only(top: spacing.sm, bottom: spacing.sm),
         decoration: BoxDecoration(
           color: colors.surfaceCard,
           border: Border(top: BorderSide(color: colors.divider)),

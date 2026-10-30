@@ -8,11 +8,14 @@ import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
 import 'package:sakuramedia/core/format/synced_at_label.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/rankings/data/ranked_movie_list_item_dto.dart';
 import 'package:sakuramedia/features/rankings/presentation/pages/mobile/ranking_filter_drawer.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_provider.dart';
 import 'package:sakuramedia/features/rankings/presentation/rankings_placeholders.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_scope.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_state.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/stable_set_selection.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -105,9 +108,35 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
 
   @override
   Widget build(BuildContext context) {
-    final summary =
-        ref.watch(rankingSummaryProvider(_scope)).value ??
-        RankingSummaryState.initial;
+    final paged = ref.watch(
+      rankingSummaryProvider(
+        _scope,
+      ).select((async) => pagedViewSnapshot(async, (state) => state.paged)),
+    );
+    final filters =
+        ref.watch(
+          rankingSummaryProvider(
+            _scope,
+          ).select((async) => async.value?.filters),
+        ) ??
+        RankingFilterState.initial;
+    final syncedAt = ref.watch(
+      rankingSummaryProvider(
+        _scope,
+      ).select((async) => async.value?.paged.syncedAt),
+    );
+    final initialErrorMessage = ref.watch(
+      rankingSummaryProvider(
+        _scope,
+      ).select((async) => async.value?.initialErrorMessage),
+    );
+    final subscriptionUpdating = ref.watch(
+      rankingSummaryProvider(_scope).select(
+        (async) => StableSetSelection<String>(
+          async.value?.subscriptionUpdatingMovieNumbers ?? const <String>{},
+        ),
+      ),
+    );
     return ColoredBox(
       color: context.appColors.surfaceCard,
       child: Column(
@@ -120,12 +149,12 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
                   if (selectionMode)
                     buildMobileBatchSelectionHeader()
                   else
-                    _buildHeader(context, summary),
+                    _buildHeader(context, paged, filters, syncedAt),
                   SizedBox(height: context.appSpacing.md),
-                  if (summary.filters.errorMessage != null &&
-                      summary.paged.filterUpdate.isIdle) ...[
+                  if (filters.errorMessage != null &&
+                      paged.filterUpdate.isIdle) ...[
                     AppInlineErrorBanner(
-                      message: summary.filters.errorMessage!,
+                      message: filters.errorMessage!,
                       onRetry: () => ref
                           .read(rankingSummaryProvider(_scope).notifier)
                           .reloadFiltersAndData(),
@@ -136,9 +165,15 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
               ),
               child: AppFilterResultLoadingOverlay(
                 surfaceColor: context.appColors.surfaceCard,
-                isLoading: summary.paged.filterUpdate.isLoading,
-                hasPreviousItems: summary.paged.items.isNotEmpty,
-                child: _buildScrollView(context, summary),
+                isLoading: paged.filterUpdate.isLoading,
+                hasPreviousItems: paged.items.isNotEmpty,
+                child: _buildScrollView(
+                  context,
+                  paged,
+                  filters,
+                  initialErrorMessage,
+                  subscriptionUpdating,
+                ),
               ),
             ),
           ),
@@ -149,9 +184,15 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
     );
   }
 
-  Widget _buildScrollView(BuildContext context, RankingSummaryState summary) {
+  Widget _buildScrollView(
+    BuildContext context,
+    PagedViewSnapshot<RankedMovieListItemDto> paged,
+    RankingFilterState filters,
+    String? initialErrorMessage,
+    StableSetSelection<String> subscriptionUpdating,
+  ) {
     final l10n = AppLocalizations.of(context);
-    final hasNoSources = summary.filters.hasNoSources;
+    final hasNoSources = filters.hasNoSources;
     return AppPagedLoadMoreScope(
       canLoadMore: () =>
           ref
@@ -172,22 +213,22 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
             key: const Key('mobile-rankings-page'),
             slivers: [
               if (hasNoSources &&
-                  !(summary.paged.filterUpdate.hasFailed &&
-                      summary.paged.items.isEmpty))
+                  !(paged.filterUpdate.hasFailed && paged.items.isEmpty))
                 SliverToBoxAdapter(
                   child: AppEmptyState(message: l10n.rankingNoBoards),
                 )
-              else if (!summary.paged.filterUpdate.hasFailed ||
-                  summary.paged.items.isNotEmpty)
+              else if (!paged.filterUpdate.hasFailed || paged.items.isNotEmpty)
                 AppSkeletonizer.sliver(
                   enabled:
-                      summary.filters.isLoading && summary.paged.items.isEmpty,
+                      (paged.isInitialLoading || filters.isLoading) &&
+                      paged.items.isEmpty,
                   child: RankedMovieSummarySliver(
                     items:
-                        summary.filters.isLoading && summary.paged.items.isEmpty
+                        (paged.isInitialLoading || filters.isLoading) &&
+                            paged.items.isEmpty
                         ? rankedMoviePlaceholders(count: 24)
-                        : summary.paged.items,
-                    errorMessage: summary.initialErrorMessage,
+                        : paged.items,
+                    errorMessage: initialErrorMessage,
                     onMovieTap: (movie) => context.pushMobileMovieDetail(
                       movieNumber: movie.movieNumber,
                     ),
@@ -208,7 +249,7 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
                         _hoverFeatureActions.toggleCollectionType,
                     onMovieBlacklist: _hoverFeatureActions.blacklist,
                     isMovieSubscriptionUpdating: (movie) =>
-                        summary.isSubscriptionUpdating(movie.movieNumber),
+                        subscriptionUpdating.contains(movie.movieNumber),
                     emptyMessage: l10n.rankingEmptyData,
                     selectionMode: selectionMode,
                     isMovieSelected: (movie) => isSelected(movie.movieNumber),
@@ -243,14 +284,19 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
     }
   }
 
-  Widget _buildHeader(BuildContext context, RankingSummaryState summary) {
+  Widget _buildHeader(
+    BuildContext context,
+    PagedViewSnapshot<RankedMovieListItemDto> paged,
+    RankingFilterState filters,
+    DateTime? syncedAt,
+  ) {
     final l10n = AppLocalizations.of(context);
-    final source = summary.filters.selectedSource;
-    final board = summary.filters.selectedBoard;
+    final source = filters.selectedSource;
+    final board = filters.selectedBoard;
     // 与桌面榜单页同一套单值语义：只报「榜单」这一主维度。
     final boardLabel = board?.name ?? source?.name ?? l10n.rankingAllBoards;
     final syncedAtLabel = formatSyncedAtLabel(
-      summary.paged.syncedAt,
+      syncedAt,
       l10n: AppLocalizations.of(context),
       withPrefix: false,
     );
@@ -260,9 +306,9 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
       filterTooltip: l10n.sharedFilter,
       filterIcon: Icons.leaderboard_outlined,
       filterLabel: boardLabel,
-      filterEnabled: summary.filters.sources.isNotEmpty,
-      filterUpdate: summary.paged.filterUpdate,
-      hasPreviousFilterItems: summary.paged.items.isNotEmpty,
+      filterEnabled: filters.sources.isNotEmpty,
+      filterUpdate: paged.filterUpdate,
+      hasPreviousFilterItems: paged.items.isNotEmpty,
       onRetryFilter: () => unawaited(
         ref.read(rankingSummaryProvider(_scope).notifier).retryFilter(),
       ),
@@ -270,7 +316,7 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
       informationSlots: [
         AppListHeaderInfo(
           key: const Key('mobile-rankings-page-total'),
-          label: l10n.sharedMovieCount(summary.paged.total),
+          label: l10n.sharedMovieCount(paged.total),
         ),
         if (syncedAtLabel != null)
           AppListHeaderInfo(
@@ -284,7 +330,7 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
           triggerKey: const Key('mobile-rankings-sort-trigger'),
           drawerKey: const Key('mobile-rankings-sort-drawer'),
           keyPrefix: 'mobile-rankings',
-          filterState: summary.filters,
+          filterState: filters,
           useDrawer: true,
           onSortChanged: (field, direction) {
             _scrollToTop();

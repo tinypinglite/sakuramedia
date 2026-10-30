@@ -48,12 +48,7 @@ class MobileMediaTagsPage extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    spacing.md,
-                    spacing.md,
-                    spacing.md,
-                    spacing.lg,
-                  ),
+                  padding: EdgeInsets.only(top: spacing.md, bottom: spacing.lg),
                   sliver: SliverToBoxAdapter(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -53,7 +53,9 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final async = ref.watch(playlistsOverviewProvider(_scope));
+    final overview = ref.watch(
+      playlistsOverviewProvider(_scope).select(selectPlaylistsOverview),
+    );
     final notifier = ref.read(playlistsOverviewProvider(_scope).notifier);
 
     return AppPageRefreshScope(
@@ -61,21 +63,17 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
       child: Builder(
         builder: (context) {
           final l10n = AppLocalizations.of(context);
-          if (async.isLoading && async.value == null) {
+          if (overview.isLoading) {
             return const _DesktopPlaylistsLoadingState();
           }
-          if (async.hasError && async.value == null) {
+          if (overview.error case final error?) {
             return AppEmptyState(
               message: apiErrorMessage(
-                async.error!,
+                error,
                 fallback: l10n.playlistLoadFailed,
                 l10n: l10n,
               ),
             );
-          }
-          final state = async.value;
-          if (state == null) {
-            return const SizedBox.shrink();
           }
           return ColoredBox(
             color: context.appColors.surfaceElevated,
@@ -96,7 +94,13 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
                   ),
                 ),
                 SizedBox(height: context.appSpacing.sm),
-                Expanded(child: _buildPlaylistsList(context, state, notifier)),
+                Expanded(
+                  child: _buildPlaylistsList(
+                    context,
+                    overview.playlists,
+                    notifier,
+                  ),
+                ),
               ],
             ),
           );
@@ -107,10 +111,9 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
 
   Widget _buildPlaylistsList(
     BuildContext context,
-    PlaylistsOverviewState state,
+    List<PlaylistDto> playlists,
     PlaylistsOverview notifier,
   ) {
-    final playlists = state.playlists;
     final l10n = AppLocalizations.of(context);
     if (playlists.isEmpty) {
       return AppEmptyState(message: l10n.playlistEmpty);
@@ -141,7 +144,7 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
               return Padding(
                 key: ValueKey<int>(playlist.id),
                 padding: EdgeInsets.only(bottom: spacing.sm),
-                child: _buildBanner(context, state, playlist),
+                child: _buildBanner(context, playlist),
               );
             },
           ),
@@ -161,7 +164,7 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
             itemCount: customPlaylists.length,
             onReorderItem: notifier.reorderCustomPlaylists,
             itemBuilder: (context, index) =>
-                _buildCustomItem(context, state, customPlaylists, index),
+                _buildCustomItem(context, customPlaylists, index),
           ),
         ],
         SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
@@ -169,25 +172,29 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
     );
   }
 
-  Widget _buildBanner(
-    BuildContext context,
-    PlaylistsOverviewState state,
-    PlaylistDto playlist,
-  ) {
-    return PlaylistBannerCard(
-      key: Key('playlist-banner-card-${playlist.id}'),
-      title: playlist.name,
-      coverImageUrl: state.coverUrlFor(playlist.id),
-      onTap: () => context.pushDesktopPlaylistDetail(
-        playlistId: playlist.id,
-        fallbackPath: desktopPlaylistsPath,
-      ),
+  Widget _buildBanner(BuildContext context, PlaylistDto playlist) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final coverImageUrl = ref.watch(
+          playlistsOverviewProvider(
+            _scope,
+          ).select((async) => async.value?.coverUrlFor(playlist.id)),
+        );
+        return PlaylistBannerCard(
+          key: Key('playlist-banner-card-${playlist.id}'),
+          title: playlist.name,
+          coverImageUrl: coverImageUrl,
+          onTap: () => context.pushDesktopPlaylistDetail(
+            playlistId: playlist.id,
+            fallbackPath: desktopPlaylistsPath,
+          ),
+        );
+      },
     );
   }
 
   Widget _buildCustomItem(
     BuildContext context,
-    PlaylistsOverviewState state,
     List<PlaylistDto> customPlaylists,
     int index,
   ) {
@@ -205,7 +212,7 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
         },
         child: Stack(
           children: [
-            _buildBanner(context, state, playlist),
+            _buildBanner(context, playlist),
             if (customPlaylists.length > 1)
               Positioned(
                 right: context.appSpacing.sm,

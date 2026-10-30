@@ -1,5 +1,23 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
+
+typedef PlaylistsOverviewView = ({
+  List<PlaylistDto> playlists,
+  bool isLoading,
+  Object? error,
+});
+
+PlaylistsOverviewView selectPlaylistsOverview(
+  AsyncValue<PlaylistsOverviewState> async,
+) {
+  final state = async.value;
+  return (
+    playlists: state?.playlists ?? const <PlaylistDto>[],
+    isLoading: async.isLoading && state == null,
+    error: async.hasError && state == null ? async.error : null,
+  );
+}
 
 /// 播放列表概览 State：全量已加载列表（应用了持久化顺序）+ 各列表首图缓存。
 ///

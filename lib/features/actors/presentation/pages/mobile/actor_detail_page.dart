@@ -4,14 +4,12 @@ import 'package:sakuramedia/features/actors/presentation/actor_placeholders.dart
 import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_detail_content.dart';
 import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_profile_details.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
-import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/domain/movies/subscription_heart_badge.dart';
@@ -89,7 +87,6 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
         message: message,
         onRetry: onRetry,
       ),
-      footerBuilder: _buildLoadMoreFooter,
       bodyBuilder: (context, scrollController, child, onRefresh) =>
           AppAdaptiveRefreshScrollView(
             onRefresh: onRefresh!,
@@ -104,21 +101,6 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
       // 全选、批量动作下沉到底部条。
       useMobileFilterDrawer: true,
       useMobileSelectionLayout: true,
-    );
-  }
-
-  Widget? _buildLoadMoreFooter(
-    BuildContext context,
-    MovieSummaryState movies,
-    VoidCallback onRetry,
-  ) {
-    if (movies.paged.items.isEmpty) {
-      return null;
-    }
-    return AppPagedLoadMoreFooter(
-      isLoading: movies.paged.isLoadingMore,
-      errorMessage: movies.paged.loadMoreErrorMessage,
-      onRetry: onRetry,
     );
   }
 }

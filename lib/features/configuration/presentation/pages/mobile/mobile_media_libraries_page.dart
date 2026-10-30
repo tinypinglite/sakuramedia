@@ -126,12 +126,7 @@ class _MobileMediaLibrariesPageState
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: <Widget>[
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    spacing.md,
-                    spacing.md,
-                    spacing.md,
-                    spacing.lg,
-                  ),
+                  padding: EdgeInsets.only(top: spacing.md, bottom: spacing.lg),
                   sliver: SliverToBoxAdapter(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,

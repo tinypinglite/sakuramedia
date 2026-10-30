@@ -9,7 +9,7 @@ import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
@@ -63,17 +63,21 @@ class BlacklistedMoviesSection extends HookConsumerWidget {
   ) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    final async = ref.watch(movieSummaryProvider(_scope));
-    final isLoading = !async.hasError && async.value == null;
+    final view = ref.watch(
+      movieSummaryProvider(
+        _scope,
+      ).select((async) => pagedViewSnapshot(async, (state) => state.paged)),
+    );
+    final isLoading = view.isInitialLoading;
     final slivers = <Widget>[];
 
-    if (async.hasError) {
+    if (view.initialError case final error?) {
       slivers.add(
         SliverToBoxAdapter(
           child: AppSectionError(
             title: l10n.moviePageBlacklistLoadFailedTitle,
             message: apiErrorMessage(
-              async.error!,
+              error,
               fallback: l10n.moviePageBlacklistLoadFailed,
               l10n: l10n,
             ),
@@ -84,9 +88,6 @@ class BlacklistedMoviesSection extends HookConsumerWidget {
       );
     } else {
       // loading 用占位影片渲染真实海报网格，由 [AppSkeletonizer] 灰化。
-      final paged = isLoading
-          ? PagedListState<MovieListItemDto>(items: movieListItemPlaceholders())
-          : async.value!.paged;
       slivers.addAll(<Widget>[
         SliverToBoxAdapter(
           child: Text(
@@ -101,7 +102,7 @@ class BlacklistedMoviesSection extends HookConsumerWidget {
         ),
         SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
         MovieSummarySliver(
-          items: paged.items,
+          items: isLoading ? movieListItemPlaceholders() : view.items,
           emptyMessage: l10n.moviePageBlacklistEmpty,
           onMovieTap: (movie) => context.pushDesktopMovieDetail(
             movieNumber: movie.movieNumber,

@@ -14,8 +14,10 @@ import 'package:sakuramedia/features/movies/presentation/actions/movie_collectio
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
-import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_state.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/stable_set_selection.dart';
+import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/controllers/playlist_filter_state.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlist_detail_provider.dart';
@@ -34,7 +36,6 @@ import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
@@ -121,9 +122,18 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
   @override
   Widget build(BuildContext context) {
     final detailAsync = ref.watch(playlistDetailProvider(widget.playlistId));
-    final moviesAsync = ref.watch(movieSummaryProvider(_scope));
-    final movies = moviesAsync.value;
-    final paged = movies?.paged;
+    final view = ref.watch(
+      movieSummaryProvider(
+        _scope,
+      ).select((async) => pagedViewSnapshot(async, (state) => state.paged)),
+    );
+    final subscriptionUpdating = ref.watch(
+      movieSummaryProvider(_scope).select(
+        (async) => StableSetSelection<String>(
+          async.value?.subscriptionUpdatingMovieNumbers ?? const <String>{},
+        ),
+      ),
+    );
 
     return AppPageRefreshScope(
       onRefresh: _handleRefresh,
@@ -147,7 +157,6 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
             return const SizedBox.shrink();
           }
           final canManage = playlist.isMutable || playlist.isDeletable;
-          final footer = _buildLoadMoreFooter(context, movies);
           final slivers = <Widget>[
             SliverToBoxAdapter(
               child: Stack(
@@ -155,7 +164,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                   PlaylistBannerCard(
                     key: Key('playlist-banner-card-${playlist.id}'),
                     title: playlist.name,
-                    coverImageUrl: paged?.items.firstOrNull?.coverImage?.origin,
+                    coverImageUrl: view.items.firstOrNull?.coverImage?.origin,
                   ),
                   if (canManage)
                     Positioned(
@@ -176,18 +185,22 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                 padding: EdgeInsets.only(bottom: context.appSpacing.sm),
                 child: selectionMode
                     ? buildBatchSelectionToolbar()
-                    : _buildListHeader(context, playlist.movieCount, paged),
+                    : _buildListHeader(
+                        context,
+                        playlist.movieCount,
+                        view.filterUpdate,
+                        view.items.isNotEmpty,
+                      ),
               ),
             ),
-            if (!(paged?.filterUpdate.hasFailed ?? false) ||
-                (paged?.items.isNotEmpty ?? false))
+            if (!view.filterUpdate.hasFailed || view.items.isNotEmpty)
               AppSkeletonizer.sliver(
-                enabled: moviesAsync.isLoading && movies == null,
+                enabled: view.isInitialLoading,
                 child: MovieSummarySliver(
-                  items: moviesAsync.isLoading && movies == null
+                  items: view.isInitialLoading
                       ? movieListItemPlaceholders(count: 24)
-                      : paged?.items ?? const [],
-                  errorMessage: moviesAsync.hasError && movies == null
+                      : view.items,
+                  errorMessage: view.initialError != null
                       ? _scope.errorText(AppLocalizations.of(context))
                       : null,
                   onMovieTap: widget.onMovieTap,
@@ -204,26 +217,27 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                       _hoverFeatureActions.toggleCollectionType,
                   onMovieBlacklist: _hoverFeatureActions.blacklist,
                   isMovieSubscriptionUpdating: (movie) =>
-                      movies?.isSubscriptionUpdating(movie.movieNumber) ??
-                      false,
+                      subscriptionUpdating.contains(movie.movieNumber),
                   emptyMessage: !_filterState.hasActiveFilters
                       ? AppLocalizations.of(context).playlistNoMovies
-                      : AppLocalizations.of(
-                        context,
-                      ).playlistNoMatchingMovies,
+                      : AppLocalizations.of(context).playlistNoMatchingMovies,
                   selectionMode: selectionMode,
                   isMovieSelected: (movie) => isSelected(movie.movieNumber),
                   onMovieSelectedChanged: (movie, _) =>
                       toggleSelect(movie.movieNumber),
                 ),
               ),
-            if (footer != null)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.only(top: context.appSpacing.md),
-                  child: footer,
-                ),
+            PagedLoadMoreFooterSliver(
+              topSpacing: PagedFooterSpacing.md,
+              watchFooter: (ref) => ref.watch(
+                movieSummaryProvider(
+                  _scope,
+                ).select((s) => pagedLoadMoreFooterSnapshot(s.value?.paged)),
               ),
+              onLoadMore: (ref) => unawaited(
+                ref.read(movieSummaryProvider(_scope).notifier).loadMore(),
+              ),
+            ),
           ];
           final scrollView = CustomScrollView(
             physics: widget.enablePullToRefresh
@@ -260,8 +274,8 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
             surfaceColor: widget.surfaceColor,
             protectedHeaderKey: _listHeaderKey,
             scrollController: _scrollController,
-            isLoading: paged?.filterUpdate.isLoading ?? false,
-            hasPreviousItems: paged?.items.isNotEmpty ?? false,
+            isLoading: view.filterUpdate.isLoading,
+            hasPreviousItems: view.items.isNotEmpty,
             child: AppPagedLoadMoreScope(
               canLoadMore: () =>
                   ref
@@ -366,7 +380,8 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
   Widget _buildListHeader(
     BuildContext context,
     int totalMovies,
-    PagedListState<MovieListItemDto>? paged,
+    FilterUpdateState filterUpdate,
+    bool hasPreviousFilterItems,
   ) {
     final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
     final l10n = AppLocalizations.of(context);
@@ -374,8 +389,8 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
       filterButtonKey: const Key('playlist-detail-filter-trigger'),
       filterLabel: _filterState.triggerLabel(l10n),
       filterPanelKey: const Key('playlist-detail-filter-panel'),
-      filterUpdate: paged?.filterUpdate ?? const FilterUpdateState.idle(),
-      hasPreviousFilterItems: paged?.items.isNotEmpty ?? false,
+      filterUpdate: filterUpdate,
+      hasPreviousFilterItems: hasPreviousFilterItems,
       onRetryFilter: () => unawaited(
         ref.read(movieSummaryProvider(_scope).notifier).retryFilter(),
       ),
@@ -447,38 +462,6 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
       return;
     }
     showMovieSubscriptionFeedback(result, l10n: AppLocalizations.of(context));
-  }
-
-  Widget? _buildLoadMoreFooter(
-    BuildContext context, [
-    MovieSummaryState? summary,
-  ]) {
-    final paged =
-        summary?.paged ?? ref.read(movieSummaryProvider(_scope)).value?.paged;
-    if (paged == null || paged.items.isEmpty) {
-      return null;
-    }
-
-    if (paged.isLoadingMore) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: context.appSpacing.md),
-          child: const AppInlineSpinner(),
-        ),
-      );
-    }
-
-    if (paged.loadMoreErrorMessage == null) {
-      return null;
-    }
-
-    return Center(
-      child: TextButton(
-        onPressed: () =>
-            ref.read(movieSummaryProvider(_scope).notifier).loadMore(),
-        child: Text(paged.loadMoreErrorMessage!),
-      ),
-    );
   }
 }
 

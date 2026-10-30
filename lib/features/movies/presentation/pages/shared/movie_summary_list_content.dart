@@ -11,7 +11,8 @@ import 'package:sakuramedia/features/movies/presentation/controllers/listing/mov
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/stable_set_selection.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_provider.dart';
@@ -274,38 +275,42 @@ class _MovieSummaryListContentState
     final l10n = AppLocalizations.of(context);
     // 只订阅渲染所需的字段：loadMore 的 loading/失败走独立页脚
     // （[PagedLoadMoreFooterSliver]），翻页状态翻转不重建列表本体。
-    final view = ref.watch(
+    final paged = ref.watch(
       movieSummaryProvider(widget.scope).select(
-        (asyncState) => (
-          filter:
-              asyncState.value?.filter.movie ??
-              widget.scope.initialMovieFilter ??
-              MovieFilterState.initial,
-          total: asyncState.value?.paged.total ?? 0,
-          items: asyncState.value?.paged.items ?? const [],
-          currentPage: asyncState.value?.paged.currentPage ?? 0,
-          filterUpdate:
-              asyncState.value?.paged.filterUpdate ??
-              const FilterUpdateState.idle(),
-          isInitialLoading: asyncState.isLoading && asyncState.value == null,
-          hasErrorNoValue: asyncState.hasError && asyncState.value == null,
-          updating:
-              asyncState.value?.subscriptionUpdatingMovieNumbers ??
+        (asyncState) => pagedViewSnapshot(asyncState, (state) => state.paged),
+      ),
+    );
+    final filter = ref.watch(
+      movieSummaryProvider(widget.scope).select(
+        (asyncState) =>
+            asyncState.value?.filter.movie ??
+            widget.scope.initialMovieFilter ??
+            MovieFilterState.initial,
+      ),
+    );
+    final currentPage = ref.watch(
+      movieSummaryProvider(
+        widget.scope,
+      ).select((asyncState) => asyncState.value?.paged.currentPage ?? 0),
+    );
+    final updating = ref.watch(
+      movieSummaryProvider(widget.scope).select(
+        (asyncState) => StableSetSelection<String>(
+          asyncState.value?.subscriptionUpdatingMovieNumbers ??
               const <String>{},
         ),
       ),
     );
-    final filter = view.filter;
-    final items = view.items;
+    final items = paged.items;
     // 首屏骨架：还没有任何服务端结果时都算首拉，不要先用空态冒充「这个标签下
     // 没有影片」。除 AsyncValue 仍在 loading，还包括标签页那种「先建 provider
     // （未请求，currentPage == 0）再由 post-frame 补上标签条件」的入口——补条件
     // 前后骨架不中断。真正拉过的空结果 currentPage >= 1，仍走空态。
     final isInitialLoading =
         items.isEmpty &&
-        !view.hasErrorNoValue &&
-        (view.isInitialLoading || view.currentPage == 0);
-    final initialErrorMessage = view.hasErrorNoValue
+        paged.initialError == null &&
+        (paged.isInitialLoading || currentPage == 0);
+    final initialErrorMessage = paged.initialError != null
         ? widget.scope.errorText(AppLocalizations.of(context))
         : null;
 
@@ -352,7 +357,7 @@ class _MovieSummaryListContentState
         MovieSummaryListHeaderArgs(
           filterState: filter,
           onApply: _applyFilter,
-          total: view.total,
+          total: paged.total,
           tagSelection: tagSelection,
         ),
       );
@@ -394,7 +399,7 @@ class _MovieSummaryListContentState
         informationSlots: [
           AppListHeaderInfo(
             key: widget.totalKey,
-            label: l10n.moviePageMovieCount(view.total),
+            label: l10n.moviePageMovieCount(paged.total),
           ),
         ],
         actionSlots: [
@@ -420,7 +425,7 @@ class _MovieSummaryListContentState
               widget.headerLeading!,
             ?header,
             AppFilterUpdateBar(
-              state: view.filterUpdate,
+              state: paged.filterUpdate,
               hasPreviousItems: items.isNotEmpty,
               onRetry: () => unawaited(
                 ref
@@ -434,7 +439,7 @@ class _MovieSummaryListContentState
         child: AppFilterResultLoadingOverlay(
           surfaceColor: widget.surfaceColor,
           // 结果区已经在渲染骨架时，不再叠居中的筛选进度层，避免遮住骨架。
-          isLoading: view.filterUpdate.isLoading && !isInitialLoading,
+          isLoading: paged.filterUpdate.isLoading && !isInitialLoading,
           hasPreviousItems: items.isNotEmpty,
           child: AppPagedLoadMoreScope(
             canLoadMore: () =>
@@ -452,7 +457,7 @@ class _MovieSummaryListContentState
               _scrollController,
               SliverMainAxisGroup(
                 slivers: [
-                  if (!view.filterUpdate.hasFailed || items.isNotEmpty)
+                  if (!paged.filterUpdate.hasFailed || items.isNotEmpty)
                     AppSkeletonizer.sliver(
                       enabled: isInitialLoading,
                       child: MovieSummarySliver(
@@ -490,7 +495,7 @@ class _MovieSummaryListContentState
                             _hoverFeatureActions.toggleCollectionType,
                         onMovieBlacklist: _hoverFeatureActions.blacklist,
                         isMovieSubscriptionUpdating: (movie) =>
-                            view.updating.contains(movie.movieNumber),
+                            updating.contains(movie.movieNumber),
                         emptyMessage:
                             widget.emptyMessage ??
                             (!filter.hasActiveFilters

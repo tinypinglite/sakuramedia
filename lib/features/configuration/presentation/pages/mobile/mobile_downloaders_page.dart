@@ -165,12 +165,7 @@ class _MobileDownloadersPageState extends ConsumerState<MobileDownloadersPage>
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              spacing.md,
-              spacing.sm,
-              spacing.md,
-              spacing.sm,
-            ),
+            padding: EdgeInsets.only(top: spacing.sm, bottom: spacing.sm),
             child: Align(
               alignment: Alignment.centerLeft,
               child: AppTabBar(
@@ -259,12 +254,7 @@ class _MobileDownloadersPageState extends ConsumerState<MobileDownloadersPage>
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         SliverPadding(
-          padding: EdgeInsets.fromLTRB(
-            spacing.md,
-            spacing.sm,
-            spacing.md,
-            spacing.lg,
-          ),
+          padding: EdgeInsets.only(top: spacing.sm, bottom: spacing.lg),
           sliver: SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

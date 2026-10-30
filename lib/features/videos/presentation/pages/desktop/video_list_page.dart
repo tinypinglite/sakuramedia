@@ -25,7 +25,7 @@ import 'package:sakuramedia/features/videos/presentation/video_placeholders.dart
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/batch_operation_submission_provider.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_actions_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/video_display_title.dart';
@@ -270,12 +270,18 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
 
   @override
   Widget build(BuildContext context) {
-    // 中立化 loadMore 状态：翻页 loading/失败只重建独立页脚，
-    // 不重建合集区、顶栏与网格（页脚见 VideoListContent 内的 _VideoListFooterSliver）。
-    final videosAsync = ref.watch(videoSummaryProvider(_scope));
-    final summary = videosAsync.value;
-    final paged = summary?.paged;
-    final filter = summary?.filter ?? VideoFilterState.initial;
+    // 分页快照不包含 loadMore 状态，翻页 loading/失败只重建独立页脚，
+    // 不重建合集区、顶栏与网格。
+    final paged = ref.watch(
+      videoSummaryProvider(_scope).select(
+        (asyncState) => pagedViewSnapshot(asyncState, (state) => state.paged),
+      ),
+    );
+    final filter = ref.watch(
+      videoSummaryProvider(_scope).select(
+        (asyncState) => asyncState.value?.filter ?? VideoFilterState.initial,
+      ),
+    );
     final l10n = AppLocalizations.of(context);
 
     ref.listen(videoMutationEventsProvider, (_, next) {
@@ -291,8 +297,8 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
         child: AppFilterResultLoadingOverlay(
           protectedHeaderKey: _listHeaderKey,
           scrollController: _scrollController,
-          isLoading: paged?.filterUpdate.isLoading ?? false,
-          hasPreviousItems: paged?.items.isNotEmpty ?? false,
+          isLoading: paged.filterUpdate.isLoading,
+          hasPreviousItems: paged.items.isNotEmpty,
           child: AppPagedLoadMoreScope(
             canLoadMore: () =>
                 ref
@@ -303,55 +309,54 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
                 false,
             onLoadMore: () =>
                 ref.read(videoSummaryProvider(_scope).notifier).loadMore(),
-          child: CustomScrollView(
-            key: const PageStorageKey<String>('desktop:videos:list'),
-            controller: _scrollController,
-            slivers: [
-              SliverToBoxAdapter(
-                child: Column(
-                  key: const Key('videos-page'),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildCollectionsSection(context),
-                    SizedBox(height: context.appSpacing.lg),
-                  ],
+            child: CustomScrollView(
+              key: const PageStorageKey<String>('desktop:videos:list'),
+              controller: _scrollController,
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Column(
+                    key: const Key('videos-page'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildCollectionsSection(context),
+                      SizedBox(height: context.appSpacing.lg),
+                    ],
+                  ),
                 ),
-              ),
-              VideoListContent(
-                headerKey: _listHeaderKey,
-                paged: paged ?? const PagedListState<VideoItemListItemDto>(),
-                videoProvider: videoSummaryProvider(_scope),
-                isInitialLoading: videosAsync.isLoading && summary == null,
-                initialErrorMessage: videosAsync.hasError && summary == null
-                    ? l10n.errorVideoListLoadFailed
-                    : null,
-                filterState: filter,
-                onFilterChanged: _applySort,
-                onRetryFilter: () => unawaited(
+                VideoListContent(
+                  headerKey: _listHeaderKey,
+                  paged: paged,
+                  videoProvider: videoSummaryProvider(_scope),
+                  initialErrorMessage: paged.initialError != null
+                      ? l10n.errorVideoListLoadFailed
+                      : null,
+                  filterState: filter,
+                  onFilterChanged: _applySort,
+                  onRetryFilter: () => unawaited(
                     ref
                         .read(videoSummaryProvider(_scope).notifier)
                         .retryFilter(),
+                  ),
+                  contentKey: const Key('videos-page-list'),
+                  totalKey: const Key('videos-page-total'),
+                  sectionSpacing: context.appSpacing.lg,
+                  onVideoTap: _openActionsDialog,
+                  onVideoPlay: (video) => unawaited(_playVideo(video)),
+                  onVideoThumbnails: (video) =>
+                      context.pushDesktopVideoThumbnails(videoId: video.id),
+                  onVideoAddToCollection: (video) =>
+                      unawaited(_addToCollection(video)),
+                  onVideoDelete: (video) => unawaited(_deleteVideo(video)),
+                  selectionMode: selectionMode,
+                  selectedIds: selectedIds,
+                  onVideoToggleSelect: (video) => toggleSelect(video.id),
+                  selectionHeaderBuilder: _buildSelectionHeader,
+                  headerActionsBuilder: _buildInlineSelectionTrigger,
                 ),
-                contentKey: const Key('videos-page-list'),
-                totalKey: const Key('videos-page-total'),
-                sectionSpacing: context.appSpacing.lg,
-                onVideoTap: _openActionsDialog,
-                onVideoPlay: (video) => unawaited(_playVideo(video)),
-                onVideoThumbnails: (video) =>
-                    context.pushDesktopVideoThumbnails(videoId: video.id),
-                onVideoAddToCollection: (video) =>
-                    unawaited(_addToCollection(video)),
-                onVideoDelete: (video) => unawaited(_deleteVideo(video)),
-                selectionMode: selectionMode,
-                selectedIds: selectedIds,
-                onVideoToggleSelect: (video) => toggleSelect(video.id),
-                selectionHeaderBuilder: _buildSelectionHeader,
-                headerActionsBuilder: _buildInlineSelectionTrigger,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -381,10 +386,9 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
     return AppSelectionHeaderToolbar(
       countLabel: l10n.videoSelectedCount(selectedCount),
       countKey: const Key('videos-selection-count-text'),
-      selectAllLabel:
-          allSelected
-              ? l10n.videoDeselectAll
-              : l10n.videoSelectAllCount(_loadedVideos.length),
+      selectAllLabel: allSelected
+          ? l10n.videoDeselectAll
+          : l10n.videoSelectAllCount(_loadedVideos.length),
       selectAllKey: const Key('videos-select-all-button'),
       onToggleAll: _loadedVideos.isEmpty
           ? null

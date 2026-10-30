@@ -17,6 +17,7 @@ import 'package:sakuramedia/features/image_search/presentation/image_search_file
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/features/moments/presentation/pages/mobile/overview_moments_tab.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_provider.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_scope.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_state.dart';
@@ -329,6 +330,13 @@ class _MobileOverviewMyTabState extends ConsumerState<_MobileOverviewMyTab> {
               _buildRecentlySubscribedSection(),
               _buildRecentViewsSection(),
               SizedBox(height: spacing.sm),
+            ],
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
                 l10n.overviewPlaylists,
                 style: resolveAppTextStyle(
@@ -339,10 +347,11 @@ class _MobileOverviewMyTabState extends ConsumerState<_MobileOverviewMyTab> {
                 ),
               ),
               SizedBox(height: spacing.xs),
-              _buildPlaylistsSection(),
             ],
           ),
         ),
+        _buildPlaylistsSliver(),
+        SliverToBoxAdapter(child: SizedBox(height: spacing.sm)),
       ],
     );
   }
@@ -457,60 +466,51 @@ class _MobileOverviewMyTabState extends ConsumerState<_MobileOverviewMyTab> {
     );
   }
 
-  Widget _buildPlaylistsSection() {
+  Widget _buildPlaylistsSliver() {
     return Consumer(
       builder: (context, ref, _) {
-        final async = ref.watch(playlistsOverviewProvider(_playlistsScope));
-        final state = async.value;
-        if (async.isLoading && state == null) {
-          return _buildPlaylistsSkeleton();
+        final overview = ref.watch(
+          playlistsOverviewProvider(
+            _playlistsScope,
+          ).select(selectPlaylistsOverview),
+        );
+        if (overview.isLoading) {
+          return SliverToBoxAdapter(child: _buildPlaylistsSkeleton());
         }
-        if (async.hasError && state == null) {
+        if (overview.error case final error?) {
           final l10n = AppLocalizations.of(context);
-          return AppEmptyState(
-            message: apiErrorMessage(
-              async.error!,
-              fallback: l10n.overviewPlaylistsLoadFailed,
-              l10n: l10n,
+          return SliverToBoxAdapter(
+            child: AppEmptyState(
+              message: apiErrorMessage(
+                error,
+                fallback: l10n.overviewPlaylistsLoadFailed,
+                l10n: l10n,
+              ),
             ),
           );
         }
-        final PlaylistsOverviewState effective =
-            state ?? const PlaylistsOverviewState();
-        if (effective.playlists.isEmpty) {
-          return AppEmptyState(
-            message: AppLocalizations.of(context).overviewNoPlaylists,
+        final playlists = overview.playlists;
+        if (playlists.isEmpty) {
+          return SliverToBoxAdapter(
+            child: AppEmptyState(
+              message: AppLocalizations.of(context).overviewNoPlaylists,
+            ),
           );
         }
 
-        final playlists = effective.playlists;
-        if (playlists.length < 2) {
-          final playlist = playlists.single;
-          return Column(
-            key: const Key('mobile-overview-playlists-list'),
-            children: [
-              Padding(
-                padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-                child: PlaylistBannerCard(
-                  key: Key('mobile-overview-playlist-${playlist.id}'),
-                  title: playlist.name,
-                  coverImageUrl: effective.coverUrlFor(playlist.id),
-                  onTap: () => MobilePlaylistDetailRouteData(
-                    playlistId: playlist.id,
-                  ).push(context),
-                ),
-              ),
-            ],
-          );
-        }
-
-        return ReorderableListView.builder(
+        return SliverReorderableList(
           key: const Key('mobile-overview-playlists-list'),
-          shrinkWrap: true,
-          buildDefaultDragHandles: false,
-          physics: const NeverScrollableScrollPhysics(),
           itemCount: playlists.length,
-          onReorder: ref
+          findChildIndexCallback: (key) {
+            if (key is! ValueKey<int>) {
+              return null;
+            }
+            final index = playlists.indexWhere(
+              (playlist) => playlist.id == key.value,
+            );
+            return index < 0 ? null : index;
+          },
+          onReorderItem: ref
               .read(playlistsOverviewProvider(_playlistsScope).notifier)
               .reorderPlaylists,
           onReorderStart: _handlePlaylistReorderStart,
@@ -521,17 +521,30 @@ class _MobileOverviewMyTabState extends ConsumerState<_MobileOverviewMyTab> {
               index: index,
               child: Padding(
                 padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-                child: PlaylistBannerCard(
-                  key: Key('mobile-overview-playlist-${playlist.id}'),
-                  title: playlist.name,
-                  coverImageUrl: effective.coverUrlFor(playlist.id),
-                  onTap: () => MobilePlaylistDetailRouteData(
-                    playlistId: playlist.id,
-                  ).push(context),
-                ),
+                child: _buildPlaylistBanner(context, playlist),
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  Widget _buildPlaylistBanner(BuildContext context, PlaylistDto playlist) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final coverImageUrl = ref.watch(
+          playlistsOverviewProvider(
+            _playlistsScope,
+          ).select((async) => async.value?.coverUrlFor(playlist.id)),
+        );
+        return PlaylistBannerCard(
+          key: Key('mobile-overview-playlist-${playlist.id}'),
+          title: playlist.name,
+          coverImageUrl: coverImageUrl,
+          onTap: () => MobilePlaylistDetailRouteData(
+            playlistId: playlist.id,
+          ).push(context),
         );
       },
     );

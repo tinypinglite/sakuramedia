@@ -96,12 +96,7 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    spacing.md,
-                    spacing.sm,
-                    spacing.md,
-                    spacing.lg,
-                  ),
+                  padding: EdgeInsets.only(top: spacing.sm, bottom: spacing.lg),
                   sliver: SliverToBoxAdapter(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -238,12 +233,7 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              spacing.md,
-              spacing.sm,
-              spacing.md,
-              spacing.md,
-            ),
+            padding: EdgeInsets.only(top: spacing.sm, bottom: spacing.md),
             child: Row(
               children: [
                 Expanded(

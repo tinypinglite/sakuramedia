@@ -667,9 +667,6 @@ class MobileSettingsDownloadSelectionRouteData extends _MobileSubpageRouteData
   String get defaultLocation => mobileOverviewPath;
 
   @override
-  EdgeInsetsGeometry get bodyPadding => AppPageInsets.zero;
-
-  @override
   bool get autoHideAppBar => false;
 
   @override
@@ -759,9 +756,6 @@ class MobileSettingsAccountSecurityRouteData extends _MobileSubpageRouteData
 
   @override
   String get defaultLocation => mobileOverviewPath;
-
-  @override
-  EdgeInsetsGeometry get bodyPadding => AppPageInsets.zero;
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {

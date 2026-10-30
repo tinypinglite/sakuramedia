@@ -14,7 +14,8 @@ import 'package:sakuramedia/features/actors/presentation/providers/actor_summary
 import 'package:sakuramedia/features/actors/presentation/providers/actor_summary_scope.dart';
 import 'package:sakuramedia/features/actors/presentation/widgets/actor_taste_recommendation_rail.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/taste_profile_provider.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/stable_set_selection.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -112,13 +113,25 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final actorsAsync = ref.watch(actorSummaryProvider(_scope));
-    final summary = actorsAsync.value;
-    final paged = summary?.paged;
-    final filter = summary?.filter ?? ActorFilterState.initial;
-    final items = paged?.items ?? const [];
-    final isInitialLoading = actorsAsync.isLoading && summary == null;
-    final initialErrorMessage = actorsAsync.hasError && summary == null
+    final snapshot = ref.watch(
+      actorSummaryProvider(
+        _scope,
+      ).select((state) => pagedViewSnapshot(state, (summary) => summary.paged)),
+    );
+    final filter = ref.watch(
+      actorSummaryProvider(
+        _scope,
+      ).select((state) => state.value?.filter ?? ActorFilterState.initial),
+    );
+    final subscriptionUpdating = ref.watch(
+      actorSummaryProvider(_scope).select(
+        (state) => StableSetSelection<int>(
+          state.value?.subscriptionUpdatingActorIds ?? const <int>{},
+        ),
+      ),
+    );
+    final items = snapshot.items;
+    final initialErrorMessage = snapshot.initialError != null
         ? AppLocalizations.of(context).errorActorListLoadFailed
         : null;
 
@@ -133,8 +146,7 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage> {
               filterTooltip: AppLocalizations.of(context).actorFilterTooltip,
               filterLabel: filter.triggerLabel(AppLocalizations.of(context)),
               onFilterTap: _openFilterDrawer,
-              filterUpdate:
-                  paged?.filterUpdate ?? const FilterUpdateState.idle(),
+              filterUpdate: snapshot.filterUpdate,
               hasPreviousFilterItems: items.isNotEmpty,
               onRetryFilter: () => unawaited(
                 ref.read(actorSummaryProvider(_scope).notifier).retryFilter(),
@@ -146,7 +158,7 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage> {
                         key: const Key('mobile-actors-total'),
                         label: AppLocalizations.of(
                           context,
-                        ).actorListTotalCount(paged?.total ?? 0),
+                        ).actorListTotalCount(snapshot.total),
                       ),
                     ],
               actionSlots: _searchExpanded
@@ -202,7 +214,7 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage> {
         ),
         child: AppFilterResultLoadingOverlay(
           surfaceColor: context.appColors.surfaceCard,
-          isLoading: paged?.filterUpdate.isLoading ?? false,
+          isLoading: snapshot.filterUpdate.isLoading,
           hasPreviousItems: items.isNotEmpty,
           child: AppPagedLoadMoreScope(
             canLoadMore: () =>
@@ -231,12 +243,11 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage> {
                 SliverMainAxisGroup(
                   key: const Key('mobile-actors-page'),
                   slivers: [
-                    if (!(paged?.filterUpdate.hasFailed ?? false) ||
-                        items.isNotEmpty)
+                    if (!snapshot.filterUpdate.hasFailed || items.isNotEmpty)
                       AppSkeletonizer.sliver(
-                        enabled: isInitialLoading,
+                        enabled: snapshot.isInitialLoading,
                         child: ActorSummarySliver(
-                          items: isInitialLoading
+                          items: snapshot.isInitialLoading
                               ? actorListItemPlaceholders(count: 24)
                               : items,
                           errorMessage: initialErrorMessage,
@@ -246,8 +257,7 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage> {
                           onActorSubscriptionTap: (actor) =>
                               _toggleActorSubscription(actor.id),
                           isActorSubscriptionUpdating: (actor) =>
-                              summary?.isSubscriptionUpdating(actor.id) ??
-                              false,
+                              subscriptionUpdating.contains(actor.id),
                           emptyMessage: !filter.hasActiveFilters
                               ? AppLocalizations.of(context).actorListEmpty
                               : AppLocalizations.of(

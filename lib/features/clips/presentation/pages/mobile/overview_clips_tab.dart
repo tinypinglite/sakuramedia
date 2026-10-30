@@ -24,6 +24,7 @@ import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/batch_operation_submission_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
@@ -116,10 +117,13 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
       }
     });
 
-    final clipsAsync = ref.watch(clipsOverviewProvider);
+    final clipsView = ref.watch(
+      clipsOverviewProvider.select(
+        (async) => pagedViewSnapshot(async, (state) => state.paged),
+      ),
+    );
     final collectionsAsync = ref.watch(clipCollectionsOverviewProvider);
-    final clipsState = clipsAsync.value;
-    final clips = clipsState?.paged.items ?? const <MediaClipDto>[];
+    final clips = clipsView.items;
     // 概览 TabBarView 保活当前 Tab，但不会关闭 TickerMode；隐藏时只看
     // enabled 阻止自动补页，避免用离开时的旧滚动位置在后台继续翻页。
     final isActive = ref.watch(mobileOverviewTabIndexProvider) == 1;
@@ -131,7 +135,7 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
             surfaceColor: context.appColors.surfaceCard,
             protectedHeaderKey: _listHeaderKey,
             scrollController: _scrollController,
-            isLoading: clipsState?.paged.filterUpdate.isLoading ?? false,
+            isLoading: clipsView.filterUpdate.isLoading,
             hasPreviousItems: clips.isNotEmpty,
             child: AppPagedLoadMoreScope(
               enabled: isActive,
@@ -144,37 +148,37 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
                   false,
               onLoadMore: () =>
                   ref.read(clipsOverviewProvider.notifier).loadMore(),
-            child: AppAdaptiveRefreshScrollView(
-              key: const Key('mobile-clips-tab-scroll'),
-              controller: _scrollController,
-              onRefresh: _refresh,
-              slivers: <Widget>[
-                SliverToBoxAdapter(
-                  child: _buildCollectionsSection(context, collectionsAsync),
-                ),
-                AppPinnedListHeader(
-                  key: _listHeaderKey,
-                  color: context.appColors.surfaceCard,
-                  child: _buildClipsHeader(context, clips),
-                ),
-                _buildClipsSliver(context, clipsAsync, clips),
-                // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
-                // 隐藏时保留 lg 底部边距（原语义）。
-                PagedLoadMoreFooterSliver(
-                  hiddenSpacing: PagedFooterSpacing.lg,
-                  watchFooter: (ref) => ref.watch(
-                    clipsOverviewProvider.select(
-                      (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+              child: AppAdaptiveRefreshScrollView(
+                key: const Key('mobile-clips-tab-scroll'),
+                controller: _scrollController,
+                onRefresh: _refresh,
+                slivers: <Widget>[
+                  SliverToBoxAdapter(
+                    child: _buildCollectionsSection(context, collectionsAsync),
+                  ),
+                  AppPinnedListHeader(
+                    key: _listHeaderKey,
+                    color: context.appColors.surfaceCard,
+                    child: _buildClipsHeader(context, clips),
+                  ),
+                  _buildClipsSliver(context, clipsView),
+                  // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
+                  // 隐藏时保留 lg 底部边距（原语义）。
+                  PagedLoadMoreFooterSliver(
+                    hiddenSpacing: PagedFooterSpacing.lg,
+                    watchFooter: (ref) => ref.watch(
+                      clipsOverviewProvider.select(
+                        (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                      ),
+                    ),
+                    onLoadMore: (ref) => unawaited(
+                      ref.read(clipsOverviewProvider.notifier).loadMore(),
                     ),
                   ),
-                  onLoadMore: (ref) => unawaited(
-                    ref.read(clipsOverviewProvider.notifier).loadMore(),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
         ),
         if (selectionMode) _buildBatchBar(context),
       ],
@@ -370,26 +374,22 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
 
   Widget _buildClipsSliver(
     BuildContext context,
-    AsyncValue<Object?> clipsAsync,
-    List<MediaClipDto> clips,
+    PagedViewSnapshot<MediaClipDto> view,
   ) {
     final l10n = AppLocalizations.of(context);
-    final filterUpdate = ref
-        .read(clipsOverviewProvider)
-        .value
-        ?.paged
-        .filterUpdate;
-    final isLoading = clipsAsync.isLoading && clips.isEmpty;
-    if (!isLoading && clips.isEmpty && (filterUpdate?.hasFailed ?? false)) {
+    final clips = view.items;
+    final isLoading = view.isInitialLoading;
+    if (!isLoading && clips.isEmpty && view.filterUpdate.hasFailed) {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
-    if (!isLoading && clipsAsync.hasError && clips.isEmpty) {
+    if (!isLoading && clips.isEmpty && view.initialError != null) {
+      final error = view.initialError!;
       return SliverToBoxAdapter(
         child: SizedBox(
           height: 200,
           child: AppEmptyState(
             message: apiErrorMessage(
-              clipsAsync.error!,
+              error,
               fallback: l10n.errorClipLoadFailed,
               l10n: l10n,
             ),

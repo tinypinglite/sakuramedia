@@ -7,7 +7,7 @@ import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.da
 import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_summary_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/video_placeholders.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
@@ -29,7 +29,6 @@ class VideoListContent extends StatelessWidget {
     required this.paged,
     required this.videoProvider,
     required this.headerKey,
-    required this.isInitialLoading,
     required this.initialErrorMessage,
     required this.filterState,
     required this.onFilterChanged,
@@ -50,10 +49,9 @@ class VideoListContent extends StatelessWidget {
     this.emptyMessage,
   });
 
-  final PagedListState<VideoItemListItemDto> paged;
+  final PagedViewSnapshot<VideoItemListItemDto> paged;
   final VideoSummaryProvider videoProvider;
   final GlobalKey headerKey;
-  final bool isInitialLoading;
   final String? initialErrorMessage;
   final VideoFilterState filterState;
   final ValueChanged<VideoFilterState> onFilterChanged;
@@ -150,7 +148,7 @@ class VideoListContent extends StatelessWidget {
                         filterState: filterState,
                         onChanged: onFilterChanged,
                       ),
-                      if (actions != null) actions,
+                      ?actions,
                     ],
                   ),
               SizedBox(height: sectionSpacing),
@@ -159,9 +157,9 @@ class VideoListContent extends StatelessWidget {
         ),
         if (!paged.filterUpdate.hasFailed || paged.items.isNotEmpty)
           AppSkeletonizer.sliver(
-            enabled: isInitialLoading,
+            enabled: paged.isInitialLoading,
             child: VideoSummarySliver(
-              items: isInitialLoading
+              items: paged.isInitialLoading
                   ? videoSummaryPlaceholders(count: 18)
                   : paged.items,
               errorMessage: initialErrorMessage,

@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/clips/presentation/providers/clips_overview_provider.dart';
@@ -7,7 +9,12 @@ import 'package:sakuramedia/features/discovery/presentation/providers/discovery_
 import 'package:sakuramedia/features/moments/presentation/providers/moments_provider.dart';
 import 'package:sakuramedia/features/overview/presentation/pages/mobile/overview_skeleton_page.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/mobile_overview_tab_index_provider.dart';
+import 'package:sakuramedia/features/playlists/data/playlist_order_store.dart';
+import 'package:sakuramedia/features/playlists/presentation/providers/playlist_order_store_provider.dart';
+import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_provider.dart';
+import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_scope.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/widgets/domain/playlists/playlist_banner_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../../support/pump_with_providers.dart';
@@ -18,11 +25,18 @@ import '../../../../../support/test_api_bundle.dart';
 ///    「setState() called during build」;
 /// 2. 切 tab 后 provider 值跟随;
 /// 3. 相同值不通知监听方(拖动动画每帧回调不引起壳重建)。
-Future<void> _pumpOverview(WidgetTester tester, TestApiBundle bundle) {
+Future<void> _pumpOverview(
+  WidgetTester tester,
+  TestApiBundle bundle, {
+  List<Override> overrides = const <Override>[],
+  Size? physicalSize,
+}) {
   return pumpWithProviders(
     tester,
     home: const Material(child: MobileOverviewSkeletonPage()),
     bundle: bundle,
+    overrides: overrides,
+    physicalSize: physicalSize,
     locale: const Locale('zh'),
     localizationsDelegates: <LocalizationsDelegate<dynamic>>[
       AppLocalizations.delegate,
@@ -191,5 +205,89 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.widget<TextFormField>(input).controller!.text, 'SSNI-888');
+  });
+
+  testWidgets('playlist sliver lazily builds and drag reorder persists', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final sessionStore = await buildSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final orderStore = InMemoryPlaylistOrderStore();
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists',
+      body: <Map<String, dynamic>>[
+        for (var index = 0; index < 40; index++)
+          <String, dynamic>{
+            'id': 100 + index,
+            'name': 'Playlist $index',
+            'kind': 'custom',
+            'description': '',
+            'movie_count': 0,
+            'is_system': false,
+            'is_mutable': true,
+            'is_deletable': true,
+            'created_at': '2026-01-01T00:00:00Z',
+            'updated_at': '2026-01-01T00:00:00Z',
+          },
+      ],
+    );
+
+    await _pumpOverview(
+      tester,
+      bundle,
+      physicalSize: const Size(390, 844),
+      overrides: [playlistOrderStoreProvider.overrideWithValue(orderStore)],
+    );
+    await tester.pumpAndSettle();
+
+    final sliverList = find.byKey(const Key('mobile-overview-playlists-list'));
+    expect(sliverList, findsOneWidget);
+    expect(tester.widget(sliverList), isA<SliverReorderableList>());
+    expect(find.byType(PlaylistBannerCard).evaluate().length, lessThan(40));
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('mobile-overview-playlist-100')),
+      500,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(PlaylistBannerCard).evaluate().length, lessThan(40));
+
+    final first = find.byKey(const Key('mobile-overview-playlist-100'));
+    final second = find.byKey(const Key('mobile-overview-playlist-101'));
+    expect(first, findsOneWidget);
+    expect(second, findsOneWidget);
+    await Scrollable.ensureVisible(tester.element(first), alignment: 0.2);
+    await tester.pumpAndSettle();
+
+    final gesture = await tester.startGesture(tester.getCenter(first));
+    await tester.pump(kLongPressTimeout);
+    await gesture.moveBy(const Offset(0, 20));
+    await gesture.moveBy(const Offset(0, 300));
+    await tester.pumpAndSettle();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MobileOverviewSkeletonPage)),
+    );
+    final order = container
+        .read(
+          playlistsOverviewProvider(
+            PlaylistsOverviewScope(orderScopeKey: sessionStore.baseUrl),
+          ),
+        )
+        .requireValue
+        .playlists
+        .map((playlist) => playlist.id)
+        .toList();
+    expect(order.take(4), <int>[101, 102, 103, 100]);
+    expect(
+      orderStore.snapshot[sessionStore.baseUrl]?.take(4).toList(),
+      order.take(4).toList(),
+    );
   });
 }

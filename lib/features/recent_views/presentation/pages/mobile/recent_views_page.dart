@@ -29,7 +29,7 @@ class MobileRecentViewsPage extends ConsumerWidget {
       onRefresh: () => _refresh(context, ref),
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.all(AppPageInsets.compact),
+          padding: EdgeInsets.symmetric(vertical: context.appSpacing.md),
           sliver: RecentViewsGridSliver(
             onRetry: () => ref.invalidate(recentViewsProvider),
             onMovieTap: (movieNumber) =>

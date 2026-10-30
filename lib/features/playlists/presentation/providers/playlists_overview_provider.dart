@@ -84,24 +84,23 @@ class PlaylistsOverview extends _$PlaylistsOverview
 
   /// 拖排序：本地立即改 + fire-and-forget 保存新顺序（与原 controller 一致，
   /// UI 无回滚需求）。
+  ///
+  /// [newIndex] 是移除旧项后的最终下标，与
+  /// `SliverReorderableList.onReorderItem` 的语义一致。
   void reorderPlaylists(int oldIndex, int newIndex) {
     final current = state.value;
     if (current == null) return;
     if (oldIndex < 0 ||
         oldIndex >= current.playlists.length ||
         newIndex < 0 ||
-        newIndex > current.playlists.length) {
+        newIndex >= current.playlists.length) {
       return;
     }
-    var targetIndex = newIndex;
-    if (targetIndex > oldIndex) {
-      targetIndex -= 1;
-    }
-    if (targetIndex == oldIndex) return;
+    if (newIndex == oldIndex) return;
 
     final updated = List<PlaylistDto>.from(current.playlists);
     final moved = updated.removeAt(oldIndex);
-    updated.insert(targetIndex, moved);
+    updated.insert(newIndex, moved);
     state = AsyncData(current.copyWith(playlists: updated));
     unawaited(_savePlaylistOrder(updated));
   }
