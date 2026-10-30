@@ -111,6 +111,28 @@ void main() {
       expect(bundle.adapter.hitCount('DELETE', '/media/1'), 0);
       expect(tester.takeException(), isNull);
     });
+    testWidgets('duplicate ${mobile ? "mobile" : "desktop"}: show media tags', (
+      tester,
+    ) async {
+      await _pump(tester, bundle, mobile: mobile);
+      final firstTags = find.byKey(const Key('batch-duplicate-media-tags-1'));
+      expect(firstTags, findsOneWidget);
+      expect(
+        tester.widget<SingleChildScrollView>(firstTags).scrollDirection,
+        Axis.horizontal,
+      );
+      for (final label in ['手工', '4K', '中文字幕']) {
+        expect(
+          find.descendant(of: firstTags, matching: find.text(label)),
+          findsOneWidget,
+        );
+      }
+      expect(
+        find.byKey(const Key('batch-duplicate-media-tags-2')),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    });
     testWidgets(
       'batch ${mobile ? "mobile" : "desktop"}: keep one and submit backend task',
       (tester) async {
@@ -315,6 +337,17 @@ Map<String, dynamic> _group(String number, List<int> ids) => {
           'title': '影片标题',
           'file_name': '$number.$id.mp4',
           'valid': true,
+          'tags': switch (id) {
+            1 => [
+              {'id': 11, 'name': '4K'},
+              {'id': 12, 'name': '中文字幕'},
+            ],
+            3 => [
+              {'id': 13, 'name': '60fps'},
+            ],
+            _ => [],
+          },
+          'is_media_tags_manually_managed': id == 1,
         },
       )
       .toList(),

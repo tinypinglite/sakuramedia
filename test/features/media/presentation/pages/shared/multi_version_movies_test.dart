@@ -103,7 +103,43 @@ void main() {
           find.byKey(const Key('test-version-row-2')),
         );
         expect(firstRow.height, secondRow.height);
-        expect(firstRow.height, lessThan(80));
+        expect(firstRow.height, lessThan(120));
+        final firstTags = find.byKey(const Key('test-version-media-tags-1'));
+        final secondTags = find.byKey(const Key('test-version-media-tags-2'));
+        expect(firstTags, findsOneWidget);
+        expect(secondTags, findsOneWidget);
+        expect(
+          tester.widget<SingleChildScrollView>(firstTags).scrollDirection,
+          Axis.horizontal,
+        );
+        expect(
+          tester.widget<SingleChildScrollView>(secondTags).scrollDirection,
+          Axis.horizontal,
+        );
+        for (final label in [
+          '手工',
+          '4K',
+          '中文字幕',
+          '60fps',
+          '10bit',
+          'DDP5.1',
+          'LongTag6',
+        ]) {
+          expect(
+            find.descendant(of: firstTags, matching: find.text(label)),
+            findsOneWidget,
+          );
+        }
+        for (final label in ['1080p', '无码']) {
+          expect(
+            find.descendant(of: secondTags, matching: find.text(label)),
+            findsOneWidget,
+          );
+        }
+        expect(
+          find.descendant(of: secondTags, matching: find.text('手工')),
+          findsNothing,
+        );
         final filenameTooltip = tester.widget<Tooltip>(
           find
               .ancestor(
@@ -298,6 +334,20 @@ Map<String, dynamic> _group({int count = 2}) => {
       'duration_seconds': 7200,
       'resolution': i == 0 ? '2160p' : '1080p',
       'valid': i != 1,
+      'tags': i == 0
+          ? [
+              {'id': 11, 'name': '4K'},
+              {'id': 12, 'name': '中文字幕'},
+              {'id': 13, 'name': '60fps'},
+              {'id': 14, 'name': '10bit'},
+              {'id': 15, 'name': 'DDP5.1'},
+              {'id': 16, 'name': 'LongTag6'},
+            ]
+          : [
+              {'id': 21, 'name': '1080p'},
+              {'id': 22, 'name': '无码'},
+            ],
+      'is_media_tags_manually_managed': i == 0,
     },
   ),
 };

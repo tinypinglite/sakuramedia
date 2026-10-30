@@ -16,8 +16,9 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_left_cover_card.dart';
 ///
 /// 组头是「贴边小缩略图 + 标题区 + chevron」的 [AppLeftCoverCard]（`shell: false`
 /// 复用其贴边封面布局），缩略图由组卡圆角裁剪、与行卡封面区分层级；
-/// 组内文件行固定两行：第一行「文件名（超长省略，悬停/长按看全名）+ 附加信息
-/// + 失效徽标」，第二行灰字元数据；行高不随文件名或附加信息长度增长，不再各自成卡。
+/// 组内文件行前两行固定：第一行「文件名（超长省略，悬停/长按看全名）+ 附加信息
+/// + 失效徽标」，第二行灰字元数据；JAV 文件若有标签或手工管理状态，再加一行
+/// 可横向滚动的标签。行高不随文件名、附加信息或标签数量增长，不再各自成卡。
 class MediaFileGroupCard extends ConsumerWidget {
   const MediaFileGroupCard({
     super.key,
@@ -297,6 +298,12 @@ class _FileRow extends StatelessWidget {
                                 tone: AppTextTone.muted,
                               ),
                             ),
+                            if (item.isJav &&
+                                (item.tags.isNotEmpty ||
+                                    item.isMediaTagsManuallyManaged)) ...[
+                              SizedBox(height: spacing.xs),
+                              _MediaTagsLine(item: item, keyPrefix: keyPrefix),
+                            ],
                           ],
                         ),
                       ),
@@ -318,6 +325,44 @@ class _FileRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MediaTagsLine extends StatelessWidget {
+  const _MediaTagsLine({required this.item, required this.keyPrefix});
+
+  final MediaListItemDto item;
+  final String keyPrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SingleChildScrollView(
+      key: Key('$keyPrefix-media-tags-${item.id}'),
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          if (item.isMediaTagsManuallyManaged)
+            Padding(
+              padding: EdgeInsetsDirectional.only(end: context.appSpacing.xs),
+              child: AppBadge(
+                label: l10n.mediaListTagsManualBadge,
+                tone: AppBadgeTone.primary,
+                size: AppBadgeSize.compact,
+              ),
+            ),
+          for (final tag in item.tags)
+            Padding(
+              padding: EdgeInsetsDirectional.only(end: context.appSpacing.xs),
+              child: AppBadge(
+                label: tag.name,
+                tone: AppBadgeTone.neutral,
+                size: AppBadgeSize.compact,
+              ),
+            ),
+        ],
       ),
     );
   }
