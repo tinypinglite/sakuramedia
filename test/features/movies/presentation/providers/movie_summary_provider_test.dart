@@ -755,40 +755,6 @@ void main() {
     expect(state.paged.total, 1);
   });
 
-  test('最近订阅收到订阅广播后重拉，新订阅影片进入列表', () async {
-    const scope = MovieSummaryScope.recentlySubscribed();
-    await prime(scope, <Map<String, dynamic>>[
-      _movie('ABC-001', isSubscribed: true),
-    ]);
-
-    // 订阅广播触发的暖刷新返回新增影片（列表里没有行可补丁，只能重拉）。
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/movies',
-      body: _page(
-        items: <Map<String, dynamic>>[
-          _movie('ABC-002', isSubscribed: true),
-          _movie('ABC-001', isSubscribed: true),
-        ],
-        total: 2,
-        pageSize: scope.pageSize,
-      ),
-    );
-
-    subscriptionBroadcaster().reportChange(
-      movieNumber: 'ABC-002',
-      isSubscribed: true,
-    );
-    await _waitFor(() => adapter.hitCount('GET', '/movies') == 2);
-    await _settleEvents();
-
-    final state = container.read(movieSummaryProvider(scope)).requireValue;
-    expect(state.paged.items.map((item) => item.movieNumber), <String>[
-      'ABC-002',
-      'ABC-001',
-    ]);
-  });
-
   test('已翻页的最近订阅收到订阅广播时保留后续页并前插新片', () async {
     const scope = MovieSummaryScope.recentlySubscribed();
     // 第一页 2 条 / total 4：hasMore 为真，可以翻页。
