@@ -102,6 +102,7 @@ class _DesktopConfigurationPageState
           icon: Icons.filter_alt_outlined,
         ),
         selfScrolling: true,
+        rendersOwnHeader: true,
         builder: (active) => DownloadSelectionPolicySection(
           active: active,
           onDirtyChanged: (dirty) =>
@@ -251,18 +252,19 @@ class _DesktopConfigurationPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: EdgeInsets.only(bottom: spacing.lg),
-                child: Text(
-                  _tabs[_selectedIndex].category.label,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s18,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
+              if (!_tabs[_selectedIndex].rendersOwnHeader)
+                Padding(
+                  padding: EdgeInsets.only(bottom: spacing.lg),
+                  child: Text(
+                    _tabs[_selectedIndex].category.label,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s18,
+                      weight: AppTextWeight.semibold,
+                      tone: AppTextTone.primary,
+                    ),
                   ),
                 ),
-              ),
               Expanded(
                 child: IndexedStack(
                   index: _selectedIndex,
@@ -292,10 +294,14 @@ class _ConfigurationTab {
     required this.category,
     required this.builder,
     this.selfScrolling = false,
+    this.rendersOwnHeader = false,
   });
 
   final _ConfigurationCategory category;
   final Widget Function(bool active) builder;
+
+  /// 内容自带标题行时为 true，外层不再渲染共享标题（标题与操作区由内容负责）。
+  final bool rendersOwnHeader;
 
   /// 内容自带滚动容器（分页列表）时为 true，外层不再包 [_ConfigurationTabScrollView]。
   final bool selfScrolling;

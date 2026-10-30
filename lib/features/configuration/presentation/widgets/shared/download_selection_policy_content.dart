@@ -90,19 +90,23 @@ class _DownloadSelectionPolicyContentState
     _reportDirty(dirty);
 
     if (policyAsync.isLoading && policyState == null) {
-      return const Center(child: CircularProgressIndicator.adaptive());
+      return _buildBodyShell(
+        const Center(child: CircularProgressIndicator.adaptive()),
+      );
     }
     if (policyAsync.hasError && policyState == null) {
       final l10n = AppLocalizations.of(context);
-      return AppSectionError(
-        title: l10n.downloadSelectionLoadFailed,
-        message: apiErrorMessage(
-          policyAsync.error!,
-          fallback: l10n.downloadSelectionLoadFailedFallback,
-          l10n: l10n,
+      return _buildBodyShell(
+        AppSectionError(
+          title: l10n.downloadSelectionLoadFailed,
+          message: apiErrorMessage(
+            policyAsync.error!,
+            fallback: l10n.downloadSelectionLoadFailedFallback,
+            l10n: l10n,
+          ),
+          onRetry: () =>
+              ref.read(downloadSelectionPolicyProvider.notifier).reload(),
         ),
-        onRetry: () =>
-            ref.read(downloadSelectionPolicyProvider.notifier).reload(),
       );
     }
     if (policyState == null) return const SizedBox.shrink();
@@ -122,6 +126,7 @@ class _DownloadSelectionPolicyContentState
       color: widget.mobile ? colors.surfaceCard : Colors.transparent,
       child: Column(
         children: [
+          if (!widget.mobile) _buildDesktopHeader(policyState, dirty),
           Expanded(
             child: SingleChildScrollView(
               key: const Key('download-selection-policy-scroll'),
@@ -172,7 +177,7 @@ class _DownloadSelectionPolicyContentState
               ),
             ),
           ),
-          _buildSaveFooter(policyState, dirty),
+          if (widget.mobile) _buildSaveFooter(policyState, dirty),
         ],
       ),
     );
@@ -762,45 +767,148 @@ class _DownloadSelectionPolicyContentState
   }
 
   Widget _buildSaveFooter(DownloadSelectionPolicyState state, bool dirty) {
-    final l10n = AppLocalizations.of(context);
     final spacing = context.appSpacing;
     final colors = context.appColors;
+    final badge = _buildUnsavedBadge(dirty);
     return SafeArea(
       top: false,
       child: Container(
         padding: EdgeInsets.fromLTRB(
-          widget.mobile ? spacing.md : 0,
+          spacing.md,
           spacing.sm,
-          widget.mobile ? spacing.md : spacing.lg,
+          spacing.md,
           spacing.sm,
         ),
         decoration: BoxDecoration(
-          color: widget.mobile ? colors.surfaceCard : colors.surfacePage,
+          color: colors.surfaceCard,
           border: Border(top: BorderSide(color: colors.divider)),
         ),
         child: Row(
           children: [
-            if (dirty)
-              AppBadge(
-                key: const Key('download-selection-unsaved-badge'),
-                label: l10n.configUnsavedBadge,
-                tone: AppBadgeTone.warning,
-                size: AppBadgeSize.compact,
-              ),
+            ?badge,
             const Spacer(),
-            AppButton(
-              key: const Key('download-selection-save-button'),
-              label: l10n.downloadSelectionSave,
-              variant: AppButtonVariant.primary,
-              isLoading: state.isSaving,
-              onPressed: state.isSaving || !dirty
-                  ? null
-                  : () => unawaited(_save(state)),
+            ..._buildPolicyButtons(
+              state,
+              dirty,
+              buttonSize: AppButtonSize.medium,
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// 桌面端标题行：左侧分类标题、右侧操作区，固定在滚动区之外。
+  ///
+  /// 保存动作放在标题行而不是页面底部，滚动长表单时始终可见；底部不再保留
+  /// 灰色保存带（它与页面底色同色，会把上方的白色分组卡拦腰切断）。
+  Widget _buildDesktopHeader(DownloadSelectionPolicyState? state, bool dirty) {
+    final spacing = context.appSpacing;
+    final badge = _buildUnsavedBadge(dirty);
+    return Padding(
+      key: const Key('download-selection-desktop-header'),
+      padding: EdgeInsets.only(right: spacing.lg, bottom: spacing.lg),
+      child: Row(
+        children: [
+          Expanded(child: _buildDesktopTitleText()),
+          if (badge != null) ...[badge, SizedBox(width: spacing.md)],
+          if (state != null)
+            ..._buildPolicyButtons(
+              state,
+              dirty,
+              buttonSize: AppButtonSize.small,
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 分类标题，与系统设置页其它分类的标题保持同一套排版。
+  Widget _buildDesktopTitleText() {
+    final l10n = AppLocalizations.of(context);
+    return Text(
+      l10n.configTabDownloadSelection,
+      style: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s18,
+        weight: AppTextWeight.semibold,
+        tone: AppTextTone.primary,
+      ),
+    );
+  }
+
+  /// 加载 / 错误态的外壳：桌面端保留标题行，避免操作区整块消失；
+  /// 移动端维持原样，只有内容。
+  Widget _buildBodyShell(Widget child) {
+    if (widget.mobile) return child;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildDesktopHeader(null, false),
+        Expanded(child: child),
+      ],
+    );
+  }
+
+  /// 未保存徽标；没有改动时返回 null。
+  Widget? _buildUnsavedBadge(bool dirty) {
+    if (!dirty) return null;
+    final l10n = AppLocalizations.of(context);
+    return AppBadge(
+      key: const Key('download-selection-unsaved-badge'),
+      label: l10n.configUnsavedBadge,
+      tone: AppBadgeTone.warning,
+      size: AppBadgeSize.compact,
+    );
+  }
+
+  /// 保存操作组：放弃更改 + 保存策略。
+  ///
+  /// 桌面端挂在标题行右侧，移动端挂在底部操作栏，两端共用同一组动作。
+  List<Widget> _buildPolicyButtons(
+    DownloadSelectionPolicyState state,
+    bool dirty, {
+    required AppButtonSize buttonSize,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    final spacing = context.appSpacing;
+    return <Widget>[
+      if (dirty) ...[
+        AppButton(
+          key: const Key('download-selection-discard-button'),
+          label: l10n.downloadSelectionDiscard,
+          variant: AppButtonVariant.ghost,
+          size: buttonSize,
+          onPressed: state.isSaving ? null : _discard,
+        ),
+        SizedBox(width: spacing.sm),
+      ],
+      AppButton(
+        key: const Key('download-selection-save-button'),
+        label: l10n.downloadSelectionSave,
+        variant: AppButtonVariant.primary,
+        size: buttonSize,
+        isLoading: state.isSaving,
+        onPressed: state.isSaving || !dirty
+            ? null
+            : () => unawaited(_save(state)),
+      ),
+    ];
+  }
+
+  /// 放弃未保存的草稿：回滚到已保存策略，并把输入框同步回已保存值。
+  void _discard() {
+    // saved.version 不变时 _syncControllers 会提前返回，输入框会残留已废弃的
+    // 文本；先重置版本号，下一次 build 才会重新同步控制器。
+    _initializedVersion = -1;
+    _previewMovieInputVersion++;
+    setState(() {
+      _localTextEdits = false;
+      _showRuleErrors = false;
+      _previewValidationMessage = null;
+      _previewNormalizedMovieNumber = null;
+    });
+    ref.read(downloadSelectionPolicyProvider.notifier).discardDraft();
   }
 
   Future<void> _save(DownloadSelectionPolicyState state) async {

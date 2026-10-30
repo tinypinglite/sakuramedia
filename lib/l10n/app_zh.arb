@@ -5659,6 +5659,7 @@
   },
   "downloadSelectionCandidateManualHint": "自动下载会跳过此资源，但你仍可手动提交。",
   "downloadSelectionSave": "保存策略",
+  "downloadSelectionDiscard": "放弃更改",
   "downloadSelectionSaved": "选种策略已保存",
   "downloadSelectionSaveFailed": "保存选种策略失败",
   "downloadSelectionLoadFailed": "选种策略加载失败",

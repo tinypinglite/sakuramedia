@@ -498,6 +498,202 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('desktop keeps the save actions in the top toolbar', (
+    tester,
+  ) async {
+    final harness = await _pumpPolicyContent(tester);
+    addTearDown(harness.dispose);
+
+    expect(
+      find.byKey(const Key('download-selection-desktop-header')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('download-selection-desktop-header')),
+        matching: find.byKey(const Key('download-selection-save-button')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('download-selection-desktop-header')),
+        matching: find.text('选种策略'),
+      ),
+      findsOneWidget,
+    );
+    // 没有改动时不显示徽标和放弃按钮，保存按钮保持禁用。
+    expect(
+      find.byKey(const Key('download-selection-unsaved-badge')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('download-selection-discard-button')),
+      findsNothing,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('download-selection-min-seeders')),
+      '5',
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('download-selection-unsaved-badge')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('download-selection-discard-button')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('discards the unsaved draft and restores the saved values', (
+    tester,
+  ) async {
+    final harness = await _pumpPolicyContent(tester);
+    addTearDown(harness.dispose);
+
+    await tester.enterText(
+      find.byKey(const Key('download-selection-min-seeders')),
+      '5',
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const Key('download-selection-unsaved-badge')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('download-selection-discard-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('download-selection-unsaved-badge')),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.byKey(const Key('download-selection-min-seeders')),
+          )
+          .controller
+          ?.text,
+      '1',
+    );
+    expect(
+      harness.bundle.adapter.requests.where(
+        (request) => request.method == 'PUT',
+      ),
+      isEmpty,
+    );
+  });
+
+  testWidgets('discarding the draft also clears the preview result', (
+    tester,
+  ) async {
+    final harness = await _pumpPolicyContent(tester);
+    addTearDown(harness.dispose);
+    _enqueueMovieNumberParse(
+      harness.bundle,
+      query: 'abp123',
+      movieNumber: 'ABP-123',
+    );
+    harness.bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/download-selection-policy/preview',
+      body: <String, dynamic>{
+        'draft': true,
+        'policy_version': null,
+        'raw_candidate_count': 1,
+        'system_candidate_count': 1,
+        'eligible_candidate_count': 1,
+        'policy_filtered_count': 0,
+        'rejection_counts': <String, int>{},
+        'selected_source_uri': 'magnet:?xt=good',
+        'candidates': <Map<String, dynamic>>[
+          _candidateJson(
+            uri: 'magnet:?xt=good',
+            title: 'ABC-001 1080p',
+            eligible: true,
+            rank: 1,
+          ),
+        ],
+      },
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('download-selection-preview-movie-number')),
+      'abp123',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('download-selection-preview-result')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('download-selection-min-seeders')),
+      '5',
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const Key('download-selection-discard-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('download-selection-preview-result')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('download-selection-unsaved-badge')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('mobile keeps the bottom action bar with the save actions', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 760);
+    addTearDown(tester.view.reset);
+    final harness = await _pumpPolicyContent(tester, mobile: true);
+    addTearDown(harness.dispose);
+
+    expect(
+      find.byKey(const Key('download-selection-desktop-header')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('download-selection-save-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('download-selection-unsaved-badge')),
+      findsNothing,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('download-selection-min-seeders')),
+      '5',
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('download-selection-unsaved-badge')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('download-selection-discard-button')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('mobile policy rows use a 44px action menu', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(360, 760);

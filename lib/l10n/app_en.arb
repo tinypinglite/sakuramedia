@@ -5506,6 +5506,7 @@
   },
   "downloadSelectionCandidateManualHint": "Automatic downloads skip this resource, but you can still submit it manually.",
   "downloadSelectionSave": "Save policy",
+  "downloadSelectionDiscard": "Discard changes",
   "downloadSelectionSaved": "Selection policy saved",
   "downloadSelectionSaveFailed": "Failed to save selection policy",
   "downloadSelectionLoadFailed": "Failed to load selection policy",

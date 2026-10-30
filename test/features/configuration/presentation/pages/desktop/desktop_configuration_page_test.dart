@@ -744,6 +744,86 @@ void main() {
     });
 
     testWidgets(
+      'renders the selection policy save actions in the top toolbar',
+      (WidgetTester tester) async {
+        _enqueueMediaLibraries(bundle);
+        _enqueueIndexerSettings(bundle, indexers: const []);
+        bundle.adapter.enqueueJson(
+          method: 'GET',
+          path: '/download-selection-policy',
+          body: <String, dynamic>{
+            'version': 1,
+            'created_at': '2026-10-29T12:00:00Z',
+            'updated_at': '2026-10-29T12:00:00Z',
+            'rules': <String, dynamic>{
+              'schema_version': 1,
+              'indexer_kinds': <String>[],
+              'indexer_names': <String>[],
+              'min_size_bytes': 1024 * 1024 * 1024,
+              'max_size_bytes': 40 * 1024 * 1024 * 1024,
+              'min_seeders': 1,
+              'max_age_days': null,
+              'match_title': true,
+              'match_description': true,
+              'required_groups': <Map<String, dynamic>>[],
+              'excluded_terms': <String>[],
+              'preferred_groups': <Map<String, dynamic>>[],
+              'ranking': <String>['size_desc'],
+              'indexer_priority_names': <String>[],
+            },
+          },
+        );
+
+        await _pumpPage(tester, bundle, sessionStore: sessionStore);
+        await _openConfigurationTab(
+          tester,
+          const Key('configuration-tab-download-selection'),
+        );
+
+        final header = find.byKey(
+          const Key('download-selection-desktop-header'),
+        );
+        expect(header, findsOneWidget);
+        // 标题由选种策略内容自己渲染，页面不再叠加共享标题行。
+        expect(
+          find.descendant(of: header, matching: find.text('选种策略')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: header,
+            matching: find.byKey(const Key('download-selection-save-button')),
+          ),
+          findsOneWidget,
+        );
+
+        await tester.enterText(
+          find.byKey(const Key('download-selection-min-seeders')),
+          '8',
+        );
+        await tester.pump();
+
+        expect(
+          find.descendant(
+            of: header,
+            matching: find.byKey(const Key('download-selection-unsaved-badge')),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: header,
+            matching: find.byKey(
+              const Key('download-selection-discard-button'),
+            ),
+          ),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
       'shows media library name and provider on configuration cells',
       (WidgetTester tester) async {
         _enqueueMediaLibraries(bundle);
