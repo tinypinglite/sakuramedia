@@ -69,7 +69,7 @@ final class OverviewSystemInfoProvider
 }
 
 String _$overviewSystemInfoHash() =>
-    r'3adb4ee7f8877000365c03745806dbd0a794d064';
+    r'87527a6c27352f409b3e2e4b4b974d904ee8ca0c';
 
 /// 系统概览(一次性加载 + 两个手动探针,无轮询)。
 ///

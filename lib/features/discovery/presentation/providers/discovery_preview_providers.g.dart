@@ -89,7 +89,7 @@ final class DiscoveryDailyPreviewProvider
 }
 
 String _$discoveryDailyPreviewHash() =>
-    r'0be559ab08f1383ff39d7ac0f685c23dc37a44ab';
+    r'848a7af58f2baac7e82b9cb9fef3d3f0a971f357';
 
 /// 发现首屏「今日推荐」预览(只拉 page 1,不分页;family 参数=预览条数,
 /// 桌面 6 / 移动 10)。
@@ -233,7 +233,7 @@ final class DiscoveryHotActressReleasePreviewProvider
 }
 
 String _$discoveryHotActressReleasePreviewHash() =>
-    r'7d41245944e653998d452fdb733b46fbc9d9d485';
+    r'99646f272f10d74e84717395da29ecb71ab1bd75';
 
 final class DiscoveryHotActressReleasePreviewFamily extends $Family
     with
@@ -357,7 +357,7 @@ final class DiscoveryMomentPreviewProvider
 }
 
 String _$discoveryMomentPreviewHash() =>
-    r'aed6796a230e0b4cf094aba140717e4af8a044aa';
+    r'3df7cbb361eec9b2f952efb016192e9e523b1a79';
 
 /// 发现首屏「推荐时刻」预览,同上(family 参数=预览条数,桌面 8 / 移动 10)。
 

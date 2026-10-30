@@ -62,7 +62,7 @@ final class ImportMetadataMatchProvider
 }
 
 String _$importMetadataMatchHash() =>
-    r'49ad73fa7ba30132f2b13c2cb6e01379be8b0cd2';
+    r'deb56ac865d826a6f09448b93c764100e54b8af6';
 
 /// 单个失败文件的人工元数据搜索状态；结果按 (任务运行, 失败项) 隔离。
 

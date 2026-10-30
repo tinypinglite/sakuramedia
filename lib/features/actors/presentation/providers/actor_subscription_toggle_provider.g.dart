@@ -54,7 +54,7 @@ final class ActorSubscriptionToggleProvider
 }
 
 String _$actorSubscriptionToggleHash() =>
-    r'ffd5fcd33634397e56ca54dc981deec8a6e1f441';
+    r'f5145ea6ae1843c51ad57cd200bd6432cea14e2a';
 
 /// 跨女优列表复用的单片订阅动作：统一请求、行级 busy 状态和变更广播。
 ///

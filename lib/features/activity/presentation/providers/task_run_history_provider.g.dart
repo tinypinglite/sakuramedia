@@ -62,7 +62,7 @@ final class TaskRunHistoryProvider
   }
 }
 
-String _$taskRunHistoryHash() => r'2cdc93ae7ba990597e4c8c07b6920389febcfcfa';
+String _$taskRunHistoryHash() => r'4491f4c30d102e5f6652a0c898aac7189319cb35';
 
 /// 单个任务的全量运行记录：显式 `task_key` + `scope=all`，分页加载、不轮询。
 ///

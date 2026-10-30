@@ -38,7 +38,7 @@ final class DownloadSelectionPolicyProvider
 }
 
 String _$downloadSelectionPolicyHash() =>
-    r'6ba6edce7c34904fec9c2953b4d369cebc025b7b';
+    r'5e8b7d7ec75145638ffaff675428265335e4dd0c';
 
 abstract class _$DownloadSelectionPolicy
     extends $AsyncNotifier<DownloadSelectionPolicyState> {

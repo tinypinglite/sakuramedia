@@ -58,7 +58,7 @@ final class MovieClipsProvider
   }
 }
 
-String _$movieClipsHash() => r'ec4cef5e28b99fd7abc8956bb49ae4cc9904325c';
+String _$movieClipsHash() => r'eac2fe090a29b82691c925ecd72eb4cf95363b12';
 
 final class MovieClipsFamily extends $Family
     with

@@ -61,4 +61,4 @@ final class AuthApiProvider
   }
 }
 
-String _$authApiHash() => r'992ecceeb028e388a3adf2f3acf3e1c147ff8c80';
+String _$authApiHash() => r'ec17dae03b3a458ca403ef071c040499d77fe1a6';

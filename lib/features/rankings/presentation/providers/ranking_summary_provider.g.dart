@@ -62,7 +62,7 @@ final class RankingSummaryProvider
   }
 }
 
-String _$rankingSummaryHash() => r'1d92f0baa08d295ddcc6fc07fb50eab56c833a43';
+String _$rankingSummaryHash() => r'd75cffb797376ecac37c5af2c2d72e7bb36809ff';
 
 /// 桌面和移动榜单共用的缓存状态。
 ///

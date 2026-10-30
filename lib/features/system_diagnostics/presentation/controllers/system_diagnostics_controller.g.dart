@@ -82,7 +82,7 @@ final class SystemDiagnosticsProvider
   }
 }
 
-String _$systemDiagnosticsHash() => r'893852da90e819074c2e1d75b607050ec641ee1d';
+String _$systemDiagnosticsHash() => r'de787a5bb3e46c42cce5630dd3104cfd001a9b62';
 
 /// 一次「组件诊断」检测的调度器。
 ///
