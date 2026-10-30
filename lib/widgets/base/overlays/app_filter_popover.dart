@@ -113,17 +113,23 @@ class AppFilterPopover extends StatelessWidget {
         final highlight = isSelected || (highlightWhenOpen && isOpen);
         final customTrigger = triggerBuilder;
         if (customTrigger != null) {
-          return customTrigger(context, isOpen, toggle);
+          return TooltipVisibility(
+            visible: !isOpen,
+            child: customTrigger(context, isOpen, toggle),
+          );
         }
-        return AppTextButton(
-          key: triggerKey,
-          label: triggerLabel,
-          labelKey: labelKey,
-          icon: const Icon(Icons.filter_alt_outlined),
-          trailingIcon: Icon(isOpen ? Icons.expand_less : Icons.expand_more),
-          size: AppTextButtonSize.small,
-          isSelected: highlight,
-          onPressed: enabled ? toggle : null,
+        return TooltipVisibility(
+          visible: !isOpen,
+          child: AppTextButton(
+            key: triggerKey,
+            label: triggerLabel,
+            labelKey: labelKey,
+            icon: const Icon(Icons.filter_alt_outlined),
+            trailingIcon: Icon(isOpen ? Icons.expand_less : Icons.expand_more),
+            size: AppTextButtonSize.small,
+            isSelected: highlight,
+            onPressed: enabled ? toggle : null,
+          ),
         );
       },
       panelBuilder: (overlayContext, layout, _) => Material(

@@ -18,7 +18,7 @@
   - 弹层宽度由最宽项决定（`min 112 / max 320`），正文 `s12`、行高 36（带副标题 52）、图标 16；菜单项之间固定 4px 间距分项，不使用分隔线；操作表行高 52、图标 18、正文 `s12`。
   - 弹层菜单项的 hover / 按压高亮是从菜单边缘内缩 4px 的同心圆角矩形（`sm` = 外层 `md` 12 − 4），由壳内私有 entry 渲染，不要再退回 `PopupMenuItem`（它写死无圆角 InkWell）。
 - `AppAnchoredPopover` / `AppPopoverController`：`app_anchored_popover.dart`，桌面「触发器 + 锚定浮层」通用骨架；负责测量触发器、上下/左右定位、全屏遮罩、外部点击关闭、可选入场动画与 Esc 关闭。面板背景、滚动和 footer 由调用方提供。
-- `AppFilterPopover` / `AppFilterPanelFooter`：`app_filter_popover.dart`，桌面筛选浮层和统一底部动作；筛选面板宽度、滚动区和 footer 约定保留在这里，浮层骨架内部使用 `AppAnchoredPopover`。
+- `AppFilterPopover` / `AppFilterPanelFooter`：`app_filter_popover.dart`，桌面筛选浮层和统一底部动作；筛选面板宽度、滚动区和 footer 约定保留在这里，浮层骨架内部使用 `AppAnchoredPopover`。浮层打开期间会暂时隐藏触发器的 Tooltip，避免其从面板上沿露出。
 - `AppSortMenuButton`：排序入口复用同一套桌面锚定浮层与移动底部抽屉外壳；排序内容见 `navigation.md`。
 
 合集成员选择器（添加切片 / 添加时刻）在弹层头部收口「搜索 + 仅看未加入 + 类型筛选 + 计数」，加入后即时出池；具体实现见各 feature 的 `add_*_to_collection_dialog.dart`。
