@@ -1,13 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 
 enum AppMediaBadgeSize { compact, prominent }
 
-/// 视频/封面上的玻璃角标：4K/8K、热度、排名共用同一份玻璃材质。
+/// 视频/封面上的烟熏角标：4K/8K、热度、排名共用同一份静态材质。
 ///
-/// 玻璃只负责边界和背景；文字/图标仍由这里控制，保证小尺寸下的可读性。
-/// 需要固定尺寸时传 [width] / [height]（包含 1px 外圈）。
+/// 只绘制深色渐变，不读取背景、不做模糊、不描边；文字/图标仍由这里控制，
+/// 保证小尺寸下的可读性。需要固定尺寸时传 [width] / [height]。
 class AppMediaBadge extends StatelessWidget {
   const AppMediaBadge({
     super.key,
@@ -55,18 +54,22 @@ class AppMediaBadge extends StatelessWidget {
             leadingDistribution: TextLeadingDistribution.even,
           );
 
-    return AppGlassSurface(
-      tone: AppGlassTone.badge,
-      width: width,
-      height: height,
-      borderRadius: context.appRadius.pillBorder,
+    Widget surface = DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: context.appRadius.pillBorder,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            context.appColors.mediaOverlayStrong.withValues(alpha: 0.80),
+            context.appColors.mediaOverlayStrong.withValues(alpha: 0.68),
+          ],
+        ),
+      ),
       child: Padding(
         padding:
             padding ??
-            EdgeInsets.symmetric(
-              horizontal: spacing.sm,
-              vertical: spacing.xs,
-            ),
+            EdgeInsets.symmetric(horizontal: spacing.sm, vertical: spacing.xs),
         child: Center(
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -95,5 +98,9 @@ class AppMediaBadge extends StatelessWidget {
         ),
       ),
     );
+    if (width != null || height != null) {
+      surface = SizedBox(width: width, height: height, child: surface);
+    }
+    return surface;
   }
 }

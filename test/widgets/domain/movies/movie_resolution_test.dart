@@ -126,7 +126,7 @@ void main() {
               expect(subscription.overlaps(heat), isFalse);
               expect(heat.left, subscription.left);
               expect(heat.top, greaterThan(quality.bottom));
-              // 固定宽度的玻璃角标不能把 4K/8K 文本挤成省略号。
+              // 固定宽度的烟熏角标不能把 4K/8K 文本挤成省略号。
               expect(
                 tester
                     .renderObject<RenderParagraph>(

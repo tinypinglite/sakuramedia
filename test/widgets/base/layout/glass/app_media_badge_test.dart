@@ -2,11 +2,10 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_media_badge.dart';
 
 void main() {
-  testWidgets('renders label and leading on a glass badge surface', (
+  testWidgets('renders label and leading on a borderless smoked surface', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -23,13 +22,21 @@ void main() {
 
     expect(find.text('42'), findsOneWidget);
     expect(find.byIcon(Icons.local_fire_department_rounded), findsOneWidget);
-    final surface = tester.widget<AppGlassSurface>(
-      find.byType(AppGlassSurface),
+    expect(find.byType(BackdropFilter), findsNothing);
+    final surface = tester.widget<DecoratedBox>(
+      find
+          .descendant(
+            of: find.byType(AppMediaBadge),
+            matching: find.byType(DecoratedBox),
+          )
+          .first,
     );
-    expect(surface.tone, AppGlassTone.badge);
+    final decoration = surface.decoration as BoxDecoration;
+    expect(decoration.gradient, isA<LinearGradient>());
+    expect(decoration.border, isNull);
   });
 
-  testWidgets('fixed width and height include the glass rim', (
+  testWidgets('fixed width and height include the whole surface', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(

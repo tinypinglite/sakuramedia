@@ -33,10 +33,10 @@
 
 ## 玻璃材质
 
-- `AppGlassSurface`：`lib/widgets/base/layout/glass/app_glass_surface.dart`。统一玻璃表面，分五档 tone：`chrome`（浮在媒体内容上的窗口级控件，带浮层阴影）、`control`（页面内可点击次级控件，主题自适应、无阴影）、`overlay`（播放器菜单/抽屉，模糊更强、染色更实）、`badge`（封面上的 4K/8K、热度、排名角标，小范围模糊、无阴影）、`track`（分段控件等控件内部的凹槽）。
+- `AppGlassSurface`：`lib/widgets/base/layout/glass/app_glass_surface.dart`。统一玻璃表面，分四档 tone：`chrome`（浮在媒体内容上的窗口级控件，带浮层阴影）、`control`（页面内可点击次级控件，主题自适应、无阴影）、`overlay`（播放器菜单/抽屉，模糊更强、染色更实）、`track`（分段控件等控件内部的凹槽）。
 - 配方：光源固定在顶部中央，1px sweep 描边从顶部主光向两侧对称衰减，底部保留一圈微反射；内侧顶部叠 specular wash，底部压暗边模拟玻璃厚度；背景先模糊再提高饱和度，让玻璃聚色而不是发灰。业务页面只选 tone / 尺寸 / 圆角 / 内边距，不要自己拼渐变和描边。
-- 玻璃只用于 chrome / overlay / track、可点击的次级控件，以及压在媒体上的小角标（badge）；普通内容/状态标签（番号、上次看到、评分文字、设置页徽章）保持普通文本或标准材质，不套玻璃。内容卡和正文也不透明，主操作仍用实色品牌色。
-- 背景模糊只在 `AppGlassSurface` 内部使用；播放器菜单/抽屉、清晰度/热度/排名角标和分段控件 track 都已收口，业务页面不要再拼半透明色 + `BackdropFilter` + 边框。
+- 玻璃只用于 chrome / overlay / track 和可点击的次级控件；普通内容/状态标签（番号、上次看到、评分文字、设置页徽章）保持普通文本或标准材质，不套玻璃。内容卡和正文也不透明，主操作仍用实色品牌色。
+- 背景模糊只在 `AppGlassSurface` 内部使用；播放器菜单/抽屉和分段控件 track 都已收口，业务页面不要再拼半透明色 + `BackdropFilter` + 边框。封面上的 4K/8K、热度、排名角标使用 `AppMediaBadge` 的无模糊烟熏渐变，不参与背景滤镜。
 
 
 ## 固定列表控制栏与吸顶

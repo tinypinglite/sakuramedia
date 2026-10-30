@@ -8,11 +8,10 @@ import 'package:sakuramedia/theme.dart';
 /// - [chrome]：浮在媒体内容上的窗口级控件（顶栏、浮动返回键），带浮层阴影；
 /// - [control]：页面内的可点击次级控件（动作组），主题自适应、不带阴影；
 /// - [overlay]：播放器菜单/抽屉等深色媒体浮层，模糊更强、染色更实；
-/// - [badge]：封面上的小面积信息胶囊（4K/8K、热度、排名），模糊范围小、无阴影；
 /// - [track]：分段控件等控件内部的凹槽，只提供一层很淡的玻璃底和边光。
 ///
 /// 内容卡和正文不使用玻璃，保持可读性；主操作仍用实色品牌色。
-enum AppGlassTone { chrome, control, overlay, badge, track }
+enum AppGlassTone { chrome, control, overlay, track }
 
 /// 统一玻璃表面。
 ///
@@ -24,7 +23,7 @@ enum AppGlassTone { chrome, control, overlay, badge, track }
 /// - 1px 外圈用 sweep 渐变，内层圆角同步减 1px，四角描边均匀；
 /// - 内侧顶部叠一层柔和的 specular wash，底部压一道暗边模拟玻璃厚度；
 /// - 背景先模糊、再提高饱和度，让玻璃「聚色」而不是发灰；
-/// - chrome / overlay 带浮层阴影，control / badge 不带阴影。
+/// - chrome / overlay 带浮层阴影，control / track 不带阴影。
 ///
 /// 真实折射需要 Impeller fragment shader；这里用光感近似，避免跨平台风险。
 class AppGlassSurface extends StatelessWidget {
@@ -343,19 +342,6 @@ class _GlassRecipe {
             offset: Offset(0, overlay.surfaceShadowOffsetY),
           ),
         ],
-      ),
-      AppGlassTone.badge => _GlassRecipe(
-        tint: colors.mediaOverlayStrong,
-        tintAlpha: 0.50,
-        blurSigma: 6,
-        saturation: 1.10,
-        topRimAlpha: 0.36,
-        sideRimAlpha: 0.14,
-        lowRimAlpha: 0.04,
-        bottomRimAlpha: 0.08,
-        topSheenAlpha: 0.06,
-        topSheenHeight: 10,
-        innerBottomShadowAlpha: 0.12,
       ),
       AppGlassTone.track => _GlassRecipe(
         tint: colors.mediaOverlaySoft,
