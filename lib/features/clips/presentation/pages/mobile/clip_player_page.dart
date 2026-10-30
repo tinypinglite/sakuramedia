@@ -84,12 +84,19 @@ class _MobileClipPlayerPageState extends ConsumerState<MobileClipPlayerPage> {
   void _handleBack() {
     // 本页用 Navigator.push（rootNavigator）推入、不在 go_router 栈内，
     // 故用 Navigator 自身 pop，而非 go_router 的 context.pop。
-    Navigator.of(context).maybePop();
+    // 必须直接 pop：maybePop 会再次被 PlayerSwipeBackGuard 拦截。
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: Colors.black, body: _buildBody(context));
+    return PlayerSwipeBackGuard(
+      onBack: _handleBack,
+      child: Scaffold(backgroundColor: Colors.black, body: _buildBody(context)),
+    );
   }
 
   Widget _buildBody(BuildContext context) {

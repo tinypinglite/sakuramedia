@@ -192,12 +192,16 @@ class _ClipCollectionPlayContentState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: PlayerAppFullscreenScope(
-        isFullscreen: isAppFullscreen,
-        onToggle: toggleAppFullscreen,
-        child: _buildBody(context),
+    return PlayerSwipeBackGuard(
+      enabled: widget.useTouchOptimizedControls,
+      onBack: _handleBack,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: PlayerAppFullscreenScope(
+          isFullscreen: isAppFullscreen,
+          onToggle: toggleAppFullscreen,
+          child: _buildBody(context),
+        ),
       ),
     );
   }

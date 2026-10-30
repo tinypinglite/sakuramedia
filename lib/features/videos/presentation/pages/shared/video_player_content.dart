@@ -415,17 +415,24 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
       context.go(fallbackPath);
       return;
     }
-    Navigator.of(context).maybePop();
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: PlayerAppFullscreenScope(
-        isFullscreen: isAppFullscreen,
-        onToggle: toggleAppFullscreen,
-        child: _buildBody(context),
+    return PlayerSwipeBackGuard(
+      enabled: widget.useTouchOptimizedControls,
+      onBack: _handleBack,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: PlayerAppFullscreenScope(
+          isFullscreen: isAppFullscreen,
+          onToggle: toggleAppFullscreen,
+          child: _buildBody(context),
+        ),
       ),
     );
   }

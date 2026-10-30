@@ -164,6 +164,40 @@ class MoviePlayerBackOverlay extends StatelessWidget {
   }
 }
 
+/// 禁止播放页所在路由的边缘滑退，同时保留系统返回和页面返回按钮。
+///
+/// `canPop: false` 会让 `CupertinoPage` 不注册侧滑返回；系统返回触发
+/// [onPopInvokedWithResult] 后再交给 [onBack]。因此 [onBack] 必须直接
+/// `pop`，不能调用会再次咨询 `PopScope` 的 `maybePop`。
+class PlayerSwipeBackGuard extends StatelessWidget {
+  const PlayerSwipeBackGuard({
+    super.key,
+    required this.onBack,
+    required this.child,
+    this.enabled = true,
+  });
+
+  final VoidCallback onBack;
+  final Widget child;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) {
+      return child;
+    }
+    return PopScope<void>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          onBack();
+        }
+      },
+      child: child,
+    );
+  }
+}
+
 /// 把「播放器未就绪」UI（加载转圈 / 错误态 / 黑屏）包进 [Stack]，左上角叠一个
 /// 独立于 media_kit 的返回按钮。
 ///

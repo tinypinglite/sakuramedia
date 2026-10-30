@@ -181,24 +181,30 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
     // 否则 Flutter 会把子树整个 unmount 重建，MoviePlayerSurface 内的
     // Player 会被 dispose 后重新 open，表现为进/退全屏都从头播放。
     final fullscreen = isAppFullscreen;
-    return Scaffold(
-      backgroundColor: fullscreen
-          ? Colors.black
-          : colors.movieDetailHeroBackgroundStart,
-      body: PlayerAppFullscreenScope(
-        isFullscreen: fullscreen,
-        onToggle: toggleAppFullscreen,
-        child: DecoratedBox(
-          key: const Key('movie-player-page-frame'),
-          decoration: BoxDecoration(
-            color: fullscreen
-                ? Colors.black
-                : colors.movieDetailHeroBackgroundStart.withValues(alpha: 0.92),
-            borderRadius: fullscreen
-                ? BorderRadius.zero
-                : context.appRadius.lgBorder,
+    return PlayerSwipeBackGuard(
+      enabled: widget.useTouchOptimizedControls,
+      onBack: _handleBack,
+      child: Scaffold(
+        backgroundColor: fullscreen
+            ? Colors.black
+            : colors.movieDetailHeroBackgroundStart,
+        body: PlayerAppFullscreenScope(
+          isFullscreen: fullscreen,
+          onToggle: toggleAppFullscreen,
+          child: DecoratedBox(
+            key: const Key('movie-player-page-frame'),
+            decoration: BoxDecoration(
+              color: fullscreen
+                  ? Colors.black
+                  : colors.movieDetailHeroBackgroundStart.withValues(
+                      alpha: 0.92,
+                    ),
+              borderRadius: fullscreen
+                  ? BorderRadius.zero
+                  : context.appRadius.lgBorder,
+            ),
+            child: content,
           ),
-          child: content,
         ),
       ),
     );

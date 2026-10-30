@@ -92,8 +92,6 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
 }
 
 class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
-  // 让精确跳转在部分 demuxer 落到目标之后时，仍有向前解码到目标的空间。
-  static const double _hrSeekDemuxerOffsetSeconds = 10;
   static final Random _playbackAttemptRandom = Random.secure();
 
   late final Player _player;
@@ -293,10 +291,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       '[player-debug] surface_state_open_media requestId=$requestId url=${widget.resolvedUrl} initialPositionSeconds=${widget.initialPosition?.inSeconds} startupTargetSeconds=${_startupSeek.target?.inSeconds}',
     );
     _readiness.reset();
-    await _configurePreciseSeek();
-    if (!mounted || requestId != _openRequestId) {
-      return;
-    }
     try {
       await _openCoordinator.open(
         open: (url, {required startPosition, required play}) => _player.open(
@@ -370,25 +364,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       return;
     }
     _statsSampler.updatePlaybackModeLabel(modeLabel);
-  }
-
-  Future<void> _configurePreciseSeek() async {
-    try {
-      await _writeNativeVideoProperty(
-        'hr-seek-demuxer-offset',
-        _hrSeekDemuxerOffsetSeconds.toString(),
-      );
-    } catch (_) {}
-  }
-
-  /// 写入 mpv 运行时属性；属性不存在 / 平台不支持时抛出，由调用方决定是否忽略。
-  Future<void> _writeNativeVideoProperty(String key, String value) async {
-    final platformPlayer = _player.platform;
-    if (platformPlayer == null) {
-      return;
-    }
-    final dynamic nativePlayer = platformPlayer;
-    await nativePlayer.setProperty(key, value);
   }
 
   bool get _guardsInitialSeek => true;

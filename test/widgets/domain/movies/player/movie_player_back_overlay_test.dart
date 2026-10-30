@@ -1,3 +1,4 @@
+import 'package:cupertino_ui/cupertino_ui.dart' show CupertinoPageRoute;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -218,6 +219,65 @@ void main() {
       );
       expect(backTopLeft.dx, lessThan(60));
       expect(backTopLeft.dy, lessThan(80));
+    });
+  });
+
+  group('PlayerSwipeBackGuard', () {
+    testWidgets('blocks edge-swipe pop but forwards system back', (
+      WidgetTester tester,
+    ) async {
+      var backCount = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                body: TextButton(
+                  key: const Key('open-player'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      CupertinoPageRoute<void>(
+                        builder: (routeContext) {
+                          return PlayerSwipeBackGuard(
+                            onBack: () {
+                              backCount += 1;
+                              Navigator.of(routeContext).pop();
+                            },
+                            child: const Scaffold(
+                              body: Center(child: Text('player-page')),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  child: const Text('open'),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('open-player')));
+      await tester.pumpAndSettle();
+      expect(find.text('player-page'), findsOneWidget);
+
+      final edgeSwipe = await tester.startGesture(const Offset(1, 300));
+      await edgeSwipe.moveBy(const Offset(40, 0));
+      await tester.pump(const Duration(milliseconds: 20));
+      await edgeSwipe.moveBy(const Offset(600, 0));
+      await edgeSwipe.up();
+      await tester.pumpAndSettle();
+
+      expect(find.text('player-page'), findsOneWidget);
+      expect(backCount, 0);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(backCount, 1);
+      expect(find.text('player-page'), findsNothing);
     });
   });
 

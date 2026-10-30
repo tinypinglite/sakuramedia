@@ -348,12 +348,16 @@ class _MovieMergedPlayContentState extends ConsumerState<MovieMergedPlayContent>
         ),
       );
     }
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: PlayerAppFullscreenScope(
-        isFullscreen: isAppFullscreen,
-        onToggle: toggleAppFullscreen,
-        child: body,
+    return PlayerSwipeBackGuard(
+      enabled: widget.useTouchOptimizedControls,
+      onBack: _handleBack,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: PlayerAppFullscreenScope(
+          isFullscreen: isAppFullscreen,
+          onToggle: toggleAppFullscreen,
+          child: body,
+        ),
       ),
     );
   }

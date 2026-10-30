@@ -3877,6 +3877,13 @@ void main() {
     expect(find.byKey(const Key('movie-player-page-frame')), findsOneWidget);
     final moviePlayerPage = _findPageByName(tester, 'mobile-movie-player');
     expect(moviePlayerPage, isA<CupertinoPage<void>>());
+    final swipeBackGuard = tester.widget<PopScope<void>>(
+      find.descendant(
+        of: find.byType(MobileMoviePlayerPage),
+        matching: find.byType(PopScope<void>),
+      ),
+    );
+    expect(swipeBackGuard.canPop, isFalse);
     final playerWidget = tester.widget<MobileMoviePlayerPage>(
       find.byType(MobileMoviePlayerPage),
     );
