@@ -35,5 +35,7 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>用于连接局域网中的 SakuraMedia 服务器（NAS）以完成登录与媒体访问。</string>
 </dict>
 </plist>
