@@ -62,6 +62,116 @@ class ProviderConfigFieldDto {
   }
 }
 
+class ProviderLoginCookieCaptureDto {
+  const ProviderLoginCookieCaptureDto({
+    required this.url,
+    required this.captureNames,
+    required this.requiredNames,
+  });
+
+  final String url;
+  final List<String> captureNames;
+  final List<String> requiredNames;
+
+  factory ProviderLoginCookieCaptureDto.fromJson(
+    Map<String, dynamic> json, {
+    required String path,
+  }) {
+    return ProviderLoginCookieCaptureDto(
+      url: _requiredString(json, 'url', path: path),
+      captureNames: _requiredStringList(
+        json['capture_names'],
+        path: '$path.capture_names',
+      ),
+      requiredNames: _requiredStringList(
+        json['required_names'],
+        path: '$path.required_names',
+        allowEmpty: true,
+      ),
+    );
+  }
+}
+
+class ProviderLoginLocalStorageCaptureDto {
+  const ProviderLoginLocalStorageCaptureDto({
+    required this.origin,
+    required this.requiredJsonKeys,
+  });
+
+  final String origin;
+  final List<String> requiredJsonKeys;
+
+  factory ProviderLoginLocalStorageCaptureDto.fromJson(
+    Map<String, dynamic> json, {
+    required String path,
+  }) {
+    return ProviderLoginLocalStorageCaptureDto(
+      origin: _requiredString(json, 'origin', path: path),
+      requiredJsonKeys: _requiredStringList(
+        json['required_json_keys'],
+        path: '$path.required_json_keys',
+        allowEmpty: true,
+      ),
+    );
+  }
+}
+
+class ProviderLoginDto {
+  const ProviderLoginDto({
+    required this.mode,
+    required this.startUrl,
+    required this.allowedHosts,
+    required this.cookieCaptures,
+    required this.localStorageCaptures,
+    required this.managedConfigKeys,
+    required this.timeoutSeconds,
+  });
+
+  final String mode;
+  final String startUrl;
+  final List<String> allowedHosts;
+  final List<ProviderLoginCookieCaptureDto> cookieCaptures;
+  final List<ProviderLoginLocalStorageCaptureDto> localStorageCaptures;
+  final List<String> managedConfigKeys;
+  final int timeoutSeconds;
+
+  factory ProviderLoginDto.fromJson(
+    Map<String, dynamic> json, {
+    required String path,
+  }) {
+    final rawTimeout = json['timeout_seconds'];
+    if (rawTimeout is! int || rawTimeout <= 0) {
+      throw FormatException('$path.timeout_seconds must be a positive integer');
+    }
+    return ProviderLoginDto(
+      mode: _requiredString(json, 'mode', path: path),
+      startUrl: _requiredString(json, 'start_url', path: path),
+      allowedHosts: _requiredStringList(
+        json['allowed_hosts'],
+        path: '$path.allowed_hosts',
+      ),
+      cookieCaptures: _requiredObjectList(
+        json['cookie_captures'],
+        path: '$path.cookie_captures',
+        parse: (item, itemPath) =>
+            ProviderLoginCookieCaptureDto.fromJson(item, path: itemPath),
+      ),
+      localStorageCaptures: _requiredObjectList(
+        json['local_storage_captures'],
+        path: '$path.local_storage_captures',
+        parse: (item, itemPath) =>
+            ProviderLoginLocalStorageCaptureDto.fromJson(item, path: itemPath),
+      ),
+      managedConfigKeys: _requiredStringList(
+        json['managed_config_keys'],
+        path: '$path.managed_config_keys',
+        allowEmpty: true,
+      ),
+      timeoutSeconds: rawTimeout,
+    );
+  }
+}
+
 /// `GET /media-libraries/providers` 的一个 Provider Bundle。
 class MediaProviderDto {
   const MediaProviderDto({
@@ -69,6 +179,7 @@ class MediaProviderDto {
     required this.displayName,
     required this.libraryConfigFields,
     required this.downloadConfigFields,
+    this.libraryLogin,
   });
 
   final String providerKey;
@@ -77,6 +188,7 @@ class MediaProviderDto {
 
   /// `null` 表示该 Provider 不支持下载，空列表表示支持下载但无需配置。
   final List<ProviderConfigFieldDto>? downloadConfigFields;
+  final ProviderLoginDto? libraryLogin;
 
   bool get supportsDownloads => downloadConfigFields != null;
 
@@ -100,6 +212,16 @@ class MediaProviderDto {
               rawDownloadFields,
               path: 'provider.download_config_fields',
             ),
+      libraryLogin: switch (json['library_login']) {
+        null => null,
+        final Map<dynamic, dynamic> value => ProviderLoginDto.fromJson(
+          Map<String, dynamic>.from(value),
+          path: 'provider.library_login',
+        ),
+        _ => throw const FormatException(
+          'provider.library_login must be an object or null',
+        ),
+      },
     );
   }
 }
@@ -167,4 +289,48 @@ List<ProviderConfigFieldDto> _requiredFieldList(
     result.add(field);
   }
   return List<ProviderConfigFieldDto>.unmodifiable(result);
+}
+
+List<String> _requiredStringList(
+  Object? value, {
+  required String path,
+  bool allowEmpty = false,
+}) {
+  if (value is! List) {
+    throw FormatException('$path must be an array');
+  }
+  if (!allowEmpty && value.isEmpty) {
+    throw FormatException('$path must not be empty');
+  }
+  final result = <String>[];
+  for (var index = 0; index < value.length; index++) {
+    final item = value[index];
+    if (item is! String || item.trim().isEmpty) {
+      throw FormatException('$path[$index] must be a non-empty string');
+    }
+    if (result.contains(item)) {
+      throw FormatException('$path contains duplicate item "$item"');
+    }
+    result.add(item);
+  }
+  return List<String>.unmodifiable(result);
+}
+
+List<T> _requiredObjectList<T>(
+  Object? value, {
+  required String path,
+  required T Function(Map<String, dynamic> json, String path) parse,
+}) {
+  if (value is! List) {
+    throw FormatException('$path must be an array');
+  }
+  final result = <T>[];
+  for (var index = 0; index < value.length; index++) {
+    final item = value[index];
+    if (item is! Map) {
+      throw FormatException('$path[$index] must be an object');
+    }
+    result.add(parse(Map<String, dynamic>.from(item), '$path[$index]'));
+  }
+  return List<T>.unmodifiable(result);
 }

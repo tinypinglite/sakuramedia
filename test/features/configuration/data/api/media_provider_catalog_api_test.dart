@@ -32,6 +32,26 @@ void main() {
                 'hint': '媒体文件最终存放目录',
               },
             ],
+            'library_login': <String, dynamic>{
+              'mode': 'webview',
+              'start_url': 'https://example.com/login',
+              'allowed_hosts': <String>['example.com'],
+              'cookie_captures': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'url': 'https://example.com/',
+                  'capture_names': <String>['SESSION'],
+                  'required_names': <String>['SESSION'],
+                },
+              ],
+              'local_storage_captures': <Map<String, dynamic>>[
+                <String, dynamic>{
+                  'origin': 'https://example.com',
+                  'required_json_keys': <String>['refresh_token'],
+                },
+              ],
+              'managed_config_keys': <String>['token'],
+              'timeout_seconds': 300,
+            },
             'download_config_fields': null,
           },
           <String, dynamic>{
@@ -58,7 +78,17 @@ void main() {
         '媒体文件最终存放目录。',
       );
       expect(providers.first.downloadConfigFields, isNull);
+      expect(providers.first.libraryLogin?.mode, 'webview');
+      expect(
+        providers.first.libraryLogin?.allowedHosts,
+        <String>['example.com'],
+      );
+      expect(
+        providers.first.libraryLogin?.managedConfigKeys,
+        <String>['token'],
+      );
       expect(providers.last.downloadConfigFields, isEmpty);
+      expect(providers.last.libraryLogin, isNull);
       expect(bundle.adapter.requests.single.path, '/media-libraries/providers');
     },
   );
@@ -88,6 +118,25 @@ void main() {
         'provider_key': 'local',
         'display_name': 'Local',
         'library_config_fields': const <dynamic>[],
+      }),
+      throwsA(isA<FormatException>()),
+    );
+
+    expect(
+      () => MediaProviderDto.fromJson(<String, dynamic>{
+        'provider_key': 'local',
+        'display_name': 'Local',
+        'library_config_fields': const <dynamic>[],
+        'download_config_fields': null,
+        'library_login': <String, dynamic>{
+          'mode': 'webview',
+          'start_url': 'https://example.com/login',
+          'allowed_hosts': <String>[],
+          'cookie_captures': const <dynamic>[],
+          'local_storage_captures': const <dynamic>[],
+          'managed_config_keys': const <dynamic>[],
+          'timeout_seconds': 300,
+        },
       }),
       throwsA(isA<FormatException>()),
     );

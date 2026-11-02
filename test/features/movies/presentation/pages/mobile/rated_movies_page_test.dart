@@ -100,6 +100,11 @@ void main() {
           .queryParameters['sort'],
       'my_score:desc',
     );
+    final initialRequest = bundle.adapter.requests.lastWhere(
+      (request) => request.uri.path == '/movies',
+    );
+    expect(initialRequest.uri.queryParameters['status'], 'all');
+    expect(initialRequest.uri.queryParameters['collection_type'], 'all');
 
     bundle.adapter.enqueueJson(method: 'GET', path: '/movies', body: pageBody);
     await tester.tap(find.byKey(const Key('rated-movies-sort-trigger')));
@@ -119,5 +124,81 @@ void main() {
           .queryParameters['sort'],
       'dimension_1:desc',
     );
+  });
+
+  testWidgets('移动端筛选抽屉切换状态和合集类型', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final pageBody = <String, dynamic>{
+      'items': const <Map<String, dynamic>>[],
+      'page': 1,
+      'page_size': 24,
+      'total': 0,
+    };
+    bundle.adapter.enqueueJson(method: 'GET', path: '/movies', body: pageBody);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movie-rating-dimensions',
+      body: const <Map<String, dynamic>>[],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: bundle.riverpodOverrides(),
+        child: OKToast(
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+            theme: sakuraThemeData,
+            home: const Scaffold(body: MobileRatedMoviesPage()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('rated-movies-filter-trigger')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('mobile-rated-movies-filter-drawer')),
+      findsOneWidget,
+    );
+
+    bundle.adapter.enqueueJson(method: 'GET', path: '/movies', body: pageBody);
+    await tester.tap(
+      find.byKey(const Key('rated-movies-filter-status-unsubscribed')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(
+      bundle.adapter.requests
+          .lastWhere((request) => request.uri.path == '/movies')
+          .uri
+          .queryParameters['status'],
+      'unsubscribed',
+    );
+
+    bundle.adapter.enqueueJson(method: 'GET', path: '/movies', body: pageBody);
+    await tester.tap(
+      find.byKey(const Key('rated-movies-filter-collection-single')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final request = bundle.adapter.requests.lastWhere(
+      (request) => request.uri.path == '/movies',
+    );
+    expect(request.uri.queryParameters['status'], 'unsubscribed');
+    expect(request.uri.queryParameters['collection_type'], 'single');
   });
 }

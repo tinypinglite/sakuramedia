@@ -225,10 +225,11 @@ class MoviesApi {
 
   Future<RatingDimensionDto> createRatingDimension({
     required String name,
+    int maxValue = 5,
   }) async {
     final response = await _apiClient.post(
       '/movie-rating-dimensions',
-      data: <String, dynamic>{'name': name.trim()},
+      data: <String, dynamic>{'name': name.trim(), 'max_value': maxValue},
     );
     return RatingDimensionDto.fromJson(response);
   }
@@ -236,13 +237,15 @@ class MoviesApi {
   Future<RatingDimensionDto> updateRatingDimension({
     required int dimensionId,
     required String name,
+    int? maxValue,
     double? weight,
   }) async {
     final response = await _apiClient.put(
       '/movie-rating-dimensions/$dimensionId',
       data: <String, dynamic>{
         'name': name.trim(),
-        if (weight != null) 'weight': weight,
+        'max_value': ?maxValue,
+        'weight': ?weight,
       },
     );
     return RatingDimensionDto.fromJson(response);

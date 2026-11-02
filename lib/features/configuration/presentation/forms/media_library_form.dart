@@ -12,6 +12,7 @@ class MediaLibraryFormValue {
     required this.name,
     required this.providerKey,
     required this.providerConfig,
+    this.authSessionId,
   });
 
   factory MediaLibraryFormValue.fromControllers({
@@ -19,25 +20,34 @@ class MediaLibraryFormValue {
     required String providerKey,
     required ProviderConfigFormController providerConfigController,
     required bool isEditing,
+    Set<String> excludedProviderConfigKeys = const <String>{},
+    String? authSessionId,
   }) {
     return MediaLibraryFormValue(
       name: nameController.text.trim(),
       providerKey: providerKey,
       providerConfig: isEditing
-          ? providerConfigController.toUpdateProviderConfig()
-          : providerConfigController.toCreateProviderConfig(),
+          ? providerConfigController.toUpdateProviderConfig(
+              excludedKeys: excludedProviderConfigKeys,
+            )
+          : providerConfigController.toCreateProviderConfig(
+              excludedKeys: excludedProviderConfigKeys,
+            ),
+      authSessionId: authSessionId,
     );
   }
 
   final String name;
   final String providerKey;
   final Map<String, dynamic> providerConfig;
+  final String? authSessionId;
 
   CreateMediaLibraryPayload toCreatePayload() {
     return CreateMediaLibraryPayload(
       name: name,
       providerKey: providerKey,
       providerConfig: providerConfig,
+      authSessionId: authSessionId,
     );
   }
 
@@ -45,6 +55,7 @@ class MediaLibraryFormValue {
     return UpdateMediaLibraryPayload(
       name: name,
       providerConfig: providerConfig,
+      authSessionId: authSessionId,
     );
   }
 }

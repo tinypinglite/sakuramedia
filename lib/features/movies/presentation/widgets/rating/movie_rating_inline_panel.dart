@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -8,10 +9,12 @@ import 'package:sakuramedia/features/movies/presentation/providers/rating_dimens
 import 'package:sakuramedia/features/movies/presentation/widgets/rating/rating_dimensions_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
-/// 详情信息块内的评分面板：点 1-5 即保存，没有弹窗和保存按钮。
+/// 详情信息块内的评分面板：5/10 分制点星即保存，百分制输入后保存。
 class MovieRatingInlinePanel extends ConsumerStatefulWidget {
   const MovieRatingInlinePanel({super.key, required this.movieNumber});
 
@@ -38,8 +41,12 @@ class _MovieRatingInlinePanelState
   }
 
   void _toggleScore(RatingDimensionDto dimension, int score) {
+    _setScore(dimension, _values[dimension.id] == score ? null : score);
+  }
+
+  void _setScore(RatingDimensionDto dimension, int? score) {
     setState(() {
-      if (_values[dimension.id] == score) {
+      if (score == null) {
         _values.remove(dimension.id);
       } else {
         _values[dimension.id] = score;
@@ -140,7 +147,7 @@ class _MovieRatingInlinePanelState
         context,
         AppLocalizations.of(context).movieWidgetNoRatingDimensions,
         action: AppLocalizations.of(context).movieWidgetSetupAction,
-        onAction: () => showRatingDimensionsDialog(context),
+        onAction: () => showRatingDimensionsDialog(context, ref: ref),
       );
     }
     if (ratingState.isLoading && rating == null) {
@@ -168,43 +175,56 @@ class _MovieRatingInlinePanelState
 
   Widget _buildDimension(BuildContext context, RatingDimensionDto dimension) {
     final value = _values[dimension.id];
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          dimension.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: resolveAppTextStyle(context, size: AppTextSize.s12),
-        ),
-        SizedBox(width: context.appSpacing.xs),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (
-              var score = dimension.minValue;
-              score <= dimension.maxValue;
-              score++
-            )
-              AppInteractiveSurface(
-                key: Key('movie-rating-score-${dimension.id}-$score'),
-                onTap: () => _toggleScore(dimension, score),
-                child: Padding(
-                  padding: EdgeInsets.all(context.appSpacing.xs / 2),
-                  child: Icon(
-                    score <= (value ?? 0)
-                        ? Icons.star_rounded
-                        : Icons.star_border_rounded,
-                    size: context.appComponentTokens.iconSizeMd,
-                    color: score <= (value ?? 0)
-                        ? context.appColors.movieDetailScoreIcon
-                        : context.appTextPalette.muted,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 280),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            dimension.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: resolveAppTextStyle(context, size: AppTextSize.s12),
+          ),
+          SizedBox(height: context.appSpacing.xs / 2),
+          if (dimension.maxValue <= 10)
+            Wrap(
+              spacing: context.appSpacing.xs / 2,
+              runSpacing: context.appSpacing.xs / 2,
+              children: [
+                for (
+                  var score = dimension.minValue;
+                  score <= dimension.maxValue;
+                  score++
+                )
+                  AppInteractiveSurface(
+                    key: Key('movie-rating-score-${dimension.id}-$score'),
+                    onTap: () => _toggleScore(dimension, score),
+                    child: Padding(
+                      padding: EdgeInsets.all(context.appSpacing.xs / 2),
+                      child: Icon(
+                        score <= (value ?? 0)
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        size: context.appComponentTokens.iconSizeMd,
+                        color: score <= (value ?? 0)
+                            ? context.appColors.movieDetailScoreIcon
+                            : context.appTextPalette.muted,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-          ],
-        ),
-      ],
+              ],
+            )
+          else
+            _HundredPointScoreField(
+              key: ValueKey('${widget.movieNumber}-${dimension.id}'),
+              dimension: dimension,
+              value: value,
+              onChanged: (nextValue) => _setScore(dimension, nextValue),
+            ),
+        ],
+      ),
     );
   }
 
@@ -268,6 +288,131 @@ class _MovieRatingInlinePanelState
           size: AppTextButtonSize.xSmall,
           onPressed: onAction,
         ),
+      ],
+    );
+  }
+}
+
+class _HundredPointScoreField extends StatefulWidget {
+  const _HundredPointScoreField({
+    super.key,
+    required this.dimension,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final RatingDimensionDto dimension;
+  final int? value;
+  final ValueChanged<int?> onChanged;
+
+  @override
+  State<_HundredPointScoreField> createState() =>
+      _HundredPointScoreFieldState();
+}
+
+class _HundredPointScoreFieldState extends State<_HundredPointScoreField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value?.toString() ?? '');
+    _focusNode = FocusNode()..addListener(_handleFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(covariant _HundredPointScoreField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_focusNode.hasFocus &&
+        widget.value != oldWidget.value &&
+        _controller.text != (widget.value?.toString() ?? '')) {
+      _controller.text = widget.value?.toString() ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode
+      ..removeListener(_handleFocusChange)
+      ..dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+    if (!_focusNode.hasFocus) {
+      _commit();
+    }
+  }
+
+  void _commit() {
+    if (!mounted) {
+      return;
+    }
+    final text = _controller.text.trim();
+    if (text.isEmpty) {
+      if (widget.value != null) {
+        widget.onChanged(null);
+      }
+      return;
+    }
+    final score = int.tryParse(text);
+    if (score == null ||
+        score < widget.dimension.minValue ||
+        score > widget.dimension.maxValue) {
+      showToast(
+        AppLocalizations.of(context).movieWidgetRatingScoreInvalid(
+          widget.dimension.minValue,
+          widget.dimension.maxValue,
+        ),
+      );
+      _controller.text = widget.value?.toString() ?? '';
+      return;
+    }
+    if (score != widget.value) {
+      widget.onChanged(score);
+    }
+  }
+
+  void _clear() {
+    _controller.clear();
+    widget.onChanged(null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 108,
+          child: AppTextField(
+            fieldKey: Key('movie-rating-score-${widget.dimension.id}-field'),
+            controller: _controller,
+            focusNode: _focusNode,
+            hintText:
+                '${widget.dimension.minValue}–${widget.dimension.maxValue}',
+            suffix: Text('/${widget.dimension.maxValue}'),
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(3),
+            ],
+            onTapOutside: (_) => _focusNode.unfocus(),
+            onFieldSubmitted: (_) => _focusNode.unfocus(),
+          ),
+        ),
+        if (widget.value != null) ...[
+          SizedBox(width: context.appSpacing.xs),
+          AppIconButton(
+            icon: const Icon(Icons.close_rounded),
+            tooltip: AppLocalizations.of(context).movieWidgetRatingClearScore,
+            size: AppIconButtonSize.mini,
+            onPressed: _clear,
+          ),
+        ],
       ],
     );
   }

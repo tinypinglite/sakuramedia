@@ -24,9 +24,11 @@ import 'package:sakuramedia/features/configuration/data/api/download_clients_api
 import 'package:sakuramedia/features/configuration/data/api/download_selection_policy_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
+import 'package:sakuramedia/features/configuration/data/api/provider_login_api.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/config_api_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/download_selection_policy_api_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/indexer_settings_api_provider.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/provider_login_api_provider.dart';
 import 'package:sakuramedia/features/discovery/data/discovery_api.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/discovery_api_provider.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
@@ -92,6 +94,7 @@ class TestApiBundle {
     required this.mediaApi,
     required this.mediaImportApi,
     required this.mediaLibrariesApi,
+    required this.providerLoginApi,
     required this.statusApi,
     required this.moviesApi,
     required this.movieSubscriptionsApi,
@@ -122,6 +125,7 @@ class TestApiBundle {
   final MediaApi mediaApi;
   final MediaImportApi mediaImportApi;
   final MediaLibrariesApi mediaLibrariesApi;
+  final ProviderLoginApi providerLoginApi;
   final StatusApi statusApi;
   final MoviesApi moviesApi;
   final MovieSubscriptionsApi movieSubscriptionsApi;
@@ -171,6 +175,7 @@ class TestApiBundle {
     CollectionPlaybackHandoff? collectionPlaybackHandoff,
     // 允许单测换成 fake 子类（如刷新必败的 API），默认用 bundle 实例。
     MediaLibrariesApi? mediaLibrariesApi,
+    ProviderLoginApi? providerLoginApi,
     DownloadClientsApi? downloadClientsApi,
     DownloadSelectionPolicyApi? downloadSelectionPolicyApi,
     IndexerSettingsApi? indexerSettingsApi,
@@ -206,6 +211,9 @@ class TestApiBundle {
       mediaImportApiProvider.overrideWithValue(mediaImportApi),
       mediaLibrariesApiProvider.overrideWithValue(
         mediaLibrariesApi ?? this.mediaLibrariesApi,
+      ),
+      providerLoginApiProvider.overrideWithValue(
+        providerLoginApi ?? this.providerLoginApi,
       ),
       moviesApiProvider.overrideWithValue(moviesApi),
       if (interactionFilterOptions != null)
@@ -286,6 +294,7 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     mediaApi: MediaApi(apiClient: apiClient),
     mediaImportApi: MediaImportApi(apiClient: apiClient),
     mediaLibrariesApi: MediaLibrariesApi(apiClient: apiClient),
+    providerLoginApi: ProviderLoginApi(apiClient: apiClient),
     statusApi: StatusApi(apiClient: apiClient),
     moviesApi: MoviesApi(apiClient: apiClient),
     movieSubscriptionsApi: MovieSubscriptionsApi(apiClient: apiClient),

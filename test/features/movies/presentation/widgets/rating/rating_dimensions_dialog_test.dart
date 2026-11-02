@@ -112,7 +112,126 @@ void main() {
     final request = bundle.adapter.requests.lastWhere(
       (request) => request.method == 'POST',
     );
-    expect(request.body, <String, dynamic>{'name': '演技'});
+    expect(request.body, <String, dynamic>{'name': '演技', 'max_value': 5});
     expect(find.byKey(const Key('rating-dimension-2')), findsOneWidget);
+  });
+
+  testWidgets('新增维度可选择 10 分制并提交范围', (tester) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movie-rating-dimensions',
+      body: const <Map<String, dynamic>>[],
+    );
+
+    await tester.pumpWidget(wrap(const RatingDimensionsDialog()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('新增维度'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('rating-dimension-name-field')),
+      '演技',
+    );
+    await tester.tap(find.byKey(const Key('rating-dimension-scale-10')));
+    await tester.pumpAndSettle();
+
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/movie-rating-dimensions',
+      statusCode: 201,
+      body: <String, dynamic>{
+        'id': 2,
+        'name': '演技',
+        'min_value': 1,
+        'max_value': 10,
+        'weight': 1.0,
+        'has_scores': false,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movie-rating-dimensions',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 2,
+          'name': '演技',
+          'min_value': 1,
+          'max_value': 10,
+          'weight': 1.0,
+          'has_scores': false,
+        },
+      ],
+    );
+
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    final request = bundle.adapter.requests.lastWhere(
+      (request) => request.method == 'POST',
+    );
+    expect(request.body, <String, dynamic>{'name': '演技', 'max_value': 10});
+  });
+
+  testWidgets('已有评分的维度锁定分数范围', (tester) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movie-rating-dimensions',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'name': '颜值',
+          'min_value': 1,
+          'max_value': 10,
+          'weight': 1.0,
+          'has_scores': true,
+        },
+      ],
+    );
+
+    await tester.pumpWidget(wrap(const RatingDimensionsDialog()));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('rating-dimension-1')),
+        matching: find.byIcon(Icons.edit_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('已有评分，分数范围不可修改'), findsOneWidget);
+
+    bundle.adapter.enqueueJson(
+      method: 'PUT',
+      path: '/movie-rating-dimensions/1',
+      body: <String, dynamic>{
+        'id': 1,
+        'name': '颜值',
+        'min_value': 1,
+        'max_value': 10,
+        'weight': 1.0,
+        'has_scores': true,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movie-rating-dimensions',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'name': '颜值',
+          'min_value': 1,
+          'max_value': 10,
+          'weight': 1.0,
+          'has_scores': true,
+        },
+      ],
+    );
+
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    final request = bundle.adapter.requests.lastWhere(
+      (request) => request.method == 'PUT',
+    );
+    expect(request.body, <String, dynamic>{'name': '颜值', 'weight': 1.0});
   });
 }

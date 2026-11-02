@@ -161,6 +161,7 @@
   "sseActorSyncingOnlineResults": "Syncing online actor search results...",
   "commonCancel": "Cancel",
   "commonRetry": "Retry",
+  "commonClose": "Close",
   "commonDelete": "Delete",
   "commonCopy": "Copy",
   "commonDone": "Done",
@@ -802,6 +803,54 @@
   "mediaLibraryStorageDescriptionDesktop": "Media libraries connect to storage through installed providers; provider settings come from the plugin catalog.",
   "mediaLibraryAdd": "Add media library",
   "mediaLibraryProviderCatalogUnavailable": "The provider catalog is unavailable. Existing media libraries can still be managed; retry before adding or editing.",
+  "providerLoginTitle": "Sign in to {provider}",
+  "@providerLoginTitle": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "providerLoginDescription": "Sign in inside the app. When finished, the page closes automatically and fills the media library configuration; no Cookie or token copying is required.",
+  "providerLoginAction": "Open sign-in page",
+  "providerLoginAgain": "Sign in again",
+  "providerLoginSuccess": "Signed in · account {account}",
+  "@providerLoginSuccess": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      }
+    }
+  },
+  "providerLoginSuccessWithoutAccount": "Signed in",
+  "providerLoginUseManual": "Advanced: enter manually",
+  "providerLoginManualActive": "Entering login details manually",
+  "providerLoginManualDescription": "Manual values replace the web sign-in result and are validated with the existing save flow.",
+  "providerLoginUseWeb": "Use web sign-in",
+  "providerLoginRequired": "Sign in first, or expand Advanced to enter credentials manually",
+  "providerLoginFailed": "Provider sign-in validation failed; please sign in again",
+  "providerLoginTimedOut": "Sign-in timed out. Try again.",
+  "providerLoginPageLoadFailed": "Could not load the sign-in page. Check your network and retry.",
+  "providerLoginSessionResetFailed": "Could not clear the previous sign-in session. Please retry.",
+  "providerLoginUnavailable": "This provider has an invalid sign-in configuration",
+  "providerLoginWaitingHint": "Finish signing in above. This page returns automatically when done.",
+  "providerLoginValidatingTitle": "Sign-in detected",
+  "providerLoginValidating": "Verifying your {provider} account",
+  "@providerLoginValidating": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "providerLoginValidatingSlow": "Still verifying your {provider} account. This may take longer on a slow network.",
+  "@providerLoginValidatingSlow": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
   "mediaLibraryEmpty": "No media libraries yet",
   "mediaLibraryLoadFailedTitle": "Failed to load media libraries",
   "mediaLibraryLoadFailedFallback": "Failed to load media libraries. Try again later.",
@@ -4238,7 +4287,24 @@
   },
   "movieWidgetRatingDimensionDeleteFailed": "Failed to delete the rating dimension",
   "movieWidgetRatingDimensionsTitle": "Rating dimensions",
-  "movieWidgetRatingScaleHint": "All dimensions use a 1–5 scale; the total is the weighted average of the filled dimensions.",
+  "movieWidgetRatingScaleHint": "Each dimension can use 1–5, 1–10, or 1–100. The total stays on a 1–5 scale and is the weighted average of the filled dimensions.",
+  "movieWidgetRatingScaleLabel": "Score range",
+  "movieWidgetRatingScale5": "5-point",
+  "movieWidgetRatingScale10": "10-point",
+  "movieWidgetRatingScale100": "100-point",
+  "movieWidgetRatingScaleLocked": "The score range cannot be changed because this dimension already has scores",
+  "movieWidgetRatingScoreInvalid": "Enter an integer from {min} to {max}",
+  "@movieWidgetRatingScoreInvalid": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "movieWidgetRatingClearScore": "Clear score",
   "movieWidgetAddDimension": "Add dimension",
   "movieWidgetEditDimension": "Edit dimension",
   "movieWidgetDimensionNameHint": "Dimension name, e.g. Looks / Story",

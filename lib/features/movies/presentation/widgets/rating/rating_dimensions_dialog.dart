@@ -10,11 +10,17 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
-Future<void> showRatingDimensionsDialog(BuildContext context) {
+Future<void> showRatingDimensionsDialog(
+  BuildContext context, {
+  required WidgetRef ref,
+}) {
+  // has_scores 由评分数据派生；打开管理面板时重新拉取，避免范围被错误锁定或放开。
+  ref.invalidate(ratingDimensionsProvider);
   return showAppAdaptiveModal<void>(
     context: context,
     desktopWidth: context.appLayoutTokens.dialogWidthSm,
@@ -38,6 +44,8 @@ class _RatingDimensionsDialogState
 
   int? _editingId;
   double _editingWeight = 1;
+  int _editingMaxValue = 5;
+  bool _editingHasScores = false;
   bool _showForm = false;
   bool _saving = false;
 
@@ -51,6 +59,8 @@ class _RatingDimensionsDialogState
     setState(() {
       _editingId = null;
       _editingWeight = 1;
+      _editingMaxValue = 5;
+      _editingHasScores = false;
       _showForm = true;
       _nameController.clear();
     });
@@ -60,6 +70,8 @@ class _RatingDimensionsDialogState
     setState(() {
       _editingId = dimension.id;
       _editingWeight = dimension.weight;
+      _editingMaxValue = dimension.maxValue;
+      _editingHasScores = dimension.hasScores;
       _showForm = true;
       _nameController.text = dimension.name;
     });
@@ -75,22 +87,21 @@ class _RatingDimensionsDialogState
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      showToast(
-        AppLocalizations.of(context).movieWidgetDimensionNameRequired,
-      );
+      showToast(AppLocalizations.of(context).movieWidgetDimensionNameRequired);
       return;
     }
     setState(() => _saving = true);
     try {
       final notifier = ref.read(ratingDimensionsProvider.notifier);
       if (_editingId == null) {
-        await notifier.create(name: name);
+        await notifier.create(name: name, maxValue: _editingMaxValue);
       } else {
         await notifier.edit(
           dimensionId: _editingId!,
           name: name,
           // 权重暂不开放编辑，但编辑其它字段时不能把已有权重重置为默认值。
           weight: _editingWeight,
+          maxValue: _editingHasScores ? null : _editingMaxValue,
         );
       }
       if (!mounted) return;
@@ -271,11 +282,25 @@ class _RatingDimensionsDialogState
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              dimension.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: resolveAppTextStyle(context, size: AppTextSize.s14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dimension.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: resolveAppTextStyle(context, size: AppTextSize.s14),
+                ),
+                SizedBox(height: context.appSpacing.xs / 2),
+                Text(
+                  '${dimension.minValue}–${dimension.maxValue}',
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    tone: AppTextTone.muted,
+                  ),
+                ),
+              ],
             ),
           ),
           AppIconButton(
@@ -317,6 +342,59 @@ class _RatingDimensionsDialogState
           hintText: l10n.movieWidgetDimensionNameHint,
         ),
         SizedBox(height: context.appSpacing.md),
+        Text(
+          l10n.movieWidgetRatingScaleLabel,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            tone: AppTextTone.secondary,
+          ),
+        ),
+        SizedBox(height: context.appSpacing.xs),
+        Opacity(
+          opacity: _editingHasScores ? 0.5 : 1,
+          child: IgnorePointer(
+            ignoring: _editingHasScores,
+            child: AppSegmentedControl<int>(
+              key: const Key('rating-dimension-scale-control'),
+              items: [
+                for (final maxValue in const [5, 10, 100])
+                  AppSegmentedItem<int>(
+                    value: maxValue,
+                    label: _ratingScaleLabel(maxValue, l10n),
+                    key: Key('rating-dimension-scale-$maxValue'),
+                  ),
+              ],
+              selected: _editingMaxValue,
+              size: AppSegmentedSize.compact,
+              onChanged: (value) => setState(() => _editingMaxValue = value),
+            ),
+          ),
+        ),
+        if (_editingHasScores) ...[
+          SizedBox(height: context.appSpacing.xs),
+          Row(
+            children: [
+              Icon(
+                Icons.lock_outline_rounded,
+                size: context.appComponentTokens.iconSize2xs,
+                color: context.appTextPalette.muted,
+              ),
+              SizedBox(width: context.appSpacing.xs),
+              Expanded(
+                child: Text(
+                  l10n.movieWidgetRatingScaleLocked,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    tone: AppTextTone.muted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+        SizedBox(height: context.appSpacing.md),
         Row(
           children: [
             AppButton(
@@ -336,4 +414,12 @@ class _RatingDimensionsDialogState
       ],
     );
   }
+}
+
+String _ratingScaleLabel(int maxValue, AppLocalizations l10n) {
+  return switch (maxValue) {
+    10 => l10n.movieWidgetRatingScale10,
+    100 => l10n.movieWidgetRatingScale100,
+    _ => l10n.movieWidgetRatingScale5,
+  };
 }

@@ -13,6 +13,8 @@ AGENTS.md
 .history
 .svn/
 .swiftpm/
+# macOS SwiftPM 依赖解析文件由 Flutter 本地生成，不随功能提交。
+macos/**/xcshareddata/swiftpm/Package.resolved
 migrate_working_dir/
 
 # IntelliJ related

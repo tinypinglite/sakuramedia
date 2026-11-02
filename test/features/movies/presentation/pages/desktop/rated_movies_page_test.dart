@@ -93,6 +93,8 @@ void main() {
       (request) => request.uri.path == '/movies',
     );
     expect(request.uri.queryParameters['rated'], 'true');
+    expect(request.uri.queryParameters['status'], 'all');
+    expect(request.uri.queryParameters['collection_type'], 'all');
     expect(request.uri.queryParameters['sort'], 'my_score:desc');
 
     expect(find.text('已评分 1 部'), findsOneWidget);
@@ -108,6 +110,10 @@ void main() {
     expect(find.text('总分 4.0'), findsOneWidget);
     expect(
       find.byKey(const Key('rated-movies-dimension-manage')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('rated-movies-filter-trigger')),
       findsOneWidget,
     );
 
@@ -281,6 +287,20 @@ void main() {
     );
 
     // 选中字段后排序面板已关闭，直接打开维度管理。
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movie-rating-dimensions',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'name': '颜值',
+          'min_value': 1,
+          'max_value': 5,
+          'weight': 1.0,
+          'has_scores': false,
+        },
+      ],
+    );
     await tester.tap(find.byKey(const Key('rated-movies-dimension-manage')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('rating-dimension-1')), findsOneWidget);
@@ -314,5 +334,184 @@ void main() {
         .toList();
     expect(sortRequests.last, 'my_score:desc');
     expect(sortRequests.where((sort) => sort == 'dimension_1:desc').length, 1);
+  });
+
+  testWidgets('打开维度管理时刷新已有评分状态', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1000);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movie-rating-dimensions',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'name': '颜值',
+          'min_value': 1,
+          'max_value': 10,
+          'weight': 1.0,
+          'has_scores': false,
+        },
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: bundle.riverpodOverrides(),
+        child: OKToast(
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+            theme: sakuraThemeData,
+            home: const Scaffold(body: DesktopRatedMoviesPage()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movie-rating-dimensions',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'name': '颜值',
+          'min_value': 1,
+          'max_value': 10,
+          'weight': 1.0,
+          'has_scores': true,
+        },
+      ],
+    );
+    await tester.tap(find.byKey(const Key('rated-movies-dimension-manage')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('rating-dimension-1')),
+        matching: find.byIcon(Icons.edit_outlined),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('已有评分，分数范围不可修改'), findsOneWidget);
+  });
+
+  testWidgets('筛选订阅状态与合集类型，并重置为全部', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 1000);
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final pageBody = <String, dynamic>{
+      'items': const <Map<String, dynamic>>[],
+      'page': 1,
+      'page_size': 24,
+      'total': 0,
+    };
+    bundle.adapter.enqueueJson(method: 'GET', path: '/movies', body: pageBody);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movie-rating-dimensions',
+      body: const <Map<String, dynamic>>[],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: bundle.riverpodOverrides(),
+        child: OKToast(
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+            theme: sakuraThemeData,
+            home: const Scaffold(body: DesktopRatedMoviesPage()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('rated-movies-filter-trigger')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('rated-movies-filter-panel')), findsOneWidget);
+
+    bundle.adapter.enqueueJson(method: 'GET', path: '/movies', body: pageBody);
+    await tester.tap(
+      find.byKey(const Key('rated-movies-filter-status-subscribed')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(
+      bundle.adapter.requests
+          .lastWhere((request) => request.uri.path == '/movies')
+          .uri
+          .queryParameters['status'],
+      'subscribed',
+    );
+
+    bundle.adapter.enqueueJson(method: 'GET', path: '/movies', body: pageBody);
+    await tester.tap(
+      find.byKey(const Key('rated-movies-filter-collection-single')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    var request = bundle.adapter.requests.lastWhere(
+      (request) => request.uri.path == '/movies',
+    );
+    expect(request.uri.queryParameters['status'], 'subscribed');
+    expect(request.uri.queryParameters['collection_type'], 'single');
+    expect(request.uri.queryParameters['sort'], 'my_score:desc');
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('rated-movies-filter-trigger')),
+        matching: find.text('已订阅 · 单体'),
+      ),
+      findsOneWidget,
+    );
+
+    bundle.adapter.enqueueJson(method: 'GET', path: '/movies', body: pageBody);
+    await tester.tap(find.text('重置'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    request = bundle.adapter.requests.lastWhere(
+      (request) => request.uri.path == '/movies',
+    );
+    expect(request.uri.queryParameters['status'], 'all');
+    expect(request.uri.queryParameters['collection_type'], 'all');
+    expect(request.uri.queryParameters['sort'], 'my_score:desc');
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('rated-movies-filter-trigger')),
+        matching: find.text('全部'),
+      ),
+      findsOneWidget,
+    );
   });
 }

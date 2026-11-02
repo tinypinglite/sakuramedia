@@ -209,10 +209,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(
-        find.byKey(const Key('system-logs-export-card')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('system-logs-export-card')), findsOneWidget);
       expect(find.text('立即重建'), findsOneWidget);
 
       bundle.adapter.enqueueJson(
@@ -922,6 +919,37 @@ void main() {
       expect(find.byKey(const Key('media-library-card-1')), findsOneWidget);
       expect(find.text('媒体库仍被业务数据引用，无法删除'), findsOneWidget);
       await tester.pump(const Duration(seconds: 3));
+    });
+
+    testWidgets('shows the provider login card and hides managed fields', (
+      WidgetTester tester,
+    ) async {
+      _enqueueMediaLibraries(bundle, libraries: const []);
+
+      await _pumpPage(
+        tester,
+        bundle,
+        sessionStore: sessionStore,
+        providers: const <MediaProviderDto>[_desktopLoginProvider],
+      );
+      await _openMediaLibrariesTab(tester);
+      await tester.tap(
+        find.byKey(const Key('configuration-media-library-create-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('media-library-provider-login-button')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('provider-config-field-token')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('provider-config-field-root')),
+        findsOneWidget,
+      );
     });
 
     testWidgets(
@@ -2420,11 +2448,55 @@ const _testProvider = MediaProviderDto(
   downloadConfigFields: <ProviderConfigFieldDto>[],
 );
 
+const _desktopLoginProvider = MediaProviderDto(
+  providerKey: 'demo-login',
+  displayName: 'Demo Login Provider',
+  libraryConfigFields: <ProviderConfigFieldDto>[
+    ProviderConfigFieldDto(
+      key: 'token',
+      label: '登录令牌',
+      input: ProviderConfigFieldInput.secret,
+      required: true,
+      multiline: false,
+      readOnly: false,
+      hint: null,
+    ),
+    ProviderConfigFieldDto(
+      key: 'root',
+      label: '媒体根目录',
+      input: ProviderConfigFieldInput.path,
+      required: true,
+      multiline: false,
+      readOnly: false,
+      hint: null,
+    ),
+  ],
+  downloadConfigFields: null,
+  libraryLogin: ProviderLoginDto(
+    mode: 'webview',
+    startUrl: 'https://example.com/login',
+    allowedHosts: <String>['example.com'],
+    cookieCaptures: <ProviderLoginCookieCaptureDto>[],
+    localStorageCaptures: <ProviderLoginLocalStorageCaptureDto>[],
+    managedConfigKeys: <String>['token'],
+    timeoutSeconds: 300,
+  ),
+);
+
 class _TestMediaProviderCatalog extends MediaProviderCatalog {
   @override
   Future<List<MediaProviderDto>> build() async => const <MediaProviderDto>[
     _testProvider,
   ];
+}
+
+class _StaticMediaProviderCatalog extends MediaProviderCatalog {
+  _StaticMediaProviderCatalog(this.providers);
+
+  final List<MediaProviderDto> providers;
+
+  @override
+  Future<List<MediaProviderDto>> build() async => providers;
 }
 
 class _ReloadingMediaProviderCatalog extends MediaProviderCatalog {
@@ -2445,6 +2517,7 @@ Future<void> _pumpPage(
   required SessionStore sessionStore,
   bool useReloadingMediaProviderCatalog = false,
   bool useDesktopShell = false,
+  List<MediaProviderDto>? providers,
 }) async {
   tester.view.physicalSize = const Size(1440, 900);
   tester.view.devicePixelRatio = 1;
@@ -2469,7 +2542,11 @@ Future<void> _pumpPage(
     ProviderScope(
       overrides: [
         ...bundle.riverpodOverrides(),
-        if (useReloadingMediaProviderCatalog)
+        if (providers != null)
+          mediaProviderCatalogProvider.overrideWith(
+            () => _StaticMediaProviderCatalog(providers),
+          )
+        else if (useReloadingMediaProviderCatalog)
           mediaProviderCatalogProvider.overrideWith(
             _ReloadingMediaProviderCatalog.new,
           )

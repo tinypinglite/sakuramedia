@@ -15,8 +15,10 @@ class RatingDimensions extends _$RatingDimensions {
     return ref.read(moviesApiProvider).getRatingDimensions();
   }
 
-  Future<void> create({required String name}) async {
-    await ref.read(moviesApiProvider).createRatingDimension(name: name);
+  Future<void> create({required String name, int maxValue = 5}) async {
+    await ref
+        .read(moviesApiProvider)
+        .createRatingDimension(name: name, maxValue: maxValue);
     await _reload();
   }
 
@@ -24,6 +26,7 @@ class RatingDimensions extends _$RatingDimensions {
     required int dimensionId,
     required String name,
     required double weight,
+    int? maxValue,
   }) async {
     await ref
         .read(moviesApiProvider)
@@ -31,6 +34,7 @@ class RatingDimensions extends _$RatingDimensions {
           dimensionId: dimensionId,
           name: name,
           weight: weight,
+          maxValue: maxValue,
         );
     await _reload();
   }

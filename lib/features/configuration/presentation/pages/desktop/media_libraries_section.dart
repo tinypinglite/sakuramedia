@@ -4,14 +4,19 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/features/configuration/data/api/provider_login_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/provider_catalog_dto.dart';
+import 'package:sakuramedia/features/configuration/data/dto/provider_login_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/configuration_placeholders.dart';
 import 'package:sakuramedia/features/configuration/presentation/forms/media_library_form.dart';
 import 'package:sakuramedia/features/configuration/presentation/forms/provider_config_form.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/shared/provider_login_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/media_libraries_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/media_provider_catalog_provider.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/provider_login_api_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/media_provider_login_card.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
@@ -78,9 +83,7 @@ class _MediaLibrariesSectionState extends ConsumerState<MediaLibrariesSection> {
       return;
     }
     if (providers.isEmpty) {
-      showToast(
-        AppLocalizations.of(context).mediaLibraryNoProviderInstalled,
-      );
+      showToast(AppLocalizations.of(context).mediaLibraryNoProviderInstalled);
       return;
     }
     await showDialog<void>(
@@ -292,15 +295,18 @@ class MediaLibraryDialog extends ConsumerStatefulWidget {
   final MediaLibraryDto? initialLibrary;
 
   @override
-  ConsumerState<MediaLibraryDialog> createState() =>
-      _MediaLibraryDialogState();
+  ConsumerState<MediaLibraryDialog> createState() => _MediaLibraryDialogState();
 }
 
 class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
+  late final ProviderLoginApi _providerLoginApi;
   late String? _selectedProviderKey;
   late ProviderConfigFormController _providerConfigController;
+  ProviderLoginSessionDto? _loginSession;
+  bool _manualLoginMode = false;
+  bool _isOpeningLogin = false;
   bool _isSubmitting = false;
 
   bool get _isEditing => widget.initialLibrary != null;
@@ -308,12 +314,18 @@ class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
   MediaProviderDto? get _selectedProvider =>
       _findProvider(widget.providers, _selectedProviderKey ?? '');
 
+  ProviderLoginDto? get _libraryLogin => _selectedProvider?.libraryLogin;
+
+  Set<String> get _managedLoginKeys =>
+      _libraryLogin?.managedConfigKeys.toSet() ?? const <String>{};
+
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(
       text: widget.initialLibrary?.name ?? '',
     );
+    _providerLoginApi = ref.read(providerLoginApiProvider);
     _selectedProviderKey =
         widget.initialLibrary?.providerKey ??
         (widget.providers.isEmpty ? null : widget.providers.first.providerKey);
@@ -328,9 +340,22 @@ class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
 
   @override
   void dispose() {
+    _deleteLoginSessionRemotely(_loginSession?.id);
     _nameController.dispose();
     _providerConfigController.dispose();
     super.dispose();
+  }
+
+  void _deleteLoginSessionRemotely(String? sessionId) {
+    if (sessionId == null) return;
+    unawaited(_providerLoginApi.deleteSession(sessionId).catchError((_) {}));
+  }
+
+  void _clearLoginSession() {
+    final sessionId = _loginSession?.id;
+    _loginSession = null;
+    _manualLoginMode = false;
+    _deleteLoginSessionRemotely(sessionId);
   }
 
   void _selectProvider(String? providerKey) {
@@ -340,6 +365,7 @@ class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
       return;
     }
     _providerConfigController.dispose();
+    _clearLoginSession();
     setState(() {
       _selectedProviderKey = providerKey;
       final provider = _findProvider(widget.providers, providerKey);
@@ -350,17 +376,71 @@ class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
     });
   }
 
+  Future<void> _loginProvider() async {
+    final provider = _selectedProvider;
+    if (provider == null || _isOpeningLogin) return;
+    setState(() => _isOpeningLogin = true);
+    try {
+      final session = await ref.read(providerLoginLauncherProvider)(
+        context,
+        provider,
+      );
+      if (!mounted) {
+        _deleteLoginSessionRemotely(session?.id);
+        return;
+      }
+      if (session == null) return;
+      final previousId = _loginSession?.id;
+      setState(() {
+        _loginSession = session;
+        _manualLoginMode = false;
+      });
+      _deleteLoginSessionRemotely(previousId);
+    } finally {
+      if (mounted) {
+        setState(() => _isOpeningLogin = false);
+      }
+    }
+  }
+
+  void _useManualLogin() {
+    final sessionId = _loginSession?.id;
+    setState(() {
+      _loginSession = null;
+      _manualLoginMode = true;
+    });
+    _deleteLoginSessionRemotely(sessionId);
+  }
+
   Future<void> _submit() async {
-    if (_isSubmitting || !(_formKey.currentState?.validate() ?? false) ||
+    if (_isSubmitting ||
+        !(_formKey.currentState?.validate() ?? false) ||
         _selectedProviderKey == null) {
       return;
     }
     final l10n = AppLocalizations.of(context);
+    final login = _libraryLogin;
+    final useManualLogin = login != null && _manualLoginMode;
+    final authSessionId = login != null && !useManualLogin
+        ? _loginSession?.id
+        : null;
+    final excludeManagedConfigKeys = login != null && !useManualLogin;
+    if (login != null &&
+        !useManualLogin &&
+        authSessionId == null &&
+        !_isEditing) {
+      showToast(l10n.providerLoginRequired);
+      return;
+    }
     final value = MediaLibraryFormValue.fromControllers(
       nameController: _nameController,
       providerKey: _selectedProviderKey!,
       providerConfigController: _providerConfigController,
       isEditing: _isEditing,
+      excludedProviderConfigKeys: excludeManagedConfigKeys
+          ? _managedLoginKeys
+          : const <String>{},
+      authSessionId: authSessionId,
     );
     setState(() => _isSubmitting = true);
     try {
@@ -379,6 +459,7 @@ class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
             .create(value.toCreatePayload());
       }
       if (!mounted) return;
+      _loginSession = null;
       showToast(
         _isEditing ? l10n.mediaLibraryUpdated : l10n.mediaLibraryCreated,
       );
@@ -403,6 +484,8 @@ class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
     final provider = _selectedProvider;
+    final login = _libraryLogin;
+    final managedKeys = _managedLoginKeys;
     final unavailable = _isEditing && provider == null;
     return AppDesktopDialog(
       insetPadding: EdgeInsets.symmetric(
@@ -445,6 +528,26 @@ class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
                 MediaLibraryProviderUnavailableNotice(
                   providerKey: widget.initialLibrary!.providerKey,
                 ),
+              if (provider != null && login != null) ...[
+                SizedBox(height: spacing.lg),
+                MediaProviderLoginCard(
+                  provider: provider,
+                  session: _loginSession,
+                  manualMode: _manualLoginMode,
+                  isBusy: _isSubmitting || _isOpeningLogin,
+                  onLogin: _loginProvider,
+                  onUseManual: _useManualLogin,
+                ),
+                if (_manualLoginMode) ...[
+                  SizedBox(height: spacing.md),
+                  ProviderConfigFormFields(
+                    controller: _providerConfigController,
+                    enabled: !_isSubmitting,
+                    isEditing: _isEditing,
+                    onlyKeys: managedKeys,
+                  ),
+                ],
+              ],
               if (provider != null &&
                   provider.libraryConfigFields.isNotEmpty) ...[
                 SizedBox(height: spacing.lg),
@@ -452,6 +555,7 @@ class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
                   controller: _providerConfigController,
                   enabled: !_isSubmitting,
                   isEditing: _isEditing,
+                  excludedKeys: login == null ? const <String>{} : managedKeys,
                 ),
               ],
               SizedBox(height: spacing.xl),

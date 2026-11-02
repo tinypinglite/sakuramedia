@@ -161,6 +161,7 @@
   "sseActorSyncingOnlineResults": "正在同步在线女优搜索结果",
   "commonCancel": "取消",
   "commonRetry": "重试",
+  "commonClose": "关闭",
   "commonDelete": "删除",
   "commonCopy": "复制",
   "commonDone": "完成",
@@ -802,6 +803,54 @@
   "mediaLibraryStorageDescriptionDesktop": "媒体库通过已安装的 Provider 连接存储；Provider 配置由插件目录动态提供。",
   "mediaLibraryAdd": "新增媒体库",
   "mediaLibraryProviderCatalogUnavailable": "Provider 目录暂不可用，已存在的媒体库仍可管理；新增或编辑配置前请重试。",
+  "providerLoginTitle": "登录 {provider}",
+  "@providerLoginTitle": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "providerLoginDescription": "在 App 内登录后会自动返回并填入媒体库配置，无需手动复制 Cookie 或 token。",
+  "providerLoginAction": "打开登录页",
+  "providerLoginAgain": "重新登录",
+  "providerLoginSuccess": "登录成功 · 账号 {account}",
+  "@providerLoginSuccess": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      }
+    }
+  },
+  "providerLoginSuccessWithoutAccount": "登录成功",
+  "providerLoginUseManual": "高级：手动填写",
+  "providerLoginManualActive": "正在手动填写登录信息",
+  "providerLoginManualDescription": "手动填写会替代网页登录结果，保存时按原有方式校验。",
+  "providerLoginUseWeb": "改回网页登录",
+  "providerLoginRequired": "请先登录，或展开高级选项手动填写",
+  "providerLoginFailed": "网页登录验证失败，请重新登录",
+  "providerLoginTimedOut": "登录超时，请重试",
+  "providerLoginPageLoadFailed": "登录页加载失败，请检查网络后重试",
+  "providerLoginSessionResetFailed": "清理上次登录状态失败，请重试",
+  "providerLoginUnavailable": "当前 Provider 的登录配置无效",
+  "providerLoginWaitingHint": "请在上方网页完成登录，成功后会自动返回",
+  "providerLoginValidatingTitle": "已检测到登录",
+  "providerLoginValidating": "正在验证 {provider} 账号",
+  "@providerLoginValidating": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "providerLoginValidatingSlow": "仍在验证 {provider} 账号，网络较慢时可能需要更久",
+  "@providerLoginValidatingSlow": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
   "mediaLibraryEmpty": "还没有媒体库",
   "mediaLibraryLoadFailedTitle": "媒体库加载失败",
   "mediaLibraryLoadFailedFallback": "媒体库加载失败，请稍后重试。",
@@ -4391,7 +4440,24 @@
   },
   "movieWidgetRatingDimensionDeleteFailed": "删除评分维度失败",
   "movieWidgetRatingDimensionsTitle": "评分维度",
-  "movieWidgetRatingScaleHint": "统一 1–5 分；总分按已填维度加权平均。",
+  "movieWidgetRatingScaleHint": "各维度可使用 1–5、1–10 或 1–100 分；总分固定 1–5，按已填维度加权平均。",
+  "movieWidgetRatingScaleLabel": "分数范围",
+  "movieWidgetRatingScale5": "5 分制",
+  "movieWidgetRatingScale10": "10 分制",
+  "movieWidgetRatingScale100": "百分制",
+  "movieWidgetRatingScaleLocked": "已有评分，分数范围不可修改",
+  "movieWidgetRatingScoreInvalid": "请输入 {min}–{max} 的整数",
+  "@movieWidgetRatingScoreInvalid": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "movieWidgetRatingClearScore": "清除评分",
   "movieWidgetAddDimension": "新增维度",
   "movieWidgetEditDimension": "编辑维度",
   "movieWidgetDimensionNameHint": "维度名称，如 颜值 / 剧情",

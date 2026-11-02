@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:sakuramedia/theme.dart';
 
 class AppTextField extends StatelessWidget {
@@ -17,6 +18,8 @@ class AppTextField extends StatelessWidget {
     this.enabled = true,
     this.validator,
     this.keyboardType,
+    this.inputFormatters,
+    this.onTapOutside,
     this.textInputAction,
     this.onFieldSubmitted,
     this.onChanged,
@@ -45,6 +48,8 @@ class AppTextField extends StatelessWidget {
   final bool enabled;
   final FormFieldValidator<String>? validator;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final TapRegionCallback? onTapOutside;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onFieldSubmitted;
   final ValueChanged<String>? onChanged;
@@ -99,6 +104,8 @@ class AppTextField extends StatelessWidget {
           enabled: enabled,
           validator: validator,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          onTapOutside: onTapOutside,
           textInputAction: textInputAction,
           onFieldSubmitted: onFieldSubmitted,
           onChanged: onChanged,

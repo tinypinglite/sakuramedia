@@ -18,8 +18,8 @@ class MovieRatingValueDto {
       dimensionId: json['dimension_id'] as int? ?? 0,
       name: json['name'] as String? ?? '',
       value: json['value'] as int? ?? 0,
-      minValue: json['min_value'] as int? ?? 0,
-      maxValue: json['max_value'] as int? ?? 10,
+      minValue: json['min_value'] as int? ?? 1,
+      maxValue: json['max_value'] as int? ?? 5,
     );
   }
 }
@@ -36,7 +36,7 @@ class MovieRatingDto {
   final String movieNumber;
   final bool rated;
 
-  /// 总分固定 0-10，保留一位小数。
+  /// 总分固定 1-5，保留一位小数。
   final double? totalScore;
   final List<MovieRatingValueDto> values;
   final DateTime? updatedAt;

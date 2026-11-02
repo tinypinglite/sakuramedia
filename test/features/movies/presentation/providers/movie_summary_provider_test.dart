@@ -972,10 +972,29 @@ void main() {
     expect(request.method, 'GET');
     expect(request.uri.path, '/movies');
     expect(request.uri.queryParameters['rated'], 'true');
+    expect(request.uri.queryParameters['status'], 'all');
+    expect(request.uri.queryParameters['collection_type'], 'all');
     expect(request.uri.queryParameters['sort'], 'my_score:desc');
 
     final state = container.read(movieSummaryProvider(scope)).requireValue;
     expect(state.paged.items.single.myScore, 4.5);
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page(items: [_movie('ABC-002')], total: 1),
+    );
+    final notifier = container.read(movieSummaryProvider(scope).notifier);
+    await notifier.applyMovieFilter(
+      state.filter.movie.copyWith(
+        status: MovieStatusFilter.subscribed,
+        collectionType: MovieCollectionTypeFilter.single,
+      ),
+    );
+    final filteredRequest = adapter.requests.last;
+    expect(filteredRequest.uri.queryParameters['status'], 'subscribed');
+    expect(filteredRequest.uri.queryParameters['collection_type'], 'single');
+    expect(filteredRequest.uri.queryParameters['sort'], 'my_score:desc');
   });
 
   test('我的评分 scope 不自行保活，无监听者后释放', () async {
@@ -995,6 +1014,55 @@ void main() {
     subscription.close();
     await container.pump();
     expect(container.exists(movieSummaryProvider(scope)), isFalse);
+  });
+
+  test('我的评分状态与单体筛选收到批量变更后就地移除', () async {
+    const scope = MovieSummaryScope.ratedList;
+    await prime(scope, <Map<String, dynamic>>[
+      _movie('ABC-001', isSubscribed: true),
+      _movie('ABC-002', isSubscribed: true),
+    ]);
+    final notifier = container.read(movieSummaryProvider(scope).notifier);
+    final initial = container.read(movieSummaryProvider(scope)).requireValue;
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page(
+        items: <Map<String, dynamic>>[
+          _movie('ABC-001', isSubscribed: true),
+          _movie('ABC-002', isSubscribed: true),
+        ],
+        total: 2,
+      ),
+    );
+    await notifier.applyMovieFilter(
+      initial.filter.movie.copyWith(
+        status: MovieStatusFilter.subscribed,
+        collectionType: MovieCollectionTypeFilter.single,
+      ),
+    );
+
+    subscriptionBroadcaster().reportBatch(<MovieSubscriptionChange>[
+      const MovieSubscriptionChange(
+        movieNumber: 'ABC-001',
+        isSubscribed: false,
+        fromBatch: true,
+      ),
+    ]);
+    await _settleEvents();
+    var state = container.read(movieSummaryProvider(scope)).requireValue;
+    expect(state.paged.items.map((item) => item.movieNumber), <String>[
+      'ABC-002',
+    ]);
+
+    collectionBroadcaster().reportChange(
+      movieNumber: 'ABC-002',
+      targetType: MovieCollectionType.collection,
+    );
+    await _settleEvents();
+    state = container.read(movieSummaryProvider(scope)).requireValue;
+    expect(state.paged.items, isEmpty);
+    expect(state.paged.total, 0);
   });
 }
 

@@ -36,22 +36,35 @@ class ProviderConfigFormController {
   ///
   /// 空的 required secret 会保留为空字符串，由表单校验或后端返回必填错误；
   /// 只读字段始终不提交。
-  Map<String, dynamic> toCreateProviderConfig() {
-    return _toProviderConfig(omitEmptySecrets: false);
+  Map<String, dynamic> toCreateProviderConfig({
+    Set<String> excludedKeys = const <String>{},
+  }) {
+    return _toProviderConfig(
+      omitEmptySecrets: false,
+      excludedKeys: excludedKeys,
+    );
   }
 
   /// 编辑时读取表单值。
   ///
   /// 空的 secret 表示「沿用服务端已有值」，因此省略该 key；只读字段始终不
   /// 提交，由后端负责保留原值。
-  Map<String, dynamic> toUpdateProviderConfig() {
-    return _toProviderConfig(omitEmptySecrets: true);
+  Map<String, dynamic> toUpdateProviderConfig({
+    Set<String> excludedKeys = const <String>{},
+  }) {
+    return _toProviderConfig(
+      omitEmptySecrets: true,
+      excludedKeys: excludedKeys,
+    );
   }
 
-  Map<String, dynamic> _toProviderConfig({required bool omitEmptySecrets}) {
+  Map<String, dynamic> _toProviderConfig({
+    required bool omitEmptySecrets,
+    required Set<String> excludedKeys,
+  }) {
     final result = <String, dynamic>{};
     for (final field in fields) {
-      if (field.readOnly) {
+      if (field.readOnly || excludedKeys.contains(field.key)) {
         continue;
       }
       final value = controllerFor(field.key).text;
@@ -84,6 +97,8 @@ class ProviderConfigFormFields extends StatelessWidget {
     this.isEditing = false,
     this.focusNodes = const <String, FocusNode>{},
     this.fieldSpacing,
+    this.excludedKeys = const <String>{},
+    this.onlyKeys,
   });
 
   final ProviderConfigFormController controller;
@@ -92,12 +107,19 @@ class ProviderConfigFormFields extends StatelessWidget {
   final bool isEditing;
   final Map<String, FocusNode> focusNodes;
   final double? fieldSpacing;
+  final Set<String> excludedKeys;
+  final Set<String>? onlyKeys;
 
   @override
   Widget build(BuildContext context) {
     final spacing = fieldSpacing ?? context.appSpacing.lg;
     final editableFields = controller.fields
-        .where((field) => !field.readOnly)
+        .where(
+          (field) =>
+              !field.readOnly &&
+              !excludedKeys.contains(field.key) &&
+              (onlyKeys == null || onlyKeys!.contains(field.key)),
+        )
         .toList(growable: false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -4,14 +4,16 @@ import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto
 import 'package:sakuramedia/features/movies/data/dto/rating/rating_dimension_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_summary_list_content.dart';
+import 'package:sakuramedia/features/movies/presentation/pages/shared/rated_movies_filter.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/rating_dimensions_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/rating/rating_dimensions_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_sort_menu_button.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
 
-/// 「我的评分」页顶栏；桌面浮层与移动抽屉共用同一个排序入口。
+/// 「我的评分」页顶栏；桌面浮层与移动抽屉共用同一套筛选和排序入口。
 class RatedMoviesHeader extends ConsumerWidget {
   const RatedMoviesHeader({
     super.key,
@@ -50,8 +52,33 @@ class RatedMoviesHeader extends ConsumerWidget {
         ? 'total'
         : 'dimension:${args.filterState.dimensionSortId}';
     final l10n = AppLocalizations.of(context);
+    final filterState = args.filterState;
+    final filterIsDefault = ratedMovieFilterIsDefault(filterState);
 
     return AppListHeader(
+      onFilterTap: isMobile
+          ? () => showMobileRatedMoviesFilterDrawer(
+              context,
+              current: filterState,
+              onChanged: args.onApply,
+            )
+          : null,
+      filterPanelBuilder: isMobile
+          ? null
+          : (_) => RatedMovieFilterSections(
+              filterState: filterState,
+              onChanged: args.onApply,
+            ),
+      filterPanelFooter: isMobile
+          ? null
+          : AppFilterPanelFooter(
+              isDefault: filterIsDefault,
+              onReset: () => args.onApply(ratedMovieFilterReset(filterState)),
+            ),
+      filterButtonKey: const Key('rated-movies-filter-trigger'),
+      filterPanelKey: const Key('rated-movies-filter-panel'),
+      filterLabel: ratedMovieFilterLabel(filterState, l10n),
+      filterTooltip: l10n.moviePageFilterTooltip,
       informationSlots: [
         AppListHeaderInfo(
           key: Key(
@@ -109,7 +136,7 @@ class RatedMoviesHeader extends ConsumerWidget {
           label: l10n.moviePageDimensionManage,
           icon: const Icon(Icons.tune_rounded),
           size: AppTextButtonSize.xSmall,
-          onPressed: () => showRatingDimensionsDialog(context),
+          onPressed: () => showRatingDimensionsDialog(context, ref: ref),
         ),
       ],
     );

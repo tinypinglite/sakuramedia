@@ -169,6 +169,8 @@ class MovieSummary extends _$MovieSummary
       ),
       MovieSummarySource.rated => moviesApi.getMovies(
         rated: true,
+        status: filter.movie.status,
+        collectionType: filter.movie.collectionType,
         sort: filter.movie.sortExpression,
         page: page,
         pageSize: pageSize,
@@ -374,7 +376,8 @@ class MovieSummary extends _$MovieSummary
     final filtersByStatus =
         scope.source == MovieSummarySource.actor ||
         scope.source == MovieSummarySource.movies ||
-        scope.source == MovieSummarySource.tags;
+        scope.source == MovieSummarySource.tags ||
+        scope.source == MovieSummarySource.rated;
     final remove =
         filtersByStatus &&
         switch (current.filter.movie.status) {
@@ -423,7 +426,8 @@ class MovieSummary extends _$MovieSummary
   bool get _removesCollectionMovies {
     return scope.source == MovieSummarySource.subscribedActorsLatest ||
         ((scope.source == MovieSummarySource.movies ||
-                scope.source == MovieSummarySource.tags) &&
+                scope.source == MovieSummarySource.tags ||
+                scope.source == MovieSummarySource.rated) &&
             activeFilter.movie.collectionType ==
                 MovieCollectionTypeFilter.single) ||
         (scope.source == MovieSummarySource.actor &&
@@ -444,7 +448,8 @@ class MovieSummary extends _$MovieSummary
     }
     if (scope.source != MovieSummarySource.movies &&
         scope.source != MovieSummarySource.tags &&
-        scope.source != MovieSummarySource.actor) {
+        scope.source != MovieSummarySource.actor &&
+        scope.source != MovieSummarySource.rated) {
       return false;
     }
     return switch (activeFilter.movie.status) {

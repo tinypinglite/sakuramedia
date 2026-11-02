@@ -61,6 +61,10 @@ void main() {
         'url': 'http://example.com',
         'password': 'secret',
       });
+      expect(
+        controller.toUpdateProviderConfig(excludedKeys: const <String>{'url'}),
+        <String, dynamic>{'password': 'secret'},
+      );
     },
   );
 
@@ -127,5 +131,42 @@ void main() {
       ),
     );
     expect(editFormKey.currentState!.validate(), isTrue);
+  });
+
+  testWidgets('excluded and only keys control rendered fields', (tester) async {
+    final controller = ProviderConfigFormController(fields: fields);
+    addTearDown(controller.dispose);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        locale: const Locale('zh'),
+        localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+          AppLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
+        supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+        home: Scaffold(
+          body: Column(
+            children: [
+              ProviderConfigFormFields(
+                controller: controller,
+                excludedKeys: const <String>{'password'},
+              ),
+              ProviderConfigFormFields(
+                controller: controller,
+                onlyKeys: const <String>{'password'},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('provider-config-field-url')), findsOneWidget);
+    expect(
+      find.byKey(const Key('provider-config-field-password')),
+      findsOneWidget,
+    );
   });
 }

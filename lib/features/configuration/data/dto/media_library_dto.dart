@@ -53,31 +53,40 @@ class CreateMediaLibraryPayload {
     required this.name,
     required this.providerKey,
     this.providerConfig = const <String, dynamic>{},
+    this.authSessionId,
   });
 
   final String name;
   final String providerKey;
   final Map<String, dynamic> providerConfig;
+  final String? authSessionId;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'name': name,
       'provider_key': providerKey,
       'provider_config': providerConfig,
+      if (authSessionId != null) 'auth_session_id': authSessionId,
     };
   }
 }
 
 class UpdateMediaLibraryPayload {
-  const UpdateMediaLibraryPayload({this.name, this.providerConfig});
+  const UpdateMediaLibraryPayload({
+    this.name,
+    this.providerConfig,
+    this.authSessionId,
+  });
 
   final String? name;
   final Map<String, dynamic>? providerConfig;
+  final String? authSessionId;
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       if (name != null) 'name': name,
       if (providerConfig != null) 'provider_config': providerConfig,
+      if (authSessionId != null) 'auth_session_id': authSessionId,
     };
   }
 }
