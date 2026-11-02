@@ -34,26 +34,24 @@ class _SystemLogExportCardState extends ConsumerState<SystemLogExportCard> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final spacing = context.appSpacing;
-    final controls = <Widget>[
-      SizedBox(
-        width: 196,
-        child: AppSelectField<SystemLogRange>(
-          key: const Key('system-logs-range-select'),
-          label: l10n.systemLogsRangeLabel,
-          value: _range,
-          size: AppSelectFieldSize.compact,
-          items: _rangeItems(l10n),
-          onChanged: _isExporting
-              ? null
-              : (value) {
-                  if (value != null) {
-                    setState(() => _range = value);
-                  }
-                },
-        ),
+    final rangeControl = SizedBox(
+      width: 196,
+      child: AppSelectField<SystemLogRange>(
+        key: const Key('system-logs-range-select'),
+        label: l10n.systemLogsRangeLabel,
+        value: _range,
+        size: AppSelectFieldSize.compact,
+        items: _rangeItems(l10n),
+        onChanged: _isExporting
+            ? null
+            : (value) {
+                if (value != null) {
+                  setState(() => _range = value);
+                }
+              },
       ),
-      _buildRedactControl(l10n),
-    ];
+    );
+    final redactControl = _buildRedactControl(l10n);
 
     return AppContentCard(
       key: const Key('system-logs-export-card'),
@@ -74,7 +72,9 @@ class _SystemLogExportCardState extends ConsumerState<SystemLogExportCard> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ...controls,
+                rangeControl,
+                SizedBox(height: spacing.md),
+                redactControl,
                 SizedBox(height: spacing.md),
                 _buildExportButton(l10n, expand: true),
               ],
@@ -83,8 +83,22 @@ class _SystemLogExportCardState extends ConsumerState<SystemLogExportCard> {
             Wrap(
               spacing: spacing.lg,
               runSpacing: spacing.md,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [...controls, _buildExportButton(l10n)],
+              crossAxisAlignment: WrapCrossAlignment.end,
+              children: [
+                rangeControl,
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: context.appFormTokens.compactFieldHeight,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: 1,
+                    heightFactor: 1,
+                    child: redactControl,
+                  ),
+                ),
+                _buildExportButton(l10n),
+              ],
             ),
           SizedBox(height: spacing.sm),
           Text(
