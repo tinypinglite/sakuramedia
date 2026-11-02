@@ -57,6 +57,11 @@ void main() {
       find.byKey(const Key('mobile-system-maintenance-image-search-card')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const Key('system-logs-export-card')),
+      findsOneWidget,
+    );
+    expect(find.text('导出后端日志'), findsOneWidget);
     expect(find.text('重建索引'), findsOneWidget);
   });
 
@@ -85,11 +90,12 @@ void main() {
         'state': 'pending',
       },
     );
-    await tester.tap(
-      find.byKey(
-        const Key('mobile-system-maintenance-media_video_info_backfill-run'),
-      ),
+    final mediaInfoRunButton = find.byKey(
+      const Key('mobile-system-maintenance-media_video_info_backfill-run'),
     );
+    await tester.ensureVisible(mediaInfoRunButton);
+    await tester.pumpAndSettle();
+    await tester.tap(mediaInfoRunButton);
     await tester.pumpAndSettle();
     expect(
       bundle.adapter.hitCount(

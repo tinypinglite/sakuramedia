@@ -59,4 +59,29 @@ void main() {
     expect(bytes, Uint8List.fromList(const <int>[4, 5, 6]));
     expect(adapter.requests.single.path, 'https://cdn.example.com/file.webp');
   });
+
+  test('getBytes forwards query parameters and receive timeout', () async {
+    adapter.enqueueBytes(
+      method: 'GET',
+      path: '/system/logs/archive',
+      body: Uint8List.fromList(const <int>[7, 8, 9]),
+    );
+
+    final bytes = await apiClient.getBytes(
+      '/system/logs/archive',
+      queryParameters: <String, dynamic>{
+        'range': '24h',
+        'redact_sensitive': true,
+      },
+      receiveTimeout: const Duration(minutes: 2),
+    );
+
+    expect(bytes, Uint8List.fromList(const <int>[7, 8, 9]));
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters, <String, String>{
+      'range': '24h',
+      'redact_sensitive': 'true',
+    });
+    expect(request.receiveTimeout, const Duration(minutes: 2));
+  });
 }

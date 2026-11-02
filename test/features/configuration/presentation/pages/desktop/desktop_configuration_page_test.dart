@@ -209,6 +209,10 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const Key('system-logs-export-card')),
+        findsOneWidget,
+      );
       expect(find.text('立即重建'), findsOneWidget);
 
       bundle.adapter.enqueueJson(

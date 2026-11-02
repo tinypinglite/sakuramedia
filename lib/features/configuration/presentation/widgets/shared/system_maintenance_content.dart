@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/activity/presentation/providers/activity_ap
 import 'package:sakuramedia/features/status/data/status_dto.dart';
 import 'package:sakuramedia/features/status/presentation/status_placeholders.dart';
 import 'package:sakuramedia/features/status/presentation/providers/status_api_provider.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/system_log_export_card.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
@@ -138,6 +139,8 @@ class _SystemMaintenanceContentState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        SystemLogExportCard(isMobile: _isMobile),
+        SizedBox(height: context.appSpacing.xl),
         _buildImageSearchSection(context),
         SizedBox(height: context.appSpacing.xl),
         _buildMaintenanceTaskCard(
