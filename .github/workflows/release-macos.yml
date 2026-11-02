@@ -9,7 +9,7 @@ permissions:
 jobs:
   build-and-release:
     name: Build macOS dmg and publish release
-    runs-on: macos-latest
+    runs-on: macos-15
 
     env:
       DMG_NAME: sakuramedia-macos-${{ github.ref_name }}-unsigned.dmg
