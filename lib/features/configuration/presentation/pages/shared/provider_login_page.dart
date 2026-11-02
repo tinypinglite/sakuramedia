@@ -578,7 +578,7 @@ class _ProviderLoginPageState extends ConsumerState<ProviderLoginPage> {
             if (_error != null)
               Positioned.fill(
                 child: ColoredBox(
-                  color: Colors.black54,
+                  color: context.appColors.mediaOverlayStrong,
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 420),

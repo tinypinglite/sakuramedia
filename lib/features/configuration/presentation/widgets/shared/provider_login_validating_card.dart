@@ -47,7 +47,7 @@ class _ProviderLoginValidatingCardState
 
     return AbsorbPointer(
       child: ColoredBox(
-        color: Colors.black54,
+        color: colors.mediaOverlayStrong,
         child: Center(
           child: SingleChildScrollView(
             padding: EdgeInsets.all(spacing.lg),
