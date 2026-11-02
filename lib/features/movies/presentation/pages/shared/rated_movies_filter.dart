@@ -8,13 +8,15 @@ import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 
 bool ratedMovieFilterIsDefault(MovieFilterState filter) {
   return filter.status == MovieStatusFilter.all &&
-      filter.collectionType == MovieCollectionTypeFilter.all;
+      filter.collectionType == MovieCollectionTypeFilter.all &&
+      filter.numberSource == MovieNumberSourceFilter.all;
 }
 
 MovieFilterState ratedMovieFilterReset(MovieFilterState filter) {
   return filter.copyWith(
     status: MovieStatusFilter.all,
     collectionType: MovieCollectionTypeFilter.all,
+    numberSource: MovieNumberSourceFilter.all,
   );
 }
 
@@ -23,6 +25,8 @@ String ratedMovieFilterLabel(MovieFilterState filter, AppLocalizations l10n) {
     if (filter.status != MovieStatusFilter.all) filter.status.labelWith(l10n),
     if (filter.collectionType != MovieCollectionTypeFilter.all)
       filter.collectionType.labelWith(l10n),
+    if (filter.numberSource != MovieNumberSourceFilter.all)
+      filter.numberSource.labelWith(l10n),
   ];
   return labels.isEmpty ? l10n.widgetMovieFilterAll : labels.join(' · ');
 }
@@ -63,6 +67,17 @@ class RatedMovieFilterSections extends StatelessWidget {
               Key('rated-movies-filter-collection-${value.apiValue}'),
           onSelected: (value) =>
               onChanged(filterState.copyWith(collectionType: value)),
+        ),
+        SizedBox(height: context.appSpacing.lg),
+        MovieFilterChoiceSection<MovieNumberSourceFilter>(
+          title: l10n.widgetMovieFilterNumberSourceTitle,
+          options: MovieNumberSourceFilter.values,
+          selectedValue: filterState.numberSource,
+          labelBuilder: (value) => value.labelWith(l10n),
+          optionKeyBuilder: (value) =>
+              Key('rated-movies-filter-number-source-${value.apiValue}'),
+          onSelected: (value) =>
+              onChanged(filterState.copyWith(numberSource: value)),
         ),
       ],
     );

@@ -171,6 +171,7 @@ class MovieSummary extends _$MovieSummary
         rated: true,
         status: filter.movie.status,
         collectionType: filter.movie.collectionType,
+        numberSource: filter.movie.numberSource,
         sort: filter.movie.sortExpression,
         page: page,
         pageSize: pageSize,

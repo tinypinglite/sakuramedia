@@ -974,6 +974,7 @@ void main() {
     expect(request.uri.queryParameters['rated'], 'true');
     expect(request.uri.queryParameters['status'], 'all');
     expect(request.uri.queryParameters['collection_type'], 'all');
+    expect(request.uri.queryParameters['number_source'], 'all');
     expect(request.uri.queryParameters['sort'], 'my_score:desc');
 
     final state = container.read(movieSummaryProvider(scope)).requireValue;
@@ -989,11 +990,13 @@ void main() {
       state.filter.movie.copyWith(
         status: MovieStatusFilter.subscribed,
         collectionType: MovieCollectionTypeFilter.single,
+        numberSource: MovieNumberSourceFilter.fc2,
       ),
     );
     final filteredRequest = adapter.requests.last;
     expect(filteredRequest.uri.queryParameters['status'], 'subscribed');
     expect(filteredRequest.uri.queryParameters['collection_type'], 'single');
+    expect(filteredRequest.uri.queryParameters['number_source'], 'fc2');
     expect(filteredRequest.uri.queryParameters['sort'], 'my_score:desc');
   });
 

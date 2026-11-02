@@ -415,7 +415,7 @@ void main() {
     expect(find.text('已有评分，分数范围不可修改'), findsOneWidget);
   });
 
-  testWidgets('筛选订阅状态与合集类型，并重置为全部', (tester) async {
+  testWidgets('筛选订阅状态、合集类型与番号来源，并重置为全部', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1280, 1000);
     addTearDown(() {
@@ -486,11 +486,26 @@ void main() {
     );
     expect(request.uri.queryParameters['status'], 'subscribed');
     expect(request.uri.queryParameters['collection_type'], 'single');
+    expect(request.uri.queryParameters['number_source'], 'all');
     expect(request.uri.queryParameters['sort'], 'my_score:desc');
+
+    bundle.adapter.enqueueJson(method: 'GET', path: '/movies', body: pageBody);
+    await tester.tap(
+      find.byKey(const Key('rated-movies-filter-number-source-fc2')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    request = bundle.adapter.requests.lastWhere(
+      (request) => request.uri.path == '/movies',
+    );
+    expect(request.uri.queryParameters['status'], 'subscribed');
+    expect(request.uri.queryParameters['collection_type'], 'single');
+    expect(request.uri.queryParameters['number_source'], 'fc2');
     expect(
       find.descendant(
         of: find.byKey(const Key('rated-movies-filter-trigger')),
-        matching: find.text('已订阅 · 单体'),
+        matching: find.text('已订阅 · 单体 · FC2'),
       ),
       findsOneWidget,
     );
@@ -505,6 +520,7 @@ void main() {
     );
     expect(request.uri.queryParameters['status'], 'all');
     expect(request.uri.queryParameters['collection_type'], 'all');
+    expect(request.uri.queryParameters['number_source'], 'all');
     expect(request.uri.queryParameters['sort'], 'my_score:desc');
     expect(
       find.descendant(

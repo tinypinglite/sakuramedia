@@ -126,7 +126,7 @@ void main() {
     );
   });
 
-  testWidgets('移动端筛选抽屉切换状态和合集类型', (tester) async {
+  testWidgets('移动端筛选抽屉切换状态、合集类型和番号来源', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(390, 844);
     addTearDown(() {
@@ -200,5 +200,22 @@ void main() {
     );
     expect(request.uri.queryParameters['status'], 'unsubscribed');
     expect(request.uri.queryParameters['collection_type'], 'single');
+
+    bundle.adapter.enqueueJson(method: 'GET', path: '/movies', body: pageBody);
+    await tester.tap(
+      find.byKey(const Key('rated-movies-filter-number-source-regular')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final numberSourceRequest = bundle.adapter.requests.lastWhere(
+      (request) => request.uri.path == '/movies',
+    );
+    expect(numberSourceRequest.uri.queryParameters['status'], 'unsubscribed');
+    expect(
+      numberSourceRequest.uri.queryParameters['collection_type'],
+      'single',
+    );
+    expect(numberSourceRequest.uri.queryParameters['number_source'], 'regular');
   });
 }
