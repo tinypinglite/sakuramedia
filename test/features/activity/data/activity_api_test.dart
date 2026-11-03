@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations_zh.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -276,6 +277,35 @@ void main() {
       );
     },
   );
+
+  test('media transfer result entry requires terminal details marker', () {
+    final completed = TaskRunDto.fromJson(<String, dynamic>{
+      ..._taskRunJson(id: 46, state: 'completed'),
+      'task_key': 'media_storage_transfer',
+      'result_summary': <String, dynamic>{
+        'file_details': <String, dynamic>{'count': 3},
+      },
+    });
+    final running = TaskRunDto.fromJson(<String, dynamic>{
+      ..._taskRunJson(id: 47, state: 'running'),
+      'task_key': 'media_storage_transfer',
+      'result_summary': <String, dynamic>{
+        'file_details': <String, dynamic>{'count': 3},
+      },
+    });
+    final historical = TaskRunDto.fromJson(<String, dynamic>{
+      ..._taskRunJson(id: 48, state: 'completed'),
+      'task_key': 'media_storage_transfer',
+      'result_summary': <String, dynamic>{'transferred_count': 3},
+    });
+
+    expect(completed.mediaTransferFileCount, 3);
+    expect(completed.canViewMediaTransferFiles, isTrue);
+    expect(running.mediaTransferFileCount, 3);
+    expect(running.canViewMediaTransferFiles, isFalse);
+    expect(historical.mediaTransferFileCount, 0);
+    expect(historical.canViewMediaTransferFiles, isFalse);
+  });
 
   test(
     'batch operation task displays succeeded/failed counts instead of wire keys',

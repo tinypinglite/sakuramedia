@@ -69,6 +69,17 @@ class TaskRunDto {
   int get skippedFileCount =>
       _failedFileItems.where((item) => item['kind'] == 'skipped').length;
 
+  /// 媒体迁移任务保存的逐文件结果数量；旧任务没有 `file_details`，返回 0。
+  int get mediaTransferFileCount {
+    if (taskKey != 'media_storage_transfer') return 0;
+    final details = asMapOrNull(resultSummary?['file_details']);
+    final count = details?['count'];
+    return count is int ? count : 0;
+  }
+
+  /// 仅终态且后端保存了逐文件明细时提供查看入口。
+  bool get canViewMediaTransferFiles => !isActive && mediaTransferFileCount > 0;
+
   Iterable<Map<String, dynamic>> get _failedFileItems sync* {
     if (taskKey != 'library_import') return;
     final failedFiles = resultSummary?['failed_files'];

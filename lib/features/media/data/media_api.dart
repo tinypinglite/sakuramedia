@@ -254,4 +254,13 @@ class MediaApi {
     );
     return MediaTransferAcceptedResponseDto.fromJson(response);
   }
+
+  Future<List<MediaTransferFileDto>> getMediaTransferFiles({
+    required int taskRunId,
+  }) async {
+    final response = await _apiClient.getList(
+      '/media-transfers/$taskRunId/files',
+    );
+    return response.map(MediaTransferFileDto.fromJson).toList(growable: false);
+  }
 }

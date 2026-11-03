@@ -67,3 +67,58 @@ class MediaTransferAcceptedResponseDto {
     );
   }
 }
+
+enum MediaTransferFileStatus {
+  pending,
+  transferred,
+  skipped,
+  failed,
+  cleanupIncomplete,
+  unexecuted;
+
+  static MediaTransferFileStatus fromWire(String? value) {
+    return switch (value) {
+      'transferred' => MediaTransferFileStatus.transferred,
+      'skipped' => MediaTransferFileStatus.skipped,
+      'failed' => MediaTransferFileStatus.failed,
+      'cleanup_incomplete' => MediaTransferFileStatus.cleanupIncomplete,
+      'unexecuted' => MediaTransferFileStatus.unexecuted,
+      _ => MediaTransferFileStatus.pending,
+    };
+  }
+
+  bool get isTransferred => this == MediaTransferFileStatus.transferred;
+}
+
+/// `GET /media-transfers/{task_run_id}/files` 的单文件迁移结果。
+class MediaTransferFileDto {
+  const MediaTransferFileDto({
+    required this.mediaId,
+    required this.fileName,
+    required this.movieNumber,
+    required this.sizeBytes,
+    required this.status,
+    required this.reasonCode,
+    required this.targetCommitted,
+  });
+
+  final int mediaId;
+  final String fileName;
+  final String? movieNumber;
+  final int sizeBytes;
+  final MediaTransferFileStatus status;
+  final String? reasonCode;
+  final bool targetCommitted;
+
+  factory MediaTransferFileDto.fromJson(Map<String, dynamic> json) {
+    return MediaTransferFileDto(
+      mediaId: asInt(json['media_id']),
+      fileName: json['file_name'] as String? ?? '',
+      movieNumber: asStringOrNull(json['movie_number'], trim: true),
+      sizeBytes: asInt(json['size_bytes']),
+      status: MediaTransferFileStatus.fromWire(json['status'] as String?),
+      reasonCode: asStringOrNull(json['reason_code'], trim: true),
+      targetCommitted: json['target_committed'] == true,
+    );
+  }
+}

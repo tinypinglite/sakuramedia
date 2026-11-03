@@ -27,7 +27,7 @@ This is not a backup, sync or two-way mirror feature. Its goal is to complete a 
 1. First create and confirm that both the source and target media libraries work normally. To migrate from local to 115, you need SakuraMedia, Local Provider and 115 Provider versions that support migration.
 2. Open media management and select the media to migrate **within the same source media library**.
 3. Click "Migrate", choose one of the available target media libraries and submit.
-4. Check progress and results in the Activity Center. The task reports separate counts for "Migrated", "Skipped", "Failed", "Source file unconfirmed" and "Not run".
+4. Check progress and results in the Activity Center. The task reports separate counts for "Migrated", "Skipped", "Failed", "Source file unconfirmed" and "Not run"; click "View migration results" on the task card to see per-file outcomes and failure reasons.
 
 Migration runs items serially. Items that succeeded keep their results; if a later item runs into a changed file, a busy library, a network error or a cleanup error, the task stops instead of risking the items that have not been processed yet.
 

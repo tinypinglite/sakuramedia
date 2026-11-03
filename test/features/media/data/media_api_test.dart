@@ -3,6 +3,7 @@ import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/media/data/media_api.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
+import 'package:sakuramedia/features/media/data/media_transfer_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations_zh.dart';
 
 import '../../../support/fake_http_client_adapter.dart';
@@ -491,6 +492,42 @@ void main() {
       });
     },
   );
+
+  test('media transfer file details map statuses and reasons', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-transfers/91/files',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'media_id': 10,
+          'file_name': 'ABC-001.mp4',
+          'movie_number': 'ABC-001',
+          'size_bytes': 2048,
+          'status': 'transferred',
+          'reason_code': null,
+          'target_committed': true,
+        },
+        <String, dynamic>{
+          'media_id': 11,
+          'file_name': 'ABC-002.mp4',
+          'movie_number': 'ABC-002',
+          'size_bytes': 4096,
+          'status': 'cleanup_incomplete',
+          'reason_code': 'cleanup_unconfirmed',
+          'target_committed': true,
+        },
+      ],
+    );
+
+    final files = await mediaApi.getMediaTransferFiles(taskRunId: 91);
+
+    expect(files, hasLength(2));
+    expect(files.first.status, MediaTransferFileStatus.transferred);
+    expect(files.first.targetCommitted, isTrue);
+    expect(files.last.status, MediaTransferFileStatus.cleanupIncomplete);
+    expect(files.last.reasonCode, 'cleanup_unconfirmed');
+    expect(adapter.requests.single.path, '/media-transfers/91/files');
+  });
 
   test(
     'getMediaList sends backend-supported filters and sort params',

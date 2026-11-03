@@ -2714,6 +2714,14 @@
       }
     }
   },
+  "activityViewMediaTransferResult": "View migration results ({count})",
+  "@activityViewMediaTransferResult": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "activityFinishedAt": "Finished at {time}",
   "@activityFinishedAt": {
     "placeholders": {
@@ -3983,6 +3991,67 @@
   "widgetMediaVideoLabel": "Video #{id}",
   "widgetMediaMovieNumberLabel": "Movie number {number}",
   "widgetMediaTimestampLabel": "Timestamp {time}",
+  "widgetMediaTransferResultTitle": "Migration results",
+  "widgetMediaTransferSummarySucceeded": "{count} succeeded",
+  "@widgetMediaTransferSummarySucceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferSummaryUnsuccessful": "{count} unsuccessful",
+  "@widgetMediaTransferSummaryUnsuccessful": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferUnsuccessfulHeader": "Unsuccessful ({count})",
+  "@widgetMediaTransferUnsuccessfulHeader": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferSuccessfulHeader": "Transferred ({count})",
+  "@widgetMediaTransferSuccessfulHeader": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferFilesEmpty": "No file details to show for this task",
+  "widgetMediaTransferFilesLoadFailed": "Failed to load migration files. Try again later.",
+  "widgetMediaTransferFileFallback": "Media #{id}",
+  "@widgetMediaTransferFileFallback": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferStatusTransferred": "Transferred",
+  "widgetMediaTransferStatusFailed": "Failed",
+  "widgetMediaTransferStatusCleanupIncomplete": "Source file unconfirmed",
+  "widgetMediaTransferStatusSkipped": "Skipped",
+  "widgetMediaTransferStatusUnexecuted": "Not run",
+  "mediaTransferReasonMediaBusy": "Media is busy with another task",
+  "mediaTransferReasonLibraryChanged": "Media library configuration changed",
+  "mediaTransferReasonMediaUnavailable": "Source media changed or no longer exists",
+  "mediaTransferReasonSourceChanged": "Source file changed",
+  "mediaTransferReasonStageFailed": "Target staging failed",
+  "mediaTransferReasonSwitchFailed": "Failed to update media ownership",
+  "mediaTransferReasonTargetVerificationFailed": "Target file verification failed",
+  "mediaTransferReasonSourceCleanupFailed": "Source file cleanup failed",
+  "mediaTransferReasonCleanupUnconfirmed": "Source file cleanup result is unconfirmed",
+  "mediaTransferReasonInterrupted": "Task interrupted",
+  "mediaTransferReasonTransferSetupFailed": "Migration setup failed",
+  "mediaTransferReasonTargetNotAvailable": "Target did not hit; migration was not run",
+  "mediaTransferReasonUnknown": "Unknown reason",
   "widgetMediaImportFailedSkippedTitle": "Failed and skipped files",
   "widgetMediaImportSubtitlePendingFailures": "{count} failed",
   "widgetMediaImportSubtitleSkipped": "{count} skipped",

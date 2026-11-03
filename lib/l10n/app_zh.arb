@@ -2714,6 +2714,14 @@
       }
     }
   },
+  "activityViewMediaTransferResult": "查看迁移结果（{count}）",
+  "@activityViewMediaTransferResult": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "activityFinishedAt": "完成于 {time}",
   "@activityFinishedAt": {
     "placeholders": {
@@ -4039,6 +4047,67 @@
       }
     }
   },
+  "widgetMediaTransferResultTitle": "迁移结果",
+  "widgetMediaTransferSummarySucceeded": "成功 {count}",
+  "@widgetMediaTransferSummarySucceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferSummaryUnsuccessful": "未成功 {count}",
+  "@widgetMediaTransferSummaryUnsuccessful": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferUnsuccessfulHeader": "未成功（{count}）",
+  "@widgetMediaTransferUnsuccessfulHeader": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferSuccessfulHeader": "迁移成功（{count}）",
+  "@widgetMediaTransferSuccessfulHeader": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferFilesEmpty": "该任务没有可展示的文件明细",
+  "widgetMediaTransferFilesLoadFailed": "迁移文件加载失败，请稍后重试",
+  "widgetMediaTransferFileFallback": "媒体 #{id}",
+  "@widgetMediaTransferFileFallback": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferStatusTransferred": "已迁移",
+  "widgetMediaTransferStatusFailed": "失败",
+  "widgetMediaTransferStatusCleanupIncomplete": "源文件待确认",
+  "widgetMediaTransferStatusSkipped": "已跳过",
+  "widgetMediaTransferStatusUnexecuted": "未执行",
+  "mediaTransferReasonMediaBusy": "媒体被其他任务占用",
+  "mediaTransferReasonLibraryChanged": "媒体库配置已变化",
+  "mediaTransferReasonMediaUnavailable": "源媒体已变化或不存在",
+  "mediaTransferReasonSourceChanged": "源文件已变化",
+  "mediaTransferReasonStageFailed": "目标端暂存失败",
+  "mediaTransferReasonSwitchFailed": "媒体归属更新失败",
+  "mediaTransferReasonTargetVerificationFailed": "目标文件确认失败",
+  "mediaTransferReasonSourceCleanupFailed": "源文件清理失败",
+  "mediaTransferReasonCleanupUnconfirmed": "源文件清理结果未确认",
+  "mediaTransferReasonInterrupted": "任务中断",
+  "mediaTransferReasonTransferSetupFailed": "迁移初始化失败",
+  "mediaTransferReasonTargetNotAvailable": "目标端未命中，未执行迁移",
+  "mediaTransferReasonUnknown": "未知原因",
   "widgetMediaImportFailedSkippedTitle": "失败与跳过文件",
   "widgetMediaImportSubtitlePendingFailures": "失败 {count} 个待处理",
   "@widgetMediaImportSubtitlePendingFailures": {

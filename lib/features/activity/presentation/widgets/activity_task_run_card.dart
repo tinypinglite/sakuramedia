@@ -5,6 +5,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/domain/media/media_transfer_result_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media_import/import_failed_items_dialog.dart';
 
 /// 单条任务运行记录卡：活动区、最近操作列表与单个任务的历史弹层共用。
@@ -152,6 +153,25 @@ class ActivityTaskRunCard extends StatelessWidget {
                 size: AppTextButtonSize.small,
                 emphasis: AppTextButtonEmphasis.accent,
                 onPressed: () => showImportFailedItemsDialog(
+                  context: context,
+                  taskRunId: taskRun.id,
+                  taskName: taskRun.taskName,
+                ),
+              ),
+            ),
+          ],
+          if (taskRun.canViewMediaTransferFiles) ...[
+            SizedBox(height: context.appSpacing.sm),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: AppTextButton(
+                key: Key('activity-task-transfer-result-${taskRun.id}'),
+                label: l10n.activityViewMediaTransferResult(
+                  taskRun.mediaTransferFileCount,
+                ),
+                size: AppTextButtonSize.small,
+                emphasis: AppTextButtonEmphasis.accent,
+                onPressed: () => showMediaTransferResultDialog(
                   context: context,
                   taskRunId: taskRun.id,
                   taskName: taskRun.taskName,

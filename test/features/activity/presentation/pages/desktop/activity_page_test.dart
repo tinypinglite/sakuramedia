@@ -574,6 +574,131 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('completed media transfer task exposes file result entry', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+    await sessionStore.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.parse('2026-08-10T12:00:00Z'),
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      body: const <dynamic>[],
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/activity/bootstrap',
+      body: <String, dynamic>{
+        'notifications': <String, dynamic>{
+          'items': const <dynamic>[],
+          'page': 1,
+          'page_size': 20,
+          'total': 0,
+        },
+        'unread_count': 0,
+        'active_task_runs': const <dynamic>[],
+        'task_runs': <String, dynamic>{
+          'items': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 310,
+              'task_key': 'media_storage_transfer',
+              'task_name': '媒体存储迁移',
+              'trigger_type': 'manual',
+              'state': 'completed',
+              'result_summary': <String, dynamic>{
+                'transferred_count': 1,
+                'failed_count': 1,
+                'file_details': <String, dynamic>{'count': 2},
+              },
+            },
+            <String, dynamic>{
+              'id': 311,
+              'task_key': 'media_storage_transfer',
+              'task_name': '历史迁移',
+              'trigger_type': 'manual',
+              'state': 'completed',
+              'result_summary': <String, dynamic>{'transferred_count': 1},
+            },
+          ],
+          'page': 1,
+          'page_size': 20,
+          'total': 2,
+        },
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/media-transfers/310/files',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'media_id': 1,
+          'file_name': 'ABC-001.mp4',
+          'movie_number': 'ABC-001',
+          'size_bytes': 1024,
+          'status': 'transferred',
+          'reason_code': null,
+          'target_committed': true,
+        },
+        <String, dynamic>{
+          'media_id': 2,
+          'file_name': 'ABC-002.mp4',
+          'movie_number': 'ABC-002',
+          'size_bytes': 2048,
+          'status': 'failed',
+          'reason_code': 'media_busy',
+          'target_committed': false,
+        },
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: bundle.riverpodOverrides(),
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
+          supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+          theme: sakuraDesktopThemeData,
+          home: const Scaffold(body: DesktopActivityPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('查看迁移结果（2）'), findsOneWidget);
+    expect(
+      find.byKey(const Key('activity-task-transfer-result-311')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('activity-task-transfer-result-310')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('迁移结果'), findsOneWidget);
+    expect(find.text('未成功（1）'), findsOneWidget);
+    expect(find.text('迁移成功（1）'), findsOneWidget);
+    expect(find.text('ABC-001.mp4'), findsOneWidget);
+    expect(find.text('ABC-002.mp4'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
   testWidgets('retained task center follows visibility', (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1;
