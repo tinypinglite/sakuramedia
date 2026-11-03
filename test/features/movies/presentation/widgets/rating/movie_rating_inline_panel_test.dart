@@ -181,7 +181,7 @@ void main() {
     expect(find.byIcon(Icons.star_rounded), findsNothing);
   });
 
-  testWidgets('一行放得下就并排，放不下自动换行', (tester) async {
+  testWidgets('维度内部保持单行，维度之间按宽度换行', (tester) async {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     tester.view.physicalSize = const Size(390, 800);
@@ -195,15 +195,24 @@ void main() {
     double topOf(int dimensionId) => tester
         .getTopLeft(find.byKey(Key('movie-rating-score-$dimensionId-1')))
         .dy;
+    double centerY(Key key) => tester.getCenter(find.byKey(key)).dy;
 
     expect(topOf(2), topOf(1));
+    expect(
+      centerY(const Key('movie-rating-name-1')),
+      moreOrLessEquals(
+        centerY(const Key('movie-rating-stars-1')),
+        epsilon: 0.1,
+      ),
+    );
 
     tester.view.physicalSize = const Size(260, 800);
     await tester.pumpAndSettle();
     expect(topOf(2), greaterThan(topOf(1)));
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('10 分制展示十颗星并保存十分', (tester) async {
+  testWidgets('10 分制显示数值，点击后原位编辑并保存十分', (tester) async {
     tester.view.physicalSize = const Size(260, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -225,14 +234,26 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('movie-rating-score-1-10')), findsOneWidget);
+    final value = find.byKey(const Key('movie-rating-value-1'));
+    final field = find.byKey(const Key('movie-rating-score-1-field'));
+    expect(value, findsOneWidget);
+    expect(find.text('9/10'), findsOneWidget);
+    expect(field, findsNothing);
+    expect(find.byKey(const Key('movie-rating-score-1-10')), findsNothing);
 
     bundle.adapter.enqueueJson(
       method: 'PUT',
       path: '/movies/ABC-001/rating',
       body: _ratingJson(total: 4.5, looks: 10, plot: 3, looksMax: 10),
     );
-    await tester.tap(find.byKey(const Key('movie-rating-score-1-10')));
+    await tester.tap(value);
+    await tester.pumpAndSettle();
+    expect(field, findsOneWidget);
+    expect(tester.getSize(field).width, lessThanOrEqualTo(52));
+    expect(_fieldText(tester, field), '9');
+
+    await tester.enterText(field, '10');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
     final saveRequest = bundle.adapter.requests.lastWhere(
@@ -241,9 +262,11 @@ void main() {
     expect(saveRequest.body, <String, dynamic>{
       'values': <String, dynamic>{'1': 10, '2': 3},
     });
+    expect(field, findsNothing);
+    expect(find.text('10/10'), findsOneWidget);
   });
 
-  testWidgets('百分制使用数字输入并在提交和失焦时保存', (tester) async {
+  testWidgets('百分制平时显示数值，点击后在提交和失焦时保存', (tester) async {
     tester.view.physicalSize = const Size(260, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -265,15 +288,23 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final value = find.byKey(const Key('movie-rating-value-1'));
     final field = find.byKey(const Key('movie-rating-score-1-field'));
-    expect(field, findsOneWidget);
-    expect(find.text('75'), findsOneWidget);
+    expect(value, findsOneWidget);
+    expect(find.text('75/100'), findsOneWidget);
+    expect(field, findsNothing);
 
     bundle.adapter.enqueueJson(
       method: 'PUT',
       path: '/movies/ABC-001/rating',
       body: _ratingJson(total: 4.5, looks: 100, plot: 3, looksMax: 100),
     );
+    await tester.tap(value);
+    await tester.pumpAndSettle();
+    expect(field, findsOneWidget);
+    expect(tester.getSize(field).width, lessThanOrEqualTo(52));
+    expect(_fieldText(tester, field), '75');
+
     await tester.enterText(field, '100');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
@@ -284,14 +315,16 @@ void main() {
     expect(saveRequest.body, <String, dynamic>{
       'values': <String, dynamic>{'1': 100, '2': 3},
     });
+    expect(field, findsNothing);
+    expect(find.text('100/100'), findsOneWidget);
 
     bundle.adapter.enqueueJson(
       method: 'PUT',
       path: '/movies/ABC-001/rating',
       body: _ratingJson(total: 4.4, looks: 99, plot: 3, looksMax: 100),
     );
-    await tester.tap(field);
-    await tester.pump();
+    await tester.tap(value);
+    await tester.pumpAndSettle();
     await tester.enterText(field, '99');
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
@@ -302,6 +335,8 @@ void main() {
     expect(blurSaveRequest.body, <String, dynamic>{
       'values': <String, dynamic>{'1': 99, '2': 3},
     });
+    expect(field, findsNothing);
+    expect(find.text('99/100'), findsOneWidget);
   });
 
   testWidgets('百分制非法值不保存，清除后全部为空则删除评分', (tester) async {
@@ -330,22 +365,18 @@ void main() {
     await tester.pumpAndSettle();
 
     final requestCountBeforeInvalid = bundle.adapter.requests.length;
+    final value = find.byKey(const Key('movie-rating-value-1'));
     final field = find.byKey(const Key('movie-rating-score-1-field'));
+    await tester.tap(value);
+    await tester.pumpAndSettle();
     await tester.enterText(field, '101');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
     expect(bundle.adapter.requests.length, requestCountBeforeInvalid);
     expect(find.text('请输入 1–100 的整数'), findsOneWidget);
-    expect(
-      tester
-          .widget<EditableText>(
-            find.descendant(of: field, matching: find.byType(EditableText)),
-          )
-          .controller
-          .text,
-      '80',
-    );
+    expect(field, findsNothing);
+    expect(find.text('80/100'), findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
 
@@ -354,13 +385,85 @@ void main() {
       path: '/movies/ABC-001/rating',
       statusCode: 204,
     );
-    await tester.tap(find.byTooltip('清除评分'));
+    await tester.tap(value);
+    await tester.pumpAndSettle();
+    await tester.enterText(field, '');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
 
     expect(
       bundle.adapter.requests.any((request) => request.method == 'DELETE'),
       isTrue,
     );
+    expect(find.text('未评分'), findsOneWidget);
+    expect(field, findsNothing);
+
+    await tester.tap(value);
+    await tester.pumpAndSettle();
+    expect(field, findsOneWidget);
+    expect(_fieldText(tester, field), isEmpty);
+  });
+
+  testWidgets('混合分制保持紧凑横排，窄屏只在维度之间换行', (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.physicalSize = const Size(1100, 800);
+    tester.view.devicePixelRatio = 1;
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movie-rating-dimensions',
+      body: _mixedDimensionsJson(),
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/rating',
+      body: _mixedRatingJson(),
+    );
+    await tester.pumpWidget(
+      wrap(const MovieRatingInlinePanel(movieNumber: 'ABC-001')),
+    );
+    await tester.pumpAndSettle();
+
+    double centerY(Key key) => tester.getCenter(find.byKey(key)).dy;
+    final firstLabelCenterY = centerY(const Key('movie-rating-name-1'));
+    final starCenterY = centerY(const Key('movie-rating-stars-1'));
+    for (final dimensionId in <int>[1, 2, 3]) {
+      expect(
+        centerY(Key('movie-rating-name-$dimensionId')),
+        moreOrLessEquals(firstLabelCenterY, epsilon: 0.1),
+      );
+      for (var score = 1; score <= 5; score++) {
+        expect(
+          centerY(Key('movie-rating-score-$dimensionId-$score')),
+          moreOrLessEquals(starCenterY, epsilon: 0.1),
+        );
+      }
+    }
+    for (final dimensionId in <int>[4, 5]) {
+      expect(
+        centerY(Key('movie-rating-name-$dimensionId')),
+        moreOrLessEquals(firstLabelCenterY, epsilon: 0.1),
+      );
+      expect(
+        centerY(Key('movie-rating-value-$dimensionId')),
+        moreOrLessEquals(starCenterY, epsilon: 0.1),
+      );
+    }
+    expect(find.text('58/100'), findsOneWidget);
+    expect(find.text('75/100'), findsOneWidget);
+    expect(find.byKey(const Key('movie-rating-score-4-field')), findsNothing);
+    expect(find.byKey(const Key('movie-rating-score-5-field')), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    tester.view.physicalSize = const Size(390, 800);
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.byKey(const Key('movie-rating-dimension-1'))).dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const Key('movie-rating-dimension-5'))).dy,
+      ),
+    );
+    expect(tester.takeException(), isNull);
   });
 }
 
@@ -370,6 +473,15 @@ IconData _starIcon(WidgetTester tester, Key key) {
         find.descendant(of: find.byKey(key), matching: find.byType(Icon)),
       )
       .icon!;
+}
+
+String _fieldText(WidgetTester tester, Finder field) {
+  return tester
+      .widget<EditableText>(
+        find.descendant(of: field, matching: find.byType(EditableText)),
+      )
+      .controller
+      .text;
 }
 
 List<Map<String, dynamic>> _dimensionsJson({
@@ -422,4 +534,52 @@ Map<String, dynamic> _ratingJson({
         'max_value': 5,
       },
   ],
+};
+
+List<Map<String, dynamic>> _mixedDimensionsJson() => <Map<String, dynamic>>[
+  _dimensionJson(id: 1, name: '颜值'),
+  _dimensionJson(id: 2, name: '身材'),
+  _dimensionJson(id: 3, name: '妆容'),
+  _dimensionJson(id: 4, name: 'Auto-颜值', maxValue: 100),
+  _dimensionJson(id: 5, name: 'Auto-身材', maxValue: 100),
+];
+
+Map<String, dynamic> _mixedRatingJson() => <String, dynamic>{
+  'movie_number': 'ABC-001',
+  'rated': true,
+  'total_score': 3.9,
+  'updated_at': '2026-10-20T10:00:00',
+  'values': <Map<String, dynamic>>[
+    _ratingValueJson(id: 1, name: '颜值', value: 4),
+    _ratingValueJson(id: 2, name: '身材', value: 5),
+    _ratingValueJson(id: 3, name: '妆容', value: 3),
+    _ratingValueJson(id: 4, name: 'Auto-颜值', value: 58, maxValue: 100),
+    _ratingValueJson(id: 5, name: 'Auto-身材', value: 75, maxValue: 100),
+  ],
+};
+
+Map<String, dynamic> _dimensionJson({
+  required int id,
+  required String name,
+  int maxValue = 5,
+}) => <String, dynamic>{
+  'id': id,
+  'name': name,
+  'min_value': 1,
+  'max_value': maxValue,
+  'weight': 1.0,
+  'has_scores': true,
+};
+
+Map<String, dynamic> _ratingValueJson({
+  required int id,
+  required String name,
+  required int value,
+  int maxValue = 5,
+}) => <String, dynamic>{
+  'dimension_id': id,
+  'name': name,
+  'value': value,
+  'min_value': 1,
+  'max_value': maxValue,
 };

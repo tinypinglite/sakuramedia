@@ -4305,6 +4305,7 @@
     }
   },
   "movieWidgetRatingClearScore": "Clear score",
+  "movieWidgetRatingUnrated": "Not rated",
   "movieWidgetAddDimension": "Add dimension",
   "movieWidgetEditDimension": "Edit dimension",
   "movieWidgetDimensionNameHint": "Dimension name, e.g. Looks / Story",

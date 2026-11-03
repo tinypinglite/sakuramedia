@@ -4458,6 +4458,7 @@
     }
   },
   "movieWidgetRatingClearScore": "清除评分",
+  "movieWidgetRatingUnrated": "未评分",
   "movieWidgetAddDimension": "新增维度",
   "movieWidgetEditDimension": "编辑维度",
   "movieWidgetDimensionNameHint": "维度名称，如 颜值 / 剧情",
