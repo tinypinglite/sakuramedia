@@ -1,10 +1,18 @@
+import 'dart:ui' as ui;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
-/// 小图放大到整条横幅即可得到柔和模糊，避免运行时 ImageFilter。
-const int _playlistBannerBackgroundDecodeWidth = 32;
+/// 低分辨率解码后再做高斯模糊：保留旧版柔和背景，同时避免高分辨率解码。
+const int _playlistBannerBackgroundDecodeWidth = 128;
+const double _playlistBannerBackgroundBlurSigma = 14;
+
+final ui.ImageFilter _playlistBannerBackgroundBlur = ui.ImageFilter.blur(
+  sigmaX: _playlistBannerBackgroundBlurSigma,
+  sigmaY: _playlistBannerBackgroundBlurSigma,
+);
 
 class PlaylistBannerCard extends StatelessWidget {
   const PlaylistBannerCard({
@@ -25,12 +33,15 @@ class PlaylistBannerCard extends StatelessWidget {
     final radius = context.appRadius.lgBorder;
     final Widget background;
     if (coverImageUrl != null && coverImageUrl!.trim().isNotEmpty) {
-      background = MaskedImage(
-        url: coverImageUrl!,
-        fit: BoxFit.cover,
-        memCacheWidth: _playlistBannerBackgroundDecodeWidth,
-        filterQuality: FilterQuality.high,
-        animateReveal: false,
+      background = ImageFiltered(
+        imageFilter: _playlistBannerBackgroundBlur,
+        child: MaskedImage(
+          url: coverImageUrl!,
+          fit: BoxFit.cover,
+          memCacheWidth: _playlistBannerBackgroundDecodeWidth,
+          filterQuality: FilterQuality.high,
+          animateReveal: false,
+        ),
       );
     } else {
       background = DecoratedBox(

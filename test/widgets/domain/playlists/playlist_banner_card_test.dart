@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_test/flutter_test.dart';
@@ -8,7 +10,7 @@ import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/domain/playlists/playlist_banner_card.dart';
 
 void main() {
-  testWidgets('playlist banner card uses a low-resolution static background', (
+  testWidgets('playlist banner card uses a low-resolution blurred background', (
     WidgetTester tester,
   ) async {
     final sessionStore = SessionStore.inMemory();
@@ -32,9 +34,10 @@ void main() {
 
     expect(find.text('我的收藏'), findsOneWidget);
     expect(find.byType(BackdropFilter), findsNothing);
-    expect(find.byType(ImageFiltered), findsNothing);
+    final filtered = tester.widget<ImageFiltered>(find.byType(ImageFiltered));
+    expect(filtered.imageFilter, ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14));
     final image = tester.widget<MaskedImage>(find.byType(MaskedImage));
-    expect(image.memCacheWidth, 32);
+    expect(image.memCacheWidth, 128);
     expect(image.filterQuality, FilterQuality.high);
     expect(image.animateReveal, isFalse);
   });
