@@ -22,6 +22,7 @@
 
 <p align="center">
   <a href="https://github.com/tinypinglite/sakuramedia/releases/latest"><img src="https://img.shields.io/github/v/release/tinypinglite/sakuramedia?style=flat-square" alt="Latest release" /></a>
+  <a href="https://github.com/tinypinglite/sakuramedia/stargazers"><img src="https://img.shields.io/github/stars/tinypinglite/sakuramedia?style=flat-square" alt="GitHub stars" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue?style=flat-square" alt="License" /></a>
 </p>
 
@@ -180,6 +181,8 @@ NAS 不是必须的：后端可以跑在任何能长期运行 Docker 的机器�
 | Android | `sakuramedia-android-*-release-signed.apk` | 直接安装；系统可能提示未知来源 |
 | iOS | `sakuramedia-ios-*-sidestore-ready.ipa` | 需要 iOS 15.0+，通过 SideStore 或自签工具安装；没有侧载经验建议先用桌面端 |
 
+> 如果 SakuraMedia 对你有帮助，欢迎[点个 Star](https://github.com/tinypinglite/sakuramedia/stargazers)，让更多人发现它。
+
 ## 适合谁
 
 **适合**：有 NAS、迷你主机、服务器或 VPS 等可长期运行的环境，希望把影片发现、下载、导入和观看放在一个地方的人。
@@ -196,7 +199,7 @@ NAS 不是必须的：后端可以跑在任何能长期运行 Docker 的机器�
 
 ## 参与贡献
 
-- 点一个 Star，让更多人看到这个项目。
+- [点一个 Star](https://github.com/tinypinglite/sakuramedia/stargazers)，让更多人看到这个项目。
 - 帮助改进 [Wiki](https://tinypinglite.github.io/sakuramedia/zh-CN/) 和文档。
 - 开发插件：查看 [插件开发文档](https://tinypinglite.github.io/sakuramedia/zh-CN/guide/plugin-development)；上架插件市场请向 [sakuramedia-plugin-market](https://github.com/tinypinglite/sakuramedia-plugin-market) 提交 PR。
 - 提交 Bug 修复或新功能 PR。客户端使用 Flutter 开发，当前基线为 3.47.2；`flutter pub get` 后可用 `./scripts/test.sh -j 4` 运行测试。

@@ -22,6 +22,7 @@
 
 <p align="center">
   <a href="https://github.com/tinypinglite/sakuramedia/releases/latest"><img src="https://img.shields.io/github/v/release/tinypinglite/sakuramedia?style=flat-square" alt="Latest release" /></a>
+  <a href="https://github.com/tinypinglite/sakuramedia/stargazers"><img src="https://img.shields.io/github/stars/tinypinglite/sakuramedia?style=flat-square" alt="GitHub stars" /></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue?style=flat-square" alt="License" /></a>
 </p>
 
@@ -180,6 +181,8 @@ Get the client from [GitHub Releases](https://github.com/tinypinglite/sakuramedi
 | Android | `sakuramedia-android-*-release-signed.apk` | Install directly; the system may warn about unknown sources |
 | iOS | `sakuramedia-ios-*-sidestore-ready.ipa` | Requires iOS 15.0+ and installs through SideStore or a self-signing tool; if you haven't sideloaded before, start with the desktop client |
 
+> If SakuraMedia has been useful to you, [a star](https://github.com/tinypinglite/sakuramedia/stargazers) helps more people find it.
+
 ## Who it's for
 
 **A good fit**: you have a NAS, mini PC, server, or VPS that can run around the clock, and you want movie discovery, downloading, importing, and watching in one place.
@@ -196,7 +199,7 @@ Get the client from [GitHub Releases](https://github.com/tinypinglite/sakuramedi
 
 ## Contributing
 
-- Star the project so more people find it.
+- [Star the project](https://github.com/tinypinglite/sakuramedia/stargazers) so more people find it.
 - Help improve the [Wiki](https://tinypinglite.github.io/sakuramedia/) and the docs.
 - Build plugins: see the [plugin development guide](https://tinypinglite.github.io/sakuramedia/guide/plugin-development); to list one in the plugin market, send a PR to [sakuramedia-plugin-market](https://github.com/tinypinglite/sakuramedia-plugin-market).
 - Send PRs for bug fixes or new features. The client is built with Flutter, currently on 3.47.2; after `flutter pub get`, run the tests with `./scripts/test.sh -j 4`.
