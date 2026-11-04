@@ -3581,15 +3581,14 @@
     }
   },
   "mediaListInvalidReasonUnknown": "原因未知",
-  "movieMediaInterleaveGap": "音视频交错 {gap}",
-  "@movieMediaInterleaveGap": {
+  "mediaListMetaInterleave": "交错 {gap}",
+  "@mediaListMetaInterleave": {
     "placeholders": {
       "gap": {
         "type": "String"
       }
     }
   },
-  "movieMediaInterleaveGapUnknown": "音视频交错未检测",
   "mediaListUpdatedAt": "更新 {value}",
   "@mediaListUpdatedAt": {
     "placeholders": {

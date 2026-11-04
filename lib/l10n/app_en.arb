@@ -3581,15 +3581,14 @@
     }
   },
   "mediaListInvalidReasonUnknown": "Reason unknown",
-  "movieMediaInterleaveGap": "Audio/video interleaving {gap}",
-  "@movieMediaInterleaveGap": {
+  "mediaListMetaInterleave": "Interleave {gap}",
+  "@mediaListMetaInterleave": {
     "placeholders": {
       "gap": {
         "type": "String"
       }
     }
   },
-  "movieMediaInterleaveGapUnknown": "Audio/video interleaving not checked",
   "mediaListUpdatedAt": "Updated {value}",
   "@mediaListUpdatedAt": {
     "placeholders": {

@@ -4,6 +4,7 @@ import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_cover_thumbnail.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_meta_label.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_path_line.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_technical_label.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
@@ -273,6 +274,7 @@ class _MediaListItemBody extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final spacing = context.appSpacing;
     final subtitle = item.displaySubtitle;
+    final technicalLabel = buildMediaListItemTechnicalLabel(item, l10n: l10n);
     final retryAction = _retryAction(context, l10n);
     final actions = mobile && onOpenActions != null
         ? _mobileActions(l10n)
@@ -316,6 +318,20 @@ class _MediaListItemBody extends StatelessWidget {
             tone: AppTextTone.muted,
           ),
         ),
+        if (technicalLabel != null) ...[
+          SizedBox(height: spacing.xs),
+          Text(
+            technicalLabel,
+            key: Key('$keyPrefix-row-tech-${item.id}'),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              tone: AppTextTone.muted,
+            ),
+          ),
+        ],
         if (statusMessage != null) ...[
           SizedBox(height: spacing.xs),
           Text(

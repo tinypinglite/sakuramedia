@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_libraries_provider.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_cover_thumbnail.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_meta_label.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_technical_label.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
@@ -16,8 +17,8 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_left_cover_card.dart';
 ///
 /// 组头是「贴边小缩略图 + 标题区 + chevron」的 [AppLeftCoverCard]（`shell: false`
 /// 复用其贴边封面布局），缩略图由组卡圆角裁剪、与行卡封面区分层级；
-/// 组内文件行前两行固定：第一行「文件名（超长省略，悬停/长按看全名）+ 附加信息
-/// + 失效徽标」，第二行灰字元数据；JAV 文件若有标签或手工管理状态，再加一行
+/// 组内文件行前几行固定：第一行「文件名（超长省略，悬停/长按看全名）+ 附加信息
+/// + 失效徽标」，第二行基础元数据，第三行技术摘要；JAV 文件若有标签或手工管理状态，再加一行
 /// 可横向滚动的标签。行高不随文件名、附加信息或标签数量增长，不再各自成卡。
 class MediaFileGroupCard extends ConsumerWidget {
   const MediaFileGroupCard({
@@ -254,6 +255,7 @@ class _FileRow extends StatelessWidget {
       weight: AppTextWeight.medium,
       tone: AppTextTone.primary,
     );
+    final technicalLabel = buildMediaListItemTechnicalLabel(item, l10n: l10n);
     return Material(
       color: Colors.transparent,
       child: AppInteractiveSurface(
@@ -320,6 +322,20 @@ class _FileRow extends StatelessWidget {
                                 tone: AppTextTone.muted,
                               ),
                             ),
+                            if (technicalLabel != null) ...[
+                              SizedBox(height: spacing.xs),
+                              Text(
+                                technicalLabel,
+                                key: Key('$keyPrefix-file-tech-${item.id}'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: resolveAppTextStyle(
+                                  context,
+                                  size: AppTextSize.s12,
+                                  tone: AppTextTone.muted,
+                                ),
+                              ),
+                            ],
                             if (item.isJav &&
                                 (item.tags.isNotEmpty ||
                                     item.isMediaTagsManuallyManaged)) ...[

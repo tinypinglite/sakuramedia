@@ -710,6 +710,14 @@ void main() {
             'duration_seconds': 5400,
             'resolution': '1920x1080',
             'interleave_gap_mib': 128.5,
+            'video_info': <String, dynamic>{
+              'container': <String, dynamic>{'bit_rate': 10000000},
+              'video': <String, dynamic>{
+                'codec_name': 'hevc',
+                'bit_rate': 9000000,
+                'frame_rate': 29.97,
+              },
+            },
             'valid': true,
             'thumbnail_generation_state': 'terminal',
             'thumbnail_last_error_code': 'thumbnail_backend_failed',
@@ -754,11 +762,16 @@ void main() {
     expect(jav.displaySubtitle, 'Movie 1');
     expect(jav.heat, 320);
     expect(jav.interleaveGapMib, 128.5);
+    expect(jav.technicalInfo?.codecName, 'hevc');
+    expect(jav.technicalInfo?.videoBitRate, 9000000);
+    expect(jav.technicalInfo?.containerBitRate, 10000000);
+    expect(jav.technicalInfo?.frameRate, 29.97);
     final video = page.items.last;
     expect(video.isVideo, isTrue);
     expect(video.videoItemId, 999);
     expect(video.valid, isFalse);
     expect(video.heat, isNull);
+    expect(video.technicalInfo, isNull);
     expect(video.displayHeading(zh), 'Short video');
     expect(video.displaySubtitle, isNull);
     expect(

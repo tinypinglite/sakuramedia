@@ -1,4 +1,5 @@
 import 'package:sakuramedia/core/json/json_parse.dart';
+import 'package:sakuramedia/features/media/data/media_technical_info_dto.dart';
 import 'package:sakuramedia/features/media/data/media_tag_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
@@ -58,6 +59,7 @@ class MediaListItemDto with MovieCoverSelection {
     required this.durationSeconds,
     this.resolution,
     this.interleaveGapMib,
+    this.technicalInfo,
     required this.valid,
     this.heat,
     required this.createdAt,
@@ -85,6 +87,7 @@ class MediaListItemDto with MovieCoverSelection {
   final int durationSeconds;
   final String? resolution;
   final double? interleaveGapMib;
+  final MediaTechnicalInfoDto? technicalInfo;
   final bool valid;
   final int? heat;
   final DateTime? createdAt;
@@ -139,6 +142,7 @@ class MediaListItemDto with MovieCoverSelection {
       durationSeconds: asInt(json['duration_seconds']),
       resolution: asStringOrNull(json['resolution'], trim: true),
       interleaveGapMib: asDoubleOrNull(json['interleave_gap_mib']),
+      technicalInfo: _technicalInfoFromJson(json['video_info']),
       valid: json['valid'] as bool? ?? false,
       heat: asIntOrNull(json['heat']),
       createdAt: asDateTime(json['created_at']),
@@ -163,5 +167,10 @@ class MediaListItemDto with MovieCoverSelection {
       return null;
     }
     return MovieImageDto.fromJson(map);
+  }
+
+  static MediaTechnicalInfoDto? _technicalInfoFromJson(dynamic value) {
+    final map = asMapOrNull(value);
+    return map == null ? null : MediaTechnicalInfoDto.fromVideoInfoJson(map);
   }
 }

@@ -60,14 +60,13 @@ void main() {
 
     expect(find.text('2.0 GB'), findsOneWidget);
     expect(
-      find.text(
-        'cloud-drive · movie.mp4 · 3840x2160 · 01:01:01 · 音视频交错 8.2 MiB',
-      ),
+      find.text('cloud-drive · movie.mp4 · 3840x2160 · 01:01:01'),
       findsOneWidget,
     );
+    expect(find.textContaining('交错'), findsNothing);
   });
 
-  testWidgets('movie media item list formats a large interleave gap in GiB', (
+  testWidgets('movie media item list omits interleave from the summary', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -95,7 +94,11 @@ void main() {
       ),
     );
 
-    expect(find.textContaining('音视频交错 2.3 GiB'), findsOneWidget);
+    expect(
+      find.text('cloud-drive · movie.mp4 · 1920x1080 · 01:01:01'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('交错'), findsNothing);
   });
 
   testWidgets(
@@ -206,7 +209,7 @@ void main() {
       expect(find.byKey(const Key('movie-media-points-title')), findsOneWidget);
       expect(
         find.text(
-          'filesystem · ABC-001.mp4 · 1920x1080 · 02:00:00 · H.264 · 22.8 Mbps · 29.97 fps · 音视频交错未检测',
+          'filesystem · ABC-001.mp4 · 1920x1080 · 02:00:00 · H.264 · 22.8 Mbps · 29.97 fps',
         ),
         findsOneWidget,
       );
@@ -260,7 +263,7 @@ void main() {
 
       expect(
         find.text(
-          'filesystem · ABC-001-alt.mp4 · 1280x720 · 01:30:00 · H.265 · 6.5 Mbps · 24 fps · 音视频交错未检测',
+          'filesystem · ABC-001-alt.mp4 · 1280x720 · 01:30:00 · H.265 · 6.5 Mbps · 24 fps',
         ),
         findsOneWidget,
       );
@@ -273,58 +276,58 @@ void main() {
     },
   );
 
-  testWidgets(
-    'movie media item list shows unknown interleave when summary fields are missing',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(
-        _testApp(
-          child: MovieMediaItemList(
-            mediaItems: const <MovieMediaItemDto>[
-              MovieMediaItemDto(
-                mediaId: 100,
-                libraryId: 1,
-                providerKey: null,
-                playUrl: '/files/media/movies/ABC-001/video.mp4',
-                fileName: '',
-                resolution: '',
-                fileSizeBytes: 1073741824,
-                durationSeconds: 0,
-                valid: true,
-                progress: null,
-                points: <MovieMediaPointDto>[],
-                videoInfo: MovieMediaVideoInfoDto(
-                  container: MovieMediaContainerInfoDto(
-                    formatName: '',
-                    durationSeconds: null,
-                    bitRate: null,
-                    sizeBytes: null,
-                  ),
-                  video: MovieMediaVideoStreamInfoDto(
-                    codecName: '',
-                    codecLongName: '',
-                    profile: null,
-                    bitRate: null,
-                    width: null,
-                    height: null,
-                    frameRate: null,
-                    pixelFormat: '',
-                  ),
-                  audio: null,
-                  subtitles: <MovieMediaSubtitleInfoDto>[],
+  testWidgets('movie media item list hides an empty technical summary', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      _testApp(
+        child: MovieMediaItemList(
+          mediaItems: const <MovieMediaItemDto>[
+            MovieMediaItemDto(
+              mediaId: 100,
+              libraryId: 1,
+              providerKey: null,
+              playUrl: '/files/media/movies/ABC-001/video.mp4',
+              fileName: '',
+              resolution: '',
+              fileSizeBytes: 1073741824,
+              durationSeconds: 0,
+              valid: true,
+              progress: null,
+              points: <MovieMediaPointDto>[],
+              videoInfo: MovieMediaVideoInfoDto(
+                container: MovieMediaContainerInfoDto(
+                  formatName: '',
+                  durationSeconds: null,
+                  bitRate: null,
+                  sizeBytes: null,
                 ),
+                video: MovieMediaVideoStreamInfoDto(
+                  codecName: '',
+                  codecLongName: '',
+                  profile: null,
+                  bitRate: null,
+                  width: null,
+                  height: null,
+                  frameRate: null,
+                  pixelFormat: '',
+                ),
+                audio: null,
+                subtitles: <MovieMediaSubtitleInfoDto>[],
               ),
-            ],
-            selectedMediaId: 100,
-            onSelect: (_) {},
-          ),
+            ),
+          ],
+          selectedMediaId: 100,
+          onSelect: (_) {},
         ),
-      );
+      ),
+    );
 
-      expect(find.text('音视频交错未检测'), findsOneWidget);
-      expect(find.byKey(const Key('movie-media-points-title')), findsNothing);
-      expect(find.text('暂无标记点'), findsNothing);
-    },
-  );
+    expect(find.byKey(const Key('movie-media-tech-summary')), findsNothing);
+    expect(find.textContaining('交错'), findsNothing);
+    expect(find.byKey(const Key('movie-media-points-title')), findsNothing);
+    expect(find.text('暂无标记点'), findsNothing);
+  });
 
   testWidgets(
     'movie media item list shows delete icon beside summary for selected media when callback is provided',

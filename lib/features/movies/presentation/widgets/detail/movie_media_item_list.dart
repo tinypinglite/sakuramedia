@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
+import 'package:sakuramedia/core/format/media_technical.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/theme.dart';
@@ -49,7 +50,7 @@ class MovieMediaItemList extends StatelessWidget {
         (mediaItems.isNotEmpty ? mediaItems.first : null);
     final technicalSummary = selectedItem == null
         ? null
-        : _buildTechnicalSummary(context, selectedItem);
+        : _buildTechnicalSummary(selectedItem);
     final showDeleteAction =
         selectedItem != null && onDeleteSelectedMedia != null;
     final showTagAction = selectedItem != null && onEditMediaTags != null;
@@ -210,8 +211,7 @@ class MovieMediaItemList extends StatelessWidget {
     return formatFileSize(item.fileSizeBytes);
   }
 
-  String? _buildTechnicalSummary(BuildContext context, MovieMediaItemDto item) {
-    final l10n = AppLocalizations.of(context);
+  String? _buildTechnicalSummary(MovieMediaItemDto item) {
     final videoInfo = item.videoInfo;
 
     final parts = <String>[
@@ -219,68 +219,14 @@ class MovieMediaItemList extends StatelessWidget {
       if (item.fileName.trim().isNotEmpty) item.fileName.trim(),
       if (item.resolution?.trim().isNotEmpty == true) item.resolution!.trim(),
       if (item.durationSeconds > 0) formatMediaTimecode(item.durationSeconds),
-      if (_formatVideoCodec(videoInfo?.video?.codecName) case final codec?)
-        codec,
-      if (_formatBitRate(
-            videoInfo?.video?.bitRate,
-            videoInfo?.container?.bitRate,
-          )
-          case final bitRate?)
-        bitRate,
-      if (_formatFrameRate(videoInfo?.video?.frameRate) case final frameRate?)
-        frameRate,
-      _formatInterleaveGap(l10n, item.interleaveGapMib),
+      ?formatVideoCodecName(videoInfo?.video?.codecName),
+      ?formatVideoBitRate(
+        videoInfo?.video?.bitRate,
+        videoInfo?.container?.bitRate,
+      ),
+      ?formatVideoFrameRate(videoInfo?.video?.frameRate),
     ];
 
-    return parts.join(' · ');
-  }
-
-  String _formatInterleaveGap(AppLocalizations l10n, double? gapMib) {
-    if (gapMib == null) {
-      return l10n.movieMediaInterleaveGapUnknown;
-    }
-    final gap = gapMib >= 1024
-        ? '${(gapMib / 1024).toStringAsFixed(1)} GiB'
-        : '${gapMib >= 100 ? gapMib.toStringAsFixed(0) : gapMib.toStringAsFixed(1)} MiB';
-    return l10n.movieMediaInterleaveGap(gap);
-  }
-
-  String? _formatVideoCodec(String? codecName) {
-    final normalized = codecName?.trim().toLowerCase();
-    if (normalized == null || normalized.isEmpty) {
-      return null;
-    }
-    switch (normalized) {
-      case 'h264':
-      case 'avc':
-        return 'H.264';
-      case 'h265':
-      case 'hevc':
-        return 'H.265';
-      default:
-        return normalized.replaceAll('_', '-').toUpperCase();
-    }
-  }
-
-  String? _formatBitRate(int? videoBitRate, int? containerBitRate) {
-    final bitRate = videoBitRate ?? containerBitRate;
-    if (bitRate == null || bitRate <= 0) {
-      return null;
-    }
-    return '${(bitRate / 1000000).toStringAsFixed(1)} Mbps';
-  }
-
-  String? _formatFrameRate(double? frameRate) {
-    if (frameRate == null || frameRate <= 0) {
-      return null;
-    }
-    if ((frameRate - frameRate.roundToDouble()).abs() < 0.001) {
-      return '${frameRate.round()} fps';
-    }
-    final formatted = frameRate
-        .toStringAsFixed(2)
-        .replaceFirst(RegExp(r'0+$'), '')
-        .replaceFirst(RegExp(r'\.$'), '');
-    return '$formatted fps';
+    return parts.isEmpty ? null : parts.join(' · ');
   }
 }
