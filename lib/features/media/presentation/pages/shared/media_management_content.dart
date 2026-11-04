@@ -318,6 +318,7 @@ class MediaManagementContent extends HookConsumerWidget {
                     child: InvalidMediaSection(
                       key: Key('$keyPrefix-invalid-media-section'),
                       scrollController: invalidScrollController,
+                      onOpenMovieDetail: onOpenMovieDetail,
                       mobile: mobile,
                     ),
                   ),

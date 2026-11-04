@@ -770,6 +770,100 @@ void main() {
     );
     expect(find.byKey(const Key('invalid-media-reason-1')), findsOneWidget);
     expect(find.byKey(const Key('invalid-media-delete-1')), findsOneWidget);
+    expect(
+      find.byKey(const Key('invalid-media-enter-selection-button')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('opens movie actions drawer from an invalid media row', (
+    tester,
+  ) async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/invalid',
+      body: <String, dynamic>{
+        'items': [_invalidMediaJson(1)],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
+    );
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('mobile-media-management-tab-maintenance')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('invalid-media-row-1')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('media-row-movie-actions-drawer')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('media-row-movie-actions-play')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('media-row-movie-actions-play')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('media-row-movie-actions-drawer')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('enters invalid media selection mode from the header', (
+    tester,
+  ) async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/invalid',
+      body: <String, dynamic>{
+        'items': [_invalidMediaJson(1)],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
+    );
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('mobile-media-management-tab-maintenance')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('invalid-media-enter-selection-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('invalid-media-selection-header')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('invalid-media-row-1')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('invalid-media-bottom-selection-count')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('media-row-movie-actions-drawer')),
+      findsNothing,
+    );
   });
 
   testWidgets('batch deletes selected invalid media on mobile', (tester) async {

@@ -7,6 +7,7 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/media/data/invalid_media_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
+import 'package:sakuramedia/features/media/presentation/actions/media_row_action_flow.dart';
 import 'package:sakuramedia/features/media/presentation/media_placeholders.dart';
 import 'package:sakuramedia/features/media/presentation/providers/invalid_media_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_libraries_provider.dart';
@@ -32,16 +33,21 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_heade
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 
-/// 「失效媒体」列表：后端只提供列表和删除，因此每条记录直接允许删除；
-/// 支持多选批量删除（桌面点卡片即选中，移动长按进入选择态）。
+/// 「失效媒体」列表：后端只提供列表和删除，因此每条记录直接允许删除。
+///
+/// 普通态点击卡片打开媒体操作弹层；选择态点击卡片切换勾选。桌面和移动端
+/// 都从顶栏「选择」进入选择态，移动端仍可长按卡片直接进入选择态。
 class InvalidMediaSection extends ConsumerStatefulWidget {
   const InvalidMediaSection({
     super.key,
     required this.scrollController,
+    this.onOpenMovieDetail,
     this.mobile = false,
   });
 
   final ScrollController scrollController;
+  final void Function(BuildContext context, String movieNumber)?
+  onOpenMovieDetail;
   final bool mobile;
 
   @override
@@ -57,9 +63,10 @@ class _InvalidMediaSectionState extends ConsumerState<InvalidMediaSection>
     final content = AppFixedHeaderLayout(
       header: _InvalidMediaHeader(
         mobile: widget.mobile,
-        selectionMode: widget.mobile && selectionMode,
+        selectionMode: selectionMode,
         selectedIds: selectedIds,
         isAllSelected: (ids) => isAllSelected(ids),
+        onEnterSelection: enterSelection,
         onExitSelection: exitSelection,
         onToggleAll: toggleSelectAll,
         onBatchDelete: _batchDelete,
@@ -70,9 +77,10 @@ class _InvalidMediaSectionState extends ConsumerState<InvalidMediaSection>
         slivers: [
           _InvalidMediaBodySliver(
             mobile: widget.mobile,
-            selectionMode: widget.mobile && selectionMode,
+            selectionMode: selectionMode,
             selectedIds: selectedIds,
             onToggleSelect: toggleSelect,
+            onOpenMovieDetail: widget.onOpenMovieDetail,
             onEnterSelection: (id) {
               enterSelection();
               toggleSelect(id);
@@ -161,6 +169,7 @@ class _InvalidMediaHeader extends ConsumerWidget {
     required this.selectionMode,
     required this.selectedIds,
     required this.isAllSelected,
+    required this.onEnterSelection,
     required this.onExitSelection,
     required this.onToggleAll,
     required this.onBatchDelete,
@@ -170,6 +179,7 @@ class _InvalidMediaHeader extends ConsumerWidget {
   final bool selectionMode;
   final Set<int> selectedIds;
   final bool Function(List<int> ids) isAllSelected;
+  final VoidCallback onEnterSelection;
   final VoidCallback onExitSelection;
   final void Function(List<int> ids) onToggleAll;
   final Future<void> Function(List<int> mediaIds) onBatchDelete;
@@ -198,7 +208,9 @@ class _InvalidMediaHeader extends ConsumerWidget {
       return AppListHeader.selection(
         key: const Key('invalid-media-selection-header'),
         selectionLabel: l10n.mediaListSelectedItems(selectedCount),
-        selectionExitButtonKey: const Key('invalid-media-exit-selection-button'),
+        selectionExitButtonKey: const Key(
+          'invalid-media-exit-selection-button',
+        ),
         onExitSelection: onExitSelection,
         actionSlots: [
           AppTextButton(
@@ -207,16 +219,13 @@ class _InvalidMediaHeader extends ConsumerWidget {
                 ? l10n.mediaListClearSelectAllLoaded
                 : l10n.mediaListSelectAllLoaded,
             size: AppTextButtonSize.small,
-            onPressed: loadedIds.isEmpty
-                ? null
-                : () => onToggleAll(loadedIds),
+            onPressed: loadedIds.isEmpty ? null : () => onToggleAll(loadedIds),
           ),
         ],
       );
     }
 
-    // 桌面没有显式「选择模式」：选中任意一条即出现批量操作条。
-    if (!mobile && selectedCount > 0) {
+    if (!mobile && selectionMode) {
       final submitting = watchBatchOperationSubmitting(ref, const [
         BatchOperationType.mediaDelete,
       ]);
@@ -258,6 +267,20 @@ class _InvalidMediaHeader extends ConsumerWidget {
       ),
     );
     final totalText = l10n.mediaListTotalInvalidItems(state.total);
+    final canEnterSelection = loadedIds.isNotEmpty && !state.isInitialLoading;
+    final enterSelectionButton = mobile
+        ? AppTextButton(
+            key: const Key('invalid-media-enter-selection-button'),
+            label: l10n.mediaListEnterSelection,
+            size: AppTextButtonSize.xSmall,
+            icon: const Icon(Icons.check_circle_outline, size: 14),
+            onPressed: canEnterSelection ? onEnterSelection : null,
+          )
+        : AppSelectionEntryButton(
+            key: const Key('invalid-media-enter-selection-button'),
+            label: l10n.mediaListEnterSelection,
+            onPressed: canEnterSelection ? onEnterSelection : null,
+          );
     final refreshButton = AppIconButton(
       key: const Key('invalid-media-refresh-button'),
       tooltip: state.isInitialLoading
@@ -274,8 +297,8 @@ class _InvalidMediaHeader extends ConsumerWidget {
             },
     );
 
-    // 移动端文案一行放不下：说明独立成最多两行，计数与刷新单独一行，
-    // 避免和计数、刷新按钮挤在一起被截断。
+    // 移动端文案一行放不下：说明独立成最多两行，计数、选择与刷新单独一行，
+    // 避免和这些操作挤在一起被截断。
     if (mobile) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,7 +309,14 @@ class _InvalidMediaHeader extends ConsumerWidget {
             leading: const SizedBox.shrink(),
             totalText: totalText,
             totalKey: const Key('invalid-media-total-text'),
-            trailing: refreshButton,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                enterSelectionButton,
+                SizedBox(width: context.appSpacing.xs),
+                refreshButton,
+              ],
+            ),
           ),
         ],
       );
@@ -295,7 +325,14 @@ class _InvalidMediaHeader extends ConsumerWidget {
       leading: description,
       totalText: totalText,
       totalKey: const Key('invalid-media-total-text'),
-      trailing: refreshButton,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          enterSelectionButton,
+          SizedBox(width: context.appSpacing.xs),
+          refreshButton,
+        ],
+      ),
     );
   }
 }
@@ -306,6 +343,7 @@ class _InvalidMediaBodySliver extends ConsumerWidget {
     required this.selectionMode,
     required this.selectedIds,
     required this.onToggleSelect,
+    this.onOpenMovieDetail,
     required this.onEnterSelection,
   });
 
@@ -313,6 +351,8 @@ class _InvalidMediaBodySliver extends ConsumerWidget {
   final bool selectionMode;
   final Set<int> selectedIds;
   final ValueChanged<int> onToggleSelect;
+  final void Function(BuildContext context, String movieNumber)?
+  onOpenMovieDetail;
   final ValueChanged<int> onEnterSelection;
 
   @override
@@ -322,9 +362,8 @@ class _InvalidMediaBodySliver extends ConsumerWidget {
     // 不重建列表 sliver（页脚由 [PagedLoadMoreFooterSliver] 展示）。
     final asyncPaged = ref.watch(
       invalidMediaProvider.select(
-        (asyncState) => asyncState.whenData(
-          (state) => withoutLoadMoreStatus(state.paged),
-        ),
+        (asyncState) =>
+            asyncState.whenData((state) => withoutLoadMoreStatus(state.paged)),
       ),
     );
     return SliverPagedAsyncSection<
@@ -351,6 +390,7 @@ class _InvalidMediaBodySliver extends ConsumerWidget {
                   selectionMode: false,
                   selected: false,
                   onToggleSelect: () {},
+                  onOpenMovieDetail: null,
                   onEnterSelection: () {},
                 ),
               ],
@@ -369,6 +409,7 @@ class _InvalidMediaBodySliver extends ConsumerWidget {
         selectionMode: selectionMode,
         selected: selectedIds.contains(item.id),
         onToggleSelect: () => onToggleSelect(item.id),
+        onOpenMovieDetail: onOpenMovieDetail,
         onEnterSelection: () => onEnterSelection(item.id),
       ),
       // 页脚由 PagedLoadMoreFooterSliver 独立渲染。
@@ -384,6 +425,7 @@ class _InvalidMediaRowConsumer extends ConsumerWidget {
     required this.selectionMode,
     required this.selected,
     required this.onToggleSelect,
+    required this.onOpenMovieDetail,
     required this.onEnterSelection,
   });
 
@@ -392,6 +434,8 @@ class _InvalidMediaRowConsumer extends ConsumerWidget {
   final bool selectionMode;
   final bool selected;
   final VoidCallback onToggleSelect;
+  final void Function(BuildContext context, String movieNumber)?
+  onOpenMovieDetail;
   final VoidCallback onEnterSelection;
 
   Future<void> _handleDelete(
@@ -429,6 +473,17 @@ class _InvalidMediaRowConsumer extends ConsumerWidget {
     }
   }
 
+  Future<void> _openActions(BuildContext context, WidgetRef ref) {
+    return openMediaRowActions(
+      context,
+      ref,
+      _toMediaListItem(item),
+      mobile: mobile,
+      onOpenMovieDetail: onOpenMovieDetail,
+      previewWhenNoActions: true,
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final actionState = ref.watch(
@@ -446,15 +501,16 @@ class _InvalidMediaRowConsumer extends ConsumerWidget {
         ? null
         : librariesById[item.libraryId];
     final isDeleting = actionState == item.id;
+    final mediaItem = _toMediaListItem(item);
     return MediaListItemCard(
       keyPrefix: 'invalid-media',
-      item: _toMediaListItem(item),
+      item: mediaItem,
       library: library,
       mobile: mobile,
       selected: selected,
-      onTap: mobile
-          ? (selectionMode ? onToggleSelect : null)
-          : onToggleSelect,
+      onTap: selectionMode
+          ? onToggleSelect
+          : () => unawaited(_openActions(context, ref)),
       onLongPress: mobile && !selectionMode ? onEnterSelection : null,
       onDelete: selectionMode
           ? null

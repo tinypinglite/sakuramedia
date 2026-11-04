@@ -636,6 +636,121 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
+  testWidgets('opens movie actions dialog from an invalid media cover', (
+    tester,
+  ) async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/invalid',
+      body: _page(total: 1, items: [_invalidMediaJson(1)]),
+    );
+    String? openedMovieNumber;
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      switchToMaintenance: true,
+      onOpenMovieDetail: (movieNumber) => openedMovieNumber = movieNumber,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('invalid-media-cover-placeholder-1')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('media-row-movie-actions-dialog')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('media-row-movie-actions-play')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('media-row-movie-actions-play')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('media-row-movie-actions-dialog')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('media-row-movie-actions-open-detail')),
+    );
+    await tester.pumpAndSettle();
+    expect(openedMovieNumber, 'ABC-1');
+    expect(
+      find.byKey(const Key('media-row-movie-actions-dialog')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('opens video actions dialog from an invalid PornBox row', (
+    tester,
+  ) async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/invalid',
+      body: _page(total: 1, items: [_invalidVideoMediaJson(2)]),
+    );
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      switchToMaintenance: true,
+    );
+
+    await tester.tap(find.byKey(const Key('invalid-media-row-2')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('desktop-video-actions-dialog')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('desktop-video-action-play')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('desktop-video-action-play')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('desktop-video-actions-dialog')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('falls back to cover preview for an unlinked invalid media', (
+    tester,
+  ) async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/invalid',
+      body: _page(total: 1, items: [_invalidUnlinkedMediaJson(3)]),
+    );
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+      switchToMaintenance: true,
+    );
+
+    await tester.tap(find.byKey(const Key('invalid-media-row-3')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('media-row-movie-actions-dialog')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('media-row-movie-actions-play')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('media-row-movie-actions-open-detail')),
+      findsNothing,
+    );
+  });
+
   testWidgets('batch deletes selected invalid media', (tester) async {
     adapter.enqueueJson(
       method: 'GET',
@@ -661,6 +776,15 @@ void main() {
       mediaApi: mediaApi,
       apiClient: apiClient,
       switchToMaintenance: true,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('invalid-media-enter-selection-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('invalid-media-selection-count')),
+      findsOneWidget,
     );
 
     await tester.tap(find.byKey(const Key('invalid-media-row-1')));
@@ -1583,6 +1707,42 @@ Map<String, dynamic> _invalidMediaJson(int id) {
     'file_size_bytes': 1024,
     'invalid_reason': 'interleave_bad',
     'invalid_detail': <String, dynamic>{'max_gap_mib': 6920.8},
+    'updated_at': '2026-05-13T12:00:00Z',
+  };
+}
+
+Map<String, dynamic> _invalidVideoMediaJson(int id) {
+  return <String, dynamic>{
+    'id': id,
+    'movie_number': null,
+    'video_item_id': 101,
+    'movie_title': 'Video $id',
+    'cover_image': null,
+    'thin_cover_image': null,
+    'file_name': 'video-$id.mp4',
+    'library_id': 1,
+    'library_name': 'Main Library',
+    'file_size_bytes': 1024,
+    'invalid_reason': 'file_missing',
+    'invalid_detail': <String, dynamic>{},
+    'updated_at': '2026-05-13T12:00:00Z',
+  };
+}
+
+Map<String, dynamic> _invalidUnlinkedMediaJson(int id) {
+  return <String, dynamic>{
+    'id': id,
+    'movie_number': null,
+    'video_item_id': null,
+    'movie_title': 'Unlinked $id',
+    'cover_image': null,
+    'thin_cover_image': null,
+    'file_name': 'unlinked-$id.mp4',
+    'library_id': 1,
+    'library_name': 'Main Library',
+    'file_size_bytes': 1024,
+    'invalid_reason': 'file_missing',
+    'invalid_detail': <String, dynamic>{},
     'updated_at': '2026-05-13T12:00:00Z',
   };
 }

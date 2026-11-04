@@ -20,12 +20,16 @@ import 'package:sakuramedia/routes/mobile_routes.dart';
 /// 弹层只回传用户选择，跳转与起播在这里完成：JAV 走 [launchMoviePlayback]
 /// （外部播放器优先、回落应用内播放页）与注入的 [onOpenMovieDetail]；
 /// PornBox 的播放 / 缩略图 / 合集跳转由本文件按 [mobile] 选择各自路由。
+///
+/// [previewWhenNoActions] 供失效媒体等场景使用：记录既没有可打开的影片详情，
+/// 也没有 PornBox 视频动作时，仍回退到通用影片操作弹层查看封面和标题。
 Future<void> openMediaRowActions(
   BuildContext context,
   WidgetRef ref,
   MediaListItemDto item, {
   required bool mobile,
   void Function(BuildContext context, String movieNumber)? onOpenMovieDetail,
+  bool previewWhenNoActions = false,
 }) async {
   final movieNumber = item.movieNumber?.trim();
   if (item.isJav && movieNumber != null && movieNumber.isNotEmpty) {
@@ -62,6 +66,15 @@ Future<void> openMediaRowActions(
       videoItemId: videoItemId,
       mobile: mobile,
     );
+    return;
+  }
+
+  if (previewWhenNoActions) {
+    await showMediaMovieActionsOverlay(
+      context: context,
+      item: item,
+      mobile: mobile,
+    );
   }
 }
 
@@ -89,8 +102,7 @@ Future<void> _openPornboxActions(
 }) {
   final video = _toVideoListItem(item, videoItemId);
   void onPlay() => unawaited(_playVideo(context, video, mobile: mobile));
-  void onThumbnails() =>
-      _openThumbnails(context, videoItemId, mobile: mobile);
+  void onThumbnails() => _openThumbnails(context, videoItemId, mobile: mobile);
   void onAddToCollection() => unawaited(
     _addToCollection(
       context,
