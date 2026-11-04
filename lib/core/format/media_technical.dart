@@ -42,12 +42,3 @@ String? formatVideoFrameRate(double? frameRate) {
       .replaceFirst(RegExp(r'\.$'), '');
   return '$formatted fps';
 }
-
-String? formatInterleaveGapSize(double? gapMib) {
-  if (gapMib == null || gapMib <= 0) {
-    return null;
-  }
-  return gapMib >= 1024
-      ? '${(gapMib / 1024).toStringAsFixed(1)} GiB'
-      : '${gapMib >= 100 ? gapMib.toStringAsFixed(0) : gapMib.toStringAsFixed(1)} MiB';
-}

@@ -13,6 +13,10 @@ abstract final class ActivityTaskRunScope {
   static const String operations = 'operations';
 }
 
+const Set<String> _hiddenJobTaskKeys = <String>{
+  'media_playback_health_backfill',
+};
+
 class ActivityApi {
   const ActivityApi({required ApiClient apiClient}) : _apiClient = apiClient;
 
@@ -88,7 +92,10 @@ class ActivityApi {
 
   Future<List<JobMetadataDto>> getJobs() async {
     final response = await _apiClient.getList('/system/jobs');
-    return response.map(JobMetadataDto.fromJson).toList(growable: false);
+    return response
+        .map(JobMetadataDto.fromJson)
+        .where((job) => !_hiddenJobTaskKeys.contains(job.taskKey))
+        .toList(growable: false);
   }
 
   Future<ManualJobTriggerResponseDto> triggerJob({

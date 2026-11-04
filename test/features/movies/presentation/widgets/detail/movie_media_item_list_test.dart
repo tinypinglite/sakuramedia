@@ -45,7 +45,6 @@ void main() {
               resolution: '3840x2160',
               fileSizeBytes: 2147483648,
               durationSeconds: 3661,
-              interleaveGapMib: 8.2,
               valid: true,
               progress: null,
               points: <MovieMediaPointDto>[],
@@ -63,42 +62,6 @@ void main() {
       find.text('cloud-drive · movie.mp4 · 3840x2160 · 01:01:01'),
       findsOneWidget,
     );
-    expect(find.textContaining('交错'), findsNothing);
-  });
-
-  testWidgets('movie media item list omits interleave from the summary', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(
-      _testApp(
-        child: MovieMediaItemList(
-          mediaItems: const <MovieMediaItemDto>[
-            MovieMediaItemDto(
-              mediaId: 116,
-              libraryId: 9,
-              providerKey: 'cloud-drive',
-              playUrl: '/media/116/play/movie.mp4?expires=1&signature=x',
-              fileName: 'movie.mp4',
-              fileSizeBytes: 2147483648,
-              durationSeconds: 3661,
-              resolution: '1920x1080',
-              interleaveGapMib: 2308,
-              valid: true,
-              progress: null,
-              points: <MovieMediaPointDto>[],
-            ),
-          ],
-          selectedMediaId: 116,
-          onSelect: (_) {},
-        ),
-      ),
-    );
-
-    expect(
-      find.text('cloud-drive · movie.mp4 · 1920x1080 · 01:01:01'),
-      findsOneWidget,
-    );
-    expect(find.textContaining('交错'), findsNothing);
   });
 
   testWidgets(
@@ -324,7 +287,6 @@ void main() {
     );
 
     expect(find.byKey(const Key('movie-media-tech-summary')), findsNothing);
-    expect(find.textContaining('交错'), findsNothing);
     expect(find.byKey(const Key('movie-media-points-title')), findsNothing);
     expect(find.text('暂无标记点'), findsNothing);
   });

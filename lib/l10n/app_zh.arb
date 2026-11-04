@@ -899,9 +899,6 @@
   "systemMaintenanceMediaInfoBackfillTitle": "媒体信息回填",
   "systemMaintenanceMediaInfoBackfillDescription": "为缺少或不完整技术信息的媒体文件重新探测，补齐时长、分辨率和视频信息。只处理缺失或不完整项，不会无条件覆盖已有信息。",
   "systemMaintenanceMediaInfoBackfillSuccess": "媒体信息回填任务已提交，进度请在任务中心查看",
-  "systemMaintenancePlaybackHealthBackfillTitle": "媒体播放结构补检",
-  "systemMaintenancePlaybackHealthBackfillDescription": "补检已有媒体文件的音视频交错结构，只处理尚未检测或结果未知的有效媒体。检出异常会把媒体标记为失效并发送通知；媒体库较大或存储较慢时可能运行较久。",
-  "systemMaintenancePlaybackHealthBackfillSuccess": "媒体播放结构补检任务已提交，进度请在任务中心查看",
   "systemMaintenanceFileHashBackfillTitle": "媒体文件哈希补算",
   "systemMaintenanceFileHashBackfillDescription": "为尚未记录文件哈希的媒体文件计算并保存文件指纹，用于识别重复媒体。只处理哈希为空的文件，媒体库较大时可能运行较久。",
   "systemMaintenanceFileHashBackfillSuccess": "媒体文件哈希补算任务已提交，进度请在任务中心查看",
@@ -3557,10 +3554,6 @@
   "mediaListFilterSectionSource": "归属",
   "mediaListFilterSectionLibrary": "所属媒体库",
   "mediaListFilterSectionThumbnail": "缩略图状态",
-  "mediaListFilterSectionInterleave": "音视频交错",
-  "mediaListFilterInterleaveAtLeast64Mib": "≥64 MiB",
-  "mediaListFilterInterleaveAtLeast256Mib": "≥256 MiB",
-  "mediaListFilterInterleaveAtLeast1Gib": "≥1 GiB",
   "mediaListFilterAllLibraries": "全部媒体库",
   "mediaListFilterAllMedia": "全部媒体",
   "mediaListSearchFileNameHint": "搜索文件名",
@@ -3568,27 +3561,6 @@
   "mediaListCollapseSearchTooltip": "收起搜索",
   "mediaListInvalidBadge": "失效",
   "mediaListInvalidReasonFileMissing": "文件已丢失",
-  "mediaListInvalidReasonContainerInvalid": "容器结构损坏",
-  "mediaListInvalidReasonMoovMissing": "缺少 moov，无法可靠播放",
-  "mediaListInvalidReasonVideoStreamMissing": "缺少视频流",
-  "mediaListInvalidReasonInterleaveBad": "音视频交错异常",
-  "mediaListInvalidReasonInterleaveBadWithGap": "音视频交错异常，最大偏移 {gap} MiB",
-  "@mediaListInvalidReasonInterleaveBadWithGap": {
-    "placeholders": {
-      "gap": {
-        "type": "String"
-      }
-    }
-  },
-  "mediaListInvalidReasonUnknown": "原因未知",
-  "mediaListMetaInterleave": "交错 {gap}",
-  "@mediaListMetaInterleave": {
-    "placeholders": {
-      "gap": {
-        "type": "String"
-      }
-    }
-  },
   "mediaListUpdatedAt": "更新 {value}",
   "@mediaListUpdatedAt": {
     "placeholders": {
@@ -3897,7 +3869,7 @@
       }
     }
   },
-  "mediaListInvalidDescription": "巡检或播放结构补检标记为失效的媒体会出现在这里。文件丢失、容器损坏或缺少 moov 等无法可靠播放的情况会显示具体原因；删除后 JAV 影片会再次自动补库。",
+  "mediaListInvalidDescription": "媒体文件巡检确认文件已缺失的媒体会出现在这里，并显示文件丢失原因；删除后 JAV 影片会再次自动补库。",
   "mediaListInvalidEmpty": "当前没有失效媒体",
   "mediaListInvalidDeleteTitle": "删除失效媒体",
   "mediaListInvalidDeleteMessage": "确认删除“{name}”的这条失效媒体记录及实际存在的文件？该操作不可恢复，缩略图会保留用于同文件复用。",
@@ -3952,12 +3924,6 @@
   "mediaImportFailureFileTooSmall": "文件过小",
   "mediaImportFailureUnsupportedFormat": "不支持的格式",
   "mediaImportFailureAlreadyIndexedPath": "已在库中",
-  "mediaImportFailurePlaybackFileMissing": "文件已丢失，未导入",
-  "mediaImportFailurePlaybackContainerInvalid": "容器结构损坏，未导入",
-  "mediaImportFailurePlaybackMoovMissing": "缺少 moov，无法导入",
-  "mediaImportFailurePlaybackVideoStreamMissing": "缺少视频流，未导入",
-  "mediaImportFailurePlaybackInterleaveBad": "音视频交错异常，未导入",
-  "mediaImportFailurePlaybackInvalid": "播放结构异常，未导入",
   "mediaImportFailureUnknownReason": "未知原因",
   "mediaImportMetadataSearchFailed": "搜索元数据失败，请稍后重试。",
   "mediaListBatchResetThumbnailsCount": "{label}（{count}）",

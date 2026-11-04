@@ -64,7 +64,6 @@ class MediaBrowse extends _$MediaBrowse
           libraryId: filter.libraryId,
           search: filter.trimmedSearch,
           thumbnailGenerationState: filter.thumbnailGenerationState?.apiValue,
-          interleaveGapMibMin: filter.interleaveGapMinMib,
           sort: filter.sortWire,
         );
   }
@@ -207,6 +206,7 @@ class MediaBrowse extends _$MediaBrowse
       fileSizeBytes: item.fileSizeBytes,
       durationSeconds: item.durationSeconds,
       resolution: item.resolution,
+      technicalInfo: item.technicalInfo,
       valid: item.valid,
       heat: item.heat,
       createdAt: item.createdAt,

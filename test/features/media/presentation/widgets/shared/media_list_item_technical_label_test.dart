@@ -10,9 +10,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 
 void main() {
-  testWidgets('media card shows interleave first on the technical line', (
-    tester,
-  ) async {
+  testWidgets('media card shows video technical info', (tester) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(360, 760);
     addTearDown(tester.view.reset);
@@ -28,10 +26,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('交错 8.2 MiB · H.264 · 22.8 Mbps · 29.97 fps'),
-      findsOneWidget,
-    );
+    expect(find.text('H.264 · 22.8 Mbps · 29.97 fps'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -42,7 +37,7 @@ void main() {
         _app(
           child: MediaListItemCard(
             keyPrefix: 'media',
-            item: _item(interleaveGapMib: null, technicalInfo: null),
+            item: _item(technicalInfo: null),
             mobile: false,
           ),
         ),
@@ -66,20 +61,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('交错 8.2 MiB · H.264 · 22.8 Mbps · 29.97 fps'),
-      findsOneWidget,
-    );
+    expect(find.text('H.264 · 22.8 Mbps · 29.97 fps'), findsOneWidget);
   });
 
   testWidgets('file group card shows the same technical line', (tester) async {
     await tester.pumpWidget(
       _app(
         child: MediaFileGroupCard(
-          items: <MediaListItemDto>[
-            _item(),
-            _item(id: 2, interleaveGapMib: null, technicalInfo: null),
-          ],
+          items: <MediaListItemDto>[_item(), _item(id: 2, technicalInfo: null)],
           countLabel: '2 个版本',
           headerKey: const Key('group-header'),
           deleteLabel: '删除',
@@ -93,10 +82,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('交错 8.2 MiB · H.264 · 22.8 Mbps · 29.97 fps'),
-      findsOneWidget,
-    );
+    expect(find.text('H.264 · 22.8 Mbps · 29.97 fps'), findsOneWidget);
     expect(find.byKey(const Key('group-file-tech-1')), findsOneWidget);
     expect(find.byKey(const Key('group-file-tech-2')), findsNothing);
   });
@@ -104,7 +90,6 @@ void main() {
 
 MediaListItemDto _item({
   int id = 1,
-  double? interleaveGapMib = 8.2,
   MediaListItemKind kind = MediaListItemKind.jav,
   MediaTechnicalInfoDto? technicalInfo = const MediaTechnicalInfoDto(
     codecName: 'h264',
@@ -122,7 +107,6 @@ MediaListItemDto _item({
     fileSizeBytes: 2147483648,
     durationSeconds: 3661,
     resolution: '1920x1080',
-    interleaveGapMib: interleaveGapMib,
     technicalInfo: technicalInfo,
     valid: true,
     createdAt: DateTime(2026, 11, 5),

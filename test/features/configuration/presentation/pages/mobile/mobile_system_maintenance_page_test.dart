@@ -36,7 +36,9 @@ void main() {
   testWidgets('disabled search cannot rebuild its index', (tester) async {
     _enqueueImageSearchStatus(bundle, enabled: false);
     await _pumpPage(tester, bundle);
-    final button = tester.widget<AppButton>(find.byKey(const Key('mobile-system-maintenance-image-search-reset')));
+    final button = tester.widget<AppButton>(
+      find.byKey(const Key('mobile-system-maintenance-image-search-reset')),
+    );
     expect(button.onPressed, isNull);
     expect(find.text('未启用'), findsOneWidget);
     expect(bundle.adapter.hitCount('POST', '/image-search/reset'), 0);
@@ -57,10 +59,7 @@ void main() {
       find.byKey(const Key('mobile-system-maintenance-image-search-card')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const Key('system-logs-export-card')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('system-logs-export-card')), findsOneWidget);
     expect(find.text('导出后端日志'), findsOneWidget);
     expect(find.text('重建索引'), findsOneWidget);
   });
@@ -74,8 +73,6 @@ void main() {
 
     expect(find.text('媒体信息回填'), findsOneWidget);
     expect(find.textContaining('补齐时长、分辨率和视频信息'), findsOneWidget);
-    expect(find.text('媒体播放结构补检'), findsOneWidget);
-    expect(find.textContaining('音视频交错结构'), findsOneWidget);
     expect(find.text('媒体文件哈希补算'), findsOneWidget);
     expect(find.textContaining('用于识别重复媒体'), findsOneWidget);
     expect(find.text('媒体缩略图打包回填'), findsOneWidget);
@@ -103,30 +100,6 @@ void main() {
       bundle.adapter.hitCount(
         'POST',
         '/system/jobs/media_video_info_backfill/runs',
-      ),
-      1,
-    );
-
-    bundle.adapter.enqueueJson(
-      method: 'POST',
-      path: '/system/jobs/media_playback_health_backfill/runs',
-      body: <String, dynamic>{
-        'task_run_id': 2,
-        'task_key': 'media_playback_health_backfill',
-        'state': 'pending',
-      },
-    );
-    final playbackHealthRunButton = find.byKey(
-      const Key('mobile-system-maintenance-media_playback_health_backfill-run'),
-    );
-    await tester.ensureVisible(playbackHealthRunButton);
-    await tester.pumpAndSettle();
-    await tester.tap(playbackHealthRunButton);
-    await tester.pumpAndSettle();
-    expect(
-      bundle.adapter.hitCount(
-        'POST',
-        '/system/jobs/media_playback_health_backfill/runs',
       ),
       1,
     );

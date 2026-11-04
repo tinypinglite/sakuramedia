@@ -218,11 +218,21 @@ void main() {
           'cli_help': '手动任务',
           'manual_trigger_allowed': true,
         },
+        <String, dynamic>{
+          'task_key': 'media_playback_health_backfill',
+          'cli_help': '媒体播放结构补检',
+          'manual_trigger_allowed': true,
+        },
       ],
     );
 
     final jobs = await bundle.activityApi.getJobs();
 
+    expect(jobs, hasLength(2));
+    expect(
+      jobs.map((job) => job.taskKey),
+      isNot(contains('media_playback_health_backfill')),
+    );
     expect(jobs.first.isScheduled, isTrue);
     expect(jobs.last.isScheduled, isFalse);
   });

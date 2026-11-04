@@ -67,7 +67,6 @@ file_signature_secret = ""
 [media]
 allowed_min_video_file_size = 268435456
 import_image_root_path = "/data/cache/assets"
-playback_interleave_max_gap_mib = 64.0
 media_clip_root_path = "/data/media-clips"
 media_clip_max_duration_seconds = 900
 media_clip_ffmpeg_timeout_seconds = 120
@@ -77,16 +76,9 @@ media_clip_ffmpeg_timeout_seconds = 120
 |---|---|
 | `allowed_min_video_file_size` | Minimum video size for media import (bytes), 256 MB by default. |
 | `import_image_root_path` | Directory where images are cached during import. |
-| `playback_interleave_max_gap_mib` | Threshold for the maximum audio/video interleave offset during playback-structure probing (MiB), 64 by default and must be greater than 0. At or above the threshold, the media is treated as structurally abnormal and marked invalid; a higher value reduces false positives but may miss some media that does not actually play smoothly. |
 | `media_clip_root_path` | Directory where clip files are stored. |
 | `media_clip_max_duration_seconds` | Maximum allowed duration of a single clip, 900 seconds by default. |
 | `media_clip_ffmpeg_timeout_seconds` | Timeout for one ffmpeg clip operation, 120 seconds by default. |
-
-Playback-structure probing reads the audio and video packets around the same point near the middle of the video and measures their byte distance in the file. A normal MP4 keeps the audio and video data for the same time range relatively close together. When that distance is too large, an HTTP Range player has to jump across large parts of the file to fetch both streams for startup, seeking or continuous playback, making slow startup, stuttering or playback failure more likely.
-
-This field does not change the player itself. It sets the byte-distance threshold that counts as an interleaving problem. Media at or above the threshold is marked invalid and playback is blocked, so lowering the value is stricter and may flag files that actually play fine; raising it is looser and may miss files that do stutter.
-
-The threshold only affects future probes; changing it does not automatically recheck existing results or change existing verdicts.
 
 Collection detection for movies is handled by an installed plugin. Go to "System Settings → Plugins" to install, enable and configure the corresponding plugin.
 

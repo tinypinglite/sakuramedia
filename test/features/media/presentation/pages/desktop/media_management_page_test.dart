@@ -416,63 +416,16 @@ void main() {
     expect(editableText.controller.text, isEmpty);
   });
 
-  testWidgets('interleave gap chips send the selected minimum', (tester) async {
-    await _pumpPage(
-      tester,
-      sessionStore: sessionStore,
-      mediaApi: mediaApi,
-      apiClient: apiClient,
-    );
-    await tester.tap(find.byKey(const Key('media-management-filter-trigger')));
-    await tester.pumpAndSettle();
-
-    for (final entry in const <int, String>{
-      64: '64.0',
-      256: '256.0',
-      1024: '1024.0',
-    }.entries) {
-      final chip = find.byKey(Key('media-interleave-gap-filter-${entry.key}'));
-      await tester.ensureVisible(chip);
-      await tester.tap(chip);
-      await tester.pumpAndSettle();
-
-      final request = adapter.requests.lastWhere(
-        (request) => request.method == 'GET' && request.path == '/media',
-      );
-      expect(
-        request.uri.queryParameters['interleave_gap_mib_min'],
-        entry.value,
-      );
-    }
-
-    await tester.tap(find.byKey(const Key('media-interleave-gap-filter-all')));
-    await tester.pumpAndSettle();
-    final resetRequest = adapter.requests.lastWhere(
-      (request) => request.method == 'GET' && request.path == '/media',
-    );
-    expect(
-      resetRequest.uri.queryParameters.containsKey('interleave_gap_mib_min'),
-      isFalse,
-    );
-  });
-
   testWidgets('keeps the submitted search after a filter request fails', (
     tester,
   ) async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/media',
-      body: _emptyPage(),
-    );
+    adapter.enqueueJson(method: 'GET', path: '/media', body: _emptyPage());
     adapter.enqueueJson(
       method: 'GET',
       path: '/media',
       statusCode: 500,
       body: <String, dynamic>{
-        'error': <String, dynamic>{
-          'code': 'server_error',
-          'message': '搜索暂不可用',
-        },
+        'error': <String, dynamic>{'code': 'server_error', 'message': '搜索暂不可用'},
       },
     );
     await _pumpPage(
@@ -1705,8 +1658,7 @@ Map<String, dynamic> _invalidMediaJson(int id) {
     'library_id': 1,
     'library_name': 'Main Library',
     'file_size_bytes': 1024,
-    'invalid_reason': 'interleave_bad',
-    'invalid_detail': <String, dynamic>{'max_gap_mib': 6920.8},
+    'invalid_reason': 'file_missing',
     'updated_at': '2026-05-13T12:00:00Z',
   };
 }
@@ -1724,7 +1676,6 @@ Map<String, dynamic> _invalidVideoMediaJson(int id) {
     'library_name': 'Main Library',
     'file_size_bytes': 1024,
     'invalid_reason': 'file_missing',
-    'invalid_detail': <String, dynamic>{},
     'updated_at': '2026-05-13T12:00:00Z',
   };
 }
@@ -1742,7 +1693,6 @@ Map<String, dynamic> _invalidUnlinkedMediaJson(int id) {
     'library_name': 'Main Library',
     'file_size_bytes': 1024,
     'invalid_reason': 'file_missing',
-    'invalid_detail': <String, dynamic>{},
     'updated_at': '2026-05-13T12:00:00Z',
   };
 }

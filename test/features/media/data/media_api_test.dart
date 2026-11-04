@@ -259,8 +259,7 @@ void main() {
             'library_id': 1,
             'library_name': 'Main Library',
             'file_size_bytes': 2147483648,
-            'invalid_reason': 'interleave_bad',
-            'invalid_detail': <String, dynamic>{'max_gap_mib': 6920.78},
+            'invalid_reason': 'file_missing',
             'updated_at': '2026-05-12T03:00:00Z',
           },
         ],
@@ -289,9 +288,8 @@ void main() {
     expect(item.libraryName, 'Main Library');
     expect(item.fileSizeBytes, 2147483648);
     expect(item.updatedAt, DateTime.parse('2026-05-12T03:00:00Z'));
-    expect(item.invalidReason, 'interleave_bad');
-    expect(item.invalidDetail['max_gap_mib'], 6920.78);
-    expect(item.displayInvalidReason(zh), '音视频交错异常，最大偏移 6921 MiB');
+    expect(item.invalidReason, 'file_missing');
+    expect(item.displayInvalidReason(zh), '文件已丢失');
     expect(adapter.requests.single.uri.queryParameters, <String, String>{
       'page': '2',
       'page_size': '10',
@@ -553,7 +551,6 @@ void main() {
         actorIds: const <int>[12, 34],
         search: '  mixed.case  ',
         thumbnailGenerationState: 'terminal',
-        interleaveGapMibMin: 64,
         sort: 'heat:desc',
       );
 
@@ -565,7 +562,6 @@ void main() {
         'actor_ids': '12,34',
         'search': 'mixed.case',
         'thumbnail_generation_state': 'terminal',
-        'interleave_gap_mib_min': '64.0',
         'sort': 'heat:desc',
       });
     },
@@ -709,7 +705,6 @@ void main() {
             'file_size_bytes': 2147483648,
             'duration_seconds': 5400,
             'resolution': '1920x1080',
-            'interleave_gap_mib': 128.5,
             'video_info': <String, dynamic>{
               'container': <String, dynamic>{'bit_rate': 10000000},
               'video': <String, dynamic>{
@@ -761,7 +756,6 @@ void main() {
     expect(jav.displayHeading(zh), 'ABC-001');
     expect(jav.displaySubtitle, 'Movie 1');
     expect(jav.heat, 320);
-    expect(jav.interleaveGapMib, 128.5);
     expect(jav.technicalInfo?.codecName, 'hevc');
     expect(jav.technicalInfo?.videoBitRate, 9000000);
     expect(jav.technicalInfo?.containerBitRate, 10000000);

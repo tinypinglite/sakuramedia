@@ -1,4 +1,3 @@
-import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/media/data/media_tag_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
@@ -312,7 +311,6 @@ class MovieMediaItemDto {
     required this.fileName,
     required this.fileSizeBytes,
     required this.durationSeconds,
-    this.interleaveGapMib,
     required this.valid,
     required this.progress,
     required this.points,
@@ -329,7 +327,6 @@ class MovieMediaItemDto {
   final String? resolution;
   final int fileSizeBytes;
   final int durationSeconds;
-  final double? interleaveGapMib;
   final bool valid;
   final MovieMediaProgressDto? progress;
   final List<MovieMediaPointDto> points;
@@ -349,7 +346,6 @@ class MovieMediaItemDto {
       resolution: json['resolution'] as String?,
       fileSizeBytes: json['file_size_bytes'] as int? ?? 0,
       durationSeconds: json['duration_seconds'] as int? ?? 0,
-      interleaveGapMib: asDoubleOrNull(json['interleave_gap_mib']),
       valid: json['valid'] as bool? ?? true,
       progress: _progressFromJson(json['progress']),
       points: _listFromJson(
@@ -373,7 +369,6 @@ class MovieMediaItemDto {
     Object? resolution = _sentinel,
     int? fileSizeBytes,
     int? durationSeconds,
-    Object? interleaveGapMib = _sentinel,
     bool? valid,
     Object? progress = _sentinel,
     List<MovieMediaPointDto>? points,
@@ -396,9 +391,6 @@ class MovieMediaItemDto {
           : resolution as String?,
       fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
       durationSeconds: durationSeconds ?? this.durationSeconds,
-      interleaveGapMib: identical(interleaveGapMib, _sentinel)
-          ? this.interleaveGapMib
-          : interleaveGapMib as double?,
       valid: valid ?? this.valid,
       progress: identical(progress, _sentinel)
           ? this.progress

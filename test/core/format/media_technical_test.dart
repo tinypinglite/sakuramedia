@@ -27,11 +27,4 @@ void main() {
     expect(formatVideoFrameRate(0), isNull);
     expect(formatVideoFrameRate(null), isNull);
   });
-
-  test('formats interleave gap in MiB or GiB and hides invalid values', () {
-    expect(formatInterleaveGapSize(8.2), '8.2 MiB');
-    expect(formatInterleaveGapSize(2308), '2.3 GiB');
-    expect(formatInterleaveGapSize(0), isNull);
-    expect(formatInterleaveGapSize(null), isNull);
-  });
 }

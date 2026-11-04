@@ -58,7 +58,6 @@ class MediaListItemDto with MovieCoverSelection {
     required this.fileSizeBytes,
     required this.durationSeconds,
     this.resolution,
-    this.interleaveGapMib,
     this.technicalInfo,
     required this.valid,
     this.heat,
@@ -86,7 +85,6 @@ class MediaListItemDto with MovieCoverSelection {
   final int fileSizeBytes;
   final int durationSeconds;
   final String? resolution;
-  final double? interleaveGapMib;
   final MediaTechnicalInfoDto? technicalInfo;
   final bool valid;
   final int? heat;
@@ -141,7 +139,6 @@ class MediaListItemDto with MovieCoverSelection {
       fileSizeBytes: asInt(json['file_size_bytes']),
       durationSeconds: asInt(json['duration_seconds']),
       resolution: asStringOrNull(json['resolution'], trim: true),
-      interleaveGapMib: asDoubleOrNull(json['interleave_gap_mib']),
       technicalInfo: _technicalInfoFromJson(json['video_info']),
       valid: json['valid'] as bool? ?? false,
       heat: asIntOrNull(json['heat']),
