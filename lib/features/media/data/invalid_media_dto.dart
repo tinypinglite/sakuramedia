@@ -15,6 +15,8 @@ class InvalidMediaDto {
     required this.libraryName,
     required this.fileSizeBytes,
     required this.updatedAt,
+    this.invalidReason,
+    this.invalidDetail = const <String, dynamic>{},
   });
 
   final int id;
@@ -28,6 +30,32 @@ class InvalidMediaDto {
   final String? libraryName;
   final int fileSizeBytes;
   final DateTime? updatedAt;
+  final String? invalidReason;
+  final Map<String, dynamic> invalidDetail;
+
+  String displayInvalidReason(AppLocalizations l10n) {
+    switch (invalidReason) {
+      case 'file_missing':
+        return l10n.mediaListInvalidReasonFileMissing;
+      case 'container_invalid':
+        return l10n.mediaListInvalidReasonContainerInvalid;
+      case 'moov_missing':
+        return l10n.mediaListInvalidReasonMoovMissing;
+      case 'video_stream_missing':
+        return l10n.mediaListInvalidReasonVideoStreamMissing;
+      case 'interleave_bad':
+        final gap = invalidDetail['max_gap_mib'];
+        if (gap is num) {
+          final value = gap >= 100
+              ? gap.toStringAsFixed(0)
+              : gap.toStringAsFixed(1);
+          return l10n.mediaListInvalidReasonInterleaveBadWithGap(value);
+        }
+        return l10n.mediaListInvalidReasonInterleaveBad;
+      default:
+        return l10n.mediaListInvalidReasonUnknown;
+    }
+  }
 
   /// 展示用标题；未命名时回退语言包里的「未命名媒体」。
   String displayTitle(AppLocalizations l10n) {
@@ -68,6 +96,8 @@ class InvalidMediaDto {
       libraryName: asStringOrNull(json['library_name'], trim: true),
       fileSizeBytes: asInt(json['file_size_bytes']),
       updatedAt: asDateTime(json['updated_at']),
+      invalidReason: asStringOrNull(json['invalid_reason'], trim: true),
+      invalidDetail: asMap(json['invalid_detail']),
     );
   }
 

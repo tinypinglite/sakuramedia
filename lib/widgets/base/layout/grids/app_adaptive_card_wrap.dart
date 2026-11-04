@@ -23,6 +23,7 @@ class AppAdaptiveCardWrapSliver<T> extends StatelessWidget {
     required this.itemBuilder,
     this.minColumns = 2,
     this.maxColumns,
+    this.stretchRows = false,
   });
 
   /// 列表 Key（测试锚点）。
@@ -34,6 +35,9 @@ class AppAdaptiveCardWrapSliver<T> extends StatelessWidget {
   final int minColumns;
   final int? maxColumns;
 
+  /// 是否把同一行卡片拉成等高；默认保持各卡自然高度。
+  final bool stretchRows;
+
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing.md;
@@ -44,35 +48,36 @@ class AppAdaptiveCardWrapSliver<T> extends StatelessWidget {
           spacing: spacing,
           targetWidth: resolveAppCardGridTargetWidth(context, orientation),
           minColumns: minColumns,
-          maxColumns: maxColumns ?? context.appComponentTokens.cardGridMaxColumns,
+          maxColumns:
+              maxColumns ?? context.appComponentTokens.cardGridMaxColumns,
         );
         final cardWidth =
             (constraints.crossAxisExtent - spacing * (columns - 1)) / columns;
         final rowCount = (items.length + columns - 1) ~/ columns;
         return SliverList(
           key: gridKey,
-          delegate: SliverChildBuilderDelegate(
-            (context, rowIndex) {
-              final start = rowIndex * columns;
-              final end = math.min(start + columns, items.length);
-              return Padding(
-                padding: EdgeInsets.only(top: rowIndex == 0 ? 0 : spacing),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (var index = start; index < end; index++) ...[
-                      if (index > start) SizedBox(width: spacing),
-                      SizedBox(
-                        width: cardWidth,
-                        child: itemBuilder(context, items[index], index),
-                      ),
-                    ],
-                  ],
-                ),
-              );
-            },
-            childCount: rowCount,
-          ),
+          delegate: SliverChildBuilderDelegate((context, rowIndex) {
+            final start = rowIndex * columns;
+            final end = math.min(start + columns, items.length);
+            final row = Row(
+              crossAxisAlignment: stretchRows
+                  ? CrossAxisAlignment.stretch
+                  : CrossAxisAlignment.start,
+              children: [
+                for (var index = start; index < end; index++) ...[
+                  if (index > start) SizedBox(width: spacing),
+                  SizedBox(
+                    width: cardWidth,
+                    child: itemBuilder(context, items[index], index),
+                  ),
+                ],
+              ],
+            );
+            return Padding(
+              padding: EdgeInsets.only(top: rowIndex == 0 ? 0 : spacing),
+              child: stretchRows ? IntrinsicHeight(child: row) : row,
+            );
+          }, childCount: rowCount),
         );
       },
     );

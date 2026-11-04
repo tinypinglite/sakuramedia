@@ -263,6 +263,8 @@ void main() {
 
       expect(find.text('媒体信息回填'), findsOneWidget);
       expect(find.textContaining('补齐时长、分辨率和视频信息'), findsOneWidget);
+      expect(find.text('媒体播放结构补检'), findsOneWidget);
+      expect(find.textContaining('音视频交错结构'), findsOneWidget);
       expect(find.text('媒体文件哈希补算'), findsOneWidget);
       expect(find.textContaining('用于识别重复媒体'), findsOneWidget);
       expect(find.text('媒体缩略图打包回填'), findsOneWidget);
@@ -297,6 +299,32 @@ void main() {
 
       bundle.adapter.enqueueJson(
         method: 'POST',
+        path: '/system/jobs/media_playback_health_backfill/runs',
+        body: <String, dynamic>{
+          'task_run_id': 2,
+          'task_key': 'media_playback_health_backfill',
+          'state': 'pending',
+        },
+      );
+      final playbackHealthRunButton = find.byKey(
+        const Key(
+          'configuration-system-maintenance-media_playback_health_backfill-run',
+        ),
+      );
+      await tester.ensureVisible(playbackHealthRunButton);
+      await tester.pumpAndSettle();
+      await tester.tap(playbackHealthRunButton);
+      await tester.pumpAndSettle();
+      expect(
+        bundle.adapter.hitCount(
+          'POST',
+          '/system/jobs/media_playback_health_backfill/runs',
+        ),
+        1,
+      );
+
+      bundle.adapter.enqueueJson(
+        method: 'POST',
         path: '/system/jobs/media_file_hash_backfill/runs',
         body: <String, dynamic>{
           'task_run_id': 2,
@@ -304,13 +332,14 @@ void main() {
           'state': 'pending',
         },
       );
-      await tester.tap(
-        find.byKey(
-          const Key(
-            'configuration-system-maintenance-media_file_hash_backfill-run',
-          ),
+      final fileHashRunButton = find.byKey(
+        const Key(
+          'configuration-system-maintenance-media_file_hash_backfill-run',
         ),
       );
+      await tester.ensureVisible(fileHashRunButton);
+      await tester.pumpAndSettle();
+      await tester.tap(fileHashRunButton);
       await tester.pumpAndSettle();
       expect(
         bundle.adapter.hitCount(

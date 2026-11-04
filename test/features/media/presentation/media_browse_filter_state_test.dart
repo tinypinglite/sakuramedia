@@ -32,6 +32,13 @@ void main() {
       expect(state.hasActiveFilters, isTrue);
     });
 
+    test('交错大小筛选计入筛选并可在重置时清空', () {
+      const state = MediaBrowseFilterState(interleaveGapMinMib: 64);
+      expect(state.hasActiveFilters, isTrue);
+      expect(state.resetFilters().interleaveGapMinMib, isNull);
+      expect(state.resetFilters().hasActiveFilters, isFalse);
+    });
+
     test('resetFilters 保留排序', () {
       const state = MediaBrowseFilterState(
         kind: MediaListItemKind.video,

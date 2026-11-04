@@ -13,7 +13,7 @@ import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_sca
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/domain/activity/activity_task_sort_menu_button.dart';
 
-/// 「最近操作 / 运行记录」的筛选条：状态、任务、触发来源与排序。
+/// 「任务历史」的筛选条：状态、任务、触发来源与排序。
 ///
 /// 桌面端是一行下拉 + 排序菜单，移动端是摘要 + 排序菜单 + 筛选抽屉。
 class ActivityTaskFilterBar extends StatelessWidget {

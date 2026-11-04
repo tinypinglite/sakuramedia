@@ -8,16 +8,18 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/domain/media/media_transfer_result_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media_import/import_failed_items_dialog.dart';
 
-/// 单条任务运行记录卡：活动区、最近操作列表与单个任务的历史弹层共用。
+/// 单条任务运行记录卡：活动区、任务历史列表与单个任务的历史弹层共用。
 class ActivityTaskRunCard extends StatelessWidget {
   const ActivityTaskRunCard({
     super.key,
     required this.taskRun,
     this.highlighted = false,
+    this.backgroundColor,
   });
 
   final TaskRunDto taskRun;
   final bool highlighted;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +33,7 @@ class ActivityTaskRunCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.all(context.appSpacing.lg),
       decoration: BoxDecoration(
-        color: colors.surfaceCard,
+        color: backgroundColor ?? colors.surfaceCard,
         borderRadius: context.appRadius.mdBorder,
         border: Border.all(
           color: highlighted

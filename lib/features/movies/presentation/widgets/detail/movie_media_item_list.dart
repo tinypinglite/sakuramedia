@@ -49,7 +49,7 @@ class MovieMediaItemList extends StatelessWidget {
         (mediaItems.isNotEmpty ? mediaItems.first : null);
     final technicalSummary = selectedItem == null
         ? null
-        : _buildTechnicalSummary(selectedItem);
+        : _buildTechnicalSummary(context, selectedItem);
     final showDeleteAction =
         selectedItem != null && onDeleteSelectedMedia != null;
     final showTagAction = selectedItem != null && onEditMediaTags != null;
@@ -156,7 +156,9 @@ class MovieMediaItemList extends StatelessWidget {
               if (selectedItem.isMediaTagsManuallyManaged)
                 AppBadge(
                   key: const Key('movie-media-tags-manual-badge'),
-                  label: AppLocalizations.of(context).mediaTagsAssignmentManualBadge,
+                  label: AppLocalizations.of(
+                    context,
+                  ).mediaTagsAssignmentManualBadge,
                   tone: AppBadgeTone.primary,
                   size: AppBadgeSize.compact,
                 ),
@@ -208,7 +210,8 @@ class MovieMediaItemList extends StatelessWidget {
     return formatFileSize(item.fileSizeBytes);
   }
 
-  String? _buildTechnicalSummary(MovieMediaItemDto item) {
+  String? _buildTechnicalSummary(BuildContext context, MovieMediaItemDto item) {
+    final l10n = AppLocalizations.of(context);
     final videoInfo = item.videoInfo;
 
     final parts = <String>[
@@ -226,12 +229,20 @@ class MovieMediaItemList extends StatelessWidget {
         bitRate,
       if (_formatFrameRate(videoInfo?.video?.frameRate) case final frameRate?)
         frameRate,
+      _formatInterleaveGap(l10n, item.interleaveGapMib),
     ];
 
-    if (parts.isEmpty) {
-      return null;
-    }
     return parts.join(' · ');
+  }
+
+  String _formatInterleaveGap(AppLocalizations l10n, double? gapMib) {
+    if (gapMib == null) {
+      return l10n.movieMediaInterleaveGapUnknown;
+    }
+    final gap = gapMib >= 1024
+        ? '${(gapMib / 1024).toStringAsFixed(1)} GiB'
+        : '${gapMib >= 100 ? gapMib.toStringAsFixed(0) : gapMib.toStringAsFixed(1)} MiB';
+    return l10n.movieMediaInterleaveGap(gap);
   }
 
   String? _formatVideoCodec(String? codecName) {

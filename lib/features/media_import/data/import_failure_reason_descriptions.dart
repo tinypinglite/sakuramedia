@@ -13,6 +13,15 @@ String describeImportFailureReason(String code, AppLocalizations l10n) {
     'file_too_small' => l10n.mediaImportFailureFileTooSmall,
     'unsupported_format' => l10n.mediaImportFailureUnsupportedFormat,
     'already_indexed_path' => l10n.mediaImportFailureAlreadyIndexedPath,
+    'media_playback_file_missing' => l10n.mediaImportFailurePlaybackFileMissing,
+    'media_playback_container_invalid' =>
+      l10n.mediaImportFailurePlaybackContainerInvalid,
+    'media_playback_moov_missing' => l10n.mediaImportFailurePlaybackMoovMissing,
+    'media_playback_video_stream_missing' =>
+      l10n.mediaImportFailurePlaybackVideoStreamMissing,
+    'media_playback_interleave_bad' =>
+      l10n.mediaImportFailurePlaybackInterleaveBad,
+    'media_playback_invalid' => l10n.mediaImportFailurePlaybackInvalid,
     _ => code.isEmpty ? l10n.mediaImportFailureUnknownReason : code,
   };
 }

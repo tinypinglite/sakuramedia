@@ -4,16 +4,12 @@ import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 
-enum ActivityConnectionState { connecting, polling }
-
 @immutable
 class ActivityCenterState {
   ActivityCenterState({
     this.initialized = false,
     this.isInitialLoading = false,
     this.initialErrorMessage,
-    this.connectionState = ActivityConnectionState.connecting,
-    this.connectionMessage,
     this.taskFilter = ActivityTaskFilterState.initial,
     this.taskFilterUpdate = const FilterUpdateState.idle(),
     List<TaskRunDto> activeTaskRuns = const <TaskRunDto>[],
@@ -39,8 +35,6 @@ class ActivityCenterState {
   final bool initialized;
   final bool isInitialLoading;
   final String? initialErrorMessage;
-  final ActivityConnectionState connectionState;
-  final String? connectionMessage;
   final ActivityTaskFilterState taskFilter;
   final FilterUpdateState taskFilterUpdate;
   final List<TaskRunDto> activeTaskRuns;
@@ -57,9 +51,6 @@ class ActivityCenterState {
   final Set<String> triggeringTaskKeys;
   final int? highlightedTaskRunId;
   final int taskNextPage;
-
-  bool get isPollingFallback =>
-      connectionState == ActivityConnectionState.polling;
 
   /// 任务历史是否允许自动补页；失败后只保留页脚/筛选栏的显式重试。
   bool get canAutoLoadMoreTasks =>
@@ -110,8 +101,6 @@ class ActivityCenterState {
     bool? initialized,
     bool? isInitialLoading,
     Object? initialErrorMessage = _unset,
-    ActivityConnectionState? connectionState,
-    Object? connectionMessage = _unset,
     ActivityTaskFilterState? taskFilter,
     FilterUpdateState? taskFilterUpdate,
     List<TaskRunDto>? activeTaskRuns,
@@ -134,10 +123,6 @@ class ActivityCenterState {
       initialErrorMessage: identical(initialErrorMessage, _unset)
           ? this.initialErrorMessage
           : initialErrorMessage as String?,
-      connectionState: connectionState ?? this.connectionState,
-      connectionMessage: identical(connectionMessage, _unset)
-          ? this.connectionMessage
-          : connectionMessage as String?,
       taskFilter: taskFilter ?? this.taskFilter,
       taskFilterUpdate: taskFilterUpdate ?? this.taskFilterUpdate,
       activeTaskRuns: activeTaskRuns ?? this.activeTaskRuns,
@@ -175,8 +160,6 @@ class ActivityCenterState {
         other.initialized == initialized &&
         other.isInitialLoading == isInitialLoading &&
         other.initialErrorMessage == initialErrorMessage &&
-        other.connectionState == connectionState &&
-        other.connectionMessage == connectionMessage &&
         other.taskFilter == taskFilter &&
         other.taskFilterUpdate == taskFilterUpdate &&
         listEquals(other.activeTaskRuns, activeTaskRuns) &&
@@ -199,8 +182,6 @@ class ActivityCenterState {
     initialized,
     isInitialLoading,
     initialErrorMessage,
-    connectionState,
-    connectionMessage,
     taskFilter,
     taskFilterUpdate,
     Object.hashAll(activeTaskRuns),

@@ -45,6 +45,7 @@ void main() {
               resolution: '3840x2160',
               fileSizeBytes: 2147483648,
               durationSeconds: 3661,
+              interleaveGapMib: 8.2,
               valid: true,
               progress: null,
               points: <MovieMediaPointDto>[],
@@ -59,9 +60,42 @@ void main() {
 
     expect(find.text('2.0 GB'), findsOneWidget);
     expect(
-      find.text('cloud-drive · movie.mp4 · 3840x2160 · 01:01:01'),
+      find.text(
+        'cloud-drive · movie.mp4 · 3840x2160 · 01:01:01 · 音视频交错 8.2 MiB',
+      ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('movie media item list formats a large interleave gap in GiB', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      _testApp(
+        child: MovieMediaItemList(
+          mediaItems: const <MovieMediaItemDto>[
+            MovieMediaItemDto(
+              mediaId: 116,
+              libraryId: 9,
+              providerKey: 'cloud-drive',
+              playUrl: '/media/116/play/movie.mp4?expires=1&signature=x',
+              fileName: 'movie.mp4',
+              fileSizeBytes: 2147483648,
+              durationSeconds: 3661,
+              resolution: '1920x1080',
+              interleaveGapMib: 2308,
+              valid: true,
+              progress: null,
+              points: <MovieMediaPointDto>[],
+            ),
+          ],
+          selectedMediaId: 116,
+          onSelect: (_) {},
+        ),
+      ),
+    );
+
+    expect(find.textContaining('音视频交错 2.3 GiB'), findsOneWidget);
   });
 
   testWidgets(
@@ -172,7 +206,7 @@ void main() {
       expect(find.byKey(const Key('movie-media-points-title')), findsOneWidget);
       expect(
         find.text(
-          'filesystem · ABC-001.mp4 · 1920x1080 · 02:00:00 · H.264 · 22.8 Mbps · 29.97 fps',
+          'filesystem · ABC-001.mp4 · 1920x1080 · 02:00:00 · H.264 · 22.8 Mbps · 29.97 fps · 音视频交错未检测',
         ),
         findsOneWidget,
       );
@@ -226,7 +260,7 @@ void main() {
 
       expect(
         find.text(
-          'filesystem · ABC-001-alt.mp4 · 1280x720 · 01:30:00 · H.265 · 6.5 Mbps · 24 fps',
+          'filesystem · ABC-001-alt.mp4 · 1280x720 · 01:30:00 · H.265 · 6.5 Mbps · 24 fps · 音视频交错未检测',
         ),
         findsOneWidget,
       );
@@ -240,7 +274,7 @@ void main() {
   );
 
   testWidgets(
-    'movie media item list hides technical summary when all summary fields are missing',
+    'movie media item list shows unknown interleave when summary fields are missing',
     (WidgetTester tester) async {
       await tester.pumpWidget(
         _testApp(
@@ -286,7 +320,7 @@ void main() {
         ),
       );
 
-      expect(find.byKey(const Key('movie-media-tech-summary')), findsNothing);
+      expect(find.text('音视频交错未检测'), findsOneWidget);
       expect(find.byKey(const Key('movie-media-points-title')), findsNothing);
       expect(find.text('暂无标记点'), findsNothing);
     },

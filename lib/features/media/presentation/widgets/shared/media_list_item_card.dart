@@ -43,6 +43,7 @@ class MediaListItemCard extends StatelessWidget {
     this.onOpenActions,
     this.onEditTags,
     this.showUpdatedAt = false,
+    this.statusMessage,
   });
 
   final String keyPrefix;
@@ -69,6 +70,7 @@ class MediaListItemCard extends StatelessWidget {
   final VoidCallback? onOpenActions;
   final VoidCallback? onEditTags;
   final bool showUpdatedAt;
+  final String? statusMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +115,7 @@ class MediaListItemCard extends StatelessWidget {
         onOpenActions: onOpenActions,
         onEditTags: onEditTags,
         showUpdatedAt: showUpdatedAt,
+        statusMessage: statusMessage,
       ),
     );
 
@@ -139,6 +142,7 @@ class _MediaListItemBody extends StatelessWidget {
     required this.onOpenActions,
     required this.onEditTags,
     required this.showUpdatedAt,
+    required this.statusMessage,
   });
 
   final String keyPrefix;
@@ -158,6 +162,7 @@ class _MediaListItemBody extends StatelessWidget {
   final VoidCallback? onOpenActions;
   final VoidCallback? onEditTags;
   final bool showUpdatedAt;
+  final String? statusMessage;
 
   /// 缩略图重试 / 重新生成：平铺图标动作；执行中换成小转圈。
   Widget? _retryAction(BuildContext context, AppLocalizations l10n) {
@@ -311,6 +316,20 @@ class _MediaListItemBody extends StatelessWidget {
             tone: AppTextTone.muted,
           ),
         ),
+        if (statusMessage != null) ...[
+          SizedBox(height: spacing.xs),
+          Text(
+            statusMessage!,
+            key: Key('$keyPrefix-reason-${item.id}'),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              tone: AppTextTone.error,
+            ),
+          ),
+        ],
         if (item.isJav &&
             (item.tags.isNotEmpty || item.isMediaTagsManuallyManaged)) ...[
           SizedBox(height: spacing.xs),

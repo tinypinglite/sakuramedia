@@ -462,6 +462,7 @@ class _InvalidMediaRowConsumer extends ConsumerWidget {
       isDeleting: isDeleting,
       canDelete: actionState == null,
       showUpdatedAt: !mobile,
+      statusMessage: item.displayInvalidReason(AppLocalizations.of(context)),
     );
   }
 }

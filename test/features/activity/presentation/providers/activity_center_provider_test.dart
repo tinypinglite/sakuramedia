@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_provider.dart';
-import 'package:sakuramedia/features/activity/presentation/providers/activity_center_state.dart';
 
 import '../../../../support/test_api_bundle.dart';
 
@@ -32,7 +31,7 @@ void main() {
     sessionStore.dispose();
   });
 
-  test('build loads task snapshot and enters polling state', () async {
+  test('build loads task snapshot', () async {
     final subscription = container.listen(activityCenterProvider, (_, __) {});
     addTearDown(subscription.close);
     _enqueueJobs(bundle);
@@ -41,10 +40,8 @@ void main() {
     final state = await container.read(activityCenterProvider.future);
 
     expect(state.initialized, isTrue);
-    expect(state.connectionState, ActivityConnectionState.polling);
     expect(state.activeTaskRuns.single.id, 8);
     expect(state.taskRuns.single.id, 9);
-    expect(state.isPollingFallback, isTrue);
     expect(
       bundle.adapter.requests.where(
         (request) => request.path.contains('/system/events/'),

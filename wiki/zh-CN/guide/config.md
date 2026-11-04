@@ -67,6 +67,7 @@ file_signature_secret = ""
 [media]
 allowed_min_video_file_size = 268435456
 import_image_root_path = "/data/cache/assets"
+playback_interleave_max_gap_mib = 64.0
 media_clip_root_path = "/data/media-clips"
 media_clip_max_duration_seconds = 900
 media_clip_ffmpeg_timeout_seconds = 120
@@ -76,9 +77,16 @@ media_clip_ffmpeg_timeout_seconds = 120
 |---|---|
 | `allowed_min_video_file_size` | 媒体导入的最小视频体积（字节），默认 256 MB。 |
 | `import_image_root_path` | 导入时缓存图片的目录。 |
+| `playback_interleave_max_gap_mib` | 播放结构探测的音视频最大交错偏移阈值（MiB），默认 64，必须大于 0。达到阈值时媒体会被判为播放结构异常并标记失效；调高可减少误判，但可能漏掉部分实际播放不流畅的媒体。 |
 | `media_clip_root_path` | 切片文件存储目录。 |
 | `media_clip_max_duration_seconds` | 单个切片允许的最大时长，默认 900 秒。 |
 | `media_clip_ffmpeg_timeout_seconds` | 单次 ffmpeg 切片超时，默认 120 秒。 |
+
+播放结构探测会在视频中段附近读取同一时间点的音频包和视频包，并计算两者在文件中的字节距离。正常 MP4 会把同一时段的音视频数据相对集中地交错存放；距离过大时，播放器通过 HTTP Range 起播、拖动或持续播放，就需要频繁跨越大段文件来同时取得音视频数据，更容易出现起播慢、卡顿或无法播放。
+
+这个字段不会改变播放器本身，而是决定多大的字节距离会被判为“交错异常”。达到阈值的媒体会标记失效并阻止播放，因此调低会更严格，可能误判本来能播放的文件；调高会更宽松，可能漏掉真正会卡顿的文件。
+
+该阈值只影响后续探测；修改后不会自动重检已有检测结果，已有判定也不会自动改变。
 
 影片合集判定由已安装插件负责。进入「系统设置 → 插件」安装、启用并配置对应插件。
 

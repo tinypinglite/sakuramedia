@@ -19,7 +19,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 /// 单个任务的全量运行记录弹层。
 ///
 /// 桌面端是居中弹窗，移动端是整屏底部抽屉；记录来自独立的
-/// [taskRunHistoryProvider]，与任务中心默认的「最近操作」列表互不影响。
+/// [taskRunHistoryProvider]，与任务中心默认的「任务历史」列表互不影响。
 Future<void> showTaskRunHistorySheet(
   BuildContext context, {
   required String taskKey,

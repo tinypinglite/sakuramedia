@@ -899,6 +899,9 @@
   "systemMaintenanceMediaInfoBackfillTitle": "Media info backfill",
   "systemMaintenanceMediaInfoBackfillDescription": "Re-probe media files with missing or incomplete technical info to fill in duration, resolution, and video details. Only missing or incomplete items are processed; existing info is not overwritten unconditionally.",
   "systemMaintenanceMediaInfoBackfillSuccess": "Media info backfill task submitted. Check the task center for progress.",
+  "systemMaintenancePlaybackHealthBackfillTitle": "Media playback health backfill",
+  "systemMaintenancePlaybackHealthBackfillDescription": "Check audio/video interleaving in existing media files, processing only valid media that has not been checked or whose result is unknown. Media with abnormal structure is marked invalid and a notification is sent; large libraries or slow storage may take a while.",
+  "systemMaintenancePlaybackHealthBackfillSuccess": "Media playback health backfill task submitted. Check the task center for progress.",
   "systemMaintenanceFileHashBackfillTitle": "Media file hash backfill",
   "systemMaintenanceFileHashBackfillDescription": "Compute and store file fingerprints for media files without a hash, so duplicates can be identified. Only files with an empty hash are processed; large libraries may take a while.",
   "systemMaintenanceFileHashBackfillSuccess": "Media file hash backfill task submitted. Check the task center for progress.",
@@ -2609,8 +2612,8 @@
   "activityNoNotifications": "No notifications",
   "activityRefreshFailed": "Refresh failed. Please try again later.",
   "activityCenterTitle": "Task center",
-  "activityRecentOperations": "Recent operations",
-  "activityRunRecords": "Run records",
+  "activityTabOverview": "Overview",
+  "activityTabHistory": "Task history",
   "activityTaskRunHistoryTitle": "Run history",
   "activityHistoryEmpty": "This task has no run records yet",
   "activityRunCompletedWithWarning": "Warning",
@@ -2631,15 +2634,14 @@
     }
   },
   "activityExecutableJobsTitle": "Executable tasks",
-  "activityViewJobs": "View tasks",
-  "activityExecutableJobsDescription": "Run registered background tasks manually; execution status updates in the task center in real time.",
+  "activityCommonTasks": "Common tasks",
   "activityJobDisabled": "Disabled",
   "activityJobSubmitting": "Submitting",
   "activityJobRunNow": "Run now",
   "activityJobFillParams": "Fill in parameters",
   "activityJobNotManual": "Manual run unavailable",
-  "activityJobNoSchedule": "No schedule",
-  "activityJobNeedsParams": "Parameters required",
+  "activityJobScheduled": "Scheduled job",
+  "activityJobManualTask": "Manual job",
   "activityJobNoRuns": "No runs yet",
   "activityJobLastRun": "Last run: {time}",
   "@activityJobLastRun": {
@@ -2652,9 +2654,6 @@
   "activityFilterAllTasks": "All tasks",
   "activityFilterSystemTasks": "System tasks",
   "activityExecutableJobsEmpty": "No executable tasks",
-  "activityJobsRefreshing": "Refreshing task list",
-  "activityJobSourceLabel": "Task source",
-  "activityExecutableJobsDialogDescription": "Pick a task to run manually; its result appears in the background task list.",
   "activityJobParamsTitle": "Fill in task parameters",
   "activityJobParamsEmpty": "This task has no parameters to fill in; it runs with the default configuration.",
   "activityJobParamsSubmit": "Submit task",
@@ -2814,9 +2813,6 @@
       }
     }
   },
-  "activityConnectionPollingTasks": "Syncing task progress every 3 seconds",
-  "activityConnectionConnectingTasks": "Syncing task center",
-  "activityConnectionTaskSyncFailed": "Task sync failed; refresh manually",
   "activityConnectionConnectingNotifications": "Syncing notifications",
   "activityConnectionPollingNotifications": "Syncing notifications every 30 seconds",
   "activityConnectionNotificationSyncFailed": "Notification sync failed; refresh manually",
@@ -3561,12 +3557,39 @@
   "mediaListFilterSectionSource": "Source",
   "mediaListFilterSectionLibrary": "Media library",
   "mediaListFilterSectionThumbnail": "Thumbnail status",
+  "mediaListFilterSectionInterleave": "Audio/video interleaving",
+  "mediaListFilterInterleaveAtLeast64Mib": "≥64 MiB",
+  "mediaListFilterInterleaveAtLeast256Mib": "≥256 MiB",
+  "mediaListFilterInterleaveAtLeast1Gib": "≥1 GiB",
   "mediaListFilterAllLibraries": "All media libraries",
   "mediaListFilterAllMedia": "All media",
   "mediaListSearchFileNameHint": "Search file names",
   "mediaListSearchFileNameTooltip": "Search file names",
   "mediaListCollapseSearchTooltip": "Collapse search",
   "mediaListInvalidBadge": "Invalid",
+  "mediaListInvalidReasonFileMissing": "File is missing",
+  "mediaListInvalidReasonContainerInvalid": "Container structure is damaged",
+  "mediaListInvalidReasonMoovMissing": "moov is missing; reliable playback is unavailable",
+  "mediaListInvalidReasonVideoStreamMissing": "Video stream is missing",
+  "mediaListInvalidReasonInterleaveBad": "Audio/video interleaving is abnormal",
+  "mediaListInvalidReasonInterleaveBadWithGap": "Audio/video interleaving is abnormal; maximum gap {gap} MiB",
+  "@mediaListInvalidReasonInterleaveBadWithGap": {
+    "placeholders": {
+      "gap": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaListInvalidReasonUnknown": "Reason unknown",
+  "movieMediaInterleaveGap": "Audio/video interleaving {gap}",
+  "@movieMediaInterleaveGap": {
+    "placeholders": {
+      "gap": {
+        "type": "String"
+      }
+    }
+  },
+  "movieMediaInterleaveGapUnknown": "Audio/video interleaving not checked",
   "mediaListUpdatedAt": "Updated {value}",
   "@mediaListUpdatedAt": {
     "placeholders": {
@@ -3867,7 +3890,7 @@
   "mediaListVersionsSelectionHint": "Select the versions to delete; at least one version is kept per movie",
   "mediaListVersionsEmpty": "No multi-version movies yet",
   "mediaListInvalidBatchDeleteTitle": "Delete invalid media in batch",
-  "mediaListInvalidBatchDeleteMessage": "{count} selected invalid media records and their files will be deleted, and this cannot be undone. Thumbnails are kept so the same file can reuse them when imported again. Continue?",
+  "mediaListInvalidBatchDeleteMessage": "{count} selected invalid media records and their existing files will be deleted, and this cannot be undone. Thumbnails are kept so the same file can reuse them when imported again. Continue?",
   "@mediaListInvalidBatchDeleteMessage": {
     "placeholders": {
       "count": {
@@ -3875,10 +3898,10 @@
       }
     }
   },
-  "mediaListInvalidDescription": "Media marked invalid by the file scan shows up here. If the file is really missing, delete the record; JAV movies will download a new copy automatically.",
+  "mediaListInvalidDescription": "Media marked invalid by file scans or playback health checks appears here. Missing files, broken containers, and missing moov metadata are shown with their reason; deleting a JAV movie triggers another download.",
   "mediaListInvalidEmpty": "No invalid media right now",
   "mediaListInvalidDeleteTitle": "Delete invalid media",
-  "mediaListInvalidDeleteMessage": "Delete the invalid media record for “{name}” and its file? This action cannot be undone; thumbnails are kept so the same file can reuse them.",
+  "mediaListInvalidDeleteMessage": "Delete the invalid media record for “{name}” and its existing file? This action cannot be undone; thumbnails are kept so the same file can reuse them.",
   "@mediaListInvalidDeleteMessage": {
     "placeholders": {
       "name": {
@@ -3930,6 +3953,12 @@
   "mediaImportFailureFileTooSmall": "The file is too small",
   "mediaImportFailureUnsupportedFormat": "Unsupported format",
   "mediaImportFailureAlreadyIndexedPath": "Already in the library",
+  "mediaImportFailurePlaybackFileMissing": "File is missing; not imported",
+  "mediaImportFailurePlaybackContainerInvalid": "Container structure is damaged; not imported",
+  "mediaImportFailurePlaybackMoovMissing": "moov is missing; cannot import",
+  "mediaImportFailurePlaybackVideoStreamMissing": "Video stream is missing; not imported",
+  "mediaImportFailurePlaybackInterleaveBad": "Audio/video interleaving is abnormal; not imported",
+  "mediaImportFailurePlaybackInvalid": "Playback structure is invalid; not imported",
   "mediaImportFailureUnknownReason": "Unknown reason",
   "mediaImportMetadataSearchFailed": "Failed to search the metadata. Try again later.",
   "mediaListBatchResetThumbnailsCount": "{label} ({count})",

@@ -59,6 +59,7 @@ class MediaBrowseFilterState {
     this.kind,
     this.libraryId,
     this.thumbnailGenerationState,
+    this.interleaveGapMinMib,
     this.search = '',
     this.sortField,
     this.sortDirection = SortDirection.desc,
@@ -69,6 +70,7 @@ class MediaBrowseFilterState {
   final String search;
 
   final MediaBrowseThumbnailGenerationFilter? thumbnailGenerationState;
+  final double? interleaveGapMinMib;
 
   /// `null` = 使用后端默认（入库时间倒序）；非 null 明确按选中字段+方向排序。
   final MediaBrowseSortField? sortField;
@@ -85,6 +87,7 @@ class MediaBrowseFilterState {
       kind != null ||
       libraryId != null ||
       thumbnailGenerationState != null ||
+      interleaveGapMinMib != null ||
       hasSearch;
 
   /// 重置筛选条件但保留当前排序。
@@ -116,6 +119,7 @@ class MediaBrowseFilterState {
     MediaBrowseKindFilter? kind,
     Object? libraryId = _sentinel,
     Object? thumbnailGenerationState = _sentinel,
+    Object? interleaveGapMinMib = _sentinel,
     String? search,
     Object? sortField = _sentinel,
     SortDirection? sortDirection,
@@ -129,6 +133,9 @@ class MediaBrowseFilterState {
       thumbnailGenerationState: identical(thumbnailGenerationState, _sentinel)
           ? this.thumbnailGenerationState
           : thumbnailGenerationState as MediaBrowseThumbnailGenerationFilter?,
+      interleaveGapMinMib: identical(interleaveGapMinMib, _sentinel)
+          ? this.interleaveGapMinMib
+          : interleaveGapMinMib as double?,
       search: search ?? this.search,
       sortField: identical(sortField, _sentinel)
           ? this.sortField
@@ -144,6 +151,7 @@ class MediaBrowseFilterState {
           other.kind == kind &&
           other.libraryId == libraryId &&
           other.thumbnailGenerationState == thumbnailGenerationState &&
+          other.interleaveGapMinMib == interleaveGapMinMib &&
           other.search == search &&
           other.sortField == sortField &&
           other.sortDirection == sortDirection;
@@ -153,6 +161,7 @@ class MediaBrowseFilterState {
     kind,
     libraryId,
     thumbnailGenerationState,
+    interleaveGapMinMib,
     search,
     sortField,
     sortDirection,

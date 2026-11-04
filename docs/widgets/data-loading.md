@@ -17,7 +17,7 @@
 
 - `AppText`：`lib/widgets/base/typography/app_text.dart`，按应用 token 表达文字层级。
 - `AppAdaptiveCardGrid<T>` / `AppAdaptiveCardSliver<T>`：自适应列数、固定比例或 masonry 布局，并可接入骨架、错误、空态和内容 builder。
-- `AppAdaptiveCardWrapSliver<T>`：`app_adaptive_card_wrap.dart`，自然高度卡片网格的 Sliver 版——按 `orientation` 取统一列数切列宽，卡片保持自身内容高度不被固定比例拉伸（合集列表用）；按行懒构建，直接放进 `CustomScrollView.slivers`。
+- `AppAdaptiveCardWrapSliver<T>`：`app_adaptive_card_wrap.dart`，自然高度卡片网格的 Sliver 版——按 `orientation` 取统一列数切列宽，卡片保持自身内容高度不被固定比例拉伸（合集列表用）；按行懒构建，直接放进 `CustomScrollView.slivers`。需要行内等高时传 `stretchRows: true`。
 - `StaggeredTilePlacement` / `StaggeredLayoutResult`：`staggered_layout.dart`，只在需要自定义交错布局时使用。
 
 全站卡片网格（影片 / 女优 / 视频 / 切片 / 时刻 / 图搜列表、合集列表与合集详情）统一走同一套列数规格：目标列宽按卡片朝向分三档，竖图取 `AppComponentTokens.cardGridPortraitTargetWidth`（当前 240）、横竖混排取 `cardGridMixedTargetWidth`（当前 320）、横图取 `cardGridLandscapeTargetWidth`（当前 320），列数上限取 `cardGridMaxColumns`（当前 8）。`AppAdaptiveCardGrid` / `AppAdaptiveCardSliver` 的 fixedAspect 布局按 `childAspectRatio`（>= 1 视为横图）自动选档，masonry 与固定高度卡片默认混排档，也可用 `orientation` 显式覆盖；手写 `GridView` / `SliverGrid` 的页面用 `resolveAppCardGridColumnCount(context, width:, spacing:, orientation:)` 声明朝向。调整卡片密度只改 token，一处生效。播放器缩略图面板有自己的目标列宽和用户手动列数，不在这套规格内。

@@ -984,6 +984,7 @@ void main() {
             'resolution': '1920x1080',
             'file_size_bytes': 1073741824,
             'duration_seconds': 7200,
+            'interleave_gap_mib': 128.5,
             'valid': true,
             'progress': <String, dynamic>{
               'last_position_seconds': 600,
@@ -1069,6 +1070,7 @@ void main() {
     );
     expect(detail.mediaItems.single.hasPlayableUrl, isTrue);
     expect(detail.mediaItems.single.progress?.lastPositionSeconds, 600);
+    expect(detail.mediaItems.single.interleaveGapMib, 128.5);
     expect(detail.mediaItems.single.videoInfo?.video?.codecName, 'h264');
     expect(detail.mediaItems.single.videoInfo?.video?.bitRate, isNull);
     expect(detail.mediaItems.single.videoInfo?.container?.bitRate, 22793091);

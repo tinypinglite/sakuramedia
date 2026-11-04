@@ -1,18 +1,21 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_provider.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_state.dart';
 import 'package:sakuramedia/features/activity/presentation/pages/desktop/activity_page.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 
 import '../../../../../support/test_api_bundle.dart';
 
 void main() {
-  testWidgets('shows task center without removed download tab', (tester) async {
-    const pluginId = 'sakuramedia_115_provider';
+  testWidgets('shows task center overview and task history tabs', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -81,14 +84,25 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('desktop-activity-page')), findsOneWidget);
-    expect(find.byKey(const Key('activity-tasks-tab')), findsOneWidget);
+    expect(find.byKey(const Key('activity-tabs')), findsOneWidget);
+    expect(find.byKey(const Key('activity-tab-overview')), findsOneWidget);
+    expect(find.byKey(const Key('activity-tab-history')), findsOneWidget);
     expect(find.byKey(const Key('activity-tab-download-tasks')), findsNothing);
     expect(find.byKey(const Key('activity-attention-section')), findsNothing);
     expect(
       find.byKey(const Key('download-tasks-selection-entry')),
       findsNothing,
     );
+    expect(find.byKey(const Key('activity-task-201')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('activity-tab-history')));
+    await tester.pumpAndSettle();
+
     expect(find.byKey(const Key('activity-task-201')), findsOneWidget);
+    expect(
+      find.byKey(const Key('activity-history-filter-header')),
+      findsOneWidget,
+    );
 
     // 排序入口和筛选下拉在同一行、靠左，不能被 Wrap 的有界宽度拉满后居中。
     final sortCenter = tester.getCenter(
@@ -99,61 +113,635 @@ void main() {
     );
     expect(sortCenter.dy, closeTo(stateCenter.dy, 1));
     expect(sortCenter.dx, greaterThan(stateCenter.dx));
+  });
 
+  testWidgets(
+    'overview groups jobs and lays out desktop cards in two columns',
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final sessionStore = SessionStore.inMemory();
+      await sessionStore.saveBaseUrl('https://api.example.com');
+      await sessionStore.saveTokens(
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        expiresAt: DateTime.parse('2026-08-10T12:00:00Z'),
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      addTearDown(sessionStore.dispose);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/jobs',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'task_key': 'download_task_sync',
+            'cli_help': '同步下载任务状态',
+            'cron_expr': '*/5 * * * *',
+            'manual_trigger_allowed': true,
+            'last_task_run': <String, dynamic>{
+              'id': 901,
+              'task_key': 'download_task_sync',
+              'task_name': '同步下载任务状态',
+              'trigger_type': 'scheduled',
+              'state': 'failed',
+              'error_message': '下载器连接失败',
+              'finished_at': '2026-08-10T11:00:00Z',
+            },
+          },
+          <String, dynamic>{
+            'task_key': 'media_file_scan',
+            'cli_help': '扫描媒体文件有效性',
+            'cron_expr': '0 4 * * *',
+            'manual_trigger_allowed': true,
+          },
+          <String, dynamic>{
+            'task_key': 'movie_heat_update',
+            'cli_help': '重算影片热度',
+            'cron_expr': '0 3 * * *',
+            'manual_trigger_allowed': true,
+          },
+          <String, dynamic>{
+            'task_key': 'plugin_a_job_1',
+            'plugin_id': 'plugin_a',
+            'cli_help': '插件甲任务一',
+            'cron_expr': '0 1 * * *',
+            'manual_trigger_allowed': true,
+          },
+          <String, dynamic>{
+            'task_key': 'plugin_a_job_2',
+            'plugin_id': 'plugin_a',
+            'cli_help': '插件甲任务二',
+            'manual_trigger_allowed': true,
+          },
+          <String, dynamic>{
+            'task_key': 'plugin_b_job',
+            'plugin_id': 'plugin_b',
+            'cli_help': '插件乙任务',
+            'cron_expr': '0 2 * * *',
+            'manual_trigger_allowed': true,
+          },
+        ],
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/plugins',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'plugin_id': 'plugin_a',
+            'display_name': '插件甲',
+            'version': '1.0.0',
+            'host_api_version': 12,
+            'enabled': true,
+            'load_status': 'ok',
+          },
+          <String, dynamic>{
+            'plugin_id': 'plugin_b',
+            'display_name': '插件乙',
+            'version': '1.0.0',
+            'host_api_version': 12,
+            'enabled': true,
+            'load_status': 'ok',
+          },
+        ],
+      );
+      _enqueueActivityBootstrap(bundle, withJobs: false);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: bundle.riverpodOverrides(),
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+            theme: sakuraDesktopThemeData,
+            home: const Scaffold(body: DesktopActivityPage()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('activity-executable-jobs-count')),
+          matching: find.text('6 个任务'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('常用任务'), findsOneWidget);
+      expect(find.text('系统任务'), findsOneWidget);
+      expect(find.text('插件甲'), findsOneWidget);
+      expect(find.text('插件乙'), findsOneWidget);
+
+      final commonFirst = tester.getTopLeft(
+        find.byKey(const Key('activity-job-overview-download_task_sync')),
+      );
+      final commonSecond = tester.getTopLeft(
+        find.byKey(const Key('activity-job-overview-media_file_scan')),
+      );
+      expect(commonFirst.dy, closeTo(commonSecond.dy, 1));
+      expect(commonFirst.dx, lessThan(commonSecond.dx));
+      expect(
+        tester
+            .getSize(
+              find.byKey(const Key('activity-job-overview-download_task_sync')),
+            )
+            .height,
+        closeTo(
+          tester
+              .getSize(
+                find.byKey(const Key('activity-job-overview-media_file_scan')),
+              )
+              .height,
+          1,
+        ),
+      );
+      expect(
+        tester
+            .getTopLeft(
+              find.byKey(const Key('activity-job-overview-movie_heat_update')),
+            )
+            .dy,
+        greaterThan(commonFirst.dy),
+      );
+      expect(find.text('同步下载任务状态'), findsOneWidget);
+      expect(find.textContaining('最近运行'), findsWidgets);
+
+      expect(
+        tester
+            .getTopLeft(find.byKey(const Key('activity-job-section-common')))
+            .dy,
+        lessThan(
+          tester
+              .getTopLeft(find.byKey(const Key('activity-job-section-system')))
+              .dy,
+        ),
+      );
+      expect(
+        tester
+            .getTopLeft(find.byKey(const Key('activity-job-section-system')))
+            .dy,
+        lessThan(
+          tester
+              .getTopLeft(
+                find.byKey(const Key('activity-job-section-plugin-plugin_a')),
+              )
+              .dy,
+        ),
+      );
+      expect(
+        tester
+            .getTopLeft(
+              find.byKey(const Key('activity-job-section-plugin-plugin_a')),
+            )
+            .dy,
+        lessThan(
+          tester
+              .getTopLeft(
+                find.byKey(const Key('activity-job-section-plugin-plugin_b')),
+              )
+              .dy,
+        ),
+      );
+      expect(
+        find.byKey(const Key('activity-job-overview-plugin_a_job_1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('activity-job-overview-plugin_b_job')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('overview card triggers a manual job directly', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+    await sessionStore.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.parse('2026-08-10T12:00:00Z'),
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
     bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/system/jobs',
       body: <Map<String, dynamic>>[
         <String, dynamic>{
-          'task_key': 'core_job',
-          'cli_help': '核心维护任务',
-          'cron_expr': '0 1 * * *',
-          'manual_trigger_allowed': true,
-        },
-        <String, dynamic>{
-          'task_key': 'plugin_job_1',
-          'plugin_id': pluginId,
-          'cli_help': '插件任务一',
-          'cron_expr': '0 2 * * *',
-          'manual_trigger_allowed': true,
-        },
-        <String, dynamic>{
-          'task_key': 'plugin_job_2',
-          'plugin_id': pluginId,
-          'cli_help': '插件任务二',
-          'cron_expr': '0 3 * * *',
+          'task_key': 'download_task_sync',
+          'cli_help': '同步下载任务状态',
+          'cron_expr': '*/5 * * * *',
           'manual_trigger_allowed': true,
         },
       ],
     );
+    _enqueueActivityBootstrap(bundle, withJobs: false);
 
-    await tester.tap(find.byKey(const Key('activity-jobs-toggle')));
-    await tester.pumpAndSettle();
-
-    expect(
-      bundle.adapter.requests.where((r) => r.path == '/system/jobs'),
-      hasLength(2),
-    );
-    expect(find.byKey(const Key('activity-job-plugin-filter')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('activity-job-plugin-filter')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('系统任务'), findsOneWidget);
-    expect(find.text(pluginId), findsOneWidget);
-    expect(
-      tester.getSize(find.byKey(const Key('activity-job-plugin-filter'))).width,
-      moreOrLessEquals(
-        sakuraDesktopThemeData.appLayoutTokens.dialogWidthMd -
-            sakuraDesktopThemeData.appSpacing.xl * 2,
-        epsilon: 0.1,
+    await tester.pumpWidget(
+      OKToast(
+        child: ProviderScope(
+          overrides: bundle.riverpodOverrides(),
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+            theme: sakuraDesktopThemeData,
+            home: const Scaffold(body: DesktopActivityPage()),
+          ),
+        ),
       ),
     );
-    await tester.tap(find.text(pluginId));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('activity-job-core_job')), findsNothing);
-    expect(find.byKey(const Key('activity-job-plugin_job_1')), findsOneWidget);
-    expect(find.byKey(const Key('activity-job-plugin_job_2')), findsOneWidget);
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/jobs/download_task_sync/runs',
+      statusCode: 202,
+      body: <String, dynamic>{
+        'task_run_id': 999,
+        'task_key': 'download_task_sync',
+        'state': 'pending',
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs',
+      body: <String, dynamic>{
+        'items': const <dynamic>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/task-runs/active',
+      body: const <dynamic>[],
+    );
+
+    await tester.tap(
+      find.byKey(const Key('activity-job-overview-trigger-download_task_sync')),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+
+    expect(
+      bundle.adapter.requests.where(
+        (request) =>
+            request.method == 'POST' &&
+            request.path == '/system/jobs/download_task_sync/runs',
+      ),
+      hasLength(1),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('overview job cards use a transparent surface', (tester) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final darkTheme = buildSakuraDesktopThemeData(brightness: Brightness.dark);
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+    await sessionStore.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.parse('2026-08-10T12:00:00Z'),
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'task_key': 'download_task_sync',
+          'cli_help': '同步下载任务状态',
+          'cron_expr': '*/5 * * * *',
+          'manual_trigger_allowed': true,
+        },
+      ],
+    );
+    _enqueueActivityBootstrap(bundle, withJobs: false);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: bundle.riverpodOverrides(),
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
+          supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+          theme: darkTheme,
+          home: const Scaffold(body: DesktopActivityPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final cardFinder = find.byKey(
+      const Key('activity-job-overview-download_task_sync'),
+    );
+    final card = tester.widget<AppContentCard>(cardFinder);
+    expect(card.backgroundColor, Colors.transparent);
+    expect(card.borderColor, darkTheme.appColors.borderSubtle);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'overview task cards are transparent while history cards keep the surface',
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final sessionStore = SessionStore.inMemory();
+      await sessionStore.saveBaseUrl('https://api.example.com');
+      await sessionStore.saveTokens(
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        expiresAt: DateTime.parse('2026-08-10T12:00:00Z'),
+      );
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      addTearDown(sessionStore.dispose);
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/jobs',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'task_key': 'media_import',
+            'cli_help': '导入媒体',
+            'manual_trigger_allowed': true,
+          },
+        ],
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/activity/bootstrap',
+        body: <String, dynamic>{
+          'notifications': <String, dynamic>{
+            'items': const <dynamic>[],
+            'page': 1,
+            'page_size': 20,
+            'total': 0,
+          },
+          'unread_count': 0,
+          'active_task_runs': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 801,
+              'task_key': 'media_import',
+              'task_name': '媒体导入',
+              'trigger_type': 'manual',
+              'state': 'running',
+              'progress_current': 1,
+              'progress_total': 2,
+              'progress_text': '处理中',
+              'started_at': '2026-08-10T11:00:00Z',
+            },
+          ],
+          'task_runs': <String, dynamic>{
+            'items': <Map<String, dynamic>>[
+              <String, dynamic>{
+                'id': 802,
+                'task_key': 'media_import',
+                'task_name': '媒体导入',
+                'trigger_type': 'manual',
+                'state': 'completed',
+                'finished_at': '2026-08-10T10:00:00Z',
+              },
+            ],
+            'page': 1,
+            'page_size': 20,
+            'total': 1,
+          },
+        },
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: bundle.riverpodOverrides(),
+          child: MaterialApp(
+            locale: const Locale('zh'),
+            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+            theme: sakuraDesktopThemeData,
+            home: const Scaffold(body: DesktopActivityPage()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final activeCard = tester.widget<Container>(
+        find.byKey(const Key('activity-task-801')),
+      );
+      expect(
+        (activeCard.decoration! as BoxDecoration).color,
+        Colors.transparent,
+      );
+      final jobCard = tester.widget<AppContentCard>(
+        find.byKey(const Key('activity-job-overview-media_import')),
+      );
+      expect(jobCard.backgroundColor, Colors.transparent);
+
+      await tester.tap(find.byKey(const Key('activity-tab-history')));
+      await tester.pumpAndSettle();
+
+      final historyCard = tester.widget<Container>(
+        find.byKey(const Key('activity-task-802')),
+      );
+      expect(
+        (historyCard.decoration! as BoxDecoration).color,
+        sakuraDesktopThemeData.appColors.surfaceCard,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('overview falls back to plugin id when plugin names fail', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+    await sessionStore.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.parse('2026-08-10T12:00:00Z'),
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'task_key': 'plugin_a_job',
+          'plugin_id': 'plugin_a',
+          'cli_help': '插件甲任务',
+          'manual_trigger_allowed': true,
+        },
+      ],
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/plugins',
+      statusCode: 500,
+      body: <String, dynamic>{'message': '插件列表暂时不可用'},
+    );
+    _enqueueActivityBootstrap(bundle, withJobs: false);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: bundle.riverpodOverrides(),
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
+          supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+          theme: sakuraDesktopThemeData,
+          home: const Scaffold(body: DesktopActivityPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('activity-job-section-plugin-plugin_a')),
+      findsOneWidget,
+    );
+    expect(find.text('plugin_a'), findsOneWidget);
+    expect(
+      find.byKey(const Key('activity-job-overview-plugin_a_job')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('overview cards expose params and running action states', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+    await sessionStore.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.parse('2026-08-10T12:00:00Z'),
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'task_key': 'movie_cover_refresh',
+          'cli_help': '刷新影片封面',
+          'manual_trigger_allowed': true,
+          'params_schema': <String, dynamic>{
+            'type': 'object',
+            'properties': <String, dynamic>{},
+          },
+        },
+        <String, dynamic>{
+          'task_key': 'image_search_index',
+          'cli_help': '构建以图搜图索引',
+          'cron_expr': '*/5 * * * *',
+          'manual_trigger_allowed': true,
+          'last_task_run': <String, dynamic>{
+            'id': 902,
+            'task_key': 'image_search_index',
+            'task_name': '构建以图搜图索引',
+            'trigger_type': 'scheduled',
+            'state': 'running',
+            'progress_current': 3,
+            'progress_total': 10,
+          },
+        },
+        <String, dynamic>{
+          'task_key': 'movie_heat_update',
+          'cli_help': '重算影片热度',
+          'cron_expr': '0 3 * * *',
+          'manual_trigger_allowed': false,
+        },
+      ],
+    );
+    _enqueueActivityBootstrap(bundle, withJobs: false);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: bundle.riverpodOverrides(),
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
+          supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+          theme: sakuraDesktopThemeData,
+          home: const Scaffold(body: DesktopActivityPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final paramsButton = find.byKey(
+      const Key('activity-job-overview-trigger-movie_cover_refresh'),
+    );
+    expect(
+      find.descendant(of: paramsButton, matching: find.text('填写参数')),
+      findsOneWidget,
+    );
+
+    final runningButton = find.byKey(
+      const Key('activity-job-overview-trigger-image_search_index'),
+    );
+    expect(
+      find.descendant(of: runningButton, matching: find.text('运行中')),
+      findsOneWidget,
+    );
+    await tester.tap(runningButton);
+    await tester.pumpAndSettle();
+    expect(bundle.adapter.requests.where((r) => r.method == 'POST'), isEmpty);
+
+    final manualButton = find.byKey(
+      const Key('activity-job-overview-trigger-movie_heat_update'),
+    );
+    expect(
+      find.descendant(of: manualButton, matching: find.text('不可手动执行')),
+      findsOneWidget,
+    );
+    await tester.tap(manualButton);
+    await tester.pumpAndSettle();
+    expect(bundle.adapter.requests.where((r) => r.method == 'POST'), isEmpty);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('disabled optional-service job shows 未启用 and cannot trigger', (
@@ -174,29 +762,18 @@ void main() {
     addTearDown(sessionStore.dispose);
     bundle.adapter.enqueueJson(
       method: 'GET',
-      path: '/system/activity/bootstrap',
-      body: <String, dynamic>{
-        'notifications': <String, dynamic>{
-          'items': const <dynamic>[],
-          'page': 1,
-          'page_size': 20,
-          'total': 0,
-        },
-        'unread_count': 0,
-        'active_task_runs': const <dynamic>[],
-        'task_runs': <String, dynamic>{
-          'items': const <dynamic>[],
-          'page': 1,
-          'page_size': 20,
-          'total': 0,
-        },
-      },
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
       path: '/system/jobs',
-      body: const <dynamic>[],
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'task_key': 'image_search_index',
+          'cli_help': '图像搜索索引构建',
+          'cron_expr': '0 5 * * *',
+          'manual_trigger_allowed': false,
+          'disabled_reason': '图片与文字搜图未启用',
+        },
+      ],
     );
+    _enqueueActivityBootstrap(bundle, withJobs: false);
 
     await tester.pumpWidget(
       ProviderScope(
@@ -214,33 +791,101 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('activity-job-overview-image_search_index')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('activity-job-overview-image_search_index')),
+        matching: find.text('未启用'),
+      ),
+      findsNWidgets(2),
+    );
+    expect(find.text('图片与文字搜图未启用'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const Key('activity-job-overview-trigger-image_search_index')),
+    );
+    await tester.pumpAndSettle();
+    expect(bundle.adapter.requests.where((r) => r.method == 'POST'), isEmpty);
+  });
+
+  testWidgets('overview retries when executable jobs fail to load', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+    await sessionStore.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.parse('2026-08-10T12:00:00Z'),
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      statusCode: 500,
+      body: <String, dynamic>{'message': '任务定义加载失败'},
+    );
+    _enqueueActivityBootstrap(bundle, withJobs: false);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: bundle.riverpodOverrides(),
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
+          supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+          theme: sakuraDesktopThemeData,
+          home: const Scaffold(body: DesktopActivityPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('activity-jobs-overview-error')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('activity-executable-jobs-count')),
+        matching: find.text('加载失败'),
+      ),
+      findsOneWidget,
+    );
+
     bundle.adapter.enqueueJson(
       method: 'GET',
       path: '/system/jobs',
       body: <Map<String, dynamic>>[
         <String, dynamic>{
-          'task_key': 'image_search_index',
-          'cli_help': '图像搜索索引构建',
-          'cron_expr': '0 5 * * *',
-          'manual_trigger_allowed': false,
-          'disabled_reason': '图片与文字搜图未启用',
+          'task_key': 'download_task_sync',
+          'cli_help': '同步下载任务状态',
+          'cron_expr': '*/5 * * * *',
+          'manual_trigger_allowed': true,
         },
       ],
     );
-    await tester.tap(find.byKey(const Key('activity-jobs-toggle')));
+    await tester.tap(find.byKey(const Key('activity-jobs-overview-retry')));
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const Key('activity-job-image_search_index')),
+      find.byKey(const Key('activity-job-overview-download_task_sync')),
       findsOneWidget,
     );
-    expect(find.text('未启用'), findsOneWidget);
-
-    await tester.tap(
-      find.byKey(const Key('activity-job-trigger-image_search_index')),
-    );
-    await tester.pumpAndSettle();
-    expect(bundle.adapter.requests.where((r) => r.method == 'POST'), isEmpty);
+    expect(find.byKey(const Key('activity-jobs-overview-error')), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('task key filter lists chinese task names but filters by key', (
@@ -309,6 +954,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openHistoryTab(tester);
 
     await tester.tap(find.byKey(const Key('activity-task-key-filter')));
     await tester.pumpAndSettle();
@@ -403,6 +1049,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openHistoryTab(tester);
 
     expect(find.text('插件触发'), findsOneWidget);
 
@@ -554,6 +1201,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openHistoryTab(tester);
 
     final entry = find.byKey(const Key('activity-task-failed-items-301'));
     expect(entry, findsOneWidget);
@@ -677,6 +1325,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await _openHistoryTab(tester);
 
     expect(find.text('查看迁移结果（2）'), findsOneWidget);
     expect(
@@ -751,79 +1400,7 @@ void main() {
     expect(activity.resumeCalls, 2);
   });
 
-  testWidgets(
-    'executable jobs dialog fits short window and list scrolls to end',
-    (tester) async {
-      tester.view.physicalSize = const Size(1400, 540);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      final sessionStore = SessionStore.inMemory();
-      await sessionStore.saveBaseUrl('https://api.example.com');
-      await sessionStore.saveTokens(
-        accessToken: 'access-token',
-        refreshToken: 'refresh-token',
-        expiresAt: DateTime.parse('2026-08-10T12:00:00Z'),
-      );
-      final bundle = await createTestApiBundle(sessionStore);
-      addTearDown(bundle.dispose);
-      addTearDown(sessionStore.dispose);
-      _enqueueActivityBootstrap(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/system/jobs',
-        body: <Map<String, dynamic>>[
-          for (var index = 1; index <= 8; index++)
-            <String, dynamic>{
-              'task_key': 'job_$index',
-              'plugin_id': 'plugin_a',
-              'cli_help': '插件任务 $index',
-              'cron_expr': '0 $index * * *',
-              'manual_trigger_allowed': true,
-            },
-        ],
-      );
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: bundle.riverpodOverrides(),
-          child: MaterialApp(
-            locale: const Locale('zh'),
-            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-              AppLocalizations.delegate,
-              ...GlobalMaterialLocalizations.delegates,
-            ],
-            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
-            theme: sakuraDesktopThemeData,
-            home: const Scaffold(body: DesktopActivityPage()),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('activity-jobs-toggle')));
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
-      final listFinder = find.byKey(const Key('activity-executable-jobs-list'));
-      expect(listFinder, findsOneWidget);
-      expect(find.byKey(const Key('activity-job-job_1')), findsOneWidget);
-
-      await tester.scrollUntilVisible(
-        find.byKey(const Key('activity-job-job_8')),
-        120,
-        scrollable: find.descendant(
-          of: listFinder,
-          matching: find.byType(Scrollable),
-        ),
-      );
-      expect(find.byKey(const Key('activity-job-job_8')), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets('executable jobs dialog keeps the previous simple layout', (
-    tester,
-  ) async {
+  testWidgets('job history opens from the overview card', (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -895,33 +1472,33 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const Key('activity-executable-jobs-card')),
+      find.byKey(const Key('activity-executable-jobs-toolbar')),
       findsOneWidget,
     );
     expect(find.text('可执行任务'), findsOneWidget);
-    expect(find.text('3 个任务'), findsOneWidget);
-    expect(find.text('自动任务'), findsNothing);
-    expect(find.textContaining('需关注'), findsNothing);
-
-    // 打开弹层会顺带刷新任务定义。
-    bundle.adapter.enqueueJson(method: 'GET', path: '/system/jobs', body: jobs);
-    await tester.tap(find.byKey(const Key('activity-jobs-toggle')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('activity-job-auto_ok')), findsOneWidget);
-    expect(find.byKey(const Key('activity-job-auto_bad')), findsOneWidget);
-    expect(find.byKey(const Key('activity-job-manual_only')), findsOneWidget);
-    expect(find.byKey(const Key('activity-job-plugin-filter')), findsOneWidget);
-    expect(find.byKey(const Key('activity-job-tab-auto')), findsNothing);
-    expect(find.byKey(const Key('activity-job-tab-manual')), findsNothing);
-    expect(find.byKey(const Key('activity-job-status-all')), findsNothing);
     expect(
-      find.byKey(const Key('activity-job-status-attention')),
-      findsNothing,
+      find.descendant(
+        of: find.byKey(const Key('activity-executable-jobs-count')),
+        matching: find.text('3 个任务'),
+      ),
+      findsOneWidget,
     );
-    final historyButton = find.byKey(const Key('activity-job-history-auto_ok'));
+    expect(
+      find.byKey(const Key('activity-job-overview-auto_ok')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('activity-job-overview-auto_bad')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('activity-job-overview-manual_only')),
+      findsOneWidget,
+    );
+    final historyButton = find.byKey(
+      const Key('activity-job-overview-history-auto_ok'),
+    );
     expect(historyButton, findsOneWidget);
-    expect(find.textContaining('近 24 小时'), findsNothing);
 
     bundle.adapter.enqueueJson(
       method: 'GET',
@@ -955,7 +1532,117 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('recent operations defaults to operations scope', (tester) async {
+  testWidgets('history keeps tabs and filters fixed while list scrolls', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+    await sessionStore.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.parse('2026-08-10T12:00:00Z'),
+    );
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    addTearDown(sessionStore.dispose);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/jobs',
+      body: const <dynamic>[],
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/activity/bootstrap',
+      body: <String, dynamic>{
+        'notifications': <String, dynamic>{
+          'items': const <dynamic>[],
+          'page': 1,
+          'page_size': 20,
+          'total': 0,
+        },
+        'unread_count': 0,
+        'active_task_runs': const <dynamic>[],
+        'task_runs': <String, dynamic>{
+          'items': <Map<String, dynamic>>[
+            for (var index = 1; index <= 20; index++)
+              <String, dynamic>{
+                'id': 800 + index,
+                'task_key': 'media_import',
+                'task_name': '媒体导入 $index',
+                'trigger_type': 'manual',
+                'state': 'completed',
+                'started_at': '2026-08-10T11:00:00Z',
+              },
+          ],
+          'page': 1,
+          'page_size': 20,
+          'total': 20,
+        },
+      },
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: bundle.riverpodOverrides(),
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
+          supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+          theme: sakuraDesktopThemeData,
+          home: const Scaffold(body: DesktopActivityPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openHistoryTab(tester);
+
+    final tabTop = tester.getTopLeft(find.byKey(const Key('activity-tabs')));
+    final filterTop = tester.getTopLeft(
+      find.byKey(const Key('activity-history-filter-header')),
+    );
+    final scrollableFinder = find.descendant(
+      of: find.byKey(const Key('activity-history-scroll')),
+      matching: find.byType(Scrollable),
+    );
+    final scrollable = tester.state<ScrollableState>(scrollableFinder);
+    expect(scrollable.position.pixels, 0);
+
+    await tester.drag(
+      find.byKey(const Key('activity-history-scroll')),
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
+
+    expect(scrollable.position.pixels, greaterThan(0));
+    expect(tester.getTopLeft(find.byKey(const Key('activity-tabs'))), tabTop);
+    expect(
+      tester.getTopLeft(
+        find.byKey(const Key('activity-history-filter-header')),
+      ),
+      filterTop,
+    );
+
+    await tester.tap(find.byKey(const Key('activity-tab-overview')));
+    await tester.pumpAndSettle();
+    await _openHistoryTab(tester);
+
+    final restoredScrollable = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byKey(const Key('activity-history-scroll')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(restoredScrollable.position.pixels, greaterThan(0));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('task history defaults to operations scope', (tester) async {
     tester.view.physicalSize = const Size(1400, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -988,7 +1675,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('最近操作'), findsOneWidget);
+    expect(find.text('概览'), findsOneWidget);
+    expect(find.text('任务历史'), findsOneWidget);
     expect(find.text('运行记录'), findsNothing);
     expect(
       bundle.adapter.requests
@@ -998,7 +1686,18 @@ void main() {
       'operations',
     );
     expect(tester.takeException(), isNull);
+    await _openHistoryTab(tester);
+    expect(
+      find.byKey(const Key('activity-history-filter-header')),
+      findsOneWidget,
+    );
+    expect(find.text('最近操作'), findsNothing);
   });
+}
+
+Future<void> _openHistoryTab(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('activity-tab-history')));
+  await tester.pumpAndSettle();
 }
 
 void _enqueueActivityBootstrap(TestApiBundle bundle, {bool withJobs = true}) {
@@ -1043,19 +1742,16 @@ class _RetainedActivityCenter extends ActivityCenter {
     return ActivityCenterState.initial.copyWith(
       initialized: true,
       hasMoreTasks: false,
-      connectionState: ActivityConnectionState.polling,
     );
   }
 
   @override
   void pausePolling() {
     pauseCalls++;
-    state = AsyncData(current.copyWith(connectionMessage: '已暂停'));
   }
 
   @override
   Future<void> resumePolling() async {
     resumeCalls++;
-    state = AsyncData(current.copyWith(connectionMessage: '轮询中'));
   }
 }

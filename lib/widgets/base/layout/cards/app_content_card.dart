@@ -11,6 +11,8 @@ class AppContentCard extends StatelessWidget {
     this.headerBottomSpacing,
     this.headerLeading,
     this.headerTrailing,
+    this.backgroundColor,
+    this.borderColor,
   });
 
   final String? title;
@@ -22,6 +24,12 @@ class AppContentCard extends StatelessWidget {
   /// 标题前的图标/状态块；只在有 [title] 时渲染。
   final Widget? headerLeading;
   final Widget? headerTrailing;
+
+  /// 卡片底色；默认 `surfaceCard`。
+  final Color? backgroundColor;
+
+  /// 卡片描边；默认 `borderSubtle`。
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -45,9 +53,11 @@ class AppContentCard extends StatelessWidget {
       width: double.infinity,
       padding: padding ?? EdgeInsets.all(context.appSpacing.lg),
       decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
+        color: backgroundColor ?? context.appColors.surfaceCard,
         borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
+        border: Border.all(
+          color: borderColor ?? context.appColors.borderSubtle,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

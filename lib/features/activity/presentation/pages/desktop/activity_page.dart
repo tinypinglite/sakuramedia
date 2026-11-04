@@ -5,16 +5,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
-import 'package:sakuramedia/features/activity/data/activity_api.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_placeholders.dart';
 import 'package:sakuramedia/features/activity/presentation/job_params_dialog.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_provider.dart';
-import 'package:sakuramedia/features/activity/presentation/providers/activity_center_state.dart';
-import 'package:sakuramedia/features/activity/presentation/widgets/activity_executable_jobs_card.dart';
-import 'package:sakuramedia/features/activity/presentation/widgets/activity_jobs_dialog.dart';
+import 'package:sakuramedia/features/activity/presentation/widgets/activity_executable_jobs_section.dart';
 import 'package:sakuramedia/features/activity/presentation/widgets/activity_section.dart';
 import 'package:sakuramedia/features/activity/presentation/widgets/activity_task_filter_bar.dart';
 import 'package:sakuramedia/features/activity/presentation/widgets/activity_task_run_card.dart';
@@ -29,7 +26,10 @@ import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
+import 'package:sakuramedia/widgets/base/layout/keep_alive_page.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 
 class DesktopActivityPage extends ConsumerStatefulWidget {
   const DesktopActivityPage({super.key});
@@ -39,12 +39,15 @@ class DesktopActivityPage extends ConsumerStatefulWidget {
       _DesktopActivityPageState();
 }
 
-/// 任务中心：活动任务、可执行任务摘要与最近操作。
+/// 任务中心：概览（活动任务、可执行任务）与任务历史两个 Tab。
 ///
-/// 默认「最近操作」只列操作类记录（排除定时触发的例行成功）；按任务或触发
+/// 「任务历史」默认只列操作类记录（排除定时触发的例行成功）；按任务或触发
 /// 来源筛选时切到全量运行记录。
-class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage> {
-  late final ScrollController _pageScrollController;
+class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  late final ScrollController _overviewScrollController;
+  late final ScrollController _historyScrollController;
   bool? _isPageVisible;
 
   ActivityCenter get _controller => ref.read(activityCenterProvider.notifier);
@@ -52,7 +55,9 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage> {
   @override
   void initState() {
     super.initState();
-    _pageScrollController = ScrollController();
+    _tabController = TabController(length: 2, vsync: this);
+    _overviewScrollController = ScrollController();
+    _historyScrollController = ScrollController();
   }
 
   @override
@@ -76,7 +81,9 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage> {
 
   @override
   void dispose() {
-    _pageScrollController.dispose();
+    _tabController.dispose();
+    _overviewScrollController.dispose();
+    _historyScrollController.dispose();
     super.dispose();
   }
 
@@ -114,42 +121,117 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage> {
     }
   }
 
-  Future<void> _openExecutableJobsDialog(BuildContext context) async {
-    unawaited(_controller.refreshJobs());
-    await showActivityJobsDialog(context, onTriggerJob: _triggerJob);
-  }
-
-  List<Widget> _buildTaskSlivers(
+  Widget _buildOverviewTab(
     BuildContext context, {
     required bool isInitialLoading,
     required String? initialErrorMessage,
-    required ActivityTaskFilterState filter,
+  }) {
+    return AppKeepAlive(
+      child: CustomScrollView(
+        key: const Key('activity-overview-scroll'),
+        controller: _overviewScrollController,
+        slivers: [
+          if (initialErrorMessage != null)
+            SliverToBoxAdapter(
+              child: _InitialErrorState(
+                message: initialErrorMessage,
+                onRetry: _controller.reloadAll,
+              ),
+            )
+          else ...[
+            if (isInitialLoading)
+              AppSkeletonizer.sliver(
+                enabled: true,
+                child: _ActiveRunsSection(
+                  runs: taskRunPlaceholders(
+                    count: 2,
+                    l10n: AppLocalizations.of(context),
+                  ),
+                  highlightedId: null,
+                ),
+              )
+            else
+              const _ActiveRunsSliver(),
+            ActivityExecutableJobsSliver(
+              isInitialLoading: isInitialLoading,
+              onTriggerJob: _triggerJob,
+            ),
+          ],
+          ...bottomSafeAreaSliver(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryTab(
+    BuildContext context, {
+    required bool isInitialLoading,
+    required String? initialErrorMessage,
     required FilterUpdateState filterUpdate,
     required bool hasTaskItems,
   }) {
-    if (isInitialLoading) {
-      // loading 用占位任务渲染真实任务卡与历史列表，由 [AppSkeletonizer] 灰化；
-      // 复用与真实列表同一套 section/list 组件，避免两套渲染器各自漂移。
-      return <Widget>[
-        AppSkeletonizer.sliver(
-          enabled: true,
-          child: _ActiveRunsSection(
-            runs: taskRunPlaceholders(
-              count: 2,
-              l10n: AppLocalizations.of(context),
+    return AppKeepAlive(
+      child: AppFixedHeaderLayout(
+        header: _buildHistoryHeader(
+          context,
+          filterUpdate: filterUpdate,
+          hasTaskItems: hasTaskItems,
+        ),
+        child: AppFilterResultLoadingOverlay(
+          isLoading: filterUpdate.isLoading,
+          hasPreviousItems: hasTaskItems,
+          child: AppPagedLoadMoreScope(
+            canLoadMore: () =>
+                ref.read(activityCenterProvider).value?.canAutoLoadMoreTasks ??
+                false,
+            onLoadMore: _controller.loadMoreTasks,
+            child: CustomScrollView(
+              key: const Key('activity-history-scroll'),
+              controller: _historyScrollController,
+              slivers: [
+                ..._buildHistorySlivers(
+                  context,
+                  isInitialLoading: isInitialLoading,
+                  initialErrorMessage: initialErrorMessage,
+                ),
+                ...bottomSafeAreaSliver(context),
+              ],
             ),
-            highlightedId: null,
           ),
         ),
-        AppSkeletonizer.sliver(
-          enabled: true,
-          child: _buildOperationsHeader(
-            context,
-            filter: filter,
-            filterUpdate: filterUpdate,
-            hasTaskItems: hasTaskItems,
+      ),
+    );
+  }
+
+  Widget _buildHistoryHeader(
+    BuildContext context, {
+    required FilterUpdateState filterUpdate,
+    required bool hasTaskItems,
+  }) {
+    return Padding(
+      key: const Key('activity-history-filter-header'),
+      padding: EdgeInsets.only(bottom: context.appSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ActivityTaskFilterBar(controller: _controller),
+          AppFilterUpdateBar(
+            state: filterUpdate,
+            hasPreviousItems: hasTaskItems,
+            onRetry: _controller.refreshTaskHistory,
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildHistorySlivers(
+    BuildContext context, {
+    required bool isInitialLoading,
+    required String? initialErrorMessage,
+  }) {
+    if (isInitialLoading) {
+      return <Widget>[
         AppSkeletonizer.sliver(
           enabled: true,
           child: _HistoryRunsList(
@@ -173,21 +255,8 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage> {
         ),
       ];
     }
-    // 各段独立订阅：活动进度 tick 只重建活动区，翻页只重建页脚，
-    // 历史列表不受两者牵连（见 _ActiveRunsSliver / _HistoryRunsSliver /
-    // PagedLoadMoreFooterSliver）。静态头（可执行任务卡 + 标题 + 筛选）跟随父级重建。
     return <Widget>[
-      _ActiveRunsSliver(),
-      _ExecutableJobsSliver(
-        onOpen: () => unawaited(_openExecutableJobsDialog(context)),
-      ),
-      _buildOperationsHeader(
-        context,
-        filter: filter,
-        filterUpdate: filterUpdate,
-        hasTaskItems: hasTaskItems,
-      ),
-      _HistoryRunsSliver(),
+      const _HistoryRunsSliver(),
       // 运行记录页脚常驻：loading / 失败时显示行，空闲只留上下间距
       // （空列表 + 筛选失败时不占位，与原逻辑一致）。
       PagedLoadMoreFooterSliver(
@@ -214,51 +283,10 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage> {
     ];
   }
 
-  /// 「最近操作 / 运行记录」静态头：标题 + 筛选条 + 筛选同步条。
-  ///
-  /// 只读低频字段，跟随父级重建；活动区 / 任务卡 / 历史 / 页脚独立订阅。
-  Widget _buildOperationsHeader(
-    BuildContext context, {
-    required ActivityTaskFilterState filter,
-    required FilterUpdateState filterUpdate,
-    required bool hasTaskItems,
-  }) {
-    final l10n = AppLocalizations.of(context);
-    final titleStyle = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s14,
-      weight: AppTextWeight.semibold,
-      tone: AppTextTone.primary,
-    );
-    final showsFullRuns = filter.taskRunScope == ActivityTaskRunScope.all;
-    return SliverToBoxAdapter(
-      child: Column(
-        key: const Key('activity-tasks-tab'),
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            showsFullRuns
-                ? l10n.activityRunRecords
-                : l10n.activityRecentOperations,
-            style: titleStyle,
-          ),
-          SizedBox(height: context.appSpacing.lg),
-          ActivityTaskFilterBar(controller: _controller),
-          AppFilterUpdateBar(
-            state: filterUpdate,
-            hasPreviousItems: hasTaskItems,
-            onRetry: _controller.refreshTaskHistory,
-          ),
-          SizedBox(height: context.appSpacing.lg),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    // 只订阅页面骨架所需的字段：进行中任务进度、历史条目与翻页状态
-    // 走独立订阅，不重建整页（见 _ActiveRunsSliver / _HistoryRunsSliver /
+    // 只订阅页面骨架所需的字段：活动任务、历史条目与翻页状态走各自 Tab 内的
+    // 独立订阅，不重建整页（见 _ActiveRunsSliver / _HistoryRunsSliver /
     // PagedLoadMoreFooterSliver）。轮询无实质变化时 provider 本就不写回。
     final pageView = ref.watch(
       activityCenterProvider.select((asyncValue) {
@@ -282,70 +310,53 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage> {
         if (previous != null &&
             next != null &&
             previous != next &&
-            _pageScrollController.hasClients) {
-          _pageScrollController.jumpTo(0);
+            _historyScrollController.hasClients) {
+          _historyScrollController.jumpTo(0);
         }
       },
     );
+    final l10n = AppLocalizations.of(context);
     return AppPageRefreshScope(
       onRefresh: _controller.refreshAll,
-      child: AppFilterResultLoadingOverlay(
-        isLoading: pageView.taskFilterUpdate.isLoading,
-        hasPreviousItems: pageView.hasTaskItems,
-        child: AppPagedLoadMoreScope(
-          canLoadMore: () =>
-              ref.read(activityCenterProvider).value?.canAutoLoadMoreTasks ??
-              false,
-          onLoadMore: _controller.loadMoreTasks,
-          child: CustomScrollView(
-            controller: _pageScrollController,
-            slivers: [
-              // 连接横幅独立订阅：轮询状态变化只重建它，不重建整页。
-              const _ConnectionBannerSliver(),
-              ..._buildTaskSlivers(
-                context,
-                isInitialLoading: pageView.isInitialLoading,
-                initialErrorMessage: pageView.initialErrorMessage,
-                filter: pageView.taskFilter,
-                filterUpdate: pageView.taskFilterUpdate,
-                hasTaskItems: pageView.hasTaskItems,
-              ),
-              ...bottomSafeAreaSliver(context),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 连接横幅：独立订阅连接状态，轮询状态变化只重建它，不重建整页。
-class _ConnectionBannerSliver extends ConsumerWidget {
-  const _ConnectionBannerSliver();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final banner = ref.watch(
-      activityCenterProvider.select(
-        (asyncValue) => (
-          state:
-              asyncValue.value?.connectionState ??
-              ActivityConnectionState.connecting,
-          message: asyncValue.value?.connectionMessage,
-        ),
-      ),
-    );
-    return SliverToBoxAdapter(
       child: Column(
         key: const Key('desktop-activity-page'),
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(height: context.appSpacing.lg),
-          ActivityConnectionBanner(
-            state: banner.state,
-            message: banner.message,
+          AppTabBar(
+            key: const Key('activity-tabs'),
+            controller: _tabController,
+            tabs: [
+              Tab(
+                key: const Key('activity-tab-overview'),
+                text: l10n.activityTabOverview,
+              ),
+              Tab(
+                key: const Key('activity-tab-history'),
+                text: l10n.activityTabHistory,
+              ),
+            ],
           ),
-          SizedBox(height: context.appSpacing.xl),
+          SizedBox(height: context.appSpacing.lg),
+          Expanded(
+            child: TabBarView(
+              key: const Key('activity-tab-view'),
+              controller: _tabController,
+              children: [
+                _buildOverviewTab(
+                  context,
+                  isInitialLoading: pageView.isInitialLoading,
+                  initialErrorMessage: pageView.initialErrorMessage,
+                ),
+                _buildHistoryTab(
+                  context,
+                  isInitialLoading: pageView.isInitialLoading,
+                  initialErrorMessage: pageView.initialErrorMessage,
+                  filterUpdate: pageView.taskFilterUpdate,
+                  hasTaskItems: pageView.hasTaskItems,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -404,6 +415,7 @@ class _ActiveRunsSection extends StatelessWidget {
                     child: ActivityTaskRunCard(
                       taskRun: runs[index],
                       highlighted: highlightedId == runs[index].id,
+                      backgroundColor: Colors.transparent,
                     ),
                   ),
                   if (index != runs.length - 1) SizedBox(height: spacing.md),
@@ -413,37 +425,6 @@ class _ActiveRunsSection extends StatelessWidget {
           ),
           SizedBox(height: spacing.xl),
         ],
-      ),
-    );
-  }
-}
-
-/// 可执行任务摘要卡：点开后再查看任务明细。
-class _ExecutableJobsSliver extends ConsumerWidget {
-  const _ExecutableJobsSliver({required this.onOpen});
-
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final view = ref.watch(
-      activityCenterProvider.select(
-        (asyncValue) => (
-          jobs: asyncValue.value?.jobs ?? const <JobMetadataDto>[],
-          isLoading: asyncValue.value?.isLoadingJobs ?? false,
-          errorMessage: asyncValue.value?.jobErrorMessage,
-        ),
-      ),
-    );
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: EdgeInsets.only(bottom: context.appSpacing.xl),
-        child: ActivityExecutableJobsCard(
-          jobs: view.jobs,
-          isLoading: view.isLoading,
-          errorMessage: view.errorMessage,
-          onOpen: onOpen,
-        ),
       ),
     );
   }

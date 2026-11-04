@@ -31,6 +31,7 @@ class MediaApi {
     List<int>? actorIds,
     String? search,
     String? thumbnailGenerationState,
+    double? interleaveGapMibMin,
     String? sort,
   }) async {
     final queryParameters = <String, dynamic>{
@@ -53,6 +54,9 @@ class MediaApi {
     if (thumbnailGenerationState != null &&
         thumbnailGenerationState.isNotEmpty) {
       queryParameters['thumbnail_generation_state'] = thumbnailGenerationState;
+    }
+    if (interleaveGapMibMin != null) {
+      queryParameters['interleave_gap_mib_min'] = interleaveGapMibMin;
     }
     if (sort != null && sort.isNotEmpty) {
       queryParameters['sort'] = sort;

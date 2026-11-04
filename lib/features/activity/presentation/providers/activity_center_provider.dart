@@ -45,12 +45,7 @@ class ActivityCenter extends _$ActivityCenter
     if (!isDisposed) {
       _startPolling();
     }
-    return initial.copyWith(
-      connectionState: ActivityConnectionState.polling,
-      connectionMessage: ref
-          .read(appLocalizationsProvider)
-          .activityConnectionPollingTasks,
-    );
+    return initial;
   }
 
   Future<ActivityCenterState> _loadInitialState() async {
@@ -70,7 +65,6 @@ class ActivityCenter extends _$ActivityCenter
           error,
           fallback: ref.read(appLocalizationsProvider).errorActivityLoadFailed,
         ),
-        connectionState: ActivityConnectionState.connecting,
       );
     }
   }
@@ -119,10 +113,6 @@ class ActivityCenter extends _$ActivityCenter
         jobErrorMessage: null,
         taskRefreshErrorMessage: null,
         taskFilterUpdate: const FilterUpdateState.idle(),
-        connectionState: ActivityConnectionState.connecting,
-        connectionMessage: ref
-            .read(appLocalizationsProvider)
-            .activityConnectionConnectingTasks,
       ),
     );
     try {
@@ -139,10 +129,6 @@ class ActivityCenter extends _$ActivityCenter
           initialErrorMessage: null,
           jobs: jobsResult.jobs,
           jobErrorMessage: jobsResult.errorMessage,
-          connectionState: ActivityConnectionState.polling,
-          connectionMessage: ref
-              .read(appLocalizationsProvider)
-              .activityConnectionPollingTasks,
         ),
       );
       _startPolling();
@@ -158,10 +144,6 @@ class ActivityCenter extends _$ActivityCenter
                 .read(appLocalizationsProvider)
                 .errorActivityLoadFailed,
           ),
-          connectionState: ActivityConnectionState.polling,
-          connectionMessage: ref
-              .read(appLocalizationsProvider)
-              .activityConnectionTaskSyncFailed,
         ),
       );
       _startPolling();
@@ -460,10 +442,6 @@ class ActivityCenter extends _$ActivityCenter
           now.copyWith(
             activeTaskRuns: activeTaskRuns,
             taskRuns: _patchLoadedTasks(now.taskRuns, taskResponse.items),
-            connectionState: ActivityConnectionState.polling,
-            connectionMessage: ref
-                .read(appLocalizationsProvider)
-                .activityConnectionPollingTasks,
           ),
         );
         return;
@@ -476,23 +454,10 @@ class ActivityCenter extends _$ActivityCenter
           hasMoreTasks: taskResponse.items.length < taskResponse.total,
           taskLoadMoreErrorMessage: null,
           taskRefreshErrorMessage: null,
-          connectionState: ActivityConnectionState.polling,
-          connectionMessage: ref
-              .read(appLocalizationsProvider)
-              .activityConnectionPollingTasks,
         ),
       );
     } catch (_) {
-      if (!isDisposed && _pollingEnabled) {
-        state = AsyncData(
-          current.copyWith(
-            connectionState: ActivityConnectionState.polling,
-            connectionMessage: ref
-                .read(appLocalizationsProvider)
-                .activityConnectionTaskSyncFailed,
-          ),
-        );
-      }
+      // 保留上一次成功数据；失败不写入状态，等待下一轮轮询重试。
     } finally {
       _isPolling = false;
     }
@@ -560,8 +525,6 @@ class ActivityCenter extends _$ActivityCenter
   bool get initialized => current.initialized;
   bool get isInitialLoading => state.isLoading || current.isInitialLoading;
   String? get initialErrorMessage => current.initialErrorMessage;
-  ActivityConnectionState get connectionState => current.connectionState;
-  String? get connectionMessage => current.connectionMessage;
   ActivityTaskFilterState get taskFilter => current.taskFilter;
   List<TaskRunDto> get activeTaskRuns => current.activeTaskRuns;
   List<TaskRunDto> get taskRuns => current.taskRuns;
@@ -576,7 +539,6 @@ class ActivityCenter extends _$ActivityCenter
   String? get taskRefreshErrorMessage => current.taskRefreshErrorMessage;
   int? get highlightedTaskRunId => current.highlightedTaskRunId;
   bool isTriggeringJob(String taskKey) => current.isTriggeringJob(taskKey);
-  bool get isPollingFallback => true;
   List<String> get knownTaskKeys => current.knownTaskKeys;
   Map<String, String> get knownTaskKeyLabels => current.knownTaskKeyLabels;
 }

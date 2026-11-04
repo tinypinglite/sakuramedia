@@ -177,6 +177,26 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
           ],
         ),
         SizedBox(height: spacing.lg),
+        _SectionTitle(text: l10n.mediaListFilterSectionInterleave),
+        SizedBox(height: spacing.sm),
+        Wrap(
+          spacing: spacing.sm,
+          runSpacing: spacing.sm,
+          children: [
+            for (final value in const <double?>[null, 64, 256, 1024])
+              AppTextButton(
+                key: Key(
+                  'media-interleave-gap-filter-${value?.toInt() ?? 'all'}',
+                ),
+                label: _interleaveGapLabel(l10n, value),
+                size: AppTextButtonSize.xSmall,
+                isSelected: filterState.interleaveGapMinMib == value,
+                onPressed: () =>
+                    onChanged(filterState.copyWith(interleaveGapMinMib: value)),
+              ),
+          ],
+        ),
+        SizedBox(height: spacing.lg),
         _SectionTitle(text: l10n.mediaListFilterSectionThumbnail),
         SizedBox(height: spacing.sm),
         Wrap(
@@ -199,6 +219,19 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String _interleaveGapLabel(AppLocalizations l10n, double? value) {
+    if (value == null) {
+      return l10n.mediaListFilterAll;
+    }
+    if (value == 64) {
+      return l10n.mediaListFilterInterleaveAtLeast64Mib;
+    }
+    if (value == 256) {
+      return l10n.mediaListFilterInterleaveAtLeast256Mib;
+    }
+    return l10n.mediaListFilterInterleaveAtLeast1Gib;
   }
 }
 

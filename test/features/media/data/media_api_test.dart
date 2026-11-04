@@ -204,35 +204,38 @@ void main() {
     },
   );
 
-  test('getGlobalMediaPoints passes keyword and exclude_collection_id', () async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/media-points',
-      body: <String, dynamic>{
-        'items': <dynamic>[],
-        'page': 1,
-        'page_size': 24,
-        'total': 0,
-      },
-    );
+  test(
+    'getGlobalMediaPoints passes keyword and exclude_collection_id',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media-points',
+        body: <String, dynamic>{
+          'items': <dynamic>[],
+          'page': 1,
+          'page_size': 24,
+          'total': 0,
+        },
+      );
 
-    await mediaApi.getGlobalMediaPoints(
-      page: 1,
-      pageSize: 24,
-      kind: 'all',
-      keyword: '  日落  ',
-      excludeCollectionId: 7,
-    );
+      await mediaApi.getGlobalMediaPoints(
+        page: 1,
+        pageSize: 24,
+        kind: 'all',
+        keyword: '  日落  ',
+        excludeCollectionId: 7,
+      );
 
-    expect(adapter.requests.single.uri.queryParameters, <String, String>{
-      'page': '1',
-      'page_size': '24',
-      'sort': 'created_at:desc',
-      'kind': 'all',
-      'keyword': '日落',
-      'exclude_collection_id': '7',
-    });
-  });
+      expect(adapter.requests.single.uri.queryParameters, <String, String>{
+        'page': '1',
+        'page_size': '24',
+        'sort': 'created_at:desc',
+        'kind': 'all',
+        'keyword': '日落',
+        'exclude_collection_id': '7',
+      });
+    },
+  );
 
   test('getInvalidMedia maps pagination and movie cover images', () async {
     adapter.enqueueJson(
@@ -256,6 +259,8 @@ void main() {
             'library_id': 1,
             'library_name': 'Main Library',
             'file_size_bytes': 2147483648,
+            'invalid_reason': 'interleave_bad',
+            'invalid_detail': <String, dynamic>{'max_gap_mib': 6920.78},
             'updated_at': '2026-05-12T03:00:00Z',
           },
         ],
@@ -276,10 +281,7 @@ void main() {
     expect(item.movieNumber, 'ABC-001');
     expect(item.movieTitle, 'Movie 1');
     expect(item.coverImage?.origin, '/covers/abc-001-large.webp');
-    expect(
-      item.thinCoverImage?.origin,
-      '/covers/abc-001-thin-large.webp',
-    );
+    expect(item.thinCoverImage?.origin, '/covers/abc-001-thin-large.webp');
     expect(item.preferredCoverUrl, '/covers/abc-001-thin-large.webp');
     expect(item.usesThinCover, isTrue);
     expect(item.fileName, 'abc-001.mp4');
@@ -287,6 +289,9 @@ void main() {
     expect(item.libraryName, 'Main Library');
     expect(item.fileSizeBytes, 2147483648);
     expect(item.updatedAt, DateTime.parse('2026-05-12T03:00:00Z'));
+    expect(item.invalidReason, 'interleave_bad');
+    expect(item.invalidDetail['max_gap_mib'], 6920.78);
+    expect(item.displayInvalidReason(zh), '音视频交错异常，最大偏移 6921 MiB');
     expect(adapter.requests.single.uri.queryParameters, <String, String>{
       'page': '2',
       'page_size': '10',
@@ -433,20 +438,17 @@ void main() {
     });
   });
 
-  test(
-    'deleteMediaPoint maps DELETE /media-points/{point_id}',
-    () async {
-      adapter.enqueueJson(
-        method: 'DELETE',
-        path: '/media-points/20',
-        statusCode: 204,
-      );
+  test('deleteMediaPoint maps DELETE /media-points/{point_id}', () async {
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/media-points/20',
+      statusCode: 204,
+    );
 
-      await mediaApi.deleteMediaPoint(pointId: 20);
+    await mediaApi.deleteMediaPoint(pointId: 20);
 
-      expect(adapter.hitCount('DELETE', '/media-points/20'), 1);
-    },
-  );
+    expect(adapter.hitCount('DELETE', '/media-points/20'), 1);
+  });
 
   test(
     'media transfer candidates and submission use provider-neutral payloads',
@@ -551,6 +553,7 @@ void main() {
         actorIds: const <int>[12, 34],
         search: '  mixed.case  ',
         thumbnailGenerationState: 'terminal',
+        interleaveGapMibMin: 64,
         sort: 'heat:desc',
       );
 
@@ -562,6 +565,7 @@ void main() {
         'actor_ids': '12,34',
         'search': 'mixed.case',
         'thumbnail_generation_state': 'terminal',
+        'interleave_gap_mib_min': '64.0',
         'sort': 'heat:desc',
       });
     },
@@ -705,6 +709,7 @@ void main() {
             'file_size_bytes': 2147483648,
             'duration_seconds': 5400,
             'resolution': '1920x1080',
+            'interleave_gap_mib': 128.5,
             'valid': true,
             'thumbnail_generation_state': 'terminal',
             'thumbnail_last_error_code': 'thumbnail_backend_failed',
@@ -748,6 +753,7 @@ void main() {
     expect(jav.displayHeading(zh), 'ABC-001');
     expect(jav.displaySubtitle, 'Movie 1');
     expect(jav.heat, 320);
+    expect(jav.interleaveGapMib, 128.5);
     final video = page.items.last;
     expect(video.isVideo, isTrue);
     expect(video.videoItemId, 999);

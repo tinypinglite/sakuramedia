@@ -588,72 +588,73 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  testWidgets('disables the more button of other rows while an action is in flight', (
-    tester,
-  ) async {
-    final deleteCompleter = Completer<void>();
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/media',
-      body: _mediaPage(items: [_mediaItemJson(1), _mediaItemJson(2)]),
-    );
-    adapter.enqueueResponder(
-      method: 'DELETE',
-      path: '/media/1',
-      responder: (options, requestBody) async {
-        await deleteCompleter.future;
-        return ResponseBody.fromBytes(
-          const <int>[],
-          204,
-          headers: const <String, List<String>>{},
-        );
-      },
-    );
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/media',
-      body: _mediaPage(items: [_mediaItemJson(2)]),
-    );
-    await _pumpPage(
-      tester,
-      sessionStore: sessionStore,
-      mediaApi: mediaApi,
-      apiClient: apiClient,
-    );
+  testWidgets(
+    'disables the more button of other rows while an action is in flight',
+    (tester) async {
+      final deleteCompleter = Completer<void>();
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media',
+        body: _mediaPage(items: [_mediaItemJson(1), _mediaItemJson(2)]),
+      );
+      adapter.enqueueResponder(
+        method: 'DELETE',
+        path: '/media/1',
+        responder: (options, requestBody) async {
+          await deleteCompleter.future;
+          return ResponseBody.fromBytes(
+            const <int>[],
+            204,
+            headers: const <String, List<String>>{},
+          );
+        },
+      );
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media',
+        body: _mediaPage(items: [_mediaItemJson(2)]),
+      );
+      await _pumpPage(
+        tester,
+        sessionStore: sessionStore,
+        mediaApi: mediaApi,
+        apiClient: apiClient,
+      );
 
-    await tester.tap(
-      find.byKey(const Key('mobile-media-management-row-actions-1')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const Key('media-management-row-action-delete')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const Key('media-management-delete-confirm-1')),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(
+        find.byKey(const Key('mobile-media-management-row-actions-1')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('media-management-row-action-delete')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('media-management-delete-confirm-1')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
 
-    expect(
-      find.byKey(const Key('mobile-media-management-row-actions-1')),
-      findsNothing,
-      reason: '正在删除的条目：入口换成 loading',
-    );
-    expect(
-      tester
-          .widget<AppInteractiveSurface>(
-            find.byKey(const Key('mobile-media-management-row-actions-2')),
-          )
-          .enabled,
-      isFalse,
-      reason: '删除在途时其它条目的「更多」入口应禁用，避免开出所有动作都点不动的操作表',
-    );
+      expect(
+        find.byKey(const Key('mobile-media-management-row-actions-1')),
+        findsNothing,
+        reason: '正在删除的条目：入口换成 loading',
+      );
+      expect(
+        tester
+            .widget<AppInteractiveSurface>(
+              find.byKey(const Key('mobile-media-management-row-actions-2')),
+            )
+            .enabled,
+        isFalse,
+        reason: '删除在途时其它条目的「更多」入口应禁用，避免开出所有动作都点不动的操作表',
+      );
 
-    deleteCompleter.complete();
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 3));
-  });
+      deleteCompleter.complete();
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3));
+    },
+  );
 
   testWidgets('shows labeled management actions in the row more sheet', (
     tester,
@@ -726,8 +727,7 @@ void main() {
 
     final resetRequest = adapter.requests.singleWhere(
       (request) =>
-          request.method == 'POST' &&
-          request.path == '/media/thumbnails/reset',
+          request.method == 'POST' && request.path == '/media/thumbnails/reset',
     );
     expect(resetRequest.body, <String, dynamic>{
       'media_ids': <int>[1],
@@ -768,6 +768,7 @@ void main() {
       find.byKey(const Key('invalid-media-row-heading-1')),
       findsOneWidget,
     );
+    expect(find.byKey(const Key('invalid-media-reason-1')), findsOneWidget);
     expect(find.byKey(const Key('invalid-media-delete-1')), findsOneWidget);
   });
 
@@ -804,9 +805,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.longPress(
-      find.byKey(const Key('invalid-media-row-1')),
-    );
+    await tester.longPress(find.byKey(const Key('invalid-media-row-1')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('invalid-media-row-2')));
     await tester.pumpAndSettle();
@@ -858,7 +857,59 @@ void main() {
       find.byKey(const Key('mobile-media-management-filter-scroll-view')),
       findsOneWidget,
     );
+    expect(find.text('音视频交错'), findsOneWidget);
     expect(find.text('缩略图状态'), findsOneWidget);
+  });
+
+  testWidgets('mobile interleave gap chips send the selected minimum', (
+    tester,
+  ) async {
+    for (var index = 0; index < 4; index += 1) {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media',
+        body: _mediaPage(items: const []),
+      );
+    }
+    await _pumpPage(
+      tester,
+      sessionStore: sessionStore,
+      mediaApi: mediaApi,
+      apiClient: apiClient,
+    );
+    await tester.tap(
+      find.byKey(const Key('mobile-media-management-filter-trigger')),
+    );
+    await tester.pumpAndSettle();
+
+    for (final entry in const <int, String>{
+      64: '64.0',
+      256: '256.0',
+      1024: '1024.0',
+    }.entries) {
+      final chip = find.byKey(Key('media-interleave-gap-filter-${entry.key}'));
+      await tester.ensureVisible(chip);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+
+      final request = adapter.requests.lastWhere(
+        (request) => request.method == 'GET' && request.path == '/media',
+      );
+      expect(
+        request.uri.queryParameters['interleave_gap_mib_min'],
+        entry.value,
+      );
+    }
+
+    await tester.tap(find.byKey(const Key('media-interleave-gap-filter-all')));
+    await tester.pumpAndSettle();
+    final resetRequest = adapter.requests.lastWhere(
+      (request) => request.method == 'GET' && request.path == '/media',
+    );
+    expect(
+      resetRequest.uri.queryParameters.containsKey('interleave_gap_mib_min'),
+      isFalse,
+    );
   });
 
   testWidgets('retries selected terminal thumbnails from mobile actions', (
@@ -931,8 +982,7 @@ void main() {
 
     final resetRequest = adapter.requests.singleWhere(
       (request) =>
-          request.method == 'POST' &&
-          request.path == '/media/thumbnails/reset',
+          request.method == 'POST' && request.path == '/media/thumbnails/reset',
     );
     expect(resetRequest.body, <String, dynamic>{
       'media_ids': <int>[1],
@@ -1011,8 +1061,7 @@ void main() {
 
     final resetRequest = adapter.requests.singleWhere(
       (request) =>
-          request.method == 'POST' &&
-          request.path == '/media/thumbnails/reset',
+          request.method == 'POST' && request.path == '/media/thumbnails/reset',
     );
     expect(resetRequest.body, <String, dynamic>{
       'media_ids': <int>[1],
@@ -1189,6 +1238,8 @@ Map<String, dynamic> _invalidMediaJson(int id) {
     'library_id': 1,
     'library_name': 'Main Library',
     'file_size_bytes': 1024,
+    'invalid_reason': 'interleave_bad',
+    'invalid_detail': <String, dynamic>{'max_gap_mib': 6920.8},
     'updated_at': '2026-05-13T12:00:00Z',
   };
 }

@@ -43,6 +43,8 @@ class SystemMaintenanceContent extends ConsumerStatefulWidget {
 class _SystemMaintenanceContentState
     extends ConsumerState<SystemMaintenanceContent> {
   static const _mediaInfoBackfillTaskKey = 'media_video_info_backfill';
+  static const _playbackHealthBackfillTaskKey =
+      'media_playback_health_backfill';
   static const _fileHashBackfillTaskKey = 'media_file_hash_backfill';
   static const _thumbnailPackBackfillTaskKey = 'media_thumbnail_pack_backfill';
   static const _movieAssetPackBackfillTaskKey = 'movie_asset_pack_backfill';
@@ -149,6 +151,14 @@ class _SystemMaintenanceContentState
           title: l10n.systemMaintenanceMediaInfoBackfillTitle,
           description: l10n.systemMaintenanceMediaInfoBackfillDescription,
           successMessage: l10n.systemMaintenanceMediaInfoBackfillSuccess,
+        ),
+        SizedBox(height: context.appSpacing.xl),
+        _buildMaintenanceTaskCard(
+          context,
+          taskKey: _playbackHealthBackfillTaskKey,
+          title: l10n.systemMaintenancePlaybackHealthBackfillTitle,
+          description: l10n.systemMaintenancePlaybackHealthBackfillDescription,
+          successMessage: l10n.systemMaintenancePlaybackHealthBackfillSuccess,
         ),
         SizedBox(height: context.appSpacing.xl),
         _buildMaintenanceTaskCard(

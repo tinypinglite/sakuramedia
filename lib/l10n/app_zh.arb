@@ -899,6 +899,9 @@
   "systemMaintenanceMediaInfoBackfillTitle": "媒体信息回填",
   "systemMaintenanceMediaInfoBackfillDescription": "为缺少或不完整技术信息的媒体文件重新探测，补齐时长、分辨率和视频信息。只处理缺失或不完整项，不会无条件覆盖已有信息。",
   "systemMaintenanceMediaInfoBackfillSuccess": "媒体信息回填任务已提交，进度请在任务中心查看",
+  "systemMaintenancePlaybackHealthBackfillTitle": "媒体播放结构补检",
+  "systemMaintenancePlaybackHealthBackfillDescription": "补检已有媒体文件的音视频交错结构，只处理尚未检测或结果未知的有效媒体。检出异常会把媒体标记为失效并发送通知；媒体库较大或存储较慢时可能运行较久。",
+  "systemMaintenancePlaybackHealthBackfillSuccess": "媒体播放结构补检任务已提交，进度请在任务中心查看",
   "systemMaintenanceFileHashBackfillTitle": "媒体文件哈希补算",
   "systemMaintenanceFileHashBackfillDescription": "为尚未记录文件哈希的媒体文件计算并保存文件指纹，用于识别重复媒体。只处理哈希为空的文件，媒体库较大时可能运行较久。",
   "systemMaintenanceFileHashBackfillSuccess": "媒体文件哈希补算任务已提交，进度请在任务中心查看",
@@ -2609,8 +2612,8 @@
   "activityNoNotifications": "暂无消息",
   "activityRefreshFailed": "刷新失败，请稍后重试",
   "activityCenterTitle": "任务中心",
-  "activityRecentOperations": "最近操作",
-  "activityRunRecords": "运行记录",
+  "activityTabOverview": "概览",
+  "activityTabHistory": "任务历史",
   "activityTaskRunHistoryTitle": "运行记录",
   "activityHistoryEmpty": "该任务还没有运行记录",
   "activityRunCompletedWithWarning": "有警告",
@@ -2631,15 +2634,14 @@
     }
   },
   "activityExecutableJobsTitle": "可执行任务",
-  "activityViewJobs": "查看任务",
-  "activityExecutableJobsDescription": "手动触发已注册的后台任务，执行状态会在任务中心实时更新。",
+  "activityCommonTasks": "常用任务",
   "activityJobDisabled": "未启用",
   "activityJobSubmitting": "提交中",
   "activityJobRunNow": "立即执行",
   "activityJobFillParams": "填写参数",
   "activityJobNotManual": "不可手动执行",
-  "activityJobNoSchedule": "未配置定时",
-  "activityJobNeedsParams": "需填写参数",
+  "activityJobScheduled": "定时任务",
+  "activityJobManualTask": "手动任务",
   "activityJobNoRuns": "暂无运行记录",
   "activityJobLastRun": "最近运行：{time}",
   "@activityJobLastRun": {
@@ -2652,9 +2654,6 @@
   "activityFilterAllTasks": "全部任务",
   "activityFilterSystemTasks": "系统任务",
   "activityExecutableJobsEmpty": "暂无可执行任务",
-  "activityJobsRefreshing": "正在刷新任务列表",
-  "activityJobSourceLabel": "任务来源",
-  "activityExecutableJobsDialogDescription": "选择一个任务手动执行，运行结果会回到后台任务列表。",
   "activityJobParamsTitle": "填写任务参数",
   "activityJobParamsEmpty": "该任务没有可填写的参数，将按默认配置执行。",
   "activityJobParamsSubmit": "提交任务",
@@ -2814,9 +2813,6 @@
       }
     }
   },
-  "activityConnectionPollingTasks": "每 3 秒同步任务进度",
-  "activityConnectionConnectingTasks": "正在同步任务中心",
-  "activityConnectionTaskSyncFailed": "任务同步失败，可手动刷新",
   "activityConnectionConnectingNotifications": "正在同步通知",
   "activityConnectionPollingNotifications": "每 30 秒同步通知",
   "activityConnectionNotificationSyncFailed": "通知同步失败，可手动刷新",
@@ -3561,12 +3557,39 @@
   "mediaListFilterSectionSource": "归属",
   "mediaListFilterSectionLibrary": "所属媒体库",
   "mediaListFilterSectionThumbnail": "缩略图状态",
+  "mediaListFilterSectionInterleave": "音视频交错",
+  "mediaListFilterInterleaveAtLeast64Mib": "≥64 MiB",
+  "mediaListFilterInterleaveAtLeast256Mib": "≥256 MiB",
+  "mediaListFilterInterleaveAtLeast1Gib": "≥1 GiB",
   "mediaListFilterAllLibraries": "全部媒体库",
   "mediaListFilterAllMedia": "全部媒体",
   "mediaListSearchFileNameHint": "搜索文件名",
   "mediaListSearchFileNameTooltip": "搜索文件名",
   "mediaListCollapseSearchTooltip": "收起搜索",
   "mediaListInvalidBadge": "失效",
+  "mediaListInvalidReasonFileMissing": "文件已丢失",
+  "mediaListInvalidReasonContainerInvalid": "容器结构损坏",
+  "mediaListInvalidReasonMoovMissing": "缺少 moov，无法可靠播放",
+  "mediaListInvalidReasonVideoStreamMissing": "缺少视频流",
+  "mediaListInvalidReasonInterleaveBad": "音视频交错异常",
+  "mediaListInvalidReasonInterleaveBadWithGap": "音视频交错异常，最大偏移 {gap} MiB",
+  "@mediaListInvalidReasonInterleaveBadWithGap": {
+    "placeholders": {
+      "gap": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaListInvalidReasonUnknown": "原因未知",
+  "movieMediaInterleaveGap": "音视频交错 {gap}",
+  "@movieMediaInterleaveGap": {
+    "placeholders": {
+      "gap": {
+        "type": "String"
+      }
+    }
+  },
+  "movieMediaInterleaveGapUnknown": "音视频交错未检测",
   "mediaListUpdatedAt": "更新 {value}",
   "@mediaListUpdatedAt": {
     "placeholders": {
@@ -3867,7 +3890,7 @@
   "mediaListVersionsSelectionHint": "请选择要删除的版本，每部影片至少保留一个",
   "mediaListVersionsEmpty": "暂无多版本影片",
   "mediaListInvalidBatchDeleteTitle": "批量删除失效媒体",
-  "mediaListInvalidBatchDeleteMessage": "将删除已选 {count} 条失效媒体记录及对应文件，且不可恢复。缩略图会保留，供同一文件重新入库时复用。确认要继续吗？",
+  "mediaListInvalidBatchDeleteMessage": "将删除已选 {count} 条失效媒体记录及实际存在的文件，且不可恢复。缩略图会保留，供同一文件重新入库时复用。确认要继续吗？",
   "@mediaListInvalidBatchDeleteMessage": {
     "placeholders": {
       "count": {
@@ -3875,10 +3898,10 @@
       }
     }
   },
-  "mediaListInvalidDescription": "巡检标记为失效的媒体会出现在这里。确认是真实丢失的文件，可删除记录，jav影片会再次自动下载新的资源。",
+  "mediaListInvalidDescription": "巡检或播放结构补检标记为失效的媒体会出现在这里。文件丢失、容器损坏或缺少 moov 等无法可靠播放的情况会显示具体原因；删除后 JAV 影片会再次自动补库。",
   "mediaListInvalidEmpty": "当前没有失效媒体",
   "mediaListInvalidDeleteTitle": "删除失效媒体",
-  "mediaListInvalidDeleteMessage": "确认删除“{name}”的这条失效媒体记录及对应文件？该操作不可恢复，缩略图会保留用于同文件复用。",
+  "mediaListInvalidDeleteMessage": "确认删除“{name}”的这条失效媒体记录及实际存在的文件？该操作不可恢复，缩略图会保留用于同文件复用。",
   "@mediaListInvalidDeleteMessage": {
     "placeholders": {
       "name": {
@@ -3930,6 +3953,12 @@
   "mediaImportFailureFileTooSmall": "文件过小",
   "mediaImportFailureUnsupportedFormat": "不支持的格式",
   "mediaImportFailureAlreadyIndexedPath": "已在库中",
+  "mediaImportFailurePlaybackFileMissing": "文件已丢失，未导入",
+  "mediaImportFailurePlaybackContainerInvalid": "容器结构损坏，未导入",
+  "mediaImportFailurePlaybackMoovMissing": "缺少 moov，无法导入",
+  "mediaImportFailurePlaybackVideoStreamMissing": "缺少视频流，未导入",
+  "mediaImportFailurePlaybackInterleaveBad": "音视频交错异常，未导入",
+  "mediaImportFailurePlaybackInvalid": "播放结构异常，未导入",
   "mediaImportFailureUnknownReason": "未知原因",
   "mediaImportMetadataSearchFailed": "搜索元数据失败，请稍后重试。",
   "mediaListBatchResetThumbnailsCount": "{label}（{count}）",
