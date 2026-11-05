@@ -495,17 +495,6 @@
   "systemDiagnosticsStatusWarning": "有警告",
   "systemDiagnosticsStatusPartiallyChecked": "部分未检测",
   "systemDiagnosticsStatusAllPassed": "全部通过",
-  "systemDiagnosticsCheckingComponents": "正在检测组件 {current}/{total}…",
-  "@systemDiagnosticsCheckingComponents": {
-    "placeholders": {
-      "current": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "subscriptionNewMovieSearching": "新片 · 持续查询中",
   "subscriptionSearchedTimes": "已查询过 {count} 次",
   "@subscriptionSearchedTimes": {
@@ -2118,14 +2107,6 @@
         "type": "String"
       },
       "thumbnails": {
-        "type": "String"
-      }
-    }
-  },
-  "overviewThumbnails": "缩略图 {count}",
-  "@overviewThumbnails": {
-    "placeholders": {
-      "count": {
         "type": "String"
       }
     }
@@ -5585,7 +5566,6 @@
   "shellViewPluginUpdates": "查看插件更新",
   "shellBack": "返回",
   "shellImagePickFailed": "选择图片失败",
-  "shellCollapseSearch": "收起搜索",
   "shellSearchHintExample": "如 SSNI-888、三上悠亚",
   "shellThemeColor": "主题色",
   "shellThemeModeSystem": "跟随系统 · 点击切换浅色",

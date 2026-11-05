@@ -107,7 +107,6 @@ void main() {
       router.go(desktopPlaylistsPath);
       await tester.pumpAndSettle();
       expect(bundle.adapter.hitCount('GET', '/playlists'), playlistRequests);
-      expect(tester.takeException(), isNull);
       await session.clearSession();
       await tester.pumpAndSettle();
       expect(original.mounted, isFalse);

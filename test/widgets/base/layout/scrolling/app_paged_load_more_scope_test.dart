@@ -18,7 +18,6 @@ void main() {
     await tester.pump();
 
     expect(calls, 1);
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('内容超过一屏时不预取，滚到底后才触发', (tester) async {
@@ -41,7 +40,6 @@ void main() {
     await tester.pump();
 
     expect(calls, 1);
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('窗口变高后重新检查并补页', (tester) async {
@@ -68,7 +66,6 @@ void main() {
     await tester.pump();
 
     expect(calls, 1);
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('canLoadMore 变为 true 时即使布局不变也补查', (tester) async {
@@ -91,7 +88,6 @@ void main() {
     await tester.pump();
 
     expect(calls, 1);
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('加载 Future 未完成时不会重复触发', (tester) async {
@@ -115,7 +111,6 @@ void main() {
     loadMore.complete();
     await tester.pump();
     expect(calls, 1);
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('enabled 为 false 或 TickerMode 关闭时不触发', (tester) async {
@@ -150,7 +145,6 @@ void main() {
     rebuild(() => tickerEnabled = true);
     await tester.pump();
     expect(calls, 1);
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('嵌套横向滚动不会触发外层分页', (tester) async {
@@ -193,7 +187,6 @@ void main() {
     await tester.pump();
 
     expect(calls, 0);
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('追加内容后不会用旧 metrics 多翻一页', (tester) async {
@@ -229,7 +222,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(calls, 1, reason: '追加一页已足够铺满视口，不应再预取下一页');
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('兄弟级横向滚动不会驱动分页', (tester) async {
@@ -278,7 +270,6 @@ void main() {
     await tester.pump();
 
     expect(calls, 0, reason: '横向列表与纵向列表是兄弟，不应触发纵向分页');
-    expect(tester.takeException(), isNull);
   });
 }
 

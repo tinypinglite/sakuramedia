@@ -495,17 +495,6 @@
   "systemDiagnosticsStatusWarning": "Warnings",
   "systemDiagnosticsStatusPartiallyChecked": "Partially unchecked",
   "systemDiagnosticsStatusAllPassed": "All passed",
-  "systemDiagnosticsCheckingComponents": "Checking components {current}/{total}…",
-  "@systemDiagnosticsCheckingComponents": {
-    "placeholders": {
-      "current": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "subscriptionNewMovieSearching": "New · searching continuously",
   "subscriptionSearchedTimes": "Searched {count} times",
   "@subscriptionSearchedTimes": {
@@ -2118,14 +2107,6 @@
         "type": "String"
       },
       "thumbnails": {
-        "type": "String"
-      }
-    }
-  },
-  "overviewThumbnails": "Thumbnails: {count}",
-  "@overviewThumbnails": {
-    "placeholders": {
-      "count": {
         "type": "String"
       }
     }
@@ -5432,7 +5413,6 @@
   "shellViewPluginUpdates": "View plugin updates",
   "shellBack": "Back",
   "shellImagePickFailed": "Could not pick an image",
-  "shellCollapseSearch": "Collapse search",
   "shellSearchHintExample": "e.g. SSNI-888",
   "shellThemeColor": "Theme color",
   "shellThemeModeSystem": "System · click for light",

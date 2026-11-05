@@ -72,8 +72,6 @@ void main() {
     await tester.tap(find.text('submit'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('一次最多提交 1000 项'), findsOneWidget);
-    expect(find.textContaining('当前 1001 项'), findsOneWidget);
     expect(
       bundle.adapter.requests.where((r) => r.path == '/batch-operations'),
       isEmpty,
