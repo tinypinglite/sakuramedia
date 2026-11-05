@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_system_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/sakura_desktop_video_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 
@@ -25,10 +26,15 @@ Widget buildMoviePlayerDesktopVideoControls(VideoState state) {
 
 Widget Function(VideoState state) resolveMoviePlayerVideoControlsBuilder({
   required bool useTouchOptimizedControls,
+  bool mobileControlsReady = true,
 }) {
-  return useTouchOptimizedControls
-      ? buildMoviePlayerMobileVideoControls
-      : buildMoviePlayerDesktopVideoControls;
+  if (!useTouchOptimizedControls) {
+    return buildMoviePlayerDesktopVideoControls;
+  }
+  if (!mobileControlsReady) {
+    return (_) => const SizedBox.shrink();
+  }
+  return buildMoviePlayerMobileVideoControls;
 }
 
 @visibleForTesting
@@ -40,6 +46,7 @@ Widget buildMoviePlayerBufferingIndicator(BuildContext context) {
 
 MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
   required ThemeData theme,
+  required PlayerSystemControls systemControls,
   required List<Widget> topControls,
   required List<Widget> bottomControls,
   bool displaySeekBar = true,
@@ -68,6 +75,10 @@ MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
     volumeGesture: true,
     speedUpOnLongPress: true,
     brightnessGesture: true,
+    onVolumeChanged: systemControls.setVolume,
+    initialVolume: systemControls.initialVolume,
+    onBrightnessChanged: systemControls.setBrightness,
+    initialBrightness: systemControls.initialBrightness,
     bufferingIndicatorBuilder: showBufferingIndicator
         ? buildMoviePlayerBufferingIndicator
         : (_) => const SizedBox.shrink(),

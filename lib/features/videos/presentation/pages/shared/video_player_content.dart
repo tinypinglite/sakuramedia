@@ -474,8 +474,7 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
         const MaterialDesktopVolumeButton(),
       const MaterialPositionIndicator(),
       const Spacer(),
-      // 触摸控件下本页未实现应用内全屏布局（按钮只会翻转图标），仅在桌面显示；
-      // 桌面端按钮叠加系统窗口全屏。
+      // 移动播放页进入即横屏沉浸，不显示桌面式全屏按钮。
       if (!widget.useTouchOptimizedControls) const PlayerAppFullscreenButton(),
     ];
     return ThemedVideoPlayer(

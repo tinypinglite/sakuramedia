@@ -3,7 +3,6 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_app_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
 
@@ -31,10 +30,7 @@ class _FullscreenHarnessState extends State<_FullscreenHarness>
         enabled: widget.useDoubleTap,
         child: const Column(
           mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            PlayerAppFullscreenButton(),
-            Text('video-area'),
-          ],
+          children: <Widget>[PlayerAppFullscreenButton(), Text('video-area')],
         ),
       ),
     );
@@ -99,34 +95,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('touch variant renders mobile custom button', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          locale: const Locale('zh'),
-          localizationsDelegates: _testLocalizationsDelegates,
-          supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
-          home: Scaffold(
-            body: PlayerAppFullscreenScope(
-              isFullscreen: false,
-              onToggle: () {},
-              child: const PlayerAppFullscreenButton(
-                useTouchOptimizedControls: true,
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byType(MaterialCustomButton), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('escape exits app fullscreen', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('escape exits app fullscreen', (WidgetTester tester) async {
       await _pumpHarness(tester);
       await tester.tap(find.byType(PlayerAppFullscreenButton));
       await tester.pumpAndSettle();

@@ -57,9 +57,7 @@ List<Widget> buildCollectionPlayBottomControls({
         onPressed: onOpenEpisodes,
         icon: const Icon(Icons.playlist_play_rounded),
       ),
-    PlayerAppFullscreenButton(
-      useTouchOptimizedControls: useTouchOptimizedControls,
-    ),
+    PlayerAppFullscreenButton(),
   ];
 }
 

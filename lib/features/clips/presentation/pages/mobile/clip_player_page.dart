@@ -12,7 +12,6 @@ import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dar
 import 'package:sakuramedia/widgets/domain/movies/player/landscape_player_system_ui.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.dart';
-import 'package:sakuramedia/widgets/base/media/video/player_app_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
 
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
@@ -144,8 +143,6 @@ class _MobileClipPlayerPageState extends ConsumerState<MobileClipPlayerPage> {
         MaterialPlayOrPauseButton(),
         MaterialPositionIndicator(),
         Spacer(),
-        // 无右侧面板：无 scope 时回退 media_kit 原生全屏，行为不变。
-        PlayerAppFullscreenButton(useTouchOptimizedControls: true),
       ],
     );
   }

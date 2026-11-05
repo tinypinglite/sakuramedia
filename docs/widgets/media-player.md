@@ -10,9 +10,11 @@
 
 带右侧面板的播放页不能用 media_kit 的原生全屏（它 push 的独立路由只含 `Video`，面板会丢）：
 
-- `PlayerAppFullscreenScope` / `PlayerAppFullscreenButton` / `PlayerAppFullscreenDoubleTap` / `PlayerAppFullscreenStateMixin`：`lib/widgets/base/media/video/player_app_fullscreen.dart`，在当前路由内切换布局 + 叠加系统窗口全屏，Esc 退出。
+- `PlayerAppFullscreenScope` / `PlayerAppFullscreenButton` / `PlayerAppFullscreenDoubleTap` / `PlayerAppFullscreenStateMixin`：`lib/widgets/base/media/video/player_app_fullscreen.dart`，桌面端在当前路由内切换布局 + 叠加系统窗口全屏，Esc 退出；移动端不渲染全屏按钮。
 - 播放页 `State` mix `PlayerAppFullscreenStateMixin`，用 scope 暴露状态，并在 `dispose` 首行调 `disposePlayerAppFullscreen()`；`ThemedVideoPlayer` / `MoviePlayerSurface` 传 `disableNativeFullscreen: true` 关掉 media_kit 的双击全屏，避免两套全屏打架。
 - 无 scope 时按钮回退 media_kit 原生全屏（快播弹窗等无面板场景行为不变）。
+- 移动端播放页进入时已锁横屏并隐藏系统栏，底栏不提供应用内全屏按钮；移动影片页始终纯黑全出血，右侧缩略图面板和分栏保留。
+- 移动端控制层接入 `media_kit` 的左半屏拖动亮度、右半屏拖动媒体音量手势，使用其内置百分比浮层。亮度只改当前 App 并在播放面销毁时恢复，音量保持系统设置。
 - 窗口层那一半在 `lib/app/app_window_fullscreen.dart`：macOS / Windows 都走
   window_manager 的原生 `setFullScreen`（Windows 无边框由 runner 的
   `WM_NCCALCSIZE` 实现，只去可见框、不动窗口样式），移动端 / 测试环境没有

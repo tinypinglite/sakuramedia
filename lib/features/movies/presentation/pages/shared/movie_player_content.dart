@@ -176,30 +176,30 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
       }
     }
 
-    // 应用内全屏：去圆角纯黑铺满，分栏与右侧面板保留；Player 实例不重建。
-    // 注意：全屏/窗口态必须保持同一种 widget 类型 + 同一个 key，
-    // 否则 Flutter 会把子树整个 unmount 重建，MoviePlayerSurface 内的
-    // Player 会被 dispose 后重新 open，表现为进/退全屏都从头播放。
-    final fullscreen = isAppFullscreen;
+    // 桌面应用内全屏去掉圆角纯黑铺满；移动端本身已横屏沉浸，始终全出血。
+    // 全屏/窗口态必须保持同一种 widget 类型 + 同一个 key，否则 Flutter 会把
+    // 子树整个 unmount 重建，MoviePlayerSurface 内的 Player 会被 dispose 后
+    // 重新 open，表现为进/退全屏都从头播放。
+    final fullBleed = isAppFullscreen || widget.useTouchOptimizedControls;
     return PlayerSwipeBackGuard(
       enabled: widget.useTouchOptimizedControls,
       onBack: _handleBack,
       child: Scaffold(
-        backgroundColor: fullscreen
+        backgroundColor: fullBleed
             ? Colors.black
             : colors.movieDetailHeroBackgroundStart,
         body: PlayerAppFullscreenScope(
-          isFullscreen: fullscreen,
+          isFullscreen: isAppFullscreen,
           onToggle: toggleAppFullscreen,
           child: DecoratedBox(
             key: const Key('movie-player-page-frame'),
             decoration: BoxDecoration(
-              color: fullscreen
+              color: fullBleed
                   ? Colors.black
                   : colors.movieDetailHeroBackgroundStart.withValues(
                       alpha: 0.92,
                     ),
-              borderRadius: fullscreen
+              borderRadius: fullBleed
                   ? BorderRadius.zero
                   : context.appRadius.lgBorder,
             ),

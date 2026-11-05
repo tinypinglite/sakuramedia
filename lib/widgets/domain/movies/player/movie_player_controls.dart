@@ -44,6 +44,7 @@ List<Widget> buildMoviePlayerMobileBottomControls({
   required VoidCallback onSubtitleButtonPressed,
   bool includeDrawerButtons = true,
 }) {
+  // 移动播放页进入即锁横屏并隐藏系统栏；底栏不再提供全屏入口。
   return <Widget>[
     const MaterialPlayOrPauseButton(),
     const MaterialDesktopVolumeButton(),
@@ -58,7 +59,6 @@ List<Widget> buildMoviePlayerMobileBottomControls({
         onSpeedButtonPressed: onSpeedButtonPressed,
         onSubtitleButtonPressed: onSubtitleButtonPressed,
       ),
-    const PlayerAppFullscreenButton(useTouchOptimizedControls: true),
   ];
 }
 

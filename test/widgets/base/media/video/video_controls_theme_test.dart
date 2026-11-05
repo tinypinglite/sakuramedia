@@ -2,8 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit_video/media_kit_video_controls/media_kit_video_controls.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_system_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 
@@ -31,12 +31,24 @@ void main() {
           ),
           buildMoviePlayerDesktopVideoControls,
         );
+        expect(
+          resolveMoviePlayerVideoControlsBuilder(
+            useTouchOptimizedControls: true,
+            mobileControlsReady: false,
+          ),
+          isNot(buildMoviePlayerMobileVideoControls),
+        );
       },
     );
 
     test('mobile controls theme keeps expected seek sizing and gestures', () {
+      final systemControls = PlayerSystemControls(
+        initialBrightness: 0.24,
+        initialVolume: 0.36,
+      );
       final themeData = buildMoviePlayerMobileControlsThemeData(
         theme: ThemeData.light(),
+        systemControls: systemControls,
         topControls: const <Widget>[],
         bottomControls: const <Widget>[],
       );
@@ -46,6 +58,10 @@ void main() {
       expect(themeData.seekBarMargin, const EdgeInsets.fromLTRB(30, 0, 30, 75));
       expect(themeData.volumeGesture, isTrue);
       expect(themeData.brightnessGesture, isTrue);
+      expect(themeData.onVolumeChanged, isNotNull);
+      expect(themeData.onBrightnessChanged, isNotNull);
+      expect(themeData.initialVolume, 0.36);
+      expect(themeData.initialBrightness, 0.24);
       expect(themeData.seekOnDoubleTap, isTrue);
     });
 
@@ -54,6 +70,7 @@ void main() {
       () {
         final themeData = buildMoviePlayerMobileControlsThemeData(
           theme: ThemeData.light(),
+          systemControls: PlayerSystemControls(),
           topControls: const <Widget>[],
           bottomControls: const <Widget>[],
           seekEnabled: false,
@@ -89,6 +106,7 @@ void main() {
               children: [
                 buildMoviePlayerMobileControlsThemeData(
                   theme: Theme.of(context),
+                  systemControls: PlayerSystemControls(),
                   topControls: const <Widget>[],
                   bottomControls: const <Widget>[],
                 ).bufferingIndicatorBuilder!(context),
@@ -121,6 +139,7 @@ void main() {
               children: [
                 buildMoviePlayerMobileControlsThemeData(
                   theme: Theme.of(context),
+                  systemControls: PlayerSystemControls(),
                   topControls: const <Widget>[],
                   bottomControls: const <Widget>[],
                   showBufferingIndicator: false,
@@ -146,6 +165,7 @@ void main() {
       const bottom = MaterialPlayOrPauseButton();
       final themeData = buildMoviePlayerMobileControlsThemeData(
         theme: ThemeData.light(),
+        systemControls: PlayerSystemControls(),
         topControls: <Widget>[top],
         bottomControls: <Widget>[bottom],
       );
@@ -202,6 +222,7 @@ void main() {
 
       final mobile = buildMoviePlayerMobileControlsThemeData(
         theme: sakuraThemeData,
+        systemControls: PlayerSystemControls(),
         topControls: const <Widget>[],
         bottomControls: const <Widget>[],
         reserveTopRightToggle: true,

@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +12,10 @@ import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart'
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/preview_image_stage.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+
+const MethodChannel _immersiveChannel = MethodChannel(
+  'sakuramedia/immersive_system_ui',
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -242,6 +248,70 @@ void main() {
     await _pumpAnimations(tester);
 
     expect(find.byKey(kAppImageFullscreenOverlayKey), findsNothing);
+  });
+
+  testWidgets('fullscreen uses native immersive system UI on Android', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+    final previousPlatform = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final calls = <MethodCall>[];
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(_immersiveChannel, (call) async {
+      calls.add(call);
+      return null;
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(_immersiveChannel, null);
+    });
+
+    try {
+      await tester.pumpWidget(
+        _TestApp(
+          sessionStore: sessionStore,
+          child: PreviewImageStage(
+            imageUrl: '/preview.jpg',
+            height: 240,
+            onClose: () {},
+            enablePinchToFullscreen: true,
+            fullscreenImageKey: const Key(
+              'preview-image-stage-fullscreen-image',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final rect = tester.getRect(find.byType(PreviewImageStage));
+      await tester.tapAt(rect.center);
+      await _pumpAnimations(tester);
+
+      expect(
+        calls.where(
+          (call) =>
+              call.method == 'setImmersive' &&
+              (call.arguments as Map<Object?, Object?>)['enabled'] == true,
+        ),
+        isNotEmpty,
+      );
+
+      await tester.tap(find.byKey(kAppImageFullscreenCloseButtonKey));
+      await _pumpAnimations(tester);
+
+      expect(
+        calls.where(
+          (call) =>
+              call.method == 'setImmersive' &&
+              (call.arguments as Map<Object?, Object?>)['enabled'] == false,
+        ),
+        isNotEmpty,
+      );
+    } finally {
+      debugDefaultTargetPlatformOverride = previousPlatform;
+    }
   });
 
   testWidgets('preview image stage dismisses fullscreen on tap', (

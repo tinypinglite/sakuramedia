@@ -17,6 +17,7 @@ import 'package:sakuramedia/widgets/base/media/video/initial_seek_guard.dart';
 import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/playback_resume_prompt.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_screen_orientation.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_system_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.dart';
@@ -102,6 +103,8 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   late final ValueNotifier<bool> _isApplyingSubtitleNotifier;
   late final MoviePlayerPlaybackRateCoordinator _playbackRate;
   late final MoviePlayerMobileDrawerCoordinator _mobileDrawer;
+  late final PlayerSystemControls _systemControls;
+  bool _systemControlsReady = false;
   StreamSubscription<Duration>? _seekSubscription;
   StreamSubscription<void>? _playSubscription;
   StreamSubscription<Duration>? _positionSubscription;
@@ -162,6 +165,8 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     )..addListener(_handlePlaybackRateChanged);
     _mobileDrawer = MoviePlayerMobileDrawerCoordinator()
       ..addListener(_handleMobileDrawerChanged);
+    _systemControls = PlayerSystemControls();
+    _initializeSystemControls();
     _seekSubscription = widget.surfaceController.seekStream.listen(
       _handleSurfaceSeekRequested,
     );
@@ -244,6 +249,11 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     if (oldWidget.useTouchOptimizedControls &&
         !widget.useTouchOptimizedControls) {
       _mobileDrawer.closeDrawer();
+      _systemControlsReady = true;
+    } else if (!oldWidget.useTouchOptimizedControls &&
+        widget.useTouchOptimizedControls) {
+      _systemControlsReady = false;
+      _initializeSystemControls();
     }
   }
 
@@ -270,8 +280,24 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _subtitleStateNotifier.dispose();
     _isApplyingSubtitleNotifier.dispose();
     _readiness.dispose();
+    unawaited(_systemControls.resetBrightness());
     _player.dispose();
     super.dispose();
+  }
+
+  void _initializeSystemControls() {
+    if (!widget.useTouchOptimizedControls) {
+      _systemControlsReady = true;
+      return;
+    }
+    unawaited(
+      _systemControls.initialize().whenComplete(() {
+        if (!mounted || !widget.useTouchOptimizedControls) {
+          return;
+        }
+        setState(() => _systemControlsReady = true);
+      }),
+    );
   }
 
   Future<void> _openMedia() async {
@@ -586,6 +612,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       fill: backgroundColor,
       controls: resolveMoviePlayerVideoControlsBuilder(
         useTouchOptimizedControls: widget.useTouchOptimizedControls,
+        mobileControlsReady: _systemControlsReady,
       ),
       onEnterFullscreen: () async {
         if (!_player.state.playing) {
@@ -717,6 +744,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   }) {
     return buildMoviePlayerMobileControlsThemeData(
       theme: theme,
+      systemControls: _systemControls,
       topControls: topControls,
       bottomControls: bottomControls,
       reserveTopRightToggle: reserveTopRightToggle,

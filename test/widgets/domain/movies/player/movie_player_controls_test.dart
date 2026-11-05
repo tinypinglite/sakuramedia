@@ -61,7 +61,7 @@ void main() {
     });
 
     test(
-      'mobile bottom controls place speed and subtitle before fullscreen',
+      'mobile bottom controls keep speed and subtitle without fullscreen',
       () {
         final speedDisplay = ValueNotifier<MoviePlayerMobileSpeedDisplayState>(
           const MoviePlayerMobileSpeedDisplayState(
@@ -77,13 +77,13 @@ void main() {
           onSubtitleButtonPressed: () {},
         );
 
-        expect(controls, hasLength(7));
+        expect(controls, hasLength(6));
         expect(controls[4].key, isNull);
         expect(
           controls[5].key,
           const Key('movie-player-mobile-subtitle-button'),
         );
-        expect(controls[6], isA<PlayerAppFullscreenButton>());
+        expect(controls.whereType<PlayerAppFullscreenButton>(), isEmpty);
       },
     );
 
@@ -103,7 +103,7 @@ void main() {
         includeDrawerButtons: false,
       );
 
-      expect(controls, hasLength(5));
+      expect(controls, hasLength(4));
       expect(
         controls.where(
           (control) =>
@@ -112,7 +112,7 @@ void main() {
         ),
         isEmpty,
       );
-      expect(controls[4], isA<PlayerAppFullscreenButton>());
+      expect(controls.whereType<PlayerAppFullscreenButton>(), isEmpty);
     });
 
     test('desktop bottom controls place speed before subtitle button', () {

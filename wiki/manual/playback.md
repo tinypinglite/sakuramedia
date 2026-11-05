@@ -32,6 +32,8 @@ Subtitle fetching depends on existing subtitle data, enabled plugins and availab
 
 Mobile playback controls differ from the desktop ones; the thumbnail panel switch is in the player's top-right corner and can be collapsed or expanded at any time. System settings and bulk management steps follow the desktop tutorials.
 
+Mobile playback opens in landscape with the system bars hidden. Drag up or down on the left half of the screen to change the app's brightness, or on the right half to change media volume. Leaving playback restores the app brightness, while media volume keeps the system setting. The player page is already full-screen, so the mobile control bar has no separate fullscreen button.
+
 ## When playback is not smooth
 
 | Symptom | Check first |

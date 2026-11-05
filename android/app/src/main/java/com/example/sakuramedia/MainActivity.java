@@ -7,9 +7,13 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,6 +28,8 @@ import io.flutter.plugin.common.MethodChannel;
 public class MainActivity extends FlutterActivity {
     private static final String CHANNEL = "sakuramedia/external_player";
     private static final String MULTICAST_LOCK_CHANNEL = "sakuramedia/multicast_lock";
+    private static final String IMMERSIVE_SYSTEM_UI_CHANNEL =
+            "sakuramedia/immersive_system_ui";
     private static final String VIDEO_MIME = "video/*";
     private static final String FALLBACK_SAMPLE_URL = "http://127.0.0.1/video.mp4";
     // 外部播放器通用 intent extra：position 单位毫秒、title 为媒体标题。
@@ -33,6 +39,7 @@ public class MainActivity extends FlutterActivity {
     private static final String MX_PLAYER_PACKAGE_PREFIX = "com.mxtech";
 
     private WifiManager.MulticastLock multicastLock;
+    private boolean immersiveSystemUiActive;
 
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
@@ -43,6 +50,10 @@ public class MainActivity extends FlutterActivity {
                 flutterEngine.getDartExecutor().getBinaryMessenger(),
                 MULTICAST_LOCK_CHANNEL)
                 .setMethodCallHandler(this::handleMulticastLockCall);
+        new MethodChannel(
+                flutterEngine.getDartExecutor().getBinaryMessenger(),
+                IMMERSIVE_SYSTEM_UI_CHANNEL)
+                .setMethodCallHandler(this::handleImmersiveSystemUiCall);
     }
 
     private void handleMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
@@ -169,6 +180,68 @@ public class MainActivity extends FlutterActivity {
             multicastLock.release();
         } catch (Exception ignored) {
             // 锁可能已被系统回收，无需处理。
+        }
+    }
+
+    private void handleImmersiveSystemUiCall(
+            @NonNull MethodCall call,
+            @NonNull MethodChannel.Result result) {
+        if (!"setImmersive".equals(call.method)) {
+            result.notImplemented();
+            return;
+        }
+        final Boolean enabled = call.argument("enabled");
+        if (enabled == null) {
+            result.error("invalid_arguments", "缺少 enabled 参数", null);
+            return;
+        }
+        setImmersiveSystemUi(enabled);
+        result.success(null);
+    }
+
+    private void setImmersiveSystemUi(boolean enabled) {
+        immersiveSystemUiActive = enabled;
+        // targetSdk 36 在 Android 15+ 强制 edge-to-edge；旧系统仍需在播放/看图时
+        // 临时关闭 decorFits，避免系统栏瞬时呼出时画面被挤动。
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            WindowCompat.setDecorFitsSystemWindows(getWindow(), !enabled);
+        }
+        final WindowInsetsControllerCompat controller = windowInsetsController();
+        if (enabled) {
+            controller.setSystemBarsBehavior(
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            controller.hide(WindowInsetsCompat.Type.systemBars());
+            return;
+        }
+        controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_DEFAULT);
+        controller.show(WindowInsetsCompat.Type.systemBars());
+    }
+
+    private WindowInsetsControllerCompat windowInsetsController() {
+        return WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+    }
+
+    private void hideSystemBarsIfImmersive() {
+        if (!immersiveSystemUiActive) {
+            return;
+        }
+        final WindowInsetsControllerCompat controller = windowInsetsController();
+        controller.setSystemBarsBehavior(
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        controller.hide(WindowInsetsCompat.Type.systemBars());
+    }
+
+    @Override
+    public void onPostResume() {
+        super.onPostResume();
+        hideSystemBarsIfImmersive();
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            hideSystemBarsIfImmersive();
         }
     }
 

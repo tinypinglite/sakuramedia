@@ -28,9 +28,8 @@ class PlayerAppFullscreenScope extends InheritedWidget {
   final VoidCallback onToggle;
 
   static PlayerAppFullscreenScope? maybeOf(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<
-      PlayerAppFullscreenScope
-    >();
+    return context
+        .dependOnInheritedWidgetOfExactType<PlayerAppFullscreenScope>();
   }
 
   @override
@@ -47,16 +46,11 @@ Future<void> applyPlayerAppFullscreenWindow(bool enabled) async {
   await applyDesktopWindowFullscreen(enabled);
 }
 
-/// 底栏全屏按钮：有 [PlayerAppFullscreenScope] 时切换应用内全屏
+/// 桌面底栏全屏按钮：有 [PlayerAppFullscreenScope] 时切换应用内全屏
 /// （保留右侧面板），无 scope（如快播弹窗等无面板场景）时回退到
 /// media_kit 原生全屏，保持既有行为不变。
 class PlayerAppFullscreenButton extends StatelessWidget {
-  const PlayerAppFullscreenButton({
-    super.key,
-    this.useTouchOptimizedControls = false,
-  });
-
-  final bool useTouchOptimizedControls;
+  const PlayerAppFullscreenButton({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -71,12 +65,6 @@ class PlayerAppFullscreenButton extends StatelessWidget {
     final tooltip = scope.isFullscreen
         ? l10n.baseExitFullscreen
         : l10n.baseEnterFullscreen;
-    if (useTouchOptimizedControls) {
-      return MaterialCustomButton(
-        onPressed: scope.onToggle,
-        icon: Tooltip(message: tooltip, child: icon),
-      );
-    }
     return MaterialDesktopCustomButton(
       onPressed: scope.onToggle,
       icon: Tooltip(message: tooltip, child: icon),

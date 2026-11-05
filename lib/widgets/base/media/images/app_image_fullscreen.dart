@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/media/app_image_provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/platform/haptic_feedback.dart';
+import 'package:sakuramedia/core/platform/immersive_system_ui.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
@@ -348,7 +348,7 @@ class _AppImageFullscreenHostState extends ConsumerState<AppImageFullscreenHost>
       return;
     }
     _isSystemUiHidden = true;
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    await setImmersiveSystemUi(enabled: true);
   }
 
   Future<void> _restoreSystemUi() async {
@@ -356,10 +356,7 @@ class _AppImageFullscreenHostState extends ConsumerState<AppImageFullscreenHost>
       return;
     }
     _isSystemUiHidden = false;
-    await SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: SystemUiOverlay.values,
-    );
+    await setImmersiveSystemUi(enabled: false);
   }
 
   void _finalizeDismiss() {

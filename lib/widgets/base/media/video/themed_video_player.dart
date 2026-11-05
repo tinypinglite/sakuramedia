@@ -6,6 +6,7 @@ import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/media/video/initial_seek_guard.dart';
 import 'package:sakuramedia/widgets/base/media/video/playback_resume_prompt.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_screen_orientation.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_system_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 
@@ -104,6 +105,8 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
   late bool _seekEnabled;
   bool _initialFrameReady = false;
   bool _resumePromptVisible = false;
+  late final PlayerSystemControls _systemControls;
+  bool _systemControlsReady = false;
   StreamSubscription<Duration>? _positionSubscription;
   Duration? _lastPromptPosition;
   DateTime? _lastPromptPositionAt;
@@ -111,7 +114,9 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
   @override
   void initState() {
     super.initState();
+    _systemControls = PlayerSystemControls();
     _seekEnabled = !widget.guardInitialSeek;
+    _initializeSystemControls();
     _attachPositionMonitor();
     _armFirstFrameIndicator();
     _armInitialSeekGuard();
@@ -120,6 +125,15 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
   @override
   void didUpdateWidget(covariant ThemedVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.useTouchOptimizedControls !=
+        widget.useTouchOptimizedControls) {
+      if (widget.useTouchOptimizedControls) {
+        _systemControlsReady = false;
+        _initializeSystemControls();
+      } else {
+        _systemControlsReady = true;
+      }
+    }
     if (oldWidget.videoController != widget.videoController ||
         oldWidget.guardInitialSeek != widget.guardInitialSeek) {
       _seekEnabled = !widget.guardInitialSeek;
@@ -148,7 +162,23 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
     _guardRequestId++;
     _firstFrameRequestId++;
     _positionSubscription?.cancel();
+    unawaited(_systemControls.resetBrightness());
     super.dispose();
+  }
+
+  void _initializeSystemControls() {
+    if (!widget.useTouchOptimizedControls) {
+      _systemControlsReady = true;
+      return;
+    }
+    unawaited(
+      _systemControls.initialize().whenComplete(() {
+        if (!mounted || !widget.useTouchOptimizedControls) {
+          return;
+        }
+        setState(() => _systemControlsReady = true);
+      }),
+    );
   }
 
   void _armFirstFrameIndicator() {
@@ -286,6 +316,7 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
     );
     final mobileThemeData = buildMoviePlayerMobileControlsThemeData(
       theme: theme,
+      systemControls: _systemControls,
       topControls: widget.topControls,
       bottomControls: widget.bottomControls,
       displaySeekBar: widget.displaySeekBar,
@@ -295,6 +326,7 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
     );
     final mobileFullscreenThemeData = buildMoviePlayerMobileControlsThemeData(
       theme: theme,
+      systemControls: _systemControls,
       topControls: widget.topControls,
       bottomControls: fullscreenBottom,
       displaySeekBar: widget.displaySeekBar,
@@ -319,6 +351,7 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
                 fill: widget.fill,
                 controls: resolveMoviePlayerVideoControlsBuilder(
                   useTouchOptimizedControls: widget.useTouchOptimizedControls,
+                  mobileControlsReady: _systemControlsReady,
                 ),
                 // 移动端全屏方向由播放页自己管：进入跟随系统传感器、退出恢复
                 // 页面横屏+沉浸；桌面保持 media_kit 默认（原生窗口全屏）。

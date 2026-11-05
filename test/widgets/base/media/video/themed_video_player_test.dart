@@ -30,8 +30,16 @@ const List<LocalizationsDelegate<dynamic>> _testLocalizationsDelegates =
       ...GlobalMaterialLocalizations.delegates,
     ];
 
+const MethodChannel _brightnessChannel = MethodChannel(
+  'github.com/aaassseee/screen_brightness',
+);
+const MethodChannel _volumeChannel = MethodChannel(
+  'com.kurenai7968.volume_controller.method',
+);
+
 void main() {
-  Future<void> pumpPlayer(
+  Future<({List<MethodCall> brightnessCalls, List<MethodCall> volumeCalls})>
+  pumpPlayer(
     WidgetTester tester, {
     required bool useTouchOptimizedControls,
     bool displaySeekBar = true,
@@ -44,6 +52,34 @@ void main() {
     addTearDown(
       () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
         const MethodChannel('com.alexmercerind/media_kit_video'),
+        null,
+      ),
+    );
+    final brightnessCalls = <MethodCall>[];
+    final volumeCalls = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      _brightnessChannel,
+      (call) async {
+        brightnessCalls.add(call);
+        return call.method == 'getApplicationScreenBrightness' ? 0.4 : null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        _brightnessChannel,
+        null,
+      ),
+    );
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      _volumeChannel,
+      (call) async {
+        volumeCalls.add(call);
+        return call.method == 'getVolume' ? 0.6 : null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        _volumeChannel,
         null,
       ),
     );
@@ -64,6 +100,11 @@ void main() {
         ),
       ),
     );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    return (brightnessCalls: brightnessCalls, volumeCalls: volumeCalls);
   }
 
   testWidgets('移动端全屏接管方向：进入跟随传感器、退出回页面横屏', (tester) async {
@@ -80,6 +121,68 @@ void main() {
     final video = tester.widget<Video>(find.byType(Video));
     expect(video.onEnterFullscreen, defaultEnterNativeFullscreen);
     expect(video.onExitFullscreen, defaultExitNativeFullscreen);
+  });
+
+  testWidgets('移动端左半屏上下滑调整应用亮度', (tester) async {
+    final channels = await pumpPlayer(tester, useTouchOptimizedControls: true);
+    final videoRect = tester.getRect(find.byType(Video));
+    await tester.timedDragFrom(
+      Offset(videoRect.left + videoRect.width * 0.25, videoRect.center.dy),
+      const Offset(0, -40),
+      const Duration(milliseconds: 120),
+    );
+    await tester.pump();
+
+    expect(
+      channels.brightnessCalls.where(
+        (call) => call.method == 'setApplicationScreenBrightness',
+      ),
+      isNotEmpty,
+    );
+    expect(
+      channels.volumeCalls.where((call) => call.method == 'setVolume'),
+      isEmpty,
+    );
+    expect(find.text('40%'), findsNothing);
+    expect(find.text('60%'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pump();
+    expect(
+      channels.brightnessCalls.where(
+        (call) => call.method == 'resetApplicationScreenBrightness',
+      ),
+      hasLength(1),
+    );
+  });
+
+  testWidgets('移动端右半屏上下滑调整系统媒体音量', (tester) async {
+    final channels = await pumpPlayer(tester, useTouchOptimizedControls: true);
+    final videoRect = tester.getRect(find.byType(Video));
+    await tester.timedDragFrom(
+      Offset(videoRect.left + videoRect.width * 0.75, videoRect.center.dy),
+      const Offset(0, -40),
+      const Duration(milliseconds: 120),
+    );
+    await tester.pump();
+
+    expect(
+      channels.volumeCalls.where((call) => call.method == 'setVolume'),
+      isNotEmpty,
+    );
+    expect(
+      channels.brightnessCalls.where(
+        (call) => call.method == 'setApplicationScreenBrightness',
+      ),
+      isEmpty,
+    );
+    expect(find.text('60%'), findsNothing);
+    expect(find.text('40%'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(milliseconds: 400));
   });
 
   testWidgets('桌面端按住进度条时控件不会自动卸载', (tester) async {
