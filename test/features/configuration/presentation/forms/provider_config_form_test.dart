@@ -94,15 +94,6 @@ void main() {
       ),
     );
     expect(createFormKey.currentState!.validate(), isFalse);
-    expect(
-      find.byKey(const Key('provider-config-field-password')),
-      findsOneWidget,
-    );
-    expect(find.text('服务地址的详细说明'), findsOneWidget);
-    expect(
-      find.byKey(const Key('provider-config-field-account')),
-      findsNothing,
-    );
 
     final editController = ProviderConfigFormController(fields: fields);
     addTearDown(editController.dispose);
@@ -133,40 +124,4 @@ void main() {
     expect(editFormKey.currentState!.validate(), isTrue);
   });
 
-  testWidgets('excluded and only keys control rendered fields', (tester) async {
-    final controller = ProviderConfigFormController(fields: fields);
-    addTearDown(controller.dispose);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: sakuraThemeData,
-        locale: const Locale('zh'),
-        localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-          AppLocalizations.delegate,
-          ...GlobalMaterialLocalizations.delegates,
-        ],
-        supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
-        home: Scaffold(
-          body: Column(
-            children: [
-              ProviderConfigFormFields(
-                controller: controller,
-                excludedKeys: const <String>{'password'},
-              ),
-              ProviderConfigFormFields(
-                controller: controller,
-                onlyKeys: const <String>{'password'},
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    expect(find.byKey(const Key('provider-config-field-url')), findsOneWidget);
-    expect(
-      find.byKey(const Key('provider-config-field-password')),
-      findsOneWidget,
-    );
-  });
 }

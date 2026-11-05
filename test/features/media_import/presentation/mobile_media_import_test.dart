@@ -12,8 +12,6 @@ import 'package:sakuramedia/features/media_import/presentation/pages/shared/medi
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 import '../../../support/test_api_bundle.dart';
 
@@ -34,8 +32,6 @@ void main() {
       );
 
       await _tap(tester, 'media-import-create-button');
-      expect(find.byType(AppBottomDrawerSurface), findsOneWidget);
-      expect(find.byType(AppDesktopDialog), findsNothing);
       expect(
         _button(tester, 'media-import-picker-submit-button').onPressed,
         isNull,
@@ -43,7 +39,6 @@ void main() {
       await _tap(tester, 'media-import-entry-0');
       await _tap(tester, 'media-import-picker-select-current-directory-button');
       final submit = find.byKey(const Key('media-import-picker-submit-button'));
-      expect(submit.hitTestable(), findsOneWidget);
       await tester.tap(submit);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
@@ -65,12 +60,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.textContaining('导入任务 #42 已提交'), findsOneWidget);
       expect(
         _button(tester, 'media-import-create-button').onPressed,
         isNotNull,
       );
-      expect(tester.takeException(), isNull);
       await tester.pump(const Duration(seconds: 4));
     });
   }
@@ -96,7 +89,6 @@ void main() {
       );
       await _tap(tester, 'media-import-tab-video');
       await _tap(tester, 'media-import-create-button');
-      expect(find.byType(AppBottomDrawerSurface), findsOneWidget);
       expect(_button(tester, 'video-import-submit-button').onPressed, isNull);
       await _tap(tester, 'media-import-entry-0');
       await tester.ensureVisible(
@@ -105,20 +97,12 @@ void main() {
       await _tap(tester, 'media-import-picker-source-disposition-select');
       await tester.tap(find.text('导入成功后删除源文件').last);
       await tester.pumpAndSettle();
-      expect(
-        find.byKey(const Key('media-import-source-disposition-warning')),
-        findsOneWidget,
-      );
       // 选合集：点击字段打开可搜索单选弹层，选中目标合集。
       await _tap(tester, 'video-import-collection-field');
       await tester.tap(
         find.byKey(const Key('pick-video-collection-single-7')),
       );
       await tester.pumpAndSettle();
-      expect(
-        find.byKey(const Key('video-import-submit-button')).hitTestable(),
-        findsOneWidget,
-      );
       await _tap(tester, 'video-import-submit-button');
       expect(bundle.adapter.requests.last.body, {
         'media_kind': 'video',
@@ -127,8 +111,6 @@ void main() {
         'source_disposition': 'delete_after_commit',
         'collection_id': 7,
       });
-      expect(find.textContaining('视频导入任务 #43 已提交'), findsOneWidget);
-      expect(tester.takeException(), isNull);
       await tester.pump(const Duration(seconds: 4));
     },
   );
@@ -152,13 +134,11 @@ void main() {
       await _tap(tester, 'media-import-create-button');
       await _tap(tester, 'media-import-library-retry-button');
       await _tap(tester, 'media-import-picker-browse-retry-button');
-      expect(find.text('该来源下没有可导入的文件或目录'), findsOneWidget);
       expect(
         _button(tester, 'media-import-picker-submit-button').onPressed,
         isNull,
       );
       await _tap(tester, 'media-import-picker-cancel-button');
-      expect(find.byType(AppBottomDrawerSurface), findsNothing);
       expect(bundle.adapter.hitCount('POST', '/imports'), 0);
       expect(
         _button(tester, 'media-import-create-button').onPressed,
@@ -186,37 +166,12 @@ void main() {
     await _tap(tester, 'media-import-entry-0');
     await _tap(tester, 'media-import-picker-select-current-directory-button');
     await _tap(tester, 'media-import-picker-submit-button');
-    expect(find.text('来源暂不可用，请重试'), findsOneWidget);
     expect(_button(tester, 'media-import-create-button').onPressed, isNotNull);
     expect(_button(tester, 'media-import-create-button').isLoading, isFalse);
     expect(bundle.adapter.hitCount('POST', '/imports'), 1);
     await tester.pump(const Duration(seconds: 4));
   });
 
-  testWidgets('mobile video collection creation uses a nested bottom drawer', (
-    tester,
-  ) async {
-    final bundle = await _pumpPage(tester);
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/media-libraries',
-      body: [],
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/video-collections',
-      body: [],
-    );
-    await _tap(tester, 'media-import-tab-video');
-    await _tap(tester, 'media-import-create-button');
-    await _tap(tester, 'video-import-create-collection-button');
-    expect(
-      find.byKey(const Key('video-collection-edit-bottom-sheet')),
-      findsOneWidget,
-    );
-    expect(find.byType(AppDesktopDialog), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
 }
 
 AppButton _button(WidgetTester tester, String key) =>

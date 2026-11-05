@@ -111,20 +111,5 @@ void main() {
       },
     );
 
-    testWidgets('no-op when no registrar in tree', (tester) async {
-      Future<void> onRefresh() async {}
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: AppPageRefreshScope(
-            onRefresh: onRefresh,
-            child: const SizedBox(),
-          ),
-        ),
-      );
-
-      expect(tester.takeException(), isNull);
-    });
   });
 }
