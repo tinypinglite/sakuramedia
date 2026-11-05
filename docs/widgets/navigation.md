@@ -10,7 +10,7 @@
 
 路径：`lib/widgets/base/forms/app_segmented_control.dart`
 
-单选分段控件：玻璃凹槽 track + 实色选中 pill，带选中动画和 button / selected 语义。选项少、需要一眼看到全部时用；放不下时传 `scrollable`。它是页面内的筛选/切换控件，不要拿它替代页面级 `AppTabBar`。
+单选分段控件，内部由 `liquid_glass_widgets` 的 `GlassSegmentedControl.scrollable` 实现，保持自然宽度，空间不足时横向滚动。`AppSegmentedControl` 只负责泛型值、主题色和尺寸适配，不再外包 `AppGlassSurface`。`AppSegmentedItem.key` 作为分段身份传给 `GlassSegment.id`，不再作为可查找的 Widget key。它是页面内的筛选/切换控件，不要拿它替代页面级 `AppTabBar`。
 
 ## `AppListHeader`
 

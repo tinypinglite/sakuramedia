@@ -6,9 +6,21 @@ import 'package:sakuramedia/theme.dart';
 /// 系统概览的纯展示格式化与状态口径（不依赖状态对象，输入即 DTO）。
 
 final _countFormatter = NumberFormat.decimalPattern();
+final _percentFormatter = NumberFormat.decimalPercentPattern(decimalDigits: 1);
 
 /// 千分位计数：`1286` → `1,286`。
 String formatCount(int value) => _countFormatter.format(value);
+
+/// 比例格式化：`0.049` → `4.9%`，跟随当前语言的小数符号。
+String formatPercent(double value) => _percentFormatter.format(value);
+
+/// 订阅率；分母为 0 时显示 `0.0%`。
+String formatSubscriptionRate(int subscribed, int total) {
+  if (total <= 0) {
+    return formatPercent(0);
+  }
+  return formatPercent(subscribed / total);
+}
 
 /// 单个媒体库的容量拆分：SakuraMedia 占用 / 其他占用 / 空闲。
 class StorageUsageBreakdown {

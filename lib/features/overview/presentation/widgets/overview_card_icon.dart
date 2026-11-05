@@ -5,9 +5,10 @@ import 'package:sakuramedia/theme.dart';
 ///
 /// 主卡「媒体资产」使用渐变图标块，不在这个层级里重复。
 class OverviewCardIcon extends StatelessWidget {
-  const OverviewCardIcon({super.key, required this.icon});
+  const OverviewCardIcon({super.key, required this.icon, this.onDark = false});
 
   final IconData icon;
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
@@ -15,13 +16,17 @@ class OverviewCardIcon extends StatelessWidget {
       width: context.appSpacing.xl,
       height: context.appSpacing.xl,
       decoration: BoxDecoration(
-        color: context.appColors.surfaceMuted,
+        color: onDark
+            ? context.appTextPalette.onMedia.withValues(alpha: 0.12)
+            : context.appColors.surfaceMuted,
         borderRadius: context.appRadius.smBorder,
       ),
       child: Icon(
         icon,
         size: context.appComponentTokens.iconSizeSm,
-        color: Theme.of(context).colorScheme.primary,
+        color: onDark
+            ? context.appTextPalette.onMedia
+            : Theme.of(context).colorScheme.primary,
       ),
     );
   }

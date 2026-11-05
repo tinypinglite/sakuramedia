@@ -48,6 +48,7 @@ dependencies:
   window_manager: ^0.5.2
   screen_retriever: ^0.2.2
   intl: ^0.20.3
+  liquid_glass_widgets: ^1.16.1
   shared_preferences: ^2.5.5
   oktoast: ^3.4.0
   material_ui: ^1.2.0

@@ -1,16 +1,20 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_format.dart';
-import 'package:sakuramedia/features/overview/presentation/widgets/overview_card_states.dart';
+import 'package:sakuramedia/features/overview/presentation/widgets/overview_surface.dart';
 import 'package:sakuramedia/features/status/data/status_dto.dart';
 import 'package:sakuramedia/features/status/presentation/status_placeholders.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
-/// 媒体资产卡：一组分格数字 + 处理积压与合集资产两行脚注。
+enum AssetSummaryCardLayout { standard, hero }
+
+/// 媒体资产卡：概览页的主数据面。
 ///
-/// 桌面上是一个横向分格行，窄屏（移动/窄窗口）折成两列网格。
+/// [AssetSummaryCardLayout.hero] 在宽桌面使用「主指标 + 三个辅助指标 + 单行
+/// 库状态」；窄窗口与移动端继续使用等权分格，避免为了桌面层级牺牲窄屏可读性。
 class AssetSummaryCard extends StatelessWidget {
   const AssetSummaryCard({
     super.key,
@@ -20,6 +24,7 @@ class AssetSummaryCard extends StatelessWidget {
     this.isLoading = false,
     this.errorMessage,
     this.onRetry,
+    this.layout = AssetSummaryCardLayout.standard,
   });
 
   final StatusDto? status;
@@ -28,12 +33,14 @@ class AssetSummaryCard extends StatelessWidget {
   final bool isLoading;
   final String? errorMessage;
   final VoidCallback? onRetry;
+  final AssetSummaryCardLayout layout;
 
   @override
   Widget build(BuildContext context) {
     return _AssetHeroSurface(
       key: const Key('overview-asset-summary-card'),
       title: AppLocalizations.of(context).overviewMediaAssets,
+      libraryCount: status?.mediaLibraries.total,
       child: _buildBody(context),
     );
   }
@@ -51,7 +58,7 @@ class AssetSummaryCard extends StatelessWidget {
       );
     }
     if (errorMessage != null) {
-      return OverviewCardErrorRow(
+      return _AssetErrorRow(
         message: errorMessage!,
         onRetry: onRetry,
         retryKey: const Key('overview-asset-retry-button'),
@@ -62,12 +69,15 @@ class AssetSummaryCard extends StatelessWidget {
     if (current == null) {
       return Text(
         AppLocalizations.of(context).overviewNoAssetData,
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s12,
-          weight: AppTextWeight.regular,
-          tone: AppTextTone.muted,
-        ),
+        style:
+            resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.onMedia,
+            ).copyWith(
+              color: context.appTextPalette.onMedia.withValues(alpha: 0.58),
+            ),
       );
     }
     return _buildLoaded(context, current, insights);
@@ -79,42 +89,68 @@ class AssetSummaryCard extends StatelessWidget {
     StatusInsightsDto? insights,
   ) {
     final l10n = AppLocalizations.of(context);
-    final metrics = <_AssetMetric>[
+    final movieMetric = _AssetMetric(
+      id: 'movies',
+      label: l10n.overviewMovies,
+      value: formatCount(current.movies.total),
+      secondary: l10n.overviewMoviePlayableSubscribed(
+        formatCount(current.movies.playable),
+        formatCount(current.movies.subscribed),
+      ),
+      narrowSecondary: l10n.overviewMoviePlayable(
+        formatCount(current.movies.playable),
+      ),
+    );
+    final actorsMetric = _AssetMetric(
+      id: 'actors',
+      label: l10n.overviewActresses,
+      value: formatCount(current.actors.femaleTotal),
+      secondary: l10n.overviewSubscribedCount(
+        formatCount(current.actors.femaleSubscribed),
+      ),
+    );
+    final mediaFilesMetric = _AssetMetric(
+      id: 'media-files',
+      label: l10n.overviewMediaFiles,
+      value: formatCount(current.mediaFiles.total),
+      secondary: l10n.overviewLibraryCount(
+        formatCount(current.mediaLibraries.total),
+      ),
+    );
+    final mediaSizeMetric = _AssetMetric(
+      id: 'media-size',
+      label: l10n.overviewTotalMediaSize,
+      value: formatFileSize(current.mediaFiles.totalSizeBytes),
+      secondary: l10n.overviewMediaTotalDetail(
+        formatCount(current.mediaFiles.total),
+        formatCount(current.thumbnails.total),
+      ),
+    );
+    final standardMetrics = <_AssetMetric>[
+      movieMetric,
+      actorsMetric,
+      mediaFilesMetric,
+      mediaSizeMetric,
+    ];
+    final heroSupportingMetrics = <_AssetMetric>[
+      movieMetric,
       _AssetMetric(
-        id: 'movies',
-        label: l10n.overviewMovies,
-        value: formatCount(current.movies.total),
-        secondary: l10n.overviewMoviePlayableSubscribed(
-          formatCount(current.movies.playable),
-          formatCount(current.movies.subscribed),
-        ),
-        narrowSecondary: l10n.overviewMoviePlayable(
-          formatCount(current.movies.playable),
+        id: 'subscribed',
+        label: l10n.overviewSubscribedMovies,
+        value: formatCount(current.movies.subscribed),
+        secondary: l10n.overviewSubscriptionRate(
+          formatSubscriptionRate(
+            current.movies.subscribed,
+            current.movies.total,
+          ),
         ),
       ),
+      actorsMetric,
       _AssetMetric(
-        id: 'actors',
-        label: l10n.overviewActresses,
-        value: formatCount(current.actors.femaleTotal),
-        secondary: l10n.overviewSubscribedCount(
-          formatCount(current.actors.femaleSubscribed),
-        ),
-      ),
-      _AssetMetric(
-        id: 'media-files',
-        label: l10n.overviewMediaFiles,
-        value: formatCount(current.mediaFiles.total),
-        secondary: l10n.overviewLibraryCount(
-          formatCount(current.mediaLibraries.total),
-        ),
-      ),
-      _AssetMetric(
-        id: 'media-size',
-        label: l10n.overviewTotalMediaSize,
-        value: formatFileSize(current.mediaFiles.totalSizeBytes),
-        secondary: l10n.overviewThumbnails(
-          formatCount(current.thumbnails.total),
-        ),
+        id: 'collections',
+        label: l10n.routeCollectionsTitle,
+        value: formatCount(_collectionCount(insights?.collections)),
+        secondary: l10n.overviewCollectionKinds,
       ),
     ];
 
@@ -123,10 +159,24 @@ class AssetSummaryCard extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        if (layout == AssetSummaryCardLayout.hero &&
+            constraints.maxWidth >= _heroMinWidth) {
+          return _buildHeroLayout(
+            context,
+            primaryMetric: mediaSizeMetric,
+            supportingMetrics: heroSupportingMetrics,
+            backlog: backlog,
+            collections: collections,
+          );
+        }
+
         final narrow = constraints.maxWidth < _twoColumnMinWidth;
         final rows = narrow
-            ? <List<_AssetMetric>>[metrics.sublist(0, 2), metrics.sublist(2, 4)]
-            : <List<_AssetMetric>>[metrics];
+            ? <List<_AssetMetric>>[
+                standardMetrics.sublist(0, 2),
+                standardMetrics.sublist(2, 4),
+              ]
+            : <List<_AssetMetric>>[standardMetrics];
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,7 +196,7 @@ class AssetSummaryCard extends StatelessWidget {
                 child: Divider(
                   height: 1,
                   thickness: 1,
-                  color: context.appColors.divider,
+                  color: _heroDividerColor(context),
                 ),
               ),
               if (backlog.isNotEmpty)
@@ -168,6 +218,61 @@ class AssetSummaryCard extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildHeroLayout(
+    BuildContext context, {
+    required _AssetMetric primaryMetric,
+    required List<_AssetMetric> supportingMetrics,
+    required List<_FootnoteItem> backlog,
+    required List<_FootnoteItem> collections,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Expanded(
+                flex: 5,
+                child: _AssetPrimaryMetric(metric: primaryMetric),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: context.appSpacing.xl,
+                ),
+                child: VerticalDivider(
+                  width: 1,
+                  thickness: 1,
+                  color: _heroDividerColor(context),
+                ),
+              ),
+              Expanded(
+                flex: 7,
+                child: _AssetSupportingMetricGrid(metrics: supportingMetrics),
+              ),
+            ],
+          ),
+        ),
+        if (backlog.isNotEmpty || collections.isNotEmpty) ...<Widget>[
+          Padding(
+            padding: EdgeInsets.only(top: context.appSpacing.xl),
+            child: Divider(
+              height: 1,
+              thickness: 1,
+              color: _heroDividerColor(context),
+            ),
+          ),
+          SizedBox(height: context.appSpacing.lg),
+          _HeroStatusLine(
+            key: const Key('overview-asset-status-line'),
+            backlog: backlog,
+            collections: collections,
+          ),
+        ],
+      ],
     );
   }
 
@@ -225,6 +330,37 @@ class AssetSummaryCard extends StatelessWidget {
 /// 窄屏（卡片内容宽 < 该值）时指标折成两列。
 const double _twoColumnMinWidth = 520;
 
+/// Hero 布局的最小内容宽度；窄桌面窗口仍回退到等权分格。
+const double _heroMinWidth = 520;
+
+int _collectionCount(CollectionsStatsDto? collections) {
+  if (collections == null) {
+    return 0;
+  }
+  return collections.playlists.count +
+      collections.videoCollections.count +
+      collections.clipCollections.count +
+      collections.momentCollections.count;
+}
+
+Color _heroDividerColor(BuildContext context) {
+  return context.appTextPalette.onMedia.withValues(alpha: 0.14);
+}
+
+TextStyle _heroTextStyle(
+  BuildContext context,
+  AppTextSize size, {
+  AppTextWeight weight = AppTextWeight.regular,
+  double opacity = 1,
+}) {
+  return resolveAppTextStyle(
+    context,
+    size: size,
+    weight: weight,
+    tone: AppTextTone.onMedia,
+  ).copyWith(color: context.appTextPalette.onMedia.withValues(alpha: opacity));
+}
+
 class _AssetMetric {
   const _AssetMetric({
     required this.id,
@@ -241,6 +377,274 @@ class _AssetMetric {
   /// 副文案；窄卡片放不下多个事实时退到 [narrowSecondary]。
   final String secondary;
   final String? narrowSecondary;
+}
+
+class _AssetPrimaryMetric extends StatelessWidget {
+  const _AssetPrimaryMetric({required this.metric});
+
+  final _AssetMetric metric;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: Key('overview-asset-${metric.id}'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: context.appTextPalette.onMedia.withValues(alpha: 0.72),
+              ),
+            ),
+            SizedBox(width: context.appSpacing.sm),
+            Text(
+              metric.label,
+              style: _heroTextStyle(
+                context,
+                AppTextSize.s12,
+                weight: AppTextWeight.medium,
+                opacity: 0.62,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: context.appSpacing.md),
+        Text(
+          metric.value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style:
+              _heroTextStyle(
+                context,
+                AppTextSize.s32,
+                weight: AppTextWeight.semibold,
+              ).copyWith(
+                fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+              ),
+        ),
+        SizedBox(height: context.appSpacing.xs),
+        Text(
+          metric.secondary,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: _heroTextStyle(context, AppTextSize.s12, opacity: 0.56),
+        ),
+      ],
+    );
+  }
+}
+
+class _AssetSupportingMetricGrid extends StatelessWidget {
+  const _AssetSupportingMetricGrid({required this.metrics});
+
+  final List<_AssetMetric> metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    final firstRow = metrics.take(2).toList(growable: false);
+    final secondRow = metrics.skip(2).take(2).toList(growable: false);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _AssetSupportingMetricRow(metrics: firstRow),
+        SizedBox(height: context.appSpacing.xl),
+        _AssetSupportingMetricRow(metrics: secondRow),
+      ],
+    );
+  }
+}
+
+class _AssetSupportingMetricRow extends StatelessWidget {
+  const _AssetSupportingMetricRow({required this.metrics});
+
+  final List<_AssetMetric> metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        for (var index = 0; index < metrics.length; index += 1) ...<Widget>[
+          if (index > 0) SizedBox(width: context.appSpacing.xl),
+          Expanded(child: _AssetSupportingMetric(metric: metrics[index])),
+        ],
+      ],
+    );
+  }
+}
+
+class _AssetSupportingMetric extends StatelessWidget {
+  const _AssetSupportingMetric({required this.metric});
+
+  final _AssetMetric metric;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: Key('overview-asset-${metric.id}'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Text(
+          metric.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: _heroTextStyle(context, AppTextSize.s12, opacity: 0.58),
+        ),
+        SizedBox(height: context.appSpacing.sm),
+        Text(
+          metric.value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style:
+              _heroTextStyle(
+                context,
+                AppTextSize.s16,
+                weight: AppTextWeight.semibold,
+              ).copyWith(
+                fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+              ),
+        ),
+        SizedBox(height: context.appSpacing.xs),
+        Text(
+          metric.secondary,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: _heroTextStyle(context, AppTextSize.s12, opacity: 0.54),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroStatusLine extends StatelessWidget {
+  const _HeroStatusLine({
+    super.key,
+    required this.backlog,
+    required this.collections,
+  });
+
+  final List<_FootnoteItem> backlog;
+  final List<_FootnoteItem> collections;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final labelStyle = _heroTextStyle(context, AppTextSize.s12, opacity: 0.58);
+    final countStyle = _heroTextStyle(
+      context,
+      AppTextSize.s12,
+      weight: AppTextWeight.semibold,
+    );
+    final separatorStyle = labelStyle.copyWith(
+      color: context.appTextPalette.onMedia.withValues(alpha: 0.30),
+    );
+
+    final spans = <InlineSpan>[];
+    void addSeparator() {
+      if (spans.isNotEmpty) {
+        spans.add(TextSpan(text: '   ·   ', style: separatorStyle));
+      }
+    }
+
+    void addIconSegment(IconData icon, List<InlineSpan> content) {
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Icon(
+            icon,
+            size: context.appComponentTokens.iconSizeXs,
+            color: context.appTextPalette.onMedia.withValues(alpha: 0.36),
+          ),
+        ),
+      );
+      spans.add(WidgetSpan(child: SizedBox(width: context.appSpacing.sm)));
+      spans.addAll(content);
+    }
+
+    if (backlog.isNotEmpty) {
+      addSeparator();
+      addIconSegment(Icons.hourglass_empty_rounded, <InlineSpan>[
+        for (var index = 0; index < backlog.length; index += 1) ...<InlineSpan>[
+          if (index > 0) TextSpan(text: ' · ', style: separatorStyle),
+          TextSpan(text: '${backlog[index].label} ', style: labelStyle),
+          TextSpan(text: formatCount(backlog[index].count), style: countStyle),
+        ],
+      ]);
+    }
+
+    if (collections.isNotEmpty) {
+      addSeparator();
+      addIconSegment(Icons.folder_outlined, <InlineSpan>[
+        TextSpan(text: l10n.overviewCollectionsPrefix, style: labelStyle),
+        for (
+          var index = 0;
+          index < collections.length;
+          index += 1
+        ) ...<InlineSpan>[
+          if (index > 0) TextSpan(text: ' · ', style: separatorStyle),
+          TextSpan(text: '${collections[index].label} ', style: labelStyle),
+          TextSpan(
+            text: formatCount(collections[index].count),
+            style: countStyle,
+          ),
+        ],
+      ]);
+    }
+
+    return Text.rich(TextSpan(children: spans));
+  }
+}
+
+class _AssetErrorRow extends StatelessWidget {
+  const _AssetErrorRow({
+    required this.message,
+    required this.onRetry,
+    required this.retryKey,
+  });
+
+  final String message;
+  final VoidCallback? onRetry;
+  final Key retryKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            message,
+            style: _heroTextStyle(context, AppTextSize.s12, opacity: 0.78),
+          ),
+        ),
+        if (onRetry != null) ...<Widget>[
+          SizedBox(width: context.appSpacing.sm),
+          AppInteractiveSurface(
+            onTap: onRetry,
+            child: Container(
+              height: context.appComponentTokens.buttonHeightXs,
+              padding: EdgeInsets.symmetric(horizontal: context.appSpacing.sm),
+              alignment: Alignment.center,
+              child: Text(
+                AppLocalizations.of(context).commonRetry,
+                key: retryKey,
+                style: _heroTextStyle(
+                  context,
+                  AppTextSize.s12,
+                  weight: AppTextWeight.semibold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 class _AssetMetricRow extends StatelessWidget {
@@ -262,7 +666,7 @@ class _AssetMetricRow extends StatelessWidget {
                 child: VerticalDivider(
                   width: 1,
                   thickness: 1,
-                  color: context.appColors.divider,
+                  color: _heroDividerColor(context),
                 ),
               ),
             Expanded(child: cells[index]),
@@ -287,12 +691,7 @@ class _AssetMetricCell extends StatelessWidget {
       children: <Widget>[
         Text(
           metric.label,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.secondary,
-          ),
+          style: _heroTextStyle(context, AppTextSize.s12, opacity: 0.58),
         ),
         SizedBox(height: context.appSpacing.sm),
         Text(
@@ -300,11 +699,10 @@ class _AssetMetricCell extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style:
-              resolveAppTextStyle(
+              _heroTextStyle(
                 context,
-                size: AppTextSize.s20,
+                AppTextSize.s20,
                 weight: AppTextWeight.semibold,
-                tone: AppTextTone.primary,
               ).copyWith(
                 fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
               ),
@@ -316,12 +714,7 @@ class _AssetMetricCell extends StatelessWidget {
               : metric.secondary,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.muted,
-          ),
+          style: _heroTextStyle(context, AppTextSize.s12, opacity: 0.54),
         ),
       ],
     );
@@ -351,17 +744,11 @@ class _FootnoteLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle = resolveAppTextStyle(
+    final labelStyle = _heroTextStyle(context, AppTextSize.s12, opacity: 0.58);
+    final countStyle = _heroTextStyle(
       context,
-      size: AppTextSize.s12,
-      weight: AppTextWeight.regular,
-      tone: AppTextTone.secondary,
-    );
-    final countStyle = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s12,
+      AppTextSize.s12,
       weight: AppTextWeight.semibold,
-      tone: AppTextTone.primary,
     );
     return Text.rich(
       TextSpan(
@@ -371,7 +758,7 @@ class _FootnoteLine extends StatelessWidget {
             child: Icon(
               icon,
               size: context.appComponentTokens.iconSizeXs,
-              color: context.appTextPalette.muted,
+              color: context.appTextPalette.onMedia.withValues(alpha: 0.36),
             ),
           ),
           WidgetSpan(child: SizedBox(width: context.appSpacing.sm)),
@@ -387,94 +774,78 @@ class _FootnoteLine extends StatelessWidget {
   }
 }
 
-/// 概览页唯一的主卡。
-///
-/// 借用发现页「观影偏好」的品牌渐变语言，但只保留一层弱光晕和渐变图标块，
-/// 不再叠水印图标——两处语义不同，视觉上保持同源而不互相抢焦点。
+/// 概览页唯一的主卡：深色面由当前主题色实时推导。
 class _AssetHeroSurface extends StatelessWidget {
   const _AssetHeroSurface({
     super.key,
     required this.title,
+    required this.libraryCount,
     required this.child,
   });
 
   final String title;
+  final int? libraryCount;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final appColors = context.appColors;
     final spacing = context.appSpacing;
-    final radius = context.appRadius.lgBorder;
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: radius,
-        border: Border.all(color: colors.primary.withValues(alpha: 0.16)),
-      ),
-      child: ClipRRect(
-        borderRadius: radius,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                appColors.surfaceCard,
-                Color.alphaBlend(
-                  colors.primary.withValues(alpha: 0.10),
-                  appColors.surfaceCard,
+    final count = libraryCount;
+    return OverviewSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const _AssetHeroIconTile(icon: Icons.video_library_rounded),
+              SizedBox(width: spacing.md),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _heroTextStyle(
+                    context,
+                    AppTextSize.s16,
+                    weight: AppTextWeight.semibold,
+                  ),
                 ),
-                Color.alphaBlend(
-                  colors.secondary.withValues(alpha: 0.16),
-                  appColors.surfaceCard,
+              ),
+              if (count != null) ...<Widget>[
+                SizedBox(width: spacing.md),
+                Container(
+                  key: const Key('overview-asset-library-count'),
+                  height: context.appComponentTokens.buttonHeight2xs,
+                  padding: EdgeInsets.symmetric(horizontal: spacing.sm),
+                  decoration: BoxDecoration(
+                    color: context.appTextPalette.onMedia.withValues(
+                      alpha: 0.10,
+                    ),
+                    borderRadius: context.appRadius.pillBorder,
+                    border: Border.all(
+                      color: context.appTextPalette.onMedia.withValues(
+                        alpha: 0.12,
+                      ),
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    AppLocalizations.of(
+                      context,
+                    ).overviewLibraryCount(formatCount(count)),
+                    style: _heroTextStyle(
+                      context,
+                      AppTextSize.s10,
+                      opacity: 0.72,
+                    ),
+                  ),
                 ),
               ],
-            ),
-          ),
-          child: Stack(
-            children: <Widget>[
-              Positioned(
-                top: -spacing.xxl,
-                right: -spacing.xl,
-                child: _AssetHeroGlow(color: colors.primary),
-              ),
-              Padding(
-                padding: EdgeInsets.all(spacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        const _AssetHeroIconTile(
-                          icon: Icons.video_library_rounded,
-                        ),
-                        SizedBox(width: spacing.md),
-                        Expanded(
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: resolveAppTextStyle(
-                              context,
-                              size: AppTextSize.s16,
-                              weight: AppTextWeight.semibold,
-                              tone: AppTextTone.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: spacing.lg),
-                    child,
-                  ],
-                ),
-              ),
             ],
           ),
-        ),
+          SizedBox(height: spacing.lg),
+          child,
+        ],
       ),
     );
   }
@@ -487,48 +858,20 @@ class _AssetHeroIconTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Container(
       width: context.appSpacing.xxl,
       height: context.appSpacing.xxl,
       decoration: BoxDecoration(
         borderRadius: context.appRadius.mdBorder,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[colors.primary, colors.secondary],
+        color: context.appTextPalette.onMedia.withValues(alpha: 0.14),
+        border: Border.all(
+          color: context.appTextPalette.onMedia.withValues(alpha: 0.12),
         ),
       ),
       child: Icon(
         icon,
         size: context.appComponentTokens.iconSizeMd,
-        color: colors.onPrimary,
-      ),
-    );
-  }
-}
-
-class _AssetHeroGlow extends StatelessWidget {
-  const _AssetHeroGlow({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final size = context.appSpacing.xxxl * 3.5;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: <Color>[
-              color.withValues(alpha: 0.20),
-              color.withValues(alpha: 0),
-            ],
-          ),
-        ),
+        color: context.appTextPalette.onMedia,
       ),
     );
   }

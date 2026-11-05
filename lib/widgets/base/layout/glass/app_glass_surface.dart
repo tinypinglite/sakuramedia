@@ -1,17 +1,19 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 
 /// 玻璃材质的语义档位：
+/// - [sidebar]：桌面侧栏整块浮层，主题自适应、无外投影；
 /// - [chrome]：浮在媒体内容上的窗口级控件（顶栏、浮动返回键），带浮层阴影；
 /// - [control]：页面内的可点击次级控件（动作组），主题自适应、不带阴影；
 /// - [overlay]：播放器菜单/抽屉等深色媒体浮层，模糊更强、染色更实；
 /// - [track]：分段控件等控件内部的凹槽，只提供一层很淡的玻璃底和边光。
 ///
 /// 内容卡和正文不使用玻璃，保持可读性；主操作仍用实色品牌色。
-enum AppGlassTone { chrome, control, overlay, track }
+enum AppGlassTone { sidebar, chrome, control, overlay, track }
 
 /// 统一玻璃表面。
 ///
@@ -25,7 +27,8 @@ enum AppGlassTone { chrome, control, overlay, track }
 /// - 背景先模糊、再提高饱和度，让玻璃「聚色」而不是发灰；
 /// - chrome / overlay 带浮层阴影，control / track 不带阴影。
 ///
-/// 真实折射需要 Impeller fragment shader；这里用光感近似，避免跨平台风险。
+/// 正常路径使用 `liquid_glass_widgets` 的 shader 玻璃；上面的光感近似规则
+/// 只用于高对比、关闭模糊或无法映射圆角的 fallback。
 class AppGlassSurface extends StatelessWidget {
   const AppGlassSurface({
     super.key,
@@ -46,7 +49,7 @@ class AppGlassSurface extends StatelessWidget {
   /// 是否启用背景滤镜（模糊 + 饱和度提升）。关闭后只保留染色与边光。
   final bool blur;
 
-  /// 整体尺寸（包含 1px 外圈描边）；为空时由子级决定。
+  /// 整体尺寸；为空时由子级决定。
   final double? width;
   final double? height;
 
@@ -54,14 +57,188 @@ class AppGlassSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final recipe = _GlassRecipe.resolve(context, tone);
     final radius = borderRadius ?? context.appRadius.mdBorder;
-    final highlight = context.appTextPalette.onMedia;
     final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+
+    if (blur && !highContrast) {
+      final packageSurface = _buildPackageSurface(context, radius);
+      if (packageSurface != null) {
+        return packageSurface;
+      }
+    }
+
+    return _buildFallback(
+      context,
+      radius,
+      highContrast: highContrast,
+      useFilter: blur && !highContrast,
+    );
+  }
+
+  Widget? _buildPackageSurface(BuildContext context, BorderRadius radius) {
+    final shape = _resolvePackageShape(radius);
+    if (shape == null) {
+      return null;
+    }
+
+    final settings = _packageSettings(context);
+    final quality = tone == AppGlassTone.track || tone == AppGlassTone.sidebar
+        ? GlassQuality.standard
+        : GlassQuality.premium;
+    final allowElevation =
+        tone == AppGlassTone.chrome || tone == AppGlassTone.overlay;
+
+    if (!shape.isLeftOnly) {
+      return GlassContainer(
+        key: Key('app-glass-package-${tone.name}'),
+        width: width,
+        height: height,
+        padding: padding,
+        shape: shape.shape,
+        settings: settings,
+        quality: quality,
+        useOwnLayer: true,
+        clipBehavior: Clip.antiAlias,
+        allowElevation: allowElevation,
+        child: child,
+      );
+    }
+
+    final panelWidth = width;
+    if (panelWidth == null || !panelWidth.isFinite || panelWidth <= 0) {
+      return null;
+    }
+
+    final resolvedPadding = (padding ?? EdgeInsets.zero).resolve(
+      Directionality.of(context),
+    );
+    final contentWidth = math.max(0.0, panelWidth - resolvedPadding.horizontal);
+    final expandedWidth = panelWidth + shape.leftRadius;
+    final glass = GlassContainer(
+      key: Key('app-glass-package-${tone.name}'),
+      width: expandedWidth,
+      height: height,
+      padding: padding,
+      alignment: Alignment.centerLeft,
+      shape: shape.shape,
+      settings: settings,
+      quality: quality,
+      useOwnLayer: true,
+      clipBehavior: Clip.antiAlias,
+      allowElevation: allowElevation,
+      child: SizedBox(width: contentWidth, child: child),
+    );
+
+    return SizedBox(
+      width: panelWidth,
+      height: height,
+      child: ClipRect(
+        clipBehavior: Clip.hardEdge,
+        child: OverflowBox(
+          alignment: Alignment.centerLeft,
+          minWidth: expandedWidth,
+          maxWidth: expandedWidth,
+          child: glass,
+        ),
+      ),
+    );
+  }
+
+  _PackageShape? _resolvePackageShape(BorderRadius radius) {
+    final topLeft = radius.topLeft;
+    final topRight = radius.topRight;
+    final bottomRight = radius.bottomRight;
+    final bottomLeft = radius.bottomLeft;
+    final uniform =
+        topLeft == topRight &&
+        topLeft == bottomRight &&
+        topLeft == bottomLeft &&
+        topLeft.x == topLeft.y;
+    if (uniform) {
+      final borderRadius = topLeft.x;
+      return _PackageShape(
+        shape: tone == AppGlassTone.track
+            ? LiquidRoundedRectangle(borderRadius: borderRadius)
+            : LiquidRoundedSuperellipse(borderRadius: borderRadius),
+      );
+    }
+
+    final leftOnly =
+        topLeft == bottomLeft &&
+        topLeft.x == topLeft.y &&
+        topRight == Radius.zero &&
+        bottomRight == Radius.zero;
+    if (leftOnly) {
+      return _PackageShape(
+        shape: LiquidRoundedRectangle(borderRadius: topLeft.x),
+        leftRadius: topLeft.x,
+        isLeftOnly: true,
+      );
+    }
+
+    return null;
+  }
+
+  LiquidGlassSettings _packageSettings(BuildContext context) {
+    final colors = context.appColors;
+    return switch (tone) {
+      AppGlassTone.sidebar => LiquidGlassSettings(
+        thickness: 22,
+        blur: 8,
+        saturation: 1.25,
+        chromaticAberration: 0.01,
+        lightIntensity: 0.55,
+        glassColor: colors.surfaceElevated.withValues(alpha: 0.26),
+        shadowElevation: 0,
+      ),
+      AppGlassTone.chrome => LiquidGlassSettings(
+        thickness: 26,
+        blur: 8,
+        saturation: 1.35,
+        chromaticAberration: 0.01,
+        lightIntensity: 0.6,
+        glassColor: colors.mediaOverlayStrong.withValues(alpha: 0.22),
+        shadowElevation: 1,
+      ),
+      AppGlassTone.control => LiquidGlassSettings(
+        thickness: 20,
+        blur: 6,
+        saturation: 1.35,
+        chromaticAberration: 0.01,
+        lightIntensity: 0.5,
+        glassColor: colors.surfaceElevated.withValues(alpha: 0.18),
+      ),
+      AppGlassTone.overlay => LiquidGlassSettings(
+        thickness: 24,
+        blur: 10,
+        saturation: 1.3,
+        chromaticAberration: 0.02,
+        lightIntensity: 0.45,
+        glassColor: colors.mediaOverlayStrong.withValues(alpha: 0.34),
+        shadowElevation: 1,
+      ),
+      AppGlassTone.track => LiquidGlassSettings(
+        thickness: 12,
+        blur: 4,
+        saturation: 1,
+        chromaticAberration: 0,
+        lightIntensity: 0.35,
+        glassColor: colors.mediaOverlaySoft.withValues(alpha: 0.10),
+      ),
+    };
+  }
+
+  Widget _buildFallback(
+    BuildContext context,
+    BorderRadius radius, {
+    required bool highContrast,
+    required bool useFilter,
+  }) {
+    final recipe = _GlassRecipe.resolve(context, tone);
+    final highlight = context.appTextPalette.onMedia;
     final tintAlpha = highContrast
         ? math.min(1.0, recipe.tintAlpha + 0.40)
         : recipe.tintAlpha;
-    final useFilter = blur && !highContrast;
 
     final surface = Container(
       decoration: BoxDecoration(
@@ -148,11 +325,27 @@ class AppGlassSurface extends StatelessWidget {
       ),
     );
 
+    final fallback = KeyedSubtree(
+      key: const Key('app-glass-fallback'),
+      child: glass,
+    );
     if (width == null && height == null) {
-      return glass;
+      return fallback;
     }
-    return SizedBox(width: width, height: height, child: glass);
+    return SizedBox(width: width, height: height, child: fallback);
   }
+}
+
+class _PackageShape {
+  const _PackageShape({
+    required this.shape,
+    this.leftRadius = 0,
+    this.isLeftOnly = false,
+  });
+
+  final LiquidShape shape;
+  final double leftRadius;
+  final bool isLeftOnly;
 }
 
 /// 顶部中央主光 + 左右对称衰减 + 底部微反射。
@@ -294,6 +487,19 @@ class _GlassRecipe {
     final overlay = context.appOverlayTokens;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return switch (tone) {
+      AppGlassTone.sidebar => _GlassRecipe(
+        tint: colors.surfaceElevated,
+        tintAlpha: isDark ? 0.34 : 0.48,
+        blurSigma: 18,
+        saturation: 1.12,
+        topRimAlpha: 0.54,
+        sideRimAlpha: 0.20,
+        lowRimAlpha: 0.05,
+        bottomRimAlpha: 0.10,
+        topSheenAlpha: 0.14,
+        topSheenHeight: 22,
+        innerBottomShadowAlpha: isDark ? 0.22 : 0.10,
+      ),
       AppGlassTone.chrome => _GlassRecipe(
         tint: colors.mediaOverlayStrong,
         tintAlpha: 0.38,

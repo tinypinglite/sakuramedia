@@ -131,7 +131,12 @@ void main() {
       find.byKey(const Key('rating-dimension-name-field')),
       '演技',
     );
-    await tester.tap(find.byKey(const Key('rating-dimension-scale-10')));
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('rating-dimension-scale-control')),
+        matching: find.text('10 分制'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     bundle.adapter.enqueueJson(

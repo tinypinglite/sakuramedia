@@ -490,26 +490,76 @@ class CollectionsStatsDto {
   }
 }
 
+/// 下载任务状态分布（当前任务快照，非历史累计）。
+///
+/// 六类互斥，合计恒等于 [total]；概览工作台只消费进行中与已导入的数量。
+class StatusDownloadTaskSummaryDto {
+  const StatusDownloadTaskSummaryDto({
+    this.downloading = 0,
+    this.importing = 0,
+    this.imported = 0,
+    this.importFailed = 0,
+    this.skipped = 0,
+    this.downloadFailed = 0,
+    this.total = 0,
+  });
+
+  final int downloading;
+  final int importing;
+  final int imported;
+  final int importFailed;
+  final int skipped;
+  final int downloadFailed;
+  final int total;
+
+  factory StatusDownloadTaskSummaryDto.fromJson(Map<String, dynamic> json) {
+    return StatusDownloadTaskSummaryDto(
+      downloading: asInt(json['downloading']),
+      importing: asInt(json['importing']),
+      imported: asInt(json['imported']),
+      importFailed: asInt(json['import_failed']),
+      skipped: asInt(json['skipped']),
+      downloadFailed: asInt(json['download_failed']),
+      total: asInt(json['total']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'downloading': downloading,
+      'importing': importing,
+      'imported': imported,
+      'import_failed': importFailed,
+      'skipped': skipped,
+      'download_failed': downloadFailed,
+      'total': total,
+    };
+  }
+}
+
 class StatusInsightsDto {
   const StatusInsightsDto({
+    this.downloadTasks = const StatusDownloadTaskSummaryDto(),
     this.mediaLibraries = const <MediaLibraryUsageDto>[],
     this.collections = const CollectionsStatsDto(),
   });
 
+  final StatusDownloadTaskSummaryDto downloadTasks;
   final List<MediaLibraryUsageDto> mediaLibraries;
   final CollectionsStatsDto collections;
 
   factory StatusInsightsDto.fromJson(Map<String, dynamic> json) {
     final libraries = json['media_libraries'];
     return StatusInsightsDto(
+      downloadTasks: StatusDownloadTaskSummaryDto.fromJson(
+        asMap(json['download_tasks']),
+      ),
       mediaLibraries: libraries is List
           ? libraries
                 .whereType<Map>()
                 .map(
                   (item) => MediaLibraryUsageDto.fromJson(
-                    item.map(
-                      (key, value) => MapEntry(key.toString(), value),
-                    ),
+                    item.map((key, value) => MapEntry(key.toString(), value)),
                   ),
                 )
                 .toList(growable: false)
@@ -520,6 +570,7 @@ class StatusInsightsDto {
 
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
+      'download_tasks': downloadTasks.toJson(),
       'media_libraries': mediaLibraries
           .map((library) => library.toJson())
           .toList(growable: false),
@@ -593,9 +644,7 @@ class StatusWatchTrendDto {
                 .whereType<Map>()
                 .map(
                   (item) => WatchTrendBucketDto.fromJson(
-                    item.map(
-                      (key, value) => MapEntry(key.toString(), value),
-                    ),
+                    item.map((key, value) => MapEntry(key.toString(), value)),
                   ),
                 )
                 .toList(growable: false)
@@ -608,7 +657,9 @@ class StatusWatchTrendDto {
       'range': range.apiValue,
       'granularity': granularity,
       'watched_movie_count': watchedMovieCount,
-      'buckets': buckets.map((bucket) => bucket.toJson()).toList(growable: false),
+      'buckets': buckets
+          .map((bucket) => bucket.toJson())
+          .toList(growable: false),
     };
   }
 }

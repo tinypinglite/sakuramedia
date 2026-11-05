@@ -55,7 +55,7 @@ void main() {
     expect(colors.movieDetailHeroBackgroundStart, const Color(0xFF000000));
     expect(colors.movieDetailHeroBackgroundEnd, const Color(0xFF000000));
     expect(colors.movieDetailHeatIcon, const Color(0xFFD84C57));
-    expect(colors.desktopSidebarGlassTint, const Color(0x4CEFEFEF));
+    expect(colors.desktopSidebarGlassTint, const Color(0x33F7F3F0));
     expect(colors.windowsSidebarGlassTint, const Color(0xEBEFEFEF));
     expect(colors.desktopSidebarGlassHover, const Color(0x80FFFFFF));
     expect(colors.desktopSidebarGlassActive, const Color(0x99FFFFFF));
@@ -67,6 +67,7 @@ void main() {
       kAppToastBackgroundColor,
       AppTextPalette.defaults().primary.withValues(alpha: 0xDD / 0xFF),
     );
+    expect(textScale.s32, 32);
     expect(textScale.s20, 20);
     expect(textScale.s18, 18);
     expect(textScale.s16, 16);
@@ -168,6 +169,9 @@ void main() {
     expect(sidebarTokens.expandedWidth, 220);
     expect(sidebarTokens.collapsedWidth, 0);
     expect(sidebarTokens.itemHeight, 44);
+    expect(sidebarTokens.outerInset, 8);
+    expect(sidebarTokens.panelRadius, 24);
+    expect(sidebarTokens.expandedFootprintWidth, 236);
     expect(AppPageInsets.desktopStandard.left, 24);
     expect(AppPageInsets.compactStandard.left, 8);
     expect(shadows.panel, isNotEmpty);
@@ -186,6 +190,7 @@ void main() {
   });
 
   test('mobile theme exposes the mobile typography and size mappings', () {
+    expect(sakuraMobileThemeData.appTextScale.s32, 32);
     expect(sakuraMobileThemeData.appTextScale.s20, 20);
     expect(sakuraMobileThemeData.appTextScale.s18, 18);
     expect(sakuraMobileThemeData.appTextWeights.semibold, FontWeight.w600);

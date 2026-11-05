@@ -20,6 +20,7 @@ import 'package:sakuramedia/routes/desktop_routes.dart'
     show desktopShellNavigatorKey;
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 
 import 'support/test_api_bundle.dart';
 
@@ -370,7 +371,7 @@ void main() {
     expect(sidebarHeader.height, topbarHeader.height);
   });
 
-  testWidgets('desktop glass sidebar border stays subtle in dark mode', (
+  testWidgets('desktop glass sidebar uses the sidebar glass surface', (
     WidgetTester tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
@@ -389,14 +390,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final sidebar = tester.widget<AnimatedContainer>(
-        find.byKey(const Key('desktop-shell-sidebar')),
+      final glass = tester.widget<AppGlassSurface>(
+        find.byKey(const Key('desktop-sidebar-glass')),
       );
-      final borderColor =
-          ((sidebar.decoration! as BoxDecoration).border! as Border)
-              .right
-              .color;
-      expect(borderColor.toARGB32(), 0x15FFFFFF);
+      expect(glass.tone, AppGlassTone.sidebar);
+      expect(
+        glass.borderRadius,
+        BorderRadius.circular(AppSidebarTokens.defaults().panelRadius),
+      );
 
       expect(find.byKey(const Key('sidebar-header-divider')), findsNothing);
       expect(find.byKey(const Key('topbar-header-divider')), findsNothing);
@@ -461,8 +462,35 @@ void main() {
       find.byKey(const Key('sidebar-toggle-button')),
     );
     final headerRect = tester.getRect(find.byKey(const Key('sidebar-header')));
+    final topbarHeaderRect = tester.getRect(
+      find.byKey(const Key('topbar-header')),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('desktop-shell-sidebar'))).width,
+      AppSidebarTokens.defaults().expandedFootprintWidth,
+    );
+    final glassRect = tester.getRect(
+      find.byKey(const Key('desktop-sidebar-glass')),
+    );
+    final visualGutter =
+        AppSidebarTokens.defaults().outerInset + AppSpacing.defaults().lg;
+    expect(
+      tester.getRect(find.byKey(const Key('overview-page'))).left -
+          glassRect.right,
+      visualGutter,
+    );
+    expect(
+      tester.getRect(find.byKey(const Key('app-topbar-title'))).left -
+          glassRect.right,
+      visualGutter,
+    );
     expect(expandedToggle.left, 76 + 8);
-    expect(expandedToggle.center.dy, headerRect.center.dy);
+    expect(expandedToggle.center.dy, topbarHeaderRect.center.dy);
+    expect(headerRect.top, AppSidebarTokens.defaults().outerInset);
+    expect(
+      headerRect.height,
+      AppComponentTokens.defaults().desktopTitleBarHeight,
+    );
 
     // 红绿灯自绘：整组左缘 22pt、宽 54pt（close 中心 29pt 对齐菜单图标），
     // 与收起/展开按钮同线、间隔 8pt。
@@ -471,7 +499,7 @@ void main() {
     );
     expect(trafficLights.left, 22);
     expect(trafficLights.width, 54);
-    expect(trafficLights.center.dy, headerRect.center.dy);
+    expect(trafficLights.center.dy, topbarHeaderRect.center.dy);
     expect(expandedToggle.left - trafficLights.right, 8);
 
     await tester.tap(find.byKey(const Key('sidebar-toggle-button')));
@@ -499,7 +527,7 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
-  testWidgets('macOS desktop shell uses transparent root and opaque content', (
+  testWidgets('macOS desktop shell exposes ambient backdrop through content', (
     WidgetTester tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
@@ -521,12 +549,14 @@ void main() {
     final contentContainer = tester.widget<Container>(
       find.byKey(const Key('desktop-shell-content-surface')),
     );
+    final topBar = tester.widget<Container>(
+      find.byKey(const Key('desktop-shell-topbar')),
+    );
 
     expect(scaffold.backgroundColor, Colors.transparent);
-    expect(
-      contentContainer.color,
-      sakuraThemeData.extension<AppColors>()!.surfaceElevated,
-    );
+    expect(find.byKey(const Key('desktop-ambient-backdrop')), findsOneWidget);
+    expect(contentContainer.color, Colors.transparent);
+    expect((topBar.decoration! as BoxDecoration).color, Colors.transparent);
     debugDefaultTargetPlatformOverride = null;
   });
 
@@ -644,8 +674,12 @@ void main() {
     );
     final macDecoration = macSidebar.decoration! as BoxDecoration;
 
-    expect(macDecoration.color, themeColors.desktopSidebarGlassTint);
-    expect(macDecoration.boxShadow, isEmpty);
+    expect(macDecoration.color, Colors.transparent);
+    expect(find.byKey(const Key('desktop-sidebar-glass')), findsOneWidget);
+    final glass = tester.widget<AppGlassSurface>(
+      find.byKey(const Key('desktop-sidebar-glass')),
+    );
+    expect(glass.tone, AppGlassTone.sidebar);
     debugDefaultTargetPlatformOverride = null;
   });
 
@@ -720,20 +754,16 @@ void main() {
     expect(find.byKey(const Key('sidebar-search-image')), findsNothing);
     expect(find.byKey(const Key('sidebar-search-text-image')), findsNothing);
 
-    // 顶栏默认展开输入框与两个图搜后缀；点击图标可收起，再点展开并聚焦。
-    expect(find.byKey(const Key('topbar-search-button')), findsOneWidget);
+    // 顶栏固定显示输入框与两个图搜后缀，不再提供折叠搜索图标。
+    expect(find.byKey(const Key('topbar-search-button')), findsNothing);
     expect(find.byKey(const Key('topbar-search-field')), findsOneWidget);
     expect(find.byKey(const Key('topbar-search-image')), findsOneWidget);
     expect(find.byKey(const Key('topbar-search-text-image')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('topbar-search-button')));
+    await tester.tap(find.byKey(const Key('topbar-search-input')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('topbar-search-field')), findsNothing);
-
-    await tester.tap(find.byKey(const Key('topbar-search-button')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('topbar-search-field')), findsOneWidget);
     expect(_topBarSearchFieldHasFocus(tester), isTrue);
+    expect(find.byKey(const Key('topbar-search-field')), findsOneWidget);
   });
 
   testWidgets('desktop top bar text image search opens unified search page', (
@@ -932,12 +962,12 @@ void main() {
       router.routeInformationProvider.value.uri.path,
       '/desktop/search/SSNI-888',
     );
-    // 提交后保持默认展开。
-    expect(find.byKey(const Key('topbar-search-button')), findsOneWidget);
+    // 提交后搜索框保持常驻。
+    expect(find.byKey(const Key('topbar-search-button')), findsNothing);
     expect(find.byKey(const Key('topbar-search-field')), findsOneWidget);
   });
 
-  testWidgets('desktop top bar search collapses on escape', (
+  testWidgets('desktop top bar search clears and unfocuses on escape', (
     WidgetTester tester,
   ) async {
     final sessionStore = await _buildLoggedInSessionStore();
@@ -954,17 +984,27 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 默认展开；聚焦后按 ESC 收起。
     expect(find.byKey(const Key('topbar-search-field')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('topbar-search-input')));
+    await tester.enterText(
+      find.byKey(const Key('topbar-search-input')),
+      'SSNI-888',
+    );
     await tester.pumpAndSettle();
     expect(_topBarSearchFieldHasFocus(tester), isTrue);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('topbar-search-field')), findsNothing);
-    expect(find.byKey(const Key('topbar-search-button')), findsOneWidget);
+    expect(find.byKey(const Key('topbar-search-field')), findsOneWidget);
+    expect(find.byKey(const Key('topbar-search-button')), findsNothing);
+    expect(_topBarSearchFieldHasFocus(tester), isFalse);
+    final editable = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(const Key('topbar-search-input')),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(editable.controller.text, isEmpty);
   });
 
   testWidgets('desktop shell uses compact top bar and overview content', (
@@ -974,8 +1014,8 @@ void main() {
     final bundle = await createTestApiBundle(sessionStore);
     addTearDown(bundle.dispose);
     // overview 页 sliver 化后靠视口惰性 build；默认 800×600 装不下
-    // SystemDiagnosticsStrip + stats + xxl 间距，'最近添加' sliver 会落在
-    // 视口外不构建。撑高视口让所有 sliver 同时进 cacheExtent。
+    // 资产 Hero + 数据卡 + xxl 间距，'最近添加' sliver 会落在视口外
+    // 不构建。撑高视口让所有 sliver 同时进 cacheExtent。
     await tester.binding.setSurfaceSize(const Size(1200, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     _enqueueOverviewResponses(bundle);

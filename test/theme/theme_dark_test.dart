@@ -81,7 +81,7 @@ void main() {
     expect(colors.selectionSurface, const Color(0xFF3A2422));
     expect(colors.selectionBorder, const Color(0xFFE9A29B));
     expect(colors.movieDetailSelectedPlotBorder, const Color(0xFFE9A29B));
-    expect(colors.desktopSidebarGlassTint, const Color(0x661E1E1E));
+    expect(colors.desktopSidebarGlassTint, const Color(0x4D181315));
     expect(colors.windowsSidebarGlassTint, const Color(0xEB1E1E1E));
     expect(textPalette.primary, const Color(0xFFECE6E4));
     expect(textPalette.accent, const Color(0xFFE9A29B));
@@ -113,7 +113,10 @@ void main() {
     expect(light.colorScheme.primary, const Color(0xFF126B3A));
     expect(light.appColors.selectionSurface, const Color(0xFFECF7EC));
     expect(light.appColors.selectionBorder, const Color(0xFF126B3A));
-    expect(light.appColors.movieDetailSelectedPlotBorder, const Color(0xFF126B3A));
+    expect(
+      light.appColors.movieDetailSelectedPlotBorder,
+      const Color(0xFF126B3A),
+    );
     expect(light.appTextPalette.accent, const Color(0xFF126B3A));
     expect(light.appColors.surfacePage, const Color(0xFFF5F5F5));
 

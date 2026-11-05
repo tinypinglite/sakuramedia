@@ -9,12 +9,14 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_format.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/overview_system_info_provider.dart';
 import 'package:sakuramedia/features/overview/presentation/widgets/asset_summary_card.dart';
-import 'package:sakuramedia/features/overview/presentation/widgets/storage_usage_card.dart';
-import 'package:sakuramedia/features/overview/presentation/widgets/watch_trend_card.dart';
+import 'package:sakuramedia/features/overview/presentation/widgets/desktop_overview_insights.dart';
+import 'package:sakuramedia/features/overview/presentation/widgets/overview_page_header.dart';
+import 'package:sakuramedia/features/overview/presentation/widgets/overview_work_queue_card.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/system_playlist_provider.dart';
 import 'package:sakuramedia/features/recent_views/presentation/providers/recent_views_provider.dart';
 import 'package:sakuramedia/features/recent_views/presentation/widgets/recent_views_section.dart';
+import 'package:sakuramedia/features/status/data/status_dto.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
@@ -30,15 +32,15 @@ final _recentlyPlayedPlaylistProvider = systemPlaylistProvider(
   PlaylistKind.recentlyPlayed,
 );
 
+/// 宽桌面时工作台跟媒体资产保持同一视觉高度；窄窗口不强制高度。
+const double _wideTopRowMinHeight = 320;
+
 class DesktopOverviewPage extends ConsumerWidget {
   const DesktopOverviewPage({super.key});
 
   static const _latestScope = MovieSummaryScope.latest();
   static const _recentlySubscribedScope =
       MovieSummaryScope.recentlySubscribed();
-
-  /// 宽屏时「观看趋势 + 存储分布」并排；窄窗口堆叠。
-  static const double _twoColumnMinWidth = 960;
 
   /// 预览分区的占位项数量（「最近添加」「最近订阅」「最近播放」各一行横向
   /// rail，更多内容进各自页面）。
@@ -112,198 +114,248 @@ class DesktopOverviewPage extends ConsumerWidget {
     final recentAsync = recentScope == null
         ? null
         : ref.watch(movieSummaryProvider(recentScope));
+    final downloadTasks =
+        systemInfo.insights?.downloadTasks ??
+        const StatusDownloadTaskSummaryDto();
 
     return AppPageRefreshScope(
       onRefresh: () => _refreshOverview(context, ref),
-      child: ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: CustomScrollView(
-          slivers: [
-            SliverMainAxisGroup(
-              slivers: [
-                const SliverToBoxAdapter(
-                  child: KeyedSubtree(
-                    key: Key('overview-page'),
-                    child: SystemDiagnosticsStrip(),
-                  ),
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: KeyedSubtree(
+              key: const Key('overview-page'),
+              child: OverviewPageHeader(
+                isConnected:
+                    systemInfo.status != null && systemInfo.statusError == null,
+                onImportTap: () =>
+                    context.goPrimaryRoute(desktopMediaImportPath),
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
+          SliverToBoxAdapter(
+            child: _buildTopRow(
+              context,
+              status: systemInfo.status,
+              insights: systemInfo.insights,
+              pendingIndexCount: pendingIndexCount(
+                systemInfo.imageSearchStatus,
+              ),
+              isLoadingStatus: systemInfo.isLoadingStatus,
+              statusError: systemInfo.statusError,
+              onStatusRetry: systemInfoNotifier.loadStatus,
+              isWorkbenchLoading:
+                  systemInfo.isLoadingInsights && systemInfo.insights == null,
+              insightsError: systemInfo.insightsError,
+              onInsightsRetry: systemInfoNotifier.loadInsights,
+              downloading: downloadTasks.downloading,
+              importing: downloadTasks.importing,
+              imported: downloadTasks.imported,
+              onAllTasksTap: () =>
+                  context.goPrimaryRoute(desktopDownloadTasksPath),
+            ),
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.xl)),
+          SliverToBoxAdapter(
+            child: DesktopOverviewInsights(
+              state: systemInfo,
+              onTrendRangeChanged: systemInfoNotifier.setWatchTrendRange,
+              onTrendRetry: systemInfoNotifier.loadWatchTrend,
+              onInsightsRetry: systemInfoNotifier.loadInsights,
+            ),
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.xl)),
+          SliverToBoxAdapter(
+            child: AppSectionHeader(
+              title: l10n.overviewRecentlyAdded,
+              actionLabel: l10n.overviewMore,
+              actionKey: const Key('overview-latest-more'),
+              onActionTap: () => context.pushDesktopLatestMovies(),
+            ),
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.md)),
+          SliverToBoxAdapter(
+            child: _buildMovieRail(
+              context,
+              ref: ref,
+              scope: _latestScope,
+              summary: latest,
+              isLoading: latestAsync.isLoading && latest == null,
+              errorMessage: latestAsync.hasError && latest == null
+                  ? _latestScope.errorText(l10n)
+                  : null,
+              emptyMessage: l10n.overviewNoLatestMovies,
+            ),
+          ),
+          if (recentPlaylist != null && recentScope != null) ...<Widget>[
+            SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.xl)),
+            SliverToBoxAdapter(
+              child: AppSectionHeader(
+                title: l10n.overviewRecentlyPlayed,
+                trailingText: l10n.overviewMovieCount(
+                  formatCount(recentPlaylist.movieCount),
                 ),
-                SliverToBoxAdapter(
-                  child: SizedBox(height: context.appSpacing.md),
+                actionLabel: l10n.overviewMore,
+                actionKey: const Key('overview-recent-played-more'),
+                onActionTap: () => context.pushDesktopPlaylistDetail(
+                  playlistId: recentPlaylist.id,
+                  fallbackPath: desktopOverviewPath,
                 ),
-                SliverToBoxAdapter(
-                  child: AssetSummaryCard(
-                    status: systemInfo.status,
-                    insights: systemInfo.insights,
-                    pendingIndexCount: pendingIndexCount(
-                      systemInfo.imageSearchStatus,
+              ),
+            ),
+            SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.md)),
+            SliverToBoxAdapter(
+              child: _buildMovieRail(
+                context,
+                ref: ref,
+                scope: recentScope,
+                summary: recentAsync?.value,
+                isLoading:
+                    (recentAsync?.isLoading ?? false) &&
+                    recentAsync?.value == null,
+                errorMessage:
+                    (recentAsync?.hasError ?? false) &&
+                        recentAsync?.value == null
+                    ? recentScope.errorText(l10n)
+                    : null,
+                emptyMessage: l10n.overviewNoWatchHistory,
+              ),
+            ),
+          ],
+          SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.xl)),
+          SliverToBoxAdapter(
+            child: AppSectionHeader(
+              title: l10n.overviewRecentlySubscribed,
+              actionLabel: l10n.overviewMore,
+              actionKey: const Key('overview-recently-subscribed-more'),
+              onActionTap: () => context.pushDesktopRecentlySubscribedMovies(),
+            ),
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.md)),
+          SliverToBoxAdapter(
+            child: _buildMovieRail(
+              context,
+              ref: ref,
+              scope: _recentlySubscribedScope,
+              summary: recentlySubscribedAsync.value,
+              isLoading:
+                  recentlySubscribedAsync.isLoading &&
+                  recentlySubscribedAsync.value == null,
+              errorMessage:
+                  recentlySubscribedAsync.hasError &&
+                      recentlySubscribedAsync.value == null
+                  ? _recentlySubscribedScope.errorText(l10n)
+                  : null,
+              emptyMessage: l10n.overviewNoSubscribedMovies,
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: RecentViewsSection(
+              spacingBefore: context.appSpacing.xl,
+              actionKey: const Key('overview-recent-views-more'),
+              onMoreTap: () => context.pushDesktopRecentViews(),
+              onMovieTap: (movieNumber) => context.pushDesktopMovieDetail(
+                movieNumber: movieNumber,
+                fallbackPath: desktopOverviewPath,
+              ),
+              onActorTap: (actorId) => context.pushDesktopActorDetail(
+                actorId: actorId,
+                fallbackPath: desktopOverviewPath,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopRow(
+    BuildContext context, {
+    required StatusDto? status,
+    required StatusInsightsDto? insights,
+    required int pendingIndexCount,
+    required bool isLoadingStatus,
+    required String? statusError,
+    required VoidCallback onStatusRetry,
+    required bool isWorkbenchLoading,
+    required String? insightsError,
+    required VoidCallback onInsightsRetry,
+    required int downloading,
+    required int importing,
+    required int imported,
+    required VoidCallback onAllTasksTap,
+  }) {
+    final asset = AssetSummaryCard(
+      status: status,
+      insights: insights,
+      pendingIndexCount: pendingIndexCount,
+      isLoading: isLoadingStatus,
+      errorMessage: statusError,
+      onRetry: onStatusRetry,
+      layout: AssetSummaryCardLayout.hero,
+    );
+    Widget buildWorkbench({double? minHeight}) => OverviewWorkQueueCard(
+      downloading: downloading,
+      importing: importing,
+      imported: imported,
+      pendingIndexCount: pendingIndexCount,
+      diagnostics: const SystemDiagnosticsStrip(),
+      onAllTasksTap: onAllTasksTap,
+      isLoading: isWorkbenchLoading,
+      errorMessage: insightsError,
+      onRetry: onInsightsRetry,
+      minHeight: minHeight,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < DesktopOverviewInsights.wideMinWidth) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              asset,
+              SizedBox(height: context.appSpacing.lg),
+              buildWorkbench(),
+            ],
+          );
+        }
+        final gap = context.appSpacing.lg;
+        final availableWidth = constraints.maxWidth - gap;
+        final assetWidth = availableWidth * 7 / 12;
+        // 首列按实际内容决定行高，工作台用 fill 拉到同高；固定列宽避开
+        // 资产卡内部 LayoutBuilder 不支持 intrinsic 计算的限制。
+        return Table(
+          columnWidths: <int, TableColumnWidth>{
+            0: FixedColumnWidth(assetWidth),
+            1: FixedColumnWidth(gap),
+            2: FixedColumnWidth(availableWidth - assetWidth),
+          },
+          children: <TableRow>[
+            TableRow(
+              children: <Widget>[
+                TableCell(
+                  verticalAlignment: TableCellVerticalAlignment.intrinsicHeight,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      minHeight: _wideTopRowMinHeight,
                     ),
-                    isLoading: systemInfo.isLoadingStatus,
-                    errorMessage: systemInfo.statusError,
-                    onRetry: systemInfoNotifier.loadStatus,
+                    child: asset,
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: SizedBox(height: context.appSpacing.lg),
+                const TableCell(
+                  verticalAlignment: TableCellVerticalAlignment.top,
+                  child: SizedBox.shrink(),
                 ),
-                SliverToBoxAdapter(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final trendCard = WatchTrendCard(
-                        trend: systemInfo.watchTrend,
-                        range: systemInfo.watchTrendRange,
-                        onRangeChanged: systemInfoNotifier.setWatchTrendRange,
-                        compactSelector: false,
-                        isLoading: systemInfo.isLoadingWatchTrend,
-                        errorMessage: systemInfo.watchTrendError,
-                        onRetry: systemInfoNotifier.loadWatchTrend,
-                      );
-                      final storageCard = StorageUsageCard(
-                        libraries: systemInfo.insights?.mediaLibraries,
-                        isLoading: systemInfo.isLoadingInsights,
-                        errorMessage: systemInfo.insightsError,
-                        onRetry: systemInfoNotifier.loadInsights,
-                      );
-                      if (constraints.maxWidth < _twoColumnMinWidth) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            trendCard,
-                            SizedBox(height: context.appSpacing.lg),
-                            storageCard,
-                          ],
-                        );
-                      }
-                      return IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(child: trendCard),
-                            SizedBox(width: context.appSpacing.lg),
-                            Expanded(child: storageCard),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: SizedBox(height: context.appSpacing.xxl),
-                ),
-                SliverToBoxAdapter(
-                  child: AppSectionHeader(
-                    title: l10n.overviewRecentlyAdded,
-                    actionLabel: l10n.overviewMore,
-                    actionKey: const Key('overview-latest-more'),
-                    onActionTap: () => context.pushDesktopLatestMovies(),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: SizedBox(height: context.appSpacing.md),
-                ),
-                SliverToBoxAdapter(
-                  child: _buildMovieRail(
-                    context,
-                    ref: ref,
-                    scope: _latestScope,
-                    summary: latest,
-                    isLoading: latestAsync.isLoading && latest == null,
-                    errorMessage: latestAsync.hasError && latest == null
-                        ? _latestScope.errorText(l10n)
-                        : null,
-                    emptyMessage: l10n.overviewNoLatestMovies,
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: SizedBox(height: context.appSpacing.xxl),
-                ),
-                SliverToBoxAdapter(
-                  child: AppSectionHeader(
-                    title: l10n.overviewRecentlySubscribed,
-                    actionLabel: l10n.overviewMore,
-                    actionKey: const Key('overview-recently-subscribed-more'),
-                    onActionTap: () =>
-                        context.pushDesktopRecentlySubscribedMovies(),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: SizedBox(height: context.appSpacing.md),
-                ),
-                SliverToBoxAdapter(
-                  child: _buildMovieRail(
-                    context,
-                    ref: ref,
-                    scope: _recentlySubscribedScope,
-                    summary: recentlySubscribedAsync.value,
-                    isLoading:
-                        recentlySubscribedAsync.isLoading &&
-                        recentlySubscribedAsync.value == null,
-                    errorMessage:
-                        recentlySubscribedAsync.hasError &&
-                            recentlySubscribedAsync.value == null
-                        ? _recentlySubscribedScope.errorText(l10n)
-                        : null,
-                    emptyMessage: l10n.overviewNoSubscribedMovies,
-                  ),
-                ),
-                if (recentPlaylist != null && recentScope != null) ...<Widget>[
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: context.appSpacing.xxl),
-                  ),
-                  SliverToBoxAdapter(
-                    child: AppSectionHeader(
-                      title: l10n.overviewRecentlyPlayed,
-                      trailingText: l10n.overviewMovieCount(
-                        formatCount(recentPlaylist.movieCount),
-                      ),
-                      actionLabel: l10n.overviewMore,
-                      actionKey: const Key('overview-recent-played-more'),
-                      onActionTap: () => context.pushDesktopPlaylistDetail(
-                        playlistId: recentPlaylist.id,
-                        fallbackPath: desktopOverviewPath,
-                      ),
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: SizedBox(height: context.appSpacing.md),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _buildMovieRail(
-                      context,
-                      ref: ref,
-                      scope: recentScope,
-                      summary: recentAsync?.value,
-                      isLoading:
-                          (recentAsync?.isLoading ?? false) &&
-                          recentAsync?.value == null,
-                      errorMessage:
-                          (recentAsync?.hasError ?? false) &&
-                              recentAsync?.value == null
-                          ? recentScope.errorText(l10n)
-                          : null,
-                      emptyMessage: l10n.overviewNoWatchHistory,
-                    ),
-                  ),
-                ],
-                SliverToBoxAdapter(
-                  child: RecentViewsSection(
-                    spacingBefore: context.appSpacing.xxl,
-                    actionKey: const Key('overview-recent-views-more'),
-                    onMoreTap: () => context.pushDesktopRecentViews(),
-                    onMovieTap: (movieNumber) => context.pushDesktopMovieDetail(
-                      movieNumber: movieNumber,
-                      fallbackPath: desktopOverviewPath,
-                    ),
-                    onActorTap: (actorId) => context.pushDesktopActorDetail(
-                      actorId: actorId,
-                      fallbackPath: desktopOverviewPath,
-                    ),
-                  ),
+                TableCell(
+                  verticalAlignment: TableCellVerticalAlignment.fill,
+                  child: buildWorkbench(minHeight: _wideTopRowMinHeight),
                 ),
               ],
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 

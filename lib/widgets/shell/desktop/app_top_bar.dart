@@ -14,6 +14,8 @@ import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/domain/search/catalog_search_field.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_sidebar_toggle_button.dart';
+import 'package:sakuramedia/widgets/shell/desktop/app_top_bar_glass_refresh_button.dart';
+import 'package:sakuramedia/widgets/shell/desktop/app_top_bar_glass_search_field.dart';
 import 'package:sakuramedia/widgets/shell/window/app_window_drag_area.dart';
 import 'package:sakuramedia/widgets/shell/window/app_windows_caption.dart';
 
@@ -27,8 +29,8 @@ import 'package:sakuramedia/widgets/shell/window/app_windows_caption.dart';
 /// 不在这里渲染；收起态顶栏前导留白让出按钮占位，保证标题/返回按钮
 /// 排在按钮右侧。
 ///
-/// 搜索入口固定在刷新按钮左侧，收起态是搜索图标，点击后输入框从图标
-/// 左侧展开（见 [_TopBarSearchEntry]）。
+/// 搜索框固定显示在刷新按钮左侧，不再提供折叠按钮。只有概览的透明顶栏
+/// 使用玻璃搜索框，其它仍为实色背景的页面继续使用标准搜索框。
 class AppTopBar extends ConsumerWidget {
   const AppTopBar({
     super.key,
@@ -38,6 +40,8 @@ class AppTopBar extends ConsumerWidget {
     this.onRefresh,
     this.isRefreshing = false,
     this.overlay = false,
+    this.translucent = false,
+    this.contentLeadingInset = AppPageInsets.desktop,
     this.hideActions = false,
   });
 
@@ -49,6 +53,12 @@ class AppTopBar extends ConsumerWidget {
 
   /// 悬浮在沉浸内容之上：透明底 + 顶部压暗保证可读，无分隔线。
   final bool overlay;
+
+  /// 桌面玻璃壳层：标准顶栏不再铺实色，直接露出环境背景。
+  final bool translucent;
+
+  /// 标准顶栏内容的左侧起始内边距；玻璃壳层下与页面内容共用紧凑 gutter。
+  final double contentLeadingInset;
 
   /// 隐藏搜索/刷新动作（详情页用不到，快捷键刷新不受影响）。
   final bool hideActions;
@@ -76,7 +86,11 @@ class AppTopBar extends ConsumerWidget {
                 ],
               ),
             )
-          : BoxDecoration(color: context.appColors.surfaceElevated),
+          : BoxDecoration(
+              color: translucent
+                  ? Colors.transparent
+                  : context.appColors.surfaceElevated,
+            ),
       child: Column(
         children: [
           SizedBox(
@@ -105,7 +119,7 @@ class AppTopBar extends ConsumerWidget {
     required double collapsedLeading,
   }) {
     final spacing = context.appSpacing;
-    const leftInset = AppPageInsets.desktop;
+    final leftInset = contentLeadingInset;
     const rightInset = AppPageInsets.desktop;
     final backButtonSlotWidth = config.isBackEnabled ? 40.0 : 0.0;
     final titleLeadingGap = config.isBackEnabled ? spacing.sm : 0.0;
@@ -149,15 +163,13 @@ class AppTopBar extends ConsumerWidget {
             ),
           ),
         ),
-        if (!hideActions) ...[
-          _TopBarSearchEntry(currentPath: currentPath),
-          SizedBox(width: spacing.xs),
-          if (onRefresh != null)
-            _TopBarRefreshButton(
-              onPressed: onRefresh!,
-              isRefreshing: isRefreshing,
-            ),
-        ],
+        if (!hideActions)
+          _TopBarActions(
+            currentPath: currentPath,
+            glass: translucent,
+            onRefresh: onRefresh,
+            isRefreshing: isRefreshing,
+          ),
         SizedBox(width: rightInset),
         if (usesAppWindowsCaption) AppWindowsCaption(),
       ],
@@ -172,7 +184,6 @@ class AppTopBar extends ConsumerWidget {
     required bool isSidebarCollapsed,
     required double collapsedLeading,
   }) {
-    final spacing = context.appSpacing;
     const leftInset = AppPageInsets.desktop;
     const rightInset = AppPageInsets.desktop;
     final l10n = appL10n(context);
@@ -197,16 +208,13 @@ class AppTopBar extends ConsumerWidget {
             ),
           ),
         Expanded(child: AppWindowDragArea(child: const SizedBox.expand())),
-        if (!hideActions) ...[
-          _TopBarSearchEntry(currentPath: currentPath, overlay: true),
-          SizedBox(width: spacing.xs),
-          if (onRefresh != null)
-            _TopBarRefreshButton(
-              onPressed: onRefresh!,
-              isRefreshing: isRefreshing,
-              overlay: true,
-            ),
-        ],
+        if (!hideActions)
+          _TopBarActions(
+            currentPath: currentPath,
+            overlay: true,
+            onRefresh: onRefresh,
+            isRefreshing: isRefreshing,
+          ),
         SizedBox(width: rightInset),
         if (usesAppWindowsCaption) AppWindowsCaption(overlay: true),
       ],
@@ -233,29 +241,34 @@ class AppTopBar extends ConsumerWidget {
   }
 }
 
-/// 顶栏搜索入口。
+/// 顶栏搜索框与右侧刷新动作。
 ///
-/// 收起态只占一个图标位；点击后输入框从图标左侧展开展示，图标原地保留
-/// 作为收起开关。提交后跳转搜索页并收起；输入框聚焦时按 ESC、或路由变化
-/// 时同样收起。
-/// 以图搜图 / 文字搜图入口沿用旧侧边栏搜索框的行为，挂在展开输入框后缀。
-class _TopBarSearchEntry extends ConsumerStatefulWidget {
-  const _TopBarSearchEntry({required this.currentPath, this.overlay = false});
+/// 搜索框固定显示；提交后跳转搜索页。输入框聚焦时按 ESC 清空并失焦，
+/// 不隐藏输入框。以图搜图 / 文字搜图入口挂在输入框后缀。
+class _TopBarActions extends ConsumerStatefulWidget {
+  const _TopBarActions({
+    required this.currentPath,
+    this.overlay = false,
+    this.glass = false,
+    this.onRefresh,
+    this.isRefreshing = false,
+  });
 
   final String currentPath;
   final bool overlay;
+  final bool glass;
+  final VoidCallback? onRefresh;
+  final bool isRefreshing;
 
   @override
-  ConsumerState<_TopBarSearchEntry> createState() => _TopBarSearchEntryState();
+  ConsumerState<_TopBarActions> createState() => _TopBarActionsState();
 }
 
-class _TopBarSearchEntryState extends ConsumerState<_TopBarSearchEntry> {
+class _TopBarActionsState extends ConsumerState<_TopBarActions> {
   static const double _fieldWidth = 300;
-  static const Duration _animationDuration = Duration(milliseconds: 180);
 
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode(debugLabel: 'topbar-search');
-  bool _expanded = true;
 
   @override
   void dispose() {
@@ -264,35 +277,9 @@ class _TopBarSearchEntryState extends ConsumerState<_TopBarSearchEntry> {
     super.dispose();
   }
 
-  void _openAndFocus() {
-    if (!mounted) {
-      return;
-    }
-    if (!_expanded) {
-      setState(() => _expanded = true);
-    }
-    // 输入框在本帧 setState 后才挂载，聚焦要等挂载完成。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _focusNode.requestFocus();
-      }
-    });
-  }
-
-  void _toggle() {
-    if (_expanded) {
-      _collapse();
-      return;
-    }
-    _openAndFocus();
-  }
-
-  void _collapse() {
+  void _clearAndUnfocus() {
     _controller.clear();
     _focusNode.unfocus();
-    if (mounted) {
-      setState(() => _expanded = false);
-    }
   }
 
   void _submit() {
@@ -337,80 +324,84 @@ class _TopBarSearchEntryState extends ConsumerState<_TopBarSearchEntry> {
   @override
   Widget build(BuildContext context) {
     final l10n = appL10n(context);
-    // 收起态不订阅能力状态，避免无关重建；展开时才决定是否显示图搜后缀。
-    final imageSearchEnabled =
-        _expanded && ref.watch(imageSearchEnabledProvider);
-    final toggleIcon = SizedBox(
-      width: _topBarActionSlotWidth,
-      child: AppIconButton(
-        key: const Key('topbar-search-button'),
-        tooltip: _expanded ? l10n.shellCollapseSearch : l10n.baseSearchHint,
-        semanticLabel: _expanded
-            ? l10n.shellCollapseSearch
-            : l10n.baseSearchHint,
-        onPressed: _toggle,
-        padding: EdgeInsets.zero,
-        icon: Icon(
-          Icons.search_rounded,
-          size: context.appComponentTokens.iconSizeSm,
-          color: widget.overlay ? context.appTextPalette.onMedia : null,
-        ),
-      ),
-    );
-
-    return AnimatedSize(
-      duration: _animationDuration,
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.centerRight,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (_expanded) ...[
-            SizedBox(
-              width: _fieldWidth,
-              child: CallbackShortcuts(
-                bindings: <ShortcutActivator, VoidCallback>{
-                  const SingleActivator(LogicalKeyboardKey.escape): _collapse,
-                },
-                child: CatalogSearchField(
-                  key: const Key('topbar-search-field'),
-                  fieldKey: const Key('topbar-search-input'),
-                  imageSearchButtonKey: const Key('topbar-search-image'),
-                  textImageSearchButtonKey: const Key(
-                    'topbar-search-text-image',
-                  ),
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  hintText: l10n.shellSearchHintExample,
-                  // 收紧到 34 高：tightSuffix 解除后缀 48px 热区下限后，
-                  // 高度 = max(后缀按钮 28, 字高 14 + 2×10)。
-                  tightSuffix: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: context.appFormTokens.fieldHorizontalPadding,
-                    vertical: _compactSearchFieldVerticalPadding,
-                  ),
-                  // 34 高的字段上 8px 圆角偏圆，收紧到 4 更方。
-                  borderRadius: context.appRadius.xsBorder,
-                  showSearchButton: false,
-                  showImageSearchButton: imageSearchEnabled,
-                  showTextImageSearchButton: imageSearchEnabled,
-                  onSubmitted: (_) => _submit(),
-                  onImageSearchTap: _pickAndOpenImageSearch,
-                  onTextImageSearchTap: _openTextImageSearch,
-                ),
-              ),
+    final imageSearchEnabled = ref.watch(imageSearchEnabledProvider);
+    final searchField = widget.glass
+        ? AppTopBarGlassSearchField(
+            key: const Key('topbar-search-field'),
+            fieldKey: const Key('topbar-search-input'),
+            imageSearchButtonKey: const Key('topbar-search-image'),
+            textImageSearchButtonKey: const Key('topbar-search-text-image'),
+            controller: _controller,
+            focusNode: _focusNode,
+            hintText: l10n.shellSearchHintExample,
+            onSubmitted: (_) => _submit(),
+            showImageSearchButton: imageSearchEnabled,
+            showTextImageSearchButton: imageSearchEnabled,
+            onImageSearchTap: _pickAndOpenImageSearch,
+            onTextImageSearchTap: _openTextImageSearch,
+          )
+        : CatalogSearchField(
+            key: const Key('topbar-search-field'),
+            fieldKey: const Key('topbar-search-input'),
+            imageSearchButtonKey: const Key('topbar-search-image'),
+            textImageSearchButtonKey: const Key('topbar-search-text-image'),
+            controller: _controller,
+            focusNode: _focusNode,
+            hintText: l10n.shellSearchHintExample,
+            // 收紧到 34 高：tightSuffix 解除后缀 48px 热区下限后，
+            // 高度 = max(后缀按钮 28, 字高 14 + 2×10)。
+            tightSuffix: true,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: context.appFormTokens.fieldHorizontalPadding,
+              vertical: _compactSearchFieldVerticalPadding,
             ),
-            SizedBox(width: context.appSpacing.xs),
-          ],
-          toggleIcon,
+            // 34 高的字段上 8px 圆角偏圆，收紧到 4 更方。
+            borderRadius: context.appRadius.xsBorder,
+            showSearchButton: false,
+            showImageSearchButton: imageSearchEnabled,
+            showTextImageSearchButton: imageSearchEnabled,
+            onSubmitted: (_) => _submit(),
+            onImageSearchTap: _pickAndOpenImageSearch,
+            onTextImageSearchTap: _openTextImageSearch,
+          );
+    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+    final refresh = widget.onRefresh;
+    final actions = refresh == null
+        ? null
+        : widget.glass && !highContrast
+        ? AppTopBarGlassRefreshButton(
+            onPressed: refresh,
+            isRefreshing: widget.isRefreshing,
+          )
+        : _TopBarRefreshButton(
+            onPressed: refresh,
+            isRefreshing: widget.isRefreshing,
+            overlay: widget.overlay,
+          );
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        SizedBox(
+          width: _fieldWidth,
+          child: CallbackShortcuts(
+            bindings: <ShortcutActivator, VoidCallback>{
+              const SingleActivator(LogicalKeyboardKey.escape):
+                  _clearAndUnfocus,
+            },
+            child: searchField,
+          ),
+        ),
+        if (actions != null) ...[
+          SizedBox(width: context.appSpacing.xs),
+          actions,
         ],
-      ),
+      ],
     );
   }
 }
 
-/// 顶栏右侧动作按钮（搜索切换 / 刷新）的占位宽度，与 AppIconButton(compact)
-/// 同宽，两个图标之间只留 Row 里的固定小间距，避免中间空出一大段。
+/// 非玻璃顶栏刷新按钮的占位宽度，与 AppIconButton(compact) 同宽。
 const double _topBarActionSlotWidth = appCompactIconButtonSize;
 
 /// 顶栏搜索框收紧后的垂直内边距：字段高 = max(28, 字高 14 + 2×10) = 34。

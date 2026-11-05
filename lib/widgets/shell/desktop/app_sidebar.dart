@@ -9,6 +9,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 import 'package:sakuramedia/widgets/shell/desktop/sidebar_appearance_menu.dart';
 import 'package:sakuramedia/widgets/shell/desktop/sidebar_version_footer.dart';
 import 'package:sakuramedia/widgets/shell/window/app_window_drag_area.dart';
@@ -32,33 +33,52 @@ class AppSidebar extends ConsumerWidget {
     final glassTint = defaultTargetPlatform == TargetPlatform.windows
         ? appColors.windowsSidebarGlassTint
         : appColors.desktopSidebarGlassTint;
-    final width = isCompact
-        ? sidebarTokens.collapsedWidth
-        : sidebarTokens.expandedWidth;
+    if (useDesktopSidebarGlass) {
+      return AnimatedContainer(
+        key: const Key('desktop-shell-sidebar'),
+        duration: const Duration(milliseconds: 180),
+        width: isCompact
+            ? sidebarTokens.collapsedWidth
+            : sidebarTokens.expandedFootprintWidth,
+        clipBehavior: Clip.hardEdge,
+        decoration: const BoxDecoration(color: Colors.transparent),
+        child: Offstage(
+          offstage: isCompact,
+          child: OverflowBox(
+            alignment: Alignment.centerLeft,
+            minWidth: sidebarTokens.expandedFootprintWidth,
+            maxWidth: sidebarTokens.expandedFootprintWidth,
+            child: Padding(
+              padding: EdgeInsets.all(sidebarTokens.outerInset),
+              child: AppGlassSurface(
+                key: const Key('desktop-sidebar-glass'),
+                tone: AppGlassTone.sidebar,
+                width: sidebarTokens.expandedWidth,
+                borderRadius: BorderRadius.circular(sidebarTokens.panelRadius),
+                padding: EdgeInsets.zero,
+                child: _buildSidebarColumn(context, fadeColor: glassTint),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return AnimatedContainer(
       key: const Key('desktop-shell-sidebar'),
       duration: const Duration(milliseconds: 180),
-      width: width,
+      width: isCompact
+          ? sidebarTokens.collapsedWidth
+          : sidebarTokens.expandedWidth,
       clipBehavior: Clip.hardEdge,
       // 收起态宽度为 0：装饰渐隐为透明、内容整体卸载，避免残留边线
       // 和不可见的可点击区域。
       decoration: isCompact
           ? const BoxDecoration(color: Colors.transparent)
           : BoxDecoration(
-              color: useDesktopSidebarGlass
-                  ? glassTint
-                  : appColors.sidebarBackground,
-              border: Border(
-                right: BorderSide(
-                  color: useDesktopSidebarGlass
-                      ? appColors.borderSubtle.fadedBy(0.68)
-                      : appColors.borderSubtle,
-                ),
-              ),
-              boxShadow: useDesktopSidebarGlass
-                  ? const []
-                  : context.appShadows.panel,
+              color: appColors.sidebarBackground,
+              border: Border(right: BorderSide(color: appColors.borderSubtle)),
+              boxShadow: context.appShadows.panel,
             ),
       // 展开动画期间容器比侧栏窄，内容按固定展开宽度布局、由容器裁剪
       // 滑入，避免窄约束下溢出；完全收起后内容 offstage（不绘制、不可
@@ -69,42 +89,46 @@ class AppSidebar extends ConsumerWidget {
           alignment: Alignment.centerLeft,
           minWidth: sidebarTokens.expandedWidth,
           maxWidth: sidebarTokens.expandedWidth,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                key: const Key('sidebar-header'),
-                height: context.appComponentTokens.desktopTitleBarHeight,
-                // macOS 下这是窗口拖拽区；红绿灯垂直居中于 header，
-                // 收起/展开按钮由壳层固定渲染在红绿灯右侧，不在
-                // 侧栏内部。
-                child: defaultTargetPlatform == TargetPlatform.macOS
-                    ? const AppWindowDragArea(
-                        child: ColoredBox(color: Colors.transparent),
-                      )
-                    : const SizedBox.shrink(),
-              ),
-              Expanded(
-                child: _SidebarNavScrollArea(
-                  horizontalPadding: context.appSpacing.sm,
-                  fadeColor: useDesktopSidebarGlass
-                      ? glassTint
-                      : appColors.sidebarBackground,
-                  children: _buildNavChildren(context),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(context.appSpacing.sm),
-                child: _SidebarAccountCard(
-                  onLogout: () {
-                    context.logOut();
-                  },
-                ),
-              ),
-            ],
+          child: _buildSidebarColumn(
+            context,
+            fadeColor: appColors.sidebarBackground,
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSidebarColumn(BuildContext context, {required Color fadeColor}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          key: const Key('sidebar-header'),
+          height: context.appComponentTokens.desktopTitleBarHeight,
+          // macOS 下这是窗口拖拽区；红绿灯垂直居中于 header，
+          // 收起/展开按钮由壳层固定渲染在红绿灯右侧，不在侧栏内部。
+          child: defaultTargetPlatform == TargetPlatform.macOS
+              ? const AppWindowDragArea(
+                  child: ColoredBox(color: Colors.transparent),
+                )
+              : const SizedBox.shrink(),
+        ),
+        Expanded(
+          child: _SidebarNavScrollArea(
+            horizontalPadding: context.appSpacing.sm,
+            fadeColor: fadeColor,
+            children: _buildNavChildren(context),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.all(context.appSpacing.sm),
+          child: _SidebarAccountCard(
+            onLogout: () {
+              context.logOut();
+            },
+          ),
+        ),
+      ],
     );
   }
 

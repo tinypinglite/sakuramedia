@@ -2057,6 +2057,10 @@
   },
   "overviewOther": "其他",
   "overviewFree": "空闲",
+  "overviewLibraryTitle": "资料库",
+  "overviewLibrarySubtitle": "状态、任务与最近内容，一眼掌握。",
+  "overviewConnected": "已连接",
+  "overviewImportMedia": "导入媒体",
   "overviewMediaAssets": "媒体资产",
   "overviewNoAssetData": "暂无媒体资产数据",
   "overviewMovies": "影片",
@@ -2080,6 +2084,15 @@
     }
   },
   "overviewActresses": "女优",
+  "overviewSubscribedMovies": "已订阅",
+  "overviewSubscriptionRate": "订阅率 {rate}",
+  "@overviewSubscriptionRate": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
   "overviewSubscribedCount": "已订阅 {count}",
   "@overviewSubscribedCount": {
     "placeholders": {
@@ -2098,6 +2111,17 @@
     }
   },
   "overviewTotalMediaSize": "媒体总量",
+  "overviewMediaTotalDetail": "{files} 个媒体文件 · {thumbnails} 张缩略图",
+  "@overviewMediaTotalDetail": {
+    "placeholders": {
+      "files": {
+        "type": "String"
+      },
+      "thumbnails": {
+        "type": "String"
+      }
+    }
+  },
   "overviewThumbnails": "缩略图 {count}",
   "@overviewThumbnails": {
     "placeholders": {
@@ -2107,11 +2131,22 @@
     }
   },
   "overviewCollectionsPrefix": "合集：",
+  "overviewCollectionKinds": "播放列表 · 视频 · 切片 · 时刻",
   "overviewPendingThumbnails": "待生成缩略图",
   "overviewPendingIndex": "待索引",
   "overviewVideoCollections": "视频合集",
   "overviewClipCollections": "片段合集",
   "overviewMomentCollections": "时刻合集",
+  "overviewWorkbenchTitle": "工作台",
+  "overviewWorkbenchActive": "{count} 个进行中",
+  "@overviewWorkbenchActive": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewWorkbenchEmpty": "当前队列空闲",
   "overviewStatusLoadFailed": "媒体资产加载失败，请稍后重试",
   "overviewInsightsLoadFailed": "统计数据加载失败",
   "overviewWatchTrendLoadFailed": "观看趋势加载失败",

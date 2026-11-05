@@ -244,10 +244,7 @@ void main() {
       method: 'GET',
       path: '/status/capabilities',
       statusCode: 200,
-      body: <String, dynamic>{
-        'movie_similarity': true,
-        'image_search': false,
-      },
+      body: <String, dynamic>{'movie_similarity': true, 'image_search': false},
     );
 
     final capabilities = await statusApi.getCapabilities();
@@ -469,6 +466,15 @@ void main() {
       path: '/status/insights',
       statusCode: 200,
       body: <String, dynamic>{
+        'download_tasks': <String, dynamic>{
+          'downloading': 3,
+          'importing': 2,
+          'imported': 64,
+          'import_failed': 1,
+          'skipped': 4,
+          'download_failed': 1,
+          'total': 75,
+        },
         'media_libraries': <dynamic>[
           <String, dynamic>{
             'library_id': 1,
@@ -498,8 +504,21 @@ void main() {
 
     expect(insights.mediaLibraries, hasLength(2));
     expect(insights.mediaLibraries.first.name, '主媒体库');
+    expect(insights.downloadTasks.downloading, 3);
+    expect(insights.downloadTasks.importing, 2);
+    expect(insights.downloadTasks.imported, 64);
+    expect(insights.downloadTasks.total, 75);
     expect(insights.collections.playlists.count, 5);
     expect(insights.collections.isEmpty, isFalse);
+    expect(insights.toJson()['download_tasks'], <String, dynamic>{
+      'downloading': 3,
+      'importing': 2,
+      'imported': 64,
+      'import_failed': 1,
+      'skipped': 4,
+      'download_failed': 1,
+      'total': 75,
+    });
   });
 
   test('getInsights defaults missing sections to empty', () async {
@@ -514,6 +533,8 @@ void main() {
 
     expect(insights.mediaLibraries, isEmpty);
     expect(insights.collections.isEmpty, isTrue);
+    expect(insights.downloadTasks.total, 0);
+    expect(insights.downloadTasks.downloading, 0);
   });
 
   test('getWatchTrend sends range and parses buckets', () async {
@@ -540,10 +561,7 @@ void main() {
     expect(trend.watchedMovieCount, 3);
     expect(trend.buckets, hasLength(3));
     expect(trend.buckets[1].count, 2);
-    expect(
-      adapter.requests.last.uri.queryParameters['range'],
-      '7d',
-    );
+    expect(adapter.requests.last.uri.queryParameters['range'], '7d');
   });
 
   test('getWatchTrend falls back to 30d for an unknown range', () async {

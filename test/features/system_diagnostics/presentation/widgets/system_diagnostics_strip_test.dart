@@ -62,7 +62,7 @@ void main() {
     _bundle.dispose();
   });
 
-  testWidgets('未检测态是紧凑状态行而不是卡片', (tester) async {
+  testWidgets('未检测态是 Hero 内的紧凑状态 chip', (tester) async {
     await tester.pumpWidget(_wrap(const SystemDiagnosticsStrip()));
 
     expect(find.byKey(const Key('system-diagnostics-strip')), findsOneWidget);
@@ -73,6 +73,10 @@ void main() {
     expect(find.text('组件诊断'), findsOneWidget);
     expect(find.text('未检测'), findsOneWidget);
     expect(find.text('开始检测'), findsOneWidget);
+    expect(
+      find.byKey(const Key('system-diagnostics-strip-open')),
+      findsOneWidget,
+    );
     expect(find.byType(AppContentCard), findsNothing);
   });
 }

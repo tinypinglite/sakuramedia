@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -129,17 +130,20 @@ class _MyAppState extends State<MyApp> {
     //
     // key 绑定会话实例：`didUpdateWidget` 换 sessionStore 时整个容器随之
     // 重建，等价于旧 MultiProvider 时代的全量重挂。
-    return ProviderScope(
-      key: ObjectKey(_activeSessionStore),
-      overrides: [
-        sessionStoreProvider.overrideWithValue(_activeSessionStore),
-        appearanceStoreProvider.overrideWithValue(_activeAppearanceStore),
-        appLanguageStoreProvider.overrideWithValue(_activeLanguageStore),
-      ],
-      observers: widget.observers,
-      child: AppPlatformScope(
-        platform: _platform,
-        child: _SakuraApp(platform: _platform, router: _router),
+    return LiquidGlassWidgets.wrap(
+      brightnessResolver: Theme.maybeBrightnessOf,
+      child: ProviderScope(
+        key: ObjectKey(_activeSessionStore),
+        overrides: [
+          sessionStoreProvider.overrideWithValue(_activeSessionStore),
+          appearanceStoreProvider.overrideWithValue(_activeAppearanceStore),
+          appLanguageStoreProvider.overrideWithValue(_activeLanguageStore),
+        ],
+        observers: widget.observers,
+        child: AppPlatformScope(
+          platform: _platform,
+          child: _SakuraApp(platform: _platform, router: _router),
+        ),
       ),
     );
   }

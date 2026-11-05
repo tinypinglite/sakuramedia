@@ -10,7 +10,10 @@ StatusDto statusSummaryPlaceholder() {
     backendVersion: '0.0.0',
     actors: ActorStatsDto(femaleTotal: 128, femaleSubscribed: 24),
     movies: MovieStatsDto(total: 1024, subscribed: 256, playable: 896),
-    mediaFiles: MediaFileStatsDto(total: 2048, totalSizeBytes: 2048 * 1024 * 1024),
+    mediaFiles: MediaFileStatsDto(
+      total: 2048,
+      totalSizeBytes: 2048 * 1024 * 1024,
+    ),
     mediaLibraries: MediaLibraryStatsDto(total: 4),
     thumbnails: ThumbnailStatsDto(
       pendingMedia: 16,
@@ -23,6 +26,15 @@ StatusDto statusSummaryPlaceholder() {
 
 StatusInsightsDto statusInsightsPlaceholder() {
   return StatusInsightsDto(
+    downloadTasks: const StatusDownloadTaskSummaryDto(
+      downloading: 3,
+      importing: 2,
+      imported: 64,
+      importFailed: 1,
+      skipped: 4,
+      downloadFailed: 1,
+      total: 75,
+    ),
     mediaLibraries: mediaLibraryUsagePlaceholders(),
     collections: const CollectionsStatsDto(
       playlists: CollectionSummaryDto(count: 2, itemCount: 64),

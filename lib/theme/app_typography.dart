@@ -3,7 +3,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
-enum AppTextSize { s20, s18, s16, s14, s12, s10 }
+enum AppTextSize { s32, s20, s18, s16, s14, s12, s10 }
 
 enum AppTextWeight { regular, medium, semibold }
 
@@ -37,6 +37,7 @@ const List<String> kAppMonospaceFontFallback = <String>[
 @immutable
 class AppTextScale extends ThemeExtension<AppTextScale> {
   const AppTextScale({
+    required this.s32,
     required this.s20,
     required this.s18,
     required this.s16,
@@ -46,7 +47,8 @@ class AppTextScale extends ThemeExtension<AppTextScale> {
   });
 
   const AppTextScale.defaults()
-    : s20 = 20,
+    : s32 = 32,
+      s20 = 20,
       s18 = 18,
       s16 = 16,
       s14 = 14,
@@ -54,13 +56,15 @@ class AppTextScale extends ThemeExtension<AppTextScale> {
       s10 = 10;
 
   const AppTextScale.mobile()
-    : s20 = 20,
+    : s32 = 32,
+      s20 = 20,
       s18 = 18,
       s16 = 16,
       s14 = 14,
       s12 = 12,
       s10 = 10;
 
+  final double s32;
   final double s20;
   final double s18;
   final double s16;
@@ -70,6 +74,7 @@ class AppTextScale extends ThemeExtension<AppTextScale> {
 
   double sizeOf(AppTextSize size) {
     return switch (size) {
+      AppTextSize.s32 => s32,
       AppTextSize.s20 => s20,
       AppTextSize.s18 => s18,
       AppTextSize.s16 => s16,
@@ -102,6 +107,7 @@ class AppTextScale extends ThemeExtension<AppTextScale> {
 
   @override
   AppTextScale copyWith({
+    double? s32,
     double? s20,
     double? s18,
     double? s16,
@@ -110,6 +116,7 @@ class AppTextScale extends ThemeExtension<AppTextScale> {
     double? s10,
   }) {
     return AppTextScale(
+      s32: s32 ?? this.s32,
       s20: s20 ?? this.s20,
       s18: s18 ?? this.s18,
       s16: s16 ?? this.s16,
@@ -125,6 +132,7 @@ class AppTextScale extends ThemeExtension<AppTextScale> {
       return this;
     }
     return AppTextScale(
+      s32: lerpDouble(s32, other.s32, t)!,
       s20: lerpDouble(s20, other.s20, t)!,
       s18: lerpDouble(s18, other.s18, t)!,
       s16: lerpDouble(s16, other.s16, t)!,

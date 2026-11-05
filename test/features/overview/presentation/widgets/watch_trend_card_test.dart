@@ -68,7 +68,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byKey(const Key('overview-watch-trend-range-7d')));
+    await tester.tap(_rangeOption('7天'));
     await tester.pump();
 
     expect(selected, <WatchTrendRange>[WatchTrendRange.last7Days]);
@@ -149,14 +149,51 @@ void main() {
       ),
     );
 
+    expect(_rangeOption('1年'), findsOneWidget);
+    expect(_rangeOption('90天'), findsNothing);
+  });
+
+  testWidgets('宽屏双列布局下可参与 intrinsic height', (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        locale: const Locale('zh'),
+        localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+          AppLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
+        supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+        home: Scaffold(
+          body: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Expanded(
+                  child: WatchTrendCard(
+                    trend: _trend(),
+                    range: WatchTrendRange.last30Days,
+                    onRangeChanged: (_) {},
+                  ),
+                ),
+                const Expanded(child: SizedBox()),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
     expect(
-      find.byKey(const Key('overview-watch-trend-range-1y')),
+      find.byKey(const Key('overview-watch-trend-range-selector')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const Key('overview-watch-trend-range-90d')),
-      findsNothing,
-    );
+    expect(tester.takeException(), isNull);
   });
 }
 
@@ -185,5 +222,12 @@ Future<void> _pumpCard(WidgetTester tester, Widget card) async {
       supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
       home: Scaffold(body: SingleChildScrollView(child: card)),
     ),
+  );
+}
+
+Finder _rangeOption(String label) {
+  return find.descendant(
+    of: find.byKey(const Key('overview-watch-trend-range-selector')),
+    matching: find.text(label),
   );
 }

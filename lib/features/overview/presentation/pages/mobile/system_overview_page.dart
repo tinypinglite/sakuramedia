@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/overview/presentation/providers/overview_sy
 import 'package:sakuramedia/features/overview/presentation/widgets/asset_summary_card.dart';
 import 'package:sakuramedia/features/overview/presentation/widgets/service_health_card.dart';
 import 'package:sakuramedia/features/overview/presentation/widgets/storage_usage_card.dart';
+import 'package:sakuramedia/features/overview/presentation/widgets/overview_surface.dart';
 import 'package:sakuramedia/features/overview/presentation/widgets/watch_trend_card.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
@@ -36,24 +37,38 @@ class MobileSystemOverviewPage extends ConsumerWidget {
                   errorMessage: state.statusError,
                   onRetry: notifier.loadStatus,
                 ),
-                SizedBox(height: context.appSpacing.md),
-                WatchTrendCard(
-                  trend: state.watchTrend,
-                  range: state.watchTrendRange,
-                  onRangeChanged: notifier.setWatchTrendRange,
-                  compactSelector: true,
-                  isLoading: state.isLoadingWatchTrend,
-                  errorMessage: state.watchTrendError,
-                  onRetry: notifier.loadWatchTrend,
+                SizedBox(height: context.appSpacing.lg),
+                OverviewSurface(
+                  key: const Key('mobile-overview-watch-trend-surface'),
+                  tone: OverviewSurfaceTone.insight,
+                  padding: EdgeInsets.all(context.appSpacing.lg),
+                  child: WatchTrendCard(
+                    trend: state.watchTrend,
+                    range: state.watchTrendRange,
+                    onRangeChanged: notifier.setWatchTrendRange,
+                    compactSelector: true,
+                    isLoading: state.isLoadingWatchTrend,
+                    errorMessage: state.watchTrendError,
+                    onRetry: notifier.loadWatchTrend,
+                    embedded: true,
+                    onDark: true,
+                  ),
                 ),
-                SizedBox(height: context.appSpacing.md),
-                StorageUsageCard(
-                  libraries: state.insights?.mediaLibraries,
-                  isLoading: state.isLoadingInsights,
-                  errorMessage: state.insightsError,
-                  onRetry: notifier.loadInsights,
+                SizedBox(height: context.appSpacing.lg),
+                OverviewSurface(
+                  key: const Key('mobile-overview-storage-usage-surface'),
+                  tone: OverviewSurfaceTone.insight,
+                  padding: EdgeInsets.all(context.appSpacing.lg),
+                  child: StorageUsageCard(
+                    libraries: state.insights?.mediaLibraries,
+                    isLoading: state.isLoadingInsights,
+                    errorMessage: state.insightsError,
+                    onRetry: notifier.loadInsights,
+                    embedded: true,
+                    onDark: true,
+                  ),
                 ),
-                SizedBox(height: context.appSpacing.md),
+                SizedBox(height: context.appSpacing.lg),
                 ServiceHealthCard(
                   imageSearchStatus: state.imageSearchStatus,
                   javdbHealthy: state.javdbHealthy,

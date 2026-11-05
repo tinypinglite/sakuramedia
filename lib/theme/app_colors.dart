@@ -55,7 +55,7 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceElevated = const Color(0xFFFFFFFF),
       surfaceMuted = const Color(0xFFF1F1F1),
       noticeSurface = const Color(0xFFF3F3F3),
-      desktopSidebarGlassTint = const Color(0x4CEFEFEF),
+      desktopSidebarGlassTint = const Color(0x33F7F3F0),
       windowsSidebarGlassTint = const Color(0xEBEFEFEF),
       desktopSidebarGlassHover = const Color(0x80FFFFFF),
       desktopSidebarGlassActive = const Color(0x99FFFFFF),
@@ -101,7 +101,7 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceElevated = const Color(0xFF262626),
       surfaceMuted = const Color(0xFF2A2A2A),
       noticeSurface = const Color(0xFF232323),
-      desktopSidebarGlassTint = const Color(0x661E1E1E),
+      desktopSidebarGlassTint = const Color(0x4D181315),
       windowsSidebarGlassTint = const Color(0xEB1E1E1E),
       desktopSidebarGlassHover = const Color(0x14FFFFFF),
       desktopSidebarGlassActive = const Color(0x1FFFFFFF),
@@ -335,150 +335,164 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceElevated: Color.lerp(surfaceElevated, other.surfaceElevated, t)!,
       surfaceMuted: Color.lerp(surfaceMuted, other.surfaceMuted, t)!,
       noticeSurface: Color.lerp(noticeSurface, other.noticeSurface, t)!,
-      desktopSidebarGlassTint:
-          Color.lerp(
-            desktopSidebarGlassTint,
-            other.desktopSidebarGlassTint,
-            t,
-          )!,
-      windowsSidebarGlassTint:
-          Color.lerp(
-            windowsSidebarGlassTint,
-            other.windowsSidebarGlassTint,
-            t,
-          )!,
-      desktopSidebarGlassHover:
-          Color.lerp(
-            desktopSidebarGlassHover,
-            other.desktopSidebarGlassHover,
-            t,
-          )!,
-      desktopSidebarGlassActive:
-          Color.lerp(
-            desktopSidebarGlassActive,
-            other.desktopSidebarGlassActive,
-            t,
-          )!,
-      sidebarBackground:
-          Color.lerp(sidebarBackground, other.sidebarBackground, t)!,
-      sidebarHoverBackground:
-          Color.lerp(sidebarHoverBackground, other.sidebarHoverBackground, t)!,
-      sidebarActiveBackground:
-          Color.lerp(
-            sidebarActiveBackground,
-            other.sidebarActiveBackground,
-            t,
-          )!,
-      subscriptionHeartIcon:
-          Color.lerp(subscriptionHeartIcon, other.subscriptionHeartIcon, t)!,
+      desktopSidebarGlassTint: Color.lerp(
+        desktopSidebarGlassTint,
+        other.desktopSidebarGlassTint,
+        t,
+      )!,
+      windowsSidebarGlassTint: Color.lerp(
+        windowsSidebarGlassTint,
+        other.windowsSidebarGlassTint,
+        t,
+      )!,
+      desktopSidebarGlassHover: Color.lerp(
+        desktopSidebarGlassHover,
+        other.desktopSidebarGlassHover,
+        t,
+      )!,
+      desktopSidebarGlassActive: Color.lerp(
+        desktopSidebarGlassActive,
+        other.desktopSidebarGlassActive,
+        t,
+      )!,
+      sidebarBackground: Color.lerp(
+        sidebarBackground,
+        other.sidebarBackground,
+        t,
+      )!,
+      sidebarHoverBackground: Color.lerp(
+        sidebarHoverBackground,
+        other.sidebarHoverBackground,
+        t,
+      )!,
+      sidebarActiveBackground: Color.lerp(
+        sidebarActiveBackground,
+        other.sidebarActiveBackground,
+        t,
+      )!,
+      subscriptionHeartIcon: Color.lerp(
+        subscriptionHeartIcon,
+        other.subscriptionHeartIcon,
+        t,
+      )!,
       borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,
       borderStrong: Color.lerp(borderStrong, other.borderStrong, t)!,
       divider: Color.lerp(divider, other.divider, t)!,
-      selectionSurface:
-          Color.lerp(selectionSurface, other.selectionSurface, t)!,
+      selectionSurface: Color.lerp(
+        selectionSurface,
+        other.selectionSurface,
+        t,
+      )!,
       selectionBorder: Color.lerp(selectionBorder, other.selectionBorder, t)!,
       infoSurface: Color.lerp(infoSurface, other.infoSurface, t)!,
       warningSurface: Color.lerp(warningSurface, other.warningSurface, t)!,
       errorSurface: Color.lerp(errorSurface, other.errorSurface, t)!,
-      errorAccentForeground:
-          Color.lerp(errorAccentForeground, other.errorAccentForeground, t)!,
+      errorAccentForeground: Color.lerp(
+        errorAccentForeground,
+        other.errorAccentForeground,
+        t,
+      )!,
       successSurface: Color.lerp(successSurface, other.successSurface, t)!,
-      mediaOverlaySoft:
-          Color.lerp(mediaOverlaySoft, other.mediaOverlaySoft, t)!,
-      mediaOverlayStrong:
-          Color.lerp(mediaOverlayStrong, other.mediaOverlayStrong, t)!,
-      mediaOverlayBorder:
-          Color.lerp(mediaOverlayBorder, other.mediaOverlayBorder, t)!,
-      mediaMaskOverlay:
-          Color.lerp(mediaMaskOverlay, other.mediaMaskOverlay, t)!,
-      movieCardSubscribedBadgeBackground:
-          Color.lerp(
-            movieCardSubscribedBadgeBackground,
-            other.movieCardSubscribedBadgeBackground,
-            t,
-          )!,
-      movieCardPlayableBadgeBackground:
-          Color.lerp(
-            movieCardPlayableBadgeBackground,
-            other.movieCardPlayableBadgeBackground,
-            t,
-          )!,
-      movieDetailPlayableBadgeBackground:
-          Color.lerp(
-            movieDetailPlayableBadgeBackground,
-            other.movieDetailPlayableBadgeBackground,
-            t,
-          )!,
-      movieDetailSelectedPlotBorder:
-          Color.lerp(
-            movieDetailSelectedPlotBorder,
-            other.movieDetailSelectedPlotBorder,
-            t,
-          )!,
-      movieDetailEmptyBackground:
-          Color.lerp(
-            movieDetailEmptyBackground,
-            other.movieDetailEmptyBackground,
-            t,
-          )!,
-      movieDetailInvalidMediaBackground:
-          Color.lerp(
-            movieDetailInvalidMediaBackground,
-            other.movieDetailInvalidMediaBackground,
-            t,
-          )!,
-      movieDetailInvalidMediaForeground:
-          Color.lerp(
-            movieDetailInvalidMediaForeground,
-            other.movieDetailInvalidMediaForeground,
-            t,
-          )!,
-      movieDetailHeroBackgroundStart:
-          Color.lerp(
-            movieDetailHeroBackgroundStart,
-            other.movieDetailHeroBackgroundStart,
-            t,
-          )!,
-      movieDetailHeroBackgroundEnd:
-          Color.lerp(
-            movieDetailHeroBackgroundEnd,
-            other.movieDetailHeroBackgroundEnd,
-            t,
-          )!,
-      movieDetailReleaseDateIcon:
-          Color.lerp(
-            movieDetailReleaseDateIcon,
-            other.movieDetailReleaseDateIcon,
-            t,
-          )!,
-      movieDetailDurationIcon:
-          Color.lerp(
-            movieDetailDurationIcon,
-            other.movieDetailDurationIcon,
-            t,
-          )!,
-      movieDetailScoreIcon:
-          Color.lerp(movieDetailScoreIcon, other.movieDetailScoreIcon, t)!,
-      movieDetailScoreCountIcon:
-          Color.lerp(
-            movieDetailScoreCountIcon,
-            other.movieDetailScoreCountIcon,
-            t,
-          )!,
-      movieDetailCommentCountIcon:
-          Color.lerp(
-            movieDetailCommentCountIcon,
-            other.movieDetailCommentCountIcon,
-            t,
-          )!,
-      movieDetailHeatIcon:
-          Color.lerp(movieDetailHeatIcon, other.movieDetailHeatIcon, t)!,
-      movieDetailWantWatchCountIcon:
-          Color.lerp(
-            movieDetailWantWatchCountIcon,
-            other.movieDetailWantWatchCountIcon,
-            t,
-          )!,
+      mediaOverlaySoft: Color.lerp(
+        mediaOverlaySoft,
+        other.mediaOverlaySoft,
+        t,
+      )!,
+      mediaOverlayStrong: Color.lerp(
+        mediaOverlayStrong,
+        other.mediaOverlayStrong,
+        t,
+      )!,
+      mediaOverlayBorder: Color.lerp(
+        mediaOverlayBorder,
+        other.mediaOverlayBorder,
+        t,
+      )!,
+      mediaMaskOverlay: Color.lerp(
+        mediaMaskOverlay,
+        other.mediaMaskOverlay,
+        t,
+      )!,
+      movieCardSubscribedBadgeBackground: Color.lerp(
+        movieCardSubscribedBadgeBackground,
+        other.movieCardSubscribedBadgeBackground,
+        t,
+      )!,
+      movieCardPlayableBadgeBackground: Color.lerp(
+        movieCardPlayableBadgeBackground,
+        other.movieCardPlayableBadgeBackground,
+        t,
+      )!,
+      movieDetailPlayableBadgeBackground: Color.lerp(
+        movieDetailPlayableBadgeBackground,
+        other.movieDetailPlayableBadgeBackground,
+        t,
+      )!,
+      movieDetailSelectedPlotBorder: Color.lerp(
+        movieDetailSelectedPlotBorder,
+        other.movieDetailSelectedPlotBorder,
+        t,
+      )!,
+      movieDetailEmptyBackground: Color.lerp(
+        movieDetailEmptyBackground,
+        other.movieDetailEmptyBackground,
+        t,
+      )!,
+      movieDetailInvalidMediaBackground: Color.lerp(
+        movieDetailInvalidMediaBackground,
+        other.movieDetailInvalidMediaBackground,
+        t,
+      )!,
+      movieDetailInvalidMediaForeground: Color.lerp(
+        movieDetailInvalidMediaForeground,
+        other.movieDetailInvalidMediaForeground,
+        t,
+      )!,
+      movieDetailHeroBackgroundStart: Color.lerp(
+        movieDetailHeroBackgroundStart,
+        other.movieDetailHeroBackgroundStart,
+        t,
+      )!,
+      movieDetailHeroBackgroundEnd: Color.lerp(
+        movieDetailHeroBackgroundEnd,
+        other.movieDetailHeroBackgroundEnd,
+        t,
+      )!,
+      movieDetailReleaseDateIcon: Color.lerp(
+        movieDetailReleaseDateIcon,
+        other.movieDetailReleaseDateIcon,
+        t,
+      )!,
+      movieDetailDurationIcon: Color.lerp(
+        movieDetailDurationIcon,
+        other.movieDetailDurationIcon,
+        t,
+      )!,
+      movieDetailScoreIcon: Color.lerp(
+        movieDetailScoreIcon,
+        other.movieDetailScoreIcon,
+        t,
+      )!,
+      movieDetailScoreCountIcon: Color.lerp(
+        movieDetailScoreCountIcon,
+        other.movieDetailScoreCountIcon,
+        t,
+      )!,
+      movieDetailCommentCountIcon: Color.lerp(
+        movieDetailCommentCountIcon,
+        other.movieDetailCommentCountIcon,
+        t,
+      )!,
+      movieDetailHeatIcon: Color.lerp(
+        movieDetailHeatIcon,
+        other.movieDetailHeatIcon,
+        t,
+      )!,
+      movieDetailWantWatchCountIcon: Color.lerp(
+        movieDetailWantWatchCountIcon,
+        other.movieDetailWantWatchCountIcon,
+        t,
+      )!,
     );
   }
 }

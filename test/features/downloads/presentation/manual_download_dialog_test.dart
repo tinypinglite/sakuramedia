@@ -104,14 +104,8 @@ void main() {
       find.byKey(const Key('manual-download-source-mode')),
       findsOneWidget,
     );
-    expect(
-      find.byKey(const Key('manual-download-source-mode-link')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('manual-download-source-mode-torrent')),
-      findsOneWidget,
-    );
+    expect(_sourceModeOption('链接'), findsOneWidget);
+    expect(_sourceModeOption('种子文件'), findsOneWidget);
     expect(find.byKey(const Key('manual-download-link-field')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('manual-download-client-field')));
@@ -280,9 +274,7 @@ void main() {
     final nextRowTop = tester
         .getTopLeft(find.byKey(const Key('manual-download-kind-jav')))
         .dy;
-    await tester.tap(
-      find.byKey(const Key('manual-download-source-mode-torrent')),
-    );
+    await tester.tap(_sourceModeOption('种子文件'));
     await tester.pumpAndSettle();
     final torrentHeight = tester
         .getSize(find.byKey(const Key('manual-download-torrent-dropzone')))
@@ -322,9 +314,7 @@ void main() {
     final nextRowTop = tester
         .getTopLeft(find.byKey(const Key('manual-download-kind-jav')))
         .dy;
-    await tester.tap(
-      find.byKey(const Key('manual-download-source-mode-torrent')),
-    );
+    await tester.tap(_sourceModeOption('种子文件'));
     await tester.pumpAndSettle();
     final torrentHeight = tester
         .getSize(find.byKey(const Key('manual-download-torrent-dropzone')))
@@ -973,9 +963,7 @@ void main() {
 
   testWidgets('rejects oversized torrent file before posting', (tester) async {
     final bundle = await _openDialog(tester);
-    await tester.tap(
-      find.byKey(const Key('manual-download-source-mode-torrent')),
-    );
+    await tester.tap(_sourceModeOption('种子文件'));
     await tester.pumpAndSettle();
     // PornBox 不需要番号解析，直接验证文件大小门禁。
     await tester.tap(find.byKey(const Key('manual-download-kind-video')));
@@ -1199,6 +1187,13 @@ Map<String, dynamic> _manualTaskJson({
   },
   'created': true,
 };
+
+Finder _sourceModeOption(String label) {
+  return find.descendant(
+    of: find.byKey(const Key('manual-download-source-mode')),
+    matching: find.text(label),
+  );
+}
 
 class _DialogHost extends StatefulWidget {
   const _DialogHost({this.prefill});

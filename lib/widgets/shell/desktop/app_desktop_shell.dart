@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/app/providers/app_shell_providers.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/theme.dart';
@@ -13,11 +16,12 @@ import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_sidebar.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_sidebar_toggle_button.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_top_bar.dart';
+import 'package:sakuramedia/widgets/shell/desktop/desktop_ambient_backdrop.dart';
 import 'package:sakuramedia/widgets/shell/window/app_mac_traffic_lights.dart';
 import 'package:sakuramedia/widgets/shell/window/app_window_drag_area.dart';
 import 'package:sakuramedia/widgets/shell/window/app_windows_caption.dart';
 
-class AppDesktopShell extends StatefulWidget {
+class AppDesktopShell extends ConsumerStatefulWidget {
   const AppDesktopShell({
     super.key,
     required this.currentPath,
@@ -42,10 +46,10 @@ class AppDesktopShell extends StatefulWidget {
   final bool showTopBar;
 
   @override
-  State<AppDesktopShell> createState() => _AppDesktopShellState();
+  ConsumerState<AppDesktopShell> createState() => _AppDesktopShellState();
 }
 
-class _AppDesktopShellState extends State<AppDesktopShell> {
+class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
   final List<AppPageRefreshCallback> _stack = <AppPageRefreshCallback>[];
   late final AppPageRefreshRegistrar _registrar = AppPageRefreshRegistrar(
     register: _register,
@@ -104,11 +108,7 @@ class _AppDesktopShellState extends State<AppDesktopShell> {
         return;
       }
       showToast(
-        apiErrorMessage(
-          error,
-          fallback: l10n.shellRefreshFailed,
-          l10n: l10n,
-        ),
+        apiErrorMessage(error, fallback: l10n.shellRefreshFailed, l10n: l10n),
       );
     } finally {
       if (mounted) {
@@ -138,6 +138,8 @@ class _AppDesktopShellState extends State<AppDesktopShell> {
     // （含背后已缓存的列表页）在切布局那一帧被重新激活并重排，进详情页会明显变慢。
     final titleBarHeight = context.appComponentTokens.desktopTitleBarHeight;
     final showTopBar = widget.showTopBar;
+    final sidebarCollapsed = ref.watch(appShellSidebarCollapsedProvider);
+    final glassSidebarExpanded = useDesktopSidebarGlass && !sidebarCollapsed;
     final EdgeInsets contentPadding;
     if (immersive) {
       // 顶栏透明悬浮在内容之上，内容全幅铺底。
@@ -147,7 +149,9 @@ class _AppDesktopShellState extends State<AppDesktopShell> {
       // 隐藏顶栏时同样保留这段高度，避免内容贴住窗口顶部和窗口按钮。
       contentPadding = EdgeInsets.only(
         top: titleBarHeight,
-        left: AppPageInsets.desktop,
+        left: glassSidebarExpanded
+            ? context.appSpacing.lg
+            : AppPageInsets.desktop,
         right: AppPageInsets.desktop,
         bottom: AppPageInsets.desktop,
       );
@@ -171,6 +175,13 @@ class _AppDesktopShellState extends State<AppDesktopShell> {
           body: SafeArea(
             child: Stack(
               children: [
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DesktopAmbientBackdrop(
+                      enabled: useDesktopSidebarGlass,
+                    ),
+                  ),
+                ),
                 Row(
                   children: [
                     AppSidebar(
@@ -180,11 +191,19 @@ class _AppDesktopShellState extends State<AppDesktopShell> {
                     Expanded(
                       child: Container(
                         key: const Key('desktop-shell-content-surface'),
-                        color: context.appColors.surfaceElevated,
+                        color:
+                            useDesktopSidebarGlass &&
+                                widget.currentPath == desktopOverviewPath
+                            ? Colors.transparent
+                            : context.appColors.surfaceElevated,
                         child: Stack(
                           children: [
                             Positioned.fill(
-                              child: Padding(
+                              child: AnimatedPadding(
+                                duration: immersive
+                                    ? Duration.zero
+                                    : const Duration(milliseconds: 180),
+                                curve: Curves.easeOutCubic,
                                 padding: contentPadding,
                                 child: widget.child,
                               ),
@@ -204,6 +223,12 @@ class _AppDesktopShellState extends State<AppDesktopShell> {
                                   isRefreshing:
                                       current != null && _isRefreshing,
                                   overlay: immersive,
+                                  translucent:
+                                      useDesktopSidebarGlass &&
+                                      widget.currentPath == desktopOverviewPath,
+                                  contentLeadingInset: useDesktopSidebarGlass
+                                      ? context.appSpacing.lg
+                                      : AppPageInsets.desktop,
                                   hideActions: immersive,
                                 ),
                               )

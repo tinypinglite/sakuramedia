@@ -23,7 +23,83 @@ void main() {
     expect(find.text('128'), findsOneWidget);
     expect(find.text('2,410'), findsOneWidget);
     expect(find.text('9.0 TB'), findsOneWidget);
-    expect(find.text('缩略图 2,318'), findsOneWidget);
+    expect(find.text('2,410 个媒体文件 · 2,318 张缩略图'), findsOneWidget);
+  });
+
+  testWidgets('Hero 布局建立主指标层级并收拢库状态', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _pumpCard(
+      tester,
+      AssetSummaryCard(
+        status: _status(),
+        insights: StatusInsightsDto(
+          collections: CollectionsStatsDto(
+            playlists: const CollectionSummaryDto(count: 5, itemCount: 42),
+            videoCollections: const CollectionSummaryDto(
+              count: 2,
+              itemCount: 8,
+            ),
+          ),
+        ),
+        pendingIndexCount: 12,
+        layout: AssetSummaryCardLayout.hero,
+      ),
+    );
+
+    final primaryWidth = tester
+        .getSize(find.byKey(const Key('overview-asset-media-size')))
+        .width;
+    final supportingWidth = tester
+        .getSize(find.byKey(const Key('overview-asset-movies')))
+        .width;
+    expect(primaryWidth, greaterThan(supportingWidth));
+    final statusLine = find.byKey(const Key('overview-asset-status-line'));
+    expect(statusLine, findsOneWidget);
+    expect(find.text('3 个资源库'), findsOneWidget);
+    expect(
+      find.descendant(of: statusLine, matching: find.textContaining('待生成缩略图')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: statusLine, matching: find.textContaining('待索引')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: statusLine, matching: find.textContaining('合集：')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Hero 布局在窄窗口回退到等权分格', (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(540, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await _pumpCard(
+      tester,
+      AssetSummaryCard(
+        status: _status(),
+        insights: null,
+        pendingIndexCount: 0,
+        layout: AssetSummaryCardLayout.hero,
+      ),
+    );
+
+    final primaryWidth = tester
+        .getSize(find.byKey(const Key('overview-asset-movies')))
+        .width;
+    final supportingWidth = tester
+        .getSize(find.byKey(const Key('overview-asset-actors')))
+        .width;
+    expect(primaryWidth, supportingWidth);
+    expect(find.byKey(const Key('overview-asset-status-line')), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('窄卡片副文案只保留一个事实，避免中文断词', (WidgetTester tester) async {

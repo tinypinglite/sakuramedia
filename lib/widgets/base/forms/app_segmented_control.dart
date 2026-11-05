@@ -1,8 +1,7 @@
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_pill.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 
 /// 分段控件的一项。
 class AppSegmentedItem<T> {
@@ -16,155 +15,171 @@ class AppSegmentedItem<T> {
   final T value;
   final String label;
   final Widget? icon;
+
+  /// 分段在列表变化时的稳定身份。
+  ///
+  /// 该值现在交给库的 `GlassSegment.id`，不再作为可查找的 Widget key。
   final Key? key;
 }
 
 enum AppSegmentedSize { compact, regular }
 
-/// 单选分段控件：玻璃凹槽 track + 实色选中 pill。
+/// 单选分段控件。
 ///
-/// - 选项少、需要一眼看到全部时用；选项多到放不下时传 [scrollable]。
-/// - 颜色/圆角/高度全部由这里决定，业务只传值和文案。
-/// - 选中态用 [AppPillTone.selected] 的实色表面，不和 track 叠玻璃。
-class AppSegmentedControl<T> extends StatelessWidget {
+/// - 内部使用 `liquid_glass_widgets` 的 [GlassSegmentedControl.scrollable]，
+///   保持自然宽度；空间不足时横向滚动。
+/// - 由库组件负责轨道、选中指示器和交互动画；这里只做泛型值、主题和尺寸适配。
+/// - 不再外包 `AppGlassSurface`，避免玻璃控件嵌在玻璃容器里降级折射。
+class AppSegmentedControl<T> extends StatefulWidget {
   const AppSegmentedControl({
     super.key,
     required this.items,
     required this.selected,
     required this.onChanged,
     this.size = AppSegmentedSize.regular,
-    this.scrollable = false,
+    this.onDark = false,
   });
 
   final List<AppSegmentedItem<T>> items;
   final T selected;
   final ValueChanged<T> onChanged;
   final AppSegmentedSize size;
-  final bool scrollable;
+
+  /// 放在深色品牌面上时切换未选中文字、指示器和轨道透明度。
+  final bool onDark;
 
   @override
-  Widget build(BuildContext context) {
-    assert(items.isNotEmpty, 'AppSegmentedControl needs at least one item');
-    final spacing = context.appSpacing;
-    final track = AppGlassSurface(
-      tone: AppGlassTone.track,
-      borderRadius: context.appRadius.pillBorder,
-      padding: EdgeInsets.all(spacing.xs / 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          for (var index = 0; index < items.length; index++) ...<Widget>[
-            if (index > 0) SizedBox(width: spacing.xs / 2),
-            _AppSegmentedItemButton<T>(
-              item: items[index],
-              selected: items[index].value == selected,
-              size: size,
-              onTap: () => onChanged(items[index].value),
-            ),
-          ],
-        ],
-      ),
-    );
-
-    if (!scrollable) {
-      return track;
-    }
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: track,
-    );
-  }
+  State<AppSegmentedControl<T>> createState() => _AppSegmentedControlState<T>();
 }
 
-class _AppSegmentedItemButton<T> extends StatelessWidget {
-  const _AppSegmentedItemButton({
-    required this.item,
-    required this.selected,
-    required this.size,
-    required this.onTap,
-  });
+class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
+  bool _hasEmittedSelection = false;
+  T? _lastEmittedValue;
 
-  final AppSegmentedItem<T> item;
-  final bool selected;
-  final AppSegmentedSize size;
-  final VoidCallback onTap;
+  @override
+  void didUpdateWidget(covariant AppSegmentedControl<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selected != widget.selected) {
+      _hasEmittedSelection = false;
+      _lastEmittedValue = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final colors = resolveAppPillColors(context, AppPillTone.selected);
-    final spec = _AppSegmentedSizeSpec.resolve(context, size);
+    assert(
+      widget.items.isNotEmpty,
+      'AppSegmentedControl needs at least one item',
+    );
+    if (widget.items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final selectedIndex = widget.items.indexWhere(
+      (item) => item.value == widget.selected,
+    );
+    assert(
+      selectedIndex >= 0,
+      'AppSegmentedControl.selected must match one of the items',
+    );
+    final resolvedSelectedIndex = selectedIndex < 0 ? 0 : selectedIndex;
+
+    final spec = _AppSegmentedSizeSpec.resolve(context, widget.size);
+    final selectedColors = resolveAppPillColors(context, AppPillTone.selected);
     final inheritedFontFamily = DefaultTextStyle.of(context).style.fontFamily;
-    final baseTextStyle = resolveAppTextStyle(
+    final resolvedTextStyle = resolveAppTextStyle(
       context,
       size: spec.textSize,
       weight: AppTextWeight.regular,
       tone: AppTextTone.primary,
     );
-    final foreground = selected
-        ? colors.foreground
-        : context.appTextPalette.secondary;
-
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: AppInteractiveSurface(
-        key: item.key,
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.symmetric(
-            horizontal: spec.horizontalPadding,
-            vertical: spec.verticalPadding,
-          ),
-          decoration: BoxDecoration(
-            color: selected ? colors.background : Colors.transparent,
-            borderRadius: context.appRadius.pillBorder,
-            border: Border.all(
-              color: selected ? colors.border! : Colors.transparent,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              if (item.icon != null) ...[
-                IconTheme(
-                  data: IconThemeData(size: spec.iconSize, color: foreground),
-                  child: item.icon!,
-                ),
-                SizedBox(width: context.appSpacing.xs),
-              ],
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 160),
-                curve: Curves.easeOutCubic,
-                style: baseTextStyle.copyWith(
-                  color: foreground,
-                  fontFamily: baseTextStyle.fontFamily ?? inheritedFontFamily,
-                ),
-                child: Text(
-                  item.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
+    final baseTextStyle = resolvedTextStyle.copyWith(
+      fontFamily: resolvedTextStyle.fontFamily ?? inheritedFontFamily,
+    );
+    final segments = <GlassSegment>[
+      for (final item in widget.items)
+        GlassSegment(
+          id: item.key ?? item.value,
+          label: item.label,
+          icon: item.icon,
+          semanticLabel: item.label,
         ),
-      ),
+    ];
+
+    final pillRadius = context.appRadius.pill >= GlassDefaults.capsuleRadius
+        ? GlassDefaults.capsuleRadius
+        : context.appRadius.pill;
+    final selectedTextStyle = baseTextStyle.copyWith(
+      color: widget.onDark
+          ? context.appTextPalette.onMedia
+          : selectedColors.foreground,
+    );
+    final unselectedTextStyle = baseTextStyle.copyWith(
+      color: widget.onDark
+          ? context.appTextPalette.onMedia.withValues(alpha: 0.68)
+          : context.appTextPalette.secondary,
+    );
+    void selectSegment(int index) {
+      if (index < 0 || index >= widget.items.length) {
+        return;
+      }
+      final value = widget.items[index].value;
+      if (_hasEmittedSelection && value == _lastEmittedValue) {
+        return;
+      }
+      _hasEmittedSelection = true;
+      _lastEmittedValue = value;
+      widget.onChanged(value);
+    }
+
+    return GlassSegmentedControl.scrollable(
+      segments: segments,
+      selectedIndex: resolvedSelectedIndex,
+      onSegmentSelected: selectSegment,
+      height: spec.height,
+      borderRadius: pillRadius,
+      indicatorBorderRadius: pillRadius,
+      padding: EdgeInsets.all(context.appSpacing.xs / 2),
+      selectedTextStyle: selectedTextStyle,
+      unselectedTextStyle: unselectedTextStyle,
+      indicatorColor: widget.onDark
+          ? context.appTextPalette.onMedia.withValues(alpha: 0.18)
+          : selectedColors.background,
+      labelPadding: EdgeInsets.symmetric(horizontal: spec.horizontalPadding),
+      iconSize: spec.iconSize,
+      settings: _trackSettings(context, onDark: widget.onDark),
+      useOwnLayer: true,
+      quality: GlassQuality.standard,
+    );
+  }
+
+  static LiquidGlassSettings _trackSettings(
+    BuildContext context, {
+    required bool onDark,
+  }) {
+    final overlay = context.appTextPalette.onMedia;
+    return LiquidGlassSettings(
+      thickness: 12,
+      blur: 4,
+      saturation: 1,
+      chromaticAberration: 0,
+      lightIntensity: 0.35,
+      glassColor: onDark
+          ? overlay.withValues(alpha: 0.08)
+          : context.appColors.mediaOverlaySoft.withValues(alpha: 0.10),
     );
   }
 }
 
 class _AppSegmentedSizeSpec {
   const _AppSegmentedSizeSpec({
+    required this.height,
     required this.horizontalPadding,
-    required this.verticalPadding,
     required this.textSize,
     required this.iconSize,
   });
 
+  final double height;
   final double horizontalPadding;
-  final double verticalPadding;
   final AppTextSize textSize;
   final double iconSize;
 
@@ -176,14 +191,14 @@ class _AppSegmentedSizeSpec {
     final tokens = context.appComponentTokens;
     return switch (size) {
       AppSegmentedSize.compact => _AppSegmentedSizeSpec(
+        height: tokens.buttonHeight2xs,
         horizontalPadding: spacing.sm,
-        verticalPadding: spacing.xs / 2,
         textSize: AppTextSize.s12,
         iconSize: tokens.iconSize3xs,
       ),
       AppSegmentedSize.regular => _AppSegmentedSizeSpec(
+        height: tokens.buttonHeightXs,
         horizontalPadding: spacing.md,
-        verticalPadding: spacing.xs,
         textSize: AppTextSize.s12,
         iconSize: tokens.iconSize2xs,
       ),

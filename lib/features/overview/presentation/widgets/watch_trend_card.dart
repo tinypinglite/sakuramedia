@@ -27,6 +27,8 @@ class WatchTrendCard extends StatelessWidget {
     this.isLoading = false,
     this.errorMessage,
     this.onRetry,
+    this.embedded = false,
+    this.onDark = false,
   });
 
   final StatusWatchTrendDto? trend;
@@ -38,6 +40,12 @@ class WatchTrendCard extends StatelessWidget {
   final bool isLoading;
   final String? errorMessage;
   final VoidCallback? onRetry;
+
+  /// 关闭自身卡片外壳，由外层洞察带提供统一卡面。
+  final bool embedded;
+
+  /// 放在深色品牌面上时切换文字、坐标和图表颜色。
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
@@ -54,19 +62,25 @@ class WatchTrendCard extends StatelessWidget {
       ],
       selected: range,
       onChanged: onRangeChanged,
-      scrollable: true,
+      onDark: onDark,
     );
 
     return AppContentCard(
       key: const Key('overview-watch-trend-card'),
       title: l10n.overviewWatchTrend,
+      padding: embedded ? EdgeInsets.zero : null,
+      backgroundColor: embedded ? Colors.transparent : null,
+      borderColor: embedded ? Colors.transparent : null,
       titleStyle: resolveAppTextStyle(
         context,
         size: AppTextSize.s16,
         weight: AppTextWeight.semibold,
-        tone: AppTextTone.primary,
+        tone: onDark ? AppTextTone.onMedia : AppTextTone.primary,
       ),
-      headerLeading: const OverviewCardIcon(icon: Icons.insights_rounded),
+      headerLeading: OverviewCardIcon(
+        icon: Icons.insights_rounded,
+        onDark: onDark,
+      ),
       headerTrailing: compactSelector ? null : selector,
       headerBottomSpacing: context.appSpacing.lg,
       child: Column(
@@ -104,6 +118,7 @@ class WatchTrendCard extends StatelessWidget {
         message: errorMessage!,
         onRetry: onRetry,
         retryKey: const Key('overview-watch-trend-retry-button'),
+        onDark: onDark,
       );
     }
 
@@ -133,7 +148,7 @@ class WatchTrendCard extends StatelessWidget {
               context,
               size: AppTextSize.s12,
               weight: AppTextWeight.regular,
-              tone: AppTextTone.secondary,
+              tone: onDark ? AppTextTone.onMedia : AppTextTone.secondary,
             ),
           ),
           SizedBox(height: context.appSpacing.lg),
@@ -147,6 +162,7 @@ class WatchTrendCard extends StatelessWidget {
                         child: _TrendBarChart(
                           buckets: buckets,
                           range: current!.range,
+                          onDark: onDark,
                         ),
                       ),
                       SizedBox(height: context.appSpacing.sm),
@@ -154,19 +170,31 @@ class WatchTrendCard extends StatelessWidget {
                         padding: EdgeInsets.only(
                           left: _TrendValueAxis.width + context.appSpacing.xs,
                         ),
-                        child: _TrendAxisLabels(buckets: buckets),
+                        child: _TrendAxisLabels(
+                          buckets: buckets,
+                          onDark: onDark,
+                        ),
                       ),
                     ],
                   )
                 : Center(
                     child: Text(
                       l10n.overviewNoWatchHistoryInRange,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        weight: AppTextWeight.regular,
-                        tone: AppTextTone.muted,
-                      ),
+                      style:
+                          resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s12,
+                            weight: AppTextWeight.regular,
+                            tone: onDark
+                                ? AppTextTone.onMedia
+                                : AppTextTone.muted,
+                          ).copyWith(
+                            color: onDark
+                                ? context.appTextPalette.onMedia.withValues(
+                                    alpha: 0.58,
+                                  )
+                                : null,
+                          ),
                     ),
                   ),
           ),
@@ -180,10 +208,15 @@ class WatchTrendCard extends StatelessWidget {
 const double _chartAreaHeight = 96;
 
 class _TrendBarChart extends StatelessWidget {
-  const _TrendBarChart({required this.buckets, required this.range});
+  const _TrendBarChart({
+    required this.buckets,
+    required this.range,
+    required this.onDark,
+  });
 
   final List<WatchTrendBucketDto> buckets;
   final WatchTrendRange range;
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
@@ -194,7 +227,7 @@ class _TrendBarChart extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _TrendValueAxis(maxValue: axisMax),
+        _TrendValueAxis(maxValue: axisMax, onDark: onDark),
         SizedBox(width: context.appSpacing.xs),
         Expanded(
           child: CustomPaint(
@@ -202,10 +235,18 @@ class _TrendBarChart extends StatelessWidget {
             painter: _TrendBarChartPainter(
               counts: counts,
               axisMax: axisMax,
-              barColor: Theme.of(context).colorScheme.primary,
-              emptyBarColor: context.appColors.borderSubtle,
-              gridColor: context.appColors.borderSubtle,
-              baselineColor: context.appColors.divider,
+              barColor: onDark
+                  ? context.appTextPalette.onMedia
+                  : Theme.of(context).colorScheme.primary,
+              emptyBarColor: onDark
+                  ? context.appTextPalette.onMedia.withValues(alpha: 0.18)
+                  : context.appColors.borderSubtle,
+              gridColor: onDark
+                  ? context.appTextPalette.onMedia.withValues(alpha: 0.12)
+                  : context.appColors.borderSubtle,
+              baselineColor: onDark
+                  ? context.appTextPalette.onMedia.withValues(alpha: 0.16)
+                  : context.appColors.divider,
               barRadius: context.appRadius.xs,
               gap: buckets.length > 24 ? 2 : 6,
             ),
@@ -237,20 +278,26 @@ int _niceAxisMax(int maxCount) {
 /// 纵轴刻度：顶部为量程上限（与最高柱齐平的那条线），底部为 0。
 
 class _TrendValueAxis extends StatelessWidget {
-  const _TrendValueAxis({required this.maxValue});
+  const _TrendValueAxis({required this.maxValue, required this.onDark});
 
   static const double width = 24;
 
   final int maxValue;
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
-    final style = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s10,
-      weight: AppTextWeight.regular,
-      tone: AppTextTone.muted,
-    );
+    final style =
+        resolveAppTextStyle(
+          context,
+          size: AppTextSize.s10,
+          weight: AppTextWeight.regular,
+          tone: onDark ? AppTextTone.onMedia : AppTextTone.muted,
+        ).copyWith(
+          color: onDark
+              ? context.appTextPalette.onMedia.withValues(alpha: 0.58)
+              : null,
+        );
     return SizedBox(
       width: width,
       child: Stack(
@@ -376,18 +423,24 @@ class _TrendBarChartPainter extends CustomPainter {
 }
 
 class _TrendAxisLabels extends StatelessWidget {
-  const _TrendAxisLabels({required this.buckets});
+  const _TrendAxisLabels({required this.buckets, required this.onDark});
 
   final List<WatchTrendBucketDto> buckets;
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
-    final labelStyle = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s10,
-      weight: AppTextWeight.regular,
-      tone: AppTextTone.muted,
-    );
+    final labelStyle =
+        resolveAppTextStyle(
+          context,
+          size: AppTextSize.s10,
+          weight: AppTextWeight.regular,
+          tone: onDark ? AppTextTone.onMedia : AppTextTone.muted,
+        ).copyWith(
+          color: onDark
+              ? context.appTextPalette.onMedia.withValues(alpha: 0.58)
+              : null,
+        );
     return Row(
       children: <Widget>[
         Text(_formatPeriod(buckets.first.period), style: labelStyle),

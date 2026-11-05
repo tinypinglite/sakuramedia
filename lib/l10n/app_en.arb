@@ -2057,6 +2057,10 @@
   },
   "overviewOther": "Other",
   "overviewFree": "Free",
+  "overviewLibraryTitle": "Library",
+  "overviewLibrarySubtitle": "Status, tasks and recent activity at a glance.",
+  "overviewConnected": "Connected",
+  "overviewImportMedia": "Import media",
   "overviewMediaAssets": "Media assets",
   "overviewNoAssetData": "No media asset data yet",
   "overviewMovies": "Movies",
@@ -2080,6 +2084,15 @@
     }
   },
   "overviewActresses": "Actors",
+  "overviewSubscribedMovies": "Subscribed",
+  "overviewSubscriptionRate": "Subscription rate {rate}",
+  "@overviewSubscriptionRate": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
   "overviewSubscribedCount": "Subscribed: {count}",
   "@overviewSubscribedCount": {
     "placeholders": {
@@ -2098,6 +2111,17 @@
     }
   },
   "overviewTotalMediaSize": "Total media size",
+  "overviewMediaTotalDetail": "{files} media files · {thumbnails} thumbnails",
+  "@overviewMediaTotalDetail": {
+    "placeholders": {
+      "files": {
+        "type": "String"
+      },
+      "thumbnails": {
+        "type": "String"
+      }
+    }
+  },
   "overviewThumbnails": "Thumbnails: {count}",
   "@overviewThumbnails": {
     "placeholders": {
@@ -2107,11 +2131,22 @@
     }
   },
   "overviewCollectionsPrefix": "Collections: ",
+  "overviewCollectionKinds": "Playlists · videos · clips · moments",
   "overviewPendingThumbnails": "Thumbnails pending",
   "overviewPendingIndex": "Pending indexing",
   "overviewVideoCollections": "Video collections",
   "overviewClipCollections": "Clip collections",
   "overviewMomentCollections": "Moment collections",
+  "overviewWorkbenchTitle": "Workbench",
+  "overviewWorkbenchActive": "{count} active",
+  "@overviewWorkbenchActive": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewWorkbenchEmpty": "Queue is clear",
   "overviewStatusLoadFailed": "Failed to load media assets. Please try again later.",
   "overviewInsightsLoadFailed": "Failed to load statistics",
   "overviewWatchTrendLoadFailed": "Failed to load watch trend",
